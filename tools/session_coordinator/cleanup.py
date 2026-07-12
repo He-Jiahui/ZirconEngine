@@ -17,6 +17,7 @@ from .cargo_jobs import (
     CargoCleanupStatus,
     CargoJobStatus,
     CargoJobService,
+    overlapping_cleanup_reservation,
     target_identity,
     targets_overlap,
 )
@@ -411,6 +412,32 @@ class CleanupService:
             )
         return count
 
+    @staticmethod
+    def _overlapping_retained_owner(
+        connection: sqlite3.Connection,
+        target_key: str,
+        *,
+        excluded_job_ids: frozenset[str] = frozenset(),
+        include_exact: bool = True,
+    ) -> sqlite3.Row | None:
+        rows = connection.execute(
+            """
+            SELECT job_id, target_key, target_dir FROM cargo_jobs
+            WHERE cleanup_policy='retained' AND cleanup_status='retained'
+            ORDER BY released_at DESC, created_at DESC
+            """
+        ).fetchall()
+        return next(
+            (
+                row
+                for row in rows
+                if row["job_id"] not in excluded_job_ids
+                and (include_exact or row["target_key"] != target_key)
+                and targets_overlap(target_key, row["target_key"])
+            ),
+            None,
+        )
+
     def cleanup_job_now(self, job_id: str) -> CleanupResult:
         """Delete a non-reusable lane immediately after ownership has ended."""
         job = self.cargo_jobs.get(job_id)
@@ -445,15 +472,43 @@ class CleanupService:
                     "Cargo lane became active before immediate cleanup",
                 )
                 return CleanupResult((), (denial,))
-            if connection.execute(
-                "SELECT 1 FROM cleanup_reservations WHERE target_key=?", (key,)
-            ).fetchone() is not None:
+            if overlapping_cleanup_reservation(connection, key) is not None:
                 denial = CleanupDenial(
                     str(target),
                     "cleanup_already_reserved",
                     "Cargo lane is already reserved for cleanup",
                 )
                 return CleanupResult((), (denial,))
+            retained_owner = self._overlapping_retained_owner(
+                connection,
+                key,
+                excluded_job_ids=frozenset({job_id}),
+            )
+            if retained_owner is not None:
+                connection.execute(
+                    """
+                    UPDATE cargo_jobs
+                    SET cleanup_status='deleted', cleanup_error=NULL
+                    WHERE job_id=?
+                    """,
+                    (job_id,),
+                )
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                    (
+                        "cleanup.ephemeral_lane_superseded",
+                        json.dumps(
+                            {
+                                "job_id": job_id,
+                                "retained_job_id": retained_owner["job_id"],
+                                "target_dir": str(target),
+                            },
+                            sort_keys=True,
+                        ),
+                        utc_text(),
+                    ),
+                )
+                return CleanupResult((), ())
             connection.execute(
                 "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
                 (key, str(target), utc_text()),
@@ -620,16 +675,17 @@ class CleanupService:
                 target = self.cargo_jobs.target_policy.validate(target_jobs[-1].target_dir)
                 with self.database.transaction() as connection:
                     current_rows = connection.execute(
-                        """
-                        SELECT job_id, pid, status FROM cargo_jobs
-                        WHERE target_key=?
-                        """,
-                        (target_key,),
+                        "SELECT job_id, pid, status, target_key FROM cargo_jobs"
                     ).fetchall()
+                    overlapping_rows = [
+                        row
+                        for row in current_rows
+                        if targets_overlap(target_key, row["target_key"])
+                    ]
                     live = next(
                         (
                             row
-                            for row in current_rows
+                            for row in overlapping_rows
                             if row["pid"] and self.process_alive(int(row["pid"]))
                         ),
                         None,
@@ -646,7 +702,7 @@ class CleanupService:
                     active = next(
                         (
                             row
-                            for row in current_rows
+                            for row in overlapping_rows
                             if row["status"] in ACTIVE_CARGO_STATUSES
                         ),
                         None,
@@ -660,10 +716,21 @@ class CleanupService:
                             )
                         )
                         continue
-                    reservation = connection.execute(
-                        "SELECT 1 FROM cleanup_reservations WHERE target_key=?",
-                        (target_key,),
-                    ).fetchone()
+                    retained_owner = self._overlapping_retained_owner(
+                        connection, target_key, include_exact=False
+                    )
+                    if retained_owner is not None:
+                        denied.append(
+                            CleanupDenial(
+                                str(target),
+                                "retained_pool_overlap",
+                                "A nested or parent retained Cargo pool still owns this tree",
+                            )
+                        )
+                        continue
+                    reservation = overlapping_cleanup_reservation(
+                        connection, target_key
+                    )
                     if reservation is not None:
                         denied.append(
                             CleanupDenial(
@@ -937,10 +1004,19 @@ class CleanupService:
                         )
                     )
                     continue
-                existing_reservation = connection.execute(
-                    "SELECT target_dir FROM cleanup_reservations WHERE target_key = ?",
-                    (key,),
-                ).fetchone()
+                retained_owner = self._overlapping_retained_owner(
+                    connection, key, include_exact=False
+                )
+                if retained_owner is not None:
+                    denied.append(
+                        CleanupDenial(
+                            target_text,
+                            "retained_pool_overlap",
+                            "A nested or parent retained Cargo pool still owns this tree",
+                        )
+                    )
+                    continue
+                existing_reservation = overlapping_cleanup_reservation(connection, key)
                 if existing_reservation is not None:
                     denied.append(
                         CleanupDenial(

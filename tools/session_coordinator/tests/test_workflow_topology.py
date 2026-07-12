@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.session_coordinator.database import Database
-from tools.session_coordinator.migrations import MIGRATIONS, migrate
+from tools.session_coordinator.migrations import LATEST_SCHEMA_VERSION, MIGRATIONS, migrate
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
@@ -42,7 +42,7 @@ class WorkflowTopologyTests(unittest.TestCase):
                     "INSERT INTO schema_version VALUES (?, 'now')", (version,)
                 )
 
-        self.assertEqual(21, migrate(database))
+        self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
         with database.connect() as connection:
             tables = {
                 row[0]
@@ -77,7 +77,7 @@ class WorkflowTopologyTests(unittest.TestCase):
             }
         self.assertNotIn("source_manifest_hash", before)
 
-        self.assertEqual(21, migrate(database))
+        self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
         with database.connect() as connection:
             after = {
                 row[1] for row in connection.execute(

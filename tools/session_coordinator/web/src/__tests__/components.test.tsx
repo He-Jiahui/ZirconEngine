@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@mui/material/styles";
-import type { AuditEvent, ControlSnapshot, FailureNode, FinalizeRequestProjection, WorkflowNode } from "../api/contracts";
+import type { AuditEvent, CargoJobProjection, ControlSnapshot, FailureNode, FinalizeRequestProjection, WorkflowNode } from "../api/contracts";
 import { StatusText } from "../components/StatusText";
 import { FixedSizeList } from "../components/audit/fixedList";
 import { NodeDetailDrawer } from "../components/workflow/NodeDetailDrawer";
@@ -13,6 +13,7 @@ import { controlTheme } from "../theme";
 import { ValidationLaneTable } from "../components/validation/ValidationLaneTable";
 import { MilestoneCommitEvidence } from "../components/git/MilestoneCommitEvidence";
 import { overviewMetrics } from "../pages/OverviewPage";
+import { ArtifactLifecycleSummary, artifactLifecycleCounts } from "../components/validation/ArtifactLifecycleSummary";
 
 setupDom();
 
@@ -46,9 +47,21 @@ test("log pause freezes incoming events and resume follows", async () => {
   await act(async () => root.unmount()); host.remove();
 });
 
-test("drawer associates failures by origin or fixing plan and returns focus", async () => {
+test("log payload is rendered as text and cannot execute markup", async () => {
+  mockFetch();
   const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-  function Harness() { const [selected, setSelected] = useState<WorkflowNode | null>(null); return <ThemeProvider theme={controlTheme}><button id="opener" onClick={() => setSelected(node)}>打开</button><NodeDetailDrawer node={selected} planPath="docs/plans/x/01.md" edges={[]} artifacts={[]} leases={[]} failures={[failure]} onClose={() => setSelected(null)} /></ThemeProvider>; }
+  const payload = '<img src=x onerror="globalThis.__zirconXss=true"><script>globalThis.__zirconXss=true</script>';
+  await act(async () => { root.render(<ThemeProvider theme={controlTheme}><LogViewer events={[audit(3, payload)]} /></ThemeProvider>); await Promise.resolve(); });
+  assert.equal(host.querySelector("script"), null);
+  assert.equal(host.querySelector("img"), null);
+  assert.match(host.textContent ?? "", /<script>/);
+  assert.equal((globalThis as typeof globalThis & { __zirconXss?: boolean }).__zirconXss, undefined);
+  await act(async () => root.unmount()); host.remove();
+});
+
+test("drawer associates failures and exposes attempt, gate, review, and notification evidence", async () => {
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  function Harness() { const [selected, setSelected] = useState<WorkflowNode | null>(null); return <ThemeProvider theme={controlTheme}><button id="opener" onClick={() => setSelected(node)}>打开</button><NodeDetailDrawer node={selected} planPath="docs/plans/x/01.md" edges={[]} artifacts={[]} leases={[]} failures={[failure]} gates={[gate]} reviews={[review]} notifications={[notification]} onClose={() => setSelected(null)} /></ThemeProvider>; }
   await act(async () => root.render(<Harness />));
   const opener = host.querySelector("#opener") as HTMLButtonElement; opener.focus();
   await act(async () => opener.click());
@@ -56,6 +69,11 @@ test("drawer associates failures by origin or fixing plan and returns focus", as
   assert.equal(document.activeElement, close);
   assert.match(document.body.textContent ?? "", /architecture-fix/);
   assert.match(document.body.textContent ?? "", /failure-2026-07-11-architecture-fix\.md/);
+  assert.match(document.body.textContent ?? "", /npm test/);
+  assert.match(document.body.textContent ?? "", /退出码：0/);
+  assert.match(document.body.textContent ?? "", /validation\.accepted/);
+  assert.match(document.body.textContent ?? "", /reviewer-a/);
+  assert.match(document.body.textContent ?? "", /企业微信.*succeeded/);
   await act(async () => close.click());
   assert.equal(document.activeElement, opener);
   await act(async () => root.unmount()); host.remove();
@@ -63,12 +81,42 @@ test("drawer associates failures by origin or fixing plan and returns focus", as
 
 test("control tables render canonical Cargo and commit projection fields", async () => {
   const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-  const request: FinalizeRequestProjection = { request_id: "request-1", session_id: "s", message: "m", paths: [], categories: {}, untracked: [], validation: [], maintenance: 0, status: "committed", commit_sha: "0123456789abcdef", error_text: null, created_at: "now", completed_at: "now" };
-  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ValidationLaneTable jobs={[{ job_id: "job-1", session_id: "s", lane_kind: "workspace", target_dir: "R:/targets/job-1", status: "running", dry_run: 0, pid: 12, command: ["cargo", "test"], exit_code: null, created_at: "now", last_heartbeat_at: "now", started_at: "now", finished_at: null, released_at: null }]} /><MilestoneCommitEvidence requests={[request]} /></ThemeProvider>));
+  const request: FinalizeRequestProjection = { request_id: "request-1", session_id: "s", message: "m", paths: ["a.rs"], categories: { code: ["a.rs"] }, untracked: ["notes.md"], validation: [["cargo", "test", "-p", "crate"]], maintenance: 0, status: "committed", commit_sha: "0123456789abcdef", error_text: null, created_at: "now", completed_at: "now" };
+  const cleanupError = '<img src=x onerror="globalThis.__zirconXss=true">cleanup denied';
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ValidationLaneTable jobs={[cargoJob({ cleanup_policy: "delete_on_release", cleanup_status: "failed", cleanup_error: cleanupError, reused_from_job_id: "previous-job-123456789", compatibility_key: "compatibility-123456789" })]} /><MilestoneCommitEvidence requests={[request]} /></ThemeProvider>));
   assert.match(host.textContent ?? "", /workspace/);
   assert.match(host.textContent ?? "", /running/);
   assert.match(host.textContent ?? "", /R:\/targets\/job-1/);
+  assert.match(host.textContent ?? "", /用后即删/);
+  assert.match(host.textContent ?? "", /清理失败/);
+  assert.match(host.textContent ?? "", /compatibilit…/);
+  assert.match(host.textContent ?? "", /previous-job…/);
+  assert.match(host.textContent ?? "", /<img/);
+  assert.equal(host.querySelector("img"), null);
   assert.match(host.textContent ?? "", /0123456789ab/);
+  assert.match(host.textContent ?? "", /m/);
+  assert.match(host.textContent ?? "", /code 1/);
+  assert.match(host.textContent ?? "", /cargo test -p crate/);
+  assert.match(host.textContent ?? "", /cargo test/);
+  assert.match(host.textContent ?? "", /1m 0s/);
+  await act(async () => root.unmount()); host.remove();
+});
+
+test("artifact lifecycle summary de-duplicates reusable pools and reports cleanup risk", async () => {
+  const jobs = [
+    cargoJob({ job_id: "retained-1", compatibility_key: "shared-pool" }),
+    cargoJob({ job_id: "retained-2", compatibility_key: "shared-pool" }),
+    cargoJob({ job_id: "historical-deleted", compatibility_key: "deleted-pool", cleanup_status: "deleted" }),
+    cargoJob({ job_id: "historical-failed", compatibility_key: "failed-pool", cleanup_status: "failed" }),
+    cargoJob({ job_id: "pending", cleanup_policy: "delete_on_release", cleanup_status: "pending", compatibility_key: null }),
+    cargoJob({ job_id: "failed", cleanup_policy: "delete_on_release", cleanup_status: "failed", compatibility_key: null }),
+  ];
+  assert.deepEqual(artifactLifecycleCounts(jobs), { reusablePools: 1, ephemeralJobs: 2, pendingCleanup: 1, failedCleanup: 2 });
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ArtifactLifecycleSummary jobs={jobs} /></ThemeProvider>));
+  for (const label of ["可复用池 1", "用后即删 2", "待清理 1", "清理失败 2"])
+    assert.ok(host.querySelector(`[aria-label="${label}"]`));
+  assert.match(host.textContent ?? "", /当前有界协调器快照/);
   await act(async () => root.unmount()); host.remove();
 });
 
@@ -77,9 +125,13 @@ test("overview counts running Cargo jobs from canonical status", () => {
   assert.deepEqual(overviewMetrics(snapshot), [["工作流", 0], ["活动会话", 0], ["Failure", 0], ["运行验证", 1]]);
 });
 
-const node: WorkflowNode = { nodeId: "n", nodeKey: "n", kind: "goal", title: "节点", stage: "implementation", state: "running", ownerSessionId: "s", statusReason: null, currentAttempt: null, attemptHistory: [] };
+const node: WorkflowNode = { nodeId: "n", nodeKey: "n", kind: "goal", title: "节点", stage: "implementation", state: "running", ownerSessionId: "s", statusReason: null, currentAttempt: { attemptId: "attempt-1", attemptNumber: 1, state: "succeeded", accepted: true, evidence: { command: ["npm", "test"], exitCode: 0, durationMs: 60000 }, startedAt: "2026-07-11T00:00:00Z", completedAt: "2026-07-11T00:01:00Z" }, attemptHistory: [] };
 const failure: FailureNode = { node_id: 1, lifecycle_key: "life", artifact_path: "docs/plans/y/02/failure-2026-07-11-architecture-fix.md", kind: "failure", status: "open", created_at: "now", resolved_at: null, summary_slug: "architecture-fix", origin_plan: "docs/plans/x/01.md", fixing_plan: "docs/plans/y/02.md", origin_child_dir: "01", fixing_child_dir: "02", priority: 1, imported_at: "now" };
+const gate = { evidenceId: "gate-1", topologyVersionId: "topology-1", nodeId: "n", attemptId: "attempt-1", kind: "validation", decision: "accepted", code: "validation.accepted", inputFingerprint: "fingerprint", blockingNodeIds: [], applicableFailureIds: [], requiredEvidence: [], createdAt: "now" };
+const review = { reviewId: "review-1", topologyVersionId: "topology-1", nodeId: "n", attemptId: "attempt-1", reviewer: "reviewer-a", executor: "executor-a", verdict: "accepted", criticalCount: 0, importantCount: 0, summary: "通过", createdAt: "now" };
+const notification = { attemptId: "notification-1", commitSha: "0123456789abcdef", channel: "wecom", status: "succeeded", attemptedAt: "now", completedAt: "now", exitCode: 0, providerErrcode: null, sanitizedError: null, retryAllowed: false };
 function audit(eventId: number, message: string): AuditEvent { return { eventId, sessionId: "s", type: "info", payload: { message }, createdAt: "2026-07-11T00:00:00Z" }; }
+function cargoJob(overrides: Partial<CargoJobProjection> = {}): CargoJobProjection { return { job_id: "job-1", session_id: "s", lane_kind: "workspace", target_dir: "R:/targets/job-1", status: "running", dry_run: 0, pid: 12, command: ["cargo", "test"], exit_code: null, created_at: "2026-07-11T00:00:00Z", last_heartbeat_at: "2026-07-11T00:01:00Z", started_at: "2026-07-11T00:00:00Z", finished_at: "2026-07-11T00:01:00Z", released_at: null, reuse_key: "reuse", compatibility_key: "compatibility", reuse_profile: "{}", reused_from_job_id: null, cleanup_policy: "retained", cleanup_status: "retained", cleanup_error: null, ...overrides }; }
 function mockFetch() { globalThis.fetch = async () => new Response(JSON.stringify({ ok: true, data: { events: [], truncated: false, nextBefore: null }, meta: { apiVersion: 1, correlationId: "test" } }), { status: 200, headers: { "Content-Type": "application/json" } }); }
 
 function setupDom() {

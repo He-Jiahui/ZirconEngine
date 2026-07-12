@@ -74,6 +74,21 @@ class ActionFingerprintTests(unittest.TestCase):
         after_session = self._digest()
         self.assertNotEqual(after_lease, after_session)
 
+    def test_unstaged_unowned_change_does_not_alter_index_identity(self) -> None:
+        initial = self._digest()
+        (self.repo / "README.md").write_text("unowned worktree change\n", encoding="utf-8")
+        self.assertEqual(initial, self._digest())
+
+    def test_head_change_alters_digest_without_owned_file_change(self) -> None:
+        initial = self._digest()
+        subprocess.run(
+            ["git", "commit", "--allow-empty", "-m", "test: advance head"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+        self.assertNotEqual(initial, self._digest())
+
     def test_patch_validation_and_failure_markdown_changes_alter_digest(self) -> None:
         patch_spec = action_spec(ActionKind.PATCH_PROCESS.value)
         patch_parameters = patch_spec.parse_parameters({"sessionId": "session-a"})

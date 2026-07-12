@@ -76,6 +76,29 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(401, unauthorized.exception.code)
                 unauthorized.exception.close()
 
+    def test_authenticated_tray_recovery_command_updates_health_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+
+            with RunningCoordinator.start(config):
+                client = CoordinatorClient.from_runtime(config)
+                result = client.command(
+                    "supervision.recovery_record",
+                    {
+                        "failureCount": 2,
+                        "failureWindowStartedAt": 100,
+                        "nextRetryAt": 105,
+                        "circuitOpenUntil": None,
+                        "healthySince": None,
+                    },
+                )
+                health = client.health()
+
+            self.assertEqual(2, result["supervision"]["failureCount"])
+            self.assertEqual(2, health["supervision"]["failureCount"])
+
     def test_stale_runtime_descriptor_is_reported_as_offline(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,26 +1,26 @@
 import { Alert, AppBar, Box, CircularProgress, CssBaseline, Drawer, IconButton, List, ListItemButton, ListItemText, Stack, Toolbar, Typography } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { actionClient } from "./actions/actionClient";
 import type { ControlAuthSession } from "./api/contracts";
 import { StatusText } from "./components/StatusText";
 import { routeForPath, routes, type RouteKey } from "./navigation";
-import { AboutPage } from "./pages/AboutPage";
-import { ActionsPage } from "./pages/ActionsPage";
-import { AuditPage } from "./pages/AuditPage";
-import { CollaborationPage } from "./pages/CollaborationPage";
-import { FailuresPage } from "./pages/FailuresPage";
-import { GitPage } from "./pages/GitPage";
-import { LogsPage } from "./pages/LogsPage";
-import { OverviewPage } from "./pages/OverviewPage";
-import { SessionsPage } from "./pages/SessionsPage";
-import { ValidationPage } from "./pages/ValidationPage";
-import { WorkflowsPage } from "./pages/WorkflowsPage";
 import { ControlStoreProvider, useControlStore } from "./state/controlStore";
 import { controlTheme, controlTokens } from "./theme";
 import "./styles.css";
 
 const drawerWidth = 222;
+const OverviewPage = lazy(() => import("./pages/OverviewPage").then((module) => ({ default: module.OverviewPage })));
+const WorkflowsPage = lazy(() => import("./pages/WorkflowsPage").then((module) => ({ default: module.WorkflowsPage })));
+const SessionsPage = lazy(() => import("./pages/SessionsPage").then((module) => ({ default: module.SessionsPage })));
+const ActionsPage = lazy(() => import("./pages/ActionsPage").then((module) => ({ default: module.ActionsPage })));
+const FailuresPage = lazy(() => import("./pages/FailuresPage").then((module) => ({ default: module.FailuresPage })));
+const CollaborationPage = lazy(() => import("./pages/CollaborationPage").then((module) => ({ default: module.CollaborationPage })));
+const ValidationPage = lazy(() => import("./pages/ValidationPage").then((module) => ({ default: module.ValidationPage })));
+const GitPage = lazy(() => import("./pages/GitPage").then((module) => ({ default: module.GitPage })));
+const AuditPage = lazy(() => import("./pages/AuditPage").then((module) => ({ default: module.AuditPage })));
+const LogsPage = lazy(() => import("./pages/LogsPage").then((module) => ({ default: module.LogsPage })));
+const AboutPage = lazy(() => import("./pages/AboutPage").then((module) => ({ default: module.AboutPage })));
 
 export default function App() {
   return <ThemeProvider theme={controlTheme}><CssBaseline /><ControlStoreProvider><ControlShell /></ControlStoreProvider></ThemeProvider>;
@@ -52,7 +52,7 @@ function ControlShell() {
         <Alert severity="info">控制台只展示协调器持久化状态。业务 Session 的中间版本由服务管理，不会形成 Git 噪声提交。</Alert>
         {(state.error || state.needsRefresh) && <Alert severity={state.error ? "warning" : "info"} role="alert">{state.error ?? "状态已变化，正在重新同步完整快照。"}</Alert>}
         {state.loading && !state.snapshot && <Stack sx={{ alignItems: "center", p: 8 }}><CircularProgress aria-label="加载控制快照" /></Stack>}
-        {state.snapshot && <CurrentPage route={route} snapshot={state.snapshot} auth={auth} onAuthChange={setAuth} />}
+        {state.snapshot && <Suspense fallback={<CircularProgress aria-label="加载控制页面" />}><CurrentPage route={route} snapshot={state.snapshot} auth={auth} onAuthChange={setAuth} /></Suspense>}
       </Stack>
     </Box>
   </Box>;
@@ -63,7 +63,7 @@ function CurrentPage({ route, snapshot, auth, onAuthChange }: { route: RouteKey;
     case "overview": return <OverviewPage snapshot={snapshot} />;
     case "workflows": return <WorkflowsPage workflows={snapshot.workflows} collaboration={snapshot.collaboration} failures={snapshot.failures} />;
     case "sessions": return <SessionsPage sessions={snapshot.sessions} />;
-    case "actions": return <ActionsPage sessions={snapshot.sessions} workflows={snapshot.workflows} auth={auth} onAuthChange={onAuthChange} />;
+    case "actions": return <ActionsPage service={snapshot.service} sessions={snapshot.sessions} workflows={snapshot.workflows} auth={auth} onAuthChange={onAuthChange} />;
     case "failures": return <FailuresPage failures={snapshot.failures} />;
     case "collaboration": return <CollaborationPage collaboration={snapshot.collaboration} />;
     case "validation": return <ValidationPage validation={snapshot.validation} />;

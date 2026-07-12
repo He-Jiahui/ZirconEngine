@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { extname, relative, resolve } from "node:path";
+import { dirname, extname, relative, resolve, sep } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = resolve(root, "dist");
@@ -7,6 +7,7 @@ const indexPath = resolve(dist, "index.html");
 const index = readFileSync(indexPath, "utf8");
 if (!/<base\s+href=["']\/ui\/["']\s*\/?>/i.test(index)) fail("control console base path must be /ui/");
 const files = walk(dist).filter((path) => path !== indexPath);
+const reachable = reachableAssets(indexPath, dist);
 const sourceFiles = walk(resolve(root, "src")).filter((path) => /\.[cm]?[jt]sx?$/.test(path));
 const forbidden = [
   /https?:\/\/(?:localhost|127\.0\.0\.1):\d+/i,
@@ -19,7 +20,7 @@ if (files.some((path) => extname(path) === ".map")) fail("production source map 
 for (const path of files) {
   const name = relative(dist, path).replaceAll("\\", "/");
   if (!/[.-][0-9A-Za-z_-]{8,}\.[^.]+$/.test(name)) fail(`asset is not content-hashed: ${name}`);
-  if (!index.includes(name)) fail(`asset is not referenced by index.html: ${name}`);
+  if (!reachable.has(path)) fail(`asset is unreachable from index.html: ${name}`);
   const text = readFileSync(path, "utf8");
   for (const pattern of forbidden) if (pattern.test(text)) fail(`forbidden runtime material in ${name}`);
 }
@@ -41,6 +42,28 @@ function walk(directory) {
     const path = resolve(directory, name);
     return statSync(path).isDirectory() ? walk(path) : [path];
   });
+}
+
+function reachableAssets(entry, root) {
+  const found = new Set();
+  const pending = [entry];
+  while (pending.length) {
+    const owner = pending.pop();
+    const text = readFileSync(owner, "utf8");
+    for (const match of text.matchAll(/["'(]((?:\.\/|\/ui\/)?(?:assets\/)?[0-9A-Za-z_.-]+[.-][0-9A-Za-z_-]{8,}\.(?:js|css))["')]/g)) {
+      const reference = match[1];
+      const candidate = reference.startsWith("/ui/")
+        ? resolve(root, reference.slice("/ui/".length))
+        : reference.startsWith("assets/")
+          ? resolve(root, reference)
+          : resolve(dirname(owner), reference);
+      if ((candidate !== root && !candidate.startsWith(root + sep)) || found.has(candidate)) continue;
+      if (!files.includes(candidate)) fail(`resource graph references missing asset: ${reference}`);
+      found.add(candidate);
+      if ([".js", ".css"].includes(extname(candidate))) pending.push(candidate);
+    }
+  }
+  return found;
 }
 
 function fail(message) {

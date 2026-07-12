@@ -99,7 +99,7 @@ class ControlPlaneHttp:
                 ControlResponse(status, error=error_payload(error)),
                 correlation_id,
             )
-        except (BrokenPipeError, ConnectionResetError, TimeoutError):
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, TimeoutError):
             return
         except Exception:
             issue = CoordinatorError("internal_error", "Internal control service error")
@@ -108,6 +108,9 @@ class ControlPlaneHttp:
                 ControlResponse(500, error=error_payload(issue)),
                 correlation_id,
             )
+
+    def close(self) -> None:
+        self.events.close()
 
     def _stream_events(
         self, handler, *, runtime_authorized: bool, correlation_id: str
@@ -128,7 +131,7 @@ class ControlPlaneHttp:
             handler.send_header("X-Correlation-ID", correlation_id)
             handler.end_headers()
             last_heartbeat = time.monotonic()
-            while True:
+            while not self.events.wait_for_close(0):
                 replay = self.events.read_after(cursor)
                 if replay.resync_required:
                     handler.wfile.write(b"event: resync_required\ndata: {}\n\n")
@@ -143,7 +146,8 @@ class ControlPlaneHttp:
                     last_heartbeat = now
                 if replay.events or now - last_heartbeat < 0.1:
                     handler.wfile.flush()
-                time.sleep(0.25)
+                if self.events.wait_for_close(0.25):
+                    return
 
     @staticmethod
     def _read_body(handler) -> bytes:
@@ -195,7 +199,13 @@ class ControlPlaneHttp:
             return HTTPStatus.NOT_FOUND
         if code in {"action_expired", "elevation_grant_expired"}:
             return HTTPStatus.GONE
-        if code in {"invalid_json", "invalid_request", "invalid_cursor", "request_too_large"}:
+        if code in {
+            "invalid_json",
+            "invalid_request",
+            "invalid_cursor",
+            "request_too_large",
+            "action_limit_invalid",
+        }:
             return HTTPStatus.BAD_REQUEST
         if code == "invalid_range":
             return HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE

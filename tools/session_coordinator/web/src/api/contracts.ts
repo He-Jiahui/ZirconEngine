@@ -10,6 +10,11 @@ export interface ServiceProjection {
   instanceId: string;
   startedAt: string;
   controlApiVersions: number[];
+  supervision?: {
+    state: string;
+    busy: boolean;
+    blockers: JsonObject[];
+  };
 }
 
 export interface WorkflowSummary {
@@ -144,7 +149,6 @@ export interface BaselineEpoch extends JsonObject {
   head_commit: string;
   index_tree: string;
   health: "healthy" | "degraded";
-  manifest_json: string;
   created_at: string;
   degraded_at: string | null;
   degraded_reason: string | null;
@@ -165,9 +169,6 @@ export interface PatchProjection extends JsonObject {
   session_id: string;
   patch_object_hash: string;
   targets: string[];
-  base_hashes: JsonObject;
-  base_objects: JsonObject;
-  current_objects: JsonObject | null;
   status: "queued" | "applying" | "applied" | "needs_rebase" | "failed" | "cancelled";
   error_text: string | null;
   created_at: string;
@@ -190,6 +191,13 @@ export interface CargoJobProjection extends JsonObject {
   started_at: string | null;
   finished_at: string | null;
   released_at: string | null;
+  reuse_key: string | null;
+  compatibility_key: string | null;
+  reuse_profile: string | null;
+  reused_from_job_id: string | null;
+  cleanup_policy: "retained" | "delete_on_release";
+  cleanup_status: "retained" | "pending" | "deleted" | "failed";
+  cleanup_error: string | null;
 }
 
 export interface ValidationCopyProjection extends JsonObject {
@@ -199,7 +207,6 @@ export interface ValidationCopyProjection extends JsonObject {
   source_root: string;
   target_root: string;
   head_commit: string;
-  manifest: string[];
   status: "planned" | "materialized" | "running" | "cleanup_pending" | "removed" | "failed";
   created_at: string;
   removed_at: string | null;
@@ -300,5 +307,11 @@ export interface ActionRecord {
   reason: string | null;
   result: JsonObject | null;
   errorCode: string | null;
-  confirmationPhrase: string | null;
+  confirmationPhrase?: string | null;
+}
+
+export interface ActionActivityResponse {
+  actions: ActionRecord[];
+  truncated: boolean;
+  limit: number;
 }

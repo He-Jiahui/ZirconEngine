@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 from sqlite3 import Connection
@@ -28,6 +29,14 @@ class ActionFingerprinter:
         self.repo_root = Path(repo_root).resolve()
         self.daemon_instance_id = daemon_instance_id
         self.supervision = supervision
+        self._git_dir = Path(self._git("rev-parse", "--absolute-git-dir")).resolve()
+        common_dir_file = self._git_dir / "commondir"
+        if common_dir_file.is_file():
+            common_value = common_dir_file.read_text(encoding="utf-8").strip()
+            self._git_common_dir = (self._git_dir / common_value).resolve()
+        else:
+            self._git_common_dir = self._git_dir
+        self._index_path = self._git_dir / "index"
 
     def capture(
         self,
@@ -85,7 +94,7 @@ class ActionFingerprinter:
             "actionKind": spec.kind.value,
             "parameters": parameters.to_payload(),
             "daemonInstanceId": self.daemon_instance_id,
-            "head": self._git("rev-parse", "HEAD"),
+            "head": self._head_oid(),
             "index": self._index_digest(),
             "baseline": dict(baseline) if baseline is not None else None,
             "session": dict(session) if session is not None else None,
@@ -292,13 +301,58 @@ class ActionFingerprinter:
         return hash_file(candidate)
 
     def _index_digest(self) -> str:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--binary", "--no-ext-diff"],
-            cwd=self.repo_root,
-            check=True,
-            capture_output=True,
-        )
-        return hashlib.sha256(result.stdout).hexdigest()
+        if not self._index_path.is_file():
+            return hashlib.sha256(b"").hexdigest()
+        return hash_file(self._index_path)
+
+    def _head_oid(self) -> str:
+        try:
+            value = (self._git_dir / "HEAD").read_text(encoding="ascii").strip()
+            for _ in range(5):
+                if re.fullmatch(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", value):
+                    return value.lower()
+                if not value.startswith("ref: "):
+                    break
+                reference = value.removeprefix("ref: ").strip()
+                loose = self._read_loose_ref(reference)
+                if loose is not None:
+                    value = loose
+                    continue
+                packed = self._read_packed_ref(reference)
+                if packed is not None:
+                    return packed
+                break
+        except (OSError, UnicodeError):
+            pass
+        return self._git("rev-parse", "HEAD")
+
+    def _read_loose_ref(self, reference: str) -> str | None:
+        if not reference.startswith("refs/") or ".." in Path(reference).parts:
+            return None
+        for root in (self._git_dir, self._git_common_dir):
+            candidate = root / reference
+            try:
+                if candidate.is_file():
+                    return candidate.read_text(encoding="ascii").strip()
+            except (OSError, UnicodeError):
+                return None
+        return None
+
+    def _read_packed_ref(self, reference: str) -> str | None:
+        try:
+            lines = (self._git_common_dir / "packed-refs").read_text(
+                encoding="ascii"
+            ).splitlines()
+        except (OSError, UnicodeError):
+            return None
+        suffix = f" {reference}"
+        for line in lines:
+            if line.startswith(("#", "^")) or not line.endswith(suffix):
+                continue
+            oid = line.split(" ", 1)[0]
+            if re.fullmatch(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", oid):
+                return oid.lower()
+        return None
 
     def _git(self, *arguments: str) -> str:
         return subprocess.run(

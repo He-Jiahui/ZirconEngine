@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
 from tools.session_coordinator.database import Database
-from tools.session_coordinator.migrations import MIGRATIONS, migrate
+from tools.session_coordinator.migrations import LATEST_SCHEMA_VERSION, MIGRATIONS, migrate
 
 
 class SupervisionSchemaTests(unittest.TestCase):
@@ -68,7 +69,7 @@ class SupervisionSchemaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             database = self._frozen_v19_database(directory)
 
-            self.assertEqual(21, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
 
             with database.connect() as connection:
                 request = connection.execute(
@@ -187,6 +188,119 @@ class SupervisionSchemaTests(unittest.TestCase):
                         )
                         """
                     )
+
+    def test_schema_26_allows_only_one_active_reversible_lifecycle_per_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, kind, status,
+                        requested_by, source_daemon_instance_id, created_at, updated_at
+                    ) VALUES ('stop-a', 'repo', 'service.stop', 'draining',
+                              'test', 'daemon', 'now', 'now')
+                    """
+                )
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                with database.transaction() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO service_lifecycle_intents(
+                            intent_id, repository_key, kind, status,
+                            requested_by, source_daemon_instance_id, created_at, updated_at
+                        ) VALUES ('restart-b', 'repo', 'service.restart', 'accepted',
+                                  'test', 'daemon', 'now', 'now')
+                        """
+                    )
+
+    def test_schema_26_fails_historical_conflicting_lifecycles_and_audits_repair(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 26):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+                for action_id, kind, intent_id, status in (
+                    ("action-stop", "service.stop", "intent-stop", "draining"),
+                    ("action-restart", "service.restart", "intent-restart", "accepted"),
+                ):
+                    self._insert_action(connection, action_id, kind)
+                    connection.execute(
+                        "UPDATE action_requests SET status='executing' WHERE action_id=?",
+                        (action_id,),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO service_lifecycle_intents(
+                            intent_id, repository_key, action_id, kind, status,
+                            requested_by, source_daemon_instance_id, created_at, updated_at
+                        ) VALUES (?, 'repo', ?, ?, ?, 'schema-test', 'daemon-v25', 'now', 'now')
+                        """,
+                        (intent_id, action_id, kind, status),
+                    )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                intents = list(
+                    connection.execute(
+                        "SELECT intent_id, status, error_code, completed_at "
+                        "FROM service_lifecycle_intents ORDER BY intent_id"
+                    )
+                )
+                actions = list(
+                    connection.execute(
+                        "SELECT action_id, status, error_code, completed_at "
+                        "FROM action_requests ORDER BY action_id"
+                    )
+                )
+                event = connection.execute(
+                    "SELECT payload_json FROM events "
+                    "WHERE event_type='schema.lifecycle_conflict_repaired'"
+                ).fetchone()
+                index_names = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA index_list(service_lifecycle_intents)"
+                    )
+                }
+
+            self.assertEqual(
+                [
+                    ("intent-restart", "failed", "migration.lifecycle_conflict", True),
+                    ("intent-stop", "failed", "migration.lifecycle_conflict", True),
+                ],
+                [
+                    (row[0], row[1], row[2], row[3] is not None)
+                    for row in intents
+                ],
+            )
+            self.assertEqual(
+                [
+                    ("action-restart", "failed", "migration.lifecycle_conflict", True),
+                    ("action-stop", "failed", "migration.lifecycle_conflict", True),
+                ],
+                [
+                    (row[0], row[1], row[2], row[3] is not None)
+                    for row in actions
+                ],
+            )
+            payload = json.loads(event[0])
+            self.assertEqual("repo", payload["repositoryKey"])
+            self.assertEqual(
+                ["intent-restart", "intent-stop"], payload["intentIds"]
+            )
+            self.assertIn("service_lifecycle_one_active_reversible", index_names)
 
 
 if __name__ == "__main__":

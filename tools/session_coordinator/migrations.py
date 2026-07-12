@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from sqlite3 import Connection
 
 from .database import Database
+from .event_payloads import (
+    MAX_CONTROL_EVENT_PAYLOAD_BYTES,
+    encode_oversized_event_payload,
+)
 from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 21
+LATEST_SCHEMA_VERSION = 26
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1058,6 +1063,181 @@ def _migration_21(connection: Connection) -> None:
     )
 
 
+def _migration_22(connection: Connection) -> None:
+    """Repair databases whose historical v21 marker predates Cargo pool metadata."""
+    columns = {
+        str(row[1]) for row in connection.execute("PRAGMA table_info(cargo_jobs)")
+    }
+    additions = {
+        "reuse_key": "TEXT",
+        "compatibility_json": "TEXT",
+        "compatibility_key": "TEXT",
+        "reuse_profile": "TEXT",
+        "cleanup_policy": (
+            "TEXT NOT NULL DEFAULT 'retained' "
+            "CHECK (cleanup_policy IN ('retained', 'delete_on_release'))"
+        ),
+        "cleanup_status": (
+            "TEXT NOT NULL DEFAULT 'retained' "
+            "CHECK (cleanup_status IN ('retained', 'pending', 'deleted', 'failed'))"
+        ),
+        "reused_from_job_id": "TEXT REFERENCES cargo_jobs(job_id)",
+        "cleanup_error": "TEXT",
+    }
+    for column, declaration in additions.items():
+        if column not in columns:
+            connection.execute(
+                f"ALTER TABLE cargo_jobs ADD COLUMN {column} {declaration}"
+            )
+    connection.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS cargo_jobs_reuse_lookup
+            ON cargo_jobs(reuse_key, status, released_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS cargo_jobs_active_reuse_key
+            ON cargo_jobs(reuse_key)
+            WHERE reuse_key IS NOT NULL AND status IN ('leased', 'running');
+        CREATE INDEX IF NOT EXISTS cargo_jobs_compatibility_cleanup
+            ON cargo_jobs(lane_kind, compatibility_key, status, released_at);
+        CREATE INDEX IF NOT EXISTS cargo_jobs_cleanup_pending
+            ON cargo_jobs(cleanup_status, released_at);
+        """
+    )
+
+
+def _migration_23(connection: Connection) -> None:
+    """Fail historical Cargo rows without a complete reuse identity to ephemeral."""
+    connection.execute(
+        """
+        UPDATE cargo_jobs
+        SET cleanup_policy='delete_on_release', cleanup_status='pending', cleanup_error=NULL
+        WHERE cleanup_policy='retained' AND cleanup_status='retained'
+          AND (
+              reuse_key IS NULL OR compatibility_json IS NULL
+              OR compatibility_key IS NULL OR reuse_profile IS NULL
+          )
+        """
+    )
+
+
+def _migration_24(connection: Connection) -> None:
+    """Compact legacy event payloads that exceed the control-plane contract."""
+    oversized = connection.execute(
+        """
+        SELECT event_id, LENGTH(CAST(payload_json AS BLOB))
+        FROM events
+        WHERE LENGTH(CAST(payload_json AS BLOB)) > ?
+        """,
+        (MAX_CONTROL_EVENT_PAYLOAD_BYTES,),
+    ).fetchall()
+    connection.executemany(
+        "UPDATE events SET payload_json=? WHERE event_id=?",
+        (
+            (
+                encode_oversized_event_payload(
+                    int(original_bytes),
+                    reason="legacy_event_payload_compacted",
+                ),
+                int(event_id),
+            )
+            for event_id, original_bytes in oversized
+        ),
+    )
+
+
+def _migration_25(connection: Connection) -> None:
+    """Mark the one-time physical compaction that follows bounded event migration."""
+    connection.execute("SELECT 1")
+
+
+def _migration_26(connection: Connection) -> None:
+    """Repair historical lifecycle conflicts, then enforce one active drain."""
+    conflicts = connection.execute(
+        """
+        SELECT repository_key
+        FROM service_lifecycle_intents
+        WHERE kind IN ('service.stop', 'service.restart', 'service.force_stop')
+          AND status IN ('accepted', 'draining')
+        GROUP BY repository_key
+        HAVING COUNT(*) > 1
+        ORDER BY repository_key
+        """
+    ).fetchall()
+    for conflict in conflicts:
+        repository_key = str(conflict[0])
+        rows = connection.execute(
+            """
+            SELECT intent_id, action_id
+            FROM service_lifecycle_intents
+            WHERE repository_key=?
+              AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
+              AND status IN ('accepted', 'draining')
+            ORDER BY intent_id
+            """,
+            (repository_key,),
+        ).fetchall()
+        intent_ids = [str(row[0]) for row in rows]
+        action_ids = sorted(str(row[1]) for row in rows if row[1] is not None)
+        result = json.dumps(
+            {
+                "errorCode": "migration.lifecycle_conflict",
+                "intentIds": intent_ids,
+                "repositoryKey": repository_key,
+                "resolution": "all_conflicting_lifecycles_failed",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        connection.execute(
+            """
+            UPDATE service_lifecycle_intents
+            SET status='failed', error_code='migration.lifecycle_conflict',
+                result_json=?, updated_at=datetime('now'), completed_at=datetime('now')
+            WHERE repository_key=?
+              AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
+              AND status IN ('accepted', 'draining')
+            """,
+            (result, repository_key),
+        )
+        if action_ids:
+            placeholders = ",".join("?" for _ in action_ids)
+            connection.execute(
+                f"""
+                UPDATE action_requests
+                SET status='failed', error_code='migration.lifecycle_conflict',
+                    reason='Schema 26 safely terminated conflicting lifecycle actions',
+                    result_json=?, completed_at=datetime('now')
+                WHERE action_id IN ({placeholders})
+                  AND status IN ('previewed', 'executing')
+                """,
+                (result, *action_ids),
+            )
+        connection.execute(
+            "INSERT INTO events(event_type, payload_json, created_at) "
+            "VALUES ('schema.lifecycle_conflict_repaired', ?, datetime('now'))",
+            (
+                json.dumps(
+                    {
+                        "actionIds": action_ids,
+                        "errorCode": "migration.lifecycle_conflict",
+                        "intentIds": intent_ids,
+                        "repositoryKey": repository_key,
+                        "resolution": "all_conflicting_lifecycles_failed",
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            ),
+        )
+    connection.execute(
+        """
+        CREATE UNIQUE INDEX service_lifecycle_one_active_reversible
+        ON service_lifecycle_intents(repository_key)
+        WHERE kind IN ('service.stop', 'service.restart', 'service.force_stop')
+          AND status IN ('accepted', 'draining')
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1080,10 +1260,17 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     19: _migration_19,
     20: migrate_supervision_schema,
     21: _migration_21,
+    22: _migration_22,
+    23: _migration_23,
+    24: _migration_24,
+    25: _migration_25,
+    26: _migration_26,
 }
 
 
 def migrate(database: Database) -> int:
+    existing_database = False
+    apply_compaction_marker = False
     with database.transaction() as connection:
         connection.execute(
             "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
@@ -1100,8 +1287,35 @@ def migrate(database: Database) -> int:
                 "Coordinator database was created by a newer service version",
                 details={"versions": newer_versions, "supported": LATEST_SCHEMA_VERSION},
             )
-        for version in range(1, LATEST_SCHEMA_VERSION + 1):
+        existing_database = bool(applied)
+        apply_compaction_marker = 25 not in applied
+        for version in range(1, 25):
             if version in applied:
+                continue
+            MIGRATIONS[version](connection)
+            connection.execute(
+                "INSERT INTO schema_version(version, applied_at) VALUES (?, datetime('now'))",
+                (version,),
+            )
+    if apply_compaction_marker:
+        if existing_database:
+            with database.connect() as connection:
+                connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                connection.execute("VACUUM")
+        with database.transaction() as connection:
+            _migration_25(connection)
+            connection.execute(
+                "INSERT INTO schema_version(version, applied_at) VALUES (25, datetime('now'))"
+            )
+    with database.transaction() as connection:
+        applied_after_compaction = {
+            int(row[0])
+            for row in connection.execute(
+                "SELECT version FROM schema_version WHERE version>=26"
+            )
+        }
+        for version in range(26, LATEST_SCHEMA_VERSION + 1):
+            if version in applied_after_compaction:
                 continue
             MIGRATIONS[version](connection)
             connection.execute(

@@ -30,9 +30,13 @@ class WorkspaceCopyTests(unittest.TestCase):
         SessionService(self.database, self.repo).register(session_id="session-a")
         self.baselines = BaselineService(self.database, self.repo)
         self.baselines.initialize()
-        self.service = WorkspaceCopyService(
-            self.database, self.repo, (self.target_root,)
-        )
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            self.service = WorkspaceCopyService(
+                self.database, self.repo, (self.target_root,)
+            )
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -133,12 +137,16 @@ class WorkspaceCopyTests(unittest.TestCase):
 
     def test_async_completion_uses_the_shared_mutation_gate(self) -> None:
         gate = threading.Lock()
-        service = WorkspaceCopyService(
-            self.database,
-            self.repo,
-            (self.target_root,),
-            mutation_gate=lambda: gate,
-        )
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            service = WorkspaceCopyService(
+                self.database,
+                self.repo,
+                (self.target_root,),
+                mutation_gate=lambda: gate,
+            )
         result = service.materialize("session-a", include_paths=("README.md",))
         gate.acquire()
         try:

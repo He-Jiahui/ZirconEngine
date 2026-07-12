@@ -27,5 +27,30 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     assetsDir: "assets",
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "react-vendor",
+              test: /node_modules[\\/](?:react|react-dom|scheduler)[\\/]/,
+              priority: 30,
+            },
+            {
+              name: "mui-vendor",
+              test: /node_modules[\\/](?:@mui|@emotion)[\\/]/,
+              priority: 20,
+              maxSize: 400 * 1024,
+            },
+            {
+              name: "vendor",
+              test: /node_modules[\\/]/,
+              priority: 10,
+              maxSize: 400 * 1024,
+            },
+          ],
+        },
+      },
+    },
   },
 });

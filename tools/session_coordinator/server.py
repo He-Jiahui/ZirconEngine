@@ -301,6 +301,9 @@ class CoordinatorApplication:
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if name in self.READ_ONLY_COMMANDS:
             return self._command_unlocked(name, arguments)
+        if name == "supervision.force_stop_ack":
+            with self._mutation_lock:
+                return self._command_unlocked(name, arguments)
         if self.read_only:
             return self._command_unlocked(name, arguments)
         if name == "legacy.import" and bool(arguments.get("apply")):
@@ -315,6 +318,17 @@ class CoordinatorApplication:
                 "not_on_main",
                 f"Coordinator mutations require main; current branch is {self.branch}",
             )
+        if name == "supervision.recovery_record":
+            snapshot = self.supervision.record_recovery(
+                failure_count=arguments.get("failureCount"),
+                failure_window_started_at=arguments.get("failureWindowStartedAt"),
+                next_retry_at=arguments.get("nextRetryAt"),
+                circuit_open_until=arguments.get("circuitOpenUntil"),
+                healthy_since=arguments.get("healthySince"),
+            )
+            return {"supervision": snapshot.to_dict()}
+        if name == "supervision.force_stop_ack":
+            return self.lifecycle.acknowledge_force_stop(str(arguments["actionId"]))
         if name == "session.register":
             session = self.sessions.register(
                 session_id=str(arguments["session_id"]),
@@ -1070,6 +1084,7 @@ class RunningCoordinator:
 
     def stop(self) -> None:
         self.maintenance_stop.set()
+        self.httpd.control_http.close()
         self.httpd.shutdown()
         self.httpd.server_close()
         self.thread.join(timeout=5)

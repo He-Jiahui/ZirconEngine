@@ -123,6 +123,47 @@ class SupervisionServiceTests(unittest.TestCase):
         self.assertEqual("explicit_stop_persisted", rejected.exception.code)
         self.assertEqual(SupervisionState.OFFLINE, successor.snapshot().state)
 
+    def test_tray_recovery_state_is_persisted_and_audited_without_state_transition(self) -> None:
+        self.service.initialize()
+        self.service.mark_healthy()
+
+        snapshot = self.service.record_recovery(
+            failure_count=3,
+            failure_window_started_at=100,
+            next_retry_at=130,
+            circuit_open_until=None,
+            healthy_since=None,
+        )
+
+        self.assertEqual(SupervisionState.HEALTHY, snapshot.state)
+        self.assertEqual(3, snapshot.failure_count)
+        self.assertIsNotNone(snapshot.next_retry_at)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM service_recovery_state WHERE repository_key='repo-key'"
+            ).fetchone()
+            event = connection.execute(
+                "SELECT * FROM service_supervision_events ORDER BY sequence DESC LIMIT 1"
+            ).fetchone()
+        self.assertEqual(3, row["failure_count"])
+        self.assertEqual("tray.recovery_backoff", event["reason_code"])
+        self.assertEqual("zircon-session-tray", event["actor"])
+
+    def test_tray_recovery_state_rejects_incoherent_circuit_payload(self) -> None:
+        self.service.initialize()
+        self.service.mark_healthy()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.record_recovery(
+                failure_count=2,
+                failure_window_started_at=100,
+                next_retry_at=None,
+                circuit_open_until=700,
+                healthy_since=None,
+            )
+
+        self.assertEqual("recovery_state_invalid", rejected.exception.code)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,11 +25,6 @@ function nullableString(value: unknown, label: string): string | null {
   return string(value, label);
 }
 
-function nullableObject(value: unknown, label: string): JsonObject | null {
-  if (value === null) return null;
-  return object(value, label);
-}
-
 function stringArray(value: unknown, label: string): string[] {
   return array(value, label).map((item, index) => string(item, `${label}[${index}]`));
 }
@@ -89,6 +84,12 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   for (const key of ["status", "branch", "mode", "baseline", "instanceId", "startedAt"])
     string(service[key], `服务状态.${key}`);
   array(service.controlApiVersions, "控制 API 版本");
+  if (service.supervision !== undefined) {
+    const supervision = object(service.supervision, "服务监督状态");
+    string(supervision.state, "服务监督状态.state");
+    if (typeof supervision.busy !== "boolean") throw new Error("服务监督状态.busy 必须是布尔值");
+    array(supervision.blockers, "服务监督状态.blockers").forEach((item, index) => object(item, `服务监督状态.blockers[${index}]`));
+  }
   array(root.workflows, "workflows").forEach((item, index) => validateWorkflowSummary(item, `workflows[${index}]`));
   array(root.sessions, "sessions").forEach((item, index) => validateSession(item, `sessions[${index}]`));
   array(root.audit, "audit").forEach((item, index) => validateAudit(item, `audit[${index}]`));
@@ -236,8 +237,10 @@ function validateFailureNode(value: unknown, label: string): void {
 function validateBaseline(value: unknown, label: string): void {
   const baseline = object(value, label);
   integer(baseline.epoch_id, `${label}.epoch_id`);
-  for (const key of ["head_commit", "index_tree", "manifest_json", "created_at"])
+  for (const key of ["head_commit", "index_tree", "created_at"])
     string(baseline[key], `${label}.${key}`);
+  if (baseline.manifest_bytes !== undefined) integer(baseline.manifest_bytes, `${label}.manifest_bytes`);
+  else string(baseline.manifest_json, `${label}.manifest_json`);
   enumeration(baseline.health, ["healthy", "degraded"], `${label}.health`);
   nullableString(baseline.degraded_at, `${label}.degraded_at`);
   nullableString(baseline.degraded_reason, `${label}.degraded_reason`);
@@ -256,9 +259,14 @@ function validatePatch(value: unknown, label: string): void {
   for (const key of ["session_id", "patch_object_hash", "created_at", "updated_at"])
     string(patch[key], `${label}.${key}`);
   stringArray(patch.targets, `${label}.targets`);
-  object(patch.base_hashes, `${label}.base_hashes`);
-  object(patch.base_objects, `${label}.base_objects`);
-  nullableObject(patch.current_objects, `${label}.current_objects`);
+  if (patch.content_bytes !== undefined) {
+    integer(patch.content_bytes, `${label}.content_bytes`);
+    flag(patch.has_current_objects, `${label}.has_current_objects`);
+  } else {
+    object(patch.base_hashes, `${label}.base_hashes`);
+    object(patch.base_objects, `${label}.base_objects`);
+    if (patch.current_objects !== null) object(patch.current_objects, `${label}.current_objects`);
+  }
   enumeration(patch.status, ["queued", "applying", "applied", "needs_rebase", "failed", "cancelled"], `${label}.status`);
   nullableString(patch.error_text, `${label}.error_text`);
   nullableString(patch.applied_at, `${label}.applied_at`);
@@ -276,13 +284,18 @@ function validateCargoJob(value: unknown, label: string): void {
   nullableInteger(job.exit_code, `${label}.exit_code`);
   for (const key of ["started_at", "finished_at", "released_at"])
     nullableString(job[key], `${label}.${key}`);
+  for (const key of ["reuse_key", "compatibility_key", "reuse_profile", "reused_from_job_id", "cleanup_error"])
+    nullableString(job[key], `${label}.${key}`);
+  enumeration(job.cleanup_policy, ["retained", "delete_on_release"], `${label}.cleanup_policy`);
+  enumeration(job.cleanup_status, ["retained", "pending", "deleted", "failed"], `${label}.cleanup_status`);
 }
 
 function validateValidationCopy(value: unknown, label: string): void {
   const copy = object(value, label);
   for (const key of ["job_id", "session_id", "job_root", "source_root", "target_root", "head_commit", "created_at"])
     string(copy[key], `${label}.${key}`);
-  stringArray(copy.manifest, `${label}.manifest`);
+  if (copy.manifest_bytes !== undefined) integer(copy.manifest_bytes, `${label}.manifest_bytes`);
+  else stringArray(copy.manifest, `${label}.manifest`);
   enumeration(copy.status, ["planned", "materialized", "running", "cleanup_pending", "removed", "failed"], `${label}.status`);
   nullableString(copy.removed_at, `${label}.removed_at`);
 }

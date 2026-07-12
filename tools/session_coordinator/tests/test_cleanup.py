@@ -110,6 +110,75 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse(Path(job.target_dir).exists())
         self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
 
+    def test_superseded_ephemeral_record_never_deletes_a_retained_pool(self) -> None:
+        ephemeral = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "adopted-pool",
+        )
+        marker = Path(ephemeral.target_dir) / "artifact"
+        marker.write_text("reusable", encoding="utf-8")
+        self.jobs.release(ephemeral.job_id, session_id="session-a")
+        reusable = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=Path(ephemeral.target_dir),
+        )
+        self.jobs.release(reusable.job_id, session_id="session-a")
+
+        result = self.cleanup.cleanup_job_now(ephemeral.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual((), result.denied)
+        self.assertTrue(marker.is_file())
+        self.assertEqual("deleted", self.jobs.get(ephemeral.job_id).cleanup_status.value)
+        self.assertEqual("retained", self.jobs.get(reusable.job_id).cleanup_status.value)
+
+    def test_superseded_ephemeral_parent_never_deletes_retained_child_pool(self) -> None:
+        ephemeral = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "adopted-parent",
+        )
+        self.jobs.release(ephemeral.job_id, session_id="session-a")
+        reusable = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=Path(ephemeral.target_dir) / "retained-child",
+        )
+        marker = Path(reusable.target_dir) / "artifact"
+        marker.write_text("reusable", encoding="utf-8")
+        self.jobs.release(reusable.job_id, session_id="session-a")
+
+        result = self.cleanup.cleanup_job_now(ephemeral.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual((), result.denied)
+        self.assertTrue(marker.is_file())
+        self.assertEqual("deleted", self.jobs.get(ephemeral.job_id).cleanup_status.value)
+        self.assertEqual("retained", self.jobs.get(reusable.job_id).cleanup_status.value)
+
+    def test_superseded_ephemeral_child_never_deletes_retained_parent_pool(self) -> None:
+        reusable = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "retained-parent",
+        )
+        self.jobs.release(reusable.job_id, session_id="session-a")
+        ephemeral = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.TEST,
+            requested_target=Path(reusable.target_dir) / "ephemeral-child",
+        )
+        marker = Path(ephemeral.target_dir) / "artifact"
+        marker.write_text("temporary", encoding="utf-8")
+        self.jobs.release(ephemeral.job_id, session_id="session-a")
+
+        result = self.cleanup.cleanup_job_now(ephemeral.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual((), result.denied)
+        self.assertTrue(marker.is_file())
+        self.assertEqual("deleted", self.jobs.get(ephemeral.job_id).cleanup_status.value)
+        self.assertEqual("retained", self.jobs.get(reusable.job_id).cleanup_status.value)
+
     def test_failed_ephemeral_cleanup_is_retryable(self) -> None:
         job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
@@ -282,7 +351,7 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((first.target_dir,), applied.deleted)
         self.assertTrue(Path(second.target_dir).exists())
 
-    def test_cleanup_reservation_blocks_reacquire_without_holding_writer_lock(self) -> None:
+    def test_cleanup_reservation_blocks_overlapping_reacquire_without_writer_lock(self) -> None:
         job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         with self.database.transaction() as connection:
@@ -293,7 +362,9 @@ class CleanupTests(unittest.TestCase):
 
         with self.assertRaises(CoordinatorError) as rejected:
             self.jobs.acquire(
-                "session-a", CargoLaneKind.CHECK, requested_target=job.target_dir
+                "session-a",
+                CargoLaneKind.CHECK,
+                requested_target=Path(job.target_dir) / "concurrent-child",
             )
         self.assertEqual("cargo_lane_cleanup_reserved", rejected.exception.code)
 
@@ -366,7 +437,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(any(item.code == "active_lease" for item in applied.denied))
         self.assertTrue(Path(parent.target_dir).exists())
 
-    def test_cleanup_deletes_outside_writer_transaction_and_blocks_reacquire(self) -> None:
+    def test_cleanup_deletes_outside_writer_transaction_and_blocks_child_reacquire(self) -> None:
         job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         cleanup_time = datetime.now(UTC) + timedelta(days=2)
@@ -376,7 +447,9 @@ class CleanupTests(unittest.TestCase):
         def delete_while_competing(path: Path) -> None:
             with self.assertRaises(CoordinatorError) as rejected:
                 self.jobs.acquire(
-                    "session-a", CargoLaneKind.CHECK, requested_target=path
+                    "session-a",
+                    CargoLaneKind.CHECK,
+                    requested_target=path / "concurrent-child",
                 )
             self.assertEqual("cargo_lane_cleanup_reserved", rejected.exception.code)
             with self.database.transaction() as connection:

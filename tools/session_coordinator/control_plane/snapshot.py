@@ -4,6 +4,10 @@ import json
 from collections.abc import Callable
 
 from ..database import Database
+from ..event_payloads import (
+    CONTROL_EVENT_PAYLOAD_COLUMNS,
+    project_control_event_payload,
+)
 from ..workflows.projections import WorkflowProjectionService
 
 
@@ -86,14 +90,29 @@ class ControlSnapshotService:
     def _collaboration(connection) -> dict[str, object]:
         leases = [dict(row) for row in connection.execute("SELECT * FROM leases ORDER BY display_path")]
         patches = []
-        for row in connection.execute("SELECT * FROM patches ORDER BY patch_id DESC LIMIT 500"):
+        for row in connection.execute(
+            """
+            SELECT patch_id, session_id, patch_object_hash, targets_json, status,
+                   error_text, created_at, updated_at, applied_at,
+                   LENGTH(CAST(base_hashes_json AS BLOB))
+                       + LENGTH(CAST(base_objects_json AS BLOB))
+                       + COALESCE(LENGTH(CAST(current_objects_json AS BLOB)), 0)
+                       AS content_bytes,
+                   CASE WHEN current_objects_json IS NULL THEN 0 ELSE 1 END
+                       AS has_current_objects
+            FROM patches ORDER BY patch_id DESC LIMIT 500
+            """
+        ):
             item = dict(row)
-            for key in ("targets_json", "base_hashes_json", "base_objects_json", "current_objects_json"):
-                value = item.pop(key)
-                item[key.removesuffix("_json")] = json.loads(value) if value else None
+            item["targets"] = json.loads(item.pop("targets_json"))
             patches.append(item)
         baseline = connection.execute(
-            "SELECT * FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1"
+            """
+            SELECT epoch_id, head_commit, index_tree, health, created_at,
+                   degraded_at, degraded_reason,
+                   LENGTH(CAST(manifest_json AS BLOB)) AS manifest_bytes
+            FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1
+            """
         ).fetchone()
         return {"baseline": dict(baseline) if baseline else None, "leases": leases, "patches": patches}
 
@@ -106,11 +125,14 @@ class ControlSnapshotService:
             jobs.append(item)
         copies = []
         for row in connection.execute(
-            "SELECT * FROM validation_copies ORDER BY created_at DESC LIMIT 500"
+            """
+            SELECT job_id, session_id, job_root, source_root, target_root,
+                   head_commit, status, created_at, removed_at,
+                   LENGTH(CAST(manifest_json AS BLOB)) AS manifest_bytes
+            FROM validation_copies ORDER BY created_at DESC LIMIT 500
+            """
         ):
-            item = dict(row)
-            item["manifest"] = json.loads(item.pop("manifest_json"))
-            copies.append(item)
+            copies.append(dict(row))
         return {"cargoJobs": jobs, "validationCopies": copies}
 
     @staticmethod
@@ -129,14 +151,18 @@ class ControlSnapshotService:
     @staticmethod
     def _audit(connection) -> list[dict[str, object]]:
         rows = connection.execute(
-            "SELECT * FROM events ORDER BY event_id DESC LIMIT 200"
+            f"""
+            SELECT event_id, session_id, event_type, created_at,
+                   {CONTROL_EVENT_PAYLOAD_COLUMNS}
+            FROM events ORDER BY event_id DESC LIMIT 200
+            """
         ).fetchall()
         return [
             {
                 "eventId": int(row["event_id"]),
                 "sessionId": row["session_id"],
                 "type": row["event_type"],
-                "payload": json.loads(row["payload_json"]),
+                "payload": project_control_event_payload(row),
                 "createdAt": row["created_at"],
             }
             for row in reversed(rows)

@@ -23,6 +23,7 @@ from .permissions import require_permission
 
 
 ACTION_PREVIEW_SECONDS = 120
+ACTION_ACTIVITY_MAX_LIMIT = 100
 
 
 class ActionService:
@@ -290,25 +291,40 @@ class ActionService:
         normalized_reason = reason.strip()
         if not normalized_reason or len(normalized_reason) > 500:
             raise CoordinatorError("action_reason_invalid", "Cancellation reason is required")
-        with self.database.transaction() as connection:
-            row = self._request_row(connection, action_id)
+        with self._confirmation_lock:
+            with self.database.connect() as connection:
+                row = self._request_row(connection, action_id)
             context = self._context_for_request(context, row)
             self._require_request_identity(context, row)
+            if row["status"] == ActionStatus.EXECUTING.value:
+                self.executor.cancel(
+                    ActionKind(row["action_kind"]),
+                    action_id,
+                    actor=context.actor,
+                    reason=normalized_reason,
+                )
+                return self.get(context, action_id)
             if row["status"] != ActionStatus.PREVIEWED.value:
                 raise CoordinatorError("action_not_cancellable", f"Action is {row['status']}")
-            connection.execute(
-                """UPDATE action_requests
-                   SET status = 'cancelled', reason = ?, completed_at = ?
-                   WHERE action_id = ?""",
-                (normalized_reason, utc_text(), action_id),
-            )
-            parameters = json.loads(row["parameters_json"])
-            self._event(
-                connection,
-                parameters.get("sessionId"),
-                "action.cancelled",
-                {"actionId": action_id, "kind": row["action_kind"]},
-            )
+            with self.database.transaction() as connection:
+                current = self._request_row(connection, action_id)
+                if current["status"] != ActionStatus.PREVIEWED.value:
+                    raise CoordinatorError(
+                        "action_not_cancellable", f"Action is {current['status']}"
+                    )
+                connection.execute(
+                    """UPDATE action_requests
+                       SET status = 'cancelled', reason = ?, result_json = ?, completed_at = ?
+                       WHERE action_id = ? AND status = 'previewed'""",
+                    (normalized_reason, None, utc_text(), action_id),
+                )
+                parameters = json.loads(current["parameters_json"])
+                self._event(
+                    connection,
+                    parameters.get("sessionId"),
+                    "action.cancelled",
+                    {"actionId": action_id, "kind": current["action_kind"]},
+                )
         return self.get(context, action_id)
 
     def get(self, context: ActionContext, action_id: str) -> ActionRecord:
@@ -317,6 +333,38 @@ class ActionService:
         context = self._context_for_request(context, row)
         self._require_request_identity(context, row)
         return self._record(row)
+
+    def list_activity(
+        self, context: ActionContext, *, limit: int = 50
+    ) -> tuple[list[ActionRecord], bool]:
+        """Return only this authenticated browser identity's newest action activity."""
+        self._require_instance(context)
+        if limit < 1 or limit > ACTION_ACTIVITY_MAX_LIMIT:
+            raise CoordinatorError(
+                "action_limit_invalid",
+                f"Action activity limit must be within 1-{ACTION_ACTIVITY_MAX_LIMIT}",
+            )
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT *
+                FROM action_requests
+                WHERE daemon_instance_id = ?
+                  AND actor = ?
+                  AND web_session_id IS ?
+                  AND bound_session_id IS ?
+                ORDER BY created_at DESC, rowid DESC
+                LIMIT ?
+                """,
+                (
+                    self.daemon_instance_id,
+                    context.actor,
+                    context.web_session_id,
+                    context.bound_session_id,
+                    limit + 1,
+                ),
+            ).fetchall()
+        return [self._record(row) for row in rows[:limit]], len(rows) > limit
 
     def _record_denial(self, context, spec, parameters, code: str) -> None:
         action_id = uuid.uuid4().hex

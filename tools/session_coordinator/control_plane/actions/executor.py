@@ -270,6 +270,21 @@ class ActionExecutor:
             return self.milestones.close_goal(value.session_id, value.run_id)
         raise CoordinatorError("action_executor_missing", "Action has no M3 executor")
 
+    def cancel(
+        self, kind: ActionKind, action_id: str, *, actor: str, reason: str
+    ) -> dict[str, object]:
+        if kind in {
+            ActionKind.SERVICE_STOP,
+            ActionKind.SERVICE_RESTART,
+            ActionKind.SERVICE_FORCE_STOP,
+        }:
+            if self.lifecycle is None:
+                raise CoordinatorError(
+                    "lifecycle_unavailable", "Lifecycle service is unavailable"
+                )
+            return self.lifecycle.cancel(action_id, actor=actor, reason=reason)
+        raise CoordinatorError("action_not_cancellable", f"Action {kind.value} is executing")
+
     @staticmethod
     def _session(parameters: ActionParameters) -> SessionParameters:
         return ActionExecutor._typed(parameters, SessionParameters)

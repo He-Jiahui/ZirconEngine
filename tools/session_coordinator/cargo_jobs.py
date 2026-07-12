@@ -61,6 +61,17 @@ def targets_overlap(left: str, right: str) -> bool:
     )
 
 
+def overlapping_cleanup_reservation(connection, target_key: str):
+    """Return the first cleanup reservation whose tree intersects the target."""
+    rows = connection.execute(
+        "SELECT target_key, target_dir FROM cleanup_reservations ORDER BY reserved_at"
+    ).fetchall()
+    return next(
+        (row for row in rows if targets_overlap(target_key, row["target_key"])),
+        None,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class CargoCompatibility:
     platform: str
@@ -326,10 +337,9 @@ class CargoJobService:
                             """,
                             ((duplicate_job_id,) for duplicate_job_id in duplicate_job_ids),
                         )
-                    reserved_candidate = connection.execute(
-                        "SELECT 1 FROM cleanup_reservations WHERE target_key=?",
-                        (candidate_key,),
-                    ).fetchone()
+                    reserved_candidate = overlapping_cleanup_reservation(
+                        connection, candidate_key
+                    )
                     if reserved_candidate is not None:
                         raise CoordinatorError(
                             "cargo_lane_cleanup_reserved",
@@ -354,10 +364,7 @@ class CargoJobService:
                         root / "zircon-engine" / "ephemeral" / lane_kind.value / job_id
                     )
             target_key = target_identity(target)
-            reservation = connection.execute(
-                "SELECT target_dir FROM cleanup_reservations WHERE target_key = ?",
-                (target_key,),
-            ).fetchone()
+            reservation = overlapping_cleanup_reservation(connection, target_key)
             if reservation is not None:
                 raise CoordinatorError(
                     "cargo_lane_cleanup_reserved",

@@ -114,6 +114,40 @@ impl TrayVisualState {
             Self::FatalIntegrityError => "Zircon Coordinator：完整性错误",
         }
     }
+
+    pub fn icon_rgba(self, size: u32) -> Vec<u8> {
+        let color = self.icon_color();
+        let mut pixels = vec![0; (size * size * 4) as usize];
+        let center = (size as f32 - 1.0) / 2.0;
+        let radius = (size as f32 * 0.42).max(1.0);
+        for y in 0..size {
+            for x in 0..size {
+                let dx = x as f32 - center;
+                let dy = y as f32 - center;
+                if dx * dx + dy * dy <= radius * radius {
+                    let offset = ((y * size + x) * 4) as usize;
+                    pixels[offset..offset + 4].copy_from_slice(&color);
+                }
+            }
+        }
+        pixels
+    }
+
+    fn icon_color(self) -> [u8; 4] {
+        match self {
+            Self::Starting => [66, 133, 244, 255],
+            Self::Healthy => [35, 166, 90, 255],
+            Self::Busy => [246, 173, 0, 255],
+            Self::Degraded => [230, 126, 34, 255],
+            Self::Draining => [142, 68, 173, 255],
+            Self::Stopping => [211, 47, 47, 255],
+            Self::Offline => [117, 117, 117, 255],
+            Self::Recovering => [0, 151, 167, 255],
+            Self::ReadOnly => [84, 110, 122, 255],
+            Self::IdentityMismatch => [194, 24, 91, 255],
+            Self::FatalIntegrityError => [127, 0, 0, 255],
+        }
+    }
 }
 
 #[cfg(test)]
@@ -136,5 +170,30 @@ mod tests {
         assert!(!mismatch.stop);
         assert!(!mismatch.force_stop);
         assert!(mismatch.exit_tray);
+    }
+
+    #[test]
+    fn every_visual_state_has_a_visible_distinct_status_icon() {
+        let states = [
+            TrayVisualState::Starting,
+            TrayVisualState::Healthy,
+            TrayVisualState::Busy,
+            TrayVisualState::Degraded,
+            TrayVisualState::Draining,
+            TrayVisualState::Stopping,
+            TrayVisualState::Offline,
+            TrayVisualState::Recovering,
+            TrayVisualState::ReadOnly,
+            TrayVisualState::IdentityMismatch,
+            TrayVisualState::FatalIntegrityError,
+        ];
+        let mut colors = std::collections::HashSet::new();
+        for state in states {
+            let pixels = state.icon_rgba(16);
+            assert_eq!(16 * 16 * 4, pixels.len());
+            assert!(pixels.chunks_exact(4).any(|pixel| pixel[3] == 255));
+            colors.insert(state.icon_color());
+        }
+        assert_eq!(states.len(), colors.len());
     }
 }

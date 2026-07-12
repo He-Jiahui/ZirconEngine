@@ -7,9 +7,14 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from tools.session_coordinator.client import CoordinatorClient
 from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.control_plane.actions.models import ActionContext, ActionKind
+from tools.session_coordinator.database import Database
+from tools.session_coordinator.models import WebControlRole
 from tools.session_coordinator.server import RunningCoordinator
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -81,6 +86,95 @@ class ControlHttpTests(unittest.TestCase):
             self.assertTrue(runtime["instance_id"])
             self.assertTrue(runtime["started_at"])
 
+    def test_action_activity_restores_only_the_current_browser_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                client = CoordinatorClient.from_runtime(config)
+                client.command("session.register", {"session_id": "session-a"})
+                client.command("session.register", {"session_id": "session-b"})
+                ticket = client.issue_ui_ticket(actor="browser-a")
+                cookie_jar = http.cookiejar.CookieJar()
+                opener = urllib.request.build_opener(
+                    urllib.request.HTTPCookieProcessor(cookie_jar),
+                    _NoRedirectHandler(),
+                )
+                opener.open(f"{running.base_url}{ticket['bootstrapPath']}", timeout=2).close()
+                grant = client.issue_elevation_grant(
+                    actor="browser-a", role="operator", session_id="session-a"
+                )
+                elevate = urllib.request.Request(
+                    f"{running.base_url}/control/v1/auth/elevate",
+                    data=json.dumps({"grant": grant["grant"]}).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Origin": running.base_url,
+                    },
+                    method="POST",
+                )
+                csrf = json.loads(opener.open(elevate, timeout=2).read())["data"]["csrfToken"]
+
+                def preview() -> dict[str, object]:
+                    request = urllib.request.Request(
+                        f"{running.base_url}/control/v1/actions/preview",
+                        data=json.dumps(
+                            {
+                                "kind": ActionKind.SESSION_HEARTBEAT.value,
+                                "parameters": {"sessionId": "session-a"},
+                            }
+                        ).encode("utf-8"),
+                        headers={
+                            "Content-Type": "application/json",
+                            "Origin": running.base_url,
+                            "X-CSRF-Token": csrf,
+                        },
+                        method="POST",
+                    )
+                    return json.loads(opener.open(request, timeout=2).read())["data"]["action"]
+
+                first = preview()
+                second = preview()
+                running.httpd.control_http.router.actions.preview(
+                    ActionContext(
+                        actor="foreign-browser",
+                        role=WebControlRole.OPERATOR,
+                        web_session_id="foreign-web",
+                        bound_session_id="session-b",
+                        daemon_instance_id=running.instance_id,
+                    ),
+                    ActionKind.SESSION_HEARTBEAT.value,
+                    {"sessionId": "session-b"},
+                )
+
+                activity_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/actions?limit=1",
+                    headers={"Origin": running.base_url},
+                )
+                activity = json.loads(opener.open(activity_request, timeout=2).read())["data"]
+                detail_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/actions/{first['actionId']}",
+                    headers={"Origin": running.base_url},
+                )
+                detail = json.loads(opener.open(detail_request, timeout=2).read())["data"]
+                invalid_limit_request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/actions?limit=101",
+                    headers={"Origin": running.base_url},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as invalid_limit:
+                    opener.open(invalid_limit_request, timeout=2)
+                invalid_limit_body = json.loads(invalid_limit.exception.read())
+                invalid_limit.exception.close()
+
+            self.assertEqual([second["actionId"]], [item["actionId"] for item in activity["actions"]])
+            self.assertTrue(activity["truncated"])
+            self.assertNotIn("confirmationPhrase", activity["actions"][0])
+            self.assertEqual(first["actionId"], detail["action"]["actionId"])
+            self.assertIn("confirmationPhrase", detail["action"])
+            self.assertEqual(400, invalid_limit.exception.code)
+            self.assertEqual("action_limit_invalid", invalid_limit_body["error"]["code"])
+
     def test_log_range_is_bounded_and_cursor_based(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -104,6 +198,31 @@ class ControlHttpTests(unittest.TestCase):
                 )
                 older_payload = json.loads(urllib.request.urlopen(older, timeout=2).read())["data"]
                 self.assertTrue(all(event["eventId"] < before for event in older_payload["events"]))
+
+    def test_log_range_projects_legacy_oversized_event_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                marker = "must-not-cross-log-boundary"
+                oversized = json.dumps({"value": marker * 1024})
+                with Database(config.database_path).transaction() as connection:
+                    connection.execute(
+                        "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, 'now')",
+                        ("legacy.oversized", oversized),
+                    )
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/logs?limit=1",
+                    headers={"Authorization": f"Bearer {running.token}"},
+                )
+
+                payload = json.loads(urllib.request.urlopen(request, timeout=2).read())["data"]
+
+            event = payload["events"][0]
+            self.assertEqual(True, event["payload"]["truncated"])
+            self.assertGreater(event["payload"]["originalBytes"], 16 * 1024)
+            self.assertNotIn(marker, json.dumps(payload))
 
     def test_malicious_host_is_rejected_before_authentication(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -190,6 +309,30 @@ class ControlHttpTests(unittest.TestCase):
                     rejected_head.exception.headers["Content-Type"],
                 )
                 rejected_head.exception.close()
+
+    def test_windows_sse_disconnect_is_a_normal_transport_close(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                control = running.httpd.control_http
+                handler = SimpleNamespace(
+                    headers={
+                        "Host": f"127.0.0.1:{running.httpd.server_address[1]}",
+                        "Authorization": f"Bearer {running.token}",
+                    },
+                    server=running.httpd,
+                    path="/control/v1/events/stream",
+                    command="GET",
+                )
+                with patch.object(
+                    control,
+                    "_stream_events",
+                    side_effect=ConnectionAbortedError(10053, "client disconnected"),
+                ), patch.object(control, "_write_response") as write_response:
+                    control.handle(handler)
+                write_response.assert_not_called()
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):

@@ -2,14 +2,25 @@
 param(
     [switch]$ReadOnlyConsole,
     [switch]$ControlledActions,
-    [switch]$TrayLifecycle
+    [switch]$TrayLifecycle,
+    [switch]$Full
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$selected = @($ReadOnlyConsole, $ControlledActions, $TrayLifecycle).Where({ $_ }).Count
+$selected = @($ReadOnlyConsole, $ControlledActions, $TrayLifecycle, $Full).Where({ $_ }).Count
 if ($selected -ne 1) {
-    throw 'Select exactly one acceptance gate: -ReadOnlyConsole, -ControlledActions, or -TrayLifecycle.'
+    throw 'Select exactly one acceptance gate: -ReadOnlyConsole, -ControlledActions, -TrayLifecycle, or -Full.'
+}
+if ($Full) {
+    & $PSCommandPath -ReadOnlyConsole
+    if ($LASTEXITCODE -ne 0) { throw 'Read-only console acceptance failed.' }
+    & $PSCommandPath -ControlledActions
+    if ($LASTEXITCODE -ne 0) { throw 'Controlled-actions acceptance failed.' }
+    & $PSCommandPath -TrayLifecycle
+    if ($LASTEXITCODE -ne 0) { throw 'Tray lifecycle acceptance failed.' }
+    Write-Host 'full workflow control-center smoke passed'
+    return
 }
 
 Push-Location $repoRoot

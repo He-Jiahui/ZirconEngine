@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import tempfile
+import threading
 import unittest
 from contextlib import ExitStack
 from pathlib import Path
@@ -60,6 +62,47 @@ class ControlEventTests(unittest.TestCase):
             self.assertEqual(
                 [3, 4], [event.event_id for event in service.read_after(2).events]
             )
+
+    def test_replay_projects_legacy_oversized_event_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            marker = "must-not-cross-sse-boundary"
+            oversized = json.dumps({"value": marker * 1024})
+            with database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, 'now')",
+                    ("legacy.oversized", oversized),
+                )
+
+            replay = EventStreamService(database).read_after(0)
+
+            self.assertEqual(True, replay.events[0].payload["truncated"])
+            self.assertGreater(replay.events[0].payload["originalBytes"], 16 * 1024)
+            self.assertNotIn(marker, EventStreamService.encode(replay.events[0]))
+
+    def test_close_wakes_event_stream_waiters(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            service = EventStreamService(database)
+            closed = threading.Event()
+
+            def wait_for_close() -> None:
+                service.wait_for_close(30)
+                closed.set()
+
+            waiter = threading.Thread(
+                target=wait_for_close,
+                daemon=True,
+            )
+            waiter.start()
+
+            service.close()
+
+            self.assertTrue(closed.wait(timeout=1))
+            waiter.join(timeout=1)
+            self.assertFalse(waiter.is_alive())
 
 
 if __name__ == "__main__":

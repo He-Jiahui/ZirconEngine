@@ -18,6 +18,10 @@ from .models import CoordinatorError, utc_text
 from .processes import process_is_alive
 
 
+def _is_managed_validation_root(root: Path) -> bool:
+    return root.name.casefold() == "cargo-targets" and root.parent == Path(root.anchor)
+
+
 @dataclass(frozen=True, slots=True)
 class WorkspaceCopyRecord:
     job_id: str
@@ -74,9 +78,9 @@ class WorkspaceCopyService:
         if not roots:
             raise CoordinatorError(
                 "target_root_unavailable", "No managed target root is available for validation copy"
-            )
+        )
         for root in roots:
-            if root.name.casefold() != "cargo-targets" or root.parent != Path(root.anchor):
+            if not _is_managed_validation_root(root):
                 raise CoordinatorError(
                     "invalid_target_root", f"Invalid validation-copy target root: {root}"
                 )

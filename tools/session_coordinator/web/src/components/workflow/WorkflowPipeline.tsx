@@ -9,5 +9,5 @@ const titles: Record<string, string> = { goal: "目标", preflight: "预检", im
 export function WorkflowPipeline({ detail, leases, failures }: { detail: WorkflowDetail; leases: LeaseProjection[]; failures: FailureNode[] }) {
   const [selected, setSelected] = useState<WorkflowNode | null>(null);
   const grouped = nodesByStage(detail.nodes);
-  return <><Box sx={{ display: "flex", gap: 2, overflow: "auto", pb: 1 }}>{workflowStages.map((stage) => <StageColumn key={stage} title={titles[stage]} nodes={grouped.get(stage) ?? []} onOpen={setSelected} />)}</Box><NodeDetailDrawer node={selected} planPath={detail.planPath} edges={detail.edges} artifacts={detail.artifacts} leases={leases} failures={failures} onClose={() => setSelected(null)} /></>;
+  return <><Box sx={{ display: "flex", gap: 2, overflow: "auto", pb: 1 }}>{workflowStages.map((stage) => <StageColumn key={stage} title={titles[stage]} nodes={grouped.get(stage) ?? []} onOpen={setSelected} />)}</Box><NodeDetailDrawer node={selected} planPath={detail.planPath} edges={detail.edges} artifacts={detail.artifacts} leases={leases} failures={failures} gates={detail.gates} reviews={detail.reviews} notifications={detail.notifications} onClose={() => setSelected(null)} /></>;
 }

@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlite3 import Row
 
 from .database import Database
+from .event_payloads import baseline_degraded_payload
 from .models import CoordinatorError, utc_text
 
 
@@ -238,29 +239,36 @@ class BaselineService:
     def _mark_degraded(
         self, epoch_id: int, changes: list[WorkspaceChange]
     ) -> None:
+        now = utc_text()
         with self.database.transaction() as connection:
-            connection.execute(
+            transitioned = connection.execute(
                 """
                 UPDATE baseline_epochs
                 SET health = ?, degraded_at = ?, degraded_reason = ?
-                WHERE epoch_id = ?
+                WHERE epoch_id = ? AND health != ?
                 """,
                 (
                     BaselineHealth.DEGRADED.value,
-                    utc_text(),
+                    now,
                     f"{len(changes)} unaccepted workspace change(s)",
                     epoch_id,
+                    BaselineHealth.DEGRADED.value,
                 ),
-            )
+            ).rowcount
+            if transitioned == 0:
+                return
             connection.execute(
                 "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
                 (
                     "baseline.degraded",
                     json.dumps(
-                        {"epoch_id": epoch_id, "paths": [item.path for item in changes]},
+                        baseline_degraded_payload(
+                            epoch_id,
+                            [item.path for item in changes],
+                        ),
                         sort_keys=True,
                     ),
-                    utc_text(),
+                    now,
                 ),
             )
 

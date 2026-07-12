@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::recovery::RecoveryStatus;
 use crate::runtime_descriptor::RuntimeDescriptor;
 use crate::tray_state::SupervisionState;
 use crate::TrayError;
@@ -53,6 +54,12 @@ pub struct ActionRecord {
     pub kind: String,
     pub status: String,
     pub confirmation_phrase: Option<String>,
+    #[serde(default)]
+    pub impact: Option<Value>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
     pub result: Option<Value>,
     pub error_code: Option<String>,
 }
@@ -165,6 +172,39 @@ impl<'a> CoordinatorClient<'a> {
         let path = format!("/control/v1/actions/{action_id}");
         let response: ActionEnvelope = self.control_request("GET", &path, None)?;
         Ok(response.action)
+    }
+
+    pub fn cancel_action(&self, action_id: &str, reason: &str) -> Result<ActionRecord, TrayError> {
+        let path = format!("/control/v1/actions/{action_id}/cancel");
+        let response: ActionEnvelope =
+            self.control_request("POST", &path, Some(&json!({"reason": reason})))?;
+        Ok(response.action)
+    }
+
+    pub fn record_recovery(&self, status: RecoveryStatus) -> Result<(), TrayError> {
+        let _: Value = self.request(
+            "POST",
+            "/command",
+            Some(&json!({
+                "command": "supervision.recovery_record",
+                "arguments": status,
+            })),
+            false,
+        )?;
+        Ok(())
+    }
+
+    pub fn acknowledge_force_stop(&self, action_id: &str) -> Result<(), TrayError> {
+        let _: Value = self.request(
+            "POST",
+            "/command",
+            Some(&json!({
+                "command": "supervision.force_stop_ack",
+                "arguments": {"actionId": action_id},
+            })),
+            false,
+        )?;
+        Ok(())
     }
 
     pub fn console_url(&self, ticket: &BootstrapTicket) -> String {

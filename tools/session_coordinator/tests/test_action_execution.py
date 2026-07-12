@@ -35,6 +35,12 @@ class ActionExecutionTests(unittest.TestCase):
             write_scope=["src/feature.py"],
         )
         self.sessions.set_status("session-a", SessionStatus.ACTIVE)
+        self.sessions.register(
+            session_id="session-b",
+            plan_path="docs/plans/runtime/02-feature.md",
+            write_scope=["src/other.py"],
+        )
+        self.sessions.set_status("session-b", SessionStatus.ACTIVE)
         self.baselines = BaselineService(self.database, self.repo)
         self.baselines.initialize()
         self.leases = LeaseService(
@@ -161,6 +167,73 @@ class ActionExecutionTests(unittest.TestCase):
                 reason="inspect service drain impact",
             )
         self.assertEqual("action_preview_only", rejected.exception.code)
+
+    def test_action_activity_is_latest_first_bounded_and_identity_scoped(self) -> None:
+        first = self.service.preview(
+            self.context, ActionKind.SESSION_HEARTBEAT.value, {"sessionId": "session-a"}
+        )
+        second = self.service.preview(
+            self.context, ActionKind.SESSION_HEARTBEAT.value, {"sessionId": "session-a"}
+        )
+        self.service.preview(
+            ActionContext(
+                actor="other-actor",
+                role=WebControlRole.OPERATOR,
+                web_session_id="web-a",
+                bound_session_id="session-a",
+                daemon_instance_id="instance-a",
+            ),
+            ActionKind.SESSION_HEARTBEAT.value,
+            {"sessionId": "session-a"},
+        )
+        self.service.preview(
+            ActionContext(
+                actor="cli",
+                role=WebControlRole.OPERATOR,
+                web_session_id="other-web",
+                bound_session_id="session-a",
+                daemon_instance_id="instance-a",
+            ),
+            ActionKind.SESSION_HEARTBEAT.value,
+            {"sessionId": "session-a"},
+        )
+        self.service.preview(
+            ActionContext(
+                actor="cli",
+                role=WebControlRole.OPERATOR,
+                web_session_id="web-a",
+                bound_session_id="session-b",
+                daemon_instance_id="instance-a",
+            ),
+            ActionKind.SESSION_HEARTBEAT.value,
+            {"sessionId": "session-b"},
+        )
+
+        bounded, truncated = self.service.list_activity(self.context, limit=1)
+        visible, visible_truncated = self.service.list_activity(self.context, limit=10)
+
+        self.assertEqual([second.action_id], [action.action_id for action in bounded])
+        self.assertTrue(truncated)
+        self.assertEqual(
+            [second.action_id, first.action_id],
+            [action.action_id for action in visible],
+        )
+        self.assertFalse(visible_truncated)
+        self.assertTrue(all(action.confirmation_phrase is None for action in visible))
+
+    def test_action_activity_rejects_stale_daemon_identity(self) -> None:
+        stale = ActionContext(
+            actor=self.context.actor,
+            role=self.context.role,
+            web_session_id=self.context.web_session_id,
+            bound_session_id=self.context.bound_session_id,
+            daemon_instance_id="instance-b",
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.list_activity(stale, limit=10)
+
+        self.assertEqual("action_instance_mismatch", rejected.exception.code)
 
 
 if __name__ == "__main__":

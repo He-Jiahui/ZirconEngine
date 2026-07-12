@@ -7,6 +7,10 @@ from dataclasses import dataclass
 from typing import Iterator
 
 from ..database import Database
+from ..event_payloads import (
+    CONTROL_EVENT_PAYLOAD_COLUMNS,
+    project_control_event_payload,
+)
 from ..models import CoordinatorError
 
 
@@ -37,6 +41,13 @@ class EventStreamService:
         self.replay_capacity = replay_capacity
         self._lock = threading.Lock()
         self._client_count = 0
+        self._closing = threading.Event()
+
+    def close(self) -> None:
+        self._closing.set()
+
+    def wait_for_close(self, timeout_seconds: float) -> bool:
+        return self._closing.wait(timeout_seconds)
 
     def read_after(self, cursor: int, *, limit: int = 256) -> EventReplay:
         with self.database.connect() as connection:
@@ -52,8 +63,9 @@ class EventStreamService:
             if resync_required:
                 return EventReplay((), True)
             rows = connection.execute(
-                """
-                SELECT event_id, event_type, payload_json, created_at
+                f"""
+                SELECT event_id, event_type, created_at,
+                       {CONTROL_EVENT_PAYLOAD_COLUMNS}
                 FROM events WHERE event_id > ? ORDER BY event_id LIMIT ?
                 """,
                 (cursor, limit),
@@ -63,7 +75,7 @@ class EventStreamService:
                 ControlEvent(
                     event_id=int(row["event_id"]),
                     event_type=row["event_type"],
-                    payload=json.loads(row["payload_json"]),
+                    payload=project_control_event_payload(row),
                     created_at=row["created_at"],
                 )
                 for row in rows

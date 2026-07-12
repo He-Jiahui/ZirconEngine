@@ -24,8 +24,7 @@ class WorkflowSchemaTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type = 'table'"
                     )
                 }
-            self.assertEqual(21, LATEST_SCHEMA_VERSION)
-            self.assertEqual(21, version)
+            self.assertEqual(LATEST_SCHEMA_VERSION, version)
             self.assertTrue(
                 {
                     "workflow_runs",
@@ -61,7 +60,7 @@ class WorkflowSchemaTests(unittest.TestCase):
                     """
                 )
 
-            self.assertEqual(21, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
 
             with database.connect() as connection:
                 self.assertIsNotNone(
@@ -81,7 +80,8 @@ class WorkflowSchemaTests(unittest.TestCase):
             migrate(database)
             with database.transaction() as connection:
                 connection.execute(
-                    "INSERT INTO schema_version(version, applied_at) VALUES (22, 'future')"
+                    "INSERT INTO schema_version(version, applied_at) VALUES (?, 'future')",
+                    (LATEST_SCHEMA_VERSION + 1,),
                 )
                 connection.execute("CREATE TABLE future_marker(value TEXT)")
                 connection.execute("INSERT INTO future_marker VALUES ('preserved')")
@@ -126,14 +126,14 @@ class WorkflowSchemaTests(unittest.TestCase):
                     """
                 )
 
-            self.assertEqual(21, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
 
             with database.connect() as connection:
                 row = connection.execute(
                     "SELECT cleanup_policy, cleanup_status, reuse_key, compatibility_key, reuse_profile FROM cargo_jobs WHERE job_id='job-a'"
                 ).fetchone()
-            self.assertEqual("retained", row["cleanup_policy"])
-            self.assertEqual("retained", row["cleanup_status"])
+            self.assertEqual("delete_on_release", row["cleanup_policy"])
+            self.assertEqual("pending", row["cleanup_status"])
             self.assertIsNone(row["reuse_key"])
             self.assertIsNone(row["compatibility_key"])
             self.assertIsNone(row["reuse_profile"])

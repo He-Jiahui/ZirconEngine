@@ -5,6 +5,7 @@ import os
 import threading
 import uuid
 from collections.abc import Callable
+from datetime import datetime, timezone
 from sqlite3 import Connection
 
 from ..database import Database
@@ -103,6 +104,7 @@ _DRAIN_ALLOWED_OPERATIONS = frozenset(
         "cargo.heartbeat",
         "cargo.finish",
         "cargo.release",
+        "supervision.recovery_record",
     }
 )
 
@@ -298,6 +300,112 @@ class SupervisionService:
         with self.database.connect() as opened:
             return self._snapshot(opened, exclude_action_id=exclude_action_id)
 
+    def record_recovery(
+        self,
+        *,
+        failure_count: int,
+        failure_window_started_at: int | None,
+        next_retry_at: int | None,
+        circuit_open_until: int | None,
+        healthy_since: int | None,
+    ) -> SupervisionSnapshot:
+        """Persist the tray's bounded restart policy without changing daemon state."""
+        if type(failure_count) is not int or not 0 <= failure_count <= 5:
+            raise CoordinatorError(
+                "recovery_state_invalid", "Recovery failure count must be between zero and five"
+            )
+        timestamps = {
+            "failure_window_started_at": self._recovery_epoch_text(
+                failure_window_started_at, "failureWindowStartedAt"
+            ),
+            "next_retry_at": self._recovery_epoch_text(next_retry_at, "nextRetryAt"),
+            "circuit_open_until": self._recovery_epoch_text(
+                circuit_open_until, "circuitOpenUntil"
+            ),
+            "healthy_since": self._recovery_epoch_text(healthy_since, "healthySince"),
+        }
+        if failure_count == 0 and any(
+            timestamps[key] is not None
+            for key in (
+                "failure_window_started_at",
+                "next_retry_at",
+                "circuit_open_until",
+            )
+        ):
+            raise CoordinatorError(
+                "recovery_state_invalid",
+                "A cleared recovery policy cannot retain failure or retry deadlines",
+            )
+        if failure_count > 0 and timestamps["failure_window_started_at"] is None:
+            raise CoordinatorError(
+                "recovery_state_invalid", "Recovery failures require a failure window"
+            )
+        if failure_count < 5 and timestamps["circuit_open_until"] is not None:
+            raise CoordinatorError(
+                "recovery_state_invalid", "Only five failures may open the recovery circuit"
+            )
+        if failure_count == 5 and (
+            timestamps["circuit_open_until"] is None
+            or timestamps["next_retry_at"] is not None
+        ):
+            raise CoordinatorError(
+                "recovery_state_invalid",
+                "An open recovery circuit requires a reset deadline and no retry deadline",
+            )
+
+        reason_code = (
+            "tray.recovery_clear"
+            if failure_count == 0
+            else "tray.recovery_circuit_open"
+            if failure_count == 5
+            else "tray.recovery_backoff"
+        )
+        with self._transition_lock, self.database.transaction() as connection:
+            row = self._state_row(connection)
+            if row is None:
+                raise CoordinatorError("supervision_uninitialized", "Supervision state is missing")
+            updates: dict[str, object] = {"failure_count": failure_count, **timestamps}
+            if all(row[key] == value for key, value in updates.items()):
+                return self._snapshot(connection, exclude_action_id=None)
+            now = utc_text()
+            connection.execute(
+                """
+                UPDATE service_recovery_state
+                SET failure_count=?, failure_window_started_at=?, next_retry_at=?,
+                    circuit_open_until=?, healthy_since=?, updated_at=?, last_reason_code=?
+                WHERE repository_key=?
+                """,
+                (
+                    failure_count,
+                    timestamps["failure_window_started_at"],
+                    timestamps["next_retry_at"],
+                    timestamps["circuit_open_until"],
+                    timestamps["healthy_since"],
+                    now,
+                    reason_code,
+                    self.repository_key,
+                ),
+            )
+            state = SupervisionState(row["state"])
+            self._append_event(
+                connection,
+                state,
+                state,
+                reason_code,
+                actor="zircon-session-tray",
+            )
+        return self.snapshot()
+
+    @staticmethod
+    def _recovery_epoch_text(value: int | None, field: str) -> str | None:
+        if value is None:
+            return None
+        if type(value) is not int or not 0 <= value <= 253_402_300_799:
+            raise CoordinatorError(
+                "recovery_state_invalid", f"{field} must be a valid Unix timestamp"
+            )
+        return datetime.fromtimestamp(value, tz=timezone.utc).isoformat()
+
     def _snapshot(
         self, connection: Connection, *, exclude_action_id: str | None
     ) -> SupervisionSnapshot:
@@ -420,6 +528,31 @@ class SupervisionService:
         intent_id = uuid.uuid4().hex
         now = utc_text()
         with self.database.transaction() as connection:
+            if kind in {
+                LifecycleKind.STOP,
+                LifecycleKind.RESTART,
+                LifecycleKind.FORCE_STOP,
+            }:
+                active = connection.execute(
+                    """
+                    SELECT intent_id, action_id, kind
+                    FROM service_lifecycle_intents
+                    WHERE repository_key=?
+                      AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
+                      AND status IN ('accepted', 'draining')
+                    LIMIT 1
+                    """,
+                    (self.repository_key,),
+                ).fetchone()
+                if active is not None:
+                    raise CoordinatorError(
+                        "lifecycle_already_active",
+                        "A reversible service lifecycle is already draining",
+                        details={
+                            "actionId": active["action_id"],
+                            "kind": active["kind"],
+                        },
+                    )
             connection.execute(
                 """
                 INSERT INTO service_lifecycle_intents(
@@ -441,6 +574,255 @@ class SupervisionService:
                 ),
             )
         return intent_id
+
+    def cancel_lifecycle(
+        self, action_id: str, *, actor: str, reason: str
+    ) -> dict[str, object]:
+        """Atomically cancel a reversible drain, its action, and supervision state."""
+        with self._transition_lock, self.database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT intent_id, status FROM service_lifecycle_intents
+                WHERE repository_key=? AND action_id=?
+                """,
+                (self.repository_key, action_id),
+            ).fetchone()
+            if row is None or row["status"] not in {
+                LifecycleStatus.ACCEPTED.value,
+                LifecycleStatus.DRAINING.value,
+            }:
+                status = row["status"] if row is not None else "missing"
+                raise CoordinatorError(
+                    "action_not_cancellable", f"Lifecycle intent is {status}"
+                )
+            action = connection.execute(
+                "SELECT status, action_kind FROM action_requests WHERE action_id=?",
+                (action_id,),
+            ).fetchone()
+            if action is None or action["status"] != "executing":
+                status = action["status"] if action is not None else "missing"
+                raise CoordinatorError("action_not_cancellable", f"Action is {status}")
+            now = utc_text()
+            result = {"intentId": row["intent_id"], "state": "healthy"}
+            connection.execute(
+                """
+                UPDATE service_lifecycle_intents
+                SET status='cancelled', error_code='lifecycle_cancelled',
+                    result_json=?, updated_at=?, completed_at=?
+                WHERE intent_id=?
+                """,
+                (json.dumps(result, sort_keys=True), now, now, row["intent_id"]),
+            )
+            connection.execute(
+                """
+                UPDATE action_requests
+                SET status='cancelled', reason=?, result_json=?, completed_at=?
+                WHERE action_id=? AND status='executing'
+                """,
+                (reason, json.dumps(result, sort_keys=True), now, action_id),
+            )
+            self._transition(
+                connection,
+                SupervisionState.HEALTHY,
+                reason_code="lifecycle.cancelled",
+                actor=actor,
+                action_id=action_id,
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "action.cancelled",
+                    json.dumps(
+                        {"actionId": action_id, "kind": action["action_kind"]},
+                        sort_keys=True,
+                    ),
+                    now,
+                ),
+            )
+        return result
+
+    def fail_lifecycle(
+        self, action_id: str, *, actor: str, error_code: str
+    ) -> dict[str, object] | None:
+        """Atomically terminate an active lifecycle/action pair and release draining."""
+        with self._transition_lock, self.database.transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT intent.intent_id, intent.status AS intent_status,
+                       action.status AS action_status
+                FROM service_lifecycle_intents AS intent
+                LEFT JOIN action_requests AS action ON action.action_id=intent.action_id
+                WHERE intent.repository_key=? AND intent.action_id=?
+                """,
+                (self.repository_key, action_id),
+            ).fetchone()
+            if row is None or row["intent_status"] not in {
+                LifecycleStatus.ACCEPTED.value,
+                LifecycleStatus.DRAINING.value,
+            }:
+                return None
+            now = utc_text()
+            result = {
+                "intentId": row["intent_id"],
+                "state": "healthy",
+                "errorCode": error_code,
+                "reconciled": True,
+            }
+            encoded = json.dumps(result, sort_keys=True)
+            connection.execute(
+                """
+                UPDATE service_lifecycle_intents
+                SET status='failed', error_code=?, result_json=?,
+                    updated_at=?, completed_at=?
+                WHERE intent_id=? AND status IN ('accepted', 'draining')
+                """,
+                (error_code, encoded, now, now, row["intent_id"]),
+            )
+            connection.execute(
+                """
+                UPDATE action_requests
+                SET status='failed', error_code=?, result_json=?, completed_at=?
+                WHERE action_id=? AND status IN ('previewed', 'executing')
+                """,
+                (error_code, encoded, now, action_id),
+            )
+            state = SupervisionState(self._state_row(connection)["state"])
+            if state is SupervisionState.DRAINING:
+                self._transition(
+                    connection,
+                    SupervisionState.HEALTHY,
+                    reason_code="lifecycle.failure_reconciled",
+                    actor=actor,
+                    action_id=action_id,
+                )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "lifecycle.failure_reconciled",
+                    json.dumps(
+                        {
+                            "actionId": action_id,
+                            "errorCode": error_code,
+                            "intentId": row["intent_id"],
+                        },
+                        sort_keys=True,
+                    ),
+                    now,
+                ),
+            )
+        return result
+
+    def commit_lifecycle_offline(
+        self,
+        intent_id: str,
+        action_id: str,
+        *,
+        actor: str,
+        kind: LifecycleKind,
+    ) -> dict[str, object]:
+        """Atomically cross the irreversible stopping/offline lifecycle boundary."""
+        with self._transition_lock, self.database.transaction() as connection:
+            intent = connection.execute(
+                """
+                SELECT status FROM service_lifecycle_intents
+                WHERE repository_key=? AND intent_id=? AND action_id=? AND kind=?
+                """,
+                (self.repository_key, intent_id, action_id, kind.value),
+            ).fetchone()
+            action = connection.execute(
+                "SELECT status FROM action_requests WHERE action_id=?",
+                (action_id,),
+            ).fetchone()
+            if (
+                intent is None
+                or intent["status"] not in {
+                    LifecycleStatus.ACCEPTED.value,
+                    LifecycleStatus.DRAINING.value,
+                }
+                or action is None
+                or action["status"] != "executing"
+            ):
+                raise CoordinatorError(
+                    "lifecycle_commit_invalid",
+                    "Lifecycle cannot cross offline without active intent and action proof",
+                )
+            self._transition(
+                connection,
+                SupervisionState.STOPPING,
+                reason_code=f"lifecycle.{kind.name.lower()}.ready",
+                actor=actor,
+                action_id=action_id,
+            )
+            now = utc_text()
+            result = {
+                "intentId": intent_id,
+                "state": "offline",
+                "awaitingForceStopAcknowledgement": kind is LifecycleKind.FORCE_STOP,
+            }
+            if kind is LifecycleKind.RESTART:
+                connection.execute(
+                    """
+                    UPDATE service_lifecycle_intents
+                    SET status='awaiting_restart', updated_at=?
+                    WHERE intent_id=? AND status IN ('accepted', 'draining')
+                    """,
+                    (now, intent_id),
+                )
+            else:
+                encoded = json.dumps(result, sort_keys=True)
+                connection.execute(
+                    """
+                    UPDATE service_lifecycle_intents
+                    SET status='succeeded', error_code=NULL, result_json=?,
+                        updated_at=?, completed_at=?
+                    WHERE intent_id=? AND status IN ('accepted', 'draining')
+                    """,
+                    (encoded, now, now, intent_id),
+                )
+                connection.execute(
+                    """
+                    UPDATE action_requests
+                    SET status='succeeded', error_code=NULL, result_json=?, completed_at=?
+                    WHERE action_id=? AND status='executing'
+                    """,
+                    (encoded, now, action_id),
+                )
+            self._transition(
+                connection,
+                SupervisionState.OFFLINE,
+                reason_code=f"lifecycle.{kind.name.lower()}.offline",
+                actor=actor,
+                action_id=action_id,
+                updates={"explicit_stop": 0 if kind is LifecycleKind.RESTART else 1},
+            )
+        return result
+
+    def record_lifecycle_shutdown_retry(
+        self,
+        action_id: str,
+        *,
+        kind: LifecycleKind,
+        attempt: int,
+        error_code: str,
+    ) -> None:
+        """Audit a sanitized post-commit shutdown retry without rewriting terminal proof."""
+        with self.database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "lifecycle.shutdown_retry",
+                    json.dumps(
+                        {
+                            "actionId": action_id,
+                            "attempt": attempt,
+                            "errorCode": error_code,
+                            "kind": kind.value,
+                        },
+                        sort_keys=True,
+                    ),
+                    utc_text(),
+                ),
+            )
 
     def update_intent(
         self,

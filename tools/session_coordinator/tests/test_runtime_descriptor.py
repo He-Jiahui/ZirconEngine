@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.session_coordinator.processes import current_process_identity
+from tools.session_coordinator.migrations import LATEST_SCHEMA_VERSION
 from tools.session_coordinator.supervision.repository_identity import repository_identity
 from tools.session_coordinator.supervision.runtime_descriptor import RuntimeDescriptor
 
@@ -42,7 +43,7 @@ class RuntimeDescriptorTests(unittest.TestCase):
         self.assertEqual(2, payload["descriptor_version"])
         self.assertEqual(os.getpid(), payload["pid"])
         self.assertEqual(identity.creation_time, payload["process_creation_time"])
-        self.assertEqual(21, payload["schema_version"])
+        self.assertEqual(LATEST_SCHEMA_VERSION, payload["schema_version"])
         self.assertEqual([1], payload["supervision_api_versions"])
         self.assertEqual("secret-runtime-token", payload["token"])
         self.assertNotIn("token", diagnostic)

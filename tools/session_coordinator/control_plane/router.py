@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from typing import Callable, Mapping
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from ..event_payloads import (
+    CONTROL_EVENT_PAYLOAD_COLUMNS,
+    project_control_event_payload,
+)
 from ..models import CoordinatorError, WebControlRole
 from ..workflows.projections import WorkflowProjectionService
 from .actions.models import ActionContext
@@ -187,6 +191,9 @@ class ControlPlaneRouter:
             )
         if method == "GET" and path == "/control/v1/actions/catalog":
             return ControlResponse(200, self._actions().catalog())
+        if method == "GET" and path == "/control/v1/actions":
+            context = self._action_context(identity, runtime_authorized, {})
+            return ControlResponse(200, self._action_activity(raw_path, context))
         if method == "POST" and path == "/control/v1/actions/preview":
             payload = self._json_body(body)
             parameters = payload.get("parameters") or {}
@@ -254,7 +261,8 @@ class ControlPlaneRouter:
         parameters: tuple[object, ...] = (before, limit + 1) if before is not None else (limit + 1,)
         with self.database.connect() as connection:
             rows = connection.execute(
-                f"""SELECT event_id, session_id, event_type, payload_json, created_at
+                f"""SELECT event_id, session_id, event_type, created_at,
+                           {CONTROL_EVENT_PAYLOAD_COLUMNS}
                     FROM events {where} ORDER BY event_id DESC LIMIT ?""",
                 parameters,
             ).fetchall()
@@ -265,7 +273,7 @@ class ControlPlaneRouter:
                 "eventId": int(row["event_id"]),
                 "sessionId": row["session_id"],
                 "type": row["event_type"],
-                "payload": json.loads(row["payload_json"]),
+                "payload": project_control_event_payload(row),
                 "createdAt": row["created_at"],
             }
             for row in reversed(selected)
@@ -275,6 +283,24 @@ class ControlPlaneRouter:
             "truncated": truncated,
             "nextBefore": int(selected[-1]["event_id"]) if truncated and selected else None,
         }
+
+    def _action_activity(
+        self, raw_path: str, context: ActionContext
+    ) -> dict[str, object]:
+        query = parse_qs(urlsplit(raw_path).query)
+        try:
+            limit = int(query.get("limit", ["50"])[0])
+        except ValueError as error:
+            raise CoordinatorError(
+                "action_limit_invalid", "Action activity limit must be an integer"
+            ) from error
+        actions, truncated = self._actions().list_activity(context, limit=limit)
+        serialized: list[dict[str, object]] = []
+        for action in actions:
+            payload = action.to_dict()
+            payload.pop("confirmationPhrase", None)
+            serialized.append(payload)
+        return {"actions": serialized, "truncated": truncated, "limit": limit}
 
     def authenticate(
         self, headers: Mapping[str, str], *, runtime_authorized: bool

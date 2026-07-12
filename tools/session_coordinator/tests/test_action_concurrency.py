@@ -144,6 +144,76 @@ class ActionConcurrencyTests(unittest.TestCase):
             self.assertTrue(mutated.is_set())
             self.assertEqual(SessionStatus.ACTIVE, executor.status_during_execute)
 
+    def test_cancel_cannot_cross_confirm_between_preview_and_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="session-a")
+            sessions.set_status("session-a", SessionStatus.ACTIVE)
+            BaselineService(database, repo).initialize()
+            executor = _BlockingExecutor(sessions)
+            service = ActionService(
+                database,
+                ActionFingerprinter(database, repo, daemon_instance_id="instance-a"),
+                executor,
+                daemon_instance_id="instance-a",
+            )
+            context = ActionContext(
+                actor="cli",
+                role=WebControlRole.OPERATOR,
+                web_session_id="web-a",
+                bound_session_id="session-a",
+                daemon_instance_id="instance-a",
+            )
+            preview = service.preview(
+                context,
+                ActionKind.SESSION_HEARTBEAT.value,
+                {"sessionId": "session-a"},
+            )
+            confirm_errors: list[BaseException] = []
+            cancel_errors: list[BaseException] = []
+            cancel_finished = threading.Event()
+
+            def confirm() -> None:
+                try:
+                    service.confirm(
+                        context,
+                        preview.action_id,
+                        phrase=preview.confirmation_phrase,
+                        reason="confirm wins while holding the gate",
+                    )
+                except BaseException as error:  # pragma: no cover - asserted below
+                    confirm_errors.append(error)
+
+            def cancel() -> None:
+                try:
+                    service.cancel(context, preview.action_id, reason="racing cancel")
+                except BaseException as error:  # pragma: no cover - asserted below
+                    cancel_errors.append(error)
+                finally:
+                    cancel_finished.set()
+
+            confirm_thread = threading.Thread(target=confirm)
+            confirm_thread.start()
+            self.assertTrue(executor.entered.wait(timeout=2))
+            cancel_thread = threading.Thread(target=cancel)
+            cancel_thread.start()
+            self.assertFalse(cancel_finished.wait(timeout=0.1))
+            executor.release.set()
+            confirm_thread.join(timeout=2)
+            cancel_thread.join(timeout=2)
+
+            self.assertEqual([], confirm_errors)
+            self.assertEqual(1, len(cancel_errors))
+            self.assertIsInstance(cancel_errors[0], CoordinatorError)
+            self.assertEqual("action_not_cancellable", cancel_errors[0].code)
+            self.assertEqual(
+                "succeeded", service.get(context, preview.action_id).status.value
+            )
+
 
 class _BlockingExecutor:
     def __init__(self, sessions: SessionService) -> None:
