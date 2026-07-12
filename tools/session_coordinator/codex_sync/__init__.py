@@ -10,14 +10,18 @@ from .models import (
     CodexSyncTrigger,
 )
 from .store import CodexSessionStore
+from .spool import CodexHookEvent, CodexTrigger, CodexTriggerSpool
 
 __all__ = [
     "CodexDiscoveredSession",
     "CodexDiscoveryResult",
     "CodexLifecycleEvent",
+    "CodexHookEvent",
     "CodexSessionDiscovery",
     "CodexSessionState",
     "CodexSessionStore",
     "CodexSourceLocation",
     "CodexSyncTrigger",
+    "CodexTrigger",
+    "CodexTriggerSpool",
 ]

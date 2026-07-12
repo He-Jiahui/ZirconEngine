@@ -1,5 +1,10 @@
 ---
 related_code:
+  - .codex/hooks/zircon_session_sync.py
+  - .codex/hooks.json
+  - tools/install-codex-session-hook.ps1
+  - tools/session_coordinator/codex_sync/hook.py
+  - tools/session_coordinator/codex_sync/spool.py
   - tools/session_coordinator/codex_sync/discovery.py
   - tools/session_coordinator/codex_sync/models.py
   - tools/session_coordinator/codex_sync/store.py
@@ -37,6 +42,11 @@ related_code:
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
 implementation_files:
+  - .codex/hooks/zircon_session_sync.py
+  - .codex/hooks.json
+  - tools/install-codex-session-hook.ps1
+  - tools/session_coordinator/codex_sync/hook.py
+  - tools/session_coordinator/codex_sync/spool.py
   - tools/session_coordinator/codex_sync/discovery.py
   - tools/session_coordinator/codex_sync/models.py
   - tools/session_coordinator/codex_sync/store.py
@@ -79,6 +89,9 @@ plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
+  - tools/session_coordinator/tests/test_codex_hook.py
+  - tools/session_coordinator/tests/test_codex_spool.py
+  - tools/tests/codex-session-hook.Tests.ps1
   - tools/session_coordinator/tests/test_codex_discovery.py
   - tools/session_coordinator/tests/test_codex_store.py
   - tools/session_coordinator/tests/test_database.py
@@ -132,6 +145,24 @@ Schema v27 introduces a read-only Codex source projection. The discovery layer s
 `codex_sessions` records source presence and the closed `active`, `idle`, `archived`, or `unavailable` state. It is deliberately separate from the existing `sessions` table: Codex presence does not create a business Session, claim a file lease, queue a patch, start Cargo, advance a workflow, or authorize a commit. The only automatic relationship is an exact `codex_sessions.thread_id == sessions.session_id` binding; titles, plan paths, goals, and message text are never used for fuzzy association.
 
 An absent rollout is marked `unavailable` only after two complete directory-membership scans. A truncated or incomplete scan cannot remove source presence. Reconciliation is transactional and emits only thread IDs, enums, counts, timestamps, and sanitized diagnostic codes.
+
+### Lifecycle Hook installation and trust
+
+The repository declares command handlers for `SessionStart`, `UserPromptSubmit`, `Stop`, `SubagentStart`, and `SubagentStop` in `.codex/hooks.json`. They run alongside matching user, managed, and plugin Hooks; the existing global `notify` command is a separate mechanism and is neither forwarded nor modified. Project Hooks run only after Codex trusts the project layer and the exact definition. Installation never reads, writes, or bypasses that trust decision.
+
+```powershell
+.\tools\install-codex-session-hook.ps1 -Action Query
+.\tools\install-codex-session-hook.ps1 -Action Install
+.\tools\install-codex-session-hook.ps1 -Action Update
+.\tools\install-codex-session-hook.ps1 -Action Remove -DryRun
+.\tools\install-codex-session-hook.ps1 -Action Remove
+```
+
+After `Install`, a changed `Update`, or a Git update to `.codex/hooks.json`, open Codex `/hooks` and review the project definition. `Query` conservatively reports that configured project Hooks require manual trust review because the installer intentionally has no access to the trust store. Repeating an unchanged Install/Update is byte-stable and does not claim to refresh trust.
+
+Every invocation reduces stdin to IDs, closed event/source/permission enums, canonical repository cwd, safe model/subagent metadata, and a timestamp. The trigger is atomically persisted below `%LOCALAPPDATA%/Zircon Session Coordinator/codex-hook/<repository-key>/pending` before a best-effort authenticated 250 ms wake request. The Hook never reads transcript files and never persists prompt, assistant message, tool payload, attachment, environment, token, webhook, or raw stdin content. Offline, stale, slow, identity-mismatched, and pre-H3 daemons leave the sanitized trigger queued; they never cause the Hook to start a process or wait for reconciliation.
+
+`Stop` always returns valid continuation JSON, including malformed-input and internal-import fallback paths. Other configured events are silent on success. The pending queue is capped at 1,024 entries; corrupt external items are moved to the repository-scoped quarantine, and valid items can be acknowledged only with a committed reconcile run ID. `Remove` deletes only the exact managed project definition, its owned `features.hooks` line, and the verified repository spool. A modified project `hooks.json` fails removal closed, while unrelated TOML keys/comments and every global/user/plugin Hook source remain intact.
 
 Action Activity is identity-scoped to the current daemon, actor, browser session and bound Session. The page restores the newest bounded records after refresh, resumes polling `executing` actions from `sessionStorage`, and renders actor, reason, result and sanitized error evidence. Read-only, identity-mismatch and fatal-integrity states disable mutation controls while preserving this audit view.
 

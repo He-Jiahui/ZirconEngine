@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 #[test]
 fn importer_validates_wgsl_and_reports_errors() {
@@ -156,14 +156,20 @@ fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh
     };
     fs::write(&model_path, source_model.to_toml_string().unwrap()).unwrap();
 
-    let imported = AssetImporter::default()
-        .import_from_source(
-            &model_path,
-            &AssetUri::parse("res://models/triangle.model.toml").unwrap(),
-        )
-        .unwrap();
+    let model_uri = AssetUri::parse("res://models/triangle.model.toml").unwrap();
+    let context = AssetImportContext::new(
+        model_path.clone(),
+        model_uri,
+        fs::read(&model_path).unwrap(),
+        toml::Table::new(),
+    )
+    .with_project_resolver(
+        std::sync::Arc::new(crate::asset::registry::AssetRegistryIndex::default()),
+        std::sync::Arc::new(Vec::new()),
+    );
+    let imported = AssetImporter::default().import_context(&context).unwrap();
 
-    match imported {
+    match &imported.root_entry().unwrap().asset {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(
