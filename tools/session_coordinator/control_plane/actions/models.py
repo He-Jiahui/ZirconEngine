@@ -44,6 +44,7 @@ class ActionKind(StrEnum):
     SERVICE_RESTART = "service.restart"
     SERVICE_FORCE_STOP = "service.force_stop"
     MAINTENANCE_CLEANUP = "maintenance.cleanup"
+    CODEX_RECONCILE = "codex.sessions.reconcile"
 
 
 @dataclass(frozen=True, slots=True)

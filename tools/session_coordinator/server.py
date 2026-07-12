@@ -53,6 +53,10 @@ from .supervision.lifecycle import LifecycleService
 from .supervision.repository_identity import repository_identity
 from .supervision.runtime_descriptor import RuntimeDescriptor
 from .supervision.service import SupervisionService
+from .codex_sync.discovery import CodexSessionDiscovery
+from .codex_sync.spool import CodexTriggerSpool
+from .codex_sync.store import CodexSessionStore
+from .codex_sync.worker import CodexSyncWorker
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -195,6 +199,21 @@ class CoordinatorApplication:
             maintenance_active=self._maintenance_lock.locked,
         )
         self.supervision.initialize(automatic_start=automatic_start)
+        if config.codex_home is None or config.codex_spool_base is None:
+            raise CoordinatorError("codex_config_invalid", "Codex sync roots are unavailable")
+        self.codex_discovery = CodexSessionDiscovery(config.codex_home, config.repo_root)
+        self.codex_spool = CodexTriggerSpool(
+            config.codex_spool_base, self.repository_identity.key
+        )
+        self.codex_store = CodexSessionStore(self.database)
+        self.codex_worker = CodexSyncWorker(
+            discover=self.codex_discovery.discover,
+            store=self.codex_store,
+            spool=self.codex_spool,
+            writable=self._codex_sync_writable,
+            membership_interval_seconds=config.codex_membership_interval_seconds,
+            full_interval_seconds=config.codex_full_interval_seconds,
+        )
         self.lifecycle = LifecycleService(self.supervision)
         self.workflow_projections = WorkflowProjectionService()
         self.topology_importer = TopologyImporter(self.database, config.repo_root)
@@ -236,6 +255,7 @@ class CoordinatorApplication:
                 topology_importer=self.topology_importer,
                 milestones=self.milestone_workflows,
                 lifecycle=self.lifecycle,
+                codex_wake=self.codex_worker.wake,
             ),
             daemon_instance_id=self.instance_id,
             mutation_lock=self._mutation_lock,
@@ -275,7 +295,17 @@ class CoordinatorApplication:
             "process_creation_time": self.process_identity.creation_time,
             "executable": self.process_identity.executable,
             "supervision": self.supervision.snapshot().to_dict(),
+            "codex_sync": self.codex_worker.snapshot(),
         }
+
+    def _codex_sync_writable(self) -> bool:
+        if self.read_only:
+            return False
+        try:
+            self.supervision.require_mutation_allowed("codex.sessions.reconcile")
+        except CoordinatorError:
+            return False
+        return True
 
     def control_service_state(self, connection) -> dict[str, object]:
         baseline = connection.execute(
@@ -878,6 +908,8 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
             actions=application.control_actions,
             maintenance_authorizer=application._require_maintenance_capability,
             live_workflow_eligibility=application.milestone_workflows.live_eligibility,
+            codex_wake=application.codex_worker.wake,
+            repository_key=application.repository_identity.key,
         )
         self.control_http = ControlPlaneHttp(
             router,
@@ -1053,6 +1085,7 @@ class RunningCoordinator:
             else:
                 application.supervision.mark_healthy()
                 application.lifecycle.recover_restart_intents()
+            application.codex_worker.start()
             (config.state_root / "startup-failure.json").unlink(missing_ok=True)
             return cls(
                 config=config,
@@ -1084,6 +1117,7 @@ class RunningCoordinator:
 
     def stop(self) -> None:
         self.maintenance_stop.set()
+        self.httpd.application.codex_worker.stop()
         self.httpd.control_http.close()
         self.httpd.shutdown()
         self.httpd.server_close()

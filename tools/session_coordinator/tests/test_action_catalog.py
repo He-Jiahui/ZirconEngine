@@ -102,6 +102,20 @@ class ActionCatalogTests(unittest.TestCase):
                     {"timeoutSeconds": 30, "command": "Stop-Process -Id 1"}
                 )
 
+    def test_codex_reconcile_is_maintainer_only_and_parameterless(self) -> None:
+        spec = action_spec(ActionKind.CODEX_RECONCILE.value)
+
+        self.assertEqual(WebControlRole.MAINTAINER, spec.required_role)
+        self.assertFalse(spec.session_bound)
+        self.assertEqual({}, spec.parse_parameters({}).to_payload())
+        for payload in (
+            {"path": "C:/Users/private/.codex"},
+            {"threadId": "thread-one"},
+            {"payload": {"prompt": "secret"}},
+        ):
+            with self.assertRaises(CoordinatorError):
+                spec.parse_parameters(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

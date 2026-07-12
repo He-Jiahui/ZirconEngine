@@ -439,6 +439,112 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
             self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
 
+    def test_schema_28_preserves_action_and_supervision_history(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 28):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO action_requests(
+                        action_id, action_kind, risk, required_role, actor,
+                        daemon_instance_id, parameters_json, impact_json,
+                        warnings_json, state_fingerprint,
+                        confirmation_phrase_hash, status, created_at, expires_at
+                    ) VALUES (
+                        'history-action', 'service.stop', 'red', 'maintainer',
+                        'tester', 'instance', '{}', '[]', '[]', 'fingerprint',
+                        'phrase', 'succeeded', 'now', 'later'
+                    )
+                    """
+                )
+                connection.execute(
+                    "INSERT INTO action_approvals VALUES "
+                    "('approval', 'history-action', 'tester', 'maintainer', 'reason', 'fingerprint', 'now')"
+                )
+                connection.execute(
+                    """
+                    INSERT INTO service_supervision_events(
+                        repository_key, sequence, to_state, reason_code,
+                        action_id, created_at
+                    ) VALUES ('repo', 1, 'offline', 'test', 'history-action', 'now')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, action_id, kind, status,
+                        requested_by, source_daemon_instance_id, created_at,
+                        updated_at
+                    ) VALUES (
+                        'intent', 'repo', 'history-action', 'service.stop',
+                        'succeeded', 'tester', 'instance', 'now', 'now'
+                    )
+                    """
+                )
+
+            migrate(database)
+
+            with database.connect() as connection:
+                counts = tuple(
+                    connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                    for table in (
+                        "action_requests",
+                        "action_approvals",
+                        "service_supervision_events",
+                        "service_lifecycle_intents",
+                    )
+                )
+                foreign_targets = {
+                    row[2]
+                    for table in (
+                        "action_approvals",
+                        "service_supervision_events",
+                        "service_lifecycle_intents",
+                    )
+                    for row in connection.execute(f"PRAGMA foreign_key_list({table})")
+                }
+                connection.execute(
+                    """
+                    INSERT INTO action_requests(
+                        action_id, action_kind, risk, required_role, actor,
+                        daemon_instance_id, parameters_json, impact_json,
+                        warnings_json, state_fingerprint,
+                        confirmation_phrase_hash, status, created_at, expires_at
+                    ) VALUES (
+                        'codex-action', 'codex.sessions.reconcile', 'yellow',
+                        'maintainer', 'tester', 'instance', '{}', '[]', '[]',
+                        'fingerprint', 'phrase', 'previewed', 'now', 'later'
+                    )
+                    """
+                )
+            self.assertEqual((1, 1, 1, 1), counts)
+            self.assertEqual({"action_requests"}, foreign_targets)
+            with self.assertRaises(sqlite3.IntegrityError):
+                with database.transaction() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO action_requests(
+                            action_id, action_kind, risk, required_role, actor,
+                            daemon_instance_id, parameters_json, impact_json,
+                            warnings_json, state_fingerprint,
+                            confirmation_phrase_hash, status, created_at, expires_at
+                        ) VALUES (
+                            'invalid-action', 'arbitrary.command', 'yellow',
+                            'maintainer', 'tester', 'instance', '{}', '[]', '[]',
+                            'fingerprint', 'phrase', 'previewed', 'now', 'later'
+                        )
+                        """
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

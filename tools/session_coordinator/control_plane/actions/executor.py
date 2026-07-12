@@ -37,6 +37,7 @@ class ActionExecutor:
         topology_importer=None,
         milestones=None,
         lifecycle=None,
+        codex_wake=None,
     ):
         self.sessions = sessions
         self.leases = leases
@@ -47,6 +48,7 @@ class ActionExecutor:
         self.topology_importer = topology_importer
         self.milestones = milestones
         self.lifecycle = lifecycle
+        self.codex_wake = codex_wake
 
     def execute(
         self,
@@ -268,6 +270,11 @@ class ActionExecutor:
                 raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
             value = self._typed(parameters, GoalCloseoutParameters)
             return self.milestones.close_goal(value.session_id, value.run_id)
+        if kind is ActionKind.CODEX_RECONCILE:
+            if self.codex_wake is None:
+                raise CoordinatorError("action_unavailable", "Codex sync worker is unavailable")
+            self.codex_wake("controlled")
+            return {"queued": True, "trigger": "controlled"}
         raise CoordinatorError("action_executor_missing", "Action has no M3 executor")
 
     def cancel(

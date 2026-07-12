@@ -123,10 +123,12 @@ def _reduce(
 
 def signal_coordinator(repo_root: Path, repository_key: str) -> bool:
     runtime_path = repo_root / ".codex" / "state" / "session-coordinator" / "runtime.json"
+    lock_path = repo_root / ".codex" / "state" / "session-coordinator" / "coordinator.lock"
     try:
-        if runtime_path.stat().st_size > 64 * 1024:
+        if runtime_path.stat().st_size > 64 * 1024 or lock_path.stat().st_size > 4096:
             return False
         runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
         pid = int(runtime["pid"])
         port = int(runtime["port"])
         if (
@@ -136,6 +138,7 @@ def signal_coordinator(repo_root: Path, repository_key: str) -> bool:
             or repository_identity(runtime["repo_root"]).key != repository_key
             or int(runtime.get("schema_version", -1)) != LATEST_SCHEMA_VERSION
             or 1 not in runtime.get("control_api_versions", [])
+            or int(lock.get("pid", -1)) != pid
             or not (0 < port <= 65535)
             or not process_is_alive(pid)
             or str(runtime.get("process_creation_time")) != process_creation_time(pid)

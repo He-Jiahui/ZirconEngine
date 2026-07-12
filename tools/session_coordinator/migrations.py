@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 27
+LATEST_SCHEMA_VERSION = 28
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1307,6 +1307,164 @@ def _migration_27(connection: Connection) -> None:
     )
 
 
+def _migration_28(connection: Connection) -> None:
+    """Extend the closed action audit enum without breaking dependent history."""
+    action_kinds = """
+        'session.heartbeat', 'session.activate', 'lease.claim_own_scope',
+        'lease.release_own', 'patch.process_own', 'validation.start',
+        'validation.cancel', 'failure.refresh', 'topology.refresh',
+        'service.drain_preview', 'service.drain', 'service.resume',
+        'service.stop', 'service.restart', 'service.force_stop',
+        'milestone.commit', 'session.complete', 'maintenance.cleanup',
+        'codex.sessions.reconcile'
+    """
+    connection.executescript(
+        f"""
+        DROP TRIGGER action_requests_kind_insert;
+        DROP TRIGGER action_requests_kind_update;
+        DROP TRIGGER action_approvals_no_update;
+        DROP TRIGGER action_approvals_no_delete;
+        DROP TRIGGER service_supervision_events_no_update;
+        DROP TRIGGER service_supervision_events_no_delete;
+        DROP INDEX action_requests_actor_created;
+        DROP INDEX action_requests_status_expiry;
+        DROP INDEX action_approvals_action;
+        DROP INDEX service_supervision_events_repository_created;
+        DROP INDEX service_lifecycle_intents_repository_status;
+        DROP INDEX service_lifecycle_one_active_reversible;
+
+        ALTER TABLE action_approvals RENAME TO action_approvals_v27;
+        ALTER TABLE service_supervision_events RENAME TO service_supervision_events_v27;
+        ALTER TABLE service_lifecycle_intents RENAME TO service_lifecycle_intents_v27;
+        ALTER TABLE action_requests RENAME TO action_requests_v27;
+
+        CREATE TABLE action_requests (
+            action_id TEXT PRIMARY KEY,
+            action_kind TEXT NOT NULL CHECK (action_kind IN ({action_kinds})),
+            risk TEXT NOT NULL CHECK (risk IN ('green', 'yellow', 'red')),
+            required_role TEXT NOT NULL CHECK (required_role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            web_session_id TEXT,
+            bound_session_id TEXT,
+            daemon_instance_id TEXT NOT NULL,
+            parameters_json TEXT NOT NULL,
+            impact_json TEXT NOT NULL,
+            warnings_json TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            confirmation_phrase_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'previewed', 'executing', 'succeeded', 'failed', 'cancelled',
+                'expired', 'state_changed', 'denied'
+            )),
+            reason TEXT,
+            result_json TEXT,
+            error_code TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            confirmed_at TEXT,
+            completed_at TEXT
+        );
+        CREATE TABLE action_approvals (
+            approval_id TEXT PRIMARY KEY,
+            action_id TEXT NOT NULL REFERENCES action_requests(action_id),
+            actor TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            reason TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE service_supervision_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            repository_key TEXT NOT NULL,
+            sequence INTEGER NOT NULL CHECK (sequence > 0),
+            from_state TEXT CHECK (from_state IS NULL OR from_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            to_state TEXT NOT NULL CHECK (to_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            daemon_instance_id TEXT,
+            process_id INTEGER CHECK (process_id IS NULL OR process_id > 0),
+            process_creation_time TEXT,
+            reason_code TEXT NOT NULL,
+            actor TEXT,
+            action_id TEXT REFERENCES action_requests(action_id),
+            payload_json TEXT NOT NULL DEFAULT '{{}}',
+            created_at TEXT NOT NULL,
+            UNIQUE(repository_key, sequence)
+        );
+        CREATE TABLE service_lifecycle_intents (
+            intent_id TEXT PRIMARY KEY,
+            repository_key TEXT NOT NULL,
+            action_id TEXT UNIQUE REFERENCES action_requests(action_id),
+            kind TEXT NOT NULL CHECK (kind IN (
+                'service.drain', 'service.resume', 'service.stop',
+                'service.restart', 'service.force_stop'
+            )),
+            status TEXT NOT NULL CHECK (status IN (
+                'accepted', 'draining', 'ready', 'stopping', 'awaiting_restart',
+                'succeeded', 'failed', 'cancelled'
+            )),
+            requested_by TEXT NOT NULL,
+            source_daemon_instance_id TEXT NOT NULL,
+            successor_daemon_instance_id TEXT,
+            deadline_at TEXT,
+            error_code TEXT,
+            result_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+
+        INSERT INTO action_requests SELECT * FROM action_requests_v27;
+        INSERT INTO action_approvals SELECT * FROM action_approvals_v27;
+        INSERT INTO service_supervision_events SELECT * FROM service_supervision_events_v27;
+        INSERT INTO service_lifecycle_intents SELECT * FROM service_lifecycle_intents_v27;
+        DROP TABLE action_approvals_v27;
+        DROP TABLE service_supervision_events_v27;
+        DROP TABLE service_lifecycle_intents_v27;
+        DROP TABLE action_requests_v27;
+
+        CREATE INDEX action_requests_actor_created ON action_requests(actor, created_at);
+        CREATE INDEX action_requests_status_expiry ON action_requests(status, expires_at);
+        CREATE INDEX action_approvals_action ON action_approvals(action_id);
+        CREATE INDEX service_supervision_events_repository_created
+            ON service_supervision_events(repository_key, created_at);
+        CREATE INDEX service_lifecycle_intents_repository_status
+            ON service_lifecycle_intents(repository_key, status, updated_at);
+        CREATE UNIQUE INDEX service_lifecycle_one_active_reversible
+            ON service_lifecycle_intents(repository_key)
+            WHERE kind IN ('service.stop', 'service.restart', 'service.force_stop')
+              AND status IN ('accepted', 'draining');
+
+        CREATE TRIGGER action_requests_kind_insert
+        BEFORE INSERT ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_requests_kind_update
+        BEFORE UPDATE OF action_kind ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_approvals_no_update BEFORE UPDATE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER action_approvals_no_delete BEFORE DELETE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_update
+        BEFORE UPDATE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_delete
+        BEFORE DELETE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1335,6 +1493,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     25: _migration_25,
     26: _migration_26,
     27: _migration_27,
+    28: _migration_28,
 }
 
 

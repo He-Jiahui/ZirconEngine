@@ -11,6 +11,7 @@ from .models import (
 )
 from .store import CodexSessionStore
 from .spool import CodexHookEvent, CodexTrigger, CodexTriggerSpool
+from .worker import CodexSyncWorker
 
 __all__ = [
     "CodexDiscoveredSession",
@@ -22,6 +23,7 @@ __all__ = [
     "CodexSessionStore",
     "CodexSourceLocation",
     "CodexSyncTrigger",
+    "CodexSyncWorker",
     "CodexTrigger",
     "CodexTriggerSpool",
 ]

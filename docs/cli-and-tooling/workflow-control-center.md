@@ -1,5 +1,6 @@
 ---
 related_code:
+  - tools/session_coordinator/codex_sync/worker.py
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks.json
   - tools/install-codex-session-hook.ps1
@@ -42,6 +43,7 @@ related_code:
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
 implementation_files:
+  - tools/session_coordinator/codex_sync/worker.py
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks.json
   - tools/install-codex-session-hook.ps1
@@ -89,6 +91,7 @@ plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
+  - tools/session_coordinator/tests/test_codex_worker.py
   - tools/session_coordinator/tests/test_codex_hook.py
   - tools/session_coordinator/tests/test_codex_spool.py
   - tools/tests/codex-session-hook.Tests.ps1
@@ -163,6 +166,16 @@ After `Install`, a changed `Update`, or a Git update to `.codex/hooks.json`, ope
 Every invocation reduces stdin to IDs, closed event/source/permission enums, canonical repository cwd, safe model/subagent metadata, and a timestamp. The trigger is atomically persisted below `%LOCALAPPDATA%/Zircon Session Coordinator/codex-hook/<repository-key>/pending` before a best-effort authenticated 250 ms wake request. The Hook never reads transcript files and never persists prompt, assistant message, tool payload, attachment, environment, token, webhook, or raw stdin content. Offline, stale, slow, identity-mismatched, and pre-H3 daemons leave the sanitized trigger queued; they never cause the Hook to start a process or wait for reconciliation.
 
 `Stop` always returns valid continuation JSON, including malformed-input and internal-import fallback paths. Other configured events are silent on success. The pending queue is capped at 1,024 entries; corrupt external items are moved to the repository-scoped quarantine, and valid items can be acknowledged only with a committed reconcile run ID. `Remove` deletes only the exact managed project definition, its owned `features.hooks` line, and the verified repository spool. A modified project `hooks.json` fails removal closed, while unrelated TOML keys/comments and every global/user/plugin Hook source remain intact.
+
+### Reconciliation service and controlled recovery
+
+After schema and repository identity validation, the daemon starts exactly one `zircon-codex-session-sync` worker. Startup performs a full pass; Hook and authenticated HTTP wakeups coalesce through one event; a 30-second membership tick reparses only path/size/mtime/location changes; and a 15-minute full pass rereads every bounded source to repair rare timestamp-preserving changes. A wake received during a run produces at most one immediate follow-up. Shutdown first stops and joins this worker, allowing the in-flight transaction to commit and acknowledge its captured spool batch before HTTP/database teardown.
+
+The worker is suppressed on non-main, draining, read-only, identity-mismatch, fatal-integrity, and other supervision states that reject mutations. Failure records expose only `codex_sync_failed`; exception text is not copied into health, events, SQLite, or the browser. A later wake retries normally. Health includes bounded run counts, last run ID, sanitized error code, running state, and pending-wake state.
+
+`POST /control/v1/codex-sync/wake` is runtime-token only. It requires exact loopback transport, a body no larger than 4 KiB, the current repository key, and trigger schema 1, then returns `202` after setting the wake event without scanning on the request thread. Hook signaling additionally requires runtime descriptor PID/creation time and `coordinator.lock` PID agreement; a stale descriptor or competing daemon chain therefore remains queued offline.
+
+Maintainers may use the closed `codex.sessions.reconcile` action through the normal Preview/Confirm/audit protocol. Its parameter object must be exactly empty; paths, Codex homes, thread IDs, prompts, or arbitrary payloads are rejected. Confirm only enqueues the same worker and cannot invoke a second reconciliation path. Schema v28 atomically extends the action audit enum while preserving action approvals, supervision events, lifecycle intents, their foreign keys, uniqueness rules, and immutable-history triggers.
 
 Action Activity is identity-scoped to the current daemon, actor, browser session and bound Session. The page restores the newest bounded records after refresh, resumes polling `executing` actions from `sessionStorage`, and renders actor, reason, result and sanitized error evidence. Read-only, identity-mismatch and fatal-integrity states disable mutation controls while preserving this audit view.
 

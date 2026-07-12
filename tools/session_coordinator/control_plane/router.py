@@ -40,6 +40,8 @@ class ControlPlaneRouter:
         actions: ActionService | None = None,
         maintenance_authorizer: Callable[[dict[str, object]], None] | None = None,
         live_workflow_eligibility: Callable[[str, str], dict[str, object]] | None = None,
+        codex_wake: Callable[[str], bool] | None = None,
+        repository_key: str | None = None,
     ):
         self.instance_id = instance_id
         self.auth = auth
@@ -49,6 +51,8 @@ class ControlPlaneRouter:
         self.actions = actions
         self.maintenance_authorizer = maintenance_authorizer
         self.live_workflow_eligibility = live_workflow_eligibility
+        self.codex_wake = codex_wake
+        self.repository_key = repository_key
 
     def dispatch(
         self,
@@ -60,6 +64,28 @@ class ControlPlaneRouter:
         runtime_authorized: bool,
     ) -> ControlResponse:
         path = urlsplit(raw_path).path
+        if method == "POST" and path == "/control/v1/codex-sync/wake":
+            if not runtime_authorized:
+                raise CoordinatorError(
+                    "runtime_auth_required", "Codex wake requires the local runtime credential"
+                )
+            if len(body) > 4096:
+                raise CoordinatorError("request_too_large", "Codex wake exceeds four KiB")
+            payload = self._json_body(body)
+            if set(payload) != {"repositoryKey", "schemaVersion"}:
+                raise CoordinatorError("invalid_request", "Codex wake contract is exact")
+            if payload.get("repositoryKey") != self.repository_key:
+                raise CoordinatorError(
+                    "codex_repository_mismatch", "Codex wake repository identity does not match"
+                )
+            if payload.get("schemaVersion") != 1:
+                raise CoordinatorError(
+                    "codex_trigger_schema_unsupported", "Codex wake schema is unsupported"
+                )
+            if self.codex_wake is None:
+                raise CoordinatorError("codex_worker_unavailable", "Codex sync worker is unavailable")
+            self.codex_wake("hook")
+            return ControlResponse(202, {"queued": True})
         if method == "GET" and path.startswith("/ui/bootstrap/"):
             ticket = unquote(path.removeprefix("/ui/bootstrap/"))
             raw_session, _session = self.auth.consume_bootstrap_ticket(

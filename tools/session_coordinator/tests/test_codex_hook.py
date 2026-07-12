@@ -78,6 +78,9 @@ class CodexHookTests(unittest.TestCase):
         runtime = self.repo / ".codex" / "state" / "session-coordinator" / "runtime.json"
         runtime.parent.mkdir(parents=True)
         runtime.write_text(json.dumps(descriptor), encoding="utf-8")
+        (runtime.parent / "coordinator.lock").write_text(
+            json.dumps({"pid": descriptor["pid"]}), encoding="utf-8"
+        )
         return descriptor
 
     def test_prompt_and_assistant_content_are_never_spooled(self) -> None:
@@ -203,6 +206,17 @@ class CodexHookTests(unittest.TestCase):
 
     def test_stale_process_identity_fails_before_network(self) -> None:
         self._write_runtime(43123, creation_time="stale-creation-time")
+
+        with patch("tools.session_coordinator.codex_sync.hook.urllib.request.urlopen") as open_url:
+            signaled = signal_coordinator(self.repo, repository_identity(self.repo).key)
+
+        self.assertFalse(signaled)
+        open_url.assert_not_called()
+
+    def test_runtime_and_lock_pid_mismatch_fails_before_network(self) -> None:
+        self._write_runtime(43123)
+        lock = self.repo / ".codex" / "state" / "session-coordinator" / "coordinator.lock"
+        lock.write_text(json.dumps({"pid": 999999}), encoding="utf-8")
 
         with patch("tools.session_coordinator.codex_sync.hook.urllib.request.urlopen") as open_url:
             signaled = signal_coordinator(self.repo, repository_identity(self.repo).key)

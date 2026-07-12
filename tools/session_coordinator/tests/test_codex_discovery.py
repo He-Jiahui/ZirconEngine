@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -177,6 +178,29 @@ class CodexDiscoveryTests(unittest.TestCase):
         self.assertIsNone(session.cli_version)
         self.assertIsNone(session.thread_source)
         self.assertNotIn(secret, repr(session))
+
+    def test_incremental_scan_reuses_unchanged_parse_and_full_scan_refreshes(self) -> None:
+        rollout = write_rollout(
+            self.codex_home,
+            thread_id="thread-incremental",
+            cwd=self.repo,
+            lifecycle=("task_started",),
+        )
+        discovery = CodexSessionDiscovery(self.codex_home, self.repo)
+        first = discovery.discover(full=True)
+        original = rollout.read_text(encoding="utf-8")
+        replacement = original.replace("task_started", "turn_aborted")
+        self.assertEqual(len(original), len(replacement))
+        stat = rollout.stat()
+        rollout.write_text(replacement, encoding="utf-8")
+        os.utime(rollout, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+
+        incremental = discovery.discover(full=False)
+        refreshed = discovery.discover(full=True)
+
+        self.assertEqual(CodexSessionState.ACTIVE, first.sessions[0].state)
+        self.assertEqual(CodexSessionState.ACTIVE, incremental.sessions[0].state)
+        self.assertEqual(CodexSessionState.IDLE, refreshed.sessions[0].state)
 
 
 if __name__ == "__main__":

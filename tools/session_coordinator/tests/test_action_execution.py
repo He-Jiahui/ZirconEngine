@@ -235,6 +235,34 @@ class ActionExecutionTests(unittest.TestCase):
 
         self.assertEqual("action_instance_mismatch", rejected.exception.code)
 
+    def test_codex_reconcile_action_only_enqueues_worker(self) -> None:
+        wake_reasons: list[str] = []
+        self.service.executor.codex_wake = lambda reason: wake_reasons.append(reason) or True
+        maintainer = ActionContext(
+            actor="maintainer",
+            role=WebControlRole.MAINTAINER,
+            web_session_id="web-maintainer",
+            bound_session_id=None,
+            daemon_instance_id="instance-a",
+        )
+
+        with self.assertRaises(CoordinatorError) as denied:
+            self.service.preview(self.context, ActionKind.CODEX_RECONCILE.value, {})
+        self.assertEqual("action_permission_denied", denied.exception.code)
+        preview = self.service.preview(
+            maintainer, ActionKind.CODEX_RECONCILE.value, {}
+        )
+        result = self.service.confirm(
+            maintainer,
+            preview.action_id,
+            phrase=preview.confirmation_phrase or "",
+            reason="reconcile Codex source projection",
+        )
+
+        self.assertEqual("succeeded", result.status.value)
+        self.assertEqual(["controlled"], wake_reasons)
+        self.assertEqual({"queued": True, "trigger": "controlled"}, result.result)
+
 
 if __name__ == "__main__":
     unittest.main()

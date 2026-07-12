@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +16,10 @@ class CoordinatorConfig:
     lease_grace_seconds: int = 120
     watch_interval_seconds: float = 30.0
     maintenance_interval_seconds: float = 900.0
+    codex_home: Path | None = None
+    codex_spool_base: Path | None = None
+    codex_membership_interval_seconds: float = 30.0
+    codex_full_interval_seconds: float = 900.0
 
     @classmethod
     def for_repo(
@@ -26,12 +31,38 @@ class CoordinatorConfig:
         port: int = 0,
         watch_interval_seconds: float = 30.0,
         maintenance_interval_seconds: float = 900.0,
+        codex_home: str | Path | None = None,
+        codex_spool_base: str | Path | None = None,
+        codex_membership_interval_seconds: float = 30.0,
+        codex_full_interval_seconds: float = 900.0,
     ) -> "CoordinatorConfig":
         resolved_repo = Path(repo_root).resolve()
         resolved_state = (
             Path(state_root).resolve()
             if state_root is not None
             else resolved_repo / ".codex" / "state" / "session-coordinator"
+        )
+        isolated = state_root is not None
+        resolved_codex_home = (
+            Path(codex_home).resolve()
+            if codex_home is not None
+            else (
+                resolved_state / "codex-source"
+                if isolated
+                else Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).resolve()
+            )
+        )
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        resolved_spool = (
+            Path(codex_spool_base).resolve()
+            if codex_spool_base is not None
+            else (
+                resolved_state / "codex-hook"
+                if isolated or not local_app_data
+                else Path(local_app_data).resolve()
+                / "Zircon Session Coordinator"
+                / "codex-hook"
+            )
         )
         return cls(
             repo_root=resolved_repo,
@@ -40,6 +71,10 @@ class CoordinatorConfig:
             port=port,
             watch_interval_seconds=watch_interval_seconds,
             maintenance_interval_seconds=maintenance_interval_seconds,
+            codex_home=resolved_codex_home,
+            codex_spool_base=resolved_spool,
+            codex_membership_interval_seconds=codex_membership_interval_seconds,
+            codex_full_interval_seconds=codex_full_interval_seconds,
         )
 
     @property

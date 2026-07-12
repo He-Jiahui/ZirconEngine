@@ -139,6 +139,15 @@ _SPECS = (
         warnings=("仅用于高级恢复；托盘终止前必须再次核验完整进程身份。",),
     ),
     _spec(ActionKind.MAINTENANCE_CLEANUP, "执行维护清理", ActionRisk.RED, WebControlRole.MAINTAINER, enabled=False),
+    _spec(
+        ActionKind.CODEX_RECONCILE,
+        "重新同步 Codex Sessions",
+        ActionRisk.YELLOW,
+        WebControlRole.MAINTAINER,
+        ActionParameters,
+        session_bound=False,
+        warnings=("只唤醒单飞同步 worker；不接受路径、thread ID 或原始 Hook 数据。",),
+    ),
 )
 
 ACTION_CATALOG: dict[str, ActionSpec] = {spec.kind.value: spec for spec in _SPECS}

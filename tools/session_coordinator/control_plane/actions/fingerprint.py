@@ -107,6 +107,17 @@ class ActionFingerprinter:
                 {"path": path, "hash": self._safe_file_hash(path)} for path in targets
             ],
         }
+        if spec.kind is ActionKind.CODEX_RECONCILE:
+            latest_codex_run = connection.execute(
+                "SELECT run_id, status, source_revision, completed_at "
+                "FROM codex_sync_runs ORDER BY created_at DESC, run_id DESC LIMIT 1"
+            ).fetchone()
+            payload["codexSync"] = {
+                "latestRun": dict(latest_codex_run) if latest_codex_run is not None else None,
+                "sessionCount": connection.execute(
+                    "SELECT COUNT(*) FROM codex_sessions"
+                ).fetchone()[0],
+            }
         canonical = json.dumps(
             payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
         ).encode("utf-8")

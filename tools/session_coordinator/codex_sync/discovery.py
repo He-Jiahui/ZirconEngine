@@ -55,8 +55,18 @@ class CodexSessionDiscovery:
         self.max_files = max_files
         self.max_meta_bytes = max_meta_bytes
         self.max_tail_bytes = max_tail_bytes
+        self._cache: dict[
+            str,
+            tuple[
+                CodexSourceLocation,
+                int,
+                int,
+                CodexDiscoveredSession | None,
+                CodexDiscoveryDiagnostic | None,
+            ],
+        ] = {}
 
-    def discover(self) -> CodexDiscoveryResult:
+    def discover(self, full: bool = True) -> CodexDiscoveryResult:
         candidates: list[tuple[Path, CodexSourceLocation]] = []
         diagnostics: list[CodexDiscoveryDiagnostic] = []
         membership_complete = True
@@ -92,8 +102,34 @@ class CodexSessionDiscovery:
 
         candidates = sorted(candidates, key=lambda item: os.path.normcase(str(item[0])))[: self.max_files]
         by_thread: dict[str, CodexDiscoveredSession] = {}
+        observed_cache_keys: set[str] = set()
         for path, location in candidates:
-            discovered, diagnostic = self._discover_one(path, location)
+            cache_key = os.path.normcase(str(path.resolve(strict=False)))
+            observed_cache_keys.add(cache_key)
+            discovered = None
+            diagnostic = None
+            try:
+                stat = path.stat()
+                cached = self._cache.get(cache_key)
+                if (
+                    not full
+                    and cached is not None
+                    and cached[0] is location
+                    and cached[1] == stat.st_size
+                    and cached[2] == stat.st_mtime_ns
+                ):
+                    discovered, diagnostic = cached[3], cached[4]
+                else:
+                    discovered, diagnostic = self._discover_one(path, location)
+                    self._cache[cache_key] = (
+                        location,
+                        stat.st_size,
+                        stat.st_mtime_ns,
+                        discovered,
+                        diagnostic,
+                    )
+            except OSError:
+                discovered, diagnostic = self._discover_one(path, location)
             if diagnostic is not None:
                 diagnostics.append(diagnostic)
             if discovered is None:
@@ -101,6 +137,10 @@ class CodexSessionDiscovery:
             previous = by_thread.get(discovered.thread_id)
             if previous is None or self._preferred(discovered, previous):
                 by_thread[discovered.thread_id] = discovered
+        if membership_complete:
+            self._cache = {
+                key: value for key, value in self._cache.items() if key in observed_cache_keys
+            }
 
         sessions = tuple(sorted(by_thread.values(), key=lambda item: item.thread_id))
         revision_material = "\n".join(

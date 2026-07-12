@@ -170,7 +170,7 @@ function Test-DaemonCompatible {
         return $runtime.descriptor_version -eq 2 -and
             $runtime.host -eq '127.0.0.1' -and
             $runtime.repository_key -eq (Get-RepositoryKey) -and
-            $runtime.schema_version -eq 27 -and
+            $runtime.schema_version -eq 28 -and
             @($runtime.control_api_versions) -contains 1
     } catch { return $false }
 }

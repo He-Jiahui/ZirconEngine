@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.cookiejar
 import json
 import tempfile
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -20,6 +21,76 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ControlHttpTests(unittest.TestCase):
+    def test_codex_wake_is_runtime_authenticated_exact_and_non_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                worker = running.httpd.application.codex_worker
+                deadline = time.monotonic() + 2
+                while worker.snapshot()["successfulRuns"] < 1 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                before = int(worker.snapshot()["successfulRuns"])
+                payload = json.dumps(
+                    {
+                        "repositoryKey": running.httpd.application.repository_identity.key,
+                        "schemaVersion": 1,
+                    }
+                ).encode("utf-8")
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/codex-sync/wake",
+                    data=payload,
+                    headers={
+                        "Authorization": f"Bearer {running.token}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                started = time.perf_counter()
+                response = urllib.request.urlopen(request, timeout=2)
+                elapsed = time.perf_counter() - started
+                status = response.status
+                body = json.loads(response.read())
+                response.close()
+                self.assertEqual(202, status)
+                self.assertTrue(body["data"]["queued"])
+                self.assertLess(elapsed, 0.5)
+
+                deadline = time.monotonic() + 2
+                while int(worker.snapshot()["successfulRuns"]) <= before and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertGreater(int(worker.snapshot()["successfulRuns"]), before)
+
+                unauthenticated = urllib.request.Request(
+                    f"{running.base_url}/control/v1/codex-sync/wake",
+                    data=payload,
+                    headers={"Content-Type": "application/json", "Origin": running.base_url},
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as denied:
+                    urllib.request.urlopen(unauthenticated, timeout=2)
+                self.assertEqual(401, denied.exception.code)
+                denied.exception.close()
+
+                mismatched = urllib.request.Request(
+                    f"{running.base_url}/control/v1/codex-sync/wake",
+                    data=json.dumps(
+                        {"repositoryKey": "0" * 64, "schemaVersion": 1}
+                    ).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {running.token}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(mismatched, timeout=2)
+                self.assertEqual(409, rejected.exception.code)
+                rejected.exception.close()
+
+            self.assertFalse(worker.is_alive())
+
     def test_ui_assets_are_served_without_exposing_api_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
