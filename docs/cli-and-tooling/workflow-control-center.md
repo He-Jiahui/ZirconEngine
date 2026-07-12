@@ -35,6 +35,8 @@ related_code:
   - tools/session_tray/src/lifecycle.rs
   - tools/session_tray/src/menu.rs
   - tools/session_tray/src/recovery.rs
+  - tools/session_tray/src/repository_identity.rs
+  - tools/session_tray/src/runtime_descriptor.rs
   - tools/session_tray/src/startup.rs
   - tools/session_tray/src/tray_state.rs
   - tools/session_coordinator/web/src/App.tsx
@@ -82,6 +84,8 @@ implementation_files:
   - tools/session_tray/src/lifecycle.rs
   - tools/session_tray/src/menu.rs
   - tools/session_tray/src/recovery.rs
+  - tools/session_tray/src/repository_identity.rs
+  - tools/session_tray/src/runtime_descriptor.rs
   - tools/session_tray/src/startup.rs
   - tools/session_tray/src/tray_state.rs
   - tools/session_coordinator/web/src/App.tsx
@@ -282,6 +286,8 @@ Workflow lists are projections over coordinator-owned data. M1 creates one stabl
 ## Windows Tray Supervision
 
 The independent Tauri tray under `tools/session_tray` verifies the repository key, runtime descriptor version, PID creation time, executable, command line, daemon instance, schema/API versions, and authenticated health before enabling operations. Stale descriptors and PID reuse never authorize termination.
+
+On Windows, Rust canonicalization can represent a local path as `\\?\E:\...` while Python and PowerShell use `E:\...`. Repository identity removes only the Windows verbatim namespace representation (and maps `\\?\UNC\server\share` back to `\\server\share`) before case-folding and hashing. Runtime-path equality uses the same normalization. This keeps the cross-process SHA-256 identity stable without accepting a different drive, UNC share, repository path, PID, creation time, executable, command line, instance, or authenticated health response.
 
 Tray states are strict enums: starting, healthy, busy, degraded, draining, stopping, offline, recovering, read-only, identity mismatch, and fatal integrity error. The icon, tooltip and menu are derived from the same enum and last verified identity. Drain, resume, stop, restart, and force-stop are cataloged actions. The first click stores the server preview; only a second click confirms it. Schema v26 and the service preflight jointly enforce at most one accepted/draining stop, restart or force-stop intent per repository. Before installing that unique index, v26 atomically fails every intent/action in a historical multi-active conflict and records `schema.lifecycle_conflict_repaired`; it never guesses which old command should continue. A confirmed lifecycle that is still draining exposes a separate cancel command in both the tray and web Action Activity. Cancellation uses the same serialization gate as Confirm and atomically marks the lifecycle intent and action cancelled, writes audit evidence, and restores supervision to healthy. Ordinary Resume uses that same durable cancellation path when a reversible drain exists; if the associated action is already terminal, Resume atomically fails the orphan instead. Activation failures compensate the new intent/action and release `draining`, while daemon startup fails accepted/draining reversible intents owned by an older daemon instance before accepting new lifecycle work. After the worker enters stopping, cancellation and Resume fail closed as no longer cancellable.
 

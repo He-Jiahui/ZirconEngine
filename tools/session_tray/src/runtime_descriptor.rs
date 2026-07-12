@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Deserializer};
 
-use crate::repository_identity::{RepositoryIdentity, REPOSITORY_IDENTITY_VERSION};
+use crate::repository_identity::{
+    identity_paths_equal, RepositoryIdentity, REPOSITORY_IDENTITY_VERSION,
+};
 use crate::TrayError;
 
 pub const RUNTIME_DESCRIPTOR_VERSION: u32 = 2;
@@ -78,10 +80,7 @@ impl RuntimeDescriptor {
             return Err(TrayError::IdentityMismatch("repository key differs"));
         }
         let descriptor_repo = self.repo_root.canonicalize()?;
-        if !descriptor_repo
-            .to_string_lossy()
-            .eq_ignore_ascii_case(&repository.canonical_path.to_string_lossy())
-        {
+        if !identity_paths_equal(&descriptor_repo, &repository.canonical_path) {
             return Err(TrayError::IdentityMismatch("repository path differs"));
         }
         if self.instance_id.is_empty()

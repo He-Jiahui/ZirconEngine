@@ -16,7 +16,9 @@ pub struct RepositoryIdentity {
 impl RepositoryIdentity {
     pub fn for_path(path: impl AsRef<Path>) -> Result<Self, TrayError> {
         let canonical_path = path.as_ref().canonicalize()?;
-        let normalized = canonical_path.to_string_lossy().to_lowercase();
+        let normalized = normalize_identity_path(&canonical_path);
+        let portable_path = portable_identity_path(&canonical_path);
+        let canonical_path = PathBuf::from(&portable_path);
         let key = hex::encode(Sha256::digest(normalized.as_bytes()));
         Ok(Self {
             version: REPOSITORY_IDENTITY_VERSION,
@@ -32,6 +34,28 @@ impl RepositoryIdentity {
     pub fn mutex_name(&self) -> String {
         format!("Local\\ZirconSessionTray-{}", self.short_key())
     }
+}
+
+fn portable_identity_path(path: &Path) -> String {
+    let value = path.to_string_lossy();
+    #[cfg(windows)]
+    {
+        if let Some(rest) = value.strip_prefix(r"\\?\UNC\") {
+            return format!(r"\\{rest}");
+        }
+        if let Some(rest) = value.strip_prefix(r"\\?\") {
+            return rest.to_owned();
+        }
+    }
+    value.into_owned()
+}
+
+pub(crate) fn normalize_identity_path(path: &Path) -> String {
+    portable_identity_path(path).to_lowercase()
+}
+
+pub(crate) fn identity_paths_equal(left: &Path, right: &Path) -> bool {
+    normalize_identity_path(left) == normalize_identity_path(right)
 }
 
 #[cfg(windows)]
@@ -85,5 +109,22 @@ mod tests {
         assert_eq!(64, identity.key.len());
         assert_eq!(10, identity.short_key().len());
         assert!(identity.mutex_name().ends_with(&identity.short_key()));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_verbatim_prefix_does_not_change_cross_process_identity() {
+        assert_eq!(
+            r"e:\git\zirconengine",
+            normalize_identity_path(Path::new(r"\\?\E:\Git\ZirconEngine"))
+        );
+        assert_eq!(
+            r"\\server\share\zirconengine",
+            normalize_identity_path(Path::new(r"\\?\UNC\server\share\ZirconEngine"))
+        );
+        assert!(identity_paths_equal(
+            Path::new(r"\\?\E:\Git\ZirconEngine"),
+            Path::new(r"E:\Git\ZirconEngine")
+        ));
     }
 }
