@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,33 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
+    def test_git_projection_never_reads_internal_index_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            reads: set[tuple[str | None, str | None]] = set()
+
+            def authorize(
+                action: int,
+                table: str | None,
+                column: str | None,
+                _database: str | None,
+                _trigger: str | None,
+            ) -> int:
+                if action == sqlite3.SQLITE_READ:
+                    reads.add((table, column))
+                    if (table, column) == ("finalize_requests", "index_snapshot"):
+                        return sqlite3.SQLITE_DENY
+                return sqlite3.SQLITE_OK
+
+            with database.connect() as connection:
+                connection.set_authorizer(authorize)
+                projection = ControlSnapshotService._git(connection)
+
+            self.assertEqual([], projection["finalizeRequests"])
+            self.assertNotIn(("finalize_requests", "index_snapshot"), reads)
+
     def test_codex_projection_is_bounded_ordered_and_path_free(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

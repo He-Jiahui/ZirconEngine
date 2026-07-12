@@ -230,12 +230,18 @@ class ControlSnapshotService:
     def _git(connection) -> dict[str, object]:
         requests = []
         for row in connection.execute(
-            "SELECT * FROM finalize_requests ORDER BY created_at DESC LIMIT 500"
+            """
+            SELECT request_id, session_id, message, paths_json, categories_json,
+                   untracked_json, validation_json, maintenance, status,
+                   commit_sha, error_text, created_at, completed_at, start_head,
+                   index_existed, ref_updated_sha
+            FROM finalize_requests
+            ORDER BY created_at DESC LIMIT 500
+            """
         ):
             item = dict(row)
             for key in ("paths_json", "categories_json", "untracked_json", "validation_json"):
                 item[key.removesuffix("_json")] = json.loads(item.pop(key))
-            item.pop("index_snapshot", None)
             requests.append(item)
         return {"finalizeRequests": requests}
 
