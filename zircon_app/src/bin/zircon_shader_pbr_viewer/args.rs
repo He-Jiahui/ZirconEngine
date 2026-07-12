@@ -1,14 +1,14 @@
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-pub(crate) const DEFAULT_FACE_SIZE: u32 = 256;
 pub(crate) const MIN_FACE_SIZE: u32 = 64;
-pub(crate) const MAX_FACE_SIZE: u32 = 512;
+pub(crate) const MAX_FACE_SIZE: u32 = 1024;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ViewerConfig {
     pub(crate) hdri_path: PathBuf,
-    pub(crate) face_size: u32,
+    // None keeps import sizing tied to the decoded HDRI instead of a viewer-only default.
+    pub(crate) face_size: Option<u32>,
     pub(crate) renderdoc_capture_once: bool,
     pub(crate) exit_after_capture: bool,
     pub(crate) initial_yaw_degrees: f32,
@@ -21,7 +21,7 @@ impl ViewerConfig {
         args: impl IntoIterator<Item = String>,
     ) -> Result<Self, Box<dyn Error>> {
         let mut hdri_path = default_hdri_path();
-        let mut face_size = DEFAULT_FACE_SIZE;
+        let mut face_size = None;
         let mut renderdoc_capture_once = false;
         let mut exit_after_capture = false;
         let mut initial_yaw_degrees = 0.0;
@@ -50,7 +50,7 @@ impl ViewerConfig {
                     let Some(value) = args.next() else {
                         return Err("--face-size requires a pixel value".into());
                     };
-                    face_size = parse_face_size(&value)?;
+                    face_size = Some(parse_face_size(&value)?);
                 }
                 _ if arg.starts_with('-') => {
                     return Err(format!("unknown argument `{arg}`").into());
@@ -113,21 +113,35 @@ pub(crate) fn default_hdri_path() -> PathBuf {
 pub(crate) fn print_help() {
     println!(
         "zircon_shader_pbr_viewer [--hdri <path>]\n\
-         Optional: --face-size <64|128|256|512>\n\
+         Optional: --face-size <64|128|256|512|1024>\n\
          Optional: --renderdoc-capture-once [--exit-after-capture]\n\
          Optional: --yaw <degrees> --pitch <degrees>\n\
          Left mouse drag: orbit camera\n\
          Mouse wheel: zoom\n\
          Default HDRI: {}\n\
-         Default face size: {}",
-        default_hdri_path().display(),
-        DEFAULT_FACE_SIZE
+         Default face size: automatic from HDRI height (64..1024)",
+        default_hdri_path().display()
     );
 }
 
 #[cfg(test)]
 mod tests {
     use super::ViewerConfig;
+
+    #[test]
+    fn default_face_size_uses_hdri_native_angular_resolution() {
+        let config = ViewerConfig::from_args([]).expect("default viewer arguments should parse");
+
+        assert_eq!(config.face_size, None);
+    }
+
+    #[test]
+    fn explicit_face_size_accepts_plan_maximum() {
+        let config = ViewerConfig::from_args(["--face-size".to_owned(), "1024".to_owned()])
+            .expect("the Shader 06 source cubemap maximum should parse");
+
+        assert_eq!(config.face_size, Some(1024));
+    }
 
     #[test]
     fn exact_multiview_angles_accept_signed_degrees() {

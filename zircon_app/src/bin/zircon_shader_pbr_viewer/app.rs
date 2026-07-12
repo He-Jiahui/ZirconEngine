@@ -24,7 +24,8 @@ const LOAD_STATUS_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
 pub(crate) struct PbrMirrorViewerApp {
     hdri_path: PathBuf,
-    face_size: u32,
+    // Preserve automatic sizing until the background loader can inspect the HDR image.
+    face_size: Option<u32>,
     renderdoc_capture_once: bool,
     exit_after_capture: bool,
     renderdoc_capture_finished: bool,

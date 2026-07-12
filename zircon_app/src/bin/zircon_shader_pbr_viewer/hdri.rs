@@ -7,23 +7,25 @@ use zircon_runtime::asset::artifact::IblSourceCubemapStagingStore;
 use zircon_runtime::asset::{stage_environment_ibl_source, AssetImportContext, AssetUri};
 use zircon_runtime::core::framework::render::SourceCubemapEnvironment;
 
+use crate::args::{MAX_FACE_SIZE, MIN_FACE_SIZE};
+
 const DEFAULT_ENVIRONMENT_INTENSITY: f32 = 0.65;
 
 pub(crate) fn source_cubemap_environment(
     hdri_path: &Path,
-    requested_face_size: u32,
+    requested_face_size: Option<u32>,
     cache_root: &Path,
 ) -> Result<SourceCubemapEnvironment, Box<dyn Error>> {
     let bytes = fs::read(hdri_path)?;
     let image = image::load_from_memory_with_format(&bytes, ImageFormat::Hdr)?.to_rgb32f();
     let exposure = sampled_hdri_exposure(&image);
+    let face_size = resolved_face_size(requested_face_size, image.height());
     let uri = AssetUri::parse("res://environment/viewer_hdri.hdr")?;
     let context = AssetImportContext::new(
         hdri_path.to_path_buf(),
         uri.clone(),
         bytes,
-        format!("environment_ibl = true\nenvironment_ibl_face_size = {requested_face_size}")
-            .parse()?,
+        format!("environment_ibl = true\nenvironment_ibl_face_size = {face_size}").parse()?,
     );
     let staged = stage_environment_ibl_source(&context, cache_root)?;
     let request = *staged.request().ok_or_else(|| {
@@ -55,6 +57,16 @@ pub(crate) fn source_cubemap_environment(
     Ok(environment)
 }
 
+// Explicit CLI sizing wins; otherwise use the runtime's native equirectangular mapping.
+fn resolved_face_size(requested_face_size: Option<u32>, equirect_height: u32) -> u32 {
+    requested_face_size.unwrap_or_else(|| {
+        zircon_runtime::core::framework::render::source_cubemap_face_size_from_equirect_height(
+            equirect_height,
+        )
+        .clamp(MIN_FACE_SIZE, MAX_FACE_SIZE)
+    })
+}
+
 fn sampled_hdri_exposure(image: &image::Rgb32FImage) -> f32 {
     let step_x = (image.width() / 128).max(1);
     let step_y = (image.height() / 64).max(1);
@@ -75,4 +87,21 @@ fn sampled_hdri_exposure(image: &image::Rgb32FImage) -> f32 {
 
 fn luma(rgb: [f32; 3]) -> f32 {
     rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolved_face_size;
+
+    #[test]
+    fn automatic_face_size_matches_native_equirect_angular_resolution() {
+        assert_eq!(resolved_face_size(None, 512), 256);
+        assert_eq!(resolved_face_size(None, 1024), 512);
+        assert_eq!(resolved_face_size(None, 4096), 1024);
+    }
+
+    #[test]
+    fn explicit_face_size_overrides_hdri_resolution() {
+        assert_eq!(resolved_face_size(Some(128), 4096), 128);
+    }
 }

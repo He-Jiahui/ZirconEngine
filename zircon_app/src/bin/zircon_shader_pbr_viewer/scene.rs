@@ -27,7 +27,8 @@ pub(crate) struct PbrMirrorScene {
 }
 
 impl PbrMirrorScene {
-    pub(crate) fn new(hdri_path: &Path, face_size: u32) -> Result<Self, Box<dyn Error>> {
+    // The HDRI loader resolves an omitted face size after decoding the source dimensions.
+    pub(crate) fn new(hdri_path: &Path, face_size: Option<u32>) -> Result<Self, Box<dyn Error>> {
         let project_root = unique_temp_project_root("shader_pbr_viewer");
         let paths = ProjectPaths::from_root(&project_root)?;
         let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml")?;
