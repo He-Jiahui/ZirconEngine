@@ -77,6 +77,35 @@ url = "res://textures/extra.png"
 }
 
 #[test]
+fn persisted_standard_pbr_overrides_are_ready_with_builtin_shader_contract() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Persisted Mirror"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "builtin://shader/pbr.wgsl"
+
+[overrides]
+base_color = [0.92, 0.92, 0.92, 1.0]
+lighting_model = "pbr"
+metallic = 1.0
+roughness = 0.08
+"#,
+    )
+    .unwrap();
+    let mut shader = shader_contract();
+    shader.property_schema.clear();
+    shader.texture_slots.clear();
+
+    let report = material.readiness_report_with_shader_contract(&shader, |_| true, |_| true);
+
+    assert!(report.is_ready(), "standard PBR controls: {report:?}");
+    assert!(report.validation_errors.is_empty());
+}
+
+#[test]
 fn material_asset_reports_missing_required_shader_texture_slot() {
     let material = MaterialAsset::from_toml_str(
         r#"

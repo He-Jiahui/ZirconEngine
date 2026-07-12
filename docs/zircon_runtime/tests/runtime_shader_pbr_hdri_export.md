@@ -135,13 +135,15 @@ For RenderDoc evidence, the viewer also supports `--renderdoc-capture-once --exi
 Usage:
 
 ```powershell
-E:\ZirconBuilds\shader-pbr-viewer-20260711\zircon_shader_pbr_viewer.exe
-E:\ZirconBuilds\shader-pbr-viewer-20260711\zircon_shader_pbr_viewer.exe --hdri E:\Git\ZirconEngine\docs\tests\runtime\shader\assets\polyhaven_lakes_2k.hdr
-E:\ZirconBuilds\shader-pbr-viewer-20260711\zircon_shader_pbr_viewer.exe --face-size 512
-E:\ZirconBuilds\shader-pbr-viewer-20260711\zircon_shader_pbr_viewer.exe --face-size 64 --renderdoc-capture-once --exit-after-capture
+E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe
+E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --hdri E:\Git\ZirconEngine\docs\tests\runtime\shader\assets\polyhaven_lakes_2k.hdr
+E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --face-size 512
+E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --face-size 64 --renderdoc-capture-once --exit-after-capture
 ```
 
 Left mouse drag orbits the camera. The mouse wheel zooms. The viewer intentionally uses `stage_environment_ibl_source(...)`, `IblSourceCubemapStagingStore::read_source_cubemap_environment(...)`, `EnvironmentExtract::source_cubemap(...)`, the standard PBR material, and the normal camera descriptor path. Manual inspection therefore exercises importer-produced source/derived artifacts and the runtime reflection route rather than a separate debug renderer or a temporary viewer-only PMREM build.
+
+The 2026-07-12 current-source executable is 69,888,000 bytes with SHA256 `638B9484C3A054B48DFD4359639E010D1C813C2002F2C77FAF7200F1F71D0A84`. A normal DX12 launch with the default Lakes 2K HDRI remained responsive through source-cubemap and PMREM staging, reached `Ready - yaw 0 pitch 0`, and reported source face 256/mip9 plus PMREM face128/mip8. The real window capture is `docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_fresh_20260712.png`, 1296x999, 870,391 bytes, SHA256 `996F982878099698DBABF231B928356CFE5F7917753BEC8CD589BB87FB79CAE1`. It shows detailed skybox and mirror-sphere scene content rather than the rejected low-resolution equirect sample grid.
 
 ## Test Coverage
 
@@ -196,3 +198,5 @@ The strict source-reference follow-up for yawed multi-view screenshots, the requ
 - A fresh 2026-07-11 launch of `E:/ZirconBuilds/shader-pbr-viewer-20260711/zircon_shader_pbr_viewer.exe` reached `Ready` after 64.27 seconds of scene preparation (71.1 seconds wall time), remained responsive at every five-second sample, and produced no stderr. The executable is 70,144,000 bytes with SHA256 `0A1330437EB8020CB0487664E9A5B5C9DDBF3C2CCF9AF121E1DA26E6E60ACF22`.
 - The exact front/yaw +/-120/pitch +/-120 contact sheet is `docs/tests/runtime/shader/zircon_shader_pbr_viewer_exact_multiview_120_20260711.png` (SHA256 `572DE8E7C315BAC4D07EE08334D175EDDA7EB8A79F8BBFED8D3B0C0DED3A712F`). The yaw +120 DX12 capture (SHA256 `E968F9154513A0031C47212E6F121D1BB30B05195275D565F25C82F61C445CCC`) replays successfully with `renderdoccmd replay --loops 1`.
 - The current 2026-07-12 rebuild hard-cuts generated scene references to the temporary project's scanned registry identity instead of deriving a fresh GUID from `res://`. The focused viewer tests pass 6/6, the production build exits 0, and the published executable is 75,099,136 bytes with SHA256 `E2C7A9A94D640EC4A2C3FB83F5D12A65D03E9889430582F14801DDF97600B53B`. A default Lakes 2K launch remained responsive throughout loading and reached `Ready - yaw 0 pitch 0` after 75.16 seconds of scene preparation (78.7 seconds observed wall time), with staged source face 256/mip 9 and PMREM face 128/mip 8. This closes the post-project-migration `asset guid ... is not registered` startup regression without a legacy-reference fallback.
+- A later current-source rebuild is published at `E:/ZirconBuilds/shader-pbr-viewer-20260712/zircon_shader_pbr_viewer.exe` (69,888,000 bytes, SHA256 `638B9484C3A054B48DFD4359639E010D1C813C2002F2C77FAF7200F1F71D0A84`). Its default Lakes 2K DX12 launch reached `Ready - yaw 0 pitch 0`; the accepted 1296x999 live image is `docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_fresh_20260712.png` (SHA256 `996F982878099698DBABF231B928356CFE5F7917753BEC8CD589BB87FB79CAE1`). A fresh DX12 one-shot capture wrote `docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_dx12_renderdoc_20260712_capture.rdc` (15,708,994 bytes, SHA256 `D64379AED7C463C58293166C04325A8CD26C580567FF1BDFF3BE35EF2438BAEF`); `D:/Tools/renderdoc/renderdoccmd.exe replay --loops 1` loaded and replayed it with exit 0.
+- The current-source realtime IBL integration target was rebuilt and rerun: exact contract 1/1, direct-SH9 8x8 1/1, and exact front/pitch +/-120/yaw +/-120 five-view product 1/1. The accepted PNG hashes remain `6E060927368C0D75678F115B5D110E536C0ABE2E81BD8FB05CDBEFA129FA62FA` and `B41F470CA6119405AAFB8B5441C0276258F6680353381BFB4230C5FB67BCE9FF`; both files were freshly rewritten under `docs/tests/runtime/shader` and visually checked for continuous material response and consistent reflection orientation.

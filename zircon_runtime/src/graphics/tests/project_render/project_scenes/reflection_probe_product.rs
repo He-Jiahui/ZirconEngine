@@ -100,17 +100,23 @@ impl ProbeProductFixture {
     fn new(label: &str) -> Self {
         let root = unique_temp_project_root(label);
         let paths = ProjectPaths::from_root(&root).expect("probe product paths");
-        paths.ensure_layout().expect("probe product layout");
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .expect("probe product layout");
         write_probe_product_project(&paths);
 
-        let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
-        asset_manager
-            .open_project(root.to_string_lossy().as_ref())
-            .expect("open probe product project");
         let mut project = ProjectManager::open(&root).expect("probe product project manager");
         project
             .scan_and_import()
-            .expect("import probe product project");
+            .expect("import probe product model and material");
+        write_probe_scene(probe_scene_path(&paths), &project);
+        project
+            .scan_and_import()
+            .expect("import probe product scene");
+        let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
+        asset_manager
+            .open_project(root.to_string_lossy().as_ref())
+            .expect("open imported probe product project");
         let scene_uri = AssetUri::parse("res://scenes/reflection_probe.scene.toml")
             .expect("probe product scene URI");
         let world =
@@ -167,14 +173,6 @@ impl ProbeProductFixture {
         assert_eq!(
             snapshot.scene.camera.projection_mode,
             ProjectionMode::Orthographic
-        );
-        assert!(
-            stats
-                .last_graph_executed_passes
-                .iter()
-                .all(|pass| !pass.contains("reflection-probe")),
-            "reflection probes shade through environment bindings; graph must not contain an unrequested capture/composite pass: {:?}",
-            stats.last_graph_executed_passes,
         );
         assert_eq!(
             snapshot.scene.camera.core_pipeline,
@@ -255,13 +253,22 @@ impl ProbeProductFixture {
             stats.last_material_ready_count,
         );
         assert!(
+            stats
+                .last_graph_executed_passes
+                .iter()
+                .all(|pass| !pass.contains("reflection-probe")),
+            "reflection probes shade through environment bindings; graph must not contain an unrequested capture/composite pass: {:?}",
+            stats.last_graph_executed_passes,
+        );
+        assert!(
             stats.last_visibility_visible_count > 0
                 && stats.last_mesh_draw_count > 0
                 && stats.last_material_ready_count > 0,
-            "probe product must draw a ready mirror surface: visible={}, mesh_draws={}, materials_ready={}, material_fallbacks={}, shader_misses={:?}",
+            "probe product must draw a ready mirror surface: visible={}, mesh_draws={}, materials_ready={}, material_validation_errors={}, material_fallbacks={}, shader_misses={:?}",
             stats.last_visibility_visible_count,
             stats.last_mesh_draw_count,
             stats.last_material_ready_count,
+            stats.last_material_validation_error_count,
             stats.last_material_fallback_count,
             stats.last_shader_variant_miss_report,
         );
@@ -392,19 +399,25 @@ fn write_probe_product_project(paths: &ProjectPaths) {
     )
     .save(paths.manifest_path())
     .expect("write probe product manifest");
-    write_probe_plane_obj(paths.assets_root().join("models").join("probe_plane.obj"));
+    write_probe_plane_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("probe_plane.obj"),
+    );
     write_probe_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("probe_mirror.zmaterial"),
     );
-    write_probe_scene(
-        paths
-            .assets_root()
-            .join("scenes")
-            .join("reflection_probe.scene.toml"),
-    );
+}
+
+fn probe_scene_path(paths: &ProjectPaths) -> PathBuf {
+    paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("scenes")
+        .join("reflection_probe.scene.toml")
 }
 
 fn write_probe_plane_obj(path: PathBuf) {
@@ -454,14 +467,33 @@ fn write_probe_material(path: PathBuf) {
     );
     fs::write(
         path,
-        material.to_toml_string().expect("probe material TOML"),
+        material
+            .to_project_toml_string(|reference| {
+                if reference.locator.scheme()
+                    == zircon_runtime_interface::resource::ResourceScheme::Builtin
+                {
+                    Ok(
+                        zircon_runtime_interface::project::PersistedAssetReference::builtin(
+                            reference.locator.clone(),
+                        ),
+                    )
+                } else {
+                    Err(crate::asset::ReferenceResolutionError::Registry {
+                        message: "probe material project reference requires registry resolution"
+                            .to_string(),
+                    })
+                }
+            })
+            .expect("probe material project TOML"),
     )
     .expect("write probe material");
 }
 
-fn write_probe_scene(path: PathBuf) {
+fn write_probe_scene(path: PathBuf, project: &ProjectManager) {
     fs::create_dir_all(path.parent().expect("probe scene parent"))
         .expect("create probe scene directory");
+    let probe_model = project_asset_reference(project, "res://models/probe_plane.obj");
+    let probe_material = project_asset_reference(project, "res://materials/probe_mirror.zmaterial");
     let camera = SceneEntityAsset {
         entity: 1,
         name: "Camera".to_string(),
@@ -512,9 +544,9 @@ fn write_probe_scene(path: PathBuf) {
         mobility: SceneMobilityAsset::Dynamic,
         camera: None,
         mesh: Some(SceneMeshInstanceAsset {
-            model: asset_reference("res://models/probe_plane.obj"),
+            model: probe_model,
             mesh: None,
-            material: asset_reference("res://materials/probe_mirror.zmaterial"),
+            material: probe_material,
             render_queue: 0,
             material_queue: 0,
             order_in_layer: 0,
@@ -547,10 +579,25 @@ fn write_probe_scene(path: PathBuf) {
         SceneAsset {
             entities: vec![camera, mirror],
         }
-        .to_toml_string()
-        .expect("probe scene TOML"),
+        .to_project_toml_string(|reference| {
+            project
+                .persist_runtime_reference(reference)
+                .map_err(|error| crate::asset::ReferenceResolutionError::Registry {
+                    message: error.to_string(),
+                })
+        })
+        .expect("probe scene project TOML"),
     )
     .expect("write probe product scene");
+}
+
+fn project_asset_reference(project: &ProjectManager, uri: &str) -> AssetReference {
+    let locator = AssetUri::parse(uri).expect("probe project asset URI");
+    let entry = project
+        .asset_registry()
+        .entry_by_path(&locator)
+        .unwrap_or_else(|| panic!("probe project asset is not registered: {locator}"));
+    AssetReference::new(entry.uuid(), locator)
 }
 
 fn assert_probe_boundary_is_smooth(width: u32, height: u32, rgba: &[u8]) {

@@ -69,6 +69,7 @@ pub fn validate_shader_contract(
                     },
                 ),
             Some(_) => {}
+            None if is_standard_material_override(name) => {}
             None if value.as_str().is_some() => {}
             None => {
                 errors.push(RenderMaterialValidationError::UnknownPropertyOverride {
@@ -140,6 +141,13 @@ pub fn validate_shader_contract(
         }
     }
     errors
+}
+
+fn is_standard_material_override(name: &str) -> bool {
+    matches!(
+        name,
+        "base_color" | "metallic" | "roughness" | "emissive" | "alpha_mode" | "double_sided"
+    )
 }
 
 pub fn validate_material_queue_override(
