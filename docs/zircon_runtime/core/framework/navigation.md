@@ -108,6 +108,10 @@ Off-mesh links model a single traversal edge. Off-mesh bridges are a related aut
 
 `NavigationSettingsAsset` stores agent and area settings and is routed as a navigation settings resource. The runtime navigation plugin validates ids and finite numeric settings before installation. Bake output copies the active area costs into the navmesh asset so query code can apply the same walkability and cost semantics after the settings asset is no longer in memory.
 
+`NavQueryFilter` keeps its Detour-sized `[Real; 64]` cost table in memory and defines an explicit serde sequence contract for it. Serialized filters must contain exactly 64 finite, positive costs; short or long arrays and non-finite/non-positive values are rejected during deserialization instead of silently defaulting, truncating, or changing the fixed-area ABI.
+
+`NavigationManager::find_path_with_filter` carries that contract through the shared service trait, so consumers that resolve `NavigationManagerHandle` can use costs and include/exclude flags without downcasting to a concrete plugin manager. Backends that do not implement filtered routing must return an explicit error rather than silently ignoring the filter.
+
 ## Design and Rationale
 
 The runtime framework deliberately stays backend-neutral. Recast/Detour concepts appear as general DTOs, not as C++ handles or plugin-owned memory. This lets the runtime asset manager, editor UI, scripting layer, and plugin loader share the same language without forcing `zircon_runtime` to link a native navigation library.
@@ -130,7 +134,7 @@ The framework does not bake geometry by itself and does not expose a compatibili
 
 ## Test Coverage
 
-Historical navigation validation: `cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never` passed with existing graphics/UI warnings. Inline framework tests verify the default humanoid contract, fixed component id prefixing, off-mesh bridge default/serde semantics, and navmesh-to-overlay gizmo edge projection. Plugin native/runtime/editor checks are tracked in the plugin docs because they depend on the plugin workspace.
+Historical navigation validation: `cargo check -p zircon_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-runtime-check --message-format short --color never` passed with existing graphics/UI warnings. Inline framework tests verify the default humanoid contract, fixed component id prefixing, off-mesh bridge default/serde semantics, the exact 64-entry query-filter wire contract (including invalid length/value rejection), and navmesh-to-overlay gizmo edge projection. Plugin native/runtime/editor checks are tracked in the plugin docs because they depend on the plugin workspace.
 
 Current boundary split static validation passed: scoped rustfmt over `zircon_runtime/src/core/framework/navigation/*.rs`, a conflict-marker scan, and `git diff --check` over the touched navigation/doc/session files. The focused `cargo test -p zircon_runtime --lib navigation` run is still pending until active Cargo lanes from other sessions have enough capacity.
 

@@ -51,6 +51,8 @@ pub(crate) struct NavigationRuntimeState {
     pub(crate) stats: NavigationRuntimeStats,
     pub(super) agent_motion: HashMap<u64, NavigationAgentMotionState>,
     pub(crate) crowds: HashMap<NavMeshHandle, crate::agent::NavigationCrowdRuntime>,
+    pub(crate) obstacle_worlds:
+        HashMap<NavMeshHandle, crate::runtime_obstacles::NavigationObstacleWorld>,
     pub(crate) crowd_handle_cursor: usize,
     pub(super) next_bake_task: u64,
     pub(super) bake_contexts: HashMap<Option<u64>, BakeContextState>,
@@ -68,6 +70,7 @@ impl Default for NavigationRuntimeState {
             stats: NavigationRuntimeStats::default(),
             agent_motion: HashMap::new(),
             crowds: HashMap::new(),
+            obstacle_worlds: HashMap::new(),
             crowd_handle_cursor: 0,
             next_bake_task: 1,
             bake_contexts: HashMap::new(),

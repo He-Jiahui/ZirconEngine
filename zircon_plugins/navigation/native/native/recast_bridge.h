@@ -55,6 +55,12 @@ struct ZrNavDetourAreaCost {
     std::uint8_t walkable;
 };
 
+struct ZrNavDetourQueryFilter {
+    float area_costs[64];
+    std::uint16_t include_flags;
+    std::uint16_t exclude_flags;
+};
+
 struct ZrNavDetourOffMeshLink {
     float start[3];
     float end[3];
@@ -165,6 +171,12 @@ struct ZrNavDetourTileCacheCreateResult {
     std::uint32_t obstacle_count;
 };
 
+struct ZrNavDetourTileCacheCommandResult {
+    std::uint32_t status;
+    char message[256];
+    std::uint64_t obstacle_ref;
+};
+
 extern "C" void zr_nav_recast_bake_triangle_mesh(
     const float* vertices,
     std::uint32_t vertex_count,
@@ -256,6 +268,7 @@ extern "C" void zr_nav_detour_find_path(
     const float* start,
     const float* end,
     std::uint64_t area_mask,
+    const ZrNavDetourQueryFilter* filter,
     ZrNavDetourPathResult* out_result);
 
 extern "C" void zr_nav_detour_free_path_result(ZrNavDetourPathResult* result);
@@ -291,9 +304,24 @@ extern "C" void zr_nav_tile_cache_create_query(
 
 extern "C" void zr_nav_tile_cache_free_query(ZrNavDetourTileCacheQuery* query);
 
+extern "C" void zr_nav_tile_cache_add_obstacle(
+    ZrNavDetourTileCacheQuery* query,
+    const ZrNavDetourTileCacheObstacle* obstacle,
+    ZrNavDetourTileCacheCommandResult* out_result);
+
+extern "C" void zr_nav_tile_cache_remove_obstacle(
+    ZrNavDetourTileCacheQuery* query,
+    std::uint64_t obstacle_ref,
+    ZrNavDetourTileCacheCommandResult* out_result);
+
+extern "C" void zr_nav_tile_cache_update(
+    ZrNavDetourTileCacheQuery* query,
+    ZrNavDetourTileCacheCommandResult* out_result);
+
 extern "C" void zr_nav_tile_cache_find_path(
     const ZrNavDetourTileCacheQuery* query,
     const float* start,
     const float* end,
     std::uint64_t area_mask,
+    const ZrNavDetourQueryFilter* filter,
     ZrNavDetourPathResult* out_result);

@@ -1,5 +1,7 @@
 use zircon_runtime::asset::NavMeshAsset;
-use zircon_runtime::core::framework::navigation::{NavSampleHit, NavSampleQuery, AREA_WALKABLE};
+use zircon_runtime::core::framework::navigation::{
+    NavQueryFilter, NavSampleHit, NavSampleQuery, AREA_WALKABLE,
+};
 use zircon_runtime::core::math::Real;
 
 use super::geometry::{area_allowed, closest_point_on_polygon_xz, distance};
@@ -29,8 +31,9 @@ fn nearest_allowed_polygon_sample(
 ) -> Option<(usize, [Real; 3], Real)> {
     let mut best = None;
     let mut best_distance = Real::INFINITY;
+    let filter = NavQueryFilter::default();
     for (index, polygon) in asset.polygons.iter().enumerate() {
-        if !area_allowed(asset, mask, polygon.area) {
+        if !area_allowed(asset, mask, &filter, polygon.area) {
             continue;
         }
         if let Some(sample) = closest_point_on_polygon_xz(asset, polygon, position) {

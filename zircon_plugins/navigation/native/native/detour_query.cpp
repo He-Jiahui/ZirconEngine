@@ -39,12 +39,25 @@ constexpr int ZR_NAV_DETOUR_MAX_PATH = 512;
 constexpr int ZR_NAV_DETOUR_MAX_STRAIGHT_PATH = 512;
 constexpr float ZR_NAV_DETOUR_MIN_CELL = 0.001f;
 
+unsigned short area_flag(const unsigned char area) {
+    if (area == 0) {
+        return 0;
+    }
+    return area <= 15 ? static_cast<unsigned short>(1u << (area - 1)) : static_cast<unsigned short>(1u << 15);
+}
+
 class ZrNavDetourFilter final : public dtQueryFilter {
 public:
-    ZrNavDetourFilter(const ZrNavDetourQuery& owner, std::uint64_t area_mask)
-        : m_area_mask(area_mask) {
+    ZrNavDetourFilter(
+        const ZrNavDetourQuery& owner,
+        std::uint64_t area_mask,
+        const ZrNavDetourQueryFilter* filter = nullptr)
+        : m_area_mask(area_mask),
+          m_include_flags(filter == nullptr ? 0xffffu : filter->include_flags),
+          m_exclude_flags(filter == nullptr ? 0u : filter->exclude_flags) {
         for (int index = 0; index < DT_MAX_AREAS; ++index) {
-            m_area_costs[index] = owner.area_costs[index];
+            const float requested = filter == nullptr ? owner.area_costs[index] : filter->area_costs[index];
+            m_area_costs[index] = std::isfinite(requested) && requested > 0.0f ? requested : 1.0f;
             m_area_walkable[index] = owner.area_walkable[index];
         }
     }
@@ -57,6 +70,8 @@ public:
         return area >= 0
             && area < DT_MAX_AREAS
             && m_area_walkable[area]
+            && (poly->flags & m_include_flags) != 0
+            && (poly->flags & m_exclude_flags) == 0
             && ((m_area_mask & (std::uint64_t(1) << area)) != 0);
     }
 
@@ -79,6 +94,8 @@ public:
 
 private:
     std::uint64_t m_area_mask;
+    unsigned short m_include_flags;
+    unsigned short m_exclude_flags;
     float m_area_costs[DT_MAX_AREAS] = {};
     bool m_area_walkable[DT_MAX_AREAS] = {};
 };
@@ -390,7 +407,7 @@ bool build_detour_polys(
 
     const int nvp = ZR_NAV_DETOUR_MAX_VERTS_PER_POLYGON;
     detour_polys->assign(static_cast<std::size_t>(polygon_count) * nvp * 2, 0);
-    poly_flags->assign(polygon_count, 1);
+    poly_flags->assign(polygon_count, 0);
     poly_areas->assign(polygon_count, ZR_NAV_AREA_WALKABLE);
     std::vector<std::vector<std::uint32_t>> polygon_vertices;
     polygon_vertices.reserve(polygon_count);
@@ -410,6 +427,7 @@ bool build_detour_polys(
         (*poly_areas)[polygon_index] = polygons[polygon_index].area < DT_MAX_AREAS
             ? polygons[polygon_index].area
             : ZR_NAV_AREA_WALKABLE;
+        (*poly_flags)[polygon_index] = area_flag((*poly_areas)[polygon_index]);
         polygon_vertices.push_back(std::move(unique_vertices));
     }
 
@@ -445,8 +463,9 @@ void fill_off_mesh_arrays(
     for (std::uint32_t index = 0; index < link_count; ++index) {
         const ZrNavDetourOffMeshLink& link = links[index];
         radii->push_back(std::isfinite(link.radius) ? std::max(link.radius, 0.05f) : 0.05f);
-        flags->push_back(1);
-        areas->push_back(link.area < DT_MAX_AREAS ? link.area : ZR_NAV_AREA_WALKABLE);
+        const unsigned char area = link.area < DT_MAX_AREAS ? link.area : ZR_NAV_AREA_WALKABLE;
+        flags->push_back(area_flag(area));
+        areas->push_back(area);
         directions->push_back(link.bidirectional != 0 ? DT_OFFMESH_CON_BIDIR : 0);
         user_ids->push_back(index + 1);
     }
@@ -710,6 +729,7 @@ extern "C" void zr_nav_detour_find_path(
     const float* start,
     const float* end,
     std::uint64_t area_mask,
+    const ZrNavDetourQueryFilter* query_filter,
     ZrNavDetourPathResult* out_result) {
     try {
         reset_path_result(out_result);
@@ -720,7 +740,7 @@ extern "C" void zr_nav_detour_find_path(
             set_path_status(out_result, ZR_NAV_DETOUR_ERROR, "Detour path query input is invalid");
             return;
         }
-        ZrNavDetourFilter filter(*query, area_mask);
+        ZrNavDetourFilter filter(*query, area_mask, query_filter);
         dtPolyRef start_ref = 0;
         dtPolyRef end_ref = 0;
         float start_nearest[3] = {};

@@ -15,7 +15,8 @@ fn main() {
         .file("native/recast_bake.cpp")
         .file("native/detour_query.cpp")
         .file("native/detour_crowd.cpp")
-        .file("native/detour_tile_cache.cpp");
+        .file("native/detour_tile_cache.cpp")
+        .file("native/detour_tile_cache_raster.cpp");
 
     for directory in [
         vendor.join("Recast/Source"),
@@ -40,6 +41,8 @@ fn main() {
     println!("cargo:rerun-if-changed=native/detour_query.cpp");
     println!("cargo:rerun-if-changed=native/detour_crowd.cpp");
     println!("cargo:rerun-if-changed=native/detour_tile_cache.cpp");
+    println!("cargo:rerun-if-changed=native/detour_tile_cache_raster.cpp");
+    println!("cargo:rerun-if-changed=native/detour_tile_cache_raster.h");
     println!("cargo:rerun-if-changed=vendor/recastnavigation");
 }
 

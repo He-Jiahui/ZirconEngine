@@ -1,7 +1,20 @@
 use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavQueryFilter;
 use zircon_runtime::core::math::Real;
 
 use crate::ffi::{ZrNavDetourAreaCost, ZrNavDetourOffMeshLink, ZrNavRecastBakePolygon};
+
+pub(crate) fn asset_query_filter(asset: &NavMeshAsset) -> NavQueryFilter {
+    let mut filter = NavQueryFilter::default();
+    for area_cost in &asset.area_costs {
+        if let Some(cost) = filter.area_costs.get_mut(area_cost.area as usize) {
+            if area_cost.cost.is_finite() && area_cost.cost > 0.0 {
+                *cost = area_cost.cost;
+            }
+        }
+    }
+    filter
+}
 
 pub(crate) fn flat_vertices(asset: &NavMeshAsset) -> Vec<Real> {
     let mut vertices = Vec::with_capacity(asset.vertices.len() * 3);

@@ -6,3 +6,4 @@ mod path;
 mod raycast;
 mod sampling;
 mod support;
+mod tile_cache;

@@ -1,10 +1,10 @@
 #include "recast_bridge.h"
+#include "detour_tile_cache_raster.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <exception>
-#include <limits>
 #include <new>
 #include <vector>
 
@@ -27,12 +27,21 @@ constexpr std::uint8_t ZR_NAV_TILE_CACHE_SHAPE_CYLINDER = 0;
 constexpr std::uint8_t ZR_NAV_TILE_CACHE_SHAPE_BOX = 1;
 constexpr int ZR_NAV_TILE_CACHE_MAX_PATH = 512;
 constexpr int ZR_NAV_TILE_CACHE_MAX_STRAIGHT_PATH = 512;
-constexpr int ZR_NAV_TILE_CACHE_MAX_CELLS = 160;
-constexpr float ZR_NAV_TILE_CACHE_MIN_CELL = 0.05f;
-constexpr unsigned char ZR_NAV_TILE_CACHE_WEST = 1 << 0;
-constexpr unsigned char ZR_NAV_TILE_CACHE_NORTH = 1 << 1;
-constexpr unsigned char ZR_NAV_TILE_CACHE_EAST = 1 << 2;
-constexpr unsigned char ZR_NAV_TILE_CACHE_SOUTH = 1 << 3;
+constexpr int ZR_NAV_TILE_CACHE_MAX_OBSTACLES = 128;
+constexpr std::uint32_t ZR_NAV_TILE_CACHE_MAX_PENDING_REQUESTS = 64;
+constexpr float ZR_NAV_TILE_CACHE_CELL_HEIGHT = 0.05f;
+
+using zr_nav_tile_cache_raster::build_layer_data;
+using zr_nav_tile_cache_raster::choose_cell_count;
+using zr_nav_tile_cache_raster::choose_cell_size;
+using zr_nav_tile_cache_raster::compute_bounds;
+
+unsigned short area_flag(const unsigned char area) {
+    if (area == 0) {
+        return 0;
+    }
+    return area <= 15 ? static_cast<unsigned short>(1u << (area - 1)) : static_cast<unsigned short>(1u << 15);
+}
 
 class ZrNavTileCacheCompressor final : public dtTileCacheCompressor {
 public:
@@ -76,7 +85,7 @@ public:
             return;
         }
         for (int index = 0; index < params->polyCount; ++index) {
-            poly_flags[index] = poly_areas[index] == DT_TILECACHE_NULL_AREA ? 0 : 1;
+            poly_flags[index] = poly_areas[index] == DT_TILECACHE_NULL_AREA ? 0 : area_flag(poly_areas[index]);
         }
     }
 };
@@ -110,6 +119,28 @@ void set_create_status(ZrNavDetourTileCacheCreateResult* result, std::uint32_t s
     }
     result->status = status;
     set_message(result->message, sizeof(result->message), message);
+}
+
+void reset_command_result(ZrNavDetourTileCacheCommandResult* result) {
+    if (result == nullptr) {
+        return;
+    }
+    result->status = ZR_NAV_DETOUR_ERROR;
+    set_message(result->message, sizeof(result->message), "");
+    result->obstacle_ref = 0;
+}
+
+void set_command_status(
+    ZrNavDetourTileCacheCommandResult* result,
+    std::uint32_t status,
+    const char* message,
+    dtObstacleRef obstacle_ref = 0) {
+    if (result == nullptr) {
+        return;
+    }
+    result->status = status;
+    set_message(result->message, sizeof(result->message), message);
+    result->obstacle_ref = static_cast<std::uint64_t>(obstacle_ref);
 }
 
 void reset_path_result(ZrNavDetourPathResult* result) {
@@ -152,117 +183,6 @@ float distance3(const float* left, const float* right) {
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-bool compute_bounds(
-    const float* vertices,
-    std::uint32_t vertex_count,
-    float* bmin,
-    float* bmax,
-    const char** error) {
-    if (vertices == nullptr || vertex_count == 0) {
-        *error = "TileCache input has no vertices";
-        return false;
-    }
-    const float* first = vertices;
-    if (!finite3(first)) {
-        *error = "TileCache input contains non-finite vertices";
-        return false;
-    }
-    copy3(first, bmin);
-    copy3(first, bmax);
-    for (std::uint32_t index = 0; index < vertex_count; ++index) {
-        const float* vertex = vertices + index * 3;
-        if (!finite3(vertex)) {
-            *error = "TileCache input contains non-finite vertices";
-            return false;
-        }
-        for (int axis = 0; axis < 3; ++axis) {
-            bmin[axis] = std::min(bmin[axis], vertex[axis]);
-            bmax[axis] = std::max(bmax[axis], vertex[axis]);
-        }
-    }
-    return true;
-}
-
-float choose_cell_size(float span) {
-    if (!std::isfinite(span) || span <= 0.0f) {
-        return ZR_NAV_TILE_CACHE_MIN_CELL;
-    }
-    return std::max(ZR_NAV_TILE_CACHE_MIN_CELL, span / static_cast<float>(ZR_NAV_TILE_CACHE_MAX_CELLS));
-}
-
-int choose_cell_count(float span, float cell_size) {
-    const int cells = static_cast<int>(std::ceil(std::max(span, cell_size) / cell_size)) + 2;
-    return std::clamp(cells, 1, 255);
-}
-
-bool barycentric_xz(const float* a, const float* b, const float* c, const float x, const float z) {
-    const float denominator = (b[2] - c[2]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[2] - c[2]);
-    if (std::abs(denominator) <= std::numeric_limits<float>::epsilon()) {
-        return false;
-    }
-    const float u = ((b[2] - c[2]) * (x - c[0]) + (c[0] - b[0]) * (z - c[2])) / denominator;
-    const float v = ((c[2] - a[2]) * (x - c[0]) + (a[0] - c[0]) * (z - c[2])) / denominator;
-    const float w = 1.0f - u - v;
-    return u >= -0.0001f && v >= -0.0001f && w >= -0.0001f;
-}
-
-unsigned char area_at_cell(
-    const float* vertices,
-    std::uint32_t vertex_count,
-    const std::uint32_t* indices,
-    std::uint32_t index_count,
-    const ZrNavRecastBakePolygon* polygons,
-    std::uint32_t polygon_count,
-    float x,
-    float z) {
-    for (std::uint32_t polygon_index = 0; polygon_index < polygon_count; ++polygon_index) {
-        const ZrNavRecastBakePolygon& polygon = polygons[polygon_index];
-        const std::uint32_t start = polygon.first_index;
-        const std::uint32_t end = start + polygon.index_count;
-        if (start > index_count || end > index_count || end < start) {
-            continue;
-        }
-        for (std::uint32_t offset = start; offset + 2 < end; offset += 3) {
-            const std::uint32_t ia = indices[offset];
-            const std::uint32_t ib = indices[offset + 1];
-            const std::uint32_t ic = indices[offset + 2];
-            if (ia >= vertex_count || ib >= vertex_count || ic >= vertex_count) {
-                continue;
-            }
-            if (barycentric_xz(vertices + ia * 3, vertices + ib * 3, vertices + ic * 3, x, z)) {
-                return polygon.area == DT_TILECACHE_NULL_AREA ? ZR_NAV_AREA_WALKABLE : polygon.area;
-            }
-        }
-    }
-    return DT_TILECACHE_NULL_AREA;
-}
-
-void build_connectivity(std::vector<unsigned char>* areas, std::vector<unsigned char>* cons, int width, int height) {
-    cons->assign(static_cast<std::size_t>(width * height), 0);
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            const int index = x + y * width;
-            if ((*areas)[index] == DT_TILECACHE_NULL_AREA) {
-                continue;
-            }
-            unsigned char connection = 0;
-            if (x > 0 && (*areas)[index - 1] != DT_TILECACHE_NULL_AREA) {
-                connection |= ZR_NAV_TILE_CACHE_WEST;
-            }
-            if (y + 1 < height && (*areas)[index + width] != DT_TILECACHE_NULL_AREA) {
-                connection |= ZR_NAV_TILE_CACHE_NORTH;
-            }
-            if (x + 1 < width && (*areas)[index + 1] != DT_TILECACHE_NULL_AREA) {
-                connection |= ZR_NAV_TILE_CACHE_EAST;
-            }
-            if (y > 0 && (*areas)[index - width] != DT_TILECACHE_NULL_AREA) {
-                connection |= ZR_NAV_TILE_CACHE_SOUTH;
-            }
-            (*cons)[index] = connection;
-        }
-    }
-}
-
 void initialize_area_tables(
     float* area_costs,
     bool* area_walkable,
@@ -302,10 +222,16 @@ namespace {
 
 class ZrNavTileCacheFilter final : public dtQueryFilter {
 public:
-    ZrNavTileCacheFilter(const ZrNavDetourTileCacheQuery& owner, std::uint64_t area_mask)
-        : m_area_mask(area_mask) {
+    ZrNavTileCacheFilter(
+        const ZrNavDetourTileCacheQuery& owner,
+        std::uint64_t area_mask,
+        const ZrNavDetourQueryFilter* filter = nullptr)
+        : m_area_mask(area_mask),
+          m_include_flags(filter == nullptr ? 0xffffu : filter->include_flags),
+          m_exclude_flags(filter == nullptr ? 0u : filter->exclude_flags) {
         for (int index = 0; index < DT_MAX_AREAS; ++index) {
-            m_area_costs[index] = owner.area_costs[index];
+            const float requested = filter == nullptr ? owner.area_costs[index] : filter->area_costs[index];
+            m_area_costs[index] = std::isfinite(requested) && requested > 0.0f ? requested : 1.0f;
             m_area_walkable[index] = owner.area_walkable[index];
         }
     }
@@ -318,6 +244,8 @@ public:
         return area >= 0
             && area < DT_MAX_AREAS
             && m_area_walkable[area]
+            && (poly->flags & m_include_flags) != 0
+            && (poly->flags & m_exclude_flags) == 0
             && ((m_area_mask & (std::uint64_t(1) << area)) != 0);
     }
 
@@ -340,85 +268,79 @@ public:
 
 private:
     std::uint64_t m_area_mask;
+    unsigned short m_include_flags;
+    unsigned short m_exclude_flags;
     float m_area_costs[DT_MAX_AREAS] = {};
     bool m_area_walkable[DT_MAX_AREAS] = {};
 };
 
-bool build_layer_data(
-    const float* vertices,
-    std::uint32_t vertex_count,
-    const std::uint32_t* indices,
-    std::uint32_t index_count,
-    const ZrNavRecastBakePolygon* polygons,
-    std::uint32_t polygon_count,
-    const float* bmin,
-    int width,
-    int height,
-    float cell_size,
-    std::vector<unsigned char>* heights,
-    std::vector<unsigned char>* areas,
-    std::vector<unsigned char>* cons) {
-    const std::size_t cell_count = static_cast<std::size_t>(width * height);
-    heights->assign(cell_count, 0);
-    areas->assign(cell_count, DT_TILECACHE_NULL_AREA);
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            const float sample_x = bmin[0] + (static_cast<float>(x) + 0.5f) * cell_size;
-            const float sample_z = bmin[2] + (static_cast<float>(y) + 0.5f) * cell_size;
-            (*areas)[static_cast<std::size_t>(x + y * width)] = area_at_cell(
-                vertices,
-                vertex_count,
-                indices,
-                index_count,
-                polygons,
-                polygon_count,
-                sample_x,
-                sample_z);
-        }
+dtStatus add_obstacle(
+    dtTileCache* tile_cache,
+    const ZrNavDetourTileCacheObstacle& obstacle,
+    dtObstacleRef* obstacle_ref) {
+    if (tile_cache == nullptr || obstacle_ref == nullptr || !finite3(obstacle.center)) {
+        return DT_FAILURE | DT_INVALID_PARAM;
     }
-    build_connectivity(areas, cons, width, height);
-    return std::any_of(areas->begin(), areas->end(), [](unsigned char area) { return area != DT_TILECACHE_NULL_AREA; });
+    if (obstacle.shape == ZR_NAV_TILE_CACHE_SHAPE_BOX) {
+        if (!finite3(obstacle.half_extents)) {
+            return DT_FAILURE | DT_INVALID_PARAM;
+        }
+        float bmin[3] = {
+            obstacle.center[0] - std::abs(obstacle.half_extents[0]),
+            obstacle.center[1] - std::abs(obstacle.half_extents[1]),
+            obstacle.center[2] - std::abs(obstacle.half_extents[2]),
+        };
+        float bmax[3] = {
+            obstacle.center[0] + std::abs(obstacle.half_extents[0]),
+            obstacle.center[1] + std::abs(obstacle.half_extents[1]),
+            obstacle.center[2] + std::abs(obstacle.half_extents[2]),
+        };
+        return tile_cache->addBoxObstacle(bmin, bmax, obstacle_ref);
+    }
+    const float radius = std::isfinite(obstacle.radius) ? std::max(obstacle.radius, 0.05f) : 0.05f;
+    const float height = std::isfinite(obstacle.height) ? std::max(obstacle.height, 0.05f) : 0.05f;
+    return tile_cache->addObstacle(obstacle.center, radius, height, obstacle_ref);
 }
 
+dtStatus update_until_current(ZrNavDetourTileCacheQuery* query);
+
 dtStatus add_obstacles(
-    dtTileCache* tile_cache,
+    ZrNavDetourTileCacheQuery* query,
     const ZrNavDetourTileCacheObstacle* obstacles,
     std::uint32_t obstacle_count,
     std::uint32_t* added_count) {
     *added_count = 0;
     for (std::uint32_t index = 0; index < obstacle_count; ++index) {
-        const ZrNavDetourTileCacheObstacle& obstacle = obstacles[index];
-        if (!finite3(obstacle.center)) {
-            continue;
+        if (*added_count > 0
+            && (*added_count % ZR_NAV_TILE_CACHE_MAX_PENDING_REQUESTS) == 0) {
+            const dtStatus update_status = update_until_current(query);
+            if (dtStatusFailed(update_status)) {
+                return update_status;
+            }
         }
         dtObstacleRef obstacle_ref = 0;
-        dtStatus status = DT_FAILURE;
-        if (obstacle.shape == ZR_NAV_TILE_CACHE_SHAPE_BOX) {
-            if (!finite3(obstacle.half_extents)) {
-                continue;
-            }
-            float bmin[3] = {
-                obstacle.center[0] - std::abs(obstacle.half_extents[0]),
-                obstacle.center[1] - std::abs(obstacle.half_extents[1]),
-                obstacle.center[2] - std::abs(obstacle.half_extents[2]),
-            };
-            float bmax[3] = {
-                obstacle.center[0] + std::abs(obstacle.half_extents[0]),
-                obstacle.center[1] + std::abs(obstacle.half_extents[1]),
-                obstacle.center[2] + std::abs(obstacle.half_extents[2]),
-            };
-            status = tile_cache->addBoxObstacle(bmin, bmax, &obstacle_ref);
-        } else {
-            const float radius = std::isfinite(obstacle.radius) ? std::max(obstacle.radius, 0.05f) : 0.05f;
-            const float height = std::isfinite(obstacle.height) ? std::max(obstacle.height, 0.05f) : 0.05f;
-            status = tile_cache->addObstacle(obstacle.center, radius, height, &obstacle_ref);
-        }
+        const dtStatus status = add_obstacle(query->tile_cache, obstacles[index], &obstacle_ref);
         if (dtStatusFailed(status)) {
             return status;
         }
         ++(*added_count);
     }
     return DT_SUCCESS;
+}
+
+dtStatus update_until_current(ZrNavDetourTileCacheQuery* query) {
+    if (query == nullptr || query->tile_cache == nullptr || query->nav_mesh == nullptr) {
+        return DT_FAILURE | DT_INVALID_PARAM;
+    }
+    bool up_to_date = false;
+    dtStatus status = DT_SUCCESS;
+    for (int iteration = 0; iteration < 64 && !up_to_date; ++iteration) {
+        status = query->tile_cache->update(0.0f, query->nav_mesh, &up_to_date);
+        if (dtStatusFailed(status)) {
+            return status;
+        }
+    }
+    return up_to_date ? DT_SUCCESS : DT_FAILURE | DT_BUFFER_TOO_SMALL;
 }
 
 bool find_nearest_poly(
@@ -523,7 +445,7 @@ extern "C" void zr_nav_tile_cache_create_query(
         const float span_x = std::max(bounds_max[0] - bounds_min[0], 0.1f);
         const float span_z = std::max(bounds_max[2] - bounds_min[2], 0.1f);
         const float cell_size = choose_cell_size(std::max(span_x, span_z));
-        const float cell_height = ZR_NAV_TILE_CACHE_MIN_CELL;
+        const float cell_height = ZR_NAV_TILE_CACHE_CELL_HEIGHT;
         const int width = choose_cell_count(span_x, cell_size);
         const int height = choose_cell_count(span_z, cell_size);
         bounds_min[0] -= cell_size;
@@ -593,7 +515,9 @@ extern "C" void zr_nav_tile_cache_create_query(
         tile_cache_params.walkableClimb = 0.4f;
         tile_cache_params.maxSimplificationError = 1.3f;
         tile_cache_params.maxTiles = 4;
-        tile_cache_params.maxObstacles = std::max(1, static_cast<int>(obstacle_count) + 4);
+        tile_cache_params.maxObstacles = std::max(
+            ZR_NAV_TILE_CACHE_MAX_OBSTACLES,
+            static_cast<int>(obstacle_count) + 4);
         status = owner->tile_cache->init(&tile_cache_params, &owner->alloc, &owner->compressor, &owner->mesh_process);
         if (dtStatusFailed(status)) {
             dtFree(compressed_tile);
@@ -632,24 +556,16 @@ extern "C" void zr_nav_tile_cache_create_query(
         }
 
         std::uint32_t added_obstacles = 0;
-        status = add_obstacles(owner->tile_cache, obstacles, obstacle_count, &added_obstacles);
+        status = add_obstacles(owner, obstacles, obstacle_count, &added_obstacles);
         if (dtStatusFailed(status)) {
             zr_nav_tile_cache_free_query(owner);
             set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, "TileCache could not add obstacle");
             return;
         }
-        bool up_to_date = false;
-        for (int iteration = 0; iteration < 64 && !up_to_date; ++iteration) {
-            status = owner->tile_cache->update(0.0f, owner->nav_mesh, &up_to_date);
-            if (dtStatusFailed(status)) {
-                zr_nav_tile_cache_free_query(owner);
-                set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, "TileCache obstacle update failed");
-                return;
-            }
-        }
-        if (!up_to_date) {
+        status = update_until_current(owner);
+        if (dtStatusFailed(status)) {
             zr_nav_tile_cache_free_query(owner);
-            set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, "TileCache obstacle update did not converge");
+            set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, "TileCache obstacle update failed");
             return;
         }
 
@@ -696,11 +612,80 @@ extern "C" void zr_nav_tile_cache_free_query(ZrNavDetourTileCacheQuery* query) {
     delete query;
 }
 
+extern "C" void zr_nav_tile_cache_add_obstacle(
+    ZrNavDetourTileCacheQuery* query,
+    const ZrNavDetourTileCacheObstacle* obstacle,
+    ZrNavDetourTileCacheCommandResult* out_result) {
+    try {
+        reset_command_result(out_result);
+        if (out_result == nullptr || query == nullptr || query->tile_cache == nullptr || obstacle == nullptr) {
+            set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache add obstacle input is invalid");
+            return;
+        }
+        dtObstacleRef obstacle_ref = 0;
+        const dtStatus status = add_obstacle(query->tile_cache, *obstacle, &obstacle_ref);
+        if (dtStatusFailed(status) || obstacle_ref == 0) {
+            set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache could not add obstacle");
+            return;
+        }
+        ++query->obstacle_count;
+        set_command_status(out_result, ZR_NAV_DETOUR_OK, "TileCache obstacle queued", obstacle_ref);
+    } catch (const std::exception& error) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, error.what());
+    } catch (...) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache add obstacle failed");
+    }
+}
+
+extern "C" void zr_nav_tile_cache_remove_obstacle(
+    ZrNavDetourTileCacheQuery* query,
+    std::uint64_t obstacle_ref,
+    ZrNavDetourTileCacheCommandResult* out_result) {
+    try {
+        reset_command_result(out_result);
+        if (out_result == nullptr || query == nullptr || query->tile_cache == nullptr || obstacle_ref == 0) {
+            set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache remove obstacle input is invalid");
+            return;
+        }
+        const dtObstacleRef native_ref = static_cast<dtObstacleRef>(obstacle_ref);
+        const dtStatus status = query->tile_cache->removeObstacle(native_ref);
+        if (dtStatusFailed(status)) {
+            set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache could not remove obstacle");
+            return;
+        }
+        query->obstacle_count = query->obstacle_count > 0 ? query->obstacle_count - 1 : 0;
+        set_command_status(out_result, ZR_NAV_DETOUR_OK, "TileCache obstacle removal queued", native_ref);
+    } catch (const std::exception& error) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, error.what());
+    } catch (...) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache remove obstacle failed");
+    }
+}
+
+extern "C" void zr_nav_tile_cache_update(
+    ZrNavDetourTileCacheQuery* query,
+    ZrNavDetourTileCacheCommandResult* out_result) {
+    try {
+        reset_command_result(out_result);
+        const dtStatus status = update_until_current(query);
+        if (dtStatusFailed(status)) {
+            set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache update failed");
+            return;
+        }
+        set_command_status(out_result, ZR_NAV_DETOUR_OK, "TileCache is current");
+    } catch (const std::exception& error) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, error.what());
+    } catch (...) {
+        set_command_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache update failed");
+    }
+}
+
 extern "C" void zr_nav_tile_cache_find_path(
     const ZrNavDetourTileCacheQuery* query,
     const float* start,
     const float* end,
     std::uint64_t area_mask,
+    const ZrNavDetourQueryFilter* query_filter,
     ZrNavDetourPathResult* out_result) {
     try {
         reset_path_result(out_result);
@@ -711,7 +696,7 @@ extern "C" void zr_nav_tile_cache_find_path(
             set_path_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache path query input is invalid");
             return;
         }
-        ZrNavTileCacheFilter filter(*query, area_mask);
+        ZrNavTileCacheFilter filter(*query, area_mask, query_filter);
         dtPolyRef start_ref = 0;
         dtPolyRef end_ref = 0;
         float start_nearest[3] = {};

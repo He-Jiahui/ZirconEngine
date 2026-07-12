@@ -1,4 +1,4 @@
-use std::os::raw::{c_char, c_float, c_uchar, c_uint, c_ulonglong, c_void};
+use std::os::raw::{c_char, c_float, c_uchar, c_uint, c_ulonglong, c_ushort, c_void};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -63,6 +63,14 @@ pub(crate) struct ZrNavDetourAreaCost {
     pub area: c_uchar,
     pub cost: c_float,
     pub walkable: c_uchar,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ZrNavDetourQueryFilter {
+    pub area_costs: [c_float; 64],
+    pub include_flags: c_ushort,
+    pub exclude_flags: c_ushort,
 }
 
 #[repr(C)]
@@ -264,6 +272,24 @@ impl Default for ZrNavDetourTileCacheCreateResult {
     }
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub(crate) struct ZrNavDetourTileCacheCommandResult {
+    pub status: c_uint,
+    pub message: [c_char; 256],
+    pub obstacle_ref: c_ulonglong,
+}
+
+impl Default for ZrNavDetourTileCacheCommandResult {
+    fn default() -> Self {
+        Self {
+            status: 0,
+            message: [0; 256],
+            obstacle_ref: 0,
+        }
+    }
+}
+
 impl Default for ZrNavDetourRaycastResult {
     fn default() -> Self {
         Self {
@@ -386,6 +412,7 @@ extern "C" {
         start: *const c_float,
         end: *const c_float,
         area_mask: c_ulonglong,
+        filter: *const ZrNavDetourQueryFilter,
         out_result: *mut ZrNavDetourPathResult,
     );
     pub(crate) fn zr_nav_detour_free_path_result(result: *mut ZrNavDetourPathResult);
@@ -419,11 +446,26 @@ extern "C" {
         out_result: *mut ZrNavDetourTileCacheCreateResult,
     );
     pub(crate) fn zr_nav_tile_cache_free_query(query: *mut c_void);
+    pub(crate) fn zr_nav_tile_cache_add_obstacle(
+        query: *mut c_void,
+        obstacle: *const ZrNavDetourTileCacheObstacle,
+        out_result: *mut ZrNavDetourTileCacheCommandResult,
+    );
+    pub(crate) fn zr_nav_tile_cache_remove_obstacle(
+        query: *mut c_void,
+        obstacle_ref: c_ulonglong,
+        out_result: *mut ZrNavDetourTileCacheCommandResult,
+    );
+    pub(crate) fn zr_nav_tile_cache_update(
+        query: *mut c_void,
+        out_result: *mut ZrNavDetourTileCacheCommandResult,
+    );
     pub(crate) fn zr_nav_tile_cache_find_path(
         query: *const c_void,
         start: *const c_float,
         end: *const c_float,
         area_mask: c_ulonglong,
+        filter: *const ZrNavDetourQueryFilter,
         out_result: *mut ZrNavDetourPathResult,
     );
 }

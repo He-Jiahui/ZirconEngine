@@ -16,7 +16,7 @@ use zircon_runtime::scene::World;
 
 use crate::component_json::parse_component;
 use crate::manager::DefaultNavigationManager;
-use crate::runtime_obstacles::collect_runtime_obstacles;
+use crate::runtime_obstacles::{collect_runtime_obstacles, has_obstacle_worlds};
 
 pub use repath::NavRepathBudget;
 
@@ -67,6 +67,7 @@ pub(super) fn tick_world_agents(
             .push((entity, agent));
     }
     if !collect_runtime_obstacles(world).is_empty()
+        || has_obstacle_worlds(manager)
         || groups
             .keys()
             .filter_map(|handle| assets.get(handle))

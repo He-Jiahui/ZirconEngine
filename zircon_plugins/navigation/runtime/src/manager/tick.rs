@@ -1,7 +1,7 @@
 use crate::component_json::parse_component;
 use crate::off_mesh_connections::{count_off_mesh_bridges, count_off_mesh_links};
 use crate::runtime_obstacles::{
-    collect_runtime_obstacles, distance_xz, recast_carving_obstacles, RuntimeObstacle,
+    collect_runtime_obstacles, distance_xz, find_path_with_runtime_obstacles, RuntimeObstacle,
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, NavigationError,
@@ -51,41 +51,46 @@ pub(crate) fn tick_world_agents_legacy(
         };
         let current = transform.translation;
         let destination = Vec3::from_array(destination);
-        let movement_target = match manager.selected_asset(agent.nav_mesh) {
-            Ok(asset) => match manager.backend.find_path_with_obstacles(
-                automatic_agent_query_asset(&asset, &agent).as_ref(),
-                &NavPathQuery {
-                    nav_mesh: agent.nav_mesh,
-                    start: current.to_array(),
-                    end: destination.to_array(),
-                    agent_type: agent.agent_type.clone(),
-                    area_mask: agent.area_mask,
-                },
-                &recast_carving_obstacles(&obstacles),
-            ) {
-                Ok(path) if path.status != NavPathStatus::NoPath => path
-                    .points
-                    .get(1)
-                    .or_else(|| path.points.last())
-                    .map(|point| Vec3::from_array(point.position))
-                    .unwrap_or(destination),
-                Ok(_) => {
-                    manager.clear_agent_velocity(entity);
-                    report.blocked_agents += 1;
-                    report
-                        .diagnostics
-                        .push(format!("agent {entity} has no path on loaded navmesh"));
-                    continue;
+        let movement_target = match manager.selected_handle_asset(agent.nav_mesh) {
+            Ok((handle, asset)) => {
+                let query_asset = automatic_agent_query_asset(&asset, &agent);
+                match find_path_with_runtime_obstacles(
+                    manager,
+                    handle,
+                    query_asset.as_ref(),
+                    &NavPathQuery {
+                        nav_mesh: agent.nav_mesh,
+                        start: current.to_array(),
+                        end: destination.to_array(),
+                        agent_type: agent.agent_type.clone(),
+                        area_mask: agent.area_mask,
+                    },
+                    &obstacles,
+                ) {
+                    Ok(path) if path.status != NavPathStatus::NoPath => path
+                        .points
+                        .get(1)
+                        .or_else(|| path.points.last())
+                        .map(|point| Vec3::from_array(point.position))
+                        .unwrap_or(destination),
+                    Ok(_) => {
+                        manager.clear_agent_velocity(entity);
+                        report.blocked_agents += 1;
+                        report
+                            .diagnostics
+                            .push(format!("agent {entity} has no path on loaded navmesh"));
+                        continue;
+                    }
+                    Err(error) => {
+                        manager.clear_agent_velocity(entity);
+                        report.blocked_agents += 1;
+                        report
+                            .diagnostics
+                            .push(format!("agent {entity} path query failed: {error}"));
+                        continue;
+                    }
                 }
-                Err(error) => {
-                    manager.clear_agent_velocity(entity);
-                    report.blocked_agents += 1;
-                    report
-                        .diagnostics
-                        .push(format!("agent {entity} path query failed: {error}"));
-                    continue;
-                }
-            },
+            }
             Err(_) => destination,
         };
         let movement_target = avoidance_adjusted_target(

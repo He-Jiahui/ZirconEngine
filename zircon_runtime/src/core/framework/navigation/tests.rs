@@ -1,4 +1,5 @@
 use crate::asset::NavMeshAsset;
+use crate::core::math::Real;
 
 use super::*;
 
@@ -63,4 +64,61 @@ fn nav_mesh_asset_gizmo_snapshot_projects_triangle_edges() {
     assert_eq!(overlay.owner, 42);
     assert_eq!(overlay.lines.len(), 6);
     assert!(overlay.selected);
+}
+
+#[test]
+fn query_filter_carries_area_cost_and_detour_flags() {
+    let filter = NavQueryFilter::default().with_area_cost(AREA_JUMP, 7.5);
+    assert_eq!(filter.area_costs[AREA_JUMP as usize], 7.5);
+    assert!(filter.allows_area(AREA_JUMP));
+
+    let excluded = NavQueryFilter {
+        exclude_flags: nav_area_flag(AREA_JUMP),
+        ..filter.clone()
+    };
+    assert!(!excluded.allows_area(AREA_JUMP));
+}
+
+#[test]
+fn query_filter_serde_round_trip_preserves_all_64_area_costs() {
+    let filter = NavQueryFilter {
+        area_costs: std::array::from_fn(|index| index as Real + 1.0),
+        include_flags: 0x1234,
+        exclude_flags: 0x0040,
+    };
+
+    let json = serde_json::to_value(&filter).unwrap();
+    assert_eq!(json["area_costs"].as_array().unwrap().len(), MAX_NAV_AREAS);
+    assert_eq!(
+        serde_json::from_value::<NavQueryFilter>(json).unwrap(),
+        filter
+    );
+}
+
+#[test]
+fn query_filter_serde_rejects_area_cost_arrays_with_wrong_length() {
+    for length in [MAX_NAV_AREAS - 1, MAX_NAV_AREAS + 1] {
+        let json = serde_json::json!({
+            "area_costs": vec![1.0; length],
+            "include_flags": u16::MAX,
+            "exclude_flags": 0,
+        });
+
+        assert!(serde_json::from_value::<NavQueryFilter>(json).is_err());
+    }
+}
+
+#[test]
+fn query_filter_serde_rejects_non_finite_or_non_positive_area_costs() {
+    for invalid in [0.0, -1.0, Real::INFINITY, Real::NEG_INFINITY, Real::NAN] {
+        let mut area_costs = vec![1.0; MAX_NAV_AREAS];
+        area_costs[AREA_JUMP as usize] = invalid;
+        let json = serde_json::json!({
+            "area_costs": area_costs,
+            "include_flags": u16::MAX,
+            "exclude_flags": 0,
+        });
+
+        assert!(serde_json::from_value::<NavQueryFilter>(json).is_err());
+    }
 }

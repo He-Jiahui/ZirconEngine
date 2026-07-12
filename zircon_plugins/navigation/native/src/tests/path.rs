@@ -1,6 +1,7 @@
 use zircon_runtime::asset::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavPathQuery, NavPathStatus, NavigationErrorKind, AREA_WALKABLE, DEFAULT_AREA_MASK,
+    nav_area_flag, NavPathQuery, NavPathStatus, NavQueryFilter, NavigationErrorKind, AREA_WALKABLE,
+    DEFAULT_AREA_MASK,
 };
 
 use crate::RecastBackend;
@@ -93,4 +94,89 @@ fn polygon_graph_requires_shared_edge_not_repeated_fan_root() {
         .unwrap();
 
     assert_eq!(result.status, NavPathStatus::NoPath);
+}
+
+#[test]
+fn area_cost_biases_path_choice() {
+    let backend = RecastBackend;
+    let asset = super::support::two_route_area_asset();
+    let lower_route = NavPathQuery::new([0.5, 0.0, 0.5], [3.5, 0.0, 0.5]);
+    let lower_filter = NavQueryFilter::default().with_area_cost(3, 100.0);
+
+    let lower = backend
+        .find_path_with_filter(&asset, &lower_route, &lower_filter)
+        .unwrap();
+
+    assert_eq!(lower.status, NavPathStatus::Complete);
+    assert!(lower.points.iter().any(|point| point.area == 4));
+    assert!(!lower.points.iter().any(|point| point.area == 3));
+
+    let upper_route = NavPathQuery::new([0.5, 0.0, 0.5], [3.5, 0.0, 0.5]);
+    let upper_filter = NavQueryFilter::default()
+        .with_area_cost(4, 100.0)
+        .with_area_cost(3, 1.0);
+
+    let upper = backend
+        .find_path_with_filter(&asset, &upper_route, &upper_filter)
+        .unwrap();
+
+    assert_eq!(upper.status, NavPathStatus::Complete);
+    assert!(upper.points.iter().any(|point| point.area == 3));
+}
+
+#[test]
+fn default_path_query_preserves_baked_area_costs() {
+    let backend = RecastBackend;
+    let mut asset = super::support::two_route_area_asset();
+    asset
+        .area_costs
+        .iter_mut()
+        .find(|cost| cost.area == 3)
+        .expect("test asset must define area 3")
+        .cost = 100.0;
+
+    let result = backend
+        .find_path(&asset, &NavPathQuery::new([0.5, 0.0, 0.5], [3.5, 0.0, 0.5]))
+        .unwrap();
+
+    assert_eq!(result.status, NavPathStatus::Complete);
+    assert!(result.points.iter().any(|point| point.area == 4));
+    assert!(!result.points.iter().any(|point| point.area == 3));
+}
+
+#[test]
+fn query_filter_flags_can_exclude_walkable_polygons() {
+    let backend = RecastBackend;
+    let asset = NavMeshAsset::simple_quad("humanoid", 5.0);
+    let query = NavPathQuery::new([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+    let filter = NavQueryFilter {
+        exclude_flags: nav_area_flag(AREA_WALKABLE),
+        ..NavQueryFilter::default()
+    };
+
+    let result = backend
+        .find_path_with_filter(&asset, &query, &filter)
+        .unwrap();
+
+    assert_eq!(result.status, NavPathStatus::NoPath);
+}
+
+#[test]
+fn fallback_area_cost_is_direction_invariant() {
+    let backend = RecastBackend;
+    let asset = super::support::two_route_area_fallback_asset();
+    let filter = NavQueryFilter::default().with_area_cost(3, 100.0);
+
+    for (start, end) in [
+        ([0.5, 0.0, 0.5], [3.5, 0.0, 0.5]),
+        ([3.5, 0.0, 0.5], [0.5, 0.0, 0.5]),
+    ] {
+        let result = backend
+            .find_path_with_filter(&asset, &NavPathQuery::new(start, end), &filter)
+            .unwrap();
+
+        assert_eq!(result.status, NavPathStatus::Complete);
+        assert!(result.points.iter().any(|point| point.area == 4));
+        assert!(!result.points.iter().any(|point| point.area == 3));
+    }
 }

@@ -53,7 +53,7 @@ int main() {
     float start[] = {0.2f, 0.0f, 0.5f};
     float end[] = {2.8f, 0.0f, 0.5f};
     ZrNavDetourPathResult path{};
-    zr_nav_tile_cache_find_path(create.query, start, end, ~std::uint64_t(0), &path);
+    zr_nav_tile_cache_find_path(create.query, start, end, ~std::uint64_t(0), nullptr, &path);
     std::printf(
         "path status=%u points=%u visited=%u length=%f message=%s\n",
         path.status,

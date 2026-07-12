@@ -1,7 +1,7 @@
 use zircon_runtime::asset::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavPathQuery, NavPathResult, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
-    NavigationError,
+    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
+    NavSampleQuery, NavigationError,
 };
 
 mod asset_ffi;
@@ -18,7 +18,10 @@ pub use bake::{
     RecastTiledBakePlan,
 };
 pub use crowd::{RecastCrowd, RecastCrowdAgentHandle, RecastCrowdAgentState, RecastCrowdConfig};
-pub use tile_cache::{RecastNavigationObstacle, RecastNavigationObstacleShape};
+pub use tile_cache::{
+    RecastNavigationObstacle, RecastNavigationObstacleShape, RecastTileCache,
+    RecastTileCacheObstacleHandle,
+};
 
 pub fn native_backend_version() -> u32 {
     unsafe { ffi::zr_nav_recast_bridge_version() }
@@ -37,14 +40,24 @@ impl RecastBackend {
         asset: &NavMeshAsset,
         query: &NavPathQuery,
     ) -> Result<NavPathResult, NavigationError> {
+        let filter = asset_ffi::asset_query_filter(asset);
+        self.find_path_with_filter(asset, query, &filter)
+    }
+
+    pub fn find_path_with_filter(
+        &self,
+        asset: &NavMeshAsset,
+        query: &NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
         fallback_query::validate_query_agent(asset, &query.agent_type)?;
         if asset.is_empty() {
             return Ok(NavPathResult::no_path());
         }
-        if let Some(result) = detour::find_path(asset, query) {
+        if let Some(result) = detour::find_path(asset, query, filter) {
             return Ok(result);
         }
-        Ok(fallback_query::find_path(asset, query))
+        Ok(fallback_query::find_path(asset, query, filter))
     }
 
     pub fn find_path_with_obstacles(

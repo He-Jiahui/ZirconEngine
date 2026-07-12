@@ -3,9 +3,9 @@ use std::sync::{Mutex, MutexGuard};
 use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavMeshBakeReport, NavMeshBakeRequest,
-    NavMeshHandle, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery, NavRaycastResult,
-    NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind, NavigationManager,
-    NavigationRuntimeStats,
+    NavMeshHandle, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter, NavRaycastQuery,
+    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind,
+    NavigationManager, NavigationRuntimeStats,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::World;
@@ -90,6 +90,17 @@ impl NavigationManager for BuiltinNavigationManager {
         let state = self.lock_state();
         let mesh = state.selected_mesh(query.nav_mesh)?;
         Ok(mesh.find_path(query))
+    }
+
+    fn find_path_with_filter(
+        &self,
+        _query: NavPathQuery,
+        _filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
+        Err(NavigationError::new(
+            NavigationErrorKind::BackendFailure,
+            "built-in navigation does not support per-query filters; activate the navigation plugin",
+        ))
     }
 
     fn sample_position(

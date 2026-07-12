@@ -3,22 +3,27 @@ use std::ptr::NonNull;
 
 use zircon_runtime::asset::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavPathQuery, NavPathResult, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
+    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
+    NavSampleQuery,
 };
 
 use crate::asset_ffi::{detour_area_costs, detour_off_mesh_links, detour_polygons, flat_vertices};
 use crate::detour_result::convert_path_result;
 use crate::ffi::{
-    self, ZrNavDetourPathResult, ZrNavDetourQueryCreateResult, ZrNavDetourRaycastResult,
-    ZrNavDetourSampleResult,
+    self, ZrNavDetourPathResult, ZrNavDetourQueryCreateResult, ZrNavDetourQueryFilter,
+    ZrNavDetourRaycastResult, ZrNavDetourSampleResult,
 };
 
 const ZR_NAV_DETOUR_OK: u32 = 1;
 const ZR_NAV_DETOUR_NO_PATH: u32 = 2;
 
-pub(crate) fn find_path(asset: &NavMeshAsset, query: &NavPathQuery) -> Option<NavPathResult> {
+pub(crate) fn find_path(
+    asset: &NavMeshAsset,
+    query: &NavPathQuery,
+    filter: &NavQueryFilter,
+) -> Option<NavPathResult> {
     let detour_query = DetourQuery::from_asset(asset)?;
-    detour_query.find_path(query)
+    detour_query.find_path(query, filter)
 }
 
 pub(crate) fn sample_position(
@@ -86,14 +91,16 @@ impl DetourQuery {
         handle
     }
 
-    fn find_path(&self, query: &NavPathQuery) -> Option<NavPathResult> {
+    fn find_path(&self, query: &NavPathQuery, filter: &NavQueryFilter) -> Option<NavPathResult> {
         let mut result = ZrNavDetourPathResult::default();
+        let filter = detour_query_filter(filter);
         unsafe {
             ffi::zr_nav_detour_find_path(
                 self.handle.as_ptr(),
                 query.start.as_ptr(),
                 query.end.as_ptr(),
                 query.area_mask,
+                &filter,
                 &mut result,
             );
         }
@@ -145,6 +152,14 @@ impl DetourQuery {
             normal: result.normal,
             distance: result.distance,
         })
+    }
+}
+
+pub(crate) fn detour_query_filter(filter: &NavQueryFilter) -> ZrNavDetourQueryFilter {
+    ZrNavDetourQueryFilter {
+        area_costs: filter.area_costs,
+        include_flags: filter.include_flags,
+        exclude_flags: filter.exclude_flags,
     }
 }
 

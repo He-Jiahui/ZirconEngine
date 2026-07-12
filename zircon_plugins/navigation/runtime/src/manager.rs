@@ -13,7 +13,7 @@ use zircon_plugin_navigation_recast::RecastBackend;
 use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle, NavPathQuery,
-    NavPathResult, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
+    NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
     NavigationError, NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE,
 };
 use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
@@ -54,17 +54,38 @@ impl DefaultNavigationManager {
         self.lock_state().settings.clone()
     }
 
+    pub fn find_path_with_filter(
+        &self,
+        query: NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
+        query::find_path_with_filter(self, query, filter)
+    }
+
     pub(super) fn selected_asset(
         &self,
         query_handle: Option<NavMeshHandle>,
     ) -> Result<NavMeshAsset, NavigationError> {
+        self.selected_handle_asset(query_handle)
+            .map(|(_, asset)| asset)
+    }
+
+    pub(super) fn selected_handle_asset(
+        &self,
+        query_handle: Option<NavMeshHandle>,
+    ) -> Result<(NavMeshHandle, NavMeshAsset), NavigationError> {
         let state = self.lock_state();
         let handle = query_handle
             .or_else(|| state.loaded.keys().copied().min_by_key(|handle| handle.0))
             .ok_or_else(|| NavigationError::missing_nav_mesh("no nav mesh is loaded"))?;
-        state.loaded.get(&handle).cloned().ok_or_else(|| {
-            NavigationError::missing_nav_mesh(format!("nav mesh {:?} is not loaded", handle))
-        })
+        state
+            .loaded
+            .get(&handle)
+            .cloned()
+            .map(|asset| (handle, asset))
+            .ok_or_else(|| {
+                NavigationError::missing_nav_mesh(format!("nav mesh {:?} is not loaded", handle))
+            })
     }
 
     pub(crate) fn loaded_assets(&self) -> Vec<(NavMeshHandle, NavMeshAsset)> {
@@ -148,6 +169,7 @@ impl NavigationManager for DefaultNavigationManager {
         let mut state = self.lock_state();
         state.settings = settings;
         state.crowds.clear();
+        state.obstacle_worlds.clear();
         state.crowd_handle_cursor = 0;
         for context in state.bake_contexts.values_mut() {
             let generation = context.next_generation;
@@ -162,6 +184,14 @@ impl NavigationManager for DefaultNavigationManager {
 
     fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError> {
         query::find_path(self, query)
+    }
+
+    fn find_path_with_filter(
+        &self,
+        query: NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
+        query::find_path_with_filter(self, query, filter)
     }
 
     fn sample_position(

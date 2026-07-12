@@ -1,6 +1,6 @@
 use zircon_runtime::asset::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, AREA_WALKABLE,
+    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter, AREA_WALKABLE,
 };
 use zircon_runtime::core::math::Real;
 
@@ -9,14 +9,20 @@ use crate::ffi;
 use super::geometry::{distance, nearest_allowed_polygon, polygon_centroid};
 use super::graph::{build_polygon_graph, shortest_polygon_route, EdgeTraversal, RouteStep};
 
-pub(crate) fn find_path(asset: &NavMeshAsset, query: &NavPathQuery) -> NavPathResult {
-    let Some(start_polygon) = nearest_allowed_polygon(asset, query.start, query.area_mask) else {
+pub(crate) fn find_path(
+    asset: &NavMeshAsset,
+    query: &NavPathQuery,
+    filter: &NavQueryFilter,
+) -> NavPathResult {
+    let Some(start_polygon) = nearest_allowed_polygon(asset, query.start, query.area_mask, filter)
+    else {
         return NavPathResult::no_path();
     };
-    let Some(end_polygon) = nearest_allowed_polygon(asset, query.end, query.area_mask) else {
+    let Some(end_polygon) = nearest_allowed_polygon(asset, query.end, query.area_mask, filter)
+    else {
         return NavPathResult::no_path();
     };
-    let graph = build_polygon_graph(asset, query.area_mask, true);
+    let graph = build_polygon_graph(asset, query.area_mask, filter, true);
     let Some(route) = shortest_polygon_route(&graph, start_polygon, end_polygon) else {
         return NavPathResult::no_path();
     };

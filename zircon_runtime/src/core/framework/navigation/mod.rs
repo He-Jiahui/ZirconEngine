@@ -40,8 +40,8 @@ pub use off_mesh_link::{
     NavLinkTraversalMode, NavMeshOffMeshBridgeDescriptor, NavMeshOffMeshLinkDescriptor,
 };
 pub use query::{
-    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery, NavRaycastResult,
-    NavSampleHit, NavSampleQuery,
+    nav_area_flag, NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter,
+    NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
 };
 pub use settings::{default_navigation_areas, NavigationAgentSettings, NavigationAreaSettings};
 pub use stats::NavigationRuntimeStats;

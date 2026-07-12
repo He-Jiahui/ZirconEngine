@@ -1,8 +1,14 @@
 use zircon_runtime::asset::{NavMeshAsset, NavMeshPolygonAsset};
+use zircon_runtime::core::framework::navigation::NavQueryFilter;
 use zircon_runtime::core::math::Real;
 
-pub(super) fn area_allowed(asset: &NavMeshAsset, mask: u64, area: u8) -> bool {
-    if area >= 64 || (mask & (1_u64 << area)) == 0 {
+pub(super) fn area_allowed(
+    asset: &NavMeshAsset,
+    mask: u64,
+    filter: &NavQueryFilter,
+    area: u8,
+) -> bool {
+    if area >= 64 || (mask & (1_u64 << area)) == 0 || !filter.allows_area(area) {
         return false;
     }
     asset
@@ -13,12 +19,12 @@ pub(super) fn area_allowed(asset: &NavMeshAsset, mask: u64, area: u8) -> bool {
         .unwrap_or(area != 0)
 }
 
-pub(super) fn area_cost(asset: &NavMeshAsset, area: u8) -> Real {
-    asset
+pub(super) fn area_cost(filter: &NavQueryFilter, area: u8) -> Real {
+    filter
         .area_costs
-        .iter()
-        .find(|cost| cost.area == area)
-        .map(|cost| cost.cost.max(0.001))
+        .get(area as usize)
+        .copied()
+        .filter(|cost| cost.is_finite() && *cost > 0.0)
         .unwrap_or(1.0)
 }
 
@@ -26,11 +32,12 @@ pub(super) fn nearest_allowed_polygon(
     asset: &NavMeshAsset,
     position: [Real; 3],
     mask: u64,
+    filter: &NavQueryFilter,
 ) -> Option<usize> {
     let mut best_inside = None;
     let mut best_distance = Real::INFINITY;
     for (index, polygon) in asset.polygons.iter().enumerate() {
-        if !area_allowed(asset, mask, polygon.area) {
+        if !area_allowed(asset, mask, filter, polygon.area) {
             continue;
         }
         if point_in_polygon_xz(asset, polygon, position) {

@@ -1,4 +1,5 @@
 use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset};
+use zircon_runtime::core::framework::navigation::NavQueryFilter;
 use zircon_runtime::core::framework::navigation::AREA_WALKABLE;
 use zircon_runtime::core::math::Real;
 
@@ -33,27 +34,29 @@ pub(super) struct RouteStep {
 pub(super) fn build_polygon_graph(
     asset: &NavMeshAsset,
     mask: u64,
+    filter: &NavQueryFilter,
     include_off_mesh_links: bool,
 ) -> Vec<Vec<PolygonEdge>> {
     let mut graph = vec![Vec::new(); asset.polygons.len()];
     for (left_index, left) in asset.polygons.iter().enumerate() {
-        if !area_allowed(asset, mask, left.area) {
+        if !area_allowed(asset, mask, filter, left.area) {
             continue;
         }
         for (right_index, right) in asset.polygons.iter().enumerate().skip(left_index + 1) {
-            if !area_allowed(asset, mask, right.area) {
+            if !area_allowed(asset, mask, filter, right.area) {
                 continue;
             }
             if shared_vertex_count(asset, left, right) >= 2 {
-                let cost = polygon_edge_cost(asset, left_index, right_index, None);
+                let left_to_right = polygon_edge_cost(asset, filter, left_index, right_index, None);
+                let right_to_left = polygon_edge_cost(asset, filter, right_index, left_index, None);
                 graph[left_index].push(PolygonEdge {
                     to: right_index,
-                    cost,
+                    cost: left_to_right,
                     traversal: EdgeTraversal::SharedEdge,
                 });
                 graph[right_index].push(PolygonEdge {
                     to: left_index,
-                    cost,
+                    cost: right_to_left,
                     traversal: EdgeTraversal::SharedEdge,
                 });
             }
@@ -61,7 +64,7 @@ pub(super) fn build_polygon_graph(
     }
     if include_off_mesh_links {
         for link in &asset.off_mesh_links {
-            add_off_mesh_link_edges(asset, mask, &mut graph, link);
+            add_off_mesh_link_edges(asset, mask, filter, &mut graph, link);
         }
     }
     graph
@@ -70,16 +73,17 @@ pub(super) fn build_polygon_graph(
 fn add_off_mesh_link_edges(
     asset: &NavMeshAsset,
     mask: u64,
+    filter: &NavQueryFilter,
     graph: &mut [Vec<PolygonEdge>],
     link: &NavMeshLinkAsset,
 ) {
-    if !area_allowed(asset, mask, link.area) {
+    if !area_allowed(asset, mask, filter, link.area) {
         return;
     }
-    let Some(start_polygon) = nearest_allowed_polygon(asset, link.start, mask) else {
+    let Some(start_polygon) = nearest_allowed_polygon(asset, link.start, mask, filter) else {
         return;
     };
-    let Some(end_polygon) = nearest_allowed_polygon(asset, link.end, mask) else {
+    let Some(end_polygon) = nearest_allowed_polygon(asset, link.end, mask, filter) else {
         return;
     };
     if start_polygon == end_polygon {
@@ -87,7 +91,7 @@ fn add_off_mesh_link_edges(
     }
     let cost = link
         .cost_override
-        .unwrap_or_else(|| distance(link.start, link.end) * area_cost(asset, link.area));
+        .unwrap_or_else(|| distance(link.start, link.end) * area_cost(filter, link.area));
     graph[start_polygon].push(PolygonEdge {
         to: end_polygon,
         cost,
@@ -164,27 +168,29 @@ pub(super) fn shortest_polygon_route(
 
 fn polygon_edge_cost(
     asset: &NavMeshAsset,
-    left_index: usize,
-    right_index: usize,
+    filter: &NavQueryFilter,
+    source_index: usize,
+    target_index: usize,
     override_cost: Option<Real>,
 ) -> Real {
     override_cost.unwrap_or_else(|| {
-        let left = asset
+        let source = asset
             .polygons
-            .get(left_index)
+            .get(source_index)
             .and_then(|polygon| polygon_centroid(asset, polygon));
-        let right = asset
+        let target = asset
             .polygons
-            .get(right_index)
+            .get(target_index)
             .and_then(|polygon| polygon_centroid(asset, polygon));
-        left.zip(right)
-            .map(|(left, right)| {
-                let right_area = asset
+        source
+            .zip(target)
+            .map(|(source, target)| {
+                let source_area = asset
                     .polygons
-                    .get(right_index)
+                    .get(source_index)
                     .map(|polygon| polygon.area)
                     .unwrap_or(AREA_WALKABLE);
-                distance(left, right) * area_cost(asset, right_area)
+                distance(source, target) * area_cost(filter, source_area)
             })
             .unwrap_or(1.0)
     })

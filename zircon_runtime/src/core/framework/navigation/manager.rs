@@ -7,7 +7,8 @@ use super::bake::{NavMeshBakeReport, NavMeshBakeRequest};
 use super::error::NavigationError;
 use super::handle::NavMeshHandle;
 use super::query::{
-    NavPathQuery, NavPathResult, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
+    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
+    NavSampleQuery,
 };
 use super::stats::NavigationRuntimeStats;
 
@@ -26,6 +27,12 @@ pub trait NavigationManager: Send + Sync {
     ) -> Result<(), NavigationError>;
 
     fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError>;
+
+    fn find_path_with_filter(
+        &self,
+        query: NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError>;
 
     fn sample_position(
         &self,

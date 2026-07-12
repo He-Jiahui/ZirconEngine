@@ -1,5 +1,7 @@
 use zircon_runtime::asset::NavMeshAsset;
-use zircon_runtime::core::framework::navigation::{NavRaycastQuery, NavRaycastResult};
+use zircon_runtime::core::framework::navigation::{
+    NavQueryFilter, NavRaycastQuery, NavRaycastResult,
+};
 use zircon_runtime::core::math::Real;
 
 use super::geometry::{area_allowed, distance, lerp, point_in_polygon_xz};
@@ -24,7 +26,8 @@ pub(crate) fn containing_allowed_polygon(
         .iter()
         .enumerate()
         .find(|(_, polygon)| {
-            area_allowed(asset, mask, polygon.area) && point_in_polygon_xz(asset, polygon, position)
+            area_allowed(asset, mask, &NavQueryFilter::default(), polygon.area)
+                && point_in_polygon_xz(asset, polygon, position)
         })
         .map(|(index, _)| index)
 }
@@ -65,7 +68,8 @@ fn first_straight_line_block(
             return Some(point);
         };
         if current_polygon != previous_polygon {
-            let graph = build_polygon_graph(asset, query.area_mask, false);
+            let graph =
+                build_polygon_graph(asset, query.area_mask, &NavQueryFilter::default(), false);
             if shortest_polygon_route(&graph, previous_polygon, current_polygon).is_none() {
                 return Some(point);
             }

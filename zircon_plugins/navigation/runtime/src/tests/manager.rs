@@ -1,9 +1,9 @@
 use serde_json::json;
 use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
-    NavLinkTraversalMode, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
-    NavigationAreaSettings, NavigationManager, AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE,
-    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    nav_area_flag, NavLinkTraversalMode, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
+    NavQueryFilter, NavigationAreaSettings, NavigationManager, AREA_WALKABLE,
+    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::manager::resolve_navigation_manager;
 use zircon_runtime::core::math::{Real, Transform, Vec3};
@@ -34,6 +34,27 @@ fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
     assert_eq!(path.status, NavPathStatus::Complete);
     assert_eq!(path.points.len(), 2);
     assert_eq!(path.length, 5.0);
+}
+
+#[test]
+fn resolved_navigation_manager_exposes_filtered_path_query() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
+    let manager = resolve_navigation_manager(&runtime.handle()).unwrap();
+    let handle = manager
+        .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 5.0))
+        .unwrap();
+    let mut query = NavPathQuery::new([0.0, 0.0, 0.0], [3.0, 0.0, 4.0]);
+    query.nav_mesh = Some(handle);
+    let filter = NavQueryFilter {
+        exclude_flags: nav_area_flag(AREA_WALKABLE),
+        ..NavQueryFilter::default()
+    };
+
+    let path = manager.find_path_with_filter(query, &filter).unwrap();
+
+    assert_eq!(path.status, NavPathStatus::NoPath);
 }
 
 #[test]
@@ -379,6 +400,131 @@ fn carved_runtime_obstacle_blocks_agent_path_on_loaded_navmesh() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("no path")));
+}
+
+#[test]
+fn removed_runtime_obstacle_restores_agent_path() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let agent = world.spawn_node(NodeKind::Cube);
+    let obstacle = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(
+            agent,
+            Transform::from_translation(Vec3::new(-2.5, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([2.5, 0.0, 0.0]),
+                speed: 2.0,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            obstacle,
+            NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+            json!({
+                "shape": "box",
+                "center": [0.0, 0.0, 0.0],
+                "size": [1.5, 2.0, 7.0],
+                "carve": true,
+                "avoidance_enabled": false
+            }),
+        )
+        .unwrap();
+    manager
+        .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 3.0))
+        .unwrap();
+
+    let blocked = manager.tick_world_agents(&mut world, 0.5).unwrap();
+    assert_eq!(blocked.blocked_agents, 1);
+
+    world
+        .remove_dynamic_component(obstacle, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
+        .unwrap();
+    let restored = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+    assert_eq!(restored.moved_agents, 1);
+    assert!(world.world_transform(agent).unwrap().translation.x > -2.5);
+}
+
+#[test]
+fn changed_obstacle_releases_tile_cache_slot_before_replacement() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let agent = world.spawn_node(NodeKind::Cube);
+    world
+        .update_transform(
+            agent,
+            Transform::from_translation(Vec3::new(-5.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            agent,
+            NAV_MESH_AGENT_COMPONENT_TYPE,
+            serde_json::to_value(NavMeshAgentDescriptor {
+                destination: Some([5.0, 0.0, 0.0]),
+                speed: 0.1,
+                ..NavMeshAgentDescriptor::default()
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    let obstacles = (0..4)
+        .map(|index| {
+            let entity = world.spawn_node(NodeKind::Cube);
+            world
+                .set_dynamic_component(
+                    entity,
+                    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+                    json!({
+                        "shape": "cylinder",
+                        "center": [-3.0 + index as f32 * 2.0, 0.0, 4.0],
+                        "radius": 0.2,
+                        "height": 1.0,
+                        "carve": true,
+                        "avoidance_enabled": false
+                    }),
+                )
+                .unwrap();
+            entity
+        })
+        .collect::<Vec<_>>();
+    manager
+        .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 6.0))
+        .unwrap();
+
+    manager.tick_world_agents(&mut world, 0.1).unwrap();
+    world
+        .set_dynamic_component(
+            obstacles[0],
+            NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+            json!({
+                "shape": "cylinder",
+                "center": [-2.5, 0.0, 4.0],
+                "radius": 0.2,
+                "height": 1.0,
+                "carve": true,
+                "avoidance_enabled": false
+            }),
+        )
+        .unwrap();
+
+    manager.tick_world_agents(&mut world, 0.1).unwrap();
 }
 
 #[test]
