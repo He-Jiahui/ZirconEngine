@@ -1,8 +1,7 @@
 use serde_json::json;
-use zircon_runtime::asset::NavigationSettingsAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavMeshBakeRequest, NavigationAreaSettings, NavigationManager, AREA_JUMP,
-    NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NavMeshBakeRequest, NavPathQuery, NavPathStatus, NavigationAreaSettings, NavigationManager,
+    AREA_JUMP, NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
@@ -297,4 +296,121 @@ fn carved_obstacle_removes_static_bake_source() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.message.contains("carved")));
+}
+
+#[test]
+fn bake_input_falls_back_to_render_mesh_without_physics() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::empty();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let surface = world.spawn_node(NodeKind::Empty);
+    world.spawn_node(NodeKind::Cube);
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({
+                "use_geometry": "physics_colliders",
+                "volume_size": [8.0, 4.0, 8.0]
+            }),
+        )
+        .unwrap();
+
+    let report = manager
+        .bake_surface(&world, NavMeshBakeRequest::default())
+        .unwrap();
+
+    assert_eq!(report.source_triangles, 2);
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("render mesh fallback")));
+}
+
+#[test]
+fn golden_level_bake_then_path_length_within_tolerance() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::empty();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let surface = world.spawn_node(NodeKind::Empty);
+    world.spawn_node(NodeKind::Cube);
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({"volume_size": [8.0, 4.0, 8.0]}),
+        )
+        .unwrap();
+
+    let asset = manager
+        .bake_surface(&world, NavMeshBakeRequest::default())
+        .unwrap()
+        .asset
+        .unwrap();
+    let handle = manager.load_nav_mesh(asset).unwrap();
+    let mut query = NavPathQuery::new([-0.25, 0.0, -0.25], [0.25, 0.0, 0.25]);
+    query.nav_mesh = Some(handle);
+
+    let path = manager.find_path(query).unwrap();
+
+    assert_eq!(path.status, NavPathStatus::Complete);
+    assert!((path.length - 0.5_f32.sqrt()).abs() <= 0.1);
+}
+
+#[test]
+fn modifier_volume_marks_area_id_in_polymesh() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::empty();
+    for descriptor in navigation_component_descriptors() {
+        world.register_component_type(descriptor).unwrap();
+    }
+    let surface = world.spawn_node(NodeKind::Empty);
+    let source = world.spawn_node(NodeKind::Cube);
+    let modifier_volume = world.spawn_node(NodeKind::Empty);
+    world
+        .update_transform(
+            source,
+            Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
+        )
+        .unwrap();
+    world
+        .update_transform(
+            modifier_volume,
+            Transform::from_translation(Vec3::new(2.0, 0.0, 0.0))
+                .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({"volume_size": [8.0, 4.0, 8.0]}),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            modifier_volume,
+            NAV_MESH_MODIFIER_COMPONENT_TYPE,
+            json!({
+                "override_area": true,
+                "area": AREA_JUMP
+            }),
+        )
+        .unwrap();
+
+    let asset = manager
+        .bake_surface(&world, NavMeshBakeRequest::default())
+        .unwrap()
+        .asset
+        .unwrap();
+
+    assert!(!asset.polygons.is_empty());
+    assert!(asset
+        .polygons
+        .iter()
+        .all(|polygon| polygon.area == AREA_JUMP));
 }

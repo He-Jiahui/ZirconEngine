@@ -17,6 +17,14 @@ pub(super) fn bake_geometry_diagnostics(
         ),
         entity: surface_entity,
     }];
+    if geometry.render_mesh_fallback {
+        diagnostics.push(NavMeshBakeDiagnostic {
+            severity: NavMeshBakeDiagnosticSeverity::Info,
+            message: "physics collider input was unavailable; collected the render mesh fallback"
+                .to_string(),
+            entity: surface_entity,
+        });
+    }
     if geometry.skipped_navigation_components > 0 {
         diagnostics.push(NavMeshBakeDiagnostic {
             severity: NavMeshBakeDiagnosticSeverity::Info,

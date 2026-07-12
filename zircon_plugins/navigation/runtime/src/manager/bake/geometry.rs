@@ -6,8 +6,10 @@ use zircon_runtime::core::math::{Mat4, Real, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, NodeKind, SceneNode};
 use zircon_runtime::scene::World;
 
+use super::area_volume::{collect_area_volumes, volume_area_override, BakeAreaVolume};
 use super::filter::{node_matches_surface_collection, should_exclude_from_bake};
 use super::modifier::{direct_modifier, effective_modifier};
+use super::source_selection::should_fallback_to_render_mesh;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct BakeGeometry {
@@ -19,6 +21,7 @@ pub(super) struct BakeGeometry {
     pub(super) removed_by_modifier: usize,
     pub(super) modified_by_area_override: usize,
     pub(super) carved_by_obstacle: usize,
+    pub(super) render_mesh_fallback: bool,
 }
 
 impl BakeGeometry {
@@ -79,6 +82,37 @@ pub(super) fn collect_bake_geometry(
     surface: &NavMeshSurfaceDescriptor,
     agent_type: &str,
 ) -> BakeGeometry {
+    let area_volumes = collect_area_volumes(world, agent_type);
+    let mut geometry = collect_bake_geometry_for_source(
+        world,
+        surface_entity,
+        surface,
+        agent_type,
+        surface.use_geometry,
+        &area_volumes,
+    );
+    if should_fallback_to_render_mesh(surface.use_geometry, &geometry) {
+        geometry = collect_bake_geometry_for_source(
+            world,
+            surface_entity,
+            surface,
+            agent_type,
+            NavMeshUseGeometry::RenderMeshes,
+            &area_volumes,
+        );
+        geometry.render_mesh_fallback = true;
+    }
+    geometry
+}
+
+fn collect_bake_geometry_for_source(
+    world: &World,
+    surface_entity: Option<u64>,
+    surface: &NavMeshSurfaceDescriptor,
+    agent_type: &str,
+    geometry_source: NavMeshUseGeometry,
+    area_volumes: &[BakeAreaVolume],
+) -> BakeGeometry {
     let mut geometry = BakeGeometry::default();
     let carved_obstacles = collect_runtime_obstacles(world)
         .into_iter()
@@ -113,14 +147,12 @@ pub(super) fn collect_bake_geometry(
             .as_ref()
             .filter(|modifier| modifier.override_area)
             .map(|modifier| modifier.area)
+            .or_else(|| volume_area_override(world, &node, area_volumes))
             .or(surface_area_override);
         let area = area_override.unwrap_or(surface.default_area);
-        if area_override.is_some() {
-            geometry.modified_by_area_override += 1;
-        }
 
         let before = geometry.source_triangles();
-        match surface.use_geometry {
+        match geometry_source {
             NavMeshUseGeometry::RenderMeshes => {
                 collect_render_node_geometry(world, &node, &mut geometry, area)
             }
@@ -130,6 +162,9 @@ pub(super) fn collect_bake_geometry(
         }
         if geometry.source_triangles() > before {
             geometry.source_entities += 1;
+            if area_override.is_some() {
+                geometry.modified_by_area_override += 1;
+            }
         }
     }
     geometry
@@ -166,7 +201,16 @@ fn collect_collider_geometry(
         return;
     };
     let matrix = transform.matrix() * collider.local_transform.matrix();
-    match &collider.shape {
+    collect_collider_shape_geometry(matrix, &collider.shape, geometry, area);
+}
+
+fn collect_collider_shape_geometry(
+    matrix: Mat4,
+    shape: &ColliderShape,
+    geometry: &mut BakeGeometry,
+    area: u8,
+) {
+    match shape {
         ColliderShape::Box { half_extents } => {
             geometry.push_quad_from_matrix(matrix, *half_extents, area);
         }
@@ -178,6 +222,38 @@ fn collect_collider_geometry(
             half_height,
         } => {
             geometry.push_disc_from_matrix(matrix, *radius, *half_height, area);
+        }
+        ColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => {
+            geometry.push_disc_from_matrix(matrix, *radius, *half_height, area);
+        }
+        ColliderShape::ConvexHull { points } => {
+            let Some(first) = points.first().copied() else {
+                return;
+            };
+            let (min, max) = points
+                .iter()
+                .copied()
+                .fold((first, first), |(min, max), point| {
+                    (min.min(point), max.max(point))
+                });
+            let center = (min + max) * 0.5;
+            let half_extents = (max - min) * 0.5;
+            geometry.push_quad_from_matrix(
+                matrix * Mat4::from_translation(center),
+                half_extents,
+                area,
+            );
+        }
+        ColliderShape::Compound { children } => {
+            for (transform, child) in children {
+                collect_collider_shape_geometry(matrix * transform.matrix(), child, geometry, area);
+            }
+        }
+        ColliderShape::TriangleMesh { .. } | ColliderShape::HeightField { .. } => {
+            // Asset-backed collider geometry is collected by its owning asset bake path.
         }
     }
 }

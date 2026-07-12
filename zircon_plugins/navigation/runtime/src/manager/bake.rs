@@ -1,8 +1,10 @@
+mod area_volume;
 mod asset;
 mod diagnostics;
 mod filter;
 mod geometry;
 mod modifier;
+mod source_selection;
 mod surface;
 
 use zircon_runtime::core::framework::navigation::{
