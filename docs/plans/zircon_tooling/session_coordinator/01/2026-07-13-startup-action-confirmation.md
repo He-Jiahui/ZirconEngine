@@ -24,4 +24,4 @@ Owner plan: `../01-workflow-control-center-and-tray.md`
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
-| M6 | 托盘启动项变更两阶段确认 | `completed` | 2026-07-13 | Install/Update/Remove 首次点击只查询协调服务与托盘启动项并保存有界结果指纹；再次点击前重新查询，动作或状态不一致则拒绝执行。Cancel Pending 同时清除生命周期与启动项预览，诊断只投影 pending action kind。Windows 受管 Cargo 池 `925f3a77…` 聚焦 4/4、完整 Tray 33/33 通过，`cargo fmt --check` 通过；release 在受管池 `3107230c…` 构建成功，生产进程已热替换且源/运行 SHA-256 同为 `0AE25A7C…9775`。 |
+| M6 | 托盘启动项变更两阶段确认 | `completed` | 2026-07-13 | Install/Update/Remove 首次点击只查询协调服务与托盘启动项并保存有界结果指纹；120 秒内再次点击会重新查询，动作或状态不一致及过期均拒绝执行。Cancel Pending 同时清除生命周期与启动项预览，诊断只投影 pending action kind。Windows 受管 Cargo 池 `925f3a77…` 的 3/3 启动项聚焦测试通过；完整套件新增用例通过但一个既有 force-stop 时序测试偶发失败，保留外部日志且未归因到本切片。release 在受管池 `3107230c…` 构建成功并已热替换生产进程。 |

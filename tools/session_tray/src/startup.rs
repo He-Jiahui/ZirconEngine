@@ -1,10 +1,13 @@
 use std::path::Path;
 use std::process::{Command, Output};
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::TrayError;
+
+const STARTUP_PREVIEW_TTL: Duration = Duration::from_secs(120);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StartupAction {
@@ -29,6 +32,7 @@ impl StartupAction {
 pub struct StartupPreview {
     pub action: StartupAction,
     state_fingerprint: String,
+    created_at: Instant,
 }
 
 impl StartupPreview {
@@ -36,9 +40,18 @@ impl StartupPreview {
         action: StartupAction,
         current: &StartupManagementResult,
     ) -> Result<Self, TrayError> {
+        Self::new_at(action, current, Instant::now())
+    }
+
+    fn new_at(
+        action: StartupAction,
+        current: &StartupManagementResult,
+        created_at: Instant,
+    ) -> Result<Self, TrayError> {
         Ok(Self {
             action,
             state_fingerprint: startup_state_fingerprint(current)?,
+            created_at,
         })
     }
 
@@ -47,7 +60,18 @@ impl StartupPreview {
         action: StartupAction,
         current: &StartupManagementResult,
     ) -> Result<bool, TrayError> {
-        Ok(self.action == action && self.state_fingerprint == startup_state_fingerprint(current)?)
+        self.matches_at(action, current, Instant::now())
+    }
+
+    fn matches_at(
+        &self,
+        action: StartupAction,
+        current: &StartupManagementResult,
+        now: Instant,
+    ) -> Result<bool, TrayError> {
+        Ok(now.duration_since(self.created_at) < STARTUP_PREVIEW_TTL
+            && self.action == action
+            && self.state_fingerprint == startup_state_fingerprint(current)?)
     }
 }
 
@@ -312,5 +336,45 @@ mod tests {
         changed.tray.stdout = r#"{"installed":false}"#.into();
         assert!(!preview.matches(StartupAction::Remove, &changed).unwrap());
         assert!(!preview.matches(StartupAction::Update, &original).unwrap());
+    }
+
+    #[test]
+    fn mutating_preview_expires_after_two_minutes() {
+        let state = StartupManagementResult {
+            action: "Query",
+            coordinator: StartupComponentResult {
+                component: "coordinator",
+                attempted: true,
+                success: true,
+                exit_code: Some(0),
+                stdout: r#"{"installed":true}"#.into(),
+                stderr: String::new(),
+            },
+            tray: StartupComponentResult {
+                component: "tray",
+                attempted: true,
+                success: true,
+                exit_code: Some(0),
+                stdout: r#"{"installed":true}"#.into(),
+                stderr: String::new(),
+            },
+        };
+        let created_at = Instant::now();
+        let preview = StartupPreview::new_at(StartupAction::Update, &state, created_at).unwrap();
+
+        assert!(preview
+            .matches_at(
+                StartupAction::Update,
+                &state,
+                created_at + Duration::from_secs(119),
+            )
+            .unwrap());
+        assert!(!preview
+            .matches_at(
+                StartupAction::Update,
+                &state,
+                created_at + Duration::from_secs(120),
+            )
+            .unwrap());
     }
 }
