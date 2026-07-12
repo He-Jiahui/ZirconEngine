@@ -1,0 +1,66 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/zircon_session_sync.py\" --event SessionStart",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/zircon_session_sync.py') --event SessionStart }\"",
+            "timeout": 5,
+            "statusMessage": "Synchronizing Zircon Session"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/zircon_session_sync.py\" --event UserPromptSubmit",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/zircon_session_sync.py') --event UserPromptSubmit }\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/zircon_session_sync.py\" --event Stop",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/zircon_session_sync.py') --event Stop }\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/zircon_session_sync.py\" --event SubagentStart",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/zircon_session_sync.py') --event SubagentStart }\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/zircon_session_sync.py\" --event SubagentStop",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/zircon_session_sync.py') --event SubagentStop }\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
