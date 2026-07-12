@@ -121,7 +121,8 @@ mod tests {
     fn post_process_shader_samples_bound_scene_depth_texture() {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(11) var scene_depth_tex"));
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(15) var scene_depth_sampler"));
-        assert!(POST_PROCESS_SHADER.contains("textureSample(scene_depth_tex"));
+        assert!(POST_PROCESS_SHADER.contains("textureLoad(scene_depth_tex"));
+        assert!(!POST_PROCESS_SHADER.contains("textureSample(scene_depth_tex"));
         assert!(POST_PROCESS_SHADER.contains("linearize_scene_depth(load_scene_depth"));
         assert!(
             POST_PROCESS_SHADER.contains("load_scene_view_depth(vec2<i32>(coord), viewport_size)")
@@ -428,6 +429,8 @@ mod tests {
         assert!(
             shader_source.contains("@group(0) @binding(11) var scene_depth_tex: texture_2d<f32>;")
         );
-        assert!(shader_source.contains("return clamp(uv.y, 0.0, 1.0);"));
+        assert!(shader_source.contains(
+            "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);"
+        ));
     }
 }

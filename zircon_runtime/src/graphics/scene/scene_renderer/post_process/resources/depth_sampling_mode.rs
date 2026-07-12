@@ -6,7 +6,8 @@ const FALLBACK_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(11) var scene_depth_tex: texture_2d<f32>;";
 const RAW_DEPTH_SAMPLE_RETURN: &str =
     "return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);";
-const FALLBACK_DEPTH_SAMPLE_RETURN: &str = "return clamp(uv.y, 0.0, 1.0);";
+const FALLBACK_DEPTH_SAMPLE_RETURN: &str =
+    "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);";
 const DOF_PREPARE_RAW_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_depth_2d;";
 const DOF_PREPARE_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
@@ -207,7 +208,9 @@ mod tests {
         assert!(
             shader_source.contains("@group(0) @binding(11) var scene_depth_tex: texture_2d<f32>;")
         );
-        assert!(shader_source.contains("return clamp(uv.y, 0.0, 1.0);"));
+        assert!(shader_source.contains(
+            "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);"
+        ));
     }
 
     #[test]
