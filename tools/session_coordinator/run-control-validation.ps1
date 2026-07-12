@@ -28,19 +28,30 @@ try {
     Write-Host "Log: $logPath"
 
     if ($Suite -eq "H4") {
+        Write-Host "Running focused Python validation..."
         & python -m unittest -v `
             tools.session_coordinator.tests.test_control_snapshot `
             tools.session_coordinator.tests.test_control_events `
             tools.session_coordinator.tests.test_control_load
     }
     else {
-        & python -m unittest discover -v -s tools/session_coordinator/tests
+        Write-Host "Running release smoke Python validation..."
+        & python -m unittest -v `
+            tools.session_coordinator.tests.test_codex_discovery `
+            tools.session_coordinator.tests.test_codex_store `
+            tools.session_coordinator.tests.test_codex_hook `
+            tools.session_coordinator.tests.test_codex_spool `
+            tools.session_coordinator.tests.test_codex_worker `
+            tools.session_coordinator.tests.test_control_snapshot `
+            tools.session_coordinator.tests.test_control_http `
+            tools.session_coordinator.tests.test_server
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Coordinator tests failed with exit code $LASTEXITCODE"
     }
 
     if (-not $SkipWeb) {
+        Write-Host "Running Control Center web checks..."
         & npm --prefix tools/session_coordinator/web run check
         if ($LASTEXITCODE -ne 0) {
             throw "Control Center web checks failed with exit code $LASTEXITCODE"
