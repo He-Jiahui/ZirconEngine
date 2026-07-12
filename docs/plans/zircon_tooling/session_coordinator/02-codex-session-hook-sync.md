@@ -4,7 +4,7 @@
 
 **Goal:** Automatically synchronize every local Codex Session rooted in ZirconEngine into the Session Coordinator and expose a bounded, privacy-safe projection in the web control center.
 
-**Architecture:** A project-level Codex `notify` hook writes only a sanitized trigger and forwards the user's existing global notifier. A single coordinator worker performs startup, periodic, and hook-woken incremental reconciliation of read-only Codex rollout metadata into schema-v27 projection tables. Business Sessions remain authoritative for plans, leases, patches, workflows, validation, and commits; Codex source Sessions are displayed separately and bind only by exact thread/session ID.
+**Architecture:** Project lifecycle Hooks for `SessionStart`, `UserPromptSubmit`, `Stop`, `SubagentStart`, and `SubagentStop` reduce stdin to sanitized triggers without reading prompts or assistant output. A single coordinator worker performs event, startup, periodic, and hook-woken incremental reconciliation of read-only Codex rollout metadata into schema-v27 projection tables. Business Sessions remain authoritative for plans, leases, patches, workflows, validation, and commits; Codex source Sessions are displayed separately and bind only by exact thread/session ID.
 
 **Tech Stack:** Python 3.14 standard library (`json`, `tomllib`, `sqlite3`, `pathlib`, `http.client`), PowerShell 7 installer tests, SQLite migrations, existing coordinator HTTP/SSE/action framework, React 19, TypeScript 6, Material UI 9, Node test runner.
 
@@ -26,8 +26,9 @@
 
 ### New production files
 
-- `tools/codex_session_hook.py` — fast notify argument reduction, repository filter, atomic trigger write, authenticated wake signal, and global-notifier forwarding.
-- `tools/install-codex-session-hook.ps1` — idempotent Query/Install/Update/Remove/DryRun management of the exact project notify entry.
+- `.codex/hooks/zircon_session_sync.py` — bounded stdin event reduction, repository filter, atomic trigger write, authenticated wake signal, and event-specific stdout.
+- `.codex/hooks.json` — exact SessionStart/UserPromptSubmit/Stop/SubagentStart/SubagentStop matcher groups and Windows/git-root commands.
+- `tools/install-codex-session-hook.ps1` — idempotent Query/Install/Update/Remove/DryRun management of the exact project Hook definition and feature flag.
 - `tools/session_coordinator/codex_sync/__init__.py` — narrow public exports.
 - `tools/session_coordinator/codex_sync/models.py` — source-location/state/event enums and immutable discovery/reconcile records.
 - `tools/session_coordinator/codex_sync/discovery.py` — bounded rollout membership scan and first-line/tail parser.
@@ -42,13 +43,13 @@
 - `tools/session_coordinator/tests/test_codex_store.py` — migration, idempotency, exact binding, missing confirmation, and event tests.
 - `tools/session_coordinator/tests/test_codex_spool.py` — trigger schema, queue cap, quarantine, and acknowledgement tests.
 - `tools/session_coordinator/tests/test_codex_worker.py` — single-flight, wake coalescing, startup/periodic recovery, and shutdown tests.
-- `tools/session_coordinator/tests/test_codex_hook.py` — notify reduction, forwarding, latency, recursion, and online/offline daemon tests.
+- `tools/session_coordinator/tests/test_codex_hook.py` — stdin reduction, event output, latency, trust-safe configuration, and online/offline daemon tests.
 - `tools/tests/codex-session-hook.Tests.ps1` — installer Query/Install/Update/Remove/DryRun and TOML-preservation acceptance.
 - `tools/session_coordinator/web/src/__tests__/codexSessions.test.tsx` — contract rejection, bounded rendering, text-only diagnostics, and business/source separation.
 
 ### Existing files to modify
 
-- `.codex/config.toml` — exact project notify command only; preserve sandbox and approval settings.
+- `.codex/config.toml` — enable canonical `features.hooks`; preserve sandbox and approval settings.
 - `tools/session_coordinator/migrations.py` — schema v27 tables, checks, indexes, and migration registration.
 - `tools/session_coordinator/config.py` — Codex home/spool/scan limits and intervals.
 - `tools/session_coordinator/app.py` — construct discovery, spool, store, and worker dependencies.
@@ -110,11 +111,11 @@ Expected: all discovery/store/database tests pass; no fixture secret value appea
 - Exact binding is proven; fuzzy goal/title/plan matching is absent.
 - Commit: `feat(workflow): add Codex session projection`
 
-## H2 — Non-blocking notify hook, spool, and installer
+## H2 — Non-blocking lifecycle Hooks, spool, and installer
 
 ### Goal
 
-Install a project-level Codex notify multiplexer that preserves the existing global notifier, produces only sanitized bounded triggers, and remains useful while the daemon is offline.
+Install project lifecycle Hooks that coexist with all global/user/plugin Hook sources, produce only sanitized bounded triggers, and remain useful while the daemon is offline.
 
 ### Dependencies
 
@@ -123,13 +124,13 @@ Install a project-level Codex notify multiplexer that preserves the existing glo
 
 ### Implementation slices
 
-- [ ] **H2.1 Add hook RED tests.** Exercise no JSON, malformed JSON, final JSON argument, non-Zircon cwd, sibling-prefix cwd, symlink escape, oversized values, online daemon, stale descriptor, slow daemon, recursion, absent global notify, and exact once-only forwarding of the original argument vector.
+- [ ] **H2.1 Add Hook RED tests.** Exercise empty/malformed/oversized stdin, unsupported event, SessionStart sources, UserPromptSubmit containing a secret prompt, Stop containing a secret assistant message, subagent fields, non-Zircon cwd, sibling-prefix cwd, symlink escape, online daemon, stale descriptor, slow daemon, and every event-specific stdout shape.
 - [ ] **H2.2 Implement `CodexTriggerSpool`.** Store schema-versioned triggers below `%LOCALAPPDATA%/Zircon Session Coordinator/codex-hook/<repository-key>/pending`; use create-temp + fsync + atomic replace, validate every field, cap files at 1,024, quarantine one corrupt item, and acknowledge only after a committed reconciliation.
-- [ ] **H2.3 Implement the hook entry point.** Bound input to 64 KiB, retain at most safe IDs/cwd/event/timestamp, complete the local write before signaling, use a 250 ms authenticated localhost timeout, reject stale repository/process identity, and never start a daemon.
-- [ ] **H2.4 Preserve the existing notifier.** Read only the top-level global `notify` array via `tomllib`, detect self-recursion by normalized argv, forward the original Codex arguments once, and avoid persisting the global command anywhere.
-- [ ] **H2.5 Implement installer lifecycle.** `Query`, `Install`, `Update`, `Remove`, and `DryRun` must preserve unrelated `.codex/config.toml` keys/comments, write exactly the managed notify entry, report sanitized state, and remove only the repository-scoped spool after identity/path verification.
-- [ ] **H2.6 Add the project hook configuration.** Set the project notify command to the committed hook entry point while retaining `approval_policy` and `sandbox_mode` unchanged.
-- [ ] **H2.7 Document installation and privacy.** Add exact commands and explain that global notify remains the forwarding source and is never committed.
+- [ ] **H2.3 Implement the Hook entry point.** Bound stdin to 64 KiB, retain only safe common/event enum fields, ignore prompt/message/tool/transcript content, complete the local write before signaling, use a 250 ms authenticated localhost timeout, reject stale repository/process identity, never start a daemon, and emit valid JSON only where Codex requires it.
+- [ ] **H2.4 Configure all lifecycle events.** Add `hooks.json` groups for `SessionStart(startup|resume|clear|compact)`, `UserPromptSubmit`, `Stop`, `SubagentStart`, and `SubagentStop`; resolve the script through git root, set `commandWindows`, use a five-second timeout, and omit unsupported `async`, prompt, or agent handlers.
+- [ ] **H2.5 Implement installer lifecycle.** `Query`, `Install`, `Update`, `Remove`, and `DryRun` must preserve unrelated `.codex/config.toml` keys/comments and unrelated Hook sources, write exactly the managed Hook definitions, report that a changed definition requires `/hooks` review, and remove only the repository-scoped spool after identity/path verification.
+- [ ] **H2.6 Enable the canonical feature key.** Set project `[features].hooks = true` while retaining `approval_policy` and `sandbox_mode` unchanged; never write or bypass the trust store.
+- [ ] **H2.7 Document installation and privacy.** Add exact Query/Install/`/hooks` review/Remove commands and explain that global notify and other matching Hooks run independently.
 
 ### Testing stage H2-T
 
@@ -141,14 +142,14 @@ python -m unittest -v `
 pwsh -NoProfile -File tools/tests/codex-session-hook.Tests.ps1
 ```
 
-Expected: every hook invocation finishes within 500 ms with offline/slow daemon fixtures; the spool contains no fixture secret; the forwarding fixture receives the original argv exactly once; repeated installer operations are byte-stable outside the managed entry.
+Expected: every Hook invocation finishes within 500 ms with offline/slow daemon fixtures; the spool contains no fixture secret; Stop emits valid continuation JSON while other events remain silent; repeated installer operations are byte-stable outside the managed entry.
 
 ### Exit evidence
 
 - Hook works with daemon online and offline and never launches a process.
-- Existing global notifier forwarding is preserved without Git state.
+- Existing global notifier and other Hook sources are untouched.
 - Install/update/remove are idempotent and path-safe.
-- Commit: `feat(workflow): add Codex notify synchronization hook`
+- Commit: `feat(workflow): add Codex lifecycle synchronization hooks`
 
 ## H3 — Single-flight daemon worker, wake API, and controlled reconciliation
 
@@ -188,7 +189,7 @@ Expected: one worker executes at a time, HTTP wake latency remains bounded, trig
 
 ### Exit evidence
 
-- Startup, periodic, notify, and controlled-action paths share one reconciler.
+- Event, startup, periodic, and controlled-action paths share one reconciler.
 - Multiple/stale daemon identity always fails closed.
 - Commit: `feat(workflow): run Codex session reconciliation service`
 
@@ -244,11 +245,11 @@ Prove the complete hook-to-daemon-to-web flow under realistic local Codex volume
 ### Implementation slices
 
 - [ ] **H5.1 Add deterministic load fixture.** Generate 5,000 privacy-safe rollout files, 1,000 active Zircon rows, 4,000 archived rows, 1,024 queued triggers, partial tails, malformed files, sibling-repository cwd values, and 500 business Session exact/non-exact IDs without writing raw samples to Git.
-- [ ] **H5.2 Add security and latency matrix.** Measure initial scan, unchanged incremental scan, hook p95 latency, snapshot p95, wake endpoint p95, queue drain, and Web render bounds. Assert no path traversal, prompt leakage, token leakage, notifier recursion, duplicate worker, or daemon launch.
+- [ ] **H5.2 Add security and latency matrix.** Measure initial scan, unchanged incremental scan, Hook p95 latency, snapshot p95, wake endpoint p95, queue drain, and Web render bounds. Assert no path traversal, prompt leakage, token leakage, duplicate/reentrant trigger processing, duplicate worker, or daemon launch.
 - [ ] **H5.3 Add restart continuity.** Restart the coordinator once while hook triggers accumulate; prove v27 projection/event cursor continuity, queue acknowledgement after successor health, and exact business bindings unchanged.
 - [ ] **H5.4 Complete operator docs and acceptance matrix.** Include install/query/update/remove, offline recovery, stale descriptor, duplicate daemon diagnosis, queue cleanup, privacy guarantees, and final evidence commands.
 - [ ] **H5.5 Run full pre-soak gates.** Execute all coordinator Python tests in bounded groups, Web `npm run check`, Windows Tray tests/build in a coordinator-managed D/E/F target pool, `workflow-control-center-smoke.Tests.ps1 -Full`, plan-output audit, Failure audit, `git diff --check`, and an independent Critical/Important review.
-- [ ] **H5.6 Run a new source-frozen 24-hour soak.** Extend the source set to `.codex/config.toml`, hook/installer, `codex_sync`, tests, Web source/dist, tray, and soak/smoke entry points. Require duration ≥86,400 seconds, exactly one daemon restart/two instances, all source samples matching, hook queue drained, at least two Codex Sessions retained across restart, no raw data leakage, errors empty, bounded per-instance RSS/handles, event continuity, and successful external-workspace cleanup.
+- [ ] **H5.6 Run a new source-frozen 24-hour soak.** Extend the source set to `.codex/config.toml`, `.codex/hooks.json`, `.codex/hooks/zircon_session_sync.py`, installer, `codex_sync`, tests, Web source/dist, tray, and soak/smoke entry points. Require duration ≥86,400 seconds, exactly one daemon restart/two instances, all source samples matching, Hook queue drained, at least two Codex Sessions retained across restart, no raw data leakage, errors empty, bounded per-instance RSS/handles, event continuity, and successful external-workspace cleanup.
 - [ ] **H5.7 Final closeout.** Write only sanitized metrics to `docs/plans/zircon_tooling/session_coordinator/02/`, commit the milestone, send the four-line WeCom record once, remove external soak/hook fixtures, release leases, archive the Session note, and close the Goal only after every requirement is evidenced.
 
 ### Testing stage H5-T

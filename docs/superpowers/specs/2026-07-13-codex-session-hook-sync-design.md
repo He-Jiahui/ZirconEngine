@@ -11,7 +11,9 @@ Synchronize every Codex Session whose canonical working directory belongs to Zir
 
 ## Evidence and constraints
 
-- The installed Codex configuration exposes a project/global `notify` command. Codex appends one JSON notification argument when a turn completes; no reliable public `SessionStart`/`SessionEnd` event bus is available in the current installation.
+- The installed Codex release exposes lifecycle Hooks from project `hooks.json` or inline `[hooks]`, including `SessionStart`, `UserPromptSubmit`, `Stop`, `SubagentStart`, and `SubagentStop`. Every command hook receives one JSON object on stdin.
+- `SessionStart` reports `startup`, `resume`, `clear`, or `compact`; `Stop` is a turn boundary rather than a durable Session-end signal. Archive state therefore still requires read-only rollout membership reconciliation.
+- Project Hooks load alongside the existing global `notify` command instead of replacing it. Non-managed project Hooks require one explicit `/hooks` review whenever their definition hash changes.
 - Codex rollout files live below `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*.jsonl`; archived threads live below `$CODEX_HOME/archived_sessions/`. Their first `session_meta` record contains a thread/session ID and cwd.
 - Rollout JSON may contain prompts, model instructions, tool data, environment values, and other private material. None of that raw content may be copied to the coordinator database, logs, Git, or hook queue.
 - ZirconEngine currently develops in one shared `main` checkout. Hook synchronization must not create worktrees, branches, Git commits, file leases, or business Session status transitions.
@@ -19,25 +21,24 @@ Synchronize every Codex Session whose canonical working directory belongs to Zir
 
 ## Considered approaches
 
-### 1. Synchronize only the current notification payload
+### 1. Synchronize only `Stop`
 
-This is small and immediate, but it misses Sessions that have not just completed a turn, cannot reliably derive archived/active state, and depends too heavily on one notify payload shape. Rejected.
+This is small, but it misses startup/resume and long active turns, and `Stop` does not mean the thread was archived. Rejected.
 
 ### 2. Read or watch Codex's private app database
 
 This could expose richer titles and UI state, but it binds ZirconEngine to an undocumented schema and risks lock contention with Codex Desktop. Rejected.
 
-### 3. Notify-triggered incremental reconciliation with periodic recovery
+### 3. Multi-event lifecycle Hooks with periodic recovery
 
-The hook writes a bounded, sanitized trigger; the coordinator then scans only changed rollout files and performs an idempotent reconciliation. Startup and periodic reconciliation recover missed notifications. This covers all ZirconEngine Sessions while keeping Codex files read-only and the hook fast. Selected.
+Session-start, prompt-submit, stop, and subagent lifecycle Hooks write bounded sanitized triggers; the coordinator then scans only changed rollout files and performs an idempotent reconciliation. Startup and periodic reconciliation recover missed, skipped, or untrusted hook runs. This covers all ZirconEngine Sessions while keeping Codex files read-only and every Hook fast. Selected.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    C["Codex notify"] --> H["Project hook multiplexer"]
+    C["Codex lifecycle Hooks"] --> H["Event reducer"]
     H --> Q["Sanitized trigger spool"]
-    H --> N["Existing global notifier"]
     Q --> W["Coordinator Codex sync worker"]
     S["Startup / periodic scan"] --> W
     W --> R["Read-only rollout reconciler"]
@@ -46,19 +47,20 @@ flowchart LR
     A --> U["Sessions web page"]
 ```
 
-### Hook multiplexer
+### Lifecycle Hook reducer
 
-The repository project config declares one notify command backed by a small Python entry point under `tools/`. The entry point:
+The repository declares matching command Hooks in `.codex/hooks.json`, backed by one Python entry point under `.codex/hooks/`. Commands resolve the script from `git rev-parse --show-toplevel`, because Codex may start below the repository root. Every handler has a five-second Codex timeout while the script enforces a much shorter local deadline. The entry point:
 
-1. accepts arbitrary notify arguments and finds the final JSON object when one exists;
-2. reduces it to `eventType`, `threadId`, `turnId`, normalized cwd, and timestamp;
-3. accepts the event only when cwd resolves inside the ZirconEngine repository;
-4. atomically writes a trigger no larger than 4 KiB below `%LOCALAPPDATA%/Zircon Session Coordinator/codex-hook/<repository-key>/pending/`;
-5. best-effort signals the authenticated local coordinator with a short timeout;
-6. loads the existing global `notify` array from `$CODEX_HOME/config.toml`, rejects recursion, and forwards the original Codex arguments;
-7. returns without blocking Codex on reconciliation, daemon startup, or network I/O.
+1. reads one JSON object from stdin and rejects extra bytes after the bounded document;
+2. accepts only the configured event names and reduces common fields to `sessionId`, `turnId`, normalized cwd, source/model/permission enums, optional subagent ID/type, and timestamp;
+3. deliberately ignores `prompt`, `last_assistant_message`, `tool_input`, `tool_response`, and transcript contents;
+4. accepts the event only when cwd resolves inside the ZirconEngine repository;
+5. atomically writes a trigger no larger than 4 KiB below `%LOCALAPPDATA%/Zircon Session Coordinator/codex-hook/<repository-key>/pending/`;
+6. best-effort signals the authenticated local coordinator with a short timeout;
+7. emits no stdout for `SessionStart`, `UserPromptSubmit`, `SubagentStart`, or `SubagentStop`; for `Stop`, emits exactly one valid JSON object with `continue: true` so Codex never interprets plain text as an invalid Stop result;
+8. returns without blocking Codex on reconciliation, daemon startup, or network I/O.
 
-The hook never writes SQLite and never serializes raw notification JSON. Queue filenames use random IDs rather than prompt-derived data. The queue is capped at 1,024 pending triggers; overflow removes the oldest trigger and emits only a sanitized counter when the daemon next reconciles.
+The Hook never writes SQLite and never serializes the raw stdin object. Queue filenames use random IDs rather than prompt-derived data. The queue is capped at 1,024 pending triggers; overflow removes the oldest trigger and emits only a sanitized counter when the daemon next reconciles. Other matching user, managed, or plugin Hooks and the global `notify` command continue independently under Codex's normal concurrent execution rules.
 
 ### Rollout discovery and parsing
 
@@ -96,7 +98,7 @@ The reconciler auto-binds only when an existing business `sessions.session_id` e
 
 ### Daemon scheduling and identity
 
-The coordinator runs one bounded Codex sync worker per repository. Startup performs an initial reconcile. A 30-second lightweight membership tick schedules incremental reconciliation, and a 15-minute full pass repairs missed filesystem events. Hook signals only set the worker wake event.
+The coordinator runs one bounded Codex sync worker per repository. `SessionStart` creates or refreshes the source row immediately; `UserPromptSubmit` marks the turn active; `Stop` marks it idle; subagent start/stop updates only bounded parent activity counters. Startup performs an initial reconcile. A 30-second lightweight membership tick schedules incremental reconciliation, and a 15-minute full pass repairs missed filesystem events. Hook signals only set the worker wake event.
 
 Before signaling, the hook validates runtime descriptor version, repository key, process ID plus creation time, localhost address, and supported control API. A stale descriptor, schema mismatch, identity mismatch, read-only daemon, or multiple candidate daemon chains causes fail-closed queueing. The hook never launches a second daemon.
 
@@ -112,24 +114,25 @@ No browser action is required for normal operation. A maintainer-only controlled
 
 ## Installation and removal
 
-`tools/install-codex-session-hook.ps1` supports `Query`, `Install`, `Update`, `Remove`, and `DryRun`.
+`tools/install-codex-session-hook.ps1` supports `Query`, `Install`, `Update`, `Remove`, and `DryRun` for the exact repository `hooks.json` definition and `[features].hooks` setting.
 
-- Install validates the trusted ZirconEngine project config, records no webhook or credential, and adds the repository notify command idempotently.
-- The hook reads the unchanged global notify command at runtime and forwards it. It does not copy that command into Git.
-- Query reports configured, forwardable, daemon-compatible, and queue-health states without printing command secrets or runtime tokens.
-- Remove deletes only the exact managed project hook entry and the repository-scoped external spool; it does not alter the user's global notify command.
+- Install validates the trusted ZirconEngine project config, records no webhook or credential, enables canonical `features.hooks`, and installs the exact event definitions idempotently.
+- Query reports configured, feature-enabled, review-required, daemon-compatible, and queue-health states without printing hook stdin, command secrets, or runtime tokens.
+- Install and Update never bypass Codex Hook trust. After a new definition hash, the operator must review it through `/hooks`; skipped runs are later recovered by the periodic scanner.
+- Remove deletes only the exact managed repository Hook definitions and repository-scoped external spool; it does not alter global `notify`, user Hooks, managed Hooks, or plugin Hooks.
 - Repeated install/update/remove operations are idempotent and preserve unrelated TOML keys and comments.
 
 ## Failure behavior
 
-- Hook parse failure: enqueue a generic `payload_invalid` trigger if the cwd can still be proven; otherwise exit successfully without synchronization.
+- Hook parse failure: emit the event-appropriate successful output without synchronization; never persist the malformed stdin.
 - Coordinator unavailable or slow: retain the trigger and return promptly.
 - Rollout append race: keep the last known-good row and retry.
 - Rollout malformed: set a sanitized diagnostic code and continue other Sessions.
 - Queue corruption: quarantine the one invalid file below the managed root and continue.
 - Multiple daemon identities or stale descriptor: do not signal or start a process; wait for periodic/startup recovery.
 - Database migration failure: preserve v26 and fail daemon startup closed.
-- Existing notifier failure: synchronization still remains queued; the hook returns the original notifier's exit code only when Codex's notify contract requires it, otherwise records no raw error output.
+- Hook definition is untrusted or disabled: Codex skips it; startup/periodic reconciliation repairs presence and archive state without bypassing trust.
+- `Stop` output failure: return valid `{"continue": true}` from a final fallback path and write no explanatory plain text to stdout.
 
 ## Security and privacy invariants
 
@@ -144,8 +147,9 @@ No browser action is required for normal operation. A maintainer-only controlled
 
 The milestone must prove:
 
-- notify argument reduction rejects secrets and non-Zircon cwd values;
-- the existing global notifier receives the original argument vector exactly once;
+- stdin reduction rejects secrets, unsupported events, and non-Zircon cwd values;
+- SessionStart/UserPromptSubmit/Stop and subagent fixtures produce the exact event-specific stdout contract;
+- other Hook sources and the existing global notifier remain untouched;
 - hook latency stays bounded with daemon online, offline, stale, and slow;
 - active, idle, archived, missing, malformed, append-racing, and restored rollout fixtures reconcile idempotently;
 - an initial full scan and repeated incremental scans produce the same projection;
@@ -162,4 +166,5 @@ The milestone must prove:
 - No prompt or conversation search in the control center.
 - No automatic inference of plan ownership from user text.
 - No hook-driven Git commits, leases, patches, validation jobs, or lifecycle actions.
+- No automatic Hook-trust bypass or writes to Codex's trust store.
 - No worktrees or feature branches.
