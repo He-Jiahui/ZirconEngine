@@ -241,6 +241,8 @@ Every JSON response uses the v1 envelope and carries a correlation identifier. U
 
 The server listens only on `127.0.0.1`. Browser-facing requests must use an exact loopback `Host`; requests with a non-loopback Host fail closed. Every M3 mutation requires an elevated role, the `HttpOnly` control cookie, an exact loopback Origin and the current `X-CSRF-Token`. Elevation rotates the CSRF token and expires after 15 minutes; daemon restart invalidates the cookie/grant instance binding.
 
+The production HTML response enforces `default-src 'none'`, same-origin scripts/styles/fonts/connections, same-origin or data images, no forms, no framing, no referrer, and no camera/geolocation/microphone/payment/USB permissions. The policy is an HTTP response header emitted by the static asset service rather than a mutable HTML convention; deep-link SPA responses receive the same header while hashed immutable assets keep their existing cache policy.
+
 No bearer token, maintenance capability, ticket value, cookie value or Enterprise WeChat endpoint belongs in Git, API payloads, dashboard logs or screenshots.
 
 ## Permission Issuance

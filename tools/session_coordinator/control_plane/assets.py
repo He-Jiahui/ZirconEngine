@@ -10,6 +10,11 @@ from ..models import CoordinatorError
 
 
 _HASHED_ASSET = re.compile(r"(?:^|[-.])[0-9A-Za-z_-]{8,}(?:[.-]|$)")
+_CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; "
+    "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+    "base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,12 +65,24 @@ class StaticAssetService:
         cache = "no-store"
         if not index and _HASHED_ASSET.search(path.name):
             cache = "public,max-age=31536000,immutable"
+        headers = {
+            "Content-Type": self._content_type(path),
+            "Cache-Control": cache,
+            "X-Content-Type-Options": "nosniff",
+        }
+        if index:
+            headers.update(
+                {
+                    "Content-Security-Policy": _CONTENT_SECURITY_POLICY,
+                    "X-Frame-Options": "DENY",
+                    "Referrer-Policy": "no-referrer",
+                    "Permissions-Policy": (
+                        "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+                    ),
+                }
+            )
         return BinaryResponse(
             200,
             path.read_bytes(),
-            {
-                "Content-Type": self._content_type(path),
-                "Cache-Control": cache,
-                "X-Content-Type-Options": "nosniff",
-            },
+            headers,
         )

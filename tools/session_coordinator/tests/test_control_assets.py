@@ -23,6 +23,18 @@ class StaticAssetServiceTests(unittest.TestCase):
         self.assertEqual("no-store", index.headers["Cache-Control"])
         self.assertEqual("public,max-age=31536000,immutable", asset.headers["Cache-Control"])
         self.assertEqual("text/html; charset=utf-8", index.headers["Content-Type"])
+        self.assertEqual(
+            "default-src 'none'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+            "base-uri 'self'; form-action 'none'; frame-ancestors 'none'",
+            index.headers["Content-Security-Policy"],
+        )
+        self.assertEqual("DENY", index.headers["X-Frame-Options"])
+        self.assertEqual("no-referrer", index.headers["Referrer-Policy"])
+        self.assertEqual(
+            "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+            index.headers["Permissions-Policy"],
+        )
 
     def test_only_ui_navigation_falls_back_to_index(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
