@@ -17,7 +17,7 @@ use crate::process_identity::inspect_process;
 use crate::recovery::{RecoveryController, RecoveryDecision, RecoveryGuard, RecoveryStatus};
 use crate::repository_identity::{RepositoryIdentity, RepositoryMutex};
 use crate::runtime_descriptor::RuntimeDescriptor;
-use crate::startup::{self, StartupAction, StartupManagementResult};
+use crate::startup::{self, StartupAction, StartupManagementResult, StartupPreview};
 use crate::tray_state::{MenuEnablement, SupervisionState, TrayVisualState};
 use crate::TrayError;
 
@@ -31,6 +31,7 @@ pub struct TrayContext {
     recovery: Mutex<RecoveryController>,
     recovery_sync_pending: Mutex<bool>,
     pending_action: Mutex<Option<PendingAction>>,
+    pending_startup: Mutex<Option<StartupPreview>>,
     active_action: Mutex<Option<ActiveAction>>,
     last_startup: Mutex<Option<StartupManagementResult>>,
     last_error: Mutex<Option<String>>,
@@ -74,6 +75,7 @@ pub fn run() -> Result<(), TrayError> {
                 recovery: Mutex::new(recovery),
                 recovery_sync_pending: Mutex::new(true),
                 pending_action: Mutex::new(None),
+                pending_startup: Mutex::new(None),
                 active_action: Mutex::new(None),
                 last_startup: Mutex::new(None),
                 last_error: Mutex::new(None),
@@ -374,11 +376,17 @@ fn render_tray<R: Runtime>(
         .lock()
         .ok()
         .and_then(|value| value.as_ref().map(|active| active.action));
+    let pending_startup = context
+        .pending_startup
+        .lock()
+        .ok()
+        .and_then(|value| value.as_ref().map(|preview| preview.action));
     tray.set_menu(Some(build_menu(
         app,
         state.menu(identity_verified),
         pending,
         active,
+        pending_startup,
         identity_verified && matches!(state, TrayVisualState::Draining),
         has_error,
     )?))?;
@@ -390,10 +398,18 @@ fn build_menu<R: Runtime>(
     enablement: MenuEnablement,
     pending: Option<LifecycleAction>,
     active: Option<LifecycleAction>,
+    pending_startup: Option<StartupAction>,
     can_cancel_active: bool,
     has_error: bool,
 ) -> Result<Menu<R>, TrayError> {
-    let entries = menu_model(enablement, pending, active, can_cancel_active, has_error);
+    let entries = menu_model(
+        enablement,
+        pending,
+        active,
+        pending_startup,
+        can_cancel_active,
+        has_error,
+    );
     let items = entries
         .iter()
         .map(|entry| {
@@ -428,6 +444,9 @@ fn handle_menu<R: Runtime>(app: &AppHandle<R>, id: &str) -> Result<(), TrayError
         "force-stop" => lifecycle_action(&context, LifecycleAction::ForceStop),
         "cancel-pending" => {
             if let Ok(mut pending) = context.pending_action.lock() {
+                *pending = None;
+            }
+            if let Ok(mut pending) = context.pending_startup.lock() {
                 *pending = None;
             }
             Ok(())
@@ -581,7 +600,31 @@ fn refresh_active_action(context: &TrayContext) -> Result<(), TrayError> {
 }
 
 fn startup_action(context: &TrayContext, action: StartupAction) -> Result<(), TrayError> {
-    let result = startup::manage(&context.repo_root, action, false)?;
+    let result = if action == StartupAction::Query {
+        startup::manage(&context.repo_root, action, false)?
+    } else {
+        let confirmed = context
+            .pending_startup
+            .lock()
+            .map_err(|_| TrayError::Http("tray startup preview is unavailable".into()))?
+            .take()
+            .filter(|preview| preview.action == action);
+        if let Some(preview) = confirmed {
+            startup::execute_preview(&context.repo_root, &preview)?
+        } else {
+            let preview = startup::preview(&context.repo_root, action)?;
+            *context
+                .pending_startup
+                .lock()
+                .map_err(|_| TrayError::Http("tray startup preview is unavailable".into()))? =
+                Some(preview);
+            notifications::show_native(&TrayNotification {
+                title: format!("确认启动项操作：{}", action.argument()),
+                body: "已读取协调服务和托盘启动项当前状态；再次点击同一菜单项才会执行。".into(),
+            })?;
+            return Ok(());
+        }
+    };
     let path = context
         .repo_root
         .join(".codex")
@@ -661,6 +704,19 @@ fn write_diagnostics(context: &TrayContext) -> Result<(), TrayError> {
                     value
                         .as_ref()
                         .map(|pending| pending.action.kind().to_owned())
+                })
+                .map_or(serde_json::Value::Null, serde_json::Value::String),
+        );
+        object.insert(
+            "pendingStartupAction".into(),
+            context
+                .pending_startup
+                .lock()
+                .ok()
+                .and_then(|value| {
+                    value
+                        .as_ref()
+                        .map(|preview| preview.action.argument().to_owned())
                 })
                 .map_or(serde_json::Value::Null, serde_json::Value::String),
         );

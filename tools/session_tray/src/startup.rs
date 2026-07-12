@@ -2,6 +2,7 @@ use std::path::Path;
 use std::process::{Command, Output};
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use crate::TrayError;
 
@@ -14,13 +15,39 @@ pub enum StartupAction {
 }
 
 impl StartupAction {
-    fn argument(self) -> &'static str {
+    pub fn argument(self) -> &'static str {
         match self {
             Self::Install => "Install",
             Self::Update => "Update",
             Self::Remove => "Remove",
             Self::Query => "Query",
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct StartupPreview {
+    pub action: StartupAction,
+    state_fingerprint: String,
+}
+
+impl StartupPreview {
+    pub fn new(
+        action: StartupAction,
+        current: &StartupManagementResult,
+    ) -> Result<Self, TrayError> {
+        Ok(Self {
+            action,
+            state_fingerprint: startup_state_fingerprint(current)?,
+        })
+    }
+
+    pub fn matches(
+        &self,
+        action: StartupAction,
+        current: &StartupManagementResult,
+    ) -> Result<bool, TrayError> {
+        Ok(self.action == action && self.state_fingerprint == startup_state_fingerprint(current)?)
     }
 }
 
@@ -83,6 +110,39 @@ pub fn manage(
         coordinator,
         tray,
     })
+}
+
+pub fn preview(repo_root: &Path, action: StartupAction) -> Result<StartupPreview, TrayError> {
+    let current = manage(repo_root, StartupAction::Query, false)?;
+    if !current.success() {
+        return Err(TrayError::Http(
+            "startup state query was incomplete; mutation preview was not created".into(),
+        ));
+    }
+    StartupPreview::new(action, &current)
+}
+
+pub fn execute_preview(
+    repo_root: &Path,
+    preview: &StartupPreview,
+) -> Result<StartupManagementResult, TrayError> {
+    let current = manage(repo_root, StartupAction::Query, false)?;
+    if !current.success() {
+        return Err(TrayError::Http(
+            "startup state query was incomplete; mutation was not executed".into(),
+        ));
+    }
+    if !preview.matches(preview.action, &current)? {
+        return Err(TrayError::Http(
+            "startup state changed after preview; create a new preview".into(),
+        ));
+    }
+    manage(repo_root, preview.action, false)
+}
+
+fn startup_state_fingerprint(current: &StartupManagementResult) -> Result<String, TrayError> {
+    let bytes = serde_json::to_vec(current)?;
+    Ok(hex::encode(Sha256::digest(bytes)))
 }
 
 fn component_result(component: &'static str, output: Output) -> StartupComponentResult {
@@ -221,5 +281,36 @@ mod tests {
         let json = serde_json::to_value(&result).unwrap();
         assert_eq!(true, json["coordinator"]["success"]);
         assert_eq!(true, json["tray"]["success"]);
+    }
+
+    #[test]
+    fn mutating_preview_rejects_changed_startup_state() {
+        let original = StartupManagementResult {
+            action: "Query",
+            coordinator: StartupComponentResult {
+                component: "coordinator",
+                attempted: true,
+                success: true,
+                exit_code: Some(0),
+                stdout: r#"{"installed":true,"backend":"UserStartup"}"#.into(),
+                stderr: String::new(),
+            },
+            tray: StartupComponentResult {
+                component: "tray",
+                attempted: true,
+                success: true,
+                exit_code: Some(0),
+                stdout: r#"{"installed":true}"#.into(),
+                stderr: String::new(),
+            },
+        };
+        let preview = StartupPreview::new(StartupAction::Remove, &original).unwrap();
+
+        assert!(preview.matches(StartupAction::Remove, &original).unwrap());
+
+        let mut changed = original.clone();
+        changed.tray.stdout = r#"{"installed":false}"#.into();
+        assert!(!preview.matches(StartupAction::Remove, &changed).unwrap());
+        assert!(!preview.matches(StartupAction::Update, &original).unwrap());
     }
 }

@@ -1,4 +1,5 @@
 use crate::lifecycle::LifecycleAction;
+use crate::startup::StartupAction;
 use crate::tray_state::MenuEnablement;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,6 +54,7 @@ pub fn menu_model(
     enablement: MenuEnablement,
     pending: Option<LifecycleAction>,
     active: Option<LifecycleAction>,
+    pending_startup: Option<StartupAction>,
     can_cancel_active: bool,
     has_error: bool,
 ) -> Vec<MenuEntry> {
@@ -104,7 +106,7 @@ pub fn menu_model(
         MenuEntry {
             command: MenuCommand::CancelPending,
             label: "取消待确认操作".into(),
-            enabled: pending.is_some(),
+            enabled: pending.is_some() || pending_startup.is_some(),
         },
         MenuEntry {
             command: MenuCommand::CancelActive,
@@ -121,17 +123,17 @@ pub fn menu_model(
         },
         MenuEntry {
             command: MenuCommand::StartupInstall,
-            label: "安装启动项".into(),
+            label: startup_label(StartupAction::Install, pending_startup),
             enabled: true,
         },
         MenuEntry {
             command: MenuCommand::StartupUpdate,
-            label: "更新启动项".into(),
+            label: startup_label(StartupAction::Update, pending_startup),
             enabled: true,
         },
         MenuEntry {
             command: MenuCommand::StartupRemove,
-            label: "移除启动项".into(),
+            label: startup_label(StartupAction::Remove, pending_startup),
             enabled: true,
         },
         MenuEntry {
@@ -140,6 +142,20 @@ pub fn menu_model(
             enabled: enablement.exit_tray,
         },
     ]
+}
+
+fn startup_label(action: StartupAction, pending: Option<StartupAction>) -> String {
+    let label = match action {
+        StartupAction::Install => "安装启动项",
+        StartupAction::Update => "更新启动项",
+        StartupAction::Remove => "移除启动项",
+        StartupAction::Query => "查询启动项",
+    };
+    if pending == Some(action) {
+        format!("确认：{label}（再次点击）")
+    } else {
+        label.into()
+    }
 }
 
 fn lifecycle_label(action: LifecycleAction, pending: Option<LifecycleAction>) -> String {
@@ -160,6 +176,7 @@ fn lifecycle_label(action: LifecycleAction, pending: Option<LifecycleAction>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::startup::StartupAction;
 
     #[test]
     fn pending_lifecycle_requires_a_second_explicit_click() {
@@ -171,6 +188,7 @@ mod tests {
                 ..MenuEnablement::default()
             },
             Some(LifecycleAction::Stop),
+            None,
             None,
             false,
             false,
@@ -189,7 +207,7 @@ mod tests {
 
     #[test]
     fn startup_management_exposes_query_install_update_and_remove() {
-        let entries = menu_model(MenuEnablement::default(), None, None, false, true);
+        let entries = menu_model(MenuEnablement::default(), None, None, None, false, true);
         for command in [
             MenuCommand::StartupQuery,
             MenuCommand::StartupInstall,
@@ -208,11 +226,34 @@ mod tests {
     }
 
     #[test]
+    fn pending_startup_mutation_requires_a_second_explicit_click() {
+        let entries = menu_model(
+            MenuEnablement::default(),
+            None,
+            None,
+            Some(StartupAction::Remove),
+            false,
+            false,
+        );
+        let remove = entries
+            .iter()
+            .find(|entry| entry.command == MenuCommand::StartupRemove)
+            .unwrap();
+        assert!(remove.enabled);
+        assert!(remove.label.starts_with("确认："));
+        assert!(entries
+            .iter()
+            .find(|entry| entry.command == MenuCommand::CancelPending)
+            .is_some_and(|entry| entry.enabled));
+    }
+
+    #[test]
     fn confirmed_draining_lifecycle_exposes_a_separate_cancel_command() {
         let entries = menu_model(
             MenuEnablement::default(),
             None,
             Some(LifecycleAction::Restart),
+            None,
             true,
             false,
         );
