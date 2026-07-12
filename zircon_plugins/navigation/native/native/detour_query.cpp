@@ -701,6 +701,10 @@ extern "C" void zr_nav_detour_free_query(ZrNavDetourQuery* query) {
     delete query;
 }
 
+extern "C" void* zr_nav_detour_query_nav_mesh(const ZrNavDetourQuery* query) {
+    return query == nullptr ? nullptr : query->nav_mesh;
+}
+
 extern "C" void zr_nav_detour_find_path(
     const ZrNavDetourQuery* query,
     const float* start,

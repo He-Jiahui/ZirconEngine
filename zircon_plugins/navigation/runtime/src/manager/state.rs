@@ -44,12 +44,14 @@ impl Default for BakeContextState {
 }
 
 #[derive(Debug)]
-pub(super) struct NavigationRuntimeState {
+pub(crate) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
     pub(super) loaded: HashMap<NavMeshHandle, NavMeshAsset>,
     pub(super) settings: NavigationSettingsAsset,
-    pub(super) stats: NavigationRuntimeStats,
+    pub(crate) stats: NavigationRuntimeStats,
     pub(super) agent_motion: HashMap<u64, NavigationAgentMotionState>,
+    pub(crate) crowds: HashMap<NavMeshHandle, crate::agent::NavigationCrowdRuntime>,
+    pub(crate) crowd_handle_cursor: usize,
     pub(super) next_bake_task: u64,
     pub(super) bake_contexts: HashMap<Option<u64>, BakeContextState>,
     pub(super) bake_tasks: HashMap<NavMeshBakeTaskHandle, PendingTiledBake>,
@@ -65,6 +67,8 @@ impl Default for NavigationRuntimeState {
             settings: NavigationSettingsAsset::default(),
             stats: NavigationRuntimeStats::default(),
             agent_motion: HashMap::new(),
+            crowds: HashMap::new(),
+            crowd_handle_cursor: 0,
             next_bake_task: 1,
             bake_contexts: HashMap::new(),
             bake_tasks: HashMap::new(),

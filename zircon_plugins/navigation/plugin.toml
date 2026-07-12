@@ -34,6 +34,7 @@ kind = "runtime"
 crate_name = "zircon_plugin_navigation_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.navigation", "runtime.plugin.navigation.recast"]
+system_anchors = ["navigation.agent_tick"]
 
 [[modules]]
 name = "navigation.dist"

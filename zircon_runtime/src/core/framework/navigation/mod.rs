@@ -15,16 +15,20 @@ mod settings;
 mod stats;
 mod surface;
 
-pub use agent::{NavAgentTickReport, NavAvoidanceQuality, NavMeshAgentDescriptor};
+pub use agent::{
+    NavAgentTickReport, NavAgentWritebackMode, NavAvoidanceQuality, NavDesiredVelocity,
+    NavMeshAgentDescriptor,
+};
 pub use bake::{
     NavMeshBakeDiagnostic, NavMeshBakeDiagnosticSeverity, NavMeshBakeReport, NavMeshBakeRequest,
 };
 pub use constants::{
     NavAreaId, NavAreaMask, AREA_JUMP, AREA_NOT_WALKABLE, AREA_WALKABLE, CUSTOM_AREA_START,
     DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK, MAX_NAV_AREAS, MAX_OFF_MESH_BRIDGE_LANES,
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
-    NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE,
-    NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
+    NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
+    NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 pub use error::{NavigationError, NavigationErrorKind};
 pub use gizmo::{NavigationGizmoLink, NavigationGizmoSnapshot, NavigationGizmoTriangle};

@@ -3,7 +3,7 @@ use crate::capability::{
 };
 use crate::{
     module_descriptor, navigation_component_descriptors, navigation_event_catalog,
-    navigation_plugin_options, PLUGIN_ID,
+    navigation_plugin_options, NavRepathBudget, NAVIGATION_MODULE_NAME, PLUGIN_ID,
 };
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::plugin::{
@@ -18,6 +18,7 @@ pub const NAVIGATION_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_navigation_runtim
 const NAVIGATION_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
+pub const NAVIGATION_AGENT_TICK_SYSTEM: &str = "navigation.agent_tick";
 
 #[derive(Clone, Debug)]
 pub struct NavigationRuntimePlugin {
@@ -87,6 +88,34 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             registry.register_plugin_option(option)?;
         }
         registry.register_plugin_event_catalog(navigation_event_catalog())?;
+        let owner = registry.intern_plugin_module(NAVIGATION_MODULE_NAME)?;
+        registry.register_resource(owner, NavRepathBudget::default)?;
+        registry
+            .register_runtime_scene_system(
+                owner,
+                NAVIGATION_AGENT_TICK_SYSTEM,
+                zircon_runtime::scene::SystemStage::Update,
+                |context| {
+                    let manager =
+                        zircon_runtime::core::manager::resolve_navigation_manager(context.core)?;
+                    context
+                        .level
+                        .with_world_mut(|world| {
+                            manager.tick_world_agents(world, context.delta_seconds)
+                        })
+                        .map(|_| ())
+                        .map_err(|error| {
+                            zircon_runtime::core::CoreError::Initialization(
+                                "navigation.agent_tick".to_string(),
+                                error.to_string(),
+                            )
+                        })
+                },
+            )
+            .after(zircon_runtime::scene::ecs::SystemRef::System(
+                "ai.behavior_tick".to_string(),
+            ))
+            .register()?;
         Ok(())
     }
 }
@@ -99,6 +128,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         "zircon_plugin_navigation_runtime",
     )
     .with_module_descriptor(module_descriptor())
+    .with_system_anchors([NAVIGATION_AGENT_TICK_SYSTEM])
     .with_target_modes([
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::ServerRuntime,

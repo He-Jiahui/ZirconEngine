@@ -5,6 +5,7 @@ use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name};
 
+mod agent;
 mod capability;
 mod component_json;
 mod components;
@@ -15,6 +16,7 @@ mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
 
+pub use agent::NavRepathBudget;
 pub use capability::{
     NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
 };

@@ -34,12 +34,12 @@ pub(crate) fn raycast(asset: &NavMeshAsset, query: &NavRaycastQuery) -> Option<N
     detour_query.raycast(query)
 }
 
-struct DetourQuery {
+pub(crate) struct DetourQuery {
     handle: NonNull<c_void>,
 }
 
 impl DetourQuery {
-    fn from_asset(asset: &NavMeshAsset) -> Option<Self> {
+    pub(crate) fn from_asset(asset: &NavMeshAsset) -> Option<Self> {
         if asset.is_empty()
             || asset
                 .off_mesh_links
@@ -74,6 +74,16 @@ impl DetourQuery {
         }
         let handle = NonNull::new(result.query)?;
         Some(Self { handle })
+    }
+
+    pub(crate) fn as_raw(&self) -> *mut c_void {
+        self.handle.as_ptr()
+    }
+
+    pub(crate) fn into_raw(self) -> *mut c_void {
+        let handle = self.as_raw();
+        std::mem::forget(self);
+        handle
     }
 
     fn find_path(&self, query: &NavPathQuery) -> Option<NavPathResult> {

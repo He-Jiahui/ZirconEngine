@@ -65,6 +65,47 @@ struct ZrNavDetourOffMeshLink {
 
 struct ZrNavDetourQuery;
 
+struct ZrNavCrowd;
+
+struct ZrNavCrowdCreateResult {
+    std::uint32_t status;
+    char message[256];
+    ZrNavCrowd* crowd;
+    std::uint32_t capacity;
+};
+
+struct ZrNavCrowdAgentParams {
+    float radius;
+    float height;
+    float max_acceleration;
+    float max_speed;
+    float collision_query_range;
+    float path_optimization_range;
+    float separation_weight;
+    std::uint8_t avoidance_quality;
+    std::uint8_t avoidance_priority;
+    std::uint64_t area_mask;
+};
+
+struct ZrNavCrowdCommandResult {
+    std::uint32_t status;
+    char message[256];
+    std::uint32_t agent_id;
+    std::uint32_t state_count;
+};
+
+struct ZrNavCrowdAgentState {
+    std::uint32_t agent_id;
+    std::uint8_t active;
+    std::uint8_t traversal_state;
+    std::uint8_t target_state;
+    std::uint8_t partial_path;
+    float position[3];
+    float desired_velocity[3];
+    float avoidance_velocity[3];
+    float velocity[3];
+};
+
 struct ZrNavDetourQueryCreateResult {
     std::uint32_t status;
     char message[256];
@@ -161,6 +202,54 @@ extern "C" void zr_nav_detour_create_query(
     ZrNavDetourQueryCreateResult* out_result);
 
 extern "C" void zr_nav_detour_free_query(ZrNavDetourQuery* query);
+
+extern "C" void* zr_nav_detour_query_nav_mesh(const ZrNavDetourQuery* query);
+
+// On success the crowd takes ownership of query_owner. On failure ownership
+// remains with the caller.
+extern "C" void zr_nav_crowd_create(
+    ZrNavDetourQuery* query_owner,
+    std::uint32_t max_agents,
+    float max_agent_radius,
+    const ZrNavDetourAreaCost* area_costs,
+    std::uint32_t area_cost_count,
+    ZrNavCrowdCreateResult* out_result);
+
+extern "C" void zr_nav_crowd_free(ZrNavCrowd* crowd);
+
+extern "C" void zr_nav_crowd_add_agent(
+    ZrNavCrowd* crowd,
+    const float* position,
+    const ZrNavCrowdAgentParams* params,
+    ZrNavCrowdCommandResult* out_result);
+
+extern "C" void zr_nav_crowd_remove_agent(
+    ZrNavCrowd* crowd,
+    std::uint32_t agent_id,
+    ZrNavCrowdCommandResult* out_result);
+
+extern "C" void zr_nav_crowd_set_target(
+    ZrNavCrowd* crowd,
+    std::uint32_t agent_id,
+    const float* target,
+    ZrNavCrowdCommandResult* out_result);
+
+extern "C" void zr_nav_crowd_sync_agent_position(
+    ZrNavCrowd* crowd,
+    std::uint32_t agent_id,
+    const float* position,
+    ZrNavCrowdCommandResult* out_result);
+
+extern "C" void zr_nav_crowd_update(
+    ZrNavCrowd* crowd,
+    float dt_seconds,
+    ZrNavCrowdCommandResult* out_result);
+
+extern "C" void zr_nav_crowd_read_states(
+    const ZrNavCrowd* crowd,
+    ZrNavCrowdAgentState* states,
+    std::uint32_t state_capacity,
+    ZrNavCrowdCommandResult* out_result);
 
 extern "C" void zr_nav_detour_find_path(
     const ZrNavDetourQuery* query,

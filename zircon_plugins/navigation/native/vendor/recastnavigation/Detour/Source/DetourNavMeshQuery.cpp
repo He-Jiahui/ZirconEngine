@@ -62,7 +62,8 @@
 
 dtQueryFilter::dtQueryFilter() :
 	m_includeFlags(0xffff),
-	m_excludeFlags(0)
+	m_excludeFlags(0),
+	m_areaMask(~0ULL)
 {
 	for (int i = 0; i < DT_MAX_AREAS; ++i)
 		m_areaCost[i] = 1.0f;
@@ -73,7 +74,8 @@ bool dtQueryFilter::passFilter(const dtPolyRef /*ref*/,
 							   const dtMeshTile* /*tile*/,
 							   const dtPoly* poly) const
 {
-	return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0;
+	return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0
+		&& (m_areaMask & (1ULL << poly->getArea())) != 0;
 }
 
 float dtQueryFilter::getCost(const float* pa, const float* pb,
@@ -88,7 +90,8 @@ inline bool dtQueryFilter::passFilter(const dtPolyRef /*ref*/,
 									  const dtMeshTile* /*tile*/,
 									  const dtPoly* poly) const
 {
-	return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0;
+	return (poly->flags & m_includeFlags) != 0 && (poly->flags & m_excludeFlags) == 0
+		&& (m_areaMask & (1ULL << poly->getArea())) != 0;
 }
 
 inline float dtQueryFilter::getCost(const float* pa, const float* pb,

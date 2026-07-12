@@ -16,7 +16,7 @@ use super::agent_motion::{
 use super::traversal::automatic_agent_query_asset;
 use super::DefaultNavigationManager;
 
-pub(super) fn tick_world_agents(
+pub(crate) fn tick_world_agents_legacy(
     manager: &DefaultNavigationManager,
     world: &mut World,
     dt_seconds: Real,
@@ -51,11 +51,11 @@ pub(super) fn tick_world_agents(
         };
         let current = transform.translation;
         let destination = Vec3::from_array(destination);
-        let movement_target = match manager.selected_asset(None) {
+        let movement_target = match manager.selected_asset(agent.nav_mesh) {
             Ok(asset) => match manager.backend.find_path_with_obstacles(
                 automatic_agent_query_asset(&asset, &agent).as_ref(),
                 &NavPathQuery {
-                    nav_mesh: None,
+                    nav_mesh: agent.nav_mesh,
                     start: current.to_array(),
                     end: destination.to_array(),
                     agent_type: agent.agent_type.clone(),

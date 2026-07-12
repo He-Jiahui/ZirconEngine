@@ -101,7 +101,7 @@ pub(super) fn realized_velocity(displacement: Vec3, dt_seconds: Real) -> Vec3 {
     }
 }
 
-pub(super) fn rotate_toward_movement(
+pub(crate) fn rotate_toward_movement(
     current_rotation: Quat,
     movement_direction: Vec3,
     agent: &NavMeshAgentDescriptor,

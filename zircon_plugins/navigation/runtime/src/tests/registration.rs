@@ -1,8 +1,11 @@
 use zircon_runtime::core::framework::navigation::{
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
-    NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE,
-    NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
+    NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
+    NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
+use zircon_runtime::scene::ecs::{SystemOrderingConstraint, SystemRef};
+use zircon_runtime::scene::SystemStage;
 
 use crate::{
     package_manifest, plugin_registration, NAVIGATION_DIST_CRATE_NAME,
@@ -88,6 +91,10 @@ fn navigation_registration_contributes_runtime_module_and_components() {
     );
     assert_eq!(report.package_manifest.category, "runtime");
     assert_eq!(
+        report.package_manifest.modules[0].system_anchors,
+        vec!["navigation.agent_tick".to_string()]
+    );
+    assert_eq!(
         report.package_manifest.maturity,
         zircon_runtime::plugin::PluginMaturity::Beta
     );
@@ -110,6 +117,33 @@ fn navigation_registration_contributes_runtime_module_and_components() {
                         "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
                     )
         }));
+}
+
+#[test]
+fn agent_tick_registered_after_ai_behavior_tick() {
+    let report = plugin_registration();
+    let system = report
+        .extensions
+        .plugin_runtime_systems()
+        .find_map(|(_, system)| (system.id == "navigation.agent_tick").then_some(system))
+        .expect("navigation agent tick runtime system");
+
+    assert_eq!(system.stage, SystemStage::Update);
+    assert!(system
+        .constraints
+        .contains(&SystemOrderingConstraint::After(SystemRef::System(
+            "ai.behavior_tick".to_string()
+        ))));
+    assert!(report
+        .extensions
+        .components()
+        .iter()
+        .any(|component| { component.type_id == NAV_DESIRED_VELOCITY_COMPONENT_TYPE }));
+    assert!(report.extensions.plugin_resources().any(|(_, resource)| {
+        resource
+            .type_name()
+            .ends_with("agent::repath::NavRepathBudget")
+    }));
 }
 
 #[test]

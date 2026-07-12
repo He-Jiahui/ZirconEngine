@@ -37,6 +37,7 @@ class dtQueryFilter
 	float m_areaCost[DT_MAX_AREAS];		///< Cost per area type. (Used by default implementation.)
 	unsigned short m_includeFlags;		///< Flags for polygons that can be visited. (Used by default implementation.)
 	unsigned short m_excludeFlags;		///< Flags for polygons that should not be visited. (Used by default implementation.)
+	unsigned long long m_areaMask;		///< Zircon extension: area ids that can be visited.
 	
 public:
 	dtQueryFilter();
@@ -96,6 +97,9 @@ public:
 	///  @param[in]		i		The id of the area.
 	///  @param[in]		cost	The new cost of traversing the area.
 	inline void setAreaCost(const int i, const float cost) { m_areaCost[i] = cost; } 
+
+	inline unsigned long long getAreaMask() const { return m_areaMask; }
+	inline void setAreaMask(const unsigned long long mask) { m_areaMask = mask; }
 
 	/// Returns the include flags for the filter.
 	/// Any polygons that include one or more of these flags will be

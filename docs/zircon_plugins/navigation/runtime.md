@@ -4,6 +4,9 @@ related_code:
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/components.rs
   - zircon_plugins/navigation/runtime/src/components/agent.rs
+  - zircon_plugins/navigation/runtime/src/agent.rs
+  - zircon_plugins/navigation/runtime/src/agent/repath.rs
+  - zircon_plugins/navigation/runtime/src/agent/writeback.rs
   - zircon_plugins/navigation/runtime/src/components/modifier.rs
   - zircon_plugins/navigation/runtime/src/components/obstacle.rs
   - zircon_plugins/navigation/runtime/src/components/off_mesh_bridge.rs
@@ -35,6 +38,7 @@ related_code:
   - zircon_plugins/navigation/runtime/src/settings_validation.rs
   - zircon_plugins/navigation/runtime/src/tests/mod.rs
   - zircon_plugins/navigation/runtime/src/tests/bake.rs
+  - zircon_plugins/navigation/runtime/src/tests/crowd.rs
   - zircon_plugins/navigation/runtime/src/tests/tiled_bake_context.rs
   - zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs
   - zircon_plugins/navigation/runtime/src/tests/manager.rs
@@ -198,7 +202,7 @@ The current backend supports deterministic simple-surface fallback baking, nativ
 
 The plugin keeps navigation behavior out of `zircon_runtime` while still making the manager visible through the existing module/service system. This follows the independent-plugin direction and lets editor, scripting, and future native backends use one neutral API.
 
-The native C++ boundary is intentionally narrow. It proves that upstream Recast/Detour/DetourCrowd/DetourTileCache can be built as part of the plugin and called from Rust without leaking native handles into shared DTOs. Recast rasterization backs triangle-mesh bakes, Detour navmesh query objects back normal runtime queries through an opaque native owner, and TileCache obstacle mutation now backs carved obstacle path queries through a separate opaque native owner. DetourCrowd simulation remains a backend-internal upgrade behind this same facade.
+The native C++ boundary is intentionally narrow. It builds upstream Recast/Detour/DetourCrowd/DetourTileCache as part of the plugin without leaking native handles into shared DTOs. Recast rasterization backs triangle-mesh bakes, opaque Detour query owners back normal runtime queries, TileCache backs carved obstacle path queries, and persistent DetourCrowd owners now back loaded-navmesh agent simulation.
 
 Agent motion follows the same separation. `NavMeshAgentDescriptor` stays a serializable authoring/configuration DTO in `zircon_runtime::core::framework::navigation`; the concrete plugin owns per-entity velocity as manager state and owns the policy for whether automatic movement may consume off-mesh links. That mirrors Recast DetourCrowd's distinction between agent params and runtime velocity, Godot's split between navigation agents and enabled navigation links, and Unreal's separation between simple `NavLink` traversal and custom link gameplay handoffs without exposing those backend objects in the shared framework.
 
@@ -210,7 +214,7 @@ At runtime query time, `load_nav_mesh` stores the asset, `find_path` delegates t
 
 ## Edge Cases
 
-Agent movement can be blocked by missing transforms, immutable/static entity transforms, manual-only off-mesh links, or an agent-level `auto_traverse_links = false` path that would otherwise require a link, and those failures are reported in `NavAgentTickReport`. Non-finite or negative speed, acceleration, angular speed, and stopping distance values are clamped by the runtime motion path instead of producing NaN transforms, while settings assets still reject invalid global agent definitions before installation. Obstacle support is intentionally scoped: bake-time carving removes intersecting collected static sources before rasterization, runtime path queries can carve transient TileCache obstacles for loaded navmeshes, and runtime avoidance applies simple local separation from obstacle centers and neighboring agents. The bake backend is now a real Recast voxel/raster/poly-mesh pipeline for the triangles the runtime collector provides, and the query backend owns Detour/TileCache query objects internally, but render-mesh collection still falls back to cube/mesh node footprints until imported model vertex payloads are exposed through the world or asset pipeline. The manager does not yet persist tiled Detour cache data in `NavMeshAsset`, update obstacles incrementally across frames, run DetourCrowd simulation, expose full agent crowd velocity callbacks, or support full native off-mesh cost/corridor traversal; the DTO and component surface are in place for those follow-up backend upgrades.
+Agent movement can be blocked by missing transforms, immutable/static entity transforms, manual-only off-mesh links, or an agent-level `auto_traverse_links = false` path that would otherwise require a link, and those failures are reported in `NavAgentTickReport`. Non-finite or negative speed, acceleration, angular speed, and stopping distance values are clamped by the runtime motion path instead of producing NaN transforms, while settings assets still reject invalid global agent definitions before installation. Obstacle support is intentionally scoped: bake-time carving removes intersecting collected static sources before rasterization, runtime path queries can carve transient TileCache obstacles for loaded navmeshes, and runtime avoidance applies simple local separation from obstacle centers and neighboring agents. The manager does not yet persist tiled Detour cache data in `NavMeshAsset`, update obstacles incrementally across frames, or converge off-mesh traversal and dynamic carving into the persistent Crowd lifecycle; those scenes deliberately stay on the isolated legacy movement path. Crowd simulation, per-navmesh ownership, area-filtered corridors, repath budgets, and Transform/DesiredVelocity writeback are implemented.
 
 ## Test Coverage
 
@@ -239,3 +243,9 @@ Fresh 2026-05-10 workspace-blocker evidence traced the original retained-host va
 2026-06-07 agent-motion slice added `manager/agent_motion.rs` as the runtime-only owner for per-entity velocity, acceleration-limited speed changes, arrival braking, and angular-speed-limited yaw updates. `tests/manager.rs` now covers `navigation_manager_limits_agent_start_velocity_by_acceleration` and `navigation_manager_auto_braking_stops_at_agent_stopping_distance` through the real `World` dynamic component plus `tick_world_agents` path. Static validation and focused Cargo evidence for this slice are tracked in the active plugin-ecosystem session note.
 
 2026-06-07 automatic traversal-policy slice added `manager/traversal.rs` as the runtime-only owner for filtering off-mesh links before automatic agent path queries. `tests/manager.rs` now covers `automatic_agent_tick_does_not_cross_manual_off_mesh_links`, `automatic_agent_tick_respects_auto_traverse_links_opt_out`, and `explicit_path_query_can_still_cross_manual_off_mesh_links`, proving that manual links stay in explicit path planning while automatic agent movement does not silently cross them. Static validation evidence is tracked in the active plugin-ecosystem session note.
+
+## DetourCrowd Agent Runtime
+
+M3 replaces loaded-navmesh agent steering with one persistent DetourCrowd per `NavMeshHandle`. `NavMeshAgentDescriptor.nav_mesh` optionally selects the surface owner and otherwise uses the first loaded handle. `agent.rs` groups agents by handle, reconciles entity/native bindings, performs one native `update` plus one batch state read per active Crowd, and drops owners for unloaded handles. Parameter changes recreate only that native agent. `DesiredVelocity` agents feed their controller-owned Transform back through the native corridor-position synchronization API every frame, preventing hidden Crowd position drift. Until later milestones converge obstacle/off-mesh native lifecycles, scenes containing runtime obstacles or off-mesh links remain on the existing isolated manager path.
+
+The runtime plugin declares and registers the `navigation.agent_tick` system anchor in `SystemStage::Update` after `ai.behavior_tick`. `NavRepathBudget` is a registered ECS resource; destination changes and blocked `auto_repath` retries consume at most `max_queries_per_frame`. Per-Crowd entity cursors plus a global handle cursor prevent starvation both within and across navmeshes. A budget unit means one actual Crowd `requestMoveTarget`; the prior transient preflight query was removed. Agent add/sync failures are isolated to that entity and reported without aborting other Crowds. `NavMeshAgentDescriptor.writeback_mode` chooses between direct Transform/rotation ownership and the registered `navigation.Component.NavDesiredVelocity` component for character controllers. Partial corridors and failed Crowd targets are reported as blocked instead of being written back as movement. The fresh validator job `de1d93af6e734c9d9af4eda1fb58d737` passed all 47 runtime package tests.

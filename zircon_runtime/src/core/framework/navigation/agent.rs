@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::math::Real;
 
 use super::constants::{NavAreaMask, DEFAULT_AREA_MASK};
+use super::handle::NavMeshHandle;
 use super::settings::NavigationAgentSettings;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,6 +15,19 @@ pub enum NavAvoidanceQuality {
     High,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NavAgentWritebackMode {
+    #[default]
+    Transform,
+    DesiredVelocity,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct NavDesiredVelocity {
+    pub linear: [Real; 3],
+}
+
 impl Default for NavAvoidanceQuality {
     fn default() -> Self {
         Self::Medium
@@ -23,6 +37,7 @@ impl Default for NavAvoidanceQuality {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct NavMeshAgentDescriptor {
+    pub nav_mesh: Option<NavMeshHandle>,
     pub agent_type: String,
     pub radius: Real,
     pub height: Real,
@@ -39,6 +54,7 @@ pub struct NavMeshAgentDescriptor {
     pub auto_traverse_links: bool,
     pub update_position: bool,
     pub update_rotation: bool,
+    pub writeback_mode: NavAgentWritebackMode,
     pub destination: Option<[Real; 3]>,
 }
 
@@ -46,6 +62,7 @@ impl Default for NavMeshAgentDescriptor {
     fn default() -> Self {
         let agent = NavigationAgentSettings::humanoid();
         Self {
+            nav_mesh: None,
             agent_type: agent.id,
             radius: agent.radius,
             height: agent.height,
@@ -62,6 +79,7 @@ impl Default for NavMeshAgentDescriptor {
             auto_traverse_links: true,
             update_position: true,
             update_rotation: true,
+            writeback_mode: NavAgentWritebackMode::Transform,
             destination: None,
         }
     }

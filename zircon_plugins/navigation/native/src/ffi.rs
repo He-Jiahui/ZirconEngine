@@ -84,6 +84,75 @@ pub(crate) struct ZrNavDetourQueryCreateResult {
     pub polygon_count: c_uint,
 }
 
+#[repr(C)]
+#[derive(Debug)]
+pub(crate) struct ZrNavCrowdCreateResult {
+    pub status: c_uint,
+    pub message: [c_char; 256],
+    pub crowd: *mut c_void,
+    pub capacity: c_uint,
+}
+
+impl Default for ZrNavCrowdCreateResult {
+    fn default() -> Self {
+        Self {
+            status: 0,
+            message: [0; 256],
+            crowd: std::ptr::null_mut(),
+            capacity: 0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ZrNavCrowdAgentParams {
+    pub radius: c_float,
+    pub height: c_float,
+    pub max_acceleration: c_float,
+    pub max_speed: c_float,
+    pub collision_query_range: c_float,
+    pub path_optimization_range: c_float,
+    pub separation_weight: c_float,
+    pub avoidance_quality: c_uchar,
+    pub avoidance_priority: c_uchar,
+    pub area_mask: c_ulonglong,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub(crate) struct ZrNavCrowdCommandResult {
+    pub status: c_uint,
+    pub message: [c_char; 256],
+    pub agent_id: c_uint,
+    pub state_count: c_uint,
+}
+
+impl Default for ZrNavCrowdCommandResult {
+    fn default() -> Self {
+        Self {
+            status: 0,
+            message: [0; 256],
+            agent_id: 0,
+            state_count: 0,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct ZrNavCrowdAgentState {
+    pub agent_id: c_uint,
+    pub active: c_uchar,
+    pub traversal_state: c_uchar,
+    pub target_state: c_uchar,
+    pub partial_path: c_uchar,
+    pub position: [c_float; 3],
+    pub desired_velocity: [c_float; 3],
+    pub avoidance_velocity: [c_float; 3],
+    pub velocity: [c_float; 3],
+}
+
 impl Default for ZrNavDetourQueryCreateResult {
     fn default() -> Self {
         Self {
@@ -269,6 +338,49 @@ extern "C" {
         out_result: *mut ZrNavDetourQueryCreateResult,
     );
     pub(crate) fn zr_nav_detour_free_query(query: *mut c_void);
+    pub(crate) fn zr_nav_crowd_create(
+        query_owner: *mut c_void,
+        max_agents: c_uint,
+        max_agent_radius: c_float,
+        area_costs: *const ZrNavDetourAreaCost,
+        area_cost_count: c_uint,
+        out_result: *mut ZrNavCrowdCreateResult,
+    );
+    pub(crate) fn zr_nav_crowd_free(crowd: *mut c_void);
+    pub(crate) fn zr_nav_crowd_add_agent(
+        crowd: *mut c_void,
+        position: *const c_float,
+        params: *const ZrNavCrowdAgentParams,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
+    pub(crate) fn zr_nav_crowd_remove_agent(
+        crowd: *mut c_void,
+        agent_id: c_uint,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
+    pub(crate) fn zr_nav_crowd_set_target(
+        crowd: *mut c_void,
+        agent_id: c_uint,
+        target: *const c_float,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
+    pub(crate) fn zr_nav_crowd_sync_agent_position(
+        crowd: *mut c_void,
+        agent_id: c_uint,
+        position: *const c_float,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
+    pub(crate) fn zr_nav_crowd_update(
+        crowd: *mut c_void,
+        dt_seconds: c_float,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
+    pub(crate) fn zr_nav_crowd_read_states(
+        crowd: *const c_void,
+        states: *mut ZrNavCrowdAgentState,
+        state_capacity: c_uint,
+        out_result: *mut ZrNavCrowdCommandResult,
+    );
     pub(crate) fn zr_nav_detour_find_path(
         query: *const c_void,
         start: *const c_float,

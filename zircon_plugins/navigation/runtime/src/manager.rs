@@ -1,9 +1,9 @@
-mod agent_motion;
+pub(crate) mod agent_motion;
 mod bake;
 mod query;
 mod state;
 mod stats;
-mod tick;
+pub(crate) mod tick;
 mod traversal;
 
 use std::sync::MutexGuard;
@@ -28,13 +28,13 @@ use self::state::NavigationRuntimeState;
 
 #[derive(Clone, Debug)]
 pub struct DefaultNavigationManager {
-    pub(in crate::manager) backend: RecastBackend,
+    pub(crate) backend: RecastBackend,
     pub(in crate::manager) bake_pool: TaskPool,
     pub(in crate::manager) state: Arc<Mutex<NavigationRuntimeState>>,
 }
 
 impl DefaultNavigationManager {
-    pub(in crate::manager) fn lock_state(&self) -> MutexGuard<'_, NavigationRuntimeState> {
+    pub(crate) fn lock_state(&self) -> MutexGuard<'_, NavigationRuntimeState> {
         self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -65,6 +65,17 @@ impl DefaultNavigationManager {
         state.loaded.get(&handle).cloned().ok_or_else(|| {
             NavigationError::missing_nav_mesh(format!("nav mesh {:?} is not loaded", handle))
         })
+    }
+
+    pub(crate) fn loaded_assets(&self) -> Vec<(NavMeshHandle, NavMeshAsset)> {
+        let state = self.lock_state();
+        let mut loaded = state
+            .loaded
+            .iter()
+            .map(|(handle, asset)| (*handle, asset.clone()))
+            .collect::<Vec<_>>();
+        loaded.sort_by_key(|(handle, _)| handle.0);
+        loaded
     }
 
     pub(in crate::manager) fn begin_bake_generation(&self, surface: Option<u64>) -> u64 {
@@ -136,6 +147,8 @@ impl NavigationManager for DefaultNavigationManager {
         crate::settings_validation::validate_navigation_settings(&settings)?;
         let mut state = self.lock_state();
         state.settings = settings;
+        state.crowds.clear();
+        state.crowd_handle_cursor = 0;
         for context in state.bake_contexts.values_mut() {
             let generation = context.next_generation;
             context.next_generation = context.next_generation.saturating_add(1);
@@ -167,7 +180,7 @@ impl NavigationManager for DefaultNavigationManager {
         world: &mut World,
         dt_seconds: Real,
     ) -> Result<NavAgentTickReport, NavigationError> {
-        tick::tick_world_agents(self, world, dt_seconds)
+        crate::agent::tick_world_agents(self, world, dt_seconds)
     }
 
     fn stats(&self) -> NavigationRuntimeStats {

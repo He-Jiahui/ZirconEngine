@@ -6,6 +6,7 @@ use zircon_runtime::core::framework::navigation::{
 
 mod asset_ffi;
 mod bake;
+mod crowd;
 mod detour;
 mod detour_result;
 mod fallback_query;
@@ -16,6 +17,7 @@ pub use bake::{
     merge_tiled_assets, RecastBakeInput, RecastBakeMeshInput, RecastTileSpec, RecastTiledBakeInput,
     RecastTiledBakePlan,
 };
+pub use crowd::{RecastCrowd, RecastCrowdAgentHandle, RecastCrowdAgentState, RecastCrowdConfig};
 pub use tile_cache::{RecastNavigationObstacle, RecastNavigationObstacleShape};
 
 pub fn native_backend_version() -> u32 {

@@ -14,6 +14,7 @@ fn main() {
         .file("native/recast_bridge.cpp")
         .file("native/recast_bake.cpp")
         .file("native/detour_query.cpp")
+        .file("native/detour_crowd.cpp")
         .file("native/detour_tile_cache.cpp");
 
     for directory in [
@@ -37,6 +38,7 @@ fn main() {
     println!("cargo:rerun-if-changed=native/recast_bridge.h");
     println!("cargo:rerun-if-changed=native/recast_bake.cpp");
     println!("cargo:rerun-if-changed=native/detour_query.cpp");
+    println!("cargo:rerun-if-changed=native/detour_crowd.cpp");
     println!("cargo:rerun-if-changed=native/detour_tile_cache.cpp");
     println!("cargo:rerun-if-changed=vendor/recastnavigation");
 }

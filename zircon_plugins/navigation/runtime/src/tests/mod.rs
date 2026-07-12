@@ -1,4 +1,5 @@
 mod bake;
+mod crowd;
 mod dynamic_components;
 mod manager;
 mod registration;
