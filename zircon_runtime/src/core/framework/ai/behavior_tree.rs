@@ -122,6 +122,7 @@ impl AiBehaviorNodeParameter {
 pub struct AiBehaviorNodeDescriptor {
     pub id: String,
     pub kind: AiBehaviorNodeKind,
+    pub implementation: String,
     pub display_name: String,
     #[serde(default)]
     pub children: Vec<String>,
@@ -138,10 +139,16 @@ impl AiBehaviorNodeDescriptor {
         Self {
             id: id.into(),
             kind,
+            implementation: default_behavior_node_implementation(kind).to_string(),
             display_name: display_name.into(),
             children: Vec::new(),
             parameters: Vec::new(),
         }
+    }
+
+    pub fn with_implementation(mut self, implementation: impl Into<String>) -> Self {
+        self.implementation = implementation.into();
+        self
     }
 
     pub fn with_child(mut self, child: impl Into<String>) -> Self {
@@ -160,8 +167,21 @@ impl AiBehaviorNodeDescriptor {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+const fn default_behavior_node_implementation(kind: AiBehaviorNodeKind) -> &'static str {
+    match kind {
+        AiBehaviorNodeKind::Selector => "selector",
+        AiBehaviorNodeKind::Sequence => "sequence",
+        AiBehaviorNodeKind::Parallel => "parallel",
+        AiBehaviorNodeKind::Decorator => "blackboard_condition",
+        AiBehaviorNodeKind::Service => "update_blackboard_distance",
+        AiBehaviorNodeKind::Task => "wait",
+        AiBehaviorNodeKind::Subtree => "run_subtree",
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AiBehaviorTreeDescriptor {
+    pub format_version: u32,
     pub id: String,
     pub display_name: String,
     pub root_node: String,
@@ -175,6 +195,7 @@ impl AiBehaviorTreeDescriptor {
         root_node: impl Into<String>,
     ) -> Self {
         Self {
+            format_version: AI_BEHAVIOR_TREE_FORMAT_VERSION,
             id: id.into(),
             display_name: display_name.into(),
             root_node: root_node.into(),
@@ -187,3 +208,11 @@ impl AiBehaviorTreeDescriptor {
         self
     }
 }
+
+impl Default for AiBehaviorTreeDescriptor {
+    fn default() -> Self {
+        Self::new("", "", "")
+    }
+}
+
+pub const AI_BEHAVIOR_TREE_FORMAT_VERSION: u32 = 1;

@@ -13,9 +13,7 @@ pub(super) fn set_snapshot(
     validate_perception_snapshot(entity, &snapshot)?;
 
     manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned")
+        .lock_state()
         .perceptions
         .insert((world, entity), snapshot);
     Ok(())
@@ -27,9 +25,7 @@ pub(super) fn snapshot(
     entity: EntityId,
 ) -> Option<AiPerceptionSnapshot> {
     manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned")
+        .lock_state()
         .perceptions
         .get(&(world, entity))
         .cloned()

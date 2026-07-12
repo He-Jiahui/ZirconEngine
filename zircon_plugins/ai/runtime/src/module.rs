@@ -21,6 +21,11 @@ pub struct AiDriver;
 pub struct AiModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_manager(None)
+}
+
+pub fn module_descriptor_with_manager(manager: Option<Arc<DefaultAiManager>>) -> ModuleDescriptor {
+    let default_manager = manager.clone();
     ModuleDescriptor::new(
         AI_MODULE_NAME,
         "Behavior tree, blackboard, perception, and agent tick runtime contracts",
@@ -39,7 +44,12 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Driver,
             "AiDriver",
         )],
-        factory(|_| Ok(Arc::new(DefaultAiManager::default()) as ServiceObject)),
+        factory(move |_| {
+            Ok(default_manager
+                .clone()
+                .unwrap_or_else(|| Arc::new(DefaultAiManager::default()))
+                as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(AI_MODULE_NAME, ServiceKind::Manager, "AiManager"),
@@ -49,8 +59,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "DefaultAiManager",
         )],
-        factory(|core| {
-            let manager = core.resolve_manager::<DefaultAiManager>(DEFAULT_AI_MANAGER_NAME)?;
+        factory(move |core| {
+            let manager = match &manager {
+                Some(manager) => Arc::clone(manager),
+                None => core.resolve_manager::<DefaultAiManager>(DEFAULT_AI_MANAGER_NAME)?,
+            };
             Ok(Arc::new(AiManagerHandle::new(manager)) as ServiceObject)
         }),
     ))

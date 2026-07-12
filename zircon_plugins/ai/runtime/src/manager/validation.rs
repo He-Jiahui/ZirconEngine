@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use zircon_runtime::core::framework::ai::AI_BEHAVIOR_TREE_FORMAT_VERSION;
 use zircon_runtime::core::framework::ai::{
     AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorNodeParameterValue,
     AiBehaviorTreeDescriptor, AiBlackboardEntry, AiBlackboardSchemaDescriptor, AiManagerError,
@@ -25,6 +26,26 @@ pub(super) fn validate_behavior_tree_descriptor(
     descriptor: &AiBehaviorTreeDescriptor,
     registered_tree_ids: &[&str],
 ) -> Result<(), AiManagerError> {
+    validate_behavior_tree_descriptor_inner(descriptor, registered_tree_ids, true)
+}
+
+pub(crate) fn validate_behavior_tree_descriptor_for_compile(
+    descriptor: &AiBehaviorTreeDescriptor,
+) -> Result<(), AiManagerError> {
+    validate_behavior_tree_descriptor_inner(descriptor, &[], false)
+}
+
+fn validate_behavior_tree_descriptor_inner(
+    descriptor: &AiBehaviorTreeDescriptor,
+    registered_tree_ids: &[&str],
+    require_registered_subtree_target: bool,
+) -> Result<(), AiManagerError> {
+    if descriptor.format_version != AI_BEHAVIOR_TREE_FORMAT_VERSION {
+        return Err(AiManagerError::InvalidBehaviorTreeFormatVersion {
+            expected: AI_BEHAVIOR_TREE_FORMAT_VERSION,
+            actual: descriptor.format_version,
+        });
+    }
     ensure_non_empty(&descriptor.id, "behavior_tree.id")?;
     ensure_non_empty(&descriptor.root_node, "behavior_tree.root_node")?;
 
@@ -55,7 +76,12 @@ pub(super) fn validate_behavior_tree_descriptor(
             }
         }
         validate_behavior_node_child_count(&descriptor.id, node)?;
-        validate_builtin_behavior_node_parameters(&descriptor.id, node, registered_tree_ids)?;
+        validate_builtin_behavior_node_parameters(
+            &descriptor.id,
+            node,
+            registered_tree_ids,
+            require_registered_subtree_target,
+        )?;
     }
 
     if !node_ids.contains(descriptor.root_node.as_str()) {
@@ -153,10 +179,14 @@ fn visit_behavior_node<'a>(
 
     if let Some(node) = nodes.get(node_id).copied() {
         for child in &node.children {
-            let (child_id, _) = nodes
-                .get_key_value(child.as_str())
-                .expect("child nodes are validated before topology traversal");
-            visit_behavior_node(tree_id, *child_id, nodes, visiting, visited)?;
+            let Some((child_id, _)) = nodes.get_key_value(child.as_str()) else {
+                return Err(AiManagerError::MissingChildNode {
+                    tree_id: tree_id.to_string(),
+                    node_id: node.id.clone(),
+                    child_id: child.clone(),
+                });
+            };
+            visit_behavior_node(tree_id, child_id, nodes, visiting, visited)?;
         }
     }
 
@@ -236,9 +266,15 @@ fn validate_builtin_behavior_node_parameters(
     tree_id: &str,
     node: &AiBehaviorNodeDescriptor,
     registered_tree_ids: &[&str],
+    require_registered_subtree_target: bool,
 ) -> Result<(), AiManagerError> {
     validate_builtin_behavior_node_parameter_owners(tree_id, node)?;
-    validate_subtree_target_parameter(tree_id, node, registered_tree_ids)?;
+    validate_subtree_target_parameter(
+        tree_id,
+        node,
+        registered_tree_ids,
+        require_registered_subtree_target,
+    )?;
 
     if let Some(value) = behavior_node_parameter(node, TASK_RESULT_PARAMETER_KEY) {
         let result = expect_string_parameter(tree_id, node, TASK_RESULT_PARAMETER_KEY, value)?;
@@ -254,6 +290,7 @@ fn validate_builtin_behavior_node_parameters(
     }
     validate_parallel_policy_parameter(tree_id, node, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY)?;
     validate_parallel_policy_parameter(tree_id, node, PARALLEL_FAILURE_POLICY_PARAMETER_KEY)?;
+    validate_standard_node_parameters(tree_id, node)?;
 
     let has_blackboard_condition =
         has_any_behavior_node_parameter(node, BLACKBOARD_CONDITION_PARAMETER_KEYS);
@@ -306,6 +343,53 @@ fn validate_builtin_behavior_node_parameters(
     validate_scalar_comparison_parameter(tree_id, node, "less_than_scalar")?;
     validate_scalar_comparison_parameter(tree_id, node, "less_or_equal_scalar")?;
 
+    Ok(())
+}
+
+fn validate_standard_node_parameters(
+    tree_id: &str,
+    node: &AiBehaviorNodeDescriptor,
+) -> Result<(), AiManagerError> {
+    for key in ["duration_seconds", "cooldown_seconds", "time_limit_seconds"] {
+        validate_non_negative_scalar_parameter(tree_id, node, key)?;
+    }
+    for parameter in &node.parameters {
+        if parameter.key.starts_with("weight.") || parameter.key.starts_with("weight_") {
+            validate_non_negative_scalar_parameter(tree_id, node, &parameter.key)?;
+        }
+    }
+    if let Some(value) = behavior_node_parameter(node, "count") {
+        let AiBehaviorNodeParameterValue::Integer(count) = value else {
+            return invalid_parameter(tree_id, node, "count", "integer", value);
+        };
+        if *count <= 0 {
+            return Err(AiManagerError::InvalidBehaviorNodeParameterValue {
+                tree_id: tree_id.to_string(),
+                node_id: node.id.clone(),
+                key: "count".to_string(),
+                expected: "a positive integer",
+                actual: count.to_string(),
+            });
+        }
+    }
+    if let Some(value) = behavior_node_parameter(node, "infinite") {
+        expect_bool_parameter(tree_id, node, "infinite", value)?;
+    }
+    for key in ["forced_result", "service_result"] {
+        let Some(value) = behavior_node_parameter(node, key) else {
+            continue;
+        };
+        let result = expect_string_parameter(tree_id, node, key, value)?;
+        if parse_task_result(result).is_none() {
+            return Err(AiManagerError::InvalidBehaviorNodeParameterValue {
+                tree_id: tree_id.to_string(),
+                node_id: node.id.clone(),
+                key: key.to_string(),
+                expected: TASK_RESULT_EXPECTED_VALUES,
+                actual: result.to_string(),
+            });
+        }
+    }
     Ok(())
 }
 
@@ -384,6 +468,7 @@ fn validate_subtree_target_parameter(
     tree_id: &str,
     node: &AiBehaviorNodeDescriptor,
     registered_tree_ids: &[&str],
+    require_registered_target: bool,
 ) -> Result<(), AiManagerError> {
     if node.kind != AiBehaviorNodeKind::Subtree {
         return Ok(());
@@ -411,7 +496,7 @@ fn validate_subtree_target_parameter(
     if target_tree == tree_id {
         return invalid_subtree_target(tree_id, node, target_tree, "subtree cannot target itself");
     }
-    if !registered_tree_ids.contains(&target_tree) {
+    if require_registered_target && !registered_tree_ids.contains(&target_tree) {
         return invalid_subtree_target(
             tree_id,
             node,
@@ -665,9 +750,13 @@ pub(super) fn validate_blackboard_entries(
             });
         }
         if let Some(entry) = matching_entry {
-            let expected = descriptor
-                .expected_value_type()
-                .expect("registered blackboard schema has normalized value types");
+            let Some(expected) = descriptor.expected_value_type() else {
+                return Err(AiManagerError::UnknownBlackboardValueType {
+                    schema_id: schema.id.clone(),
+                    key: descriptor.key.clone(),
+                    value_type: descriptor.value_type.clone(),
+                });
+            };
             let actual = entry.value.value_type();
             if expected != actual {
                 return Err(AiManagerError::BlackboardValueTypeMismatch {

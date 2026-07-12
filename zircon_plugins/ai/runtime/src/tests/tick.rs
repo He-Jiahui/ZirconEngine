@@ -9,6 +9,43 @@ use zircon_runtime::core::math::Vec3;
 use crate::DefaultAiManager;
 
 #[test]
+fn node_semantics_matrix() {
+    let manager = DefaultAiManager::default();
+    let world = WorldHandle::new(1);
+    for (index, status_name, expected) in [
+        (1_u64, "running", AiDecisionStatus::Running),
+        (2_u64, "succeeded", AiDecisionStatus::Succeeded),
+        (3_u64, "failed", AiDecisionStatus::Failed),
+    ] {
+        let tree_id = manager
+            .register_behavior_tree(
+                AiBehaviorTreeDescriptor::new(format!("task_{status_name}"), status_name, "root")
+                    .with_node(
+                        AiBehaviorNodeDescriptor::new(
+                            "root",
+                            AiBehaviorNodeKind::Task,
+                            status_name,
+                        )
+                        .with_parameter("result", status_name),
+                    ),
+            )
+            .expect("task semantics tree");
+        let report = manager
+            .tick_agent(AiAgentTickRequest {
+                world,
+                entity: index,
+                behavior_tree: Some(tree_id),
+                blackboard_schema: None,
+                delta_seconds: 1.0 / 60.0,
+                blackboard: Vec::new(),
+                perception: None,
+            })
+            .expect("compiled task tick");
+        assert_eq!(report.status, expected);
+    }
+}
+
+#[test]
 fn ai_manager_stores_blackboard_and_reports_running_task_status() {
     let manager = DefaultAiManager::default();
     let tree_id = manager

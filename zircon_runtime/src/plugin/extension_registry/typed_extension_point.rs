@@ -221,6 +221,25 @@ where
         removed
     }
 
+    /// Rebinds contributions to a new lifecycle owner without changing their
+    /// stable slots. This is used when bootstrap-owned declarations become
+    /// attached to an interned runtime plugin owner during registration.
+    pub fn reassign_owned_by(
+        &mut self,
+        current_owner: PluginModuleId,
+        new_owner: PluginModuleId,
+    ) -> Vec<ExtensionSlot> {
+        let table = self.staging_mut();
+        let mut reassigned = Vec::new();
+        for (owner, slot) in table.owners.iter_mut().zip(table.slots.iter().copied()) {
+            if *owner == current_owner {
+                *owner = new_owner;
+                reassigned.push(slot);
+            }
+        }
+        reassigned
+    }
+
     pub fn sort_by_values<F>(&mut self, mut compare: F)
     where
         F: FnMut(&V, &V) -> std::cmp::Ordering,

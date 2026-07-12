@@ -1,12 +1,20 @@
 ---
 related_code:
   - zircon_plugins/ai/plugin.toml
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/Cargo.lock
   - zircon_plugins/ai/runtime/Cargo.toml
   - zircon_plugins/ai/runtime/src/lib.rs
   - zircon_plugins/ai/runtime/src/manager.rs
+  - zircon_plugins/ai/runtime/src/manager/execution_gate.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/catalog.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/compile.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/executor.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/executor/condition.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/nodes/mod.rs
   - zircon_plugins/ai/runtime/src/manager/behavior_tree.rs
   - zircon_plugins/ai/runtime/src/manager/blackboard.rs
-  - zircon_plugins/ai/runtime/src/manager/execution.rs
   - zircon_plugins/ai/runtime/src/manager/parameters.rs
   - zircon_plugins/ai/runtime/src/manager/perception.rs
   - zircon_plugins/ai/runtime/src/manager/service.rs
@@ -15,13 +23,24 @@ related_code:
   - zircon_plugins/ai/runtime/src/manager/tick.rs
   - zircon_plugins/ai/runtime/src/manager/validation.rs
   - zircon_plugins/ai/runtime/src/module.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/src/plugin/registration.rs
+  - zircon_plugins/ai/runtime/src/tick_lod.rs
   - zircon_plugins/ai/runtime/src/tests/mod.rs
   - zircon_plugins/ai/runtime/src/tests/manager_validation.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_compile.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_execution.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_node_catalog.rs
   - zircon_plugins/ai/runtime/src/tests/module.rs
   - zircon_plugins/ai/runtime/src/tests/perception_conditions.rs
   - zircon_plugins/ai/runtime/src/tests/registration.rs
   - zircon_plugins/ai/runtime/src/tests/tick.rs
   - zircon_runtime/src/core/framework/ai/mod.rs
+  - zircon_runtime/src/core/framework/ai/behavior_tree.rs
+  - zircon_runtime/src/core/framework/ai/error.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/owner_revocation.rs
+  - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/core/framework/ai/manager.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
@@ -31,9 +50,14 @@ implementation_files:
   - zircon_plugins/ai/plugin.toml
   - zircon_plugins/ai/runtime/src/lib.rs
   - zircon_plugins/ai/runtime/src/manager.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/catalog.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/compile.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/executor.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/executor/condition.rs
+  - zircon_plugins/ai/runtime/src/behavior_tree/nodes/mod.rs
   - zircon_plugins/ai/runtime/src/manager/behavior_tree.rs
   - zircon_plugins/ai/runtime/src/manager/blackboard.rs
-  - zircon_plugins/ai/runtime/src/manager/execution.rs
   - zircon_plugins/ai/runtime/src/manager/parameters.rs
   - zircon_plugins/ai/runtime/src/manager/perception.rs
   - zircon_plugins/ai/runtime/src/manager/service.rs
@@ -42,11 +66,17 @@ implementation_files:
   - zircon_plugins/ai/runtime/src/manager/tick.rs
   - zircon_plugins/ai/runtime/src/manager/validation.rs
   - zircon_plugins/ai/runtime/src/module.rs
+  - zircon_plugins/ai/runtime/src/plugin.rs
+  - zircon_plugins/ai/runtime/src/plugin/registration.rs
+  - zircon_plugins/ai/runtime/src/tick_lod.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
 tests:
   - zircon_plugins/ai/runtime/src/tests/mod.rs
   - zircon_plugins/ai/runtime/src/tests/manager_validation.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_compile.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_execution.rs
+  - zircon_plugins/ai/runtime/src/tests/behavior_tree_node_catalog.rs
   - zircon_plugins/ai/runtime/src/tests/module.rs
   - zircon_plugins/ai/runtime/src/tests/perception_conditions.rs
   - zircon_plugins/ai/runtime/src/tests/registration.rs
@@ -55,6 +85,9 @@ tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --jobs 1 --message-format short --color never
 plan_sources:
+  - docs/plans/zircon_plugins/06-ai.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
@@ -65,11 +98,11 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_plugins/ai/runtime` is the first-party optional AI runtime plugin. It embeds the canonical `ai.runtime` module descriptor, exposes `DefaultAiManager` through the stable `AiManagerHandle`, and publishes package metadata for behavior-tree, blackboard, and perception capabilities. The plugin is experimental and partial: it establishes the reusable manager, data validation foundation, and deterministic descriptor-driven execution for the first behavior-tree node families while full game AI authoring and latent task dispatch remain later capability promotions.
+`zircon_plugins/ai/runtime` is the first-party optional AI runtime plugin. It embeds the canonical `ai.runtime` module descriptor, exposes `DefaultAiManager` through the stable `AiManagerHandle`, and publishes package metadata for behavior-tree, blackboard, and perception capabilities. Plugins 06 M1 supplies compiled behavior-tree assets, a typed node implementation catalog, the standard v1 node families, per-agent execution state, and a real `ai.behavior_tick` Update system with LOD throttling. The package remains Experimental / Partial because observer aborts, dense blackboard storage, concrete integration tasks, full perception, and editor tooling belong to M2–M5.
 
 ## Related Files
 
-`src/lib.rs` owns the runtime plugin descriptor, package manifest helpers, capability list, and extension registration. `src/module.rs` contributes the core module descriptor with an immediate driver, a lazy concrete manager, and a lazy neutral `AiManagerHandle`. `src/manager.rs` is now a structural manager entry that exposes `DefaultAiManager` and wires folder-backed manager responsibilities. `manager/state.rs` owns registered descriptors, blackboards, perceptions, active tree names, and last reports. `manager/service.rs` keeps the `AiManager` trait implementation as a delegation layer. `manager/behavior_tree.rs`, `blackboard.rs`, `perception.rs`, `tick.rs`, `snapshot.rs`, `execution.rs`, and `validation.rs` own their respective runtime operations. `src/tests/mod.rs` is a structural test entry point; its child modules verify registration/catalog parity, module resolution, manager contract validation, perception-condition behavior, and tick/perception behavior.
+`src/behavior_tree.rs` is the domain entry. `behavior_tree/compile.rs` parses `.btree.toml` into the neutral descriptor and compiles a preorder dense node array plus a separate dense direct-child index table. `catalog.rs` owns the `TypedExtensionPoint`-backed implementation catalog and the typed `ai.behavior_node_registry.v1` runtime interface; `nodes/{composite,decorator,service,task}.rs` own the standard declarations. `executor.rs` owns traversal and per-agent state, while `executor/condition.rs` isolates blackboard/perception predicate evaluation. The old `manager/execution.rs` was deleted in the planned hard cutover. `manager/behavior_tree.rs` validates and compiles registrations against the manager's live shared catalog; `manager/tick.rs` keeps lock scope outside execution and persists instance state. `registration.rs` owns the extension-interface export, event catalog, and real Update-stage system registration, and `tick_lod.rs` owns deterministic Full/Half/Quarter scheduling.
 
 ## Behavior Model
 
@@ -86,9 +119,13 @@ All four capabilities are currently `Partial`. This lets project/profile/export 
 
 ## Control Flow
 
-At registration time, `RuntimePluginRegistrationReport::from_plugin(...)` installs the descriptor embedded in `AiRuntimePlugin`; the plugin no longer has a parallel `register_module(...)` path. When the module activates, `AiDriver` starts immediately. `DefaultAiManager` is lazy, and the public `AiManager` service resolves through `AiManagerHandle`, preserving the runtime manager boundary used by the rest of the engine.
+At registration time, `AiRuntimePlugin` constructs one shared `Arc<DefaultAiManager>` for the module service descriptor, runtime scene system, and behavior-node registry service. The plugin exports that service through `RuntimeExtensionRegistry` as the typed `ai.behavior_node_registry.v1` interface declared by both its linked descriptor and `plugin.toml`. Rust plugins can resolve the interface, contribute `BehaviorNodeDescriptor` values, and immediately register trees against the same live `RwLock`-backed catalog owned by the AI manager. Bootstrap standard-node rows are rebound in place to the actual interned AI owner, preserving their stable slots even when callers compiled trees through the public manager before plugin registration.
 
-At tick time, `manager/tick.rs` validates the requested behavior-tree handle, blackboard schema handle, finite delta seconds, blackboard entry keys and values, and optional perception snapshot before mutating runtime state. It snapshots registered descriptors and any stored perception snapshot under a short manager lock, releases the lock while running the deterministic executor, and writes blackboards, perceptions, active-tree state, and the last report back afterward. When a registered tree is present, `manager/execution.rs` evaluates it deterministically from descriptors against an execution context that contains the request blackboard plus the current request perception snapshot or the previously stored agent perception snapshot. Selector nodes return the first non-failed child, sequence nodes stop at the first non-succeeded child, decorators can gate exactly one child through validated and optionally inverted blackboard/perception comparisons, task nodes report a validated string `result` value with `running` as the default, parallel nodes fold child results through `success_policy` and `failure_policy` string parameters, and subtree nodes enter another registered behavior tree by stable descriptor id through the `behavior_tree` string parameter. `manager/parameters.rs` owns the shared staged parser and built-in parameter key groups so registration validation and execution cannot drift. The staged runtime accepts task `result` only on task nodes, parallel policies only on parallel nodes, blackboard and perception condition parameters only on decorators, and subtree `behavior_tree` targets only on subtree nodes. Unknown plugin-specific parameter keys remain valid neutral descriptor data until a concrete plugin or authoring layer claims them. Valid task result strings are `idle`, `running`, `in_progress`, `inprogress`, `succeeded`, `success`, `succeed`, `failed`, `failure`, `fail`, and `blocked`. Parallel defaults are `success_policy = "all"` and `failure_policy = "any"`; either policy may be changed to `"any"` or `"all"`. Subtree targets must refer to an already registered tree and cannot target their containing descriptor id; this keeps cross-tree reuse one-directional in the staged runtime and avoids recursive descriptor entry. Service nodes still report `Blocked` with an explicit diagnostic because no latent service scheduler has landed yet. Without a behavior tree, the agent is reported as `Idle`. Snapshot projection is isolated in `manager/snapshot.rs` so diagnostic/editor readers can grow without widening tick or validation logic.
+The central registry's owner-revocation listener first seals the owner against new execution leases, waits for in-flight node code and runtime objects, then removes that owner's private catalog slots and retires compiled trees, active instances, and reports before the contributor can unload. Next-generation registration waits for old cleanup and is linearized by the same owner lease. Composition code may also seed the catalog through `AiRuntimePlugin::with_behavior_node_catalog` or `DefaultAiManager::with_behavior_node_catalog`. An external node contributes a factory for a per-agent `BehaviorNodeRuntime` object whose tick context exposes parameters, blackboard, perception and elapsed delta. Standard nodes use the same catalog path. VM-backed factories remain M3-T3 behind the ZrVM host-handle dependency. Tree registration snapshots the current catalog, validates the versioned DTO, and compiles implementation names into stable dense catalog slots, semantics, optional factories, parameters, and direct-child ranges. Missing implementations and malformed topology return typed errors rather than flattened strings.
+
+At tick time, `manager/tick.rs` snapshots the compiled tree set, schema and perception under a short poison-recovering lock, removes the agent instance state, executes without holding the manager lock, then writes the instance and report back. Switching the root tree clears that agent's prior node state. Sequence retains its active-child cursor, Parallel retains terminal branch results, and Selector resumes its Running child while re-evaluating higher-priority branches marked `RecheckWhileLowerPriorityRuns` and reusing cached terminal results for stable branches. BlackboardCondition, Cooldown, and RunSubtree use the reactive policy by default; external condition-like nodes opt in explicitly, while side-effecting external tasks remain stable. This prevents terminal sibling side effects from replaying without suppressing priority changes. RandomSelector uses non-negative `weight.<child_id>` or `weight_<index>` parameters and retains a selected Running branch. Cooldown, TimeLimit, Loop and Wait retain timers/counters per agent; Inverter and ForceResult transform terminal status; BlackboardCondition evaluates typed blackboard/perception predicates; UpdateBlackboardDistance exposes service callback status; RunSubtree enters a registered compiled tree with recursion protection. MoveTo, PlayAnimation, SetBlackboard, EmitEvent and ScriptTask have catalog identities and stable three-state placeholder dispatch; their real subsystem handoffs remain M3.
+
+The registered `ai.behavior_tick` system runs at `SystemStage::Update`. It reads the active camera and agent world transforms, maps distance to Full/Half/Quarter LOD, deterministically staggers half/quarter agents, accumulates skipped elapsed time per agent so timed nodes retain wall-clock duration, ticks the same shared manager, and emits `AiAgentTickReport` through the scene event store. Missing transforms conservatively use Full rate.
 
 Decorator blackboard comparisons are intentionally parameter-driven. `blackboard_key` selects one runtime entry, `exists` checks presence or absence, `equals_bool` / `equals_string` / `equals_integer` / `equals_scalar` / `equals_vec3` / `equals_entity` compare exact typed values, and numeric threshold parameters `greater_than_integer`, `greater_or_equal_integer`, `less_than_integer`, `less_or_equal_integer`, `greater_than_scalar`, `greater_or_equal_scalar`, `less_than_scalar`, and `less_or_equal_scalar` compare integer or scalar blackboard attributes. Multiple value comparison parameters on the same decorator are combined with deterministic AND semantics. The optional bool `invert` parameter flips the final condition gate before child selection, but it does not invert the child task or subtree result. This follows Unreal's raw decorator condition plus inverse flag, vector blackboard equality, and arithmetic operation shape while keeping the concrete interpretation in the AI runtime plugin rather than adding an expression evaluator to the shared framework.
 
@@ -96,12 +133,12 @@ Decorator perception comparisons use the same deterministic condition gate. `per
 
 ## Edge Cases and Constraints
 
-Behavior trees are rejected when ids are empty, node ids duplicate, the root node is missing, a child edge points to an unknown node, a node kind has an invalid child count, or the descriptor graph is not a root-owned tree. Topology validation walks from the root, rejects cycles before the recursive executor can see them, requires the root to have no incoming edge, requires every non-root node to have exactly one incoming edge, rejects duplicate or shared child edges, and rejects unreachable nodes. Selector, sequence, and parallel nodes may own child lists; decorators must own exactly one child; task, service, and subtree descriptors must be childless in this staged runtime, matching Unreal/Fyrox-style leaf and asset-reference boundaries instead of silently ignoring child edges. Behavior-node parameters are rejected when keys duplicate, values are non-finite, built-in parameter owners do not match their node kind, built-in parameter types do not match their contract, task result strings are outside the supported staged status aliases, subtree target ids are missing, blank, not previously registered, or self-targeting, blackboard comparison or inversion parameters omit `blackboard_key`, vector equality parameters are not `vec3`, numeric comparison parameters do not use their required integer or scalar type, perception sense strings are unknown, perception source is not an entity value, perception strength/age thresholds are not scalar or are negative, `invert` is not a bool, or a parallel policy value is not `all` or `any`. Blackboard schemas are rejected when key names are empty, keys duplicate, or value type strings are unknown. Runtime blackboard input is rejected for duplicate entries, unknown schema keys, missing required keys, type mismatches, and non-finite scalar/vector values. Perception snapshots are rejected when the snapshot agent differs from the tick entity or when any stimulus contains non-finite position, strength, or age values.
+Behavior trees are rejected when the explicit format version is not `1`, ids are empty, node ids duplicate, the root node is missing, a child edge points to an unknown node, the DTO kind disagrees with the implementation catalog category, a node kind has an invalid child count, or the descriptor graph is not a root-owned tree. `.btree.toml` parsing preserves the TOML source error and runs the same structural/parameter validation before dense compilation; registered subtree existence is deferred to manager registration, where the complete registered-tree set is available. Topology validation walks from the root, rejects cycles before the recursive executor can see them, requires the root to have no incoming edge, requires every non-root node to have exactly one incoming edge, rejects duplicate or shared child edges, and rejects unreachable nodes. Selector, sequence, and parallel nodes may own child lists; decorators must own exactly one child; task, service, and subtree descriptors must be childless in this staged runtime. Behavior-node parameters are rejected when keys duplicate, values are non-finite, built-in parameter owners/types/values violate their contracts, or timing/count/weight/result values are invalid. Blackboard schemas, runtime inputs, and perception snapshots retain their typed validation boundaries.
 
-The implementation deliberately does not add concrete task dispatch, latent service scheduling, perception aging/aggregation, dynamic subtree retargeting, decorator expression language, pathfinding integration, or AI authoring UI. Those features should consume this manager boundary rather than widening `zircon_runtime` or adding feature-specific branches in shared foundations.
+The implementation deliberately does not claim M2 observer aborts/dense blackboard storage, M3 subsystem task handoffs, M4 perception scanning/aging, or M5 editor/debug tooling. Those features consume the compiled tree, injected catalog, manager, event, and Update-system seams established by M1.
 
 ## Test Coverage
 
-The plugin runtime test tree covers registration, module resolution, descriptor/catalog parity, behavior-tree validation, node child-count validation, behavior-tree topology validation, built-in node-parameter owner/type/value validation, subtree target validation, selector/sequence/decorator/task/parallel/subtree execution, blackboard existence and absence checks, inverted decorator condition gates, exact Vec3 blackboard equality, integer and scalar blackboard threshold comparisons, schema-bound tick rejection, perception mismatch rejection, successful perception storage, perception-driven decorators using current or stored snapshots, sense/source/strength/age/absence perception filters, and snapshot projection. Tests are split by responsibility so future behavior-tree execution, blackboard, perception, or module registration cases can grow without re-creating a monolithic crate-level test file.
+The M1 suite covers versioned `.btree.toml` loading and full validation, preorder/direct-child consistency, category mismatch, duplicate ownership and cycle rejection, the exact 18-entry standard catalog snapshot, dense stable slots, duplicate catalog ids, stateful external Rust factory injection, a live `RuntimeExtensionRegistry` contribution-and-owner-revocation path, actual nonzero AI owner binding, in-flight execution barriers and linearized next-generation registration, all standard node families across Success/Failure/Running including RunSubtree, composite Running resume without terminal sibling replay, explicit external and Cooldown selector rechecks, RandomSelector weight/stability, Wait/Cooldown/TimeLimit/Loop retained state, Quarter-LOD elapsed-time accumulation, Update-stage anchor registration, generated manifest event/system/interface parity, and deterministic LOD rates. Existing validation, blackboard, perception-condition, module and manifest tests remain green. The Windows acceptance run is `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --locked --offline --jobs 1 --target-dir E:\\cargo-targets\\zircon-ai-m1`: 44 passed, 0 failed; warnings shown by the run are pre-existing shared `zircon_runtime` warnings, with no AI crate warnings.
 
 The runtime manifest contribution test keeps static `plugin.toml`, linked descriptor metadata, and the built-in catalog in sync. The planned scoped verification commands are listed in the document header and should be rerun during the milestone testing stage.

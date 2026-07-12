@@ -1,5 +1,9 @@
+mod behavior_tree_compile;
+mod behavior_tree_execution;
+mod behavior_tree_node_catalog;
 mod manager_validation;
 mod module;
 mod perception_conditions;
 mod registration;
 mod tick;
+mod tick_lod;

@@ -6,10 +6,7 @@ use super::state::AiRuntimeState;
 use super::DefaultAiManager;
 
 pub(super) fn runtime_snapshot(manager: &DefaultAiManager) -> AiRuntimeSnapshot {
-    let state = manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned");
+    let state = manager.lock_state();
     build_runtime_snapshot(&state)
 }
 
@@ -26,7 +23,16 @@ fn build_runtime_snapshot(state: &AiRuntimeState) -> AiRuntimeSnapshot {
         .map(|(world, entity)| AiAgentRuntimeSnapshot {
             world,
             entity,
-            behavior_tree: state.active_behavior_trees.get(&(world, entity)).cloned(),
+            behavior_tree: state
+                .active_behavior_trees
+                .get(&(world, entity))
+                .and_then(|active| {
+                    state
+                        .behavior_trees
+                        .iter()
+                        .find(|tree| tree.id == active.behavior_tree)
+                        .map(|tree| tree.descriptor.id.clone())
+                }),
             blackboard: state
                 .blackboards
                 .get(&(world, entity))

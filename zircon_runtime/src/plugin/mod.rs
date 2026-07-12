@@ -38,7 +38,7 @@ pub use export_profile::{
 };
 pub use extension_registry::{
     ExtensionKey, ExtensionOwnership, ExtensionSlot, FrozenExtensionTable, PluginModuleId,
-    RuntimeExtensionRegistry,
+    RuntimeExtensionRegistry, TypedExtensionPoint,
 };
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use package_manifest::{

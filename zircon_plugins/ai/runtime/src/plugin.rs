@@ -1,14 +1,25 @@
+use std::sync::Arc;
+
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
     PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimePlugin, RuntimePluginDescriptor,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
 
+use crate::behavior_tree::BehaviorNodeRegistry;
 use crate::{
-    module_descriptor, AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY,
-    AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, PLUGIN_ID, RUNTIME_CAPABILITIES,
+    module_descriptor_with_manager, DefaultAiManager, AI_BEHAVIOR_TREE_CAPABILITY,
+    AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, PLUGIN_ID,
+    RUNTIME_CAPABILITIES,
 };
+
+mod registration;
+
+use registration::{ai_event_catalog, register_runtime_extensions};
+pub use registration::{AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE};
 
 pub const AI_DIST_CRATE_NAME: &str = "zircon_plugin_ai_dist";
 pub const AI_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_ai_runtime_entry_v3";
@@ -19,13 +30,29 @@ const NATIVE_ABI_VERSION_V3: u32 = 3;
 #[derive(Clone, Debug)]
 pub struct AiRuntimePlugin {
     descriptor: RuntimePluginDescriptor,
+    manager: Arc<DefaultAiManager>,
 }
 
 impl AiRuntimePlugin {
     pub fn new() -> Self {
+        Self::with_manager(Arc::new(DefaultAiManager::default()))
+    }
+
+    pub fn with_behavior_node_catalog(catalog: crate::behavior_tree::BehaviorNodeCatalog) -> Self {
+        Self::with_manager(Arc::new(DefaultAiManager::with_behavior_node_catalog(
+            catalog,
+        )))
+    }
+
+    fn with_manager(manager: Arc<DefaultAiManager>) -> Self {
         Self {
-            descriptor: runtime_plugin_descriptor(),
+            descriptor: runtime_plugin_descriptor_with_manager(manager.clone()),
+            manager,
         }
+    }
+
+    pub fn manager(&self) -> Arc<DefaultAiManager> {
+        self.manager.clone()
     }
 }
 
@@ -42,6 +69,7 @@ impl RuntimePlugin for AiRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
+        manifest = manifest.with_event_catalog(ai_event_catalog());
         manifest
             .default_packaging
             .push(ExportPackagingStrategy::NativeDynamic);
@@ -65,16 +93,30 @@ impl RuntimePlugin for AiRuntimePlugin {
             ..PluginDistributionManifest::default()
         })
     }
+
+    fn register(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        register_runtime_extensions(registry, self.manager.clone())
+    }
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
+    runtime_plugin_descriptor_with_manager(Arc::new(DefaultAiManager::default()))
+}
+
+fn runtime_plugin_descriptor_with_manager(
+    manager: Arc<DefaultAiManager>,
+) -> RuntimePluginDescriptor {
     RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "AI",
         RuntimePluginId::Ai,
         "zircon_plugin_ai_runtime",
     )
-    .with_module_descriptor(module_descriptor())
+    .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
+    .with_system_anchors([AI_BEHAVIOR_TICK_SYSTEM])
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([
@@ -103,6 +145,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         AI_PERCEPTION_CAPABILITY,
         CapabilityStatus::Partial,
     ))
+    .with_provided_interface_id(<dyn BehaviorNodeRegistry as PluginInterface>::INTERFACE_ID)
     .build()
 }
 

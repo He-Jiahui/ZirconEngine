@@ -25,6 +25,10 @@ use super::register::{
 };
 use super::typed_extension_point::TypedExtensionPoint;
 
+mod owner_revocation;
+
+use owner_revocation::OwnerRevocationListener;
+
 #[cfg(test)]
 #[path = "runtime_extension_registry/tests.rs"]
 mod tests;
@@ -68,9 +72,23 @@ pub struct RuntimeExtensionRegistry {
     pub(super) asset_importers: AssetImporterRegistry,
     pub(super) asset_importers_finalized: bool,
     pub(super) scene_hooks: TypedExtensionPoint<String, SceneRuntimeHookRegistration>,
+    owner_revocation_listeners: Vec<OwnerRevocationListener>,
 }
 
 impl RuntimeExtensionRegistry {
+    /// Registers an owner-scoped listener for extension families maintained behind
+    /// exported plugin interfaces. The listener is removed when its own owner is
+    /// revoked and is notified before the revoked owner's executable contributions
+    /// can be unloaded.
+    pub fn register_owner_revocation_listener(
+        &mut self,
+        owner: PluginModuleId,
+        callback: impl Fn(PluginModuleId) + Send + Sync + 'static,
+    ) {
+        self.owner_revocation_listeners
+            .push(OwnerRevocationListener::new(owner, callback));
+    }
+
     /// Finalizes every extension family after catalog validation and merge.
     /// Owner reload, registration, or revocation may invalidate the epoch and
     /// then finalize the registry again.
@@ -194,6 +212,12 @@ impl RuntimeExtensionRegistry {
     }
 
     pub fn revoke_owner_registrations(&mut self, owner: PluginModuleId) -> ExtensionOwnership {
+        for listener in self.owner_revocation_listeners.clone() {
+            listener.notify(owner);
+        }
+        self.owner_revocation_listeners
+            .retain(|listener| listener.owner() != owner);
+
         let plugin_id = self
             .plugin_modules
             .name(owner)

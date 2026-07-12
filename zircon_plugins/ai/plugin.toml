@@ -37,12 +37,23 @@ status = "partial"
 capability = "runtime.feature.ai.perception"
 status = "partial"
 
+[[event_catalogs]]
+namespace = "ai.events"
+version = 1
+events = [
+    { id = "ai.events.agent_tick_completed", display_name = "AI Agent Tick Completed", payload_schema = "ai.events.agent_tick_report.v1" },
+]
+
+[[provides_interfaces]]
+id = "ai.behavior_node_registry.v1"
+
 [[modules]]
 name = "ai.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_ai_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.ai", "runtime.feature.ai.behavior_tree", "runtime.feature.ai.blackboard", "runtime.feature.ai.perception"]
+system_anchors = ["ai.behavior_tick"]
 
 [[modules]]
 name = "ai.dist"

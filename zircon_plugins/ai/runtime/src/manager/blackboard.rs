@@ -13,10 +13,7 @@ pub(super) fn register_schema(
 ) -> Result<AiBlackboardSchemaId, AiManagerError> {
     validate_blackboard_schema_descriptor(&descriptor)?;
 
-    let mut state = manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned");
+    let mut state = manager.lock_state();
     if state
         .blackboard_schemas
         .iter()
@@ -35,9 +32,7 @@ pub(super) fn register_schema(
 
 pub(super) fn schemas(manager: &DefaultAiManager) -> Vec<AiBlackboardSchemaDescriptor> {
     manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned")
+        .lock_state()
         .blackboard_schemas
         .iter()
         .map(|entry| entry.descriptor.clone())
@@ -53,9 +48,7 @@ pub(super) fn set_entries(
     validate_blackboard_entries(None, &entries)?;
 
     manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned")
+        .lock_state()
         .blackboards
         .insert((world, entity), entries);
     Ok(())
@@ -67,9 +60,7 @@ pub(super) fn entries(
     entity: EntityId,
 ) -> Vec<AiBlackboardEntry> {
     manager
-        .state
-        .lock()
-        .expect("AI runtime state mutex poisoned")
+        .lock_state()
         .blackboards
         .get(&(world, entity))
         .cloned()

@@ -6,6 +6,10 @@ pub enum AiManagerError {
     EmptyId {
         field: &'static str,
     },
+    InvalidBehaviorTreeFormatVersion {
+        expected: u32,
+        actual: u32,
+    },
     DuplicateId {
         id: String,
     },
@@ -38,6 +42,26 @@ pub enum AiManagerError {
         tree_id: String,
         node_id: String,
         key: String,
+    },
+    UnknownBehaviorNodeImplementation {
+        tree_id: String,
+        node_id: String,
+        implementation: String,
+    },
+    BehaviorNodeCatalogDescriptorMissing {
+        tree_id: String,
+        node_id: String,
+        implementation: String,
+    },
+    BehaviorNodeImplementationCategoryMismatch {
+        tree_id: String,
+        node_id: String,
+        implementation: String,
+        expected: &'static str,
+        actual: &'static str,
+    },
+    StandardBehaviorNodeCatalogUnavailable {
+        tree_id: String,
     },
     InvalidBehaviorNodeParameter {
         tree_id: String,
@@ -114,6 +138,10 @@ impl fmt::Display for AiManagerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyId { field } => write!(f, "AI descriptor field `{field}` must not be empty"),
+            Self::InvalidBehaviorTreeFormatVersion { expected, actual } => write!(
+                f,
+                "behavior-tree format version {actual} is unsupported; expected {expected}"
+            ),
             Self::DuplicateId { id } => write!(f, "AI descriptor id `{id}` is already registered"),
             Self::MissingRootNode { tree_id, root_node } => write!(
                 f,
@@ -159,6 +187,36 @@ impl fmt::Display for AiManagerError {
             } => write!(
                 f,
                 "AI behavior tree `{tree_id}` node `{node_id}` parameter `{key}` contains a non-finite value"
+            ),
+            Self::UnknownBehaviorNodeImplementation {
+                tree_id,
+                node_id,
+                implementation,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` references unknown implementation `{implementation}`"
+            ),
+            Self::BehaviorNodeCatalogDescriptorMissing {
+                tree_id,
+                node_id,
+                implementation,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` resolved `{implementation}` without a catalog descriptor"
+            ),
+            Self::BehaviorNodeImplementationCategoryMismatch {
+                tree_id,
+                node_id,
+                implementation,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "AI behavior tree `{tree_id}` node `{node_id}` implementation `{implementation}` has category `{actual}`, expected `{expected}`"
+            ),
+            Self::StandardBehaviorNodeCatalogUnavailable { tree_id } => write!(
+                f,
+                "AI behavior tree `{tree_id}` cannot use the unavailable standard node catalog"
             ),
             Self::InvalidBehaviorNodeParameter {
                 tree_id,
