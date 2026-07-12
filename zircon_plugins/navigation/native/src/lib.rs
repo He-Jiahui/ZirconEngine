@@ -12,7 +12,10 @@ mod fallback_query;
 mod ffi;
 mod tile_cache;
 
-pub use bake::{RecastBakeInput, RecastBakeMeshInput};
+pub use bake::{
+    merge_tiled_assets, RecastBakeInput, RecastBakeMeshInput, RecastTileSpec, RecastTiledBakeInput,
+    RecastTiledBakePlan,
+};
 pub use tile_cache::{RecastNavigationObstacle, RecastNavigationObstacleShape};
 
 pub fn native_backend_version() -> u32 {

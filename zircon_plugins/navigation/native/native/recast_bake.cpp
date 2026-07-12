@@ -79,6 +79,7 @@ bool make_config(
     const float* vertices,
     int vertex_count,
     const ZrNavRecastBakeSettings& settings,
+    const ZrNavRecastBakeTileRequest* tile,
     rcConfig* config,
     const char** error) {
     if (!finite_positive(settings.cell_size) || !finite_positive(settings.cell_height)) {
@@ -114,6 +115,24 @@ bool make_config(
     const float vertical_padding = static_cast<float>(config->walkableHeight) * config->ch + config->ch * 2.0f;
     config->bmin[1] -= config->ch * 2.0f;
     config->bmax[1] += vertical_padding;
+    if (tile != nullptr) {
+        if (!std::isfinite(tile->bounds_min[0]) || !std::isfinite(tile->bounds_min[2])
+            || !std::isfinite(tile->bounds_max[0]) || !std::isfinite(tile->bounds_max[2])
+            || tile->bounds_max[0] <= tile->bounds_min[0]
+            || tile->bounds_max[2] <= tile->bounds_min[2]) {
+            *error = "native Recast tile bounds must be finite and non-empty";
+            return false;
+        }
+        config->tileSize = std::max(
+            1,
+            static_cast<int>(std::ceil((tile->bounds_max[0] - tile->bounds_min[0]) / config->cs)));
+        config->borderSize = config->walkableRadius + 3;
+        const float border_world = static_cast<float>(config->borderSize) * config->cs;
+        config->bmin[0] = tile->bounds_min[0] - border_world;
+        config->bmin[2] = tile->bounds_min[2] - border_world;
+        config->bmax[0] = tile->bounds_max[0] + border_world;
+        config->bmax[2] = tile->bounds_max[2] + border_world;
+    }
     rcCalcGridSize(config->bmin, config->bmax, config->cs, &config->width, &config->height);
     if (config->width <= 0 || config->height <= 0) {
         *error = "native Recast bake source bounds produce an empty voxel grid";
@@ -189,29 +208,55 @@ T* copy_to_heap(const std::vector<T>& source) {
     return output;
 }
 
-bool copy_poly_mesh_to_result(const rcPolyMesh& mesh, ZrNavRecastBakeResult* result) {
+bool copy_poly_mesh_to_result(
+    const rcPolyMesh& mesh,
+    const ZrNavRecastBakeTileRequest* tile_request,
+    ZrNavRecastBakeResult* result) {
     std::vector<float> vertices;
-    vertices.reserve(static_cast<std::size_t>(mesh.nverts) * 3);
-    for (int index = 0; index < mesh.nverts; ++index) {
-        const unsigned short* vertex = &mesh.verts[index * 3];
-        vertices.push_back(mesh.bmin[0] + static_cast<float>(vertex[0]) * mesh.cs);
-        vertices.push_back(mesh.bmin[1] + static_cast<float>(vertex[1]) * mesh.ch);
-        vertices.push_back(mesh.bmin[2] + static_cast<float>(vertex[2]) * mesh.cs);
-    }
-
     std::vector<std::uint32_t> indices;
     std::vector<ZrNavRecastBakePolygon> polygons;
+    std::vector<std::uint32_t> vertex_remap(static_cast<std::size_t>(mesh.nverts), std::numeric_limits<std::uint32_t>::max());
     for (int polygon_index = 0; polygon_index < mesh.npolys; ++polygon_index) {
         const unsigned short* polygon = &mesh.polys[polygon_index * 2 * mesh.nvp];
-        std::vector<std::uint32_t> polygon_vertices;
+        std::vector<unsigned short> source_vertices;
         for (int vertex_index = 0; vertex_index < mesh.nvp; ++vertex_index) {
             if (polygon[vertex_index] == RC_MESH_NULL_IDX) {
                 break;
             }
-            polygon_vertices.push_back(polygon[vertex_index]);
+            source_vertices.push_back(polygon[vertex_index]);
         }
-        if (polygon_vertices.size() < 3) {
+        if (source_vertices.size() < 3) {
             continue;
+        }
+
+        if (tile_request != nullptr) {
+            float centroid_x = 0.0f;
+            float centroid_z = 0.0f;
+            for (const unsigned short source_vertex : source_vertices) {
+                const unsigned short* vertex = &mesh.verts[source_vertex * 3];
+                centroid_x += mesh.bmin[0] + static_cast<float>(vertex[0]) * mesh.cs;
+                centroid_z += mesh.bmin[2] + static_cast<float>(vertex[2]) * mesh.cs;
+            }
+            centroid_x /= static_cast<float>(source_vertices.size());
+            centroid_z /= static_cast<float>(source_vertices.size());
+            if (centroid_x < tile_request->bounds_min[0] || centroid_x >= tile_request->bounds_max[0]
+                || centroid_z < tile_request->bounds_min[2] || centroid_z >= tile_request->bounds_max[2]) {
+                continue;
+            }
+        }
+
+        std::vector<std::uint32_t> polygon_vertices;
+        polygon_vertices.reserve(source_vertices.size());
+        for (const unsigned short source_vertex : source_vertices) {
+            std::uint32_t& mapped = vertex_remap[source_vertex];
+            if (mapped == std::numeric_limits<std::uint32_t>::max()) {
+                const unsigned short* vertex = &mesh.verts[source_vertex * 3];
+                mapped = static_cast<std::uint32_t>(vertices.size() / 3);
+                vertices.push_back(mesh.bmin[0] + static_cast<float>(vertex[0]) * mesh.cs);
+                vertices.push_back(mesh.bmin[1] + static_cast<float>(vertex[1]) * mesh.ch);
+                vertices.push_back(mesh.bmin[2] + static_cast<float>(vertex[2]) * mesh.cs);
+            }
+            polygon_vertices.push_back(mapped);
         }
 
         const std::uint32_t first_index = static_cast<std::uint32_t>(indices.size());
@@ -224,20 +269,29 @@ bool copy_poly_mesh_to_result(const rcPolyMesh& mesh, ZrNavRecastBakeResult* res
             first_index,
             static_cast<std::uint32_t>(indices.size()) - first_index,
             mesh.areas == nullptr ? ZR_NAV_AREA_WALKABLE : mesh.areas[polygon_index],
-            0,
+            tile_request == nullptr ? 0 : tile_request->id,
         });
     }
 
     if (vertices.empty() || indices.empty() || polygons.empty()) {
-        set_error(result, "native Recast bake produced no walkable polygons");
-        return false;
+        if (tile_request == nullptr) {
+            set_error(result, "native Recast bake produced no walkable polygons");
+            return false;
+        }
     }
 
     std::vector<ZrNavRecastBakeTile> tiles;
     ZrNavRecastBakeTile tile = {};
-    tile.id = 0;
-    std::copy(std::begin(mesh.bmin), std::end(mesh.bmin), std::begin(tile.bounds_min));
-    std::copy(std::begin(mesh.bmax), std::end(mesh.bmax), std::begin(tile.bounds_max));
+    tile.id = tile_request == nullptr ? 0 : tile_request->id;
+    if (tile_request == nullptr) {
+        std::copy(std::begin(mesh.bmin), std::end(mesh.bmin), std::begin(tile.bounds_min));
+        std::copy(std::begin(mesh.bmax), std::end(mesh.bmax), std::begin(tile.bounds_max));
+    } else {
+        std::copy(std::begin(tile_request->bounds_min), std::end(tile_request->bounds_min), std::begin(tile.bounds_min));
+        std::copy(std::begin(tile_request->bounds_max), std::end(tile_request->bounds_max), std::begin(tile.bounds_max));
+        tile.bounds_min[1] = mesh.bmin[1];
+        tile.bounds_max[1] = mesh.bmax[1];
+    }
     tile.polygon_count = static_cast<std::uint32_t>(polygons.size());
     tiles.push_back(tile);
 
@@ -245,7 +299,10 @@ bool copy_poly_mesh_to_result(const rcPolyMesh& mesh, ZrNavRecastBakeResult* res
     result->indices = copy_to_heap(indices);
     result->polygons = copy_to_heap(polygons);
     result->tiles = copy_to_heap(tiles);
-    if (result->vertices == nullptr || result->indices == nullptr || result->polygons == nullptr || result->tiles == nullptr) {
+    if ((!vertices.empty() && result->vertices == nullptr)
+        || (!indices.empty() && result->indices == nullptr)
+        || (!polygons.empty() && result->polygons == nullptr)
+        || result->tiles == nullptr) {
         zr_nav_recast_free_bake_result(result);
         set_error(result, "native Recast bake could not allocate output buffers");
         return false;
@@ -262,7 +319,7 @@ bool copy_poly_mesh_to_result(const rcPolyMesh& mesh, ZrNavRecastBakeResult* res
 
 } // namespace
 
-extern "C" void zr_nav_recast_bake_triangle_mesh(
+void bake_triangle_mesh_internal(
     const float* vertices,
     std::uint32_t vertex_count,
     const std::uint32_t* indices,
@@ -270,6 +327,7 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
     const std::uint8_t* triangle_areas,
     std::uint32_t triangle_area_count,
     const ZrNavRecastBakeSettings* settings,
+    const ZrNavRecastBakeTileRequest* tile,
     ZrNavRecastBakeResult* out_result) {
     try {
         reset_result(out_result);
@@ -295,7 +353,7 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
         std::vector<unsigned char> areas = copy_areas(triangle_areas, triangle_area_count, triangle_count);
 
         rcConfig config = {};
-        if (!make_config(vertices, static_cast<int>(vertex_count), *settings, &config, &error)) {
+        if (!make_config(vertices, static_cast<int>(vertex_count), *settings, tile, &config, &error)) {
             set_error(out_result, error);
             return;
         }
@@ -345,7 +403,7 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
             set_error(out_result, "native Recast bake could not build a distance field");
             return;
         }
-        if (!rcBuildRegions(&context, *compact, 0, config.minRegionArea, config.mergeRegionArea)) {
+        if (!rcBuildRegions(&context, *compact, config.borderSize, config.minRegionArea, config.mergeRegionArea)) {
             set_error(out_result, "native Recast bake could not build regions");
             return;
         }
@@ -361,7 +419,7 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
             set_error(out_result, "native Recast bake could not build a polygon mesh");
             return;
         }
-        copy_poly_mesh_to_result(*poly_mesh, out_result);
+        copy_poly_mesh_to_result(*poly_mesh, tile, out_result);
     } catch (const std::bad_alloc&) {
         set_error(out_result, "native Recast bake allocation failed");
     } catch (const std::exception& error) {
@@ -369,6 +427,53 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
     } catch (...) {
         set_error(out_result, "native Recast bake failed with an unknown native exception");
     }
+}
+
+extern "C" void zr_nav_recast_bake_triangle_mesh(
+    const float* vertices,
+    std::uint32_t vertex_count,
+    const std::uint32_t* indices,
+    std::uint32_t index_count,
+    const std::uint8_t* triangle_areas,
+    std::uint32_t triangle_area_count,
+    const ZrNavRecastBakeSettings* settings,
+    ZrNavRecastBakeResult* out_result) {
+    bake_triangle_mesh_internal(
+        vertices,
+        vertex_count,
+        indices,
+        index_count,
+        triangle_areas,
+        triangle_area_count,
+        settings,
+        nullptr,
+        out_result);
+}
+
+extern "C" void zr_nav_recast_bake_tile(
+    const float* vertices,
+    std::uint32_t vertex_count,
+    const std::uint32_t* indices,
+    std::uint32_t index_count,
+    const std::uint8_t* triangle_areas,
+    std::uint32_t triangle_area_count,
+    const ZrNavRecastBakeSettings* settings,
+    const ZrNavRecastBakeTileRequest* tile,
+    ZrNavRecastBakeResult* out_result) {
+    if (tile == nullptr) {
+        set_error(out_result, "native Recast tile request is missing");
+        return;
+    }
+    bake_triangle_mesh_internal(
+        vertices,
+        vertex_count,
+        indices,
+        index_count,
+        triangle_areas,
+        triangle_area_count,
+        settings,
+        tile,
+        out_result);
 }
 
 extern "C" void zr_nav_recast_free_bake_result(ZrNavRecastBakeResult* result) {

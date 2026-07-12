@@ -74,13 +74,12 @@ pub(super) fn unsupported_bake_setting_diagnostics(
 ) -> Vec<NavMeshBakeDiagnostic> {
     let mut diagnostics = Vec::new();
     if surface.override_voxel_size.is_some()
-        || surface.override_tile_size.is_some()
         || surface.min_region_area != NavMeshSurfaceDescriptor::default().min_region_area
         || surface.build_height_mesh
     {
         diagnostics.push(NavMeshBakeDiagnostic {
             severity: NavMeshBakeDiagnosticSeverity::Warning,
-            message: "advanced Recast bake knobs are recorded in the settings hash but the v1 fallback backend does not yet rasterize voxels, tiles, regions, or height meshes".to_string(),
+            message: "advanced Recast bake knobs for voxel, region, or height-mesh output are recorded in the settings hash but are not yet applied by this bake stage".to_string(),
             entity: surface_entity,
         });
     }

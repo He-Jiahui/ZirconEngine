@@ -6,7 +6,8 @@ mod stats;
 mod tick;
 mod traversal;
 
-use std::sync::Mutex;
+use std::sync::MutexGuard;
+use std::sync::{Arc, Mutex};
 
 use zircon_plugin_navigation_recast::RecastBackend;
 use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
@@ -15,38 +16,49 @@ use zircon_runtime::core::framework::navigation::{
     NavPathResult, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
     NavigationError, NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE,
 };
+use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
 use zircon_runtime::core::math::Real;
+use zircon_runtime::core::runtime::tasks::TaskPool;
 use zircon_runtime::scene::World;
 
+pub use self::bake::{
+    NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
+};
 use self::state::NavigationRuntimeState;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DefaultNavigationManager {
-    pub(super) backend: RecastBackend,
-    pub(super) state: Mutex<NavigationRuntimeState>,
+    pub(in crate::manager) backend: RecastBackend,
+    pub(in crate::manager) bake_pool: TaskPool,
+    pub(in crate::manager) state: Arc<Mutex<NavigationRuntimeState>>,
 }
 
 impl DefaultNavigationManager {
+    pub(in crate::manager) fn lock_state(&self) -> MutexGuard<'_, NavigationRuntimeState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn new() -> Self {
         Self {
             backend: RecastBackend,
-            state: Mutex::new(NavigationRuntimeState::default()),
+            bake_pool: TaskPool::new(
+                TaskPoolDescriptor::async_compute().with_thread_name("navigation-bake"),
+            ),
+            state: Arc::new(Mutex::new(NavigationRuntimeState::default())),
         }
     }
 
     pub fn active_settings(&self) -> NavigationSettingsAsset {
-        self.state
-            .lock()
-            .expect("navigation state lock poisoned")
-            .settings
-            .clone()
+        self.lock_state().settings.clone()
     }
 
     pub(super) fn selected_asset(
         &self,
         query_handle: Option<NavMeshHandle>,
     ) -> Result<NavMeshAsset, NavigationError> {
-        let state = self.state.lock().expect("navigation state lock poisoned");
+        let state = self.lock_state();
         let handle = query_handle
             .or_else(|| state.loaded.keys().copied().min_by_key(|handle| handle.0))
             .ok_or_else(|| NavigationError::missing_nav_mesh("no nav mesh is loaded"))?;
@@ -55,16 +67,41 @@ impl DefaultNavigationManager {
         })
     }
 
-    pub(super) fn record_bake_counts(
+    pub(in crate::manager) fn begin_bake_generation(&self, surface: Option<u64>) -> u64 {
+        let mut state = self.lock_state();
+        state.advance_bake_context(surface)
+    }
+
+    pub(in crate::manager) fn publish_bake(
         &self,
-        active_obstacles: usize,
-        active_off_mesh_links: usize,
-        active_off_mesh_bridges: usize,
-    ) {
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
-        state.stats.active_obstacles = active_obstacles;
-        state.stats.active_off_mesh_links = active_off_mesh_links;
-        state.stats.active_off_mesh_bridges = active_off_mesh_bridges;
+        surface: Option<u64>,
+        generation: u64,
+        tiled_bake: Option<(
+            state::TiledBakeIdentity,
+            zircon_plugin_navigation_recast::RecastTiledBakePlan,
+            NavMeshAsset,
+        )>,
+        diagnostics: Vec<zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic>,
+        counts: (usize, usize, usize),
+    ) -> Result<(), NavigationError> {
+        let mut state = self.lock_state();
+        let context = state.bake_contexts.entry(surface).or_default();
+        if context.current_generation != generation {
+            return Err(NavigationError::new(
+                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                "navigation bake result was superseded by a newer request",
+            ));
+        }
+        context.last_tiled_bake = tiled_bake.map(|(identity, plan, asset)| state::LastTiledBake {
+            identity,
+            plan,
+            asset,
+        });
+        state.bake_diagnostics = diagnostics;
+        state.stats.active_obstacles = counts.0;
+        state.stats.active_off_mesh_links = counts.1;
+        state.stats.active_off_mesh_bridges = counts.2;
+        Ok(())
     }
 }
 
@@ -84,7 +121,7 @@ impl NavigationManager for DefaultNavigationManager {
     }
 
     fn load_nav_mesh(&self, asset: NavMeshAsset) -> Result<NavMeshHandle, NavigationError> {
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        let mut state = self.lock_state();
         let handle = NavMeshHandle(state.next_handle);
         state.next_handle += 1;
         state.loaded.insert(handle, asset);
@@ -97,8 +134,16 @@ impl NavigationManager for DefaultNavigationManager {
         settings: NavigationSettingsAsset,
     ) -> Result<(), NavigationError> {
         crate::settings_validation::validate_navigation_settings(&settings)?;
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        let mut state = self.lock_state();
         state.settings = settings;
+        for context in state.bake_contexts.values_mut() {
+            let generation = context.next_generation;
+            context.next_generation = context.next_generation.saturating_add(1);
+            context.current_generation = generation;
+            context.last_tiled_bake = None;
+        }
+        state.bake_tasks.clear();
+        state.dirty_bake_tasks.clear();
         Ok(())
     }
 
@@ -126,7 +171,7 @@ impl NavigationManager for DefaultNavigationManager {
     }
 
     fn stats(&self) -> NavigationRuntimeStats {
-        let state = self.state.lock().expect("navigation state lock poisoned");
+        let state = self.lock_state();
         state.stats.clone()
     }
 }

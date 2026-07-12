@@ -1,5 +1,5 @@
 use crate::off_mesh_connections::collect_off_mesh_connections;
-use zircon_plugin_navigation_recast::{RecastBakeInput, RecastBakeMeshInput};
+use zircon_plugin_navigation_recast::{RecastBakeInput, RecastBakeMeshInput, RecastTiledBakeInput};
 use zircon_runtime::asset::{NavMeshAreaCostAsset, NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeDiagnostic, NavMeshBakeDiagnosticSeverity, NavMeshSurfaceDescriptor, NavigationError,
@@ -19,13 +19,20 @@ pub(super) fn bake_nav_mesh_asset(
     diagnostics: &mut Vec<NavMeshBakeDiagnostic>,
 ) -> Result<NavMeshAsset, NavigationError> {
     if geometry.source_triangles() > 0 {
-        return manager.backend.bake_triangle_mesh(RecastBakeMeshInput {
+        let mesh = RecastBakeMeshInput {
             agent_type: agent_type.to_string(),
             vertices: geometry.vertices.clone(),
             indices: geometry.indices.clone(),
             triangle_areas: geometry.triangle_areas.clone(),
             default_area: surface.default_area,
-        });
+        };
+        if let Some(tile_size) = surface.override_tile_size {
+            return manager.backend.bake_tiled_mesh(RecastTiledBakeInput {
+                mesh,
+                tile_size: tile_size as f32,
+            });
+        }
+        return manager.backend.bake_triangle_mesh(mesh);
     }
     if geometry.carved_by_obstacle > 0 || geometry.removed_by_modifier > 0 {
         return Ok(NavMeshAsset::empty(agent_type.to_string()));

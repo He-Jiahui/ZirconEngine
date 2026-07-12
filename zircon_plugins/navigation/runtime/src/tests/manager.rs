@@ -14,7 +14,7 @@ use zircon_runtime::scene::world::World;
 use crate::tests::support::two_island_navmesh;
 use crate::{
     module_descriptor, navigation_component_descriptors, DefaultNavigationManager,
-    NAVIGATION_MANAGER_NAME, NAVIGATION_MODULE_NAME,
+    NAVIGATION_MODULE_NAME,
 };
 
 #[test]

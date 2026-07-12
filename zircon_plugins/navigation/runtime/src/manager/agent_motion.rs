@@ -13,9 +13,7 @@ pub(super) struct NavigationAgentMotionState {
 
 impl DefaultNavigationManager {
     pub(super) fn agent_velocity(&self, entity: u64) -> Vec3 {
-        self.state
-            .lock()
-            .expect("navigation state lock poisoned")
+        self.lock_state()
             .agent_motion
             .get(&entity)
             .map(|state| state.velocity)
@@ -23,7 +21,7 @@ impl DefaultNavigationManager {
     }
 
     pub(super) fn record_agent_velocity(&self, entity: u64, velocity: Vec3) {
-        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        let mut state = self.lock_state();
         if velocity.length_squared() <= Real::EPSILON {
             state.agent_motion.remove(&entity);
         } else {
@@ -34,18 +32,12 @@ impl DefaultNavigationManager {
     }
 
     pub(super) fn clear_agent_velocity(&self, entity: u64) {
-        self.state
-            .lock()
-            .expect("navigation state lock poisoned")
-            .agent_motion
-            .remove(&entity);
+        self.lock_state().agent_motion.remove(&entity);
     }
 
     pub(super) fn retain_agent_motion_for(&self, active_entities: &[u64]) {
         let active_entities = active_entities.iter().copied().collect::<HashSet<_>>();
-        self.state
-            .lock()
-            .expect("navigation state lock poisoned")
+        self.lock_state()
             .agent_motion
             .retain(|entity, _| active_entities.contains(entity));
     }

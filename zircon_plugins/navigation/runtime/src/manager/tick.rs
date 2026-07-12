@@ -143,10 +143,7 @@ pub(super) fn tick_world_agents(
             }
         }
     }
-    let mut state = manager
-        .state
-        .lock()
-        .expect("navigation state lock poisoned");
+    let mut state = manager.lock_state();
     state.stats.active_agents = report.scanned_agents;
     state.stats.active_obstacles = obstacles.len();
     state.stats.active_off_mesh_links = count_off_mesh_links(world);

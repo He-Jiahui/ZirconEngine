@@ -19,7 +19,10 @@ pub use capability::{
     NAVIGATION_RECAST_CAPABILITY, NAVIGATION_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
 };
 pub use components::navigation_component_descriptors;
-pub use manager::{count_navigation_components, default_agent_type, DefaultNavigationManager};
+pub use manager::{
+    count_navigation_components, default_agent_type, DefaultNavigationManager,
+    NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
+};
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, NavigationRuntimePlugin, NAVIGATION_DIST_CRATE_NAME,

@@ -35,6 +35,14 @@ pub(crate) struct ZrNavRecastBakeTile {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ZrNavRecastBakeTileRequest {
+    pub id: c_uint,
+    pub bounds_min: [c_float; 3],
+    pub bounds_max: [c_float; 3],
+}
+
+#[repr(C)]
 #[derive(Debug)]
 pub(crate) struct ZrNavRecastBakeResult {
     pub status: c_uint,
@@ -233,6 +241,17 @@ extern "C" {
         triangle_areas: *const c_uchar,
         triangle_area_count: c_uint,
         settings: *const ZrNavRecastBakeSettings,
+        out_result: *mut ZrNavRecastBakeResult,
+    );
+    pub(crate) fn zr_nav_recast_bake_tile(
+        vertices: *const c_float,
+        vertex_count: c_uint,
+        indices: *const c_uint,
+        index_count: c_uint,
+        triangle_areas: *const c_uchar,
+        triangle_area_count: c_uint,
+        settings: *const ZrNavRecastBakeSettings,
+        tile: *const ZrNavRecastBakeTileRequest,
         out_result: *mut ZrNavRecastBakeResult,
     );
     pub(crate) fn zr_nav_recast_free_bake_result(result: *mut ZrNavRecastBakeResult);

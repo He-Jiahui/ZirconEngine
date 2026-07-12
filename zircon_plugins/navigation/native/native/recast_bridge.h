@@ -30,6 +30,12 @@ struct ZrNavRecastBakeTile {
     std::uint32_t polygon_count;
 };
 
+struct ZrNavRecastBakeTileRequest {
+    std::uint32_t id;
+    float bounds_min[3];
+    float bounds_max[3];
+};
+
 struct ZrNavRecastBakeResult {
     std::uint32_t status;
     char message[256];
@@ -126,6 +132,17 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
     const std::uint8_t* triangle_areas,
     std::uint32_t triangle_area_count,
     const ZrNavRecastBakeSettings* settings,
+    ZrNavRecastBakeResult* out_result);
+
+extern "C" void zr_nav_recast_bake_tile(
+    const float* vertices,
+    std::uint32_t vertex_count,
+    const std::uint32_t* indices,
+    std::uint32_t index_count,
+    const std::uint8_t* triangle_areas,
+    std::uint32_t triangle_area_count,
+    const ZrNavRecastBakeSettings* settings,
+    const ZrNavRecastBakeTileRequest* tile,
     ZrNavRecastBakeResult* out_result);
 
 extern "C" void zr_nav_recast_free_bake_result(ZrNavRecastBakeResult* result);
