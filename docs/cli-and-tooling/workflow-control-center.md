@@ -48,6 +48,7 @@ related_code:
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
+  - tools/zircon-session.ps1
 implementation_files:
   - tools/session_coordinator/codex_sync/worker.py
   - .codex/hooks/zircon_session_sync.py
@@ -97,6 +98,7 @@ implementation_files:
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
+  - tools/zircon-session.ps1
 plan_sources:
   - docs/superpowers/specs/2026-07-13-codex-session-hook-sync-design.md
   - docs/plans/zircon_tooling/session_coordinator/02-codex-session-hook-sync.md
@@ -132,6 +134,7 @@ tests:
   - tools/session_coordinator/tests/test_soak.py
   - tools/tests/workflow-control-center-smoke.Tests.ps1
   - tools/tests/workflow-control-center-soak.ps1
+  - tools/tests/zircon-session-launcher-logging.Tests.ps1
   - tools/session_coordinator/web/src/__tests__/components.test.tsx
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
   - tools/session_coordinator/web/src/__tests__/events.test.ts
@@ -274,6 +277,10 @@ Snapshot assembly uses one deferred SQLite read transaction. The snapshot cursor
 Workflow lists are projections over coordinator-owned data. M1 creates one stable control-center workflow per Session and a Goal node whose fallback state follows the typed Session lifecycle. Session changes and their workflow projection commit in the same SQLite writer transaction, including maintenance-driven stale/archive transitions. Attempts are database-enforced immutable; a newer accepted attempt becomes current while earlier attempts remain inspectable, and later heartbeats cannot overwrite that accepted state.
 
 ## Recovery
+
+Every daemon process started through `tools/zircon-session.ps1` redirects stdout and stderr before Python imports the coordinator package. Logs live outside Git below `%LOCALAPPDATA%/Zircon Session Coordinator/daemon-log/<repository-key>/`; `latest.json` records only the repository key, PID, start time and the two local log paths. Each repository retains the ten newest stdout logs and ten newest stderr logs. This captures import, migration and unhandled-process failures that cannot reach SQLite supervision events, while bounding disk growth and keeping runtime tokens, webhook configuration and command-line capabilities out of launch metadata.
+
+The repository key is the same SHA-256 identity used by the daemon, tray and startup registration, so similarly named repositories never share launch logs. A failed log-root or metadata write aborts that launch visibly instead of silently starting an unobservable daemon. Existing running processes are not restarted merely to rotate logs; the policy applies on their next manual, startup or recovery launch.
 
 - If a ticket expires or is already used, request a new one with `ui open`.
 - If the daemon restarts, old tickets and cookies are rejected by daemon-instance binding; reopen the UI.
