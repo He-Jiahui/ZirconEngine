@@ -170,6 +170,7 @@ impl NavigationManager for DefaultNavigationManager {
         state.settings = settings;
         state.crowds.clear();
         state.obstacle_worlds.clear();
+        state.off_mesh_traversal = traversal::OffMeshTraversalRuntime::default();
         state.crowd_handle_cursor = 0;
         for context in state.bake_contexts.values_mut() {
             let generation = context.next_generation;

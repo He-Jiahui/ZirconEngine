@@ -7,7 +7,7 @@
 #include "Recast.h"
 
 extern "C" std::uint32_t zr_nav_recast_bridge_version() {
-    return 3;
+    return 4;
 }
 
 extern "C" std::uint32_t zr_nav_recast_runtime_modules_smoke() {

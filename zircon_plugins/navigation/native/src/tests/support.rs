@@ -1,7 +1,7 @@
 use zircon_runtime::asset::{
-    NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavMeshPolygonAsset,
+    NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity, NavMeshPolygonAsset,
 };
-use zircon_runtime::core::framework::navigation::{AREA_JUMP, AREA_WALKABLE};
+use zircon_runtime::core::framework::navigation::{NavLinkMotion, AREA_JUMP, AREA_WALKABLE};
 
 pub(super) fn two_island_asset(with_link: bool) -> NavMeshAsset {
     let mut asset = NavMeshAsset {
@@ -50,6 +50,12 @@ pub(super) fn two_island_asset(with_link: bool) -> NavMeshAsset {
     };
     if with_link {
         asset.off_mesh_links.push(NavMeshLinkAsset {
+            id: 1,
+            owner_entity: 1,
+            lane_index: 0,
+            capacity: NavMeshLinkCapacity::Unbounded,
+            motion: NavLinkMotion::Parabolic,
+            arc_height: 1.0,
             start: [1.0, 0.0, 0.0],
             end: [7.0, 0.0, 0.0],
             width: 0.5,
@@ -165,6 +171,12 @@ pub(super) fn two_route_area_fallback_asset() -> NavMeshAsset {
     // A same-polygon link with an explicit cost keeps the route graph unchanged while forcing
     // the pure-Rust query backend, whose directed area-cost behavior must match Detour.
     asset.off_mesh_links.push(NavMeshLinkAsset {
+        id: 1,
+        owner_entity: 1,
+        lane_index: 0,
+        capacity: NavMeshLinkCapacity::Unbounded,
+        motion: NavLinkMotion::Linear,
+        arc_height: 0.0,
         start: [0.25, 0.0, 0.25],
         end: [0.5, 0.0, 0.25],
         width: 0.1,

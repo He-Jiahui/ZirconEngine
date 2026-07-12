@@ -49,20 +49,28 @@ fn path_points_from_route(
             .and_then(|step| asset.polygons.get(step.polygon))
             .map(|polygon| polygon.area)
             .unwrap_or(AREA_WALKABLE),
+        off_mesh_link_id: None,
         flags: Vec::new(),
     }];
     for index in 1..route.len() {
         let step = &route[index];
-        if let Some(EdgeTraversal::OffMeshLink { start, end, area }) = &step.traversal_from_previous
+        if let Some(EdgeTraversal::OffMeshLink {
+            id,
+            start,
+            end,
+            area,
+        }) = &step.traversal_from_previous
         {
             points.push(NavPathPoint {
                 position: *start,
                 area: *area,
+                off_mesh_link_id: Some(*id),
                 flags: vec!["off_mesh_link".to_string()],
             });
             points.push(NavPathPoint {
                 position: *end,
                 area: *area,
+                off_mesh_link_id: Some(*id),
                 flags: vec!["off_mesh_link".to_string()],
             });
         } else if index + 1 < route.len() {
@@ -74,6 +82,7 @@ fn path_points_from_route(
                 points.push(NavPathPoint {
                     position: centroid,
                     area: asset.polygons[step.polygon].area,
+                    off_mesh_link_id: None,
                     flags: Vec::new(),
                 });
             }
@@ -86,6 +95,7 @@ fn path_points_from_route(
             .and_then(|step| asset.polygons.get(step.polygon))
             .map(|polygon| polygon.area)
             .unwrap_or(AREA_WALKABLE),
+        off_mesh_link_id: None,
         flags: Vec::new(),
     });
     points

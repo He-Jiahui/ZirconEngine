@@ -19,6 +19,7 @@ pub(super) struct PolygonEdge {
 pub(super) enum EdgeTraversal {
     SharedEdge,
     OffMeshLink {
+        id: u32,
         start: [Real; 3],
         end: [Real; 3],
         area: u8,
@@ -96,6 +97,7 @@ fn add_off_mesh_link_edges(
         to: end_polygon,
         cost,
         traversal: EdgeTraversal::OffMeshLink {
+            id: link.id,
             start: link.start,
             end: link.end,
             area: link.area,
@@ -106,6 +108,7 @@ fn add_off_mesh_link_edges(
             to: start_polygon,
             cost,
             traversal: EdgeTraversal::OffMeshLink {
+                id: link.id,
                 start: link.end,
                 end: link.start,
                 area: link.area,

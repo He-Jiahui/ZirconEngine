@@ -37,7 +37,9 @@ pub use manager::NavigationManager;
 pub use modifier::{NavMeshModifierDescriptor, NavMeshModifierMode};
 pub use obstacle::{NavMeshObstacleDescriptor, NavMeshObstacleShape};
 pub use off_mesh_link::{
-    NavLinkTraversalMode, NavMeshOffMeshBridgeDescriptor, NavMeshOffMeshLinkDescriptor,
+    NavLinkMotion, NavLinkTraversalMode, NavMeshOffMeshBridgeDescriptor,
+    NavMeshOffMeshLinkDescriptor, OffMeshTraverseEvent, OffMeshTraverseEventKind,
+    OffMeshTraversePhase, OffMeshTraverseState,
 };
 pub use query::{
     nav_area_flag, NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter,

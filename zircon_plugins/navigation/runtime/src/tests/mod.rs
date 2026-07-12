@@ -1,7 +1,9 @@
+mod asset_migration;
 mod bake;
 mod crowd;
 mod dynamic_components;
 mod manager;
+mod off_mesh;
 mod registration;
 mod support;
 mod tiled_bake_context;

@@ -85,10 +85,13 @@ impl Default for NavMeshAgentDescriptor {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct NavAgentTickReport {
     pub scanned_agents: usize,
     pub moved_agents: usize,
     pub blocked_agents: usize,
+    pub traversing_agents: usize,
+    pub queued_link_agents: usize,
+    pub off_mesh_events: Vec<super::off_mesh_link::OffMeshTraverseEvent>,
     pub diagnostics: Vec<String>,
 }

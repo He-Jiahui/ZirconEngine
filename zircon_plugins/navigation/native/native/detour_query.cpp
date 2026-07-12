@@ -1,4 +1,5 @@
 #include "recast_bridge.h"
+#include "detour_off_mesh_connections.h"
 
 #include <algorithm>
 #include <cmath>
@@ -253,6 +254,10 @@ bool compute_bounds(
         *error = "Detour query input has no vertices";
         return false;
     }
+    if (off_mesh_link_count > 0 && off_mesh_links == nullptr) {
+        *error = "off-mesh link count requires link data";
+        return false;
+    }
     const float* first = vertices;
     if (!finite3(first)) {
         *error = "Detour query input contains non-finite vertices";
@@ -435,42 +440,6 @@ bool build_detour_polys(
     return true;
 }
 
-std::vector<float> copy_off_mesh_vertices(
-    const ZrNavDetourOffMeshLink* links,
-    std::uint32_t link_count) {
-    std::vector<float> output;
-    output.reserve(static_cast<std::size_t>(link_count) * 6);
-    for (std::uint32_t index = 0; index < link_count; ++index) {
-        output.insert(output.end(), std::begin(links[index].start), std::end(links[index].start));
-        output.insert(output.end(), std::begin(links[index].end), std::end(links[index].end));
-    }
-    return output;
-}
-
-void fill_off_mesh_arrays(
-    const ZrNavDetourOffMeshLink* links,
-    std::uint32_t link_count,
-    std::vector<float>* radii,
-    std::vector<unsigned short>* flags,
-    std::vector<unsigned char>* areas,
-    std::vector<unsigned char>* directions,
-    std::vector<unsigned int>* user_ids) {
-    radii->reserve(link_count);
-    flags->reserve(link_count);
-    areas->reserve(link_count);
-    directions->reserve(link_count);
-    user_ids->reserve(link_count);
-    for (std::uint32_t index = 0; index < link_count; ++index) {
-        const ZrNavDetourOffMeshLink& link = links[index];
-        radii->push_back(std::isfinite(link.radius) ? std::max(link.radius, 0.05f) : 0.05f);
-        const unsigned char area = link.area < DT_MAX_AREAS ? link.area : ZR_NAV_AREA_WALKABLE;
-        flags->push_back(area_flag(area));
-        areas->push_back(area);
-        directions->push_back(link.bidirectional != 0 ? DT_OFFMESH_CON_BIDIR : 0);
-        user_ids->push_back(index + 1);
-    }
-}
-
 unsigned char area_for_ref(const ZrNavDetourQuery* query, dtPolyRef ref, unsigned char fallback) {
     if (query == nullptr || query->nav_mesh == nullptr || ref == 0) {
         return fallback;
@@ -509,6 +478,10 @@ ZrNavDetourPathPoint* copy_straight_path(
         previous_area = area_for_ref(query, ref, previous_area);
         points[index].area = previous_area;
         points[index].flags = straight_flags[index];
+        points[index].off_mesh_user_id =
+            (straight_flags[index] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0
+                ? zr_nav_off_mesh::user_id_for_ref(query->nav_mesh, ref)
+                : 0;
         if (index > 0) {
             *out_length += distance3(points[index - 1].position, points[index].position);
         }
@@ -599,20 +572,11 @@ extern "C" void zr_nav_detour_create_query(
             return;
         }
 
-        std::vector<float> off_mesh_vertices = copy_off_mesh_vertices(off_mesh_links, off_mesh_link_count);
-        std::vector<float> off_mesh_radii;
-        std::vector<unsigned short> off_mesh_flags;
-        std::vector<unsigned char> off_mesh_areas;
-        std::vector<unsigned char> off_mesh_directions;
-        std::vector<unsigned int> off_mesh_user_ids;
-        fill_off_mesh_arrays(
-            off_mesh_links,
-            off_mesh_link_count,
-            &off_mesh_radii,
-            &off_mesh_flags,
-            &off_mesh_areas,
-            &off_mesh_directions,
-            &off_mesh_user_ids);
+        zr_nav_off_mesh::ConnectionSet off_mesh_connections;
+        if (!off_mesh_connections.assign(off_mesh_links, off_mesh_link_count, &error)) {
+            set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, error);
+            return;
+        }
 
         dtNavMeshCreateParams params = {};
         params.verts = detour_vertices.data();
@@ -622,13 +586,7 @@ extern "C" void zr_nav_detour_create_query(
         params.polyAreas = poly_areas.data();
         params.polyCount = static_cast<int>(polygon_count);
         params.nvp = ZR_NAV_DETOUR_MAX_VERTS_PER_POLYGON;
-        params.offMeshConVerts = off_mesh_vertices.empty() ? nullptr : off_mesh_vertices.data();
-        params.offMeshConRad = off_mesh_radii.empty() ? nullptr : off_mesh_radii.data();
-        params.offMeshConFlags = off_mesh_flags.empty() ? nullptr : off_mesh_flags.data();
-        params.offMeshConAreas = off_mesh_areas.empty() ? nullptr : off_mesh_areas.data();
-        params.offMeshConDir = off_mesh_directions.empty() ? nullptr : off_mesh_directions.data();
-        params.offMeshConUserID = off_mesh_user_ids.empty() ? nullptr : off_mesh_user_ids.data();
-        params.offMeshConCount = static_cast<int>(off_mesh_link_count);
+        off_mesh_connections.bind_all(&params);
         params.userId = 1;
         params.walkableHeight = 2.0f;
         params.walkableRadius = 0.5f;

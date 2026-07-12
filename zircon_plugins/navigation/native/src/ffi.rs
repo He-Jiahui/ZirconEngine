@@ -76,6 +76,7 @@ pub(crate) struct ZrNavDetourQueryFilter {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ZrNavDetourOffMeshLink {
+    pub user_id: c_uint,
     pub start: [c_float; 3],
     pub end: [c_float; 3],
     pub radius: c_float,
@@ -178,6 +179,7 @@ pub(crate) struct ZrNavDetourPathPoint {
     pub position: [c_float; 3],
     pub area: c_uchar,
     pub flags: c_uchar,
+    pub off_mesh_user_id: c_uint,
 }
 
 #[repr(C)]

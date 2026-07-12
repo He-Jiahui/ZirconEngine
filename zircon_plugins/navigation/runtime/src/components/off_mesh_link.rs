@@ -21,4 +21,6 @@ pub(super) fn nav_mesh_off_mesh_link_descriptor() -> ComponentTypeDescriptor {
     .with_property("area_type", "navigation_area", true)
     .with_property("agent_type", "string", true)
     .with_property("traversal_mode", "navigation_link_traversal_mode", true)
+    .with_property("motion", "navigation_link_motion", true)
+    .with_property("arc_height", "scalar", true)
 }

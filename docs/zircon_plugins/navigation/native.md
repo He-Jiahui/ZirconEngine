@@ -32,6 +32,8 @@ related_code:
   - zircon_plugins/navigation/native/native/recast_bridge.h
   - zircon_plugins/navigation/native/native/recast_bake.cpp
   - zircon_plugins/navigation/native/native/detour_query.cpp
+  - zircon_plugins/navigation/native/native/detour_off_mesh_connections.cpp
+  - zircon_plugins/navigation/native/native/detour_off_mesh_connections.h
   - zircon_plugins/navigation/native/native/detour_tile_cache.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.h
@@ -71,6 +73,8 @@ implementation_files:
   - zircon_plugins/navigation/native/native/recast_bridge.h
   - zircon_plugins/navigation/native/native/recast_bake.cpp
   - zircon_plugins/navigation/native/native/detour_query.cpp
+  - zircon_plugins/navigation/native/native/detour_off_mesh_connections.cpp
+  - zircon_plugins/navigation/native/native/detour_off_mesh_connections.h
   - zircon_plugins/navigation/native/native/detour_tile_cache.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.h
@@ -98,7 +102,7 @@ doc_type: module-detail
 
 ## Native Boundary
 
-`build.rs` compiles the vendored Recast, Detour, DetourCrowd, and DetourTileCache source folders plus `native/recast_bridge.cpp`, `native/recast_bake.cpp`, `native/detour_query.cpp`, `native/detour_crowd.cpp`, `native/detour_tile_cache.cpp`, and the isolated `native/detour_tile_cache_raster.cpp` layer builder through the `cc` crate. It enables `DT_VIRTUAL_QUERYFILTER`. Zircon's documented vendored Detour extension adds a 64-bit area mask to the value-stored `dtQueryFilter`, allowing DetourCrowd's 16 filter slots to preserve per-agent masks while each slot receives the asset's area-cost and walkability table. The C ABI currently exposes:
+`build.rs` compiles the vendored Recast, Detour, DetourCrowd, and DetourTileCache source folders plus `native/recast_bridge.cpp`, `native/recast_bake.cpp`, `native/detour_query.cpp`, `native/detour_off_mesh_connections.cpp`, `native/detour_crowd.cpp`, `native/detour_tile_cache.cpp`, and the isolated `native/detour_tile_cache_raster.cpp` layer builder through the `cc` crate. It enables `DT_VIRTUAL_QUERYFILTER`. Zircon's documented vendored Detour extension adds a 64-bit area mask to the value-stored `dtQueryFilter`, allowing DetourCrowd's 16 filter slots to preserve per-agent masks while each slot receives the asset's area-cost and walkability table. The C ABI currently exposes:
 
 - bridge version reporting
 - a smoke check that allocates/frees Detour navmesh, DetourCrowd, and DetourTileCache objects and calls a Recast bounds helper
@@ -107,6 +111,8 @@ doc_type: module-detail
 - native Detour query ownership: `dtCreateNavMeshData`, `dtNavMesh`, and `dtNavMeshQuery` are created and freed behind an opaque C handle; path, sample-position, and raycast queries run through that handle and return copied Zircon-friendly result buffers
 - native DetourCrowd ownership: `zr_nav_crowd_create` transfers one Detour query/navmesh owner into an opaque Crowd handle; add/remove/target operations remain explicit, while each frame performs one Crowd update and one batch read of position, path desired velocity, avoidance velocity, and acceleration-limited velocity
 - native DetourTileCache obstacle carving: a copied single-tile compressed layer is built from Zircon navmesh polygons, box/cylinder obstacle requests are applied to a private `dtTileCache`, and the resulting mutable `dtNavMesh` is queried through an opaque C handle
+- shared off-mesh connection packing: stable non-zero asset link ids become Detour user ids, ordinary query tiles and TileCache rebuilds bind through the same owner, and straight-path results return the concrete link id rather than only a generic flag
+- direct ABI pointer/count validation rejects a non-zero off-mesh count with no link buffer before bounds scanning
 
 `src/lib.rs` is the public facade for bridge version checks, `RecastBackend`, `RecastCrowd`, bake DTO exports, and TileCache obstacle DTO exports. `src/ffi.rs` owns the Rust ABI declarations and C layout records, `src/bake.rs` owns Rust-side bake input validation plus native-output conversion into `NavMeshAsset`, `src/asset_ffi.rs` owns the shared asset-to-Detour input packing, `src/detour_result.rs` owns native Detour path-result conversion, `src/detour.rs` owns the Rust RAII wrapper around the opaque Detour query handle, `src/crowd.rs` owns the unique mutable Crowd RAII wrapper and batch state conversion, and `src/tile_cache.rs` owns the persistent mutable `RecastTileCache`, stable obstacle handles, explicit add/remove/update operations, and carved path queries. `src/fallback_query.rs` remains the isolated deterministic fallback. The upstream license is kept in `vendor/recastnavigation/License.txt`.
 
@@ -124,6 +130,8 @@ Prior to the TileCache slice, `cargo test --manifest-path zircon_plugins/Cargo.t
 
 The fresh M3 Windows-native validator job `2dc36f6c89f44ffe837b19fc69284c60` passed `cargo test -p zircon_plugin_navigation_recast --locked` with 22 unit and 4 integration tests. It covers Crowd movement/state batch round-trip, rejection when an agent mask excludes the surface, controller-position corridor synchronization, filter-slot recycling, bridge ABI v2, Detour queries, TileCache behavior, and doctests.
 
-The final M4 Windows-native validator job `5c1a96ab19e54cb1bb47d091979e17d7` passed `cargo test -p zircon_plugin_navigation_recast --locked`: 31 unit tests, 4 integration tests, and doctests. Exact M4/review anchors cover obstacle add/carve, remove/restore, 65-request incremental and batch queue boundaries, cache-scoped handles, baked-cost preservation, native and fallback bidirectional area-cost routing, and include/exclude flag filtering. The public native bridge version is 3.
+The final M4 Windows-native validator job `5c1a96ab19e54cb1bb47d091979e17d7` passed `cargo test -p zircon_plugin_navigation_recast --locked`: 31 unit tests, 4 integration tests, and doctests. Exact M4/review anchors cover obstacle add/carve, remove/restore, 65-request incremental and batch queue boundaries, cache-scoped handles, baked-cost preservation, native and fallback bidirectional area-cost routing, and include/exclude flag filtering.
+
+M5 raises the internal native bridge version to 4. `detour_off_mesh_connections` is the single owner of endpoint validation, radius/area/direction arrays, stable user ids, and per-tile start-point filtering. `detour_query.cpp` no longer grows another protocol responsibility, validates pointer/count pairs before bounds iteration, and TileCache no longer rejects every asset that contains links. `offmesh_link_present_in_baked_tiles` and the malformed direct-ABI regression verify the mutable tile path and FFI guard; the M5 testing-stage result is recorded in the owning child-plan output record.
 
 For the 2026-06-04 native facade/fallback split, static validation passed with `rustfmt --edition 2021 --check` over `src/lib.rs`, `src/asset_ffi.rs`, `src/detour_result.rs`, `src/fallback_query.rs`, every file under `src/fallback_query/`, `src/detour.rs`, and `src/tile_cache.rs`; `git diff --check` passed for the touched native Rust files, this doc, and the active session note with only expected line-ending warnings. A low-concurrency `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_recast --locked --jobs 1 --target-dir E:\cargo-targets\zircon-navigation-native-facade-fallback-split-0604 --message-format short --color never` attempt timed out after ten minutes before returning Rust diagnostics. A process audit immediately afterward showed active Cargo/rustc lanes belonged to other target directories, so compile/test acceptance for this relocation is still pending.

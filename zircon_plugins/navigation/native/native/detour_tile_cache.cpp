@@ -1,4 +1,5 @@
 #include "recast_bridge.h"
+#include "detour_off_mesh_connections.h"
 #include "detour_tile_cache_raster.h"
 
 #include <algorithm>
@@ -80,6 +81,13 @@ public:
 
 class ZrNavTileCacheMeshProcess final : public dtTileCacheMeshProcess {
 public:
+    bool assign_off_mesh_connections(
+        const ZrNavDetourOffMeshLink* links,
+        std::uint32_t link_count,
+        const char** error) {
+        return off_mesh_connections_.assign(links, link_count, error);
+    }
+
     void process(dtNavMeshCreateParams* params, unsigned char* poly_areas, unsigned short* poly_flags) override {
         if (params == nullptr || poly_areas == nullptr || poly_flags == nullptr) {
             return;
@@ -87,7 +95,11 @@ public:
         for (int index = 0; index < params->polyCount; ++index) {
             poly_flags[index] = poly_areas[index] == DT_TILECACHE_NULL_AREA ? 0 : area_flag(poly_areas[index]);
         }
+        off_mesh_connections_.bind_for_tile(params);
     }
+
+private:
+    zr_nav_off_mesh::ConnectionSet off_mesh_connections_;
 };
 
 void set_message(char* output, std::size_t output_size, const char* message) {
@@ -402,6 +414,10 @@ ZrNavDetourPathPoint* copy_straight_path(
         previous_area = area_for_ref(query, ref, previous_area);
         points[index].area = previous_area;
         points[index].flags = straight_flags[index];
+        points[index].off_mesh_user_id =
+            (straight_flags[index] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0
+                ? zr_nav_off_mesh::user_id_for_ref(query->nav_mesh, ref)
+                : 0;
         if (index > 0) {
             *out_length += distance3(points[index - 1].position, points[index].position);
         }
@@ -420,8 +436,8 @@ extern "C" void zr_nav_tile_cache_create_query(
     std::uint32_t polygon_count,
     const ZrNavDetourAreaCost* area_costs,
     std::uint32_t area_cost_count,
-    const ZrNavDetourOffMeshLink*,
-    std::uint32_t,
+    const ZrNavDetourOffMeshLink* off_mesh_links,
+    std::uint32_t off_mesh_link_count,
     const ZrNavDetourTileCacheObstacle* obstacles,
     std::uint32_t obstacle_count,
     ZrNavDetourTileCacheCreateResult* out_result) {
@@ -483,6 +499,14 @@ extern "C" void zr_nav_tile_cache_create_query(
         ZrNavDetourTileCacheQuery* owner = new (std::nothrow) ZrNavDetourTileCacheQuery();
         if (owner == nullptr) {
             set_create_status(out_result, ZR_NAV_DETOUR_ERROR, "TileCache owner allocation failed");
+            return;
+        }
+        if (!owner->mesh_process.assign_off_mesh_connections(
+                off_mesh_links,
+                off_mesh_link_count,
+                &error)) {
+            delete owner;
+            set_create_status(out_result, ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH, error);
             return;
         }
         unsigned char* compressed_tile = nullptr;

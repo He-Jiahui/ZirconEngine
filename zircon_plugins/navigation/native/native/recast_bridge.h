@@ -62,6 +62,7 @@ struct ZrNavDetourQueryFilter {
 };
 
 struct ZrNavDetourOffMeshLink {
+    std::uint32_t user_id;
     float start[3];
     float end[3];
     float radius;
@@ -123,6 +124,7 @@ struct ZrNavDetourPathPoint {
     float position[3];
     std::uint8_t area;
     std::uint8_t flags;
+    std::uint32_t off_mesh_user_id;
 };
 
 struct ZrNavDetourPathResult {

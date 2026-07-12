@@ -13,7 +13,10 @@ use zircon_runtime::scene::World;
 use super::agent_motion::{
     agent_displacement, next_agent_velocity, realized_velocity, rotate_toward_movement,
 };
-use super::traversal::automatic_agent_query_asset;
+use super::traversal::{
+    advance_active, automatic_agent_query_asset, begin_from_path, clear_agent, record_event,
+    retain_agents, update_report_metrics, DirectTraversalPosition,
+};
 use super::DefaultNavigationManager;
 
 pub(crate) fn tick_world_agents_legacy(
@@ -30,19 +33,23 @@ pub(crate) fn tick_world_agents_legacy(
     report.scanned_agents = agents.len();
     let active_agent_ids = agents.iter().map(|(entity, _)| *entity).collect::<Vec<_>>();
     manager.retain_agent_motion_for(&active_agent_ids);
+    retain_agents(manager, &active_agent_ids);
     let agent_positions = agent_positions(world, &agents);
     let obstacles = collect_runtime_obstacles(world);
     for (entity, agent) in agents {
         let Some(destination) = agent.destination else {
             manager.clear_agent_velocity(entity);
+            clear_agent(manager, entity);
             continue;
         };
         if !agent.update_position {
             manager.clear_agent_velocity(entity);
+            clear_agent(manager, entity);
             continue;
         }
         let Some(transform) = world.world_transform(entity) else {
             manager.clear_agent_velocity(entity);
+            clear_agent(manager, entity);
             report.blocked_agents += 1;
             report
                 .diagnostics
@@ -51,48 +58,90 @@ pub(crate) fn tick_world_agents_legacy(
         };
         let current = transform.translation;
         let destination = Vec3::from_array(destination);
-        let movement_target = match manager.selected_handle_asset(agent.nav_mesh) {
-            Ok((handle, asset)) => {
-                let query_asset = automatic_agent_query_asset(&asset, &agent);
-                match find_path_with_runtime_obstacles(
-                    manager,
-                    handle,
-                    query_asset.as_ref(),
-                    &NavPathQuery {
-                        nav_mesh: agent.nav_mesh,
-                        start: current.to_array(),
-                        end: destination.to_array(),
-                        agent_type: agent.agent_type.clone(),
-                        area_mask: agent.area_mask,
-                    },
-                    &obstacles,
-                ) {
-                    Ok(path) if path.status != NavPathStatus::NoPath => path
-                        .points
-                        .get(1)
-                        .or_else(|| path.points.last())
-                        .map(|point| Vec3::from_array(point.position))
-                        .unwrap_or(destination),
-                    Ok(_) => {
-                        manager.clear_agent_velocity(entity);
-                        report.blocked_agents += 1;
-                        report
-                            .diagnostics
-                            .push(format!("agent {entity} has no path on loaded navmesh"));
-                        continue;
-                    }
-                    Err(error) => {
-                        manager.clear_agent_velocity(entity);
-                        report.blocked_agents += 1;
-                        report
-                            .diagnostics
-                            .push(format!("agent {entity} path query failed: {error}"));
-                        continue;
-                    }
+        let active_step = advance_active(manager, entity, current, &agent, dt_seconds);
+        let traversal_event = active_step.as_ref().and_then(|step| step.event.clone());
+        if let Some(direct) = active_step
+            .as_ref()
+            .and_then(|step| step.direct_position.clone())
+        {
+            let write_succeeded = apply_direct_traversal_position(
+                manager,
+                world,
+                entity,
+                &agent,
+                transform,
+                direct,
+                dt_seconds,
+                &mut report,
+            );
+            if write_succeeded {
+                if let Some(event) = traversal_event {
+                    publish_traversal_event(world, &mut report, event);
                 }
             }
-            Err(_) => destination,
-        };
+            continue;
+        }
+        if let Some(event) = traversal_event {
+            publish_traversal_event(world, &mut report, event);
+        }
+        if active_step
+            .as_ref()
+            .is_some_and(|step| step.hold_for_capacity)
+        {
+            manager.clear_agent_velocity(entity);
+            continue;
+        }
+        let movement_target =
+            if let Some(target) = active_step.as_ref().and_then(|step| step.movement_target) {
+                target
+            } else {
+                match manager.selected_handle_asset(agent.nav_mesh) {
+                    Ok((handle, asset)) => {
+                        let query_asset = automatic_agent_query_asset(&asset, &agent);
+                        match find_path_with_runtime_obstacles(
+                            manager,
+                            handle,
+                            query_asset.as_ref(),
+                            &NavPathQuery {
+                                nav_mesh: agent.nav_mesh,
+                                start: current.to_array(),
+                                end: destination.to_array(),
+                                agent_type: agent.agent_type.clone(),
+                                area_mask: agent.area_mask,
+                            },
+                            &obstacles,
+                        ) {
+                            Ok(path) if path.status != NavPathStatus::NoPath => {
+                                begin_from_path(manager, entity, handle, &asset, &path, current)
+                                    .or_else(|| {
+                                        path.points
+                                            .get(1)
+                                            .or_else(|| path.points.last())
+                                            .map(|point| Vec3::from_array(point.position))
+                                    })
+                                    .unwrap_or(destination)
+                            }
+                            Ok(_) => {
+                                manager.clear_agent_velocity(entity);
+                                report.blocked_agents += 1;
+                                report
+                                    .diagnostics
+                                    .push(format!("agent {entity} has no path on loaded navmesh"));
+                                continue;
+                            }
+                            Err(error) => {
+                                manager.clear_agent_velocity(entity);
+                                report.blocked_agents += 1;
+                                report
+                                    .diagnostics
+                                    .push(format!("agent {entity} path query failed: {error}"));
+                                continue;
+                            }
+                        }
+                    }
+                    Err(_) => destination,
+                }
+            };
         let movement_target = avoidance_adjusted_target(
             entity,
             current,
@@ -153,7 +202,62 @@ pub(crate) fn tick_world_agents_legacy(
     state.stats.active_obstacles = obstacles.len();
     state.stats.active_off_mesh_links = count_off_mesh_links(world);
     state.stats.active_off_mesh_bridges = count_off_mesh_bridges(world);
+    drop(state);
+    update_report_metrics(manager, &mut report);
     Ok(report)
+}
+
+fn apply_direct_traversal_position(
+    manager: &DefaultNavigationManager,
+    world: &mut World,
+    entity: u64,
+    agent: &NavMeshAgentDescriptor,
+    transform: Transform,
+    direct: DirectTraversalPosition,
+    dt_seconds: Real,
+    report: &mut NavAgentTickReport,
+) -> bool {
+    let displacement = direct.position - transform.translation;
+    let direction = displacement.normalize_or_zero();
+    let updated = Transform {
+        translation: direct.position,
+        rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
+            rotate_toward_movement(transform.rotation, direction, agent, dt_seconds)
+        } else {
+            transform.rotation
+        },
+        ..transform
+    };
+    let write_succeeded = match world.update_transform(entity, updated) {
+        Ok(true) => {
+            manager.record_agent_velocity(entity, realized_velocity(displacement, dt_seconds));
+            report.moved_agents += 1;
+            true
+        }
+        Ok(false) => true,
+        Err(error) => {
+            clear_agent(manager, entity);
+            manager.clear_agent_velocity(entity);
+            report.blocked_agents += 1;
+            report
+                .diagnostics
+                .push(format!("agent {entity} off-mesh traversal failed: {error}"));
+            false
+        }
+    };
+    if direct.completed {
+        manager.clear_agent_velocity(entity);
+    }
+    write_succeeded
+}
+
+fn publish_traversal_event(
+    world: &mut World,
+    report: &mut NavAgentTickReport,
+    event: zircon_runtime::core::framework::navigation::OffMeshTraverseEvent,
+) {
+    world.send_event(event.clone());
+    record_event(report, event);
 }
 
 fn collect_agents(world: &World) -> Vec<(u64, NavMeshAgentDescriptor)> {

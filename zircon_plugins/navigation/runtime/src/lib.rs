@@ -34,7 +34,7 @@ pub use plugin::{
 pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "navigation.runtime";
 pub use zircon_runtime::core::manager::NAVIGATION_MANAGER_NAME;
-pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.runtime";
+pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.events";
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -95,24 +95,29 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
         version: 1,
         events: vec![
             zircon_runtime::plugin::PluginEventManifest {
-                id: "navigation.runtime.navmesh_baked".to_string(),
+                id: "navigation.events.navmesh_baked".to_string(),
                 display_name: "NavMesh Baked".to_string(),
-                payload_schema: "navigation.runtime.navmesh_bake_report.v1".to_string(),
+                payload_schema: "navigation.events.navmesh_bake_report.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "navigation.runtime.path_query_completed".to_string(),
+                id: "navigation.events.path_query_completed".to_string(),
                 display_name: "Path Query Completed".to_string(),
-                payload_schema: "navigation.runtime.nav_path_result.v1".to_string(),
+                payload_schema: "navigation.events.nav_path_result.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "navigation.runtime.path_query_failed".to_string(),
+                id: "navigation.events.path_query_failed".to_string(),
                 display_name: "Path Query Failed".to_string(),
-                payload_schema: "navigation.runtime.navigation_error.v1".to_string(),
+                payload_schema: "navigation.events.navigation_error.v1".to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
-                id: "navigation.runtime.agent_tick_completed".to_string(),
+                id: "navigation.events.agent_tick_completed".to_string(),
                 display_name: "Agent Tick Completed".to_string(),
-                payload_schema: "navigation.runtime.nav_agent_tick_report.v1".to_string(),
+                payload_schema: "navigation.events.nav_agent_tick_report.v1".to_string(),
+            },
+            zircon_runtime::plugin::PluginEventManifest {
+                id: "navigation.events.off_mesh_traverse".to_string(),
+                display_name: "Off Mesh Traverse".to_string(),
+                payload_schema: "navigation.events.off_mesh_traverse.v1".to_string(),
             },
         ],
     }

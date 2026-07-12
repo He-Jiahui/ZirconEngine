@@ -10,6 +10,8 @@ mod mesh;
 mod model;
 mod navigation;
 mod physics_material;
+mod project_document;
+mod project_document_error;
 mod scene;
 mod shader;
 mod sound;
@@ -18,13 +20,17 @@ mod texture;
 mod ui;
 
 pub use animation::{
-    AnimationAssetError, AnimationAssetResult, AnimationChannelAsset, AnimationChannelKeyAsset,
-    AnimationChannelValueAsset, AnimationClipAsset, AnimationClipBoneTrackAsset,
-    AnimationConditionOperatorAsset, AnimationEventTrackAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
-    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
-    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+    AnimationAssetError, AnimationAssetResult, AnimationBlendSpace1DAsset,
+    AnimationBlendSpace1DSampleAsset, AnimationBlendSpace2DAsset, AnimationBlendSpace2DSampleAsset,
+    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
+    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
+    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
+    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
+    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
+    AnimationStateMachineAsset, AnimationStateMachineLayerAsset,
+    AnimationStateMachineLayerBlendModeAsset, AnimationStateTransitionAsset,
+    AnimationTransitionConditionAsset, AnimationTransitionInterruptionPolicyAsset,
 };
 pub use authoring::{
     AssetAuthoringError, AssetAuthoringResult, MaterialGraphAsset, MaterialGraphLinkAsset,
@@ -73,10 +79,11 @@ pub use model::{
 };
 pub use navigation::{
     NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset,
-    NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError, NavigationAssetResult,
-    NavigationSettingsAsset,
+    NavMeshLinkCapacity, NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
+    NavigationAssetResult, NavigationSettingsAsset,
 };
 pub use physics_material::PhysicsMaterialAsset;
+pub use project_document_error::ProjectDocumentError;
 pub use scene::{
     SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
     SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
@@ -116,12 +123,13 @@ pub use sprite_atlas::{
 };
 pub use texture::{
     decode_external_source_cubemap, decode_ibl_pmrem_rgba16f_texture,
-    decode_zcube_source_cubemap_texture, external_source_cubemap_container_info,
-    is_external_source_cubemap_container, is_ibl_pmrem_rgba16f_texture,
-    is_zcube_source_cubemap_texture, texture_asset_from_array_layers, texture_asset_from_cube_lut,
-    texture_asset_from_cubemap_faces, texture_asset_from_ibl_bake_artifact_pmrem,
-    texture_asset_from_source_cubemap_zcube, CubeLutParseError, CubemapAsset, CubemapAssetError,
-    CubemapSourceLayout, ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    decode_zcube_source_cubemap_bytes, decode_zcube_source_cubemap_texture,
+    external_source_cubemap_container_info, is_external_source_cubemap_container,
+    is_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_texture, texture_asset_from_array_layers,
+    texture_asset_from_cube_lut, texture_asset_from_cubemap_faces,
+    texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_source_cubemap_zcube,
+    CubeLutParseError, CubemapAsset, CubemapAssetError, CubemapSourceLayout,
+    ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
     ExternalSourceCubemapContainerKind, ExternalSourceCubemapDecodeError, IblPmremTextureError,
     Texture2DArrayAsset, Texture2DArrayAssetError, TextureArrayLayerSource, TextureArrayLayout,
     TextureAsset, TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,

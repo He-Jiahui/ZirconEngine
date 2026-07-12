@@ -149,6 +149,8 @@ pub enum NavPathStatus {
 pub struct NavPathPoint {
     pub position: [Real; 3],
     pub area: NavAreaId,
+    #[serde(default)]
+    pub off_mesh_link_id: Option<u32>,
     pub flags: Vec<String>,
 }
 

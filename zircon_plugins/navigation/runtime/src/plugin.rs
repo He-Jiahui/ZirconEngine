@@ -6,6 +6,9 @@ use crate::{
     navigation_plugin_options, NavRepathBudget, NAVIGATION_MODULE_NAME, PLUGIN_ID,
 };
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::navigation::{
+    NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationError, OffMeshTraverseEvent,
+};
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
     PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
@@ -87,8 +90,34 @@ impl RuntimePlugin for NavigationRuntimePlugin {
         for option in navigation_plugin_options() {
             registry.register_plugin_option(option)?;
         }
-        registry.register_plugin_event_catalog(navigation_event_catalog())?;
         let owner = registry.intern_plugin_module(NAVIGATION_MODULE_NAME)?;
+        let event_catalog = navigation_event_catalog();
+        let event = |id: &str| {
+            event_catalog
+                .events
+                .iter()
+                .find(|event| event.id == id)
+                .cloned()
+                .expect("navigation event manifest exists")
+        };
+        registry
+            .register_event::<NavMeshBakeReport>(owner, event("navigation.events.navmesh_baked"))?;
+        registry.register_event::<NavPathResult>(
+            owner,
+            event("navigation.events.path_query_completed"),
+        )?;
+        registry.register_event::<NavigationError>(
+            owner,
+            event("navigation.events.path_query_failed"),
+        )?;
+        registry.register_event::<NavAgentTickReport>(
+            owner,
+            event("navigation.events.agent_tick_completed"),
+        )?;
+        registry.register_event::<OffMeshTraverseEvent>(
+            owner,
+            event("navigation.events.off_mesh_traverse"),
+        )?;
         registry.register_resource(owner, NavRepathBudget::default)?;
         registry
             .register_runtime_scene_system(
@@ -100,8 +129,10 @@ impl RuntimePlugin for NavigationRuntimePlugin {
                         zircon_runtime::core::manager::resolve_navigation_manager(context.core)?;
                     context
                         .level
-                        .with_world_mut(|world| {
-                            manager.tick_world_agents(world, context.delta_seconds)
+                        .with_world_mut(|world| -> Result<NavAgentTickReport, NavigationError> {
+                            let report = manager.tick_world_agents(world, context.delta_seconds)?;
+                            world.send_event(report.clone());
+                            Ok(report)
                         })
                         .map(|_| ())
                         .map_err(|error| {

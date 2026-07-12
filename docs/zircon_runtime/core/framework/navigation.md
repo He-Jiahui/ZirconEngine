@@ -19,6 +19,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/asset/assets/navigation/v1.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/assets/imported.rs
@@ -44,6 +45,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/navigation/surface.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/asset/assets/navigation/v1.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/artifact/store.rs
@@ -100,9 +102,11 @@ The framework defines six fixed dynamic component type ids:
 
 The default humanoid agent matches the plan values: radius `0.5`, height `2.0`, climb `0.4`, slope `45`, speed `3.5`, acceleration `8.0`, angular speed `360`, and stopping distance `0.1`. Areas reserve `0` for `not_walkable`, `1` for `walkable`, `2` for `jump`, and `3..63` for custom areas.
 
-Off-mesh links model a single traversal edge. Off-mesh bridges are a related authoring contract for wider multi-lane crossings: they keep the same endpoint, area, cost, bidirectionality, activation, agent-type, and traversal-mode semantics, then add `lane_count` so the runtime plugin can expand one bridge descriptor into bounded per-lane baked links. `MAX_OFF_MESH_BRIDGE_LANES` caps expansion at `32` lanes, keeping editor-authored bridge values from producing unbounded bake artifacts. `NavLinkTraversalMode` and `NavMeshAgentDescriptor::auto_traverse_links` are neutral policy inputs only: the framework preserves them in components and baked assets, while the active navigation runtime decides whether automatic movement may consume those links.
+Off-mesh links model a single traversal edge. Off-mesh bridges are a related authoring contract for wider multi-lane crossings: they keep the same endpoint, area, cost, bidirectionality, activation, agent-type, traversal-mode, motion, and arc-height semantics, then add `lane_count` so the runtime plugin can expand one bridge descriptor into bounded per-lane baked links. `MAX_OFF_MESH_BRIDGE_LANES` caps expansion at `32` lanes, keeping editor-authored bridge values from producing unbounded bake artifacts. `NavLinkTraversalMode`, `NavLinkMotion`, and `NavMeshAgentDescriptor::auto_traverse_links` are neutral policy inputs only: the framework preserves them in components and baked assets, while the active navigation runtime decides whether automatic movement may consume those links.
 
-`NavMeshAsset` stores deterministic baked data: vertices, indices, polygons, tiles, off-mesh links, agent type, a stable settings hash, and per-area cost/walkability records. It can be constructed from a simple quad or from triangle input with per-triangle area ids, which lets the runtime bake collector preserve `NavMeshModifier` area overrides in the resulting polygons. It also exposes `debug_triangles()` so editor overlays can draw NavMesh area/tile triangles without understanding the serialized polygon layout, and `to_bytes()` / `from_bytes()` so `.znavmesh` artifacts round-trip through a binary payload instead of pretty JSON.
+`OffMeshTraverseState` exposes the neutral Approach/Traverse/Exit state shape, while `OffMeshTraverseEvent` reports started/completed transitions without exposing Detour pointers or plugin-owned capacity tables. `NavPathPoint::off_mesh_link_id` associates a path corner with the stable baked link id; the existing string flag remains a human-readable diagnostic, not the identity source.
+
+`NavMeshAsset` version 2 stores deterministic baked data: vertices, indices, polygons, tiles, off-mesh links, agent type, a stable settings hash, and per-area cost/walkability records. Each link records its non-zero asset-local id, authoring owner, lane, motion, arc height, and explicit `NavMeshLinkCapacity::{Unbounded, Shared}` policy. It can be constructed from a simple quad or from triangle input with per-triangle area ids, which lets the runtime bake collector preserve `NavMeshModifier` area overrides in the resulting polygons. It also exposes `debug_triangles()` so editor overlays can draw NavMesh area/tile triangles without understanding the serialized polygon layout, and `to_bytes()` / `from_bytes()` so `.znavmesh` artifacts round-trip through a binary payload instead of pretty JSON.
 
 `NavigationGizmoSnapshot` projects baked navmesh triangles and off-mesh links into neutral debug geometry. The snapshot can convert itself into the existing `SceneGizmoOverlayExtract` line/pick-shape format using `SceneGizmoKind::NavigationMesh`. This establishes the DTO bridge from `.znavmesh` data to the viewport overlay surface; the renderer still decides which overlay records it draws.
 
@@ -142,4 +146,4 @@ Current boundary split static validation passed: scoped rustfmt over `zircon_run
 
 2026-06-07 plugin runtime follow-up added manager-private agent motion state and focused acceleration/auto-braking coverage in `zircon_plugins/navigation/runtime/src/tests/manager.rs`. The framework contract did not change; this document records the boundary that runtime velocity is plugin-owned state, not a new serialized `NavMeshAgentDescriptor` field.
 
-2026-06-07 plugin runtime traversal follow-up added automatic off-mesh traversal filtering in `zircon_plugins/navigation/runtime/src/manager/traversal.rs`. The framework contract still did not change: manual links remain serialized asset/component data and explicit path queries can still plan across them, while automatic agent ticks are the plugin-owned policy surface that filters manual links and `auto_traverse_links = false` paths.
+M5 extends the framework contract only with backend-neutral link identity, motion, traversal state/event, and tick-report metrics. Capacity queues, interpolation, native user-id packing, and phase advancement remain plugin-owned. `NavMeshAsset` v2 dispatches by its leading wire version: v1 linked assets migrate through the isolated `asset/assets/navigation/v1.rs` DTO with deterministic non-zero ids, linear motion, and unbounded capacity, while unknown versions return `NavigationAssetError::UnsupportedVersion`. Framework serde and migration coverage protect the state/event and asset wire shapes; native/runtime behavior tests and their managed results are recorded by the Navigation 05 child plan.

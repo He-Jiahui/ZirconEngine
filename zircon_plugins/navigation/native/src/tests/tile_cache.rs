@@ -3,6 +3,22 @@ use zircon_runtime::core::framework::navigation::{NavPathQuery, NavPathStatus};
 
 use crate::{RecastNavigationObstacle, RecastTileCache, RecastTileCacheObstacleHandle};
 
+use super::support::two_island_asset;
+
+#[test]
+fn offmesh_link_present_in_baked_tiles() {
+    let asset = two_island_asset(true);
+    let cache = RecastTileCache::from_asset(&asset).expect("tile cache with off-mesh link");
+
+    let path = cache.find_path(&NavPathQuery::new([0.0, 0.0, 0.0], [8.0, 0.0, 0.0]));
+
+    assert_eq!(path.status, NavPathStatus::Complete);
+    assert!(path
+        .points
+        .iter()
+        .any(|point| point.off_mesh_link_id == Some(1)));
+}
+
 #[test]
 fn obstacle_carving_changes_path() {
     let asset = NavMeshAsset::simple_quad("humanoid", 3.0);

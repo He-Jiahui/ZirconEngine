@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::core::framework::navigation::{
-    default_navigation_areas, NavAreaId, NavLinkTraversalMode, NavigationAgentSettings,
-    NavigationAreaSettings, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
+    default_navigation_areas, NavAreaId, NavLinkMotion, NavLinkTraversalMode,
+    NavigationAgentSettings, NavigationAreaSettings, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
 };
 use crate::core::math::Real;
+
+mod v1;
 
 pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;
 
@@ -15,6 +17,10 @@ pub enum NavigationAssetError {
     Serialize(#[source] bincode::Error),
     #[error("deserialize navmesh asset: {0}")]
     Deserialize(#[source] bincode::Error),
+    #[error("unsupported navmesh asset version {version}")]
+    UnsupportedVersion { version: u32 },
+    #[error("navmesh v1 contains too many off-mesh links to assign stable ids: {count}")]
+    TooManyOffMeshLinks { count: usize },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -32,7 +38,7 @@ pub struct NavMeshAsset {
 }
 
 impl NavMeshAsset {
-    pub const VERSION: u32 = 1;
+    pub const VERSION: u32 = 2;
 
     pub fn empty(agent_type: impl Into<String>) -> Self {
         Self {
@@ -176,7 +182,20 @@ impl NavMeshAsset {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> NavigationAssetResult<Self> {
-        bincode::deserialize(bytes).map_err(NavigationAssetError::Deserialize)
+        let mut header = bytes;
+        let version = bincode::deserialize_from::<_, u32>(&mut header)
+            .map_err(NavigationAssetError::Deserialize)?;
+        match version {
+            v1::VERSION => {
+                let asset = bincode::deserialize::<v1::NavMeshAssetV1>(bytes)
+                    .map_err(NavigationAssetError::Deserialize)?;
+                asset
+                    .migrate()
+                    .map_err(|count| NavigationAssetError::TooManyOffMeshLinks { count })
+            }
+            Self::VERSION => bincode::deserialize(bytes).map_err(NavigationAssetError::Deserialize),
+            version => Err(NavigationAssetError::UnsupportedVersion { version }),
+        }
     }
 }
 
@@ -229,6 +248,15 @@ pub struct NavMeshTileAsset {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NavMeshLinkAsset {
+    /// Stable non-zero Detour user id within this asset.
+    pub id: u32,
+    /// Scene entity that authored the link or bridge.
+    pub owner_entity: u64,
+    /// Zero-based lane for bridge-generated links.
+    pub lane_index: u32,
+    pub capacity: NavMeshLinkCapacity,
+    pub motion: NavLinkMotion,
+    pub arc_height: Real,
     pub start: [Real; 3],
     pub end: [Real; 3],
     pub width: Real,
@@ -236,6 +264,13 @@ pub struct NavMeshLinkAsset {
     pub area: NavAreaId,
     pub cost_override: Option<Real>,
     pub traversal_mode: NavLinkTraversalMode,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NavMeshLinkCapacity {
+    Unbounded,
+    Shared { group: u64, limit: u32 },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

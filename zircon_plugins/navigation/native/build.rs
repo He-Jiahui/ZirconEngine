@@ -14,6 +14,7 @@ fn main() {
         .file("native/recast_bridge.cpp")
         .file("native/recast_bake.cpp")
         .file("native/detour_query.cpp")
+        .file("native/detour_off_mesh_connections.cpp")
         .file("native/detour_crowd.cpp")
         .file("native/detour_tile_cache.cpp")
         .file("native/detour_tile_cache_raster.cpp");
@@ -39,6 +40,8 @@ fn main() {
     println!("cargo:rerun-if-changed=native/recast_bridge.h");
     println!("cargo:rerun-if-changed=native/recast_bake.cpp");
     println!("cargo:rerun-if-changed=native/detour_query.cpp");
+    println!("cargo:rerun-if-changed=native/detour_off_mesh_connections.cpp");
+    println!("cargo:rerun-if-changed=native/detour_off_mesh_connections.h");
     println!("cargo:rerun-if-changed=native/detour_crowd.cpp");
     println!("cargo:rerun-if-changed=native/detour_tile_cache.cpp");
     println!("cargo:rerun-if-changed=native/detour_tile_cache_raster.cpp");

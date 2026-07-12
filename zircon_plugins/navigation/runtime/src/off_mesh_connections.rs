@@ -1,5 +1,5 @@
 use crate::component_json::parse_component;
-use zircon_runtime::asset::NavMeshLinkAsset;
+use zircon_runtime::asset::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavMeshOffMeshBridgeDescriptor, NavMeshOffMeshLinkDescriptor, MAX_OFF_MESH_BRIDGE_LANES,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
@@ -13,6 +13,9 @@ pub(crate) fn collect_off_mesh_connections(
 ) -> Vec<NavMeshLinkAsset> {
     let mut links = collect_off_mesh_links(world, agent_type);
     links.extend(collect_off_mesh_bridges(world, agent_type));
+    for (index, link) in links.iter_mut().enumerate() {
+        link.id = u32::try_from(index + 1).expect("navigation asset link count exceeds u32");
+    }
     links
 }
 
@@ -44,6 +47,12 @@ fn collect_off_mesh_links(world: &World, agent_type: &str) -> Vec<NavMeshLinkAss
                 return None;
             }
             Some(NavMeshLinkAsset {
+                id: 0,
+                owner_entity: node.id,
+                lane_index: 0,
+                capacity: NavMeshLinkCapacity::Unbounded,
+                motion: link.motion,
+                arc_height: link.arc_height.max(0.0),
                 start: link_endpoint_world_position(
                     world,
                     node.id,
@@ -120,6 +129,15 @@ fn expand_bridge_lanes(
                 side * (center_offset * lane_width)
             };
             NavMeshLinkAsset {
+                id: 0,
+                owner_entity: owner,
+                lane_index: lane as u32,
+                capacity: NavMeshLinkCapacity::Shared {
+                    group: owner,
+                    limit: lane_count as u32,
+                },
+                motion: bridge.motion,
+                arc_height: bridge.arc_height.max(0.0),
                 start: (start + offset).to_array(),
                 end: (end + offset).to_array(),
                 width: lane_width,

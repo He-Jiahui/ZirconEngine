@@ -15,10 +15,15 @@ mod formats;
 pub mod importer;
 mod load;
 mod management;
+pub mod migration;
 pub mod pack;
 pub mod pipeline;
 pub mod project;
+mod reference_resolution_error;
+mod reference_resolver;
+pub mod registry;
 mod runtime_asset_path;
+mod safe_project_path;
 mod virtual_geometry_cook;
 pub mod watch;
 
@@ -32,35 +37,38 @@ pub use assets::{
     texture_asset_from_cube_lut, texture_asset_from_cubemap_faces,
     texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_source_cubemap_zcube,
     validate_sprite_atlas_asset, validate_wgsl_captures, AlphaMode, AnimationAssetError,
-    AnimationAssetResult, AnimationChannelAsset, AnimationChannelKeyAsset,
-    AnimationChannelValueAsset, AnimationClipAsset, AnimationClipBoneTrackAsset,
-    AnimationConditionOperatorAsset, AnimationEventTrackAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
-    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
-    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
-    AssetAuthoringError, AssetAuthoringResult, CubeLutParseError, CubemapAsset, CubemapAssetError,
-    CubemapSourceLayout, DataAsset, DataAssetFormat, ExternalSourceCubemapContainerError,
-    ExternalSourceCubemapContainerInfo, ExternalSourceCubemapContainerKind,
-    ExternalSourceCubemapDecodeError, FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange,
-    FontAssetError, FontAssetFaceMetrics, FontAssetFaceStyle, FontAssetFamilyMember,
-    FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy,
-    FontAssetResult, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord, IblPmremTextureError, ImportedAsset, MaterialAsset,
-    MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
-    MaterialAssetManagementRecordSetSummary, MaterialAssetOverview, MaterialGraphAsset,
-    MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
-    MaterialGraphParameterAsset, MaterialTextureSlotValue, MeshAsset, MeshAssetManagementRecord,
-    MeshAssetManagementRecordFailure, MeshAssetManagementRecordSet,
+    AnimationAssetResult, AnimationBlendSpace1DAsset, AnimationBlendSpace1DSampleAsset,
+    AnimationBlendSpace2DAsset, AnimationBlendSpace2DSampleAsset, AnimationChannelAsset,
+    AnimationChannelKeyAsset, AnimationChannelValueAsset, AnimationClipAsset,
+    AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset, AnimationEventTrackAsset,
+    AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
+    AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
+    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
+    AnimationStateAsset, AnimationStateKindAsset, AnimationStateMachineAsset,
+    AnimationStateMachineLayerAsset, AnimationStateMachineLayerBlendModeAsset,
+    AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+    AnimationTransitionInterruptionPolicyAsset, AssetAuthoringError, AssetAuthoringResult,
+    CubeLutParseError, CubemapAsset, CubemapAssetError, CubemapSourceLayout, DataAsset,
+    DataAssetFormat, ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    ExternalSourceCubemapContainerKind, ExternalSourceCubemapDecodeError, FontAsset,
+    FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetError, FontAssetFaceMetrics,
+    FontAssetFaceStyle, FontAssetFamilyMember, FontAssetLineMetrics, FontAssetMetadata,
+    FontAssetParsedFace, FontAssetRenderStrategy, FontAssetResult, FontAssetSourceFormat,
+    FontAssetVariableInstance, FontAssetVariationAxis, FontAssetVariationCoord,
+    IblPmremTextureError, ImportedAsset, MaterialAsset, MaterialAssetManagementRecord,
+    MaterialAssetManagementRecordSet, MaterialAssetManagementRecordSetSummary,
+    MaterialAssetOverview, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
+    MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, MaterialTextureSlotValue, MeshAsset,
+    MeshAssetManagementRecord, MeshAssetManagementRecordFailure, MeshAssetManagementRecordSet,
     MeshAssetManagementRecordSetSummary, MeshAssetOverview, MeshAssetUsage, MeshAttributeFormat,
     MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat, MeshIndices, MeshMorphTargetAsset,
     MeshMorphTargetAttributeSummary, MeshSkinAsset, MeshValidationError, ModelAsset,
     ModelAssetManagementRecord, ModelAssetManagementRecordSet,
     ModelAssetManagementRecordSetSummary, ModelAssetOverview, ModelPrimitiveAsset,
     ModelPrimitiveOverview, NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset,
-    NavMeshLinkAsset, NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
-    NavigationAssetResult, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
-    PrefabInstanceAsset, PrefabPropertyOverrideAsset, SceneAmbientLightAsset,
+    NavMeshLinkAsset, NavMeshLinkCapacity, NavMeshPolygonAsset, NavMeshTileAsset,
+    NavigationAssetError, NavigationAssetResult, NavigationSettingsAsset, PhysicsMaterialAsset,
+    PrefabAsset, PrefabInstanceAsset, PrefabPropertyOverrideAsset, SceneAmbientLightAsset,
     SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
     SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
     SceneAssetManagementRecord, SceneAssetManagementRecordSet,
@@ -144,10 +152,15 @@ pub(crate) use pipeline::types::{
     AssetRequest, CpuAssetPayload, CpuMeshPayload, CpuTexturePayload, MeshSource, TextureSource,
 };
 pub(crate) use pipeline::{types, worker_pool};
+pub use project::ProjectManifest;
 #[allow(unused_imports)]
 pub(crate) use project::{
     AssetMetaDocument, AssetMetaEntry, AssetMetaError, AssetMetaResult, AssetSourceUnit,
-    PackageAssetRegistry, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
+    PackageAssetRegistry, PreviewState, ProjectManager, ProjectPaths,
+};
+pub use registry::{
+    AssetRegistryDiagnostic, AssetRegistryEntry, AssetRegistryError, AssetRegistryFilter,
+    AssetRegistryIndex,
 };
 pub use runtime_asset_path::{
     runtime_asset_path, runtime_asset_path_with_dev_asset_root, runtime_asset_root,
@@ -163,6 +176,9 @@ pub type AssetKind = crate::core::resource::ResourceKind;
 pub type AssetReference = crate::core::resource::AssetReference;
 pub type AssetUri = crate::core::resource::ResourceLocator;
 pub type AssetUuid = crate::core::resource::AssetUuid;
+pub use reference_resolution_error::ReferenceResolutionError;
+pub(crate) use reference_resolver::{resolve_project_reference, ResolvedProjectReference};
+pub use reference_resolver::{ReferenceRepair, ReferenceRepairKind};
 
 #[cfg(test)]
 mod tests;

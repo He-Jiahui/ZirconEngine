@@ -30,7 +30,12 @@ related_code:
   - zircon_plugins/navigation/runtime/src/manager/state.rs
   - zircon_plugins/navigation/runtime/src/manager/stats.rs
   - zircon_plugins/navigation/runtime/src/manager/tick.rs
-  - zircon_plugins/navigation/runtime/src/manager/traversal.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/mod.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/advance.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/capacity.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
   - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs
@@ -38,10 +43,12 @@ related_code:
   - zircon_plugins/navigation/runtime/src/settings_validation.rs
   - zircon_plugins/navigation/runtime/src/tests/mod.rs
   - zircon_plugins/navigation/runtime/src/tests/bake.rs
+  - zircon_plugins/navigation/runtime/src/tests/asset_migration.rs
   - zircon_plugins/navigation/runtime/src/tests/crowd.rs
   - zircon_plugins/navigation/runtime/src/tests/tiled_bake_context.rs
   - zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs
   - zircon_plugins/navigation/runtime/src/tests/manager.rs
+  - zircon_plugins/navigation/runtime/src/tests/off_mesh.rs
   - zircon_plugins/navigation/runtime/src/tests/registration.rs
   - zircon_plugins/navigation/runtime/src/tests/support.rs
   - zircon_plugins/navigation/runtime/Cargo.toml
@@ -65,6 +72,7 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/manager.rs
   - zircon_runtime/src/core/framework/navigation/query.rs
   - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/asset/assets/navigation/v1.rs
   - zircon_runtime/src/core/framework/navigation/manager.rs
   - zircon_runtime/src/core/framework/navigation/query.rs
   - zircon_runtime/src/asset/artifact/store.rs
@@ -95,7 +103,12 @@ implementation_files:
   - zircon_plugins/navigation/runtime/src/manager/state.rs
   - zircon_plugins/navigation/runtime/src/manager/stats.rs
   - zircon_plugins/navigation/runtime/src/manager/tick.rs
-  - zircon_plugins/navigation/runtime/src/manager/traversal.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/mod.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/advance.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/capacity.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
+  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
   - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs
@@ -103,6 +116,7 @@ implementation_files:
   - zircon_plugins/navigation/runtime/src/settings_validation.rs
   - zircon_plugins/navigation/runtime/src/tests/mod.rs
   - zircon_plugins/navigation/runtime/src/tests/bake.rs
+  - zircon_plugins/navigation/runtime/src/tests/asset_migration.rs
   - zircon_plugins/navigation/runtime/src/tests/tiled_bake_context.rs
   - zircon_plugins/navigation/runtime/src/tests/dynamic_components.rs
   - zircon_plugins/navigation/runtime/src/tests/manager.rs
@@ -248,7 +262,15 @@ Fresh 2026-05-10 workspace-blocker evidence traced the original retained-host va
 
 2026-06-07 agent-motion slice added `manager/agent_motion.rs` as the runtime-only owner for per-entity velocity, acceleration-limited speed changes, arrival braking, and angular-speed-limited yaw updates. `tests/manager.rs` now covers `navigation_manager_limits_agent_start_velocity_by_acceleration` and `navigation_manager_auto_braking_stops_at_agent_stopping_distance` through the real `World` dynamic component plus `tick_world_agents` path. Static validation and focused Cargo evidence for this slice are tracked in the active plugin-ecosystem session note.
 
-2026-06-07 automatic traversal-policy slice added `manager/traversal.rs` as the runtime-only owner for filtering off-mesh links before automatic agent path queries. `tests/manager.rs` now covers `automatic_agent_tick_does_not_cross_manual_off_mesh_links`, `automatic_agent_tick_respects_auto_traverse_links_opt_out`, and `explicit_path_query_can_still_cross_manual_off_mesh_links`, proving that manual links stay in explicit path planning while automatic agent movement does not silently cross them. Static validation evidence is tracked in the active plugin-ecosystem session note.
+2026-06-07 automatic traversal-policy slice initially added a small filter owner. M5 hard-cuts that file into `manager/traversal/`: `selection` resolves stable link ids from path points, `state` owns per-agent Approach/Traverse/Exit records, `capacity` owns FIFO shared bridge occupancy, and `advance` owns linear/parabolic progress and started/completed events. Manual links remain visible to explicit queries but are removed from automatic agent query assets.
+
+## Off-mesh Traversal Runtime
+
+Each baked link carries a stable asset-local Detour id, authoring owner, lane index, motion shape, arc height, and either unbounded or shared capacity. A bridge expands to one link per lane; every lane points at the same shared capacity group whose limit equals the clamped lane count. Agents may approach concurrently, but a capacity group admits them in FIFO order and releases the slot only after Exit.
+
+`navigation.agent_tick` keeps ownership in the runtime world. It activates a link only when `NavPathPoint::off_mesh_link_id` belongs to the current or next actionable path point, so preceding straight-path corners remain authoritative. It then enters Approach, acquires capacity at the endpoint, advances a linear or parabolic Traverse, snaps through Exit, and resumes ordinary path planning. Phase changes publish typed `OffMeshTraverseEvent` values to the tick report and registered ECS event stream only after the corresponding Transform write succeeds. Removing an agent, clearing its destination, disabling position updates, or changing settings removes both held and queued capacity state instead of leaving a FIFO tombstone.
+
+The plugin event namespace is hard-cut to `navigation.events`. The bake report, query result/error, tick report, and off-mesh traversal payloads are registered as typed world events rather than metadata-only catalog entries. M5 tests cover end-to-end jump traversal, capacity-one FIFO traversal and cancellation, event/writeback ordering, next-corner link selection, and v1 linked-asset migration; their managed testing-stage result belongs to `docs/plans/zircon_plugins/05/2026-07-12-navigation-m5-output-records.md`.
 
 ## DetourCrowd Agent Runtime
 

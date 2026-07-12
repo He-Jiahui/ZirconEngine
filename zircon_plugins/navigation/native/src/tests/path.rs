@@ -1,9 +1,14 @@
+use std::ffi::CStr;
+
 use zircon_runtime::asset::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     nav_area_flag, NavPathQuery, NavPathStatus, NavQueryFilter, NavigationErrorKind, AREA_WALKABLE,
     DEFAULT_AREA_MASK,
 };
 
+use crate::ffi::{
+    zr_nav_detour_create_query, ZrNavDetourQueryCreateResult, ZrNavRecastBakePolygon,
+};
 use crate::RecastBackend;
 
 use super::support::{corner_touching_fan_polygon_asset, two_island_asset};
@@ -67,6 +72,50 @@ fn off_mesh_link_bridges_disconnected_polygons() {
         .points
         .iter()
         .any(|point| point.flags.iter().any(|flag| flag == "off_mesh_link")));
+    assert!(result
+        .points
+        .iter()
+        .any(|point| point.off_mesh_link_id == Some(1)));
+}
+
+#[test]
+fn direct_abi_rejects_missing_off_mesh_link_pointer() {
+    let vertices = [0.0_f32, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+    let indices = [0_u32, 1, 2];
+    let polygons = [ZrNavRecastBakePolygon {
+        first_index: 0,
+        index_count: 3,
+        area: AREA_WALKABLE,
+        tile: 0,
+    }];
+    let mut result = ZrNavDetourQueryCreateResult {
+        status: 0,
+        message: [0; 256],
+        query: std::ptr::null_mut(),
+        polygon_count: 0,
+    };
+
+    unsafe {
+        zr_nav_detour_create_query(
+            vertices.as_ptr(),
+            3,
+            indices.as_ptr(),
+            indices.len() as u32,
+            polygons.as_ptr(),
+            polygons.len() as u32,
+            std::ptr::null(),
+            0,
+            std::ptr::null(),
+            1,
+            &mut result,
+        );
+    }
+
+    assert!(result.query.is_null());
+    let message = unsafe { CStr::from_ptr(result.message.as_ptr()) }
+        .to_string_lossy()
+        .into_owned();
+    assert_eq!(message, "off-mesh link count requires link data");
 }
 
 #[test]

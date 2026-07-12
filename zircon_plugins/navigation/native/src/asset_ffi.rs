@@ -54,6 +54,7 @@ pub(crate) fn detour_off_mesh_links(asset: &NavMeshAsset) -> Vec<ZrNavDetourOffM
         .off_mesh_links
         .iter()
         .map(|link| ZrNavDetourOffMeshLink {
+            user_id: link.id,
             start: link.start,
             end: link.end,
             radius: link.width.max(0.05),

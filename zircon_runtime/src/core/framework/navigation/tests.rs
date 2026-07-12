@@ -42,6 +42,7 @@ fn off_mesh_bridge_descriptor_is_a_first_class_navigation_contract() {
     assert_eq!(descriptor.area_type, AREA_JUMP);
     assert_eq!(descriptor.agent_type, DEFAULT_AGENT_TYPE);
     assert_eq!(descriptor.traversal_mode, NavLinkTraversalMode::Automatic);
+    assert_eq!(descriptor.motion, NavLinkMotion::Linear);
 
     let json = serde_json::to_value(&descriptor).unwrap();
     assert_eq!(json["traversal_mode"], "automatic");
@@ -49,6 +50,29 @@ fn off_mesh_bridge_descriptor_is_a_first_class_navigation_contract() {
     assert_eq!(
         serde_json::from_value::<NavMeshOffMeshBridgeDescriptor>(json).unwrap(),
         descriptor
+    );
+}
+
+#[test]
+fn off_mesh_traverse_state_and_event_are_serializable_contracts() {
+    let state = OffMeshTraverseState {
+        agent_entity: 7,
+        nav_mesh: NavMeshHandle(3),
+        link_id: 11,
+        owner_entity: 19,
+        phase: OffMeshTraversePhase::Traverse,
+        progress: 0.5,
+        start: [1.0, 0.0, 0.0],
+        end: [4.0, 0.0, 0.0],
+    };
+    let event = OffMeshTraverseEvent::started(&state);
+
+    assert_eq!(event.kind, OffMeshTraverseEventKind::Started);
+    assert_eq!(event.link_id, state.link_id);
+    assert_eq!(
+        serde_json::from_value::<OffMeshTraverseState>(serde_json::to_value(&state).unwrap())
+            .unwrap(),
+        state
     );
 }
 

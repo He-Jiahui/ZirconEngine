@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::navigation::{
-    NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    OffMeshTraverseEvent, NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
@@ -68,8 +68,17 @@ fn navigation_registration_contributes_runtime_module_and_components() {
         .find(|catalog| catalog.namespace == NAVIGATION_EVENT_NAMESPACE)
         .expect("navigation runtime event catalog");
     assert!(event_catalog.events.iter().any(|event| {
-        event.id == "navigation.runtime.navmesh_baked"
-            && event.payload_schema == "navigation.runtime.navmesh_bake_report.v1"
+        event.id == "navigation.events.navmesh_baked"
+            && event.payload_schema == "navigation.events.navmesh_bake_report.v1"
+    }));
+    assert!(event_catalog.events.iter().any(|event| {
+        event.id == "navigation.events.off_mesh_traverse"
+            && event.payload_schema == "navigation.events.off_mesh_traverse.v1"
+    }));
+    assert!(report.extensions.plugin_events().any(|(_, event)| {
+        event
+            .type_name()
+            .ends_with(std::any::type_name::<OffMeshTraverseEvent>())
     }));
     assert!(report
         .package_manifest

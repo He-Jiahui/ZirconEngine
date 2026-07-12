@@ -15,6 +15,7 @@ pub(crate) fn convert_path_result(result: &ZrNavDetourPathResult) -> Option<NavP
         .map(|point| NavPathPoint {
             position: point.position,
             area: point.area,
+            off_mesh_link_id: (point.off_mesh_user_id != 0).then_some(point.off_mesh_user_id),
             flags: path_point_flags(point.flags),
         })
         .collect::<Vec<_>>();

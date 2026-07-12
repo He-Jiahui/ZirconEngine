@@ -110,7 +110,6 @@ impl RecastTileCache {
         obstacles: &[RecastNavigationObstacle],
     ) -> Option<Self> {
         if asset.is_empty()
-            || !asset.off_mesh_links.is_empty()
             || asset
                 .off_mesh_links
                 .iter()

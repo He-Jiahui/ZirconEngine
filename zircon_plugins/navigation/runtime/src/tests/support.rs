@@ -1,5 +1,7 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset};
-use zircon_runtime::core::framework::navigation::{AREA_JUMP, AREA_WALKABLE, DEFAULT_AGENT_TYPE};
+use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity};
+use zircon_runtime::core::framework::navigation::{
+    NavLinkMotion, AREA_JUMP, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
+};
 
 pub(super) fn two_island_navmesh(with_link: bool) -> NavMeshAsset {
     let mut asset = NavMeshAsset::from_triangle_mesh(
@@ -19,6 +21,12 @@ pub(super) fn two_island_navmesh(with_link: bool) -> NavMeshAsset {
     );
     if with_link {
         asset.off_mesh_links.push(NavMeshLinkAsset {
+            id: 1,
+            owner_entity: 1,
+            lane_index: 0,
+            capacity: NavMeshLinkCapacity::Unbounded,
+            motion: NavLinkMotion::Parabolic,
+            arc_height: 1.0,
             start: [1.0, 0.0, 0.0],
             end: [7.0, 0.0, 0.0],
             width: 0.5,
