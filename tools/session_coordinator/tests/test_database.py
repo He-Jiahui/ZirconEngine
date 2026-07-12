@@ -342,5 +342,103 @@ class DatabaseTests(unittest.TestCase):
                     connection.execute("SELECT MAX(version) FROM schema_version").fetchone()[0],
                 )
 
+    def test_schema_27_enforces_codex_projection_contracts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            with database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO sessions(session_id, status, created_at, updated_at, last_heartbeat_at) "
+                    "VALUES ('bound-thread', 'registered', 'now', 'now', 'now')"
+                )
+                connection.execute(
+                    """
+                    INSERT INTO codex_sessions(
+                        thread_id, rollout_path, source_location, state, cwd,
+                        last_event, bound_session_id, first_seen_at,
+                        last_activity_at, last_synced_at, source_mtime_ns,
+                        source_size
+                    ) VALUES (
+                        'bound-thread', 'rollout.jsonl', 'active', 'idle',
+                        'E:\\Git\\ZirconEngine', 'stop', 'bound-thread', 'now',
+                        'now', 'now', 1, 1
+                    )
+                    """
+                )
+                indexes = {
+                    row[1]
+                    for row in connection.execute("PRAGMA index_list(codex_sessions)")
+                }
+
+            self.assertTrue(
+                {"codex_sessions_state_activity", "codex_sessions_bound_session"}
+                <= indexes
+            )
+            with self.assertRaises(sqlite3.IntegrityError):
+                with database.transaction() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO codex_sessions(
+                            thread_id, rollout_path, source_location, state, cwd,
+                            last_event, first_seen_at, last_activity_at,
+                            last_synced_at, source_mtime_ns, source_size
+                        ) VALUES (
+                            'invalid-state', 'rollout.jsonl', 'archived', 'active',
+                            'E:\\Git\\ZirconEngine', 'unknown', 'now', 'now',
+                            'now', 1, 1
+                        )
+                        """
+                    )
+
+            with database.transaction() as connection:
+                connection.execute("DELETE FROM sessions WHERE session_id='bound-thread'")
+            with database.connect() as connection:
+                binding = connection.execute(
+                    "SELECT bound_session_id FROM codex_sessions WHERE thread_id='bound-thread'"
+                ).fetchone()[0]
+            self.assertIsNone(binding)
+
+    def test_schema_27_failure_rolls_back_to_valid_v26(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 27):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+
+            original = MIGRATIONS[27]
+
+            def fail_after_ddl(connection) -> None:
+                connection.execute("CREATE TABLE injected_v27_partial(value TEXT)")
+                raise sqlite3.OperationalError("simulated schema 27 failure")
+
+            MIGRATIONS[27] = fail_after_ddl
+            try:
+                with self.assertRaisesRegex(sqlite3.OperationalError, "simulated schema 27"):
+                    migrate(database)
+            finally:
+                MIGRATIONS[27] = original
+
+            with database.connect() as connection:
+                version = connection.execute(
+                    "SELECT MAX(version) FROM schema_version"
+                ).fetchone()[0]
+                partial = connection.execute(
+                    "SELECT COUNT(*) FROM sqlite_master "
+                    "WHERE type='table' AND name='injected_v27_partial'"
+                ).fetchone()[0]
+            self.assertEqual(26, version)
+            self.assertEqual(0, partial)
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+
 if __name__ == "__main__":
     unittest.main()

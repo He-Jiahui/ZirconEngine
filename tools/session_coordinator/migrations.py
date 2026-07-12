@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 26
+LATEST_SCHEMA_VERSION = 27
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1238,6 +1238,75 @@ def _migration_26(connection: Connection) -> None:
     )
 
 
+def _migration_27(connection: Connection) -> None:
+    """Add privacy-bounded Codex source projections and reconciliation audit."""
+    connection.executescript(
+        """
+        CREATE TABLE codex_sessions (
+            thread_id TEXT PRIMARY KEY,
+            rollout_path TEXT NOT NULL,
+            source_location TEXT NOT NULL CHECK (
+                source_location IN ('active', 'archived', 'missing')
+            ),
+            state TEXT NOT NULL CHECK (
+                state IN ('active', 'idle', 'archived', 'unavailable')
+            ),
+            cwd TEXT NOT NULL,
+            originator TEXT,
+            cli_version TEXT,
+            thread_source TEXT,
+            last_event TEXT NOT NULL CHECK (last_event IN (
+                'session_meta', 'task_started', 'task_completed', 'turn_aborted',
+                'session_start', 'user_prompt_submit', 'stop',
+                'subagent_start', 'subagent_stop', 'unknown'
+            )),
+            last_turn_id TEXT,
+            bound_session_id TEXT REFERENCES sessions(session_id) ON DELETE SET NULL,
+            diagnostic_code TEXT,
+            first_seen_at TEXT NOT NULL,
+            last_activity_at TEXT NOT NULL,
+            last_synced_at TEXT NOT NULL,
+            source_mtime_ns INTEGER NOT NULL CHECK (source_mtime_ns >= 0),
+            source_size INTEGER NOT NULL CHECK (source_size >= 0),
+            missing_scan_count INTEGER NOT NULL DEFAULT 0 CHECK (missing_scan_count >= 0),
+            CHECK (
+                (source_location='missing' AND state='unavailable') OR
+                (source_location='archived' AND state='archived') OR
+                (source_location='active' AND state IN ('active', 'idle'))
+            )
+        );
+
+        CREATE INDEX codex_sessions_state_activity
+            ON codex_sessions(state, last_activity_at DESC, thread_id);
+        CREATE INDEX codex_sessions_bound_session
+            ON codex_sessions(bound_session_id)
+            WHERE bound_session_id IS NOT NULL;
+
+        CREATE TABLE codex_sync_runs (
+            run_id TEXT PRIMARY KEY,
+            trigger_kind TEXT NOT NULL CHECK (
+                trigger_kind IN ('startup', 'periodic', 'hook', 'controlled')
+            ),
+            status TEXT NOT NULL CHECK (
+                status IN ('running', 'succeeded', 'partial', 'failed')
+            ),
+            scanned_count INTEGER NOT NULL CHECK (scanned_count >= 0),
+            changed_count INTEGER NOT NULL CHECK (changed_count >= 0),
+            diagnostic_count INTEGER NOT NULL CHECK (diagnostic_count >= 0),
+            unavailable_count INTEGER NOT NULL CHECK (unavailable_count >= 0),
+            duration_ms INTEGER NOT NULL CHECK (duration_ms >= 0),
+            source_revision TEXT NOT NULL,
+            error_code TEXT,
+            created_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+
+        CREATE INDEX codex_sync_runs_created
+            ON codex_sync_runs(created_at DESC, run_id);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1265,6 +1334,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     24: _migration_24,
     25: _migration_25,
     26: _migration_26,
+    27: _migration_27,
 }
 
 

@@ -1,5 +1,8 @@
 ---
 related_code:
+  - tools/session_coordinator/codex_sync/discovery.py
+  - tools/session_coordinator/codex_sync/models.py
+  - tools/session_coordinator/codex_sync/store.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/control_plane/auth.py
@@ -34,6 +37,9 @@ related_code:
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
 implementation_files:
+  - tools/session_coordinator/codex_sync/discovery.py
+  - tools/session_coordinator/codex_sync/models.py
+  - tools/session_coordinator/codex_sync/store.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/control_plane/auth.py
@@ -68,9 +74,13 @@ implementation_files:
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
 plan_sources:
+  - docs/superpowers/specs/2026-07-13-codex-session-hook-sync-design.md
+  - docs/plans/zircon_tooling/session_coordinator/02-codex-session-hook-sync.md
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
+  - tools/session_coordinator/tests/test_codex_discovery.py
+  - tools/session_coordinator/tests/test_codex_store.py
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_supervision_schema.py
   - tools/session_coordinator/tests/test_control_auth.py
@@ -114,6 +124,14 @@ M1 adds the loopback-only control facade, M2 adds the production read console, M
 The console is the Jenkins-like observation surface for Workflow/Node/Attempt state, Session ownership, Failure graph, file leases, delayed patches, Cargo validation, Git finalize evidence, artifacts, logs, and audit history. The tray is only a verified local supervisor: it renders the same supervision state, opens the console through a one-time Observer ticket, and invokes lifecycle operations through the same preview/confirm action protocol.
 
 The facade is versioned under `/control/v1`. Existing coordinator commands and authenticated legacy routes remain available and unchanged.
+
+## Codex Source Session Boundary
+
+Schema v27 introduces a read-only Codex source projection. The discovery layer scans only rollout files below the configured Codex active and archived roots, accepts only canonical working directories inside this repository, and parses only the first `session_meta` record plus a bounded 64 KiB lifecycle tail. Prompts, assistant output, goals, instructions, tool payloads, attachments, environment values, credentials, webhook material, and raw hook JSON are never copied into SQLite, Git, logs, or events.
+
+`codex_sessions` records source presence and the closed `active`, `idle`, `archived`, or `unavailable` state. It is deliberately separate from the existing `sessions` table: Codex presence does not create a business Session, claim a file lease, queue a patch, start Cargo, advance a workflow, or authorize a commit. The only automatic relationship is an exact `codex_sessions.thread_id == sessions.session_id` binding; titles, plan paths, goals, and message text are never used for fuzzy association.
+
+An absent rollout is marked `unavailable` only after two complete directory-membership scans. A truncated or incomplete scan cannot remove source presence. Reconciliation is transactional and emits only thread IDs, enums, counts, timestamps, and sanitized diagnostic codes.
 
 Action Activity is identity-scoped to the current daemon, actor, browser session and bound Session. The page restores the newest bounded records after refresh, resumes polling `executing` actions from `sessionStorage`, and renders actor, reason, result and sanitized error evidence. Read-only, identity-mismatch and fatal-integrity states disable mutation controls while preserving this audit view.
 
