@@ -313,6 +313,8 @@ class CoordinatorApplication:
         ).fetchone()
         baseline_state = "uninitialized" if baseline is None else baseline["health"]
         supervision = self.supervision.snapshot(connection).to_dict()
+        codex_sync = self.codex_worker.snapshot()
+        codex_sync["queueDepth"] = self.codex_spool.pending_count()
         return {
             "status": "ok",
             "branch": self.branch,
@@ -326,6 +328,7 @@ class CoordinatorApplication:
             "repositoryKey": self.repository_identity.key,
             "processCreationTime": self.process_identity.creation_time,
             "supervision": supervision,
+            "codexSync": codex_sync,
         }
 
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:

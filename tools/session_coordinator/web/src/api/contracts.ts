@@ -109,6 +109,52 @@ export interface SessionProjection {
   lastHeartbeatAt: string;
 }
 
+export type CodexSessionState = "active" | "idle" | "archived" | "unavailable";
+export type CodexSourceLocation = "active" | "archived" | "missing";
+export type CodexLifecycleEvent = "session_meta" | "task_started" | "task_completed" | "turn_aborted" | "session_start" | "user_prompt_submit" | "stop" | "subagent_start" | "subagent_stop" | "unknown";
+
+export interface CodexSessionProjection {
+  threadId: string;
+  sourceLocation: CodexSourceLocation;
+  state: CodexSessionState;
+  originator: string | null;
+  cliVersion: string | null;
+  threadSource: string | null;
+  lastEvent: CodexLifecycleEvent;
+  lastTurnId: string | null;
+  boundSessionId: string | null;
+  diagnosticCode: string | null;
+  firstSeenAt: string;
+  lastActivityAt: string;
+  lastSyncedAt: string;
+}
+
+export interface CodexSyncRunProjection {
+  runId: string;
+  trigger: "startup" | "periodic" | "hook" | "controlled";
+  status: "succeeded" | "partial" | "failed";
+  scannedCount: number;
+  changedCount: number;
+  diagnosticCount: number;
+  unavailableCount: number;
+  durationMs: number;
+  errorCode: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface CodexSessionsProjection {
+  rows: CodexSessionProjection[];
+  total: number;
+  truncated: boolean;
+  stateCounts: Record<CodexSessionState, number>;
+  sourceCounts: Record<CodexSourceLocation, number>;
+  queueDepth: number;
+  lastSuccessfulAt: string | null;
+  lastTerminalCode: string | null;
+  lastRun: CodexSyncRunProjection | null;
+}
+
 export interface FailureProjection {
   nodes: FailureNode[];
   diagnostics: Array<{ diagnosticId: number; code: string; message: string; paths: string[]; createdAt: string }>;
@@ -248,6 +294,7 @@ export interface ControlSnapshot {
   service: ServiceProjection;
   workflows: WorkflowSummary[];
   sessions: SessionProjection[];
+  codexSessions: CodexSessionsProjection;
   failures: FailureProjection;
   collaboration: CollaborationProjection;
   validation: ValidationProjection;

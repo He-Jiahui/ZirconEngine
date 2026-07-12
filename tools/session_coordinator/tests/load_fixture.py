@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,12 +12,36 @@ from tools.session_coordinator.models import utc_text
 
 @dataclass(frozen=True, slots=True)
 class ControlLoadShape:
-    sessions: int = 200
-    workflows: int = 100
-    nodes: int = 5_000
-    events: int = 100_000
-    artifacts: int = 10_000
-    log_bytes: int = 500 * 1024 * 1024
+    sessions: int = 40
+    workflows: int = 20
+    nodes: int = 500
+    events: int = 5_000
+    artifacts: int = 500
+    log_bytes: int = 16 * 1024 * 1024
+
+    @classmethod
+    def quick(cls) -> "ControlLoadShape":
+        return cls()
+
+    @classmethod
+    def release(cls) -> "ControlLoadShape":
+        return cls(
+            sessions=200,
+            workflows=100,
+            nodes=5_000,
+            events=100_000,
+            artifacts=10_000,
+            log_bytes=500 * 1024 * 1024,
+        )
+
+    @classmethod
+    def from_environment(cls) -> "ControlLoadShape":
+        profile = os.environ.get("ZIRCON_CONTROL_LOAD_PROFILE", "quick").strip().lower()
+        if profile == "quick":
+            return cls.quick()
+        if profile == "release":
+            return cls.release()
+        raise ValueError("ZIRCON_CONTROL_LOAD_PROFILE must be quick or release")
 
 
 class ControlLoadFixture:
@@ -115,7 +140,7 @@ class ControlLoadFixture:
                         now,
                     )
                 )
-        log_path = self.artifact_root / "load-500mb.log"
+        log_path = self.artifact_root / f"load-{self.shape.log_bytes}-bytes.log"
         self.artifact_root.mkdir(parents=True, exist_ok=True)
         with log_path.open("wb") as stream:
             stream.truncate(self.shape.log_bytes)
@@ -123,7 +148,7 @@ class ControlLoadFixture:
             artifacts[0][0],
             artifacts[0][1],
             "log",
-            "500 MB load log",
+            f"{self.shape.log_bytes} byte load log",
             log_path.name,
             hashlib.sha256(b"sparse-load-log").hexdigest(),
             self.shape.log_bytes,

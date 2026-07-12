@@ -4,7 +4,7 @@ import { JSDOM } from "jsdom";
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@mui/material/styles";
-import type { AuditEvent, CargoJobProjection, ControlSnapshot, FailureNode, FinalizeRequestProjection, WorkflowNode } from "../api/contracts";
+import type { AuditEvent, CargoJobProjection, CodexSessionsProjection, ControlSnapshot, FailureNode, FinalizeRequestProjection, WorkflowNode } from "../api/contracts";
 import { StatusText } from "../components/StatusText";
 import { FixedSizeList } from "../components/audit/fixedList";
 import { NodeDetailDrawer } from "../components/workflow/NodeDetailDrawer";
@@ -14,6 +14,7 @@ import { ValidationLaneTable } from "../components/validation/ValidationLaneTabl
 import { MilestoneCommitEvidence } from "../components/git/MilestoneCommitEvidence";
 import { overviewMetrics } from "../pages/OverviewPage";
 import { ArtifactLifecycleSummary, artifactLifecycleCounts } from "../components/validation/ArtifactLifecycleSummary";
+import { SessionsPage } from "../pages/SessionsPage";
 
 setupDom();
 
@@ -123,6 +124,25 @@ test("artifact lifecycle summary de-duplicates reusable pools and reports cleanu
 test("overview counts running Cargo jobs from canonical status", () => {
   const snapshot = { workflows: [], sessions: [], failures: { nodes: [] }, validation: { cargoJobs: [{ status: "running" }, { status: "succeeded" }] } } as unknown as ControlSnapshot;
   assert.deepEqual(overviewMetrics(snapshot), [["工作流", 0], ["活动会话", 0], ["Failure", 0], ["运行验证", 1]]);
+});
+
+test("Sessions page separates business authority from text-only Codex presence", async () => {
+  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+  const diagnostic = '<img src=x onerror="globalThis.__zirconXss=true">safe-code';
+  const codex: CodexSessionsProjection = {
+    rows: [{ threadId: "thread-12345678901234567890", sourceLocation: "active", state: "active", originator: "Codex Desktop", cliVersion: "0.test", threadSource: "user", lastEvent: "task_started", lastTurnId: "turn-one", boundSessionId: "business-one", diagnosticCode: diagnostic, firstSeenAt: "now", lastActivityAt: "now", lastSyncedAt: "now" }],
+    total: 1, truncated: false, stateCounts: { active: 1, idle: 0, archived: 0, unavailable: 0 }, sourceCounts: { active: 1, archived: 0, missing: 0 }, queueDepth: 2, lastSuccessfulAt: "now", lastTerminalCode: "succeeded", lastRun: null,
+  };
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><SessionsPage sessions={[]} codexSessions={codex} /></ThemeProvider>));
+  assert.match(host.textContent ?? "", /业务 Session（计划与写入权威）/);
+  assert.match(host.textContent ?? "", /Codex 来源 Session（只读存在性）/);
+  assert.match(host.textContent ?? "", /队列 2/);
+  assert.match(host.textContent ?? "", /thread-12345678…/);
+  assert.equal(host.querySelector("[title='thread-12345678901234567890']")?.textContent, "thread-12345678…");
+  assert.match(host.textContent ?? "", /<img/);
+  assert.equal(host.querySelector("img"), null);
+  assert.equal((globalThis as typeof globalThis & { __zirconXss?: boolean }).__zirconXss, undefined);
+  await act(async () => root.unmount()); host.remove();
 });
 
 const node: WorkflowNode = { nodeId: "n", nodeKey: "n", kind: "goal", title: "节点", stage: "implementation", state: "running", ownerSessionId: "s", statusReason: null, currentAttempt: { attemptId: "attempt-1", attemptNumber: 1, state: "succeeded", accepted: true, evidence: { command: ["npm", "test"], exitCode: 0, durationMs: 60000 }, startedAt: "2026-07-11T00:00:00Z", completedAt: "2026-07-11T00:01:00Z" }, attemptHistory: [] };

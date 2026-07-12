@@ -62,7 +62,7 @@ function CurrentPage({ route, snapshot, auth, onAuthChange }: { route: RouteKey;
   switch (route) {
     case "overview": return <OverviewPage snapshot={snapshot} />;
     case "workflows": return <WorkflowsPage workflows={snapshot.workflows} collaboration={snapshot.collaboration} failures={snapshot.failures} />;
-    case "sessions": return <SessionsPage sessions={snapshot.sessions} />;
+    case "sessions": return <SessionsPage sessions={snapshot.sessions} codexSessions={snapshot.codexSessions} />;
     case "actions": return <ActionsPage service={snapshot.service} sessions={snapshot.sessions} workflows={snapshot.workflows} auth={auth} onAuthChange={onAuthChange} />;
     case "failures": return <FailuresPage failures={snapshot.failures} />;
     case "collaboration": return <CollaborationPage collaboration={snapshot.collaboration} />;

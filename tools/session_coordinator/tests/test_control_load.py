@@ -4,6 +4,7 @@ import statistics
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -37,7 +38,7 @@ class ControlLoadTests(unittest.TestCase):
         cls.repo = init_repo(cls.root / "repo")
         cls.database = Database(cls.root / "state.sqlite3")
         migrate(cls.database)
-        cls.shape = ControlLoadShape()
+        cls.shape = ControlLoadShape.from_environment()
         ControlLoadFixture(cls.database, cls.root / "artifacts", cls.shape).seed()
         cls.projections = WorkflowProjectionService()
         cls.snapshot = ControlSnapshotService(
@@ -62,7 +63,7 @@ class ControlLoadTests(unittest.TestCase):
             samples.append((time.perf_counter() - started) * 1_000)
         return samples
 
-    def test_exact_release_scale_is_seeded(self) -> None:
+    def test_configured_scale_is_seeded(self) -> None:
         with self.database.connect() as connection:
             counts = {
                 table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -108,13 +109,17 @@ class ControlLoadTests(unittest.TestCase):
                 with events.client_slot():
                     pass
 
-    def test_500mb_log_supports_bounded_range_reads(self) -> None:
+    def test_large_log_supports_bounded_range_reads(self) -> None:
         downloads = ArtifactDownloadService(self.database, self.root / "artifacts")
-        response = downloads.download("artifact-000-000", "bytes=524287744-524287999")
+        range_start = self.shape.log_bytes - 256
+        response = downloads.download(
+            "artifact-000-000",
+            f"bytes={range_start}-{self.shape.log_bytes - 1}",
+        )
         self.assertEqual(206, response.status)
         self.assertEqual(256, len(response.body))
         self.assertEqual(
-            "bytes 524287744-524287999/524288000",
+            f"bytes {range_start}-{self.shape.log_bytes - 1}/{self.shape.log_bytes}",
             response.headers["Content-Range"],
         )
 
@@ -167,6 +172,33 @@ class ControlLoadTests(unittest.TestCase):
         )
         self.assertLess(health_p95, 100, f"health P95 was {health_p95:.1f} ms")
         self.assertLess(action_p95, 1_000, f"action preview P95 was {action_p95:.1f} ms")
+
+
+class ControlLoadShapeTests(unittest.TestCase):
+    def test_quick_profile_is_the_default(self) -> None:
+        with patch.dict("os.environ", {}, clear=True):
+            shape = ControlLoadShape.from_environment()
+        self.assertEqual(ControlLoadShape.quick(), shape)
+        self.assertLess(shape.events, ControlLoadShape.release().events)
+        self.assertLess(shape.log_bytes, ControlLoadShape.release().log_bytes)
+
+    def test_release_profile_remains_explicitly_available(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"ZIRCON_CONTROL_LOAD_PROFILE": "release"},
+            clear=True,
+        ):
+            shape = ControlLoadShape.from_environment()
+        self.assertEqual(ControlLoadShape.release(), shape)
+
+    def test_unknown_profile_is_rejected(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"ZIRCON_CONTROL_LOAD_PROFILE": "extreme-ish"},
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "quick or release"):
+                ControlLoadShape.from_environment()
 
 
 if __name__ == "__main__":

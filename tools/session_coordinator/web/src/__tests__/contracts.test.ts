@@ -31,6 +31,35 @@ test("runtime contracts accept the legacy projection during a rolling daemon upg
   collaboration.patches = [{ patch_id: 1, session_id: "s", patch_object_hash: "h", targets: ["a"], base_hashes: {}, base_objects: {}, current_objects: null, status: "queued", error_text: null, created_at: "now", updated_at: "now", applied_at: null }];
   snapshot.validation.validationCopies = [{ job_id: "j", session_id: "s", job_root: "r", source_root: "s", target_root: "t", head_commit: "h", manifest: ["Cargo.toml"], status: "planned", created_at: "now", removed_at: null }];
   assert.equal(parseSnapshot(snapshot).collaboration.baseline?.epoch_id, 1);
+  assert.deepEqual(parseSnapshot(validSnapshot()).codexSessions.rows, []);
+});
+
+test("Codex Session contracts accept only bounded exact text projections", () => {
+  const snapshot = validSnapshot();
+  (snapshot as Record<string, unknown>).codexSessions = validCodexProjection();
+  const parsed = parseSnapshot(snapshot);
+  assert.equal(parsed.codexSessions.rows[0]?.threadId, "thread-12345678901234567890");
+
+  for (const mutate of [
+    (row: Record<string, unknown>) => { row.state = "running"; },
+    (row: Record<string, unknown>) => { row.sourceLocation = "private-path"; },
+    (row: Record<string, unknown>) => { row.lastEvent = "raw_message"; },
+    (row: Record<string, unknown>) => { row.boundSessionId = ""; },
+    (row: Record<string, unknown>) => { row.diagnosticCode = "x".repeat(161); },
+    (row: Record<string, unknown>) => { row.rawRollout = { prompt: "secret" }; },
+  ]) {
+    const candidate = validSnapshot();
+    const codex = validCodexProjection();
+    mutate(codex.rows[0] as Record<string, unknown>);
+    (candidate as Record<string, unknown>).codexSessions = codex;
+    assert.throws(() => parseSnapshot(candidate));
+  }
+
+  const oversized = validSnapshot();
+  const codex = validCodexProjection();
+  codex.rows = Array.from({ length: 1001 }, () => ({ ...codex.rows[0] }));
+  (oversized as Record<string, unknown>).codexSessions = codex;
+  assert.throws(() => parseSnapshot(oversized), /1000/);
 });
 
 test("runtime contracts reject missing IDs, invalid enums, and malformed arrays in every control domain", () => {
@@ -69,5 +98,22 @@ function validSnapshot() {
     collaboration: { baseline: null, leases: [] as Record<string, unknown>[], patches: [] as Record<string, unknown>[] },
     validation: { cargoJobs: [] as Record<string, unknown>[], validationCopies: [] as Record<string, unknown>[] },
     git: { finalizeRequests: [] as Record<string, unknown>[] }, audit: [],
+  };
+}
+
+function validCodexProjection() {
+  return {
+    rows: [{
+      threadId: "thread-12345678901234567890", sourceLocation: "active", state: "active",
+      originator: "Codex Desktop", cliVersion: "0.test", threadSource: "user",
+      lastEvent: "task_started", lastTurnId: "turn-one", boundSessionId: null,
+      diagnosticCode: null, firstSeenAt: "2026-07-13T00:00:00Z",
+      lastActivityAt: "2026-07-13T00:01:00Z", lastSyncedAt: "2026-07-13T00:01:01Z",
+    }],
+    total: 1, truncated: false,
+    stateCounts: { active: 1, idle: 0, archived: 0, unavailable: 0 },
+    sourceCounts: { active: 1, archived: 0, missing: 0 },
+    queueDepth: 0, lastSuccessfulAt: "2026-07-13T00:01:01Z", lastTerminalCode: "succeeded",
+    lastRun: { runId: "run-one", trigger: "hook", status: "succeeded", scannedCount: 1, changedCount: 1, diagnosticCount: 0, unavailableCount: 0, durationMs: 2, errorCode: null, createdAt: "2026-07-13T00:01:00Z", completedAt: "2026-07-13T00:01:01Z" },
   };
 }

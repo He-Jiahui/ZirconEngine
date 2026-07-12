@@ -58,6 +58,25 @@ function enumeration(value: unknown, allowed: readonly string[], label: string):
   return parsed;
 }
 
+function exactKeys(value: JsonObject, expected: readonly string[], label: string): void {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index]))
+    throw new Error(`${label} 字段集合无效`);
+}
+
+function boundedString(value: unknown, label: string, limit: number): string {
+  const parsed = string(value, label);
+  if (!parsed || parsed.length > limit) throw new Error(`${label} 长度无效`);
+  return parsed;
+}
+
+function nonnegativeInteger(value: unknown, label: string): number {
+  const parsed = integer(value, label);
+  if (parsed < 0) throw new Error(`${label} 不得为负数`);
+  return parsed;
+}
+
 const workflowStates = ["registered", "active", "waiting_dependency", "waiting_lease", "resolving_failure", "waiting_validation", "waiting_review", "finalizing", "succeeded", "failed", "cancelled", "stale", "archived"];
 const sessionStates = ["registered", "active", "waiting_lease", "resolving_failure", "waiting_validation", "finalizing", "completed", "stale", "archived", "cancelled"];
 const nodeStates = ["pending", "ready", "running", "waiting_external", "succeeded", "failed", "cancelled", "skipped"];
@@ -92,6 +111,8 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   }
   array(root.workflows, "workflows").forEach((item, index) => validateWorkflowSummary(item, `workflows[${index}]`));
   array(root.sessions, "sessions").forEach((item, index) => validateSession(item, `sessions[${index}]`));
+  if (root.codexSessions === undefined) root.codexSessions = emptyCodexSessions();
+  validateCodexSessions(root.codexSessions, "Codex Sessions");
   array(root.audit, "audit").forEach((item, index) => validateAudit(item, `audit[${index}]`));
   const failures = object(root.failures, "失败投影");
   array(failures.nodes, "失败节点").forEach((item, index) => validateFailureNode(item, `失败节点[${index}]`));
@@ -110,6 +131,64 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   const git = object(root.git, "Git 投影");
   array(git.finalizeRequests, "Git.finalizeRequests").forEach((item, index) => validateFinalizeRequest(item, `Git.finalizeRequests[${index}]`));
   return value as unknown as ControlSnapshot;
+}
+
+function emptyCodexSessions() {
+  return {
+    rows: [], total: 0, truncated: false,
+    stateCounts: { active: 0, idle: 0, archived: 0, unavailable: 0 },
+    sourceCounts: { active: 0, archived: 0, missing: 0 },
+    queueDepth: 0, lastSuccessfulAt: null, lastTerminalCode: null, lastRun: null,
+  };
+}
+
+function validateCodexSessions(value: unknown, label: string): void {
+  const projection = object(value, label);
+  exactKeys(projection, ["rows", "total", "truncated", "stateCounts", "sourceCounts", "queueDepth", "lastSuccessfulAt", "lastTerminalCode", "lastRun"], label);
+  const rows = array(projection.rows, `${label}.rows`);
+  if (rows.length > 1000) throw new Error(`${label}.rows 超过 1000 行上限`);
+  rows.forEach((row, index) => validateCodexSession(row, `${label}.rows[${index}]`));
+  nonnegativeInteger(projection.total, `${label}.total`);
+  if (typeof projection.truncated !== "boolean") throw new Error(`${label}.truncated 必须是布尔值`);
+  const stateCounts = object(projection.stateCounts, `${label}.stateCounts`);
+  exactKeys(stateCounts, ["active", "idle", "archived", "unavailable"], `${label}.stateCounts`);
+  for (const state of ["active", "idle", "archived", "unavailable"]) nonnegativeInteger(stateCounts[state], `${label}.stateCounts.${state}`);
+  const sourceCounts = object(projection.sourceCounts, `${label}.sourceCounts`);
+  exactKeys(sourceCounts, ["active", "archived", "missing"], `${label}.sourceCounts`);
+  for (const source of ["active", "archived", "missing"]) nonnegativeInteger(sourceCounts[source], `${label}.sourceCounts.${source}`);
+  nonnegativeInteger(projection.queueDepth, `${label}.queueDepth`);
+  if (projection.lastSuccessfulAt !== null) boundedString(projection.lastSuccessfulAt, `${label}.lastSuccessfulAt`, 64);
+  if (projection.lastTerminalCode !== null) boundedString(projection.lastTerminalCode, `${label}.lastTerminalCode`, 160);
+  if (projection.lastRun !== null) validateCodexRun(projection.lastRun, `${label}.lastRun`);
+}
+
+function validateCodexSession(value: unknown, label: string): void {
+  const row = object(value, label);
+  exactKeys(row, ["threadId", "sourceLocation", "state", "originator", "cliVersion", "threadSource", "lastEvent", "lastTurnId", "boundSessionId", "diagnosticCode", "firstSeenAt", "lastActivityAt", "lastSyncedAt"], label);
+  boundedString(row.threadId, `${label}.threadId`, 160);
+  enumeration(row.sourceLocation, ["active", "archived", "missing"], `${label}.sourceLocation`);
+  enumeration(row.state, ["active", "idle", "archived", "unavailable"], `${label}.state`);
+  for (const key of ["originator", "cliVersion", "threadSource"])
+    if (row[key] !== null) boundedString(row[key], `${label}.${key}`, 256);
+  enumeration(row.lastEvent, ["session_meta", "task_started", "task_completed", "turn_aborted", "session_start", "user_prompt_submit", "stop", "subagent_start", "subagent_stop", "unknown"], `${label}.lastEvent`);
+  for (const key of ["lastTurnId", "boundSessionId"])
+    if (row[key] !== null) boundedString(row[key], `${label}.${key}`, 160);
+  if (row.diagnosticCode !== null) boundedString(row.diagnosticCode, `${label}.diagnosticCode`, 160);
+  for (const key of ["firstSeenAt", "lastActivityAt", "lastSyncedAt"])
+    boundedString(row[key], `${label}.${key}`, 64);
+}
+
+function validateCodexRun(value: unknown, label: string): void {
+  const run = object(value, label);
+  exactKeys(run, ["runId", "trigger", "status", "scannedCount", "changedCount", "diagnosticCount", "unavailableCount", "durationMs", "errorCode", "createdAt", "completedAt"], label);
+  boundedString(run.runId, `${label}.runId`, 160);
+  enumeration(run.trigger, ["startup", "periodic", "hook", "controlled"], `${label}.trigger`);
+  enumeration(run.status, ["succeeded", "partial", "failed"], `${label}.status`);
+  for (const key of ["scannedCount", "changedCount", "diagnosticCount", "unavailableCount", "durationMs"])
+    nonnegativeInteger(run[key], `${label}.${key}`);
+  if (run.errorCode !== null) boundedString(run.errorCode, `${label}.errorCode`, 160);
+  boundedString(run.createdAt, `${label}.createdAt`, 64);
+  if (run.completedAt !== null) boundedString(run.completedAt, `${label}.completedAt`, 64);
 }
 
 export function parseWorkflowDetail(value: unknown): WorkflowDetail {

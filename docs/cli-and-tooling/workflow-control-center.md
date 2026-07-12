@@ -18,6 +18,7 @@ related_code:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/run-control-validation.ps1
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
   - tools/session_coordinator/control_plane/actions/catalog.py
@@ -37,6 +38,9 @@ related_code:
   - tools/session_tray/src/startup.rs
   - tools/session_tray/src/tray_state.rs
   - tools/session_coordinator/web/src/App.tsx
+  - tools/session_coordinator/web/src/api/contracts.ts
+  - tools/session_coordinator/web/src/api/validation.ts
+  - tools/session_coordinator/web/src/pages/SessionsPage.tsx
   - tools/session_coordinator/web/src/pages/ActionsPage.tsx
   - tools/session_coordinator/web/src/components/actions/ActionActivityList.tsx
   - tools/session_coordinator/workflows/projections.py
@@ -61,6 +65,7 @@ implementation_files:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/run-control-validation.ps1
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
   - tools/session_coordinator/control_plane/actions/catalog.py
@@ -80,6 +85,9 @@ implementation_files:
   - tools/session_tray/src/startup.rs
   - tools/session_tray/src/tray_state.rs
   - tools/session_coordinator/web/src/App.tsx
+  - tools/session_coordinator/web/src/api/contracts.ts
+  - tools/session_coordinator/web/src/api/validation.ts
+  - tools/session_coordinator/web/src/pages/SessionsPage.tsx
   - tools/session_coordinator/web/src/pages/ActionsPage.tsx
   - tools/session_coordinator/web/src/components/actions/ActionActivityList.tsx
   - tools/session_coordinator/workflows/projections.py
@@ -176,6 +184,12 @@ The worker is suppressed on non-main, draining, read-only, identity-mismatch, fa
 `POST /control/v1/codex-sync/wake` is runtime-token only. It requires exact loopback transport, a body no larger than 4 KiB, the current repository key, and trigger schema 1, then returns `202` after setting the wake event without scanning on the request thread. Hook signaling additionally requires runtime descriptor PID/creation time and `coordinator.lock` PID agreement; a stale descriptor or competing daemon chain therefore remains queued offline.
 
 Maintainers may use the closed `codex.sessions.reconcile` action through the normal Preview/Confirm/audit protocol. Its parameter object must be exactly empty; paths, Codex homes, thread IDs, prompts, or arbitrary payloads are rejected. Confirm only enqueues the same worker and cannot invoke a second reconciliation path. Schema v28 atomically extends the action audit enum while preserving action approvals, supervision events, lifecycle intents, their foreign keys, uniqueness rules, and immutable-history triggers.
+
+### Codex Session browser projection
+
+The Sessions route renders two intentionally separate panels. The business Session panel remains the authority for plan state, leases, validation and commits. The Codex source panel is read-only presence: it shows a shortened thread ID, closed state and source-location labels, last lifecycle event/activity/sync timestamps, safe origin/CLI metadata, exact business binding and sanitized diagnostic code. It never receives a rollout path, raw revision, prompt, message, goal, tool input or environment value.
+
+The server returns at most 1,000 Codex rows, active-first and then newest-activity-first, plus total/truncation, state/source counts, pending queue depth and last reconciliation status. Browser contracts validate every nested field and enum before updating state. A legacy daemon snapshot without `codexSessions` is normalized to an empty panel during rolling upgrade; unexpected fields and oversized diagnostics fail closed.
 
 Action Activity is identity-scoped to the current daemon, actor, browser session and bound Session. The page restores the newest bounded records after refresh, resumes polling `executing` actions from `sessionStorage`, and renders actor, reason, result and sanitized error evidence. Read-only, identity-mismatch and fatal-integrity states disable mutation controls while preserving this audit view.
 
@@ -304,7 +318,16 @@ Control-plane payloads are bounded independently of the SQLite file size. A base
 
 ## M6 Load and Soak Acceptance
 
-The deterministic load fixture uses a temporary database and artifact root with 200 Sessions, 100 workflows, 5,000 nodes/attempts, 100,000 events, 10,000 artifacts, eight SSE clients, and a sparse 500MB log. It measures health, coherent snapshot, workflow list, event replay, and action-preview P95 without mutating the shared checkout.
+Routine validation uses the deterministic `Quick` profile in a temporary database and artifact root: 40 Sessions, 20 workflows, 500 nodes/attempts, 5,000 events, 500 artifacts, eight SSE clients, and a sparse 16 MiB log. It preserves the same coherence, capacity, bounded-range and P95 assertions while keeping the developer feedback loop short. The original release-scale profile (200 Sessions, 100 workflows, 5,000 nodes/attempts, 100,000 events, 10,000 artifacts and a sparse 500 MiB log) remains explicit opt-in rather than a routine gate.
+
+Use the wrapper so every run retains a complete transcript outside Git for later diagnosis:
+
+```powershell
+.\tools\session_coordinator\run-control-validation.ps1 -Profile Quick -Suite H4
+.\tools\session_coordinator\run-control-validation.ps1 -Profile Release -Suite H4
+```
+
+Logs are written below `%LOCALAPPDATA%\ZirconEngine\SessionCoordinator\validation`. The wrapper prints the exact file after success or failure. `Quick` is the default for milestone development; `Release` is reserved for an explicit release/load investigation and does not replace the source-frozen soak.
 
 The soak entry point always writes raw samples outside Git:
 

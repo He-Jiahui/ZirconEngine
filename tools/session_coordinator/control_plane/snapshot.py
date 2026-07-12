@@ -31,12 +31,14 @@ class ControlSnapshotService:
                 cursor = int(
                     connection.execute("SELECT COALESCE(MAX(event_id), 0) FROM events").fetchone()[0]
                 )
+                service = self.service_state(connection)
                 snapshot = {
                     "projectionVersion": 1,
                     "eventCursor": cursor,
-                    "service": self.service_state(connection),
+                    "service": service,
                     "workflows": self.workflows.workflow_summaries(connection),
                     "sessions": self._sessions(connection),
+                    "codexSessions": self._codex_sessions(connection, service),
                     "failures": self._failures(connection),
                     "collaboration": self._collaboration(connection),
                     "validation": self._validation(connection),
@@ -48,6 +50,95 @@ class ControlSnapshotService:
                 connection.rollback()
                 raise
         return snapshot
+
+    @staticmethod
+    def _codex_sessions(connection, service: dict[str, object]) -> dict[str, object]:
+        limit = 1000
+        rows = connection.execute(
+            """
+            SELECT thread_id, source_location, state, originator, cli_version,
+                   thread_source, last_event, last_turn_id, bound_session_id,
+                   diagnostic_code, first_seen_at, last_activity_at, last_synced_at
+            FROM codex_sessions
+            ORDER BY CASE state
+                WHEN 'active' THEN 0 WHEN 'idle' THEN 1
+                WHEN 'archived' THEN 2 ELSE 3 END,
+                last_activity_at DESC, thread_id
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        state_counts = {state: 0 for state in ("active", "idle", "archived", "unavailable")}
+        for row in connection.execute(
+            "SELECT state, COUNT(*) AS count FROM codex_sessions GROUP BY state"
+        ):
+            state_counts[str(row["state"])] = int(row["count"])
+        source_counts = {location: 0 for location in ("active", "archived", "missing")}
+        for row in connection.execute(
+            "SELECT source_location, COUNT(*) AS count FROM codex_sessions GROUP BY source_location"
+        ):
+            source_counts[str(row["source_location"])] = int(row["count"])
+        total = sum(state_counts.values())
+        latest = connection.execute(
+            "SELECT * FROM codex_sync_runs ORDER BY created_at DESC, run_id DESC LIMIT 1"
+        ).fetchone()
+        successful = connection.execute(
+            """
+            SELECT completed_at FROM codex_sync_runs
+            WHERE status='succeeded'
+            ORDER BY created_at DESC, run_id DESC LIMIT 1
+            """
+        ).fetchone()
+        worker = service.get("codexSync")
+        worker_state = worker if isinstance(worker, dict) else {}
+        return {
+            "rows": [
+                {
+                    "threadId": row["thread_id"],
+                    "sourceLocation": row["source_location"],
+                    "state": row["state"],
+                    "originator": row["originator"],
+                    "cliVersion": row["cli_version"],
+                    "threadSource": row["thread_source"],
+                    "lastEvent": row["last_event"],
+                    "lastTurnId": row["last_turn_id"],
+                    "boundSessionId": row["bound_session_id"],
+                    "diagnosticCode": row["diagnostic_code"],
+                    "firstSeenAt": row["first_seen_at"],
+                    "lastActivityAt": row["last_activity_at"],
+                    "lastSyncedAt": row["last_synced_at"],
+                }
+                for row in rows
+            ],
+            "total": total,
+            "truncated": total > limit,
+            "stateCounts": state_counts,
+            "sourceCounts": source_counts,
+            "queueDepth": int(worker_state.get("queueDepth", 0)),
+            "lastSuccessfulAt": successful["completed_at"] if successful else None,
+            "lastTerminalCode": (
+                worker_state.get("lastErrorCode")
+                or (latest["error_code"] if latest is not None else None)
+                or (latest["status"] if latest is not None else None)
+            ),
+            "lastRun": (
+                {
+                    "runId": latest["run_id"],
+                    "trigger": latest["trigger_kind"],
+                    "status": latest["status"],
+                    "scannedCount": latest["scanned_count"],
+                    "changedCount": latest["changed_count"],
+                    "diagnosticCount": latest["diagnostic_count"],
+                    "unavailableCount": latest["unavailable_count"],
+                    "durationMs": latest["duration_ms"],
+                    "errorCode": latest["error_code"],
+                    "createdAt": latest["created_at"],
+                    "completedAt": latest["completed_at"],
+                }
+                if latest is not None
+                else None
+            ),
+        }
 
     @staticmethod
     def _sessions(connection) -> list[dict[str, object]]:

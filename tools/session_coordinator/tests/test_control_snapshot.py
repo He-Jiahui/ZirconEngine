@@ -15,6 +15,86 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
+    def test_codex_projection_is_bounded_ordered_and_path_free(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            with database.transaction() as connection:
+                rows = []
+                for index in range(1005):
+                    state = "active" if index == 1004 else "archived"
+                    location = "active" if state == "active" else "archived"
+                    rows.append(
+                        (
+                            f"thread-{index:04d}",
+                            f"C:/private/rollout-{index}.jsonl",
+                            location,
+                            state,
+                            "E:/Git/ZirconEngine",
+                            "Codex Desktop",
+                            "0.test",
+                            "user",
+                            "task_started" if state == "active" else "task_completed",
+                            f"turn-{index}",
+                            "safe_diagnostic" if index == 1004 else None,
+                            "2026-07-13T00:00:00+00:00",
+                            f"2026-07-13T00:{index % 60:02d}:00+00:00",
+                            "2026-07-13T01:00:00+00:00",
+                            index,
+                            index,
+                        )
+                    )
+                connection.executemany(
+                    """
+                    INSERT INTO codex_sessions(
+                        thread_id, rollout_path, source_location, state, cwd,
+                        originator, cli_version, thread_source, last_event,
+                        last_turn_id, diagnostic_code, first_seen_at,
+                        last_activity_at, last_synced_at, source_mtime_ns,
+                        source_size
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    rows,
+                )
+                connection.execute(
+                    """
+                    INSERT INTO codex_sync_runs(
+                        run_id, trigger_kind, status, scanned_count,
+                        changed_count, diagnostic_count, unavailable_count,
+                        duration_ms, source_revision, error_code, created_at,
+                        completed_at
+                    ) VALUES (
+                        'run-latest', 'periodic', 'succeeded', 1005, 1, 1, 0,
+                        12, 'revision', NULL, '2026-07-13T01:00:00+00:00',
+                        '2026-07-13T01:00:01+00:00'
+                    )
+                    """
+                )
+            service = ControlSnapshotService(
+                database,
+                WorkflowProjectionService(),
+                lambda _connection: {
+                    "status": "ok",
+                    "codexSync": {"queueDepth": 7, "lastErrorCode": None},
+                },
+            )
+
+            projection = service.build()["codexSessions"]
+
+            self.assertEqual(1005, projection["total"])
+            self.assertTrue(projection["truncated"])
+            self.assertEqual(1000, len(projection["rows"]))
+            self.assertEqual("thread-1004", projection["rows"][0]["threadId"])
+            self.assertEqual(1, projection["stateCounts"]["active"])
+            self.assertEqual(1004, projection["stateCounts"]["archived"])
+            self.assertEqual(7, projection["queueDepth"])
+            self.assertEqual("run-latest", projection["lastRun"]["runId"])
+            serialized = json.dumps(projection)
+            self.assertNotIn("rollout", serialized.casefold())
+            self.assertNotIn("E:/Git/ZirconEngine", serialized)
+
     def test_snapshot_contains_consistent_cursor_and_domain_sections(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -55,6 +135,7 @@ class ControlSnapshotTests(unittest.TestCase):
                     "service",
                     "workflows",
                     "sessions",
+                    "codexSessions",
                     "failures",
                     "collaboration",
                     "validation",
