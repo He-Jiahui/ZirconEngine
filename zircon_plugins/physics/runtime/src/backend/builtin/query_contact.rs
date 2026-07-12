@@ -3,6 +3,7 @@ mod filter;
 mod geometry;
 mod overlap;
 mod raycast;
+mod sweep;
 
 use zircon_runtime::core::framework::physics::{
     PhysicsColliderSyncState, PhysicsContactEvent, PhysicsRayCastHit, PhysicsRayCastQuery,
@@ -53,4 +54,11 @@ pub(crate) fn ray_cast_collider(
     collider: &PhysicsColliderSyncState,
 ) -> Option<PhysicsRayCastHit> {
     raycast::ray_cast_collider(origin, direction, max_distance, collider)
+}
+
+pub(crate) fn shape_cast_query(
+    sync: &PhysicsWorldSyncState,
+    query: &zircon_runtime::core::framework::physics::PhysicsShapeCastQuery,
+) -> Vec<zircon_runtime::core::framework::physics::PhysicsShapeCastHit> {
+    sweep::shape_cast_query(sync, query)
 }

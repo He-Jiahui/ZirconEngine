@@ -1,0 +1,44 @@
+[asset]
+kind = "view"
+id = "physics.ragdoll_profile"
+version = 2
+display_name = "Ragdoll Profile"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "ragdoll_profile_root"
+
+[nodes.ragdoll_profile_toolbar]
+component = "Space"
+control_id = "RagdollProfileToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.ragdoll_skeleton_tree]
+component = "Space"
+control_id = "RagdollSkeletonTree"
+layout = { width = { min = 240.0, preferred = 300.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ragdoll_preview]
+component = "Space"
+control_id = "RagdollProfilePreview"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.ragdoll_bone_properties]
+component = "Space"
+control_id = "RagdollBoneProperties"
+layout = { width = { min = 280.0, preferred = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.ragdoll_profile_body]
+component = "HorizontalGroup"
+control_id = "RagdollProfileBody"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ragdoll_skeleton_tree" }, { node = "ragdoll_preview" }, { node = "ragdoll_bone_properties" }]
+
+[nodes.ragdoll_profile_root]
+component = "VerticalGroup"
+control_id = "RagdollProfileRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "ragdoll_profile_toolbar" }, { node = "ragdoll_profile_body" }]

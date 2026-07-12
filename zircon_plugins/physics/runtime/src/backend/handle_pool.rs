@@ -60,6 +60,33 @@ where
             .and_then(|slot| slot.value.as_mut())
     }
 
+    pub(super) fn get_pair_mut(&mut self, a: H, b: H) -> Option<(&mut T, &mut T)> {
+        let (a_index, a_generation) = unpack_handle(a.raw());
+        let (b_index, b_generation) = unpack_handle(b.raw());
+        if a_index == b_index {
+            return None;
+        }
+        let (low_index, low_generation, high_index, high_generation, swapped) = if a_index < b_index
+        {
+            (a_index, a_generation, b_index, b_generation, false)
+        } else {
+            (b_index, b_generation, a_index, a_generation, true)
+        };
+        let (low, high) = self.slots.split_at_mut(high_index as usize);
+        let low = low.get_mut(low_index as usize)?;
+        let high = high.first_mut()?;
+        if low.generation != low_generation || high.generation != high_generation {
+            return None;
+        }
+        let low = low.value.as_mut()?;
+        let high = high.value.as_mut()?;
+        if swapped {
+            Some((high, low))
+        } else {
+            Some((low, high))
+        }
+    }
+
     pub(super) fn remove(&mut self, handle: H) -> Option<T> {
         let (index, generation) = unpack_handle(handle.raw());
         let slot = self.slots.get_mut(index as usize)?;

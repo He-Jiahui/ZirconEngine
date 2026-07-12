@@ -1,6 +1,6 @@
+use zircon_runtime::core::framework::physics::PhysicsBodySyncState;
 #[cfg(feature = "backend-jolt")]
 use zircon_runtime::core::framework::physics::PhysicsColliderSyncState;
-use zircon_runtime::core::framework::physics::{PhysicsBodySyncState, PhysicsBodyType};
 
 #[cfg(feature = "backend-jolt")]
 use crate::backend::{BodyCommand, BodyHandle};
@@ -11,6 +11,8 @@ pub(super) struct BodySyncChange {
     linear_velocity: bool,
     angular_velocity: bool,
     body_type: bool,
+    ccd_mode: bool,
+    sleep_policy: bool,
     recreate: bool,
 }
 
@@ -18,7 +20,12 @@ impl BodySyncChange {
     #[cfg(test)]
     pub(super) fn requires_commands(self) -> bool {
         !self.recreate
-            && (self.teleport || self.linear_velocity || self.angular_velocity || self.body_type)
+            && (self.teleport
+                || self.linear_velocity
+                || self.angular_velocity
+                || self.body_type
+                || self.ccd_mode
+                || self.sleep_policy)
     }
 
     pub(super) fn requires_recreation(self) -> bool {
@@ -34,7 +41,7 @@ impl BodySyncChange {
         if self.recreate {
             return Vec::new();
         }
-        let mut commands = Vec::with_capacity(4);
+        let mut commands = Vec::with_capacity(6);
         if self.teleport {
             commands.push(BodyCommand::Teleport {
                 body: handle,
@@ -59,6 +66,18 @@ impl BodySyncChange {
                 body_type: body.body_type,
             });
         }
+        if self.ccd_mode {
+            commands.push(BodyCommand::SetCcdMode {
+                body: handle,
+                mode: body.ccd_mode,
+            });
+        }
+        if self.sleep_policy {
+            commands.push(BodyCommand::SetSleepPolicy {
+                body: handle,
+                policy: body.sleep_policy,
+            });
+        }
         commands
     }
 }
@@ -67,21 +86,19 @@ pub(super) fn detect_body_change(
     previous: &PhysicsBodySyncState,
     current: &PhysicsBodySyncState,
 ) -> BodySyncChange {
-    let crosses_static_boundary = previous.body_type != current.body_type
-        && (previous.body_type == PhysicsBodyType::Static
-            || current.body_type == PhysicsBodyType::Static);
     BodySyncChange {
         teleport: previous.transform != current.transform,
         linear_velocity: previous.linear_velocity != current.linear_velocity,
         angular_velocity: previous.angular_velocity != current.angular_velocity,
         body_type: previous.body_type != current.body_type,
+        ccd_mode: previous.ccd_mode != current.ccd_mode,
+        sleep_policy: previous.sleep_policy != current.sleep_policy,
         recreate: previous.entity != current.entity
-            || crosses_static_boundary
             || previous.mass != current.mass
+            || previous.mass_properties != current.mass_properties
             || previous.linear_damping != current.linear_damping
             || previous.angular_damping != current.angular_damping
             || previous.gravity_scale != current.gravity_scale
-            || previous.can_sleep != current.can_sleep
             || previous.lock_translation != current.lock_translation
             || previous.lock_rotation != current.lock_rotation,
     }

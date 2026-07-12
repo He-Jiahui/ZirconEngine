@@ -1,0 +1,39 @@
+[asset]
+kind = "view"
+id = "physics.diagnostics"
+version = 2
+display_name = "Physics Diagnostics"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "physics_diagnostics_root"
+
+[nodes.physics_step_history]
+component = "Space"
+control_id = "PhysicsStepDurationHistory"
+layout = { width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 220.0, stretch = "Fixed" } }
+
+[nodes.physics_collision_matrix]
+component = "Space"
+control_id = "PhysicsCollisionLayerMatrix"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.physics_world_statistics]
+component = "Space"
+control_id = "PhysicsWorldStatistics"
+layout = { width = { min = 260.0, preferred = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.physics_diagnostics_details]
+component = "HorizontalGroup"
+control_id = "PhysicsDiagnosticsDetails"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collision_matrix" }, { node = "physics_world_statistics" }]
+
+[nodes.physics_diagnostics_root]
+component = "VerticalGroup"
+control_id = "PhysicsDiagnosticsRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_step_history" }, { node = "physics_diagnostics_details" }]

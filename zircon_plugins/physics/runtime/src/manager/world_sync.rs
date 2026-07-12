@@ -14,8 +14,6 @@ use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
-use crate::backend::builtin::PhysicsTriggerPairMap;
-
 use super::poison_recovery::recover_lock;
 use super::validation::{
     collider_layer_sync_input_is_valid, collider_shape_sync_input_is_valid,
@@ -24,6 +22,7 @@ use super::validation::{
     physics_joint_sync_state_is_valid, physics_material_sync_state_is_valid,
     rigid_body_sync_input_is_finite, transform_is_finite,
 };
+use crate::backend::builtin::PhysicsTriggerPairMap;
 
 pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> PhysicsWorldSyncState {
     let mut sync = PhysicsWorldSyncState {
@@ -46,12 +45,14 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                     },
                     transform: entity_transform,
                     mass: rigid_body.mass,
+                    mass_properties: rigid_body.mass_properties,
                     linear_velocity: rigid_body.linear_velocity.to_array(),
                     angular_velocity: rigid_body.angular_velocity.to_array(),
                     linear_damping: rigid_body.linear_damping,
                     angular_damping: rigid_body.angular_damping,
                     gravity_scale: rigid_body.gravity_scale,
-                    can_sleep: rigid_body.can_sleep,
+                    ccd_mode: rigid_body.ccd_mode,
+                    sleep_policy: rigid_body.sleep_policy,
                     lock_translation: rigid_body.lock_translation,
                     lock_rotation: rigid_body.lock_rotation,
                 });
@@ -70,21 +71,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
             {
                 sync.colliders.push(PhysicsColliderSyncState {
                     entity: node.id,
-                    shape: match &collider.shape {
-                        ColliderShape::Box { half_extents } => PhysicsColliderShape::Box {
-                            half_extents: half_extents.to_array(),
-                        },
-                        ColliderShape::Sphere { radius } => {
-                            PhysicsColliderShape::Sphere { radius: *radius }
-                        }
-                        ColliderShape::Capsule {
-                            radius,
-                            half_height,
-                        } => PhysicsColliderShape::Capsule {
-                            radius: *radius,
-                            half_height: *half_height,
-                        },
-                    },
+                    shape: collider_shape_to_physics(&collider.shape),
                     sensor: collider.sensor,
                     layer: collider.layer,
                     collision_group: collider.collision_group,
@@ -134,6 +121,48 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
     sync
 }
 
+pub(super) fn collider_shape_to_physics(shape: &ColliderShape) -> PhysicsColliderShape {
+    match shape {
+        ColliderShape::Box { half_extents } => PhysicsColliderShape::Box {
+            half_extents: half_extents.to_array(),
+        },
+        ColliderShape::Sphere { radius } => PhysicsColliderShape::Sphere { radius: *radius },
+        ColliderShape::Capsule {
+            radius,
+            half_height,
+        } => PhysicsColliderShape::Capsule {
+            radius: *radius,
+            half_height: *half_height,
+        },
+        ColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => PhysicsColliderShape::Cylinder {
+            radius: *radius,
+            half_height: *half_height,
+        },
+        ColliderShape::ConvexHull { points } => PhysicsColliderShape::ConvexHull {
+            points: points.iter().map(|point| point.to_array()).collect(),
+        },
+        ColliderShape::TriangleMesh { mesh } => {
+            PhysicsColliderShape::TriangleMesh { mesh: mesh.clone() }
+        }
+        ColliderShape::HeightField {
+            resolution,
+            heights,
+        } => PhysicsColliderShape::HeightField {
+            resolution: *resolution,
+            heights: heights.clone(),
+        },
+        ColliderShape::Compound { children } => PhysicsColliderShape::Compound {
+            children: children
+                .iter()
+                .map(|(transform, child)| (*transform, Box::new(collider_shape_to_physics(child))))
+                .collect(),
+        },
+    }
+}
+
 pub(crate) fn apply_synchronized_bodies_to_scene(scene: &mut World, sync: &PhysicsWorldSyncState) {
     for body in &sync.bodies {
         if !physics_body_sync_state_is_valid(body) {
@@ -148,12 +177,14 @@ pub(crate) fn apply_synchronized_bodies_to_scene(scene: &mut World, sync: &Physi
             PhysicsBodyType::Kinematic => RigidBodyType::Kinematic,
         };
         rigid_body.mass = body.mass;
+        rigid_body.mass_properties = body.mass_properties;
         rigid_body.linear_velocity = Vec3::from_array(body.linear_velocity);
         rigid_body.angular_velocity = Vec3::from_array(body.angular_velocity);
         rigid_body.linear_damping = body.linear_damping;
         rigid_body.angular_damping = body.angular_damping;
         rigid_body.gravity_scale = body.gravity_scale;
-        rigid_body.can_sleep = body.can_sleep;
+        rigid_body.ccd_mode = body.ccd_mode;
+        rigid_body.sleep_policy = body.sleep_policy;
         rigid_body.lock_translation = body.lock_translation;
         rigid_body.lock_rotation = body.lock_rotation;
         let _ = scene.update_transform(body.entity, body.transform);

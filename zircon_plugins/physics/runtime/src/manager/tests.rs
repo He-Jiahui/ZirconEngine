@@ -5,6 +5,7 @@ use zircon_runtime::core::framework::physics::{
     PhysicsBodySyncState, PhysicsBodyType, PhysicsManager, PhysicsSettings, PhysicsSimulationMode,
     PhysicsWorldSyncState,
 };
+use zircon_runtime::core::framework::scene::physics::PhysicsSleepPolicy;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{NodeKind, RigidBodyComponent, RigidBodyType};
@@ -85,12 +86,14 @@ fn physics_sync_to_scene_applies_synchronized_body_state() {
             body_type: PhysicsBodyType::Kinematic,
             transform,
             mass: 4.0,
+            mass_properties: Default::default(),
             linear_velocity: [1.0, 2.0, 3.0],
             angular_velocity: [0.1, 0.2, 0.3],
             linear_damping: 0.25,
             angular_damping: 0.5,
             gravity_scale: 0.0,
-            can_sleep: false,
+            ccd_mode: Default::default(),
+            sleep_policy: PhysicsSleepPolicy::Never,
             lock_translation: [true, false, true],
             lock_rotation: [false, true, false],
         }],
@@ -105,7 +108,7 @@ fn physics_sync_to_scene_applies_synchronized_body_state() {
     assert_eq!(body.mass, 4.0);
     assert_eq!(body.linear_velocity, Vec3::new(1.0, 2.0, 3.0));
     assert_eq!(body.angular_velocity, Vec3::new(0.1, 0.2, 0.3));
-    assert!(!body.can_sleep);
+    assert_eq!(body.sleep_policy, PhysicsSleepPolicy::Never);
     assert_eq!(body.lock_translation, [true, false, true]);
     assert_eq!(body.lock_rotation, [false, true, false]);
 }
@@ -117,12 +120,14 @@ fn unchanged_bodies_skip_sync() {
         body_type: PhysicsBodyType::Dynamic,
         transform: Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
         mass: 2.0,
+        mass_properties: Default::default(),
         linear_velocity: [4.0, 5.0, 6.0],
         angular_velocity: [0.1, 0.2, 0.3],
         linear_damping: 0.25,
         angular_damping: 0.5,
         gravity_scale: 1.0,
-        can_sleep: true,
+        ccd_mode: Default::default(),
+        sleep_policy: Default::default(),
         lock_translation: [false; 3],
         lock_rotation: [false; 3],
     };

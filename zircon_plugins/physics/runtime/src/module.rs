@@ -13,9 +13,11 @@ pub const PHYSICS_MODULE_NAME: &str = "physics.runtime";
 pub const PHYSICS_DRIVER_NAME: &str = "physics.runtime.Driver.PhysicsDriver";
 pub const DEFAULT_PHYSICS_MANAGER_NAME: &str = "physics.runtime.Manager.DefaultPhysicsManager";
 
+/// Plugin-owned lifecycle driver installed by the Physics runtime module.
 #[derive(Clone, Debug, Default)]
 pub struct PhysicsDriver;
 
+/// Declares the Physics manager services without exposing a concrete backend to Runtime.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PhysicsModule;
 

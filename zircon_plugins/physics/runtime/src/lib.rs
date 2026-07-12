@@ -3,10 +3,13 @@ pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 
 mod backend;
 mod capability;
+mod constraint;
+mod diagnostics;
 mod manager;
 mod module;
 mod plugin;
 mod runtime_system;
+mod skeletal;
 
 pub use backend::builtin::integrate_builtin_physics_steps;
 #[cfg(feature = "backend-jolt")]
@@ -21,6 +24,8 @@ pub use capability::{
     PHYSICS_RUNTIME_CAPABILITY, PHYSICS_SHAPE_CAST_CAPABILITY, PHYSICS_SKELETAL_JOINTS_CAPABILITY,
     PHYSICS_TRIGGER_EVENTS_CAPABILITY, RUNTIME_CAPABILITIES,
 };
+pub use constraint::{AxisConstraint, JointParams, JointSpring};
+pub use diagnostics::{record_physics_step_diagnostic, PHYSICS_STEP_DURATION_DIAGNOSTIC_PATH};
 pub use manager::{
     build_world_sync_state, DefaultPhysicsManager, PhysicsBodyCommand, PhysicsCommandError,
     PhysicsTickPlan,
@@ -35,8 +40,13 @@ pub use plugin::{
     PHYSICS_DIST_RUNTIME_ENTRY, PLUGIN_RUNTIME_MODULE_NAME,
 };
 pub use runtime_system::{
-    register_runtime_systems, PhysicsRuntimeSystem, PHYSICS_STEP_SYSTEM,
-    PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
+    register_runtime_systems, PhysicsRuntimeSystem, PHYSICS_CONTACT_EVENT_ID,
+    PHYSICS_CONTACT_EVENT_SCHEMA, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM,
+    PHYSICS_SYSTEM_SET, PHYSICS_TRIGGER_EVENT_ID, PHYSICS_TRIGGER_EVENT_SCHEMA,
+};
+pub use skeletal::{
+    RagdollBoneProfile, RagdollMode, RagdollProfile, RagdollProfileError, RagdollRuntime,
+    RagdollSpawn,
 };
 pub use zircon_runtime::core::framework::physics::{
     PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID,

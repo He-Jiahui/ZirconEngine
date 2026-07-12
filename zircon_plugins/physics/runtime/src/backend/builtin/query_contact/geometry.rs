@@ -6,13 +6,26 @@ pub(super) fn collider_geometry_is_valid(collider: &PhysicsColliderSyncState) ->
         return false;
     }
 
-    match collider.shape {
-        PhysicsColliderShape::Box { half_extents } => box_geometry_is_valid(half_extents),
-        PhysicsColliderShape::Sphere { radius } => positive_finite(radius),
+    match &collider.shape {
+        PhysicsColliderShape::Box { half_extents } => box_geometry_is_valid(*half_extents),
+        PhysicsColliderShape::Sphere { radius } => positive_finite(*radius),
         PhysicsColliderShape::Capsule {
             radius,
             half_height,
-        } => capsule_geometry_is_valid(radius, half_height),
+        } => capsule_geometry_is_valid(*radius, *half_height),
+        PhysicsColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => positive_finite(*radius) && positive_finite(*half_height),
+        PhysicsColliderShape::ConvexHull { points } => {
+            points.len() >= 4
+                && points
+                    .iter()
+                    .all(|point| point.iter().all(|v| v.is_finite()))
+        }
+        PhysicsColliderShape::TriangleMesh { .. }
+        | PhysicsColliderShape::HeightField { .. }
+        | PhysicsColliderShape::Compound { .. } => false,
     }
 }
 
@@ -37,10 +50,12 @@ pub(super) fn midpoint(left: Vec3, right: Vec3) -> Vec3 {
 pub(super) fn collider_aabb(collider: &PhysicsColliderSyncState) -> Option<(Vec3, Vec3)> {
     let center = collider.transform.translation;
     let scale = collider.transform.scale.abs();
-    let half_extents = match collider.shape {
-        PhysicsColliderShape::Box { half_extents } => scaled_box_half_extents(half_extents, scale)?,
+    let half_extents = match &collider.shape {
+        PhysicsColliderShape::Box { half_extents } => {
+            scaled_box_half_extents(*half_extents, scale)?
+        }
         PhysicsColliderShape::Sphere { radius } => {
-            let scaled_radius = radius * max_abs_scale(collider.transform.scale);
+            let scaled_radius = *radius * max_abs_scale(collider.transform.scale);
             if !positive_finite(scaled_radius) {
                 return None;
             }
@@ -50,15 +65,28 @@ pub(super) fn collider_aabb(collider: &PhysicsColliderSyncState) -> Option<(Vec3
             radius,
             half_height,
         } => {
-            let scaled_radius_x = radius * scale.x;
-            let scaled_radius_z = radius * scale.z;
-            let scaled_half_height = (radius + half_height) * scale.y;
+            let scaled_radius_x = *radius * scale.x;
+            let scaled_radius_z = *radius * scale.z;
+            let scaled_half_height = (*radius + *half_height) * scale.y;
             let half_extents = Vec3::new(scaled_radius_x, scaled_half_height, scaled_radius_z);
             if !vec3_is_finite(half_extents) {
                 return None;
             }
             half_extents
         }
+        PhysicsColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => Vec3::new(*radius * scale.x, *half_height * scale.y, *radius * scale.z),
+        PhysicsColliderShape::ConvexHull { points } => {
+            let local = points.iter().fold(Vec3::ZERO, |extents, point| {
+                extents.max(Vec3::from_array(*point).abs())
+            });
+            local * scale
+        }
+        PhysicsColliderShape::TriangleMesh { .. }
+        | PhysicsColliderShape::HeightField { .. }
+        | PhysicsColliderShape::Compound { .. } => return None,
     };
     finite_aabb_bounds(center, half_extents)
 }

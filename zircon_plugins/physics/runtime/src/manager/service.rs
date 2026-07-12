@@ -85,7 +85,7 @@ impl PhysicsManager for DefaultPhysicsManager {
         recover_lock(&self.synced_worlds).get(&world).cloned()
     }
 
-    fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit> {
+    fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit> {
         query::ray_cast(self, query)
     }
 
@@ -93,7 +93,7 @@ impl PhysicsManager for DefaultPhysicsManager {
         query::shape_overlap(self, query)
     }
 
-    fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Option<PhysicsShapeCastHit> {
+    fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Vec<PhysicsShapeCastHit> {
         query::shape_cast(self, query)
     }
 
@@ -172,7 +172,7 @@ impl PhysicsManager for DefaultPhysicsManager {
 }
 
 impl PhysicsQueryInterface for DefaultPhysicsManager {
-    fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit> {
+    fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit> {
         query::ray_cast(self, query)
     }
 
@@ -180,7 +180,7 @@ impl PhysicsQueryInterface for DefaultPhysicsManager {
         query::shape_overlap(self, query)
     }
 
-    fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Option<PhysicsShapeCastHit> {
+    fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Vec<PhysicsShapeCastHit> {
         query::shape_cast(self, query)
     }
 }

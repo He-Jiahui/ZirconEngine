@@ -1,10 +1,26 @@
+use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::editor_authoring_extension::{
+    AssetCreationTemplateDescriptor, ViewportToolModeDescriptor,
+};
+use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
+use zircon_editor::core::editor_extension::{
+    AssetEditorDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
-    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
+    register_authoring_extensions, register_authoring_surface, EditorAuthoringExtensions,
+    EditorAuthoringSurface,
 };
 use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
 use crate::capability::{EDITOR_CAPABILITIES, PLUGIN_ID};
-use crate::extension_ids::{PHYSICS_AUTHORING_VIEW_ID, PHYSICS_DRAWER_ID, PHYSICS_TEMPLATE_ID};
+use crate::extension_ids::{
+    PHYSICS_AUTHORING_VIEW_ID, PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION,
+    PHYSICS_DEBUG_OVERLAY_MODE_ID, PHYSICS_DEBUG_VIEW_ID, PHYSICS_DIAGNOSTICS_VIEW_ID,
+    PHYSICS_DRAWER_ID, PHYSICS_RAGDOLL_PROFILE_VIEW_ID, PHYSICS_TEMPLATE_ID,
+    PHYSICS_TOGGLE_OVERLAY_OPERATION, RAGDOLL_PROFILE_ASSET_KIND,
+};
 
 authoring_plugin! {
     pub struct PhysicsEditorPlugin {
@@ -25,8 +41,8 @@ pub fn editor_plugin_declaration() -> EditorPluginDeclaration {
 }
 
 fn register_physics_authoring_extensions(
-    registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
-) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
+    registry: &mut EditorExtensionRegistry,
+) -> Result<(), EditorExtensionRegistryError> {
     register_authoring_extensions(
         registry,
         EditorAuthoringExtensions {
@@ -41,7 +57,114 @@ fn register_physics_authoring_extensions(
                 "Plugins/Physics",
             )],
         },
+    )?;
+    register_physics_debug_overlay(registry)?;
+    registry.register_ui_template(EditorUiTemplateDescriptor::new(
+        PHYSICS_DIAGNOSTICS_VIEW_ID,
+        "plugins://physics/editor/diagnostics.zui",
+    ))?;
+    register_authoring_surface(
+        registry,
+        EditorAuthoringSurface::new(
+            PHYSICS_DIAGNOSTICS_VIEW_ID,
+            "Physics Diagnostics",
+            "Diagnostics",
+            "Plugins/Physics/Diagnostics",
+        ),
+    )?;
+    register_ragdoll_profile_editor(registry)
+}
+
+fn register_physics_debug_overlay(
+    registry: &mut EditorExtensionRegistry,
+) -> Result<(), EditorExtensionRegistryError> {
+    let operation = parse_operation(PHYSICS_TOGGLE_OVERLAY_OPERATION)?;
+    registry.register_view(ViewDescriptor::new(
+        PHYSICS_DEBUG_VIEW_ID,
+        "Physics Debug Overlay",
+        "World",
+    ))?;
+    registry.register_ui_template(EditorUiTemplateDescriptor::new(
+        PHYSICS_DEBUG_VIEW_ID,
+        "plugins://physics/editor/debug_overlay.zui",
+    ))?;
+    registry.register_command(
+        EditorCommandDescriptor::pending_operation(operation.clone(), "Toggle Physics Overlay")
+            .with_menu_path("View/Debug Overlays/Physics")
+            .with_callable_from_remote(false)
+            .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
+            .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                ViewDescriptorId::new(PHYSICS_DEBUG_VIEW_ID),
+            ))),
+    )?;
+    registry.register_menu_item(
+        EditorMenuItemDescriptor::new("View/Debug Overlays/Physics", operation.clone())
+            .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+    )?;
+    registry.register_viewport_tool_mode(
+        ViewportToolModeDescriptor::new(
+            PHYSICS_DEBUG_OVERLAY_MODE_ID,
+            "Physics Collision Overlay",
+            PHYSICS_DEBUG_VIEW_ID,
+            operation,
+        )
+        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
     )
+}
+
+fn register_ragdoll_profile_editor(
+    registry: &mut EditorExtensionRegistry,
+) -> Result<(), EditorExtensionRegistryError> {
+    registry.register_ui_template(EditorUiTemplateDescriptor::new(
+        PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
+        "plugins://physics/editor/ragdoll_profile.zui",
+    ))?;
+    register_authoring_surface(
+        registry,
+        EditorAuthoringSurface::new(
+            PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
+            "Ragdoll Profile",
+            "Physics",
+            "Plugins/Physics/Ragdoll Profile",
+        ),
+    )?;
+    let open_operation = parse_operation(&format!("view.{PHYSICS_RAGDOLL_PROFILE_VIEW_ID}.open"))?;
+    registry.register_asset_editor(
+        AssetEditorDescriptor::new(
+            RAGDOLL_PROFILE_ASSET_KIND,
+            PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
+            "Ragdoll Profile",
+            open_operation,
+        )
+        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+    )?;
+
+    let create_operation = parse_operation(PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION)?;
+    registry.register_command(
+        EditorCommandDescriptor::pending_operation(
+            create_operation.clone(),
+            "Generate Ragdoll Profile From Skeleton",
+        )
+        .with_callable_from_remote(false)
+        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
+        .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+            ViewDescriptorId::new(PHYSICS_RAGDOLL_PROFILE_VIEW_ID),
+        ))),
+    )?;
+    registry.register_asset_creation_template(
+        AssetCreationTemplateDescriptor::new(
+            "physics.ragdoll_profile.from_skeleton",
+            "Ragdoll Profile From Skeleton",
+            RAGDOLL_PROFILE_ASSET_KIND,
+            create_operation,
+        )
+        .with_default_document("plugins://physics/editor/ragdoll_profile.zui")
+        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+    )
+}
+
+fn parse_operation(path: &str) -> Result<EditorOperationPath, EditorExtensionRegistryError> {
+    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::OperationPath)
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {

@@ -36,13 +36,14 @@ fn ray_cast_uses_capsule_shape_instead_of_capsule_aabb() {
         origin: [0.9, 2.9, -5.0],
         direction: [0.0, 0.0, 1.0],
         max_distance: 10.0,
+        mode: Default::default(),
         filter: PhysicsQueryFilter {
             include_sensors: true,
             ..PhysicsQueryFilter::default()
         },
     });
     assert!(
-        rounded_cap_corner_miss.is_none(),
+        rounded_cap_corner_miss.is_empty(),
         "ray lies inside the capsule AABB but outside the rounded capsule cap"
     );
 
@@ -52,11 +53,14 @@ fn ray_cast_uses_capsule_shape_instead_of_capsule_aabb() {
             origin: [0.5, 2.5, -5.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("ray through the rounded capsule cap should hit");
     assert!((rounded_cap_hit.distance - 4.2928934).abs() < 1.0e-4);
     assert_eq!(rounded_cap_hit.position, [0.5, 2.5, -0.7071066]);
@@ -105,11 +109,14 @@ fn ray_cast_reports_capsule_exit_hit_when_origin_starts_inside_axis() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 1.0, 0.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("ray starting inside capsule should report the exit surface");
     assert!((hit.distance - 3.0).abs() < 1.0e-4);
     assert_eq!(hit.position, [0.0, 3.0, 0.0]);
@@ -156,11 +163,14 @@ fn ray_cast_uses_absolute_max_sphere_scale() {
             origin: [5.0, 0.0, 0.0],
             direction: [-1.0, 0.0, 0.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("ray should hit scaled sphere");
     assert!(
         (hit.distance - 2.0).abs() < 1.0e-4,
@@ -212,11 +222,14 @@ fn ray_cast_uses_scaled_collider_local_transform() {
             origin: [2.0, 0.0, -5.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("ray should hit collider after parent scale moves local offset");
     assert!(
         (hit.distance - 4.5).abs() < 1.0e-4,
@@ -267,12 +280,13 @@ fn ray_cast_rejects_non_finite_query_input() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: f32::INFINITY,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
-        .is_none());
+        .is_empty());
 }
 
 #[test]
@@ -330,11 +344,14 @@ fn ray_cast_skips_non_finite_collider_transform() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("valid collider should still be hit after skipping invalid collider");
     assert_eq!(hit.entity, valid);
     assert!((hit.distance - 2.5).abs() < 1.0e-4);
@@ -380,12 +397,13 @@ fn ray_cast_skips_negative_sphere_radius() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
-        .is_none());
+        .is_empty());
 }
 
 #[test]
@@ -430,12 +448,13 @@ fn ray_cast_skips_non_finite_box_half_extents() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
-        .is_none());
+        .is_empty());
 }
 
 #[test]
@@ -484,12 +503,13 @@ fn ray_cast_skips_non_finite_scaled_box_half_extents() {
             origin: [0.0, 0.0, 0.0],
             direction: [0.0, 0.0, 1.0],
             max_distance: 10.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
-        .is_none());
+        .is_empty());
 }
 
 #[test]
@@ -568,6 +588,7 @@ fn shape_overlap_uses_shared_query_filter_for_layers_sensors_groups_and_exclusio
         world: level.handle(),
         shape: PhysicsColliderShape::Sphere { radius: 1.0 },
         transform: Transform::identity(),
+        mode: Default::default(),
         filter: PhysicsQueryFilter {
             collision_mask: Some(0b10),
             excluded_entities: vec![excluded],
@@ -614,6 +635,7 @@ fn shape_overlap_rejects_non_finite_query_rotation() {
         world: level.handle(),
         shape: PhysicsColliderShape::Sphere { radius: 1.0 },
         transform: Transform::identity().with_rotation(Quat::from_array([f32::NAN, 0.0, 0.0, 1.0])),
+        mode: Default::default(),
         filter: PhysicsQueryFilter {
             include_sensors: true,
             ..PhysicsQueryFilter::default()
@@ -627,7 +649,7 @@ fn shape_overlap_rejects_non_finite_query_rotation() {
 }
 
 #[test]
-fn builtin_shape_cast_reports_initial_overlap_without_claiming_swept_solver() {
+fn builtin_shape_cast_reports_initial_overlap_and_swept_hit() {
     let runtime = create_runtime_with_scene_and_physics();
     runtime
         .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
@@ -662,26 +684,157 @@ fn builtin_shape_cast_reports_initial_overlap_without_claiming_swept_solver() {
             origin_transform: Transform::identity(),
             direction: [1.0, 0.0, 0.0],
             max_distance: 8.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
+        .into_iter()
+        .next()
         .expect("builtin fallback should report initial overlap");
     assert_eq!(initial_hit.entity, target);
     assert_eq!(initial_hit.distance, 0.0);
 
-    assert!(physics
+    let swept_hit = physics
         .shape_cast(&PhysicsShapeCastQuery {
             world: level.handle(),
             shape: PhysicsColliderShape::Sphere { radius: 1.0 },
             origin_transform: Transform::from_translation(Vec3::new(-4.0, 0.0, 0.0)),
             direction: [1.0, 0.0, 0.0],
             max_distance: 8.0,
+            mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
                 ..PhysicsQueryFilter::default()
             },
         })
-        .is_none());
+        .into_iter()
+        .next()
+        .expect("builtin sweep should hit the target");
+    assert_eq!(swept_hit.entity, target);
+    assert!((swept_hit.distance - 2.5).abs() <= f32::EPSILON);
+    assert_eq!(swept_hit.normal, [-1.0, 0.0, 0.0]);
+}
+
+#[test]
+fn query_all_returns_distance_sorted_hits() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::QueryOnly,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let (far, near) = level.with_world_mut(|world| {
+        let far = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(far, Transform::from_translation(Vec3::new(4.0, 0.0, 0.0)))
+            .unwrap();
+        world
+            .set_collider(
+                far,
+                Some(ColliderComponent {
+                    shape: ColliderShape::Sphere { radius: 0.5 },
+                    ..ColliderComponent::default()
+                }),
+            )
+            .unwrap();
+
+        let near = world.spawn_node(NodeKind::Cube);
+        world
+            .set_collider(
+                near,
+                Some(ColliderComponent {
+                    shape: ColliderShape::Sphere { radius: 0.5 },
+                    ..ColliderComponent::default()
+                }),
+            )
+            .unwrap();
+
+        let ignored_sensor = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(
+                ignored_sensor,
+                Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)),
+            )
+            .unwrap();
+        world
+            .set_collider(
+                ignored_sensor,
+                Some(ColliderComponent {
+                    shape: ColliderShape::Sphere { radius: 0.5 },
+                    sensor: true,
+                    ..ColliderComponent::default()
+                }),
+            )
+            .unwrap();
+        (far, near)
+    });
+    tick_physics_level(&runtime, &level);
+    let physics = resolve_physics_manager(&runtime.handle()).unwrap();
+
+    let query = PhysicsShapeCastQuery {
+        world: level.handle(),
+        shape: PhysicsColliderShape::Sphere { radius: 0.5 },
+        origin_transform: Transform::from_translation(Vec3::new(-4.0, 0.0, 0.0)),
+        direction: [1.0, 0.0, 0.0],
+        max_distance: 10.0,
+        mode: PhysicsQueryMode::All,
+        filter: PhysicsQueryFilter::default(),
+    };
+
+    let all = physics.shape_cast(&query);
+    assert_eq!(all.len(), 2);
+    assert_eq!([all[0].entity, all[1].entity], [near, far]);
+    assert!((all[0].distance - 3.0).abs() < 1.0e-4);
+    assert!((all[1].distance - 7.0).abs() < 1.0e-4);
+
+    let first = physics.shape_cast(&PhysicsShapeCastQuery {
+        mode: PhysicsQueryMode::First,
+        ..query.clone()
+    });
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].entity, far);
+
+    let closest = physics.shape_cast(&PhysicsShapeCastQuery {
+        mode: PhysicsQueryMode::Closest,
+        ..query
+    });
+    assert_eq!(closest.len(), 1);
+    assert_eq!(closest[0].entity, near);
+
+    let ray_all = physics.ray_cast(&PhysicsRayCastQuery {
+        world: level.handle(),
+        origin: [-4.0, 0.0, 0.0],
+        direction: [1.0, 0.0, 0.0],
+        max_distance: 10.0,
+        mode: PhysicsQueryMode::All,
+        filter: PhysicsQueryFilter::default(),
+    });
+    assert_eq!(ray_all.len(), 2);
+    assert_eq!([ray_all[0].entity, ray_all[1].entity], [near, far]);
+    assert!(ray_all[0].distance <= ray_all[1].distance);
+
+    let overlap_query = PhysicsShapeOverlapQuery {
+        world: level.handle(),
+        shape: PhysicsColliderShape::Sphere { radius: 10.0 },
+        transform: Transform::from_translation(Vec3::new(-4.0, 0.0, 0.0)),
+        mode: PhysicsQueryMode::All,
+        filter: PhysicsQueryFilter::default(),
+    };
+    let overlap_all = physics.shape_overlap(&overlap_query);
+    assert_eq!(overlap_all.len(), 2);
+    assert_eq!([overlap_all[0].entity, overlap_all[1].entity], [near, far]);
+
+    let overlap_first = physics.shape_overlap(&PhysicsShapeOverlapQuery {
+        mode: PhysicsQueryMode::First,
+        ..overlap_query
+    });
+    assert_eq!(overlap_first.len(), 1);
+    assert_eq!(overlap_first[0].entity, far);
 }

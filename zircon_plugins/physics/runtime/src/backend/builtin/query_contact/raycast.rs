@@ -65,5 +65,12 @@ pub(super) fn ray_cast_collider(
                 scaled_half_height,
             )
         }
+        PhysicsColliderShape::Cylinder { .. } | PhysicsColliderShape::ConvexHull { .. } => {
+            let (min, max) = super::geometry::collider_aabb(collider)?;
+            aabb::ray_cast_aabb(origin, direction, max_distance, collider.entity, min, max)
+        }
+        PhysicsColliderShape::TriangleMesh { .. }
+        | PhysicsColliderShape::HeightField { .. }
+        | PhysicsColliderShape::Compound { .. } => None,
     }
 }

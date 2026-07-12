@@ -2,15 +2,17 @@ use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
         PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderSyncState, PhysicsContactEvent,
-        PhysicsJointType, PhysicsTriggerEvent,
+        PhysicsTriggerEvent,
     },
-    scene::physics::PhysicsJointConstraintMetadata,
+    scene::physics::{PhysicsCcdMode, PhysicsSleepPolicy},
 };
 use zircon_runtime::core::math::{Real, Transform};
 
 use super::{
     BodyHandle, ConstraintHandle, PhysicsBackendError, PhysicsBackendObjectKind, ShapeHandle,
 };
+
+pub use crate::constraint::ConstraintDesc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyDesc {
@@ -42,16 +44,6 @@ impl BodyDesc {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ConstraintDesc {
-    pub joint_type: PhysicsJointType,
-    pub body_a: BodyHandle,
-    pub body_b: Option<BodyHandle>,
-    pub anchor_a: Transform,
-    pub anchor_b: Transform,
-    pub metadata: PhysicsJointConstraintMetadata,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BodyCommand {
     SetLinearVelocity {
@@ -78,6 +70,14 @@ pub enum BodyCommand {
         body: BodyHandle,
         body_type: PhysicsBodyType,
     },
+    SetCcdMode {
+        body: BodyHandle,
+        mode: PhysicsCcdMode,
+    },
+    SetSleepPolicy {
+        body: BodyHandle,
+        policy: PhysicsSleepPolicy,
+    },
 }
 
 impl BodyCommand {
@@ -88,7 +88,9 @@ impl BodyCommand {
             | Self::ApplyForce { body, .. }
             | Self::ApplyImpulse { body, .. }
             | Self::Teleport { body, .. }
-            | Self::SetBodyType { body, .. } => body,
+            | Self::SetBodyType { body, .. }
+            | Self::SetCcdMode { body, .. }
+            | Self::SetSleepPolicy { body, .. } => body,
         }
     }
 }
@@ -97,12 +99,6 @@ impl BodyCommand {
 pub struct PhysicsEventBuffer {
     pub contacts: Vec<PhysicsContactEvent>,
     pub triggers: Vec<PhysicsTriggerEvent>,
-}
-
-impl ConstraintDesc {
-    pub fn handles(&self) -> impl Iterator<Item = BodyHandle> {
-        std::iter::once(self.body_a).chain(self.body_b)
-    }
 }
 
 impl From<ConstraintHandle> for u64 {

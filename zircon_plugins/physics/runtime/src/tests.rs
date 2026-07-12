@@ -3,6 +3,25 @@ use zircon_runtime::core::CoreRuntime;
 use super::*;
 
 #[test]
+fn physics_step_duration_is_published_to_diagnostic_store() {
+    use std::time::Duration;
+
+    let runtime = zircon_runtime::core::CoreRuntime::new();
+    let core = runtime.handle();
+    record_physics_step_diagnostic(&core, 41, Duration::from_micros(2_500));
+
+    let snapshot = core.diagnostic_store_snapshot();
+    let series = snapshot
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == PHYSICS_STEP_DURATION_DIAGNOSTIC_PATH)
+        .expect("physics step diagnostic path should be registered by publishing a sample");
+    assert_eq!(series.current, Some(2.5));
+    assert_eq!(series.unit.as_deref(), Some("ms"));
+    assert_eq!(series.subsystem_tags, ["physics", "step"]);
+}
+
+#[test]
 fn physics_registration_contributes_runtime_module() {
     let report = plugin_registration();
 
@@ -28,6 +47,38 @@ fn physics_registration_contributes_runtime_module() {
                 && system.id == "physics.sync_to_scene"
                 && system.stage == zircon_runtime::scene::SystemStage::FixedPostUpdate
         }));
+    for resource_type in [
+        std::any::type_name::<zircon_runtime::core::framework::physics::SkeletalPoseTargets>(),
+        std::any::type_name::<zircon_runtime::core::framework::physics::SimulatedPoseFeed>(),
+        std::any::type_name::<RagdollRuntime>(),
+    ] {
+        assert!(report
+            .extensions
+            .plugin_resources()
+            .any(|(owner, resource)| {
+                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                    && resource.type_name() == resource_type
+            }));
+    }
+    for (event_type, event_id, payload_schema) in [
+        (
+            std::any::type_name::<zircon_runtime::core::framework::physics::PhysicsContactEvent>(),
+            PHYSICS_CONTACT_EVENT_ID,
+            PHYSICS_CONTACT_EVENT_SCHEMA,
+        ),
+        (
+            std::any::type_name::<zircon_runtime::core::framework::physics::PhysicsTriggerEvent>(),
+            PHYSICS_TRIGGER_EVENT_ID,
+            PHYSICS_TRIGGER_EVENT_SCHEMA,
+        ),
+    ] {
+        assert!(report.extensions.plugin_events().any(|(owner, event)| {
+            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && event.type_name() == event_type
+                && event.manifest().id == event_id
+                && event.manifest().payload_schema == payload_schema
+        }));
+    }
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
         vec!["physics.main".to_string()]

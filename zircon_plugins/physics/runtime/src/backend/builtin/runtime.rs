@@ -3,9 +3,10 @@ use std::collections::{HashMap, HashSet};
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
-        PhysicsBodySyncState, PhysicsColliderShape, PhysicsQueryFilter, PhysicsRayCastHit,
-        PhysicsRayCastQuery, PhysicsSettings, PhysicsShapeCastHit, PhysicsShapeCastQuery,
-        PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsWorldSyncState,
+        PhysicsBodySyncState, PhysicsColliderShape, PhysicsQueryFilter, PhysicsQueryMode,
+        PhysicsRayCastHit, PhysicsRayCastQuery, PhysicsSettings, PhysicsShapeCastHit,
+        PhysicsShapeCastQuery, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery,
+        PhysicsWorldSyncState,
     },
     scene::physics::PhysicsMaterialMetadata,
 };
@@ -17,8 +18,8 @@ use super::trigger::{compute_trigger_events, PhysicsTriggerPairMap};
 use crate::backend::handle_pool::HandlePool;
 use crate::backend::validation::{body_desc_is_valid, material_is_valid, shape_is_valid};
 use crate::backend::{
-    BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle, PhysicsBackend,
-    PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
+    resolve_body_mass, BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle,
+    PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
 };
 
 const BACKEND_NAME: &str = "builtin";
@@ -39,10 +40,10 @@ struct ShapeRecord {
 }
 
 #[derive(Clone)]
-struct BodyRecord {
-    desc: BodyDesc,
-    accumulated_force: Vec3,
-    active: bool,
+pub(super) struct BodyRecord {
+    pub(super) desc: BodyDesc,
+    pub(super) accumulated_force: Vec3,
+    pub(super) active: bool,
 }
 
 impl BuiltinPhysicsBackend {
@@ -111,6 +112,18 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
         shape: &PhysicsColliderShape,
         material: &PhysicsMaterialMetadata,
     ) -> Result<ShapeHandle, PhysicsBackendError> {
+        if matches!(
+            shape,
+            PhysicsColliderShape::TriangleMesh { .. }
+                | PhysicsColliderShape::HeightField { .. }
+                | PhysicsColliderShape::Compound { .. }
+        ) {
+            return Err(PhysicsBackendError::Unsupported {
+                backend: BACKEND_NAME,
+                operation: "create_shape",
+                detail: "triangle mesh, height field, and compound shapes require the Jolt backend",
+            });
+        }
         if !shape_is_valid(shape) || !material_is_valid(material) {
             return Err(PhysicsBackendError::InvalidDescriptor {
                 kind: PhysicsBackendObjectKind::Shape,
@@ -138,7 +151,10 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                     .to_string(),
             });
         }
+        let resolved_mass =
+            resolve_body_mass(&shape.shape, desc.body.mass, desc.body.mass_properties)?;
         let mut desc = desc.clone();
+        desc.body.mass = resolved_mass.mass;
         desc.collider.material_override = Some(shape.material.clone());
         self.bodies
             .insert(BodyRecord {
@@ -163,11 +179,32 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                 ));
             }
         }
-        Err(PhysicsBackendError::Unsupported {
-            backend: BACKEND_NAME,
-            operation: "create_constraint",
-            detail: "constraint solving starts in Plugins 03 M3",
-        })
+        if desc.body_b == Some(desc.body_a) {
+            return Err(PhysicsBackendError::InvalidDescriptor {
+                kind: PhysicsBackendObjectKind::Constraint,
+                detail: "constraint cannot connect a body to itself".to_string(),
+            });
+        }
+        if !desc.params.is_valid() {
+            return Err(PhysicsBackendError::InvalidDescriptor {
+                kind: PhysicsBackendObjectKind::Constraint,
+                detail: "constraint parameters must be finite and ordered".to_string(),
+            });
+        }
+        match desc.joint_type {
+            zircon_runtime::core::framework::physics::PhysicsJointType::Fixed
+            | zircon_runtime::core::framework::physics::PhysicsJointType::Distance => self
+                .constraints
+                .insert(desc.clone())
+                .ok_or(PhysicsBackendError::CapacityExhausted {
+                    kind: PhysicsBackendObjectKind::Constraint,
+                }),
+            _ => Err(PhysicsBackendError::Unsupported {
+                backend: BACKEND_NAME,
+                operation: "create_constraint",
+                detail: "builtin supports only fixed and distance joints",
+            }),
+        }
     }
 
     fn destroy_shape(&mut self, shape: ShapeHandle) -> Result<(), PhysicsBackendError> {
@@ -184,6 +221,16 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
     }
 
     fn destroy_body(&mut self, body: BodyHandle) -> Result<(), PhysicsBackendError> {
+        if self
+            .constraints
+            .iter()
+            .any(|(_, constraint)| super::constraint::references_body(constraint, body))
+        {
+            return Err(PhysicsBackendError::ObjectInUse {
+                kind: PhysicsBackendObjectKind::Body,
+                raw: body.raw(),
+            });
+        }
         self.bodies
             .remove(body)
             .map(drop)
@@ -243,6 +290,12 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                 BodyCommand::SetBodyType { body_type, .. } => {
                     record.desc.body.body_type = body_type;
                 }
+                BodyCommand::SetCcdMode { mode, .. } => {
+                    record.desc.body.ccd_mode = mode;
+                }
+                BodyCommand::SetSleepPolicy { policy, .. } => {
+                    record.desc.body.sleep_policy = policy;
+                }
             }
             record.active = true;
         }
@@ -258,6 +311,22 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                 integrate_body_sync_state(&mut record.desc.body, record.accumulated_force, dt);
             record.accumulated_force = Vec3::ZERO;
             record.desc.collider.transform = record.desc.body.transform;
+        }
+        let constraints = self
+            .constraints
+            .iter()
+            .map(|(_, constraint)| constraint.clone())
+            .collect::<Vec<_>>();
+        for constraint in constraints {
+            if let Some(body_b) = constraint.body_b {
+                let Some((body_a, body_b)) = self.bodies.get_pair_mut(constraint.body_a, body_b)
+                else {
+                    continue;
+                };
+                super::constraint::solve_constraint(&constraint, body_a, Some(body_b), dt);
+            } else if let Some(body_a) = self.bodies.get_mut(constraint.body_a) {
+                super::constraint::solve_constraint(&constraint, body_a, None, dt);
+            }
         }
         self.refresh_events();
         Ok(())
@@ -303,7 +372,24 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                 })
                 .flatten()
         }));
-        out.sort_by(|left, right| left.distance.total_cmp(&right.distance));
+        match query.mode {
+            PhysicsQueryMode::First => out.truncate(1),
+            PhysicsQueryMode::Closest => {
+                out.sort_by(|left, right| {
+                    left.distance
+                        .total_cmp(&right.distance)
+                        .then(left.entity.cmp(&right.entity))
+                });
+                out.truncate(1);
+            }
+            PhysicsQueryMode::All => {
+                out.sort_by(|left, right| {
+                    left.distance
+                        .total_cmp(&right.distance)
+                        .then(left.entity.cmp(&right.entity))
+                });
+            }
+        }
     }
 
     fn shape_cast(
@@ -312,22 +398,31 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
         filter: &PhysicsQueryFilter,
         out: &mut Vec<PhysicsShapeCastHit>,
     ) {
-        let overlaps = shape_overlap_query(
+        let filtered_query = PhysicsShapeCastQuery {
+            filter: filter.clone(),
+            ..query.clone()
+        };
+        out.extend(super::query_contact::shape_cast_query(
             &self.world_sync(query.world),
-            &PhysicsShapeOverlapQuery {
-                world: query.world,
-                shape: query.shape.clone(),
-                transform: query.origin_transform,
-                filter: filter.clone(),
-            },
-        );
-        if let Some(hit) = overlaps.into_iter().next() {
-            out.push(PhysicsShapeCastHit {
-                entity: hit.entity,
-                distance: 0.0,
-                position: query.origin_transform.translation.to_array(),
-                normal: [0.0; 3],
-            });
+            &filtered_query,
+        ));
+        match query.mode {
+            PhysicsQueryMode::First => out.truncate(1),
+            PhysicsQueryMode::Closest => {
+                out.sort_by(|left, right| {
+                    left.distance
+                        .total_cmp(&right.distance)
+                        .then(left.entity.cmp(&right.entity))
+                });
+                out.truncate(1);
+            }
+            PhysicsQueryMode::All => {
+                out.sort_by(|left, right| {
+                    left.distance
+                        .total_cmp(&right.distance)
+                        .then(left.entity.cmp(&right.entity))
+                });
+            }
         }
     }
 
@@ -344,6 +439,30 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
                 ..query.clone()
             },
         ));
+        match query.mode {
+            PhysicsQueryMode::First => out.truncate(1),
+            PhysicsQueryMode::Closest => {
+                let origin = query.transform.translation;
+                out.sort_by(|left, right| {
+                    left.transform
+                        .translation
+                        .distance_squared(origin)
+                        .total_cmp(&right.transform.translation.distance_squared(origin))
+                        .then(left.entity.cmp(&right.entity))
+                });
+                out.truncate(1);
+            }
+            PhysicsQueryMode::All => {
+                let origin = query.transform.translation;
+                out.sort_by(|left, right| {
+                    left.transform
+                        .translation
+                        .distance_squared(origin)
+                        .total_cmp(&right.transform.translation.distance_squared(origin))
+                        .then(left.entity.cmp(&right.entity))
+                });
+            }
+        }
     }
 
     fn drain_events(&mut self, out: &mut PhysicsEventBuffer) {

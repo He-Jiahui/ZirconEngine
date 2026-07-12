@@ -4,8 +4,8 @@ use zircon_runtime::core::framework::{
         PhysicsJointSyncState, PhysicsMaterialSyncState,
     },
     scene::physics::{
-        PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
-        PhysicsSkeletonJointBinding,
+        PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMassProperties,
+        PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
     },
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
@@ -20,8 +20,11 @@ pub(crate) fn rigid_body_step_input_is_finite(rigid_body: &RigidBodyComponent) -
 }
 
 pub(super) fn rigid_body_sync_input_is_finite(rigid_body: &RigidBodyComponent) -> bool {
-    rigid_body.mass.is_finite()
-        && rigid_body.mass > 0.0
+    rigid_body.mass_properties.is_valid()
+        && (matches!(
+            rigid_body.mass_properties,
+            PhysicsMassProperties::AutoFromShape { .. }
+        ) || (rigid_body.mass.is_finite() && rigid_body.mass > 0.0))
         && rigid_body_step_input_is_finite(rigid_body)
 }
 
@@ -51,6 +54,23 @@ pub(super) fn collider_shape_sync_input_is_valid(shape: &ColliderShape) -> bool 
             radius,
             half_height,
         } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height >= 0.0,
+        ColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height > 0.0,
+        ColliderShape::ConvexHull { points } => {
+            points.len() >= 4 && points.iter().all(|point| vec3_is_finite(*point))
+        }
+        ColliderShape::TriangleMesh { .. } => true,
+        ColliderShape::HeightField { resolution, .. } => resolution[0] >= 2 && resolution[1] >= 2,
+        ColliderShape::Compound { children } => {
+            !children.is_empty()
+                && children.iter().all(|(transform, child)| {
+                    transform_is_finite(*transform)
+                        && transform.scale == Vec3::ONE
+                        && collider_shape_sync_input_is_valid(child)
+                })
+        }
     }
 }
 
@@ -150,6 +170,7 @@ pub(super) fn physics_body_sync_state_is_valid(body: &PhysicsBodySyncState) -> b
     transform_is_finite(body.transform)
         && body.mass.is_finite()
         && body.mass > 0.0
+        && body.mass_properties.is_valid()
         && array3_is_finite(body.linear_velocity)
         && array3_is_finite(body.angular_velocity)
         && body.linear_damping.is_finite()
@@ -194,6 +215,27 @@ pub(super) fn physics_collider_shape_is_valid(shape: &PhysicsColliderShape) -> b
             radius,
             half_height,
         } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height >= 0.0,
+        PhysicsColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height > 0.0,
+        PhysicsColliderShape::ConvexHull { points } => {
+            points.len() >= 4 && points.iter().all(|point| array3_is_finite(*point))
+        }
+        PhysicsColliderShape::TriangleMesh { .. } => true,
+        PhysicsColliderShape::HeightField { resolution, .. } => {
+            resolution[0] >= 2 && resolution[1] >= 2
+        }
+        PhysicsColliderShape::Compound { children } => {
+            !children.is_empty()
+                && children.iter().all(|(transform, child)| {
+                    transform.translation.is_finite()
+                        && transform.rotation.is_finite()
+                        && transform.scale.is_finite()
+                        && transform.scale == Vec3::ONE
+                        && physics_collider_shape_is_valid(child)
+                })
+        }
     }
 }
 

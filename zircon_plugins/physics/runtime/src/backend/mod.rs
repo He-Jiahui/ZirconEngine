@@ -7,6 +7,7 @@ mod contract;
 mod error;
 mod handle_pool;
 mod handles;
+mod mass_properties;
 mod selection;
 mod types;
 mod validation;
@@ -19,6 +20,8 @@ pub use handles::{BodyHandle, ConstraintHandle, ShapeHandle};
 pub use jolt::JoltPhysicsBackend;
 pub use selection::JOLT_ENABLED;
 pub use types::{BodyCommand, BodyDesc, ConstraintDesc, PhysicsEventBuffer};
+
+pub(crate) use mass_properties::resolve_body_mass;
 
 pub(crate) use selection::{
     default_backend_name, default_simulation_mode, physics_backend_status, select_runtime_backend,

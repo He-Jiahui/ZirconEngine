@@ -1,0 +1,28 @@
+[asset]
+kind = "view"
+id = "physics.authoring"
+version = 2
+display_name = "Physics"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "physics_authoring_root"
+
+[nodes.physics_authoring_toolbar]
+component = "Space"
+control_id = "PhysicsAuthoringToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.physics_authoring_scene]
+component = "Space"
+control_id = "PhysicsAuthoringScene"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.physics_authoring_root]
+component = "VerticalGroup"
+control_id = "PhysicsAuthoringRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_authoring_toolbar" }, { node = "physics_authoring_scene" }]

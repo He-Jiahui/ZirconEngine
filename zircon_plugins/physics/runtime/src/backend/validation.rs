@@ -1,5 +1,6 @@
 use zircon_runtime::core::framework::{
-    physics::PhysicsColliderShape, scene::physics::PhysicsMaterialMetadata,
+    physics::PhysicsColliderShape,
+    scene::physics::{PhysicsMassProperties, PhysicsMaterialMetadata},
 };
 
 use super::BodyDesc;
@@ -7,8 +8,11 @@ use super::BodyDesc;
 pub(super) fn body_desc_is_valid(desc: &BodyDesc) -> bool {
     let body = &desc.body;
     body.entity == desc.collider.entity
-        && body.mass.is_finite()
-        && body.mass > 0.0
+        && body.mass_properties.is_valid()
+        && (matches!(
+            body.mass_properties,
+            PhysicsMassProperties::AutoFromShape { .. }
+        ) || (body.mass.is_finite() && body.mass > 0.0))
         && body.linear_velocity.iter().all(|value| value.is_finite())
         && body.angular_velocity.iter().all(|value| value.is_finite())
         && body.linear_damping.is_finite()
@@ -29,6 +33,31 @@ pub(super) fn shape_is_valid(shape: &PhysicsColliderShape) -> bool {
             radius,
             half_height,
         } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height >= 0.0,
+        PhysicsColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => radius.is_finite() && *radius > 0.0 && half_height.is_finite() && *half_height > 0.0,
+        PhysicsColliderShape::ConvexHull { points } => {
+            points.len() >= 4
+                && points
+                    .iter()
+                    .flatten()
+                    .all(|coordinate| coordinate.is_finite())
+        }
+        PhysicsColliderShape::TriangleMesh { .. } => true,
+        PhysicsColliderShape::HeightField { resolution, .. } => {
+            resolution[0] >= 2 && resolution[1] >= 2
+        }
+        PhysicsColliderShape::Compound { children } => {
+            !children.is_empty()
+                && children.iter().all(|(transform, child)| {
+                    transform.translation.is_finite()
+                        && transform.rotation.is_finite()
+                        && transform.scale.is_finite()
+                        && transform.scale.to_array() == [1.0; 3]
+                        && shape_is_valid(child)
+                })
+        }
     }
 }
 

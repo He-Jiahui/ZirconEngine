@@ -1,0 +1,28 @@
+[asset]
+kind = "view"
+id = "physics.debug_overlay"
+version = 2
+display_name = "Physics Debug Overlay"
+
+[imports]
+styles = ["res://ui/theme/editor_base.zui"]
+
+[root]
+node = "physics_debug_root"
+
+[nodes.physics_debug_filters]
+component = "Space"
+control_id = "PhysicsDebugOverlayFilters"
+layout = { width = { min = 240.0, preferred = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.physics_collider_wireframes]
+component = "Space"
+control_id = "PhysicsColliderWireframeGizmos"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.physics_debug_root]
+component = "HorizontalGroup"
+control_id = "PhysicsDebugOverlayRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "physics_collider_wireframes" }, { node = "physics_debug_filters" }]

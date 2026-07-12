@@ -8,8 +8,9 @@ use zircon_plugin_physics_runtime::{
 use zircon_runtime::core::framework::{
     physics::{
         PhysicsBackendState, PhysicsColliderShape, PhysicsJointType, PhysicsManager,
-        PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings, PhysicsShapeCastQuery,
-        PhysicsShapeOverlapQuery, PhysicsSimulationMode, PhysicsWorldStepPlan,
+        PhysicsQueryFilter, PhysicsQueryMode, PhysicsRayCastQuery, PhysicsSettings,
+        PhysicsShapeCastQuery, PhysicsShapeOverlapQuery, PhysicsSimulationMode,
+        PhysicsWorldStepPlan,
     },
     scene::physics::{
         PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsSkeletonJointBinding,
@@ -205,5 +206,6 @@ fn world_sync_preserves_constraint_and_skeletal_joint_metadata() {
 }
 
 mod contact;
+mod event;
 mod query;
 mod step;

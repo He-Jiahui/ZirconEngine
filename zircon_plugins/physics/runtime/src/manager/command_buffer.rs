@@ -5,16 +5,19 @@ use std::fmt;
 use zircon_runtime::core::framework::physics::PhysicsBodyType;
 #[cfg(feature = "backend-jolt")]
 use zircon_runtime::core::framework::physics::PhysicsWorldSyncState;
+use zircon_runtime::core::framework::scene::physics::{PhysicsCcdMode, PhysicsSleepPolicy};
 use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::components::RigidBodyType;
 use zircon_runtime::scene::world::World;
 
+use crate::backend::resolve_body_mass;
 #[cfg(feature = "backend-jolt")]
 use crate::backend::{BodyCommand, BodyHandle};
 
 use super::poison_recovery::recover_lock;
 use super::validation::{array3_is_finite, transform_is_finite};
+use super::world_sync::collider_shape_to_physics;
 use super::DefaultPhysicsManager;
 
 const MAX_PENDING_BODY_COMMANDS_PER_WORLD: usize = 4_096;
@@ -53,6 +56,16 @@ pub enum PhysicsBodyCommand {
         entity: EntityId,
         body_type: PhysicsBodyType,
     },
+    SetCcdMode {
+        world: WorldHandle,
+        entity: EntityId,
+        mode: PhysicsCcdMode,
+    },
+    SetSleepPolicy {
+        world: WorldHandle,
+        entity: EntityId,
+        policy: PhysicsSleepPolicy,
+    },
 }
 
 impl PhysicsBodyCommand {
@@ -63,7 +76,9 @@ impl PhysicsBodyCommand {
             | Self::ApplyForce { world, .. }
             | Self::ApplyImpulse { world, .. }
             | Self::Teleport { world, .. }
-            | Self::SetBodyType { world, .. } => world,
+            | Self::SetBodyType { world, .. }
+            | Self::SetCcdMode { world, .. }
+            | Self::SetSleepPolicy { world, .. } => world,
         }
     }
 
@@ -74,7 +89,9 @@ impl PhysicsBodyCommand {
             | Self::ApplyForce { entity, .. }
             | Self::ApplyImpulse { entity, .. }
             | Self::Teleport { entity, .. }
-            | Self::SetBodyType { entity, .. } => entity,
+            | Self::SetBodyType { entity, .. }
+            | Self::SetCcdMode { entity, .. }
+            | Self::SetSleepPolicy { entity, .. } => entity,
         }
     }
 
@@ -91,6 +108,8 @@ impl PhysicsBodyCommand {
             Self::ApplyImpulse { impulse, .. } => BodyCommand::ApplyImpulse { body, impulse },
             Self::Teleport { transform, .. } => BodyCommand::Teleport { body, transform },
             Self::SetBodyType { body_type, .. } => BodyCommand::SetBodyType { body, body_type },
+            Self::SetCcdMode { mode, .. } => BodyCommand::SetCcdMode { body, mode },
+            Self::SetSleepPolicy { policy, .. } => BodyCommand::SetSleepPolicy { body, policy },
         }
     }
 
@@ -101,7 +120,9 @@ impl PhysicsBodyCommand {
             Self::ApplyForce { force, .. } => array3_is_finite(force),
             Self::ApplyImpulse { impulse, .. } => array3_is_finite(impulse),
             Self::Teleport { transform, .. } => transform_is_finite(transform),
-            Self::SetBodyType { .. } => true,
+            Self::SetBodyType { .. } | Self::SetCcdMode { .. } | Self::SetSleepPolicy { .. } => {
+                true
+            }
         }
     }
 }
@@ -209,6 +230,12 @@ pub(super) fn apply_commands_to_sync(
             PhysicsBodyCommand::SetBodyType { body_type, .. } => {
                 body.body_type = body_type;
             }
+            PhysicsBodyCommand::SetCcdMode { mode, .. } => {
+                body.ccd_mode = mode;
+            }
+            PhysicsBodyCommand::SetSleepPolicy { policy, .. } => {
+                body.sleep_policy = policy;
+            }
             PhysicsBodyCommand::ApplyForce { .. } | PhysicsBodyCommand::ApplyImpulse { .. } => {}
         }
     }
@@ -240,13 +267,15 @@ pub(super) fn apply_commands_to_scene(
                 body.angular_velocity = Vec3::from_array(velocity);
             }
             PhysicsBodyCommand::ApplyForce { force, .. } => {
-                if body.mass.is_finite() && body.mass > 0.0 {
-                    body.linear_velocity += Vec3::from_array(force) * (step_seconds / body.mass);
+                if let Some(mass) = resolved_scene_body_mass(world, entity, &body) {
+                    body.mass = mass;
+                    body.linear_velocity += Vec3::from_array(force) * (step_seconds / mass);
                 }
             }
             PhysicsBodyCommand::ApplyImpulse { impulse, .. } => {
-                if body.mass.is_finite() && body.mass > 0.0 {
-                    body.linear_velocity += Vec3::from_array(impulse) / body.mass;
+                if let Some(mass) = resolved_scene_body_mass(world, entity, &body) {
+                    body.mass = mass;
+                    body.linear_velocity += Vec3::from_array(impulse) / mass;
                 }
             }
             PhysicsBodyCommand::SetBodyType { body_type, .. } => {
@@ -256,8 +285,29 @@ pub(super) fn apply_commands_to_scene(
                     PhysicsBodyType::Kinematic => RigidBodyType::Kinematic,
                 };
             }
+            PhysicsBodyCommand::SetCcdMode { mode, .. } => {
+                body.ccd_mode = mode;
+            }
+            PhysicsBodyCommand::SetSleepPolicy { policy, .. } => {
+                body.sleep_policy = policy;
+            }
             PhysicsBodyCommand::Teleport { .. } => {}
         }
         let _ = world.set_rigid_body(entity, Some(body));
     }
+}
+
+fn resolved_scene_body_mass(
+    world: &World,
+    entity: EntityId,
+    body: &zircon_runtime::scene::components::RigidBodyComponent,
+) -> Option<Real> {
+    let collider = world.collider(entity)?;
+    resolve_body_mass(
+        &collider_shape_to_physics(&collider.shape),
+        body.mass,
+        body.mass_properties,
+    )
+    .ok()
+    .map(|resolved| resolved.mass)
 }
