@@ -10,11 +10,6 @@ from ..models import CoordinatorError
 
 
 _HASHED_ASSET = re.compile(r"(?:^|[-.])[0-9A-Za-z_-]{8,}(?:[.-]|$)")
-_CONTENT_SECURITY_POLICY = (
-    "default-src 'none'; script-src 'self'; style-src 'self'; "
-    "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
-    "base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,9 +68,8 @@ class StaticAssetService:
         if index:
             headers.update(
                 {
-                    "Content-Security-Policy": _CONTENT_SECURITY_POLICY,
                     "X-Frame-Options": "DENY",
-                    "Referrer-Policy": "no-referrer",
+                    "Referrer-Policy": "same-origin",
                     "Permissions-Policy": (
                         "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
                     ),
