@@ -8,7 +8,8 @@ use crate::asset::artifact::{
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size, CubemapFace, IblBakeArtifactBlob,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_pmrem_mip_from_roughness, CubemapFace, IblBakeArtifactBlob,
     IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
     IblBakeArtifactRequest, ProceduralSkyParams, RenderFrameExtract, RenderPluginRendererOutputs,
     RenderWorldSnapshotHandle, SourceCubemapIrradianceCube, SourceCubemapMipChain,
@@ -131,8 +132,8 @@ fn runtime_graph_writeback_reads_pmrem_graph_output_and_preserves_readback_seams
     let store = IblBakeArtifactCacheStore::new(&temp_root);
     let request = IblBakeArtifactRequest::new(
         ProceduralSkyParams::default_gradient().ibl_bake_key(),
-        source.face_size(),
-        source.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
     )
     .with_required_contents(IblBakeArtifactContents::PMREM);
     let dispatch = resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
@@ -166,14 +167,19 @@ fn runtime_graph_writeback_reads_pmrem_graph_output_and_preserves_readback_seams
         .payload()
         .expect("runtime cache hit should expose PMREM payload");
     let computed_pmrem = SourceCubemapMipChain::new(
-        request.face_size(),
-        request.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
+        source.source_texels().to_vec(),
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
         payload
             .decode_pmrem_texels()
             .expect("PMREM payload should decode"),
     );
-    let mid_mip = computed_pmrem.mip_count().saturating_sub(3);
-    let rough_mip = computed_pmrem.mip_count().saturating_sub(2);
+    let mid_mip = source_cubemap_pmrem_mip_from_roughness(0.5, computed_pmrem.pmrem_mip_count())
+        .round() as u32;
+    let rough_mip = source_cubemap_pmrem_mip_from_roughness(1.0, computed_pmrem.pmrem_mip_count())
+        .round() as u32;
     let base = pmrem_seam_luma_stats(&computed_pmrem, 0);
     let mid = pmrem_seam_luma_stats(&computed_pmrem, mid_mip);
     let rough = pmrem_seam_luma_stats(&computed_pmrem, rough_mip);
@@ -202,8 +208,8 @@ fn runtime_graph_writeback_reads_iem_graph_output_and_preserves_directional_irra
     let store = IblBakeArtifactCacheStore::new(&temp_root);
     let request = IblBakeArtifactRequest::new(
         ProceduralSkyParams::default_gradient().ibl_bake_key(),
-        source.face_size(),
-        source.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
     )
     .with_required_contents(IblBakeArtifactContents::IEM);
     let dispatch = resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
@@ -375,7 +381,9 @@ fn dispatch_pmrem_graph_output(
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);
     resources.import_texture_view(
         IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
-        source_texture.create_view(&source_cubemap_mip_view_descriptor(source.mip_count())),
+        source_texture.create_view(&source_cubemap_mip_view_descriptor(
+            source.source_mip_count(),
+        )),
     );
 
     let mut encoder = backend
@@ -469,7 +477,9 @@ fn dispatch_irradiance_cube_graph_output(
         create_source_cubemap_texture_from_chain(&backend.device, &backend.queue, source);
     resources.import_texture_view(
         IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
-        source_texture.create_view(&source_cubemap_mip_view_descriptor(source.mip_count())),
+        source_texture.create_view(&source_cubemap_mip_view_descriptor(
+            source.source_mip_count(),
+        )),
     );
 
     let mut encoder = backend
@@ -556,12 +566,7 @@ fn request(contents: IblBakeArtifactContents) -> IblBakeArtifactRequest {
 }
 
 fn sh9_blob_for_request(request: &IblBakeArtifactRequest) -> IblBakeArtifactBlob {
-    let descriptor = IblBakeArtifactDescriptor::current(
-        request.bake_key(),
-        request.face_size(),
-        request.mip_count(),
-        request.required_contents(),
-    );
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
     let readback = IblBakeArtifactReadbackSections::new(descriptor)
         .with_irradiance_sh9_bytes(vec![0_u8; IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES]);
     IblBakeArtifactBlob::from_payload(
@@ -596,11 +601,11 @@ fn create_source_cubemap_texture_from_chain(
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("ibl-bake-runtime-writeback-pmrem-source-cubemap"),
         size: wgpu::Extent3d {
-            width: source.face_size(),
-            height: source.face_size(),
+            width: source.source_face_size(),
+            height: source.source_face_size(),
             depth_or_array_layers: 6,
         },
-        mip_level_count: source.mip_count(),
+        mip_level_count: source.source_mip_count(),
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Unorm,
@@ -609,11 +614,11 @@ fn create_source_cubemap_texture_from_chain(
     });
 
     for face in CubemapFace::ALL {
-        for mip_level in 0..source.mip_count() {
-            let mip_size = source_cubemap_mip_size(source.face_size(), mip_level);
+        for mip_level in 0..source.source_mip_count() {
+            let mip_size = source_cubemap_mip_size(source.source_face_size(), mip_level);
             let offset = source_cubemap_face_mip_offset(
-                source.face_size(),
-                source.mip_count(),
+                source.source_face_size(),
+                source.source_mip_count(),
                 face,
                 mip_level,
             );

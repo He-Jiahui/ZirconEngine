@@ -10,6 +10,9 @@ related_code:
   - zircon_app/src/bin/zircon_shader_pbr_viewer/presenter.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/project_assets.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem_layout.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
   - zircon_runtime/src/asset/importer/environment_ibl.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
@@ -17,7 +20,10 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/hdri_metrics.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
 implementation_files:
   - zircon_app/Cargo.toml
   - zircon_app/src/bin/zircon_shader_pbr_viewer/main.rs
@@ -29,12 +35,17 @@ implementation_files:
   - zircon_app/src/bin/zircon_shader_pbr_viewer/presenter.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/project_assets.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/hdri_metrics.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
 plan_sources:
   - user: 2026-07-08 需要视角上下左右分别旋转120度验证
   - user: 2026-07-08 最好帮我编译一个鼠标可以控制镜头视角的程序让我手动去操纵验证
@@ -42,7 +53,15 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
+  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
+  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_uepdf_20260713.png
+  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_uepdf_20260713.txt
+  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_pmrem512_uepdf_exact_multiview_contact_sheet_20260713.png
+  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_pmrem512_uepdf_dx12_renderdoc_20260713_capture.rdc
   - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png
   - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_cardinal_120deg_reflection_20260708.png
   - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_multi_view_reflection_20260707.png
@@ -73,7 +92,7 @@ doc_type: testing-guide
 
 ## Purpose
 
-`runtime_shader_pbr_hdri_export.rs` is the focused visual-validation harness for real-HDRI PBR environment lighting. It creates temporary projects, renders standard PBR material spheres under the Poly Haven Lakes HDRI source cubemap, exports accepted screenshots into `docs/tests/runtime/shader`, and then runs saved-PNG assertions against those screenshots.
+`runtime_shader_pbr_hdri_export.rs` is the root of the folder-backed visual-validation harness for real-HDRI PBR environment lighting. Shared project/HDRI/render infrastructure remains in the 598-line root; `pbr_matrix.rs` owns the 8x8 sweep, `sphere_reflection.rs` owns mirror and multi-view exports, and `pbr_matrix_quantitative.rs` owns quantitative analysis. The harness creates temporary projects, renders standard PBR material spheres under the Poly Haven Lakes HDRI source cubemap, exports accepted screenshots into `docs/tests/runtime/shader`, and then runs saved-PNG assertions against those screenshots.
 
 The harness is intentionally separate from production rendering modules. It exercises the real asset path through `ProjectManager`, `SceneRenderer`, `EnvironmentExtract::source_cubemap(...)`, standard PBR material assets, and generated scene fixtures.
 
@@ -81,9 +100,9 @@ The harness is intentionally separate from production rendering modules. It exer
 
 The current standard-PBR matrix is the requested 8x8 grid, not the older 10x10 diagnostic layout. Columns sweep metallic from 0 at the left to 1 at the right. Rows sweep smoothness from 0 at the top to 1 at the bottom, with roughness written as `1 - smoothness`. Both axes include their exact 0 and 1 endpoints, producing 64 independently authored standard materials.
 
-`runtime_shader_pbr_matrix_contract_uses_requested_eight_by_eight_grid` locks the grid size and endpoints. The ignored export test renders the matrix over the staged Poly Haven Lakes 2K HDRI and writes `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png`. The saved-PNG metric test checks sky/ground variation, metallic response, smoothness response, bounded PMREM energy drift, and increasing high-frequency reflection detail toward the smooth high-metal cells.
+`runtime_shader_pbr_matrix_contract_uses_requested_eight_by_eight_grid` locks the grid size and endpoints. The current ignored product test renders the matrix over the staged Poly Haven Lakes 2K HDRI and writes `docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_uepdf_20260713.png`. The saved report checks direct-cubemap mirror similarity, adjacent roughness response, dielectric F0 and grazing response, and bounded rough-metal energy.
 
-The accepted image is 1600x1200, 1,383,647 bytes, SHA256 `AC2DD56DB79C63FC8037D78164D539ECCD42C2FCD8BE2E6E0AFF77D362E1C286`. The export test and saved-PNG metric test pass against the current implementation, and scans found no copy under the repository `target` or the active external Cargo target.
+The current accepted image is 1600x1200, SHA256 `68738E5E792AD428B48E8F89AF234F33FF3A6FA0EAE778EC3AF01465471C4D38`. The report SHA256 is `6AF39DF858044A2DE1B3FF304AAF23F4586E0C602BC389FCCC5EF4EEF1A6D92A`; it records mirror SSIM `0.998698`, minimum adjacent roughness delta `0.00000165`, dielectric delta E `0.801172`, dielectric center F0 response `0.041225`, dielectric grazing response `0.266590`, and rough-metal luma `0.500247` within `[0.212072, 1.688753]`.
 
 The stricter ignored product test `render_product_environment_pbr_matrix_quantitative` captures both linear RGBA16F scene color and the final sRGB frame. A paired capture preserves the same SH9 diffuse environment while replacing source/specular cubemap texels with black, allowing the test to isolate the GPU specular term without amplifying CPU SH reconstruction error. The direct-cubemap mirror comparison now passes at SSIM `0.998698`. The source/PMREM shared-face-size mismatch found by the first audit is hard-cut to a full-resolution source texture plus fixed 128x128x6, eight-mip PMREM texture, including staged artifact restore, WGPU upload and shader metadata.
 
@@ -137,18 +156,20 @@ The 2026-07-13 resolution correction removes the viewer-only 256-pixel default. 
 
 The source-resolution A/B also establishes a separate PMREM limit. A current executable launched with `--face-size 512` reached `Ready` after 98.48 seconds and logged source face 512/mip 10 but PMREM face 128/mip 8. The resulting 1296x999 image is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_face512_baseline_20260713.png` (551,361 bytes, SHA256 `734E49585B989DBA5CD10AC2087DA71C594F4DB6C8FD76598A9DBF3E4A440AF6`). Against the same-size 256 baseline, the mirror-sphere crop changes by only RGB RMS `[0.671, 0.543, 0.493]`, while a left background crop changes by `[3.750, 3.062, 2.859]`; this isolates the fixed PMREM base as the mirror-detail bottleneck. This agrees with the cmft source model: radiance filtering exposes destination face size, mip count, base exclusion, lighting model, and edge fixup independently, and cmftStudio samples the PMREM with roughness-derived LOD plus cube-edge lookup correction. Raising source resolution alone is therefore not accepted as a PMREM-quality fix; the fixed-128 runtime artifact contract remains a separate Shader 06 architecture slice.
 
+The configurable-result implementation keeps that artifact default intact and adds `SourceCubemapPmremLayout` as the independent core result-layout contract. `SourceCubemapPmremLayout::from_face_size(...)` derives the complete mip count, while `build_source_cubemap_from_source_mips_with_pmrem_layout(...)` runs the existing cmft-aligned radiance filter against the source mip pyramid using the requested destination dimensions. Existing product/importer callers continue through the 128x128x8 default. The interactive viewer adds `--pmrem-face-size`; when omitted, PMREM follows the resolved source face size, so Lakes 2K selects source 512/mip10 plus PMREM 512/mip10. The viewer still stages and reloads the source/derived bundle first, then rebuilds only its active validation PMREM through the shared runtime function. This isolates manual quality experiments from persistent artifact compatibility without introducing a second filter algorithm.
+
 For RenderDoc evidence, the viewer also supports `--renderdoc-capture-once --exit-after-capture`. The app starts wgpu graphics-debugger capture around the first real `SceneRenderer` PBR/HDRI frame, stops capture after the frame render completes, presents the frame, then exits when requested. This is a development/debug path; normal manual orbit viewing does not trigger capture.
 
 Usage:
 
 ```powershell
-E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe
-E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --hdri E:\Git\ZirconEngine\docs\tests\runtime\shader\assets\polyhaven_lakes_2k.hdr
-E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --face-size 512
-E:\ZirconBuilds\shader-pbr-viewer-20260712\zircon_shader_pbr_viewer.exe --face-size 64 --renderdoc-capture-once --exit-after-capture
+E:\ZirconBuilds\shader-pbr-viewer-20260713\zircon_shader_pbr_viewer.exe
+E:\ZirconBuilds\shader-pbr-viewer-20260713\zircon_shader_pbr_viewer.exe --hdri E:\Git\ZirconEngine\docs\tests\runtime\shader\assets\polyhaven_lakes_2k.hdr
+E:\ZirconBuilds\shader-pbr-viewer-20260713\zircon_shader_pbr_viewer.exe --face-size 512 --pmrem-face-size 512
+E:\ZirconBuilds\shader-pbr-viewer-20260713\zircon_shader_pbr_viewer.exe --pmrem-face-size 64 --renderdoc-capture-once --exit-after-capture
 ```
 
-Left mouse drag orbits the camera. The mouse wheel zooms. The viewer intentionally uses `stage_environment_ibl_source(...)`, `IblSourceCubemapStagingStore::read_source_cubemap_environment(...)`, `EnvironmentExtract::source_cubemap(...)`, the standard PBR material, and the normal camera descriptor path. Manual inspection therefore exercises importer-produced source/derived artifacts and the runtime reflection route rather than a separate debug renderer or a temporary viewer-only PMREM build.
+Left mouse drag orbits the camera and updates the window title with the current rounded yaw/pitch; the mouse wheel zooms. The viewer intentionally uses `stage_environment_ibl_source(...)`, `IblSourceCubemapStagingStore::read_source_cubemap_environment(...)`, `EnvironmentExtract::source_cubemap(...)`, the standard PBR material, and the normal camera descriptor path. Its optional PMREM result-size override calls the same core cmft-aligned prefilter used by the runtime rather than a debug-renderer or shader sampling bypass; only persistence is viewer-local.
 
 The 2026-07-12 current-source executable is 69,888,000 bytes with SHA256 `638B9484C3A054B48DFD4359639E010D1C813C2002F2C77FAF7200F1F71D0A84`. A normal DX12 launch with the default Lakes 2K HDRI remained responsive through source-cubemap and PMREM staging, reached `Ready - yaw 0 pitch 0`, and reported source face 256/mip9 plus PMREM face128/mip8. The real window capture is `docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_fresh_20260712.png`, 1296x999, 870,391 bytes, SHA256 `996F982878099698DBABF231B928356CFE5F7917753BEC8CD589BB87FB79CAE1`. It shows detailed skybox and mirror-sphere scene content rather than the rejected low-resolution equirect sample grid.
 
@@ -207,4 +228,13 @@ The strict source-reference follow-up for yawed multi-view screenshots, the requ
 - The current 2026-07-12 rebuild hard-cuts generated scene references to the temporary project's scanned registry identity instead of deriving a fresh GUID from `res://`. The focused viewer tests pass 6/6, the production build exits 0, and the published executable is 75,099,136 bytes with SHA256 `E2C7A9A94D640EC4A2C3FB83F5D12A65D03E9889430582F14801DDF97600B53B`. A default Lakes 2K launch remained responsive throughout loading and reached `Ready - yaw 0 pitch 0` after 75.16 seconds of scene preparation (78.7 seconds observed wall time), with staged source face 256/mip 9 and PMREM face 128/mip 8. This closes the post-project-migration `asset guid ... is not registered` startup regression without a legacy-reference fallback.
 - A later current-source rebuild is published at `E:/ZirconBuilds/shader-pbr-viewer-20260712/zircon_shader_pbr_viewer.exe` (69,888,000 bytes, SHA256 `638B9484C3A054B48DFD4359639E010D1C813C2002F2C77FAF7200F1F71D0A84`). Its default Lakes 2K DX12 launch reached `Ready - yaw 0 pitch 0`; the accepted 1296x999 live image is `docs/tests/runtime/shader/runtime_shader_pbr_interactive_viewer_fresh_20260712.png` (SHA256 `996F982878099698DBABF231B928356CFE5F7917753BEC8CD589BB87FB79CAE1`). A fresh DX12 one-shot capture wrote `docs/tests/runtime/shader/zircon_shader_pbr_viewer_current_dx12_renderdoc_20260712_capture.rdc` (15,708,994 bytes, SHA256 `D64379AED7C463C58293166C04325A8CD26C580567FF1BDFF3BE35EF2438BAEF`); `D:/Tools/renderdoc/renderdoccmd.exe replay --loops 1` loaded and replayed it with exit 0.
 - The 2026-07-13 native-resolution viewer is published at `E:/ZirconBuilds/shader-pbr-viewer-20260713/zircon_shader_pbr_viewer.exe` (76,583,424 bytes, SHA256 `DE2B5D082CC9B0FBBDB57FFD9BD21F3BC660699AA44529CB0CF76F7564B56271`). Viewer tests pass 10/10 and the production build exits 0. `--help` reports automatic HDRI-derived face sizing and exact overrides through 1024. A default Lakes 2K launch stages source face 512/mip 10 and reaches `Ready`. Fresh front, yaw +/-120, and pitch +/-120 windows were captured with `PrintWindow`; the 1944x1056 contact sheet is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_auto512_exact_multiview_contact_sheet_20260713.png` (1,307,730 bytes, SHA256 `646EC74F643043A3C6634018DBB27C7AFAF372E74241193A15780A4ACA9C8FB5`). Visual inspection confirms consistent Lakes skybox/reflection orientation in all five views. The fresh DX12 capture `zircon_shader_pbr_viewer_auto512_dx12_renderdoc_20260713_verified_capture.rdc` is 32,709,923 bytes with SHA256 `D41BB530AF08DAFF0F8BE2A3541E13987CA2518401429EA9D003036C69FEA399`; local one-loop replay exits 0.
+- The configurable-PMREM delivery build is `E:/ZirconBuilds/shader-pbr-viewer-20260713/zircon_shader_pbr_viewer.exe` (77,708,800 bytes, SHA256 `2740059A1FC53E807C0CAA73E234C5820A37BC5996344E82B42968049E5CE7F8`). A normal PMREM512 launch reports source 512/mip10 and active PMREM 512/mip10, reaches `Ready` after 140.11 seconds, and keeps the window responsive. The 1920x1016 front/yaw +/-120/pitch +/-120 contact sheet is `runtime_shader_pbr_real_hdri_lakes_pmrem512_exact_multiview_contact_sheet_20260713.png` (2,096,339 bytes, SHA256 `CC6A285C7A00242AFC1D19FF99C5FFC84D18EFFF540D1A477307DC8B3505B4F4`). Its title bars record every exact requested angle, and visual inspection confirms matched Lakes skybox and mirror reflection orientation. Against the source512/PMREM128 baseline, the mirror crop RGB RMS is `[3.3479, 3.0154, 2.6516]`; Laplacian RMS increases from `[10.7013, 12.9518, 14.2784]` to `[12.5392, 14.2155, 15.3383]`. The DX12 capture `zircon_shader_pbr_viewer_pmrem512_dx12_renderdoc_20260713_capture.rdc` is 48,441,501 bytes with SHA256 `86C69841C24136E393D3E6BE18CA9DF487C6EBD5F85ADA0D3131B5AEA1492026`; one-loop local replay exits 0. The current shared source passes the managed viewer Cargo tests 15/15 and a standalone current-module projection/source-mip/GGX-PMREM suite 23/23; these prove behavior but do not replace the clean-HEAD integration gate while EC-M3ar caller and facade changes remain uncommitted. Target-copy scan returns zero.
 - The current-source realtime IBL integration target was rebuilt and rerun: exact contract 1/1, direct-SH9 8x8 1/1, and exact front/pitch +/-120/yaw +/-120 five-view product 1/1. The accepted PNG hashes remain `6E060927368C0D75678F115B5D110E536C0ABE2E81BD8FB05CDBEFA129FA62FA` and `B41F470CA6119405AAFB8B5441C0276258F6680353381BFB4230C5FB67BCE9FF`; both files were freshly rewritten under `docs/tests/runtime/shader` and visually checked for continuous material response and consistent reflection orientation.
+
+## 2026-07-13 corrected Unreal GGX FIS acceptance
+
+- CPU `pmrem.rs` and GPU `ibl_prefilter.wgsl` now use Unreal's `V=N` light-direction PDF `D_GGX / 4`. Filtered GGX/cosine source LOD is PDF-derived without the former destination-footprint lower bound; mip-zero direct downsampling still uses the footprint. Three `core-min` regressions and the graphics-only WGSL source-contract test each pass 1/1. The default-feature lib wrapper is not counted because unrelated SDF font test code fails to import its `AssetManager` trait.
+- The current delivery executable is `E:/ZirconBuilds/shader-pbr-viewer-uepdf-delivery-20260713/zircon_shader_pbr_viewer.exe`, 77,867,008 bytes, SHA256 `F1B59D9BC75AC2210D3CF1FB699C08D5CA936012E738D7015ED4592D71E21310`. `--help` exits 0. A fresh no-argument launch from the delivery directory remains responsive during the real Lakes 2K source512/PMREM512 bake and reaches `Ready - yaw 0 pitch 0` after approximately 146 seconds, directly closing the earlier launch failure. Win32 mouse input reaches yaw +120, yaw -120, pitch +120, and pitch -120.
+- The corrected five-view contact sheet is `runtime_shader_pbr_real_hdri_lakes_pmrem512_uepdf_exact_multiview_contact_sheet_20260713.png`, SHA256 `C003B1948FAE2FA7E54E3C0E40E15D0C62C318E6583847BE6B53E668C18580B7`. All source frames are 1296x999. Visual inspection shows continuous sky detail, a non-white mirror sphere, matched road/tree/lake/sun reflection content, and the expected sky/ground swap between pitch +120 and pitch -120 without up/down or front/back inversion.
+- The fresh DX12 capture is `zircon_shader_pbr_viewer_pmrem512_uepdf_dx12_renderdoc_20260713_capture.rdc`, 48,430,923 bytes, SHA256 `634D090673E3E3E745E43FF6BC018AB7A6120E7008F43984D1452271CD240F7C`. `D:/Tools/renderdoc/renderdoccmd.exe replay --loops 1` exits 0.
+- `render_product_environment_pbr_matrix_quantitative` passes 1/1 before and after the test-harness ownership split. The root, matrix, sphere-reflection, and quantitative files are 598/231/572/750 physical lines, respectively, satisfying the repository's 800-line test-file ceiling. The regenerated matrix PNG remains byte-identical across the split. All accepted PNG/RDC outputs are under `docs/tests/runtime/shader`; none is written into a Cargo target.

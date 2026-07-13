@@ -6,15 +6,16 @@ use super::{
     source_cubemap_sample_count, IblBakeKey, SourceCubemapIrradianceCube,
     SourceCubemapIrradianceSh9, SourceCubemapMipChain, SOURCE_CUBEMAP_FACE_COUNT,
     SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
 
 const IBL_BAKE_ARTIFACT_MAGIC: [u8; 8] = *b"ZRIBLBAK";
-const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 1;
+const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 2;
 
-pub const IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_07_06_0001;
-pub const IBL_BAKE_ARTIFACT_HEADER_SIZE: usize = 108;
+pub const IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_07_13_0003;
+pub const IBL_BAKE_ARTIFACT_HEADER_SIZE: usize = 116;
 pub const IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES: usize = RGBA16F_TEXEL_SIZE_BYTES;
 pub const IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES: usize =
     SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT * 4 * std::mem::size_of::<f32>();
@@ -60,17 +61,17 @@ impl BitOrAssign for IblBakeArtifactContents {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct IblBakeArtifactRequest {
     bake_key: IblBakeKey,
-    face_size: u32,
-    mip_count: u32,
+    source_face_size: u32,
+    source_mip_count: u32,
     required_contents: IblBakeArtifactContents,
 }
 
 impl IblBakeArtifactRequest {
-    pub fn new(bake_key: IblBakeKey, face_size: u32, mip_count: u32) -> Self {
+    pub fn new(bake_key: IblBakeKey, source_face_size: u32, source_mip_count: u32) -> Self {
         Self {
             bake_key,
-            face_size: face_size.max(1),
-            mip_count: mip_count.max(1),
+            source_face_size: source_face_size.max(1),
+            source_mip_count: source_mip_count.max(1),
             required_contents: IblBakeArtifactContents::PMREM_SH9,
         }
     }
@@ -79,12 +80,20 @@ impl IblBakeArtifactRequest {
         self.bake_key
     }
 
-    pub const fn face_size(&self) -> u32 {
-        self.face_size
+    pub const fn source_face_size(&self) -> u32 {
+        self.source_face_size
     }
 
-    pub const fn mip_count(&self) -> u32 {
-        self.mip_count
+    pub const fn source_mip_count(&self) -> u32 {
+        self.source_mip_count
+    }
+
+    pub const fn pmrem_face_size(&self) -> u32 {
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE
+    }
+
+    pub const fn pmrem_mip_count(&self) -> u32 {
+        SOURCE_CUBEMAP_PMREM_MIP_COUNT
     }
 
     pub const fn required_contents(&self) -> IblBakeArtifactContents {
@@ -104,6 +113,8 @@ impl IblBakeArtifactRequest {
 pub struct IblBakeArtifactDescriptor {
     bake_key: IblBakeKey,
     algorithm_version: u64,
+    source_face_size: u32,
+    source_mip_count: u32,
     face_size: u32,
     mip_count: u32,
     contents: IblBakeArtifactContents,
@@ -119,9 +130,23 @@ impl IblBakeArtifactDescriptor {
         Self {
             bake_key,
             algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+            source_face_size: face_size.max(1),
+            source_mip_count: mip_count.max(1),
             face_size: face_size.max(1),
             mip_count: mip_count.max(1),
             contents,
+        }
+    }
+
+    pub fn current_for_request(request: &IblBakeArtifactRequest) -> Self {
+        Self {
+            bake_key: request.bake_key(),
+            algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+            source_face_size: request.source_face_size(),
+            source_mip_count: request.source_mip_count(),
+            face_size: request.pmrem_face_size(),
+            mip_count: request.pmrem_mip_count(),
+            contents: request.required_contents(),
         }
     }
 
@@ -131,6 +156,14 @@ impl IblBakeArtifactDescriptor {
 
     pub const fn algorithm_version(&self) -> u64 {
         self.algorithm_version
+    }
+
+    pub const fn source_face_size(&self) -> u32 {
+        self.source_face_size
+    }
+
+    pub const fn source_mip_count(&self) -> u32 {
+        self.source_mip_count
     }
 
     pub const fn face_size(&self) -> u32 {
@@ -171,8 +204,10 @@ impl IblBakeArtifactDescriptor {
     pub fn is_current_for(&self, request: &IblBakeArtifactRequest) -> bool {
         self.algorithm_version == IBL_BAKE_ALGORITHM_VERSION
             && self.bake_key == request.bake_key
-            && self.face_size == request.face_size
-            && self.mip_count == request.mip_count
+            && self.source_face_size == request.source_face_size()
+            && self.source_mip_count == request.source_mip_count()
+            && self.face_size == request.pmrem_face_size()
+            && self.mip_count == request.pmrem_mip_count()
             && self.contents.contains(request.required_contents)
     }
 }
@@ -197,6 +232,8 @@ impl IblBakeArtifactHeader {
         write_bytes(&mut bytes, &mut cursor, &IBL_BAKE_ARTIFACT_MAGIC);
         write_u32(&mut bytes, &mut cursor, IBL_BAKE_ARTIFACT_FORMAT_VERSION);
         write_u64(&mut bytes, &mut cursor, self.descriptor.algorithm_version);
+        write_u32(&mut bytes, &mut cursor, self.descriptor.source_face_size);
+        write_u32(&mut bytes, &mut cursor, self.descriptor.source_mip_count);
         write_u32(&mut bytes, &mut cursor, self.descriptor.face_size);
         write_u32(&mut bytes, &mut cursor, self.descriptor.mip_count);
         write_u32(&mut bytes, &mut cursor, self.descriptor.contents.bits());
@@ -219,6 +256,8 @@ impl IblBakeArtifactHeader {
             ));
         }
         let algorithm_version = read_u64(bytes, &mut cursor);
+        let source_face_size = read_u32(bytes, &mut cursor);
+        let source_mip_count = read_u32(bytes, &mut cursor);
         let face_size = read_u32(bytes, &mut cursor);
         let mip_count = read_u32(bytes, &mut cursor);
         let contents = IblBakeArtifactContents(read_u32(bytes, &mut cursor));
@@ -227,6 +266,8 @@ impl IblBakeArtifactHeader {
             descriptor: IblBakeArtifactDescriptor {
                 bake_key,
                 algorithm_version,
+                source_face_size,
+                source_mip_count,
                 face_size,
                 mip_count,
                 contents,
@@ -254,23 +295,32 @@ impl IblBakeArtifactPayload {
         cubemap: &SourceCubemapMipChain,
         irradiance_cube: Option<&SourceCubemapIrradianceCube>,
     ) -> Result<Self, IblBakeArtifactPayloadError> {
-        if (descriptor.contents.contains(IblBakeArtifactContents::PMREM)
-            || descriptor.contents.contains(IblBakeArtifactContents::SH9))
-            && (cubemap.face_size() != descriptor.face_size
-                || cubemap.mip_count() != descriptor.mip_count)
+        if cubemap.source_face_size() != descriptor.source_face_size
+            || cubemap.source_mip_count() != descriptor.source_mip_count
+        {
+            return Err(IblBakeArtifactPayloadError::SourceCubemapLayoutMismatch {
+                expected_face_size: descriptor.source_face_size,
+                actual_face_size: cubemap.source_face_size(),
+                expected_mip_count: descriptor.source_mip_count,
+                actual_mip_count: cubemap.source_mip_count(),
+            });
+        }
+        if descriptor.contents.contains(IblBakeArtifactContents::PMREM)
+            && (cubemap.pmrem_face_size() != descriptor.face_size
+                || cubemap.pmrem_mip_count() != descriptor.mip_count)
         {
             return Err(IblBakeArtifactPayloadError::SourceCubemapLayoutMismatch {
                 expected_face_size: descriptor.face_size,
-                actual_face_size: cubemap.face_size(),
+                actual_face_size: cubemap.pmrem_face_size(),
                 expected_mip_count: descriptor.mip_count,
-                actual_mip_count: cubemap.mip_count(),
+                actual_mip_count: cubemap.pmrem_mip_count(),
             });
         }
 
         let ranges = artifact_payload_ranges(descriptor);
         let mut bytes = Vec::with_capacity(ranges.total_size);
         if descriptor.contents.contains(IblBakeArtifactContents::PMREM) {
-            append_rgba16f_texels(&mut bytes, cubemap.texels());
+            append_rgba16f_texels(&mut bytes, cubemap.pmrem_texels());
         }
         if descriptor.contents.contains(IblBakeArtifactContents::SH9) {
             push_sh9(&mut bytes, cubemap.irradiance_sh9());
@@ -630,5 +680,29 @@ mod tests {
                 .descriptor(),
             descriptor
         );
+    }
+
+    #[test]
+    fn sh9_only_payload_does_not_require_pmrem_layout_match() {
+        let cubemap = SourceCubemapMipChain::new(
+            4,
+            3,
+            vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(4, 3)],
+            4,
+            3,
+            vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(4, 3)],
+        );
+        let request = IblBakeArtifactRequest::new(
+            ProceduralSkyParams::default_gradient().ibl_bake_key(),
+            4,
+            3,
+        )
+        .with_required_contents(IblBakeArtifactContents::SH9);
+        let descriptor = IblBakeArtifactDescriptor::current_for_request(&request);
+
+        let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &cubemap, None)
+            .expect("SH9 serialization depends on coefficients, not PMREM texture layout");
+
+        assert_eq!(payload.bytes().len(), IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES);
     }
 }

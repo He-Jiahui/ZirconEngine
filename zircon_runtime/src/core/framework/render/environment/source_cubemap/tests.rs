@@ -22,12 +22,136 @@ fn source_cubemap_mip_layout_is_face_major() {
 }
 
 #[test]
+fn source_and_pmrem_mip_layouts_are_independent() {
+    let source_face_size = 512;
+    let cubemap =
+        build_source_cubemap_from_equirect(source_face_size, |_, _| [0.25, 0.5, 0.75, 1.0]);
+
+    assert_eq!(cubemap.source_face_size(), source_face_size);
+    assert_eq!(
+        cubemap.source_mip_count(),
+        source_cubemap_mip_count(source_face_size)
+    );
+    assert_eq!(cubemap.pmrem_face_size(), SOURCE_CUBEMAP_PMREM_FACE_SIZE);
+    assert_eq!(cubemap.pmrem_mip_count(), SOURCE_CUBEMAP_PMREM_MIP_COUNT);
+    assert_eq!(
+        cubemap.source_texels().len(),
+        source_cubemap_sample_count(cubemap.source_face_size(), cubemap.source_mip_count())
+    );
+    assert_eq!(
+        cubemap.pmrem_texels().len(),
+        source_cubemap_sample_count(cubemap.pmrem_face_size(), cubemap.pmrem_mip_count())
+    );
+}
+
+#[test]
+fn source_cubemap_pmrem_layout_uses_independent_result_size_and_full_mip_chain() {
+    let source_face_size = 4;
+    let source_mip_count = source_cubemap_mip_count(source_face_size);
+    let source_texels = vec![
+        [0.25, 0.5, 0.75, 1.0];
+        source_cubemap_sample_count(source_face_size, source_mip_count)
+    ];
+    let source_cubemap = SourceCubemapMipChain::new(
+        source_face_size,
+        source_mip_count,
+        source_texels,
+        1,
+        1,
+        vec![[0.25, 0.5, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+    );
+    let pmrem_layout = SourceCubemapPmremLayout::from_face_size(32);
+    let cubemap = source_cubemap.with_pmrem_face_size(
+        pmrem_layout.face_size(),
+        SourceCubemapPrefilterQuality::Fast,
+    );
+
+    assert_eq!(pmrem_layout.face_size(), 32);
+    assert_eq!(pmrem_layout.mip_count(), 6);
+    assert_eq!(cubemap.source_face_size(), source_face_size);
+    assert_eq!(cubemap.source_mip_count(), source_mip_count);
+    assert_eq!(cubemap.pmrem_face_size(), 32);
+    assert_eq!(cubemap.pmrem_mip_count(), 6);
+    for texel in cubemap.pmrem_texels() {
+        assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
+    }
+}
+
+#[test]
+fn source_cubemap_constructor_clamps_layouts_to_available_full_mip_chains() {
+    let source_face_size = 4;
+    let source_mip_count = source_cubemap_mip_count(source_face_size);
+    let pmrem_face_size = 8;
+    let pmrem_mip_count = source_cubemap_mip_count(pmrem_face_size);
+    let cubemap = SourceCubemapMipChain::new(
+        source_face_size,
+        source_mip_count + 1,
+        vec![
+            [0.25, 0.5, 0.75, 1.0];
+            source_cubemap_sample_count(source_face_size, source_mip_count)
+        ],
+        pmrem_face_size,
+        pmrem_mip_count + 1,
+        vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(pmrem_face_size, pmrem_mip_count)],
+    );
+
+    assert_eq!(cubemap.source_mip_count(), source_mip_count);
+    assert_eq!(cubemap.pmrem_mip_count(), pmrem_mip_count);
+}
+
+#[test]
+fn source_cubemap_external_mip_builder_clamps_before_validating_storage() {
+    let face_size = 4;
+    let full_mip_count = source_cubemap_mip_count(face_size);
+    let cubemap = build_source_cubemap_from_source_mips(
+        face_size,
+        full_mip_count + 2,
+        vec![[0.25, 0.5, 0.75, 1.0]; source_cubemap_sample_count(face_size, full_mip_count)],
+    );
+
+    assert_eq!(cubemap.source_mip_count(), full_mip_count);
+}
+
+#[test]
+fn source_cubemap_pmrem_texel_clamps_mip_before_resolving_truncated_mip_size() {
+    let source_face_size = 1;
+    let pmrem_face_size = 8;
+    let pmrem_mip_count = 2;
+    let mut pmrem_texels =
+        vec![[0.0; 4]; source_cubemap_sample_count(pmrem_face_size, pmrem_mip_count)];
+    let expected = [0.25, 0.5, 0.75, 1.0];
+    let last_mip_size = source_cubemap_mip_size(pmrem_face_size, pmrem_mip_count - 1);
+    let last_mip_offset = source_cubemap_face_mip_offset(
+        pmrem_face_size,
+        pmrem_mip_count,
+        CubemapFace::PositiveX,
+        pmrem_mip_count - 1,
+    );
+    pmrem_texels[last_mip_offset + 3 * last_mip_size as usize + 3] = expected;
+    let cubemap = SourceCubemapMipChain::new(
+        source_face_size,
+        1,
+        vec![[0.0; 4]; SOURCE_CUBEMAP_FACE_COUNT],
+        pmrem_face_size,
+        pmrem_mip_count,
+        pmrem_texels,
+    );
+
+    assert_eq!(
+        cubemap.pmrem_texel(CubemapFace::PositiveX, u32::MAX, 3, 3),
+        expected
+    );
+}
+
+#[test]
 fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
-    let mip_count = 9;
+    let mip_count = SOURCE_CUBEMAP_PMREM_MIP_COUNT;
     assert_close(source_cubemap_pmrem_mip_from_roughness(0.0, mip_count), 0.0);
-    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 8.0);
+    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 5.0);
     assert_close(source_cubemap_roughness_from_pmrem_mip(0, mip_count), 0.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(8, mip_count), 1.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(5, mip_count), 1.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(6, mip_count), 1.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(7, mip_count), 1.0);
 
     let mut previous = 0.0;
     for mip in 1..mip_count {
@@ -41,15 +165,9 @@ fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
 }
 
 #[test]
-fn source_cubemap_public_roughness_mip_constants_match_max_face_size() {
-    assert_eq!(
-        SOURCE_CUBEMAP_ROUGHEST_MIP,
-        source_cubemap_mip_count(SOURCE_CUBEMAP_MAX_FACE_SIZE) - 1
-    );
-    assert_close(
-        SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
-        SOURCE_CUBEMAP_ROUGHEST_MIP as Real,
-    );
+fn source_cubemap_public_roughness_constants_match_plan06_ue_mapping() {
+    assert_close(SOURCE_CUBEMAP_ROUGHEST_MIP, 1.0);
+    assert_close(SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE, 1.2);
 }
 
 #[test]
@@ -63,11 +181,62 @@ fn source_cubemap_irradiance_mip_prefers_thirty_two_face_source() {
 fn source_cubemap_constant_equirect_preserves_all_mips() {
     let cubemap = build_source_cubemap_from_equirect(4, |_, _| [0.25, 0.5, 0.75, 1.0]);
 
-    assert_eq!(cubemap.face_size(), 4);
-    assert_eq!(cubemap.mip_count(), 3);
-    for texel in cubemap.texels() {
+    assert_eq!(cubemap.source_face_size(), 4);
+    assert_eq!(cubemap.source_mip_count(), 3);
+    assert_eq!(cubemap.pmrem_face_size(), SOURCE_CUBEMAP_PMREM_FACE_SIZE);
+    assert_eq!(cubemap.pmrem_mip_count(), SOURCE_CUBEMAP_PMREM_MIP_COUNT);
+    for texel in cubemap.source_texels() {
         assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
     }
+    for texel in cubemap.pmrem_texels() {
+        assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
+    }
+}
+
+#[test]
+fn source_cubemap_angular_filter_selects_higher_resolution_input_mips() {
+    let mip_count = source_cubemap_mip_count(512);
+    let input_mips = (1..mip_count)
+        .map(|mip| {
+            let mip_size = source_cubemap_mip_size(512, mip);
+            mipmap::source_cubemap_angular_input_mip(
+                mip_count,
+                mipmap::source_cubemap_angular_cone_angle(mip_size),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(input_mips, vec![0, 0, 0, 1, 2, 3, 4, 5, 6]);
+    assert!(
+        input_mips
+            .iter()
+            .enumerate()
+            .all(|(index, input_mip)| *input_mip < index as u32 + 1),
+        "Unreal angular filtering should read a quality-biased higher-resolution average mip"
+    );
+}
+
+#[test]
+fn source_cubemap_average_mips_cover_non_power_of_two_edges() {
+    let face_size = 5;
+    let mip_count = source_cubemap_mip_count(face_size);
+    let mut base_storage = vec![[0.0; 4]; source_cubemap_sample_count(face_size, mip_count)];
+    let face = CubemapFace::PositiveX;
+    let offset = source_cubemap_face_mip_offset(face_size, mip_count, face, 0);
+    for y in 0..face_size {
+        for x in 0..face_size {
+            let value = (y * face_size + x) as Real;
+            base_storage[offset + y as usize * face_size as usize + x as usize] =
+                [value, value, value, 1.0];
+        }
+    }
+
+    let average_mips =
+        mipmap::source_cubemap_average_mips_from_base(&base_storage, face_size, mip_count);
+    let edge = source_storage_texel_at(&average_mips, face_size, mip_count, face, 1, 1, 1);
+    let expected = (12.0 + 13.0 + 14.0 + 17.0 + 18.0 + 19.0 + 22.0 + 23.0 + 24.0) / 9.0;
+
+    assert_vec4_close(edge, [expected, expected, expected, 1.0]);
 }
 
 #[test]
@@ -81,17 +250,17 @@ fn captured_face_base_level_reuses_source_mips_pmrem_and_sh9() {
 
     let cubemap = build_source_cubemap_from_captured_faces(face_size, captured);
 
-    assert_eq!(cubemap.face_size(), face_size);
-    assert_eq!(cubemap.mip_count(), 3);
+    assert_eq!(cubemap.source_face_size(), face_size);
+    assert_eq!(cubemap.source_mip_count(), 3);
     for face in CubemapFace::ALL {
         let expected = (face.index() + 1) as Real;
         assert_vec4_close(
-            cubemap.texel(face, 0, 2, 1),
+            cubemap.pmrem_texel(face, 0, 64, 32),
             [expected, expected * 0.5, expected * 0.25, 1.0],
         );
     }
     assert!(cubemap
-        .texels()
+        .pmrem_texels()
         .iter()
         .all(|texel| texel.iter().all(|value| value.is_finite())));
     assert!(cubemap
@@ -148,7 +317,7 @@ fn source_cubemap_sh9_tracks_vertical_environment_gradient() {
 }
 
 #[test]
-fn source_cubemap_cmft_pmrem_mips_blur_high_frequency_source() {
+fn source_cubemap_ggx_pmrem_mips_blur_high_frequency_source() {
     let cubemap = build_source_cubemap_from_equirect(8, |u, _| {
         if u < 0.5 {
             [0.0, 0.0, 0.0, 1.0]
@@ -156,17 +325,23 @@ fn source_cubemap_cmft_pmrem_mips_blur_high_frequency_source() {
             [1.0, 1.0, 1.0, 1.0]
         }
     });
-    let last_mip = cubemap.mip_count() - 1;
-    let last = cubemap.texel(CubemapFace::PositiveX, last_mip, 0, 0);
+    let last_mip = cubemap.pmrem_mip_count() - 1;
+    let last = cubemap.pmrem_texel(CubemapFace::PositiveX, last_mip, 0, 0);
 
-    assert_eq!(cubemap.texel(CubemapFace::NegativeX, 0, 4, 4)[0], 0.0);
-    assert_eq!(cubemap.texel(CubemapFace::PositiveX, 0, 4, 4)[0], 1.0);
+    assert_eq!(
+        cubemap.pmrem_texel(CubemapFace::NegativeX, 0, 64, 64)[0],
+        0.0
+    );
+    assert_eq!(
+        cubemap.pmrem_texel(CubemapFace::PositiveX, 0, 64, 64)[0],
+        1.0
+    );
     assert!(
         last[0] > 0.1 && last[0] < 0.9,
         "lowest radiance mip should be blurred toward the environment average, got {last:?}"
     );
     for face in CubemapFace::ALL {
-        assert_eq!(cubemap.texel(face, last_mip, 0, 0), last);
+        assert_eq!(cubemap.pmrem_texel(face, last_mip, 0, 0), last);
     }
 }
 
@@ -183,12 +358,12 @@ fn source_cubemap_saturated_roughness_mip_uses_cosine_convolution() {
         [luma, luma * 0.85, luma * 0.65, 1.0]
     });
     let saturated_mip =
-        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.mip_count()).round() as u32;
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
     assert!(
         saturated_mip > 0,
         "roughness=1 should select a PMREM mip below the base level"
     );
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), saturated_mip);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), saturated_mip);
     let previous_variance = mip_luma_variance(&cubemap, saturated_mip - 1);
     let saturated_variance = mip_luma_variance(&cubemap, saturated_mip);
     let mut max_downsample_luma_delta: Real = 0.0;
@@ -198,13 +373,13 @@ fn source_cubemap_saturated_roughness_mip_uses_cosine_convolution() {
             for x in 0..mip_size {
                 let direction = cubemap_texel_direction(face, x, y, mip_size);
                 let ordinary_downsample = sample_cubemap_linear_at_mip(
-                    cubemap.texels(),
-                    cubemap.face_size(),
-                    cubemap.mip_count(),
+                    cubemap.pmrem_texels(),
+                    cubemap.pmrem_face_size(),
+                    cubemap.pmrem_mip_count(),
                     direction,
                     saturated_mip - 1,
                 );
-                let actual = cubemap.texel(face, saturated_mip, x, y);
+                let actual = cubemap.pmrem_texel(face, saturated_mip, x, y);
                 max_downsample_luma_delta = max_downsample_luma_delta
                     .max((luma4(actual) - luma4(ordinary_downsample)).abs());
             }
@@ -222,7 +397,7 @@ fn source_cubemap_saturated_roughness_mip_uses_cosine_convolution() {
 }
 
 #[test]
-fn source_cubemap_cmft_pmrem_reduces_mip_luma_variance() {
+fn source_cubemap_ggx_pmrem_reduces_mip_luma_variance() {
     let cubemap = build_source_cubemap_from_equirect(16, |u, v| {
         let cell_x = (u * 24.0).floor() as i32;
         let cell_y = (v * 12.0).floor() as i32;
@@ -233,7 +408,9 @@ fn source_cubemap_cmft_pmrem_reduces_mip_luma_variance() {
         }
     });
     let base_variance = mip_luma_variance(&cubemap, 0);
-    let rough_variance = mip_luma_variance(&cubemap, cubemap.mip_count().saturating_sub(2));
+    let rough_mip =
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
+    let rough_variance = mip_luma_variance(&cubemap, rough_mip);
 
     assert!(
         rough_variance < base_variance * 0.45,
@@ -246,13 +423,245 @@ fn source_cubemap_samples_equirect_uv_from_cube_face_direction() {
     let cubemap = build_source_cubemap_from_equirect(3, |u, v| [u, v, 0.0, 1.0]);
 
     assert_vec4_close(
-        cubemap.texel(CubemapFace::PositiveZ, 0, 1, 1),
+        source_texel_at(&cubemap, CubemapFace::PositiveZ, 0, 1, 1),
         [0.5, 0.5, 0.0, 1.0],
     );
     assert_vec4_close(
-        cubemap.texel(CubemapFace::PositiveX, 0, 1, 1),
+        source_texel_at(&cubemap, CubemapFace::PositiveX, 0, 1, 1),
         [0.75, 0.5, 0.0, 1.0],
     );
+}
+
+#[test]
+fn source_cubemap_angular_mip_matches_unreal_cone_filter_reference() {
+    let face_size = 8;
+    let mip_count = source_cubemap_mip_count(face_size);
+    let face_texel_count = face_size as usize * face_size as usize;
+    let mut captured = Vec::with_capacity(face_texel_count * SOURCE_CUBEMAP_FACE_COUNT);
+    for face in CubemapFace::ALL {
+        for y in 0..face_size {
+            for x in 0..face_size {
+                let index =
+                    face.index() * face_texel_count + y as usize * face_size as usize + x as usize;
+                let value =
+                    (index + 1) as Real / (face_texel_count * SOURCE_CUBEMAP_FACE_COUNT) as Real;
+                captured.push([value, value * value, 1.0 - value, 1.0]);
+            }
+        }
+    }
+
+    let source_storage = source_storage_from_captured_faces(face_size, mip_count, &captured);
+    let mip_level = 1;
+    let mip_size = source_cubemap_mip_size(face_size, mip_level);
+    for (face, x, y) in [
+        (CubemapFace::PositiveX, 0, 1),
+        (CubemapFace::PositiveY, 2, 0),
+        (CubemapFace::NegativeZ, 3, 3),
+    ] {
+        let expected = unreal_angular_filter_reference_texel(
+            &captured, face_size, mip_count, face, mip_level, x, y,
+        );
+        let actual =
+            source_storage_texel_at(&source_storage, face_size, mip_count, face, mip_level, x, y);
+        assert_vec4_close_with_tolerance(actual, expected, 0.000_01);
+        assert!(x < mip_size && y < mip_size);
+    }
+}
+
+#[test]
+fn source_cubemap_angular_high_mip_matches_selected_average_mip_reference() {
+    let face_size = 32;
+    let mip_count = source_cubemap_mip_count(face_size);
+    let face_texel_count = face_size as usize * face_size as usize;
+    let mut captured = Vec::with_capacity(face_texel_count * SOURCE_CUBEMAP_FACE_COUNT);
+    for face in CubemapFace::ALL {
+        for y in 0..face_size {
+            for x in 0..face_size {
+                let direction = cubemap_texel_direction(face, x, y, face_size);
+                let value = 0.4 + direction[0] * 0.2 + direction[1] * 0.1 + direction[2] * 0.3;
+                captured.push([value, value * value, 1.0 - value, 0.25 + value * 0.5]);
+            }
+        }
+    }
+
+    let base_storage = source_base_storage_from_captured_faces(face_size, mip_count, &captured);
+    let average_mips =
+        mipmap::source_cubemap_average_mips_from_base(&base_storage, face_size, mip_count);
+    let source_storage = mipmap::source_cubemap_mips_from_base(&base_storage, face_size, mip_count);
+    let mip_level = 4;
+    let mip_size = source_cubemap_mip_size(face_size, mip_level);
+    let cone_angle = mipmap::source_cubemap_angular_cone_angle(mip_size);
+    let input_mip = mipmap::source_cubemap_angular_input_mip(mip_count, cone_angle);
+    assert_eq!(
+        input_mip, 1,
+        "this guard must exercise the average input pyramid"
+    );
+
+    let expected = plan06_angular_filter_reference_texel(
+        &average_mips,
+        face_size,
+        mip_count,
+        input_mip,
+        CubemapFace::NegativeY,
+        mip_level,
+        1,
+        0,
+    );
+    let actual = source_storage_texel_at(
+        &source_storage,
+        face_size,
+        mip_count,
+        CubemapFace::NegativeY,
+        mip_level,
+        1,
+        0,
+    );
+    assert_vec4_close_with_tolerance(actual, expected, 0.000_01);
+}
+
+fn source_storage_from_captured_faces(
+    face_size: u32,
+    mip_count: u32,
+    captured: &[[Real; 4]],
+) -> Vec<[Real; 4]> {
+    let base_storage = source_base_storage_from_captured_faces(face_size, mip_count, captured);
+    mipmap::source_cubemap_mips_from_base(&base_storage, face_size, mip_count)
+}
+
+fn source_base_storage_from_captured_faces(
+    face_size: u32,
+    mip_count: u32,
+    captured: &[[Real; 4]],
+) -> Vec<[Real; 4]> {
+    let face_texel_count = face_size as usize * face_size as usize;
+    let mut base_storage = vec![[0.0; 4]; source_cubemap_sample_count(face_size, mip_count)];
+    for face in CubemapFace::ALL {
+        let source_offset = face.index() * face_texel_count;
+        let target_offset = source_cubemap_face_mip_offset(face_size, mip_count, face, 0);
+        base_storage[target_offset..target_offset + face_texel_count]
+            .copy_from_slice(&captured[source_offset..source_offset + face_texel_count]);
+    }
+    base_storage
+}
+
+fn source_storage_texel_at(
+    texels: &[[Real; 4]],
+    face_size: u32,
+    mip_count: u32,
+    face: CubemapFace,
+    mip_level: u32,
+    x: u32,
+    y: u32,
+) -> [Real; 4] {
+    let mip_size = source_cubemap_mip_size(face_size, mip_level);
+    let offset = source_cubemap_face_mip_offset(face_size, mip_count, face, mip_level);
+    texels[offset + y as usize * mip_size as usize + x as usize]
+}
+
+fn unreal_angular_filter_reference_texel(
+    base_texels: &[[Real; 4]],
+    face_size: u32,
+    mip_count: u32,
+    output_face: CubemapFace,
+    mip_level: u32,
+    x: u32,
+    y: u32,
+) -> [Real; 4] {
+    assert_eq!(
+        mip_level, 1,
+        "the golden reference intentionally reads mip zero"
+    );
+    assert_eq!(mip_count, source_cubemap_mip_count(face_size));
+    let input_texels = source_base_storage_from_captured_faces(face_size, mip_count, base_texels);
+    plan06_angular_filter_reference_texel(
+        &input_texels,
+        face_size,
+        mip_count,
+        0,
+        output_face,
+        mip_level,
+        x,
+        y,
+    )
+}
+
+fn plan06_angular_filter_reference_texel(
+    input_texels: &[[Real; 4]],
+    face_size: u32,
+    mip_count: u32,
+    input_mip: u32,
+    output_face: CubemapFace,
+    mip_level: u32,
+    x: u32,
+    y: u32,
+) -> [Real; 4] {
+    let mip_size = source_cubemap_mip_size(face_size, mip_level);
+    let input_size = source_cubemap_mip_size(face_size, input_mip);
+    let filter_direction = cubemap_texel_direction(output_face, x, y, mip_size);
+    let cone_angle =
+        (std::f32::consts::FRAC_PI_2 / mip_size as Real).clamp(0.002, std::f32::consts::FRAC_PI_2);
+    let direction_threshold = cone_angle.cos().min(0.9999);
+    let inverse_kernel_width = 1.0 / (1.0 - direction_threshold);
+    let mut color = [0.0; 4];
+    let mut weight_sum = 0.0;
+
+    for face in CubemapFace::ALL {
+        for source_y in 0..input_size {
+            for source_x in 0..input_size {
+                let source_direction =
+                    cubemap_texel_direction(face, source_x, source_y, input_size);
+                let direction_dot = dot3_test(filter_direction, source_direction);
+                if direction_dot <= direction_threshold {
+                    continue;
+                }
+                let kernel = (1.0 - (1.0 - direction_dot) * inverse_kernel_width).clamp(0.0, 1.0);
+                let kernel = kernel * kernel * (3.0 - 2.0 * kernel);
+                let weight = kernel * cubemap_texel_solid_angle(source_x, source_y, input_size);
+                let texel = source_storage_texel_at(
+                    input_texels,
+                    face_size,
+                    mip_count,
+                    face,
+                    input_mip,
+                    source_x,
+                    source_y,
+                );
+                for component in 0..4 {
+                    color[component] += texel[component] * weight;
+                }
+                weight_sum += weight;
+            }
+        }
+    }
+
+    assert!(weight_sum > Real::EPSILON);
+    for component in &mut color {
+        *component /= weight_sum;
+    }
+    color
+}
+
+fn dot3_test(first: [Real; 3], second: [Real; 3]) -> Real {
+    first[0] * second[0] + first[1] * second[1] + first[2] * second[2]
+}
+
+fn source_texel_at(
+    cubemap: &SourceCubemapMipChain,
+    face: CubemapFace,
+    mip_level: u32,
+    x: u32,
+    y: u32,
+) -> [Real; 4] {
+    let mip_level = mip_level.min(cubemap.source_mip_count().saturating_sub(1));
+    let mip_size = source_cubemap_mip_size(cubemap.source_face_size(), mip_level);
+    assert!(x < mip_size && y < mip_size, "test texel must be in bounds");
+    let offset = source_cubemap_face_mip_offset(
+        cubemap.source_face_size(),
+        cubemap.source_mip_count(),
+        face,
+        mip_level,
+    );
+    cubemap.source_texels()[offset + y as usize * mip_size as usize + x as usize]
 }
 
 #[test]
@@ -300,9 +709,13 @@ fn fill_face_texels(
 }
 
 fn assert_vec4_close(actual: [Real; 4], expected: [Real; 4]) {
+    assert_vec4_close_with_tolerance(actual, expected, 0.00001);
+}
+
+fn assert_vec4_close_with_tolerance(actual: [Real; 4], expected: [Real; 4], tolerance: Real) {
     for index in 0..4 {
         assert!(
-            (actual[index] - expected[index]).abs() <= 0.00001,
+            (actual[index] - expected[index]).abs() <= tolerance,
             "component {index}: actual={actual:?} expected={expected:?}"
         );
     }
@@ -325,14 +738,14 @@ fn assert_vec3_close(actual: [Real; 3], expected: [Real; 3], tolerance: Real) {
 }
 
 fn mip_luma_variance(cubemap: &SourceCubemapMipChain, mip_level: u32) -> Real {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
     let mut sum = 0.0;
     let mut sum_sq = 0.0;
     let mut count = 0.0;
     for face in CubemapFace::ALL {
         for y in 0..mip_size {
             for x in 0..mip_size {
-                let texel = cubemap.texel(face, mip_level, x, y);
+                let texel = cubemap.pmrem_texel(face, mip_level, x, y);
                 let luma = luma4(texel);
                 sum += luma;
                 sum_sq += luma * luma;

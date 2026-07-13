@@ -36,12 +36,7 @@ pub(in crate::graphics::scene::scene_renderer) fn write_ibl_bake_runtime_cache_f
 }
 
 fn current_descriptor_for_request(request: &IblBakeArtifactRequest) -> IblBakeArtifactDescriptor {
-    IblBakeArtifactDescriptor::current(
-        request.bake_key(),
-        request.face_size(),
-        request.mip_count(),
-        request.required_contents(),
-    )
+    IblBakeArtifactDescriptor::current_for_request(request)
 }
 
 #[derive(Debug, Error)]

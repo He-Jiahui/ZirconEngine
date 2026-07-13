@@ -26,6 +26,7 @@ pub(crate) struct PbrMirrorViewerApp {
     hdri_path: PathBuf,
     // Preserve automatic sizing until the background loader can inspect the HDR image.
     face_size: Option<u32>,
+    pmrem_face_size: Option<u32>,
     renderdoc_capture_once: bool,
     exit_after_capture: bool,
     renderdoc_capture_finished: bool,
@@ -48,6 +49,7 @@ impl PbrMirrorViewerApp {
         Self {
             hdri_path: config.hdri_path,
             face_size: config.face_size,
+            pmrem_face_size: config.pmrem_face_size,
             renderdoc_capture_once: config.renderdoc_capture_once,
             exit_after_capture: config.exit_after_capture,
             renderdoc_capture_finished: false,
@@ -117,10 +119,14 @@ impl PbrMirrorViewerApp {
 
         let hdri_path = self.hdri_path.clone();
         let face_size = self.face_size;
+        let pmrem_face_size = self.pmrem_face_size;
         let event_loop_proxy = self.event_loop_proxy.clone();
         match BackgroundTask::spawn(
             "zircon-pbr-scene-loader",
-            move || PbrMirrorScene::new(&hdri_path, face_size).map_err(|error| error.to_string()),
+            move || {
+                PbrMirrorScene::new(&hdri_path, face_size, pmrem_face_size)
+                    .map_err(|error| error.to_string())
+            },
             move || event_loop_proxy.wake_up(),
         ) {
             Ok(loader) => {
@@ -152,11 +158,7 @@ impl PbrMirrorViewerApp {
                     .take()
                     .map(|started| started.elapsed());
                 if let Some(window) = self.window.as_ref() {
-                    window.set_title(&format!(
-                        "Zircon PBR HDRI Mirror Viewer - Ready - yaw {:.0} pitch {:.0}",
-                        self.camera.yaw_degrees(),
-                        self.camera.pitch_degrees()
-                    ));
+                    window.set_title(&ready_window_title(self.camera));
                 }
                 if let Some(elapsed) = elapsed {
                     println!("HDRI/PMREM scene ready after {:.2?}", elapsed);
@@ -296,6 +298,9 @@ impl PbrMirrorViewerApp {
                 let delta_x = position.x - previous.x;
                 let delta_y = position.y - previous.y;
                 self.camera.drag(delta_x as f32, delta_y as f32);
+                if let Some(window) = self.window.as_ref() {
+                    window.set_title(&ready_window_title(self.camera));
+                }
                 self.request_redraw();
             }
         }
@@ -413,17 +418,33 @@ fn loading_window_title(elapsed: Duration) -> String {
     )
 }
 
+fn ready_window_title(camera: OrbitCamera) -> String {
+    format!(
+        "Zircon PBR HDRI Mirror Viewer - Ready - yaw {:.0} pitch {:.0}",
+        camera.yaw_degrees(),
+        camera.pitch_degrees()
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
-    use super::loading_window_title;
+    use super::{loading_window_title, ready_window_title, OrbitCamera};
 
     #[test]
     fn loading_title_reports_elapsed_time_and_responsive_state() {
         assert_eq!(
             loading_window_title(Duration::from_millis(12_999)),
             "Zircon PBR HDRI Mirror Viewer - preparing HDRI/PMREM - 12s - window responsive"
+        );
+    }
+
+    #[test]
+    fn ready_title_reports_current_orbit_angles() {
+        assert_eq!(
+            ready_window_title(OrbitCamera::from_angles(120.0, -120.0)),
+            "Zircon PBR HDRI Mirror Viewer - Ready - yaw 120 pitch -120"
         );
     }
 }

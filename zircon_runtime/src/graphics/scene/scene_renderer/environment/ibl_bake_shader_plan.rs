@@ -30,7 +30,7 @@ pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_IRRADIANCE_CUBE_WG
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const IBL_BAKE_CUBE_FACE_COUNT: u32 = 6;
-const IBL_BAKE_SHADER_CONTENT_HASH_V2: u64 = 0x1b1_ba6e_0003;
+const IBL_BAKE_SHADER_CONTENT_HASH_V2: u64 = 0x1b1_ba6e_0006;
 const IBL_BAKE_PMREM_NORMAL_SAMPLE_COUNT: u32 = 64;
 const IBL_BAKE_PMREM_FAST_SAMPLE_COUNT: u32 = 32;
 const IBL_BAKE_PMREM_ROUGH_SAMPLE_COUNT: u32 = 128;
@@ -62,7 +62,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_compute_kernel_plans_
     let contents = request.required_contents();
     if contents.contains(IblBakeArtifactContents::PMREM) {
         plans.extend(
-            (0..request.mip_count())
+            (0..request.pmrem_mip_count())
                 .map(|mip_level| ibl_bake_pmrem_kernel_plan(request, mip_level)),
         );
     }
@@ -79,24 +79,24 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan(
     request: &IblBakeArtifactRequest,
     mip_level: u32,
 ) -> IblBakeComputeKernelPlan {
-    let roughness = pmrem_roughness_for_mip(request.mip_count(), mip_level);
+    let roughness = pmrem_roughness_for_mip(request.pmrem_mip_count(), mip_level);
     let sample_count = pmrem_sample_count(roughness, mip_level);
-    let mip_size = pmrem_mip_size(request.face_size(), mip_level);
+    let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
     let mut builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_PMREM_SHADER));
     builder
         .with_pipeline_label(IBL_BAKE_PMREM_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
-        .set_u32("face_size", request.face_size())
+        .set_u32("face_size", request.pmrem_face_size())
         .set_u32("mip_face_size", mip_size)
         .set_u32("mip_level", mip_level)
-        .set_u32("mip_count", request.mip_count())
+        .set_u32("mip_count", request.pmrem_mip_count())
         .set_u32("sample_count", sample_count)
         .set_f32("roughness", roughness)
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
         .bind_storage_texture_write(IBL_BAKE_PMREM_RESOURCE)
-        .dispatch_groups(pmrem_dispatch_groups(request.face_size(), mip_level));
+        .dispatch_groups(pmrem_dispatch_groups(request.pmrem_face_size(), mip_level));
 
     IblBakeComputeKernelPlan {
         kind: IblBakeComputeKernelKind::Pmrem { mip_level },
@@ -120,12 +120,12 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
-        .set_u32("source_face_size", request.face_size())
+        .set_u32("source_face_size", request.source_face_size())
         .set_u32("sample_face_size", SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE)
         .set_f32(
             "source_lod",
             source_lod_for_sample_face_size(
-                request.face_size(),
+                request.source_face_size(),
                 SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
             ),
         )
@@ -156,7 +156,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_cube_kerne
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
-        .set_u32("source_face_size", request.face_size())
+        .set_u32("source_face_size", request.source_face_size())
         .set_u32(
             "irradiance_face_size",
             SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
@@ -288,7 +288,7 @@ fn pmrem_roughness_for_mip(mip_count: u32, mip_level: u32) -> f32 {
     }
     let max_mip = mip_count.saturating_sub(1);
     let clamped_mip = mip_level.min(max_mip);
-    let level_from_1x1 = max_mip.saturating_sub(clamped_mip) as f32;
+    let level_from_1x1 = max_mip.saturating_sub(1).saturating_sub(clamped_mip) as f32;
     2.0_f32
         .powf((IBL_BAKE_ROUGHEST_MIP - level_from_1x1) / IBL_BAKE_ROUGHNESS_MIP_SCALE)
         .clamp(0.0, 1.0)
@@ -426,6 +426,41 @@ mod tests {
     }
 
     #[test]
+    fn ibl_bake_shader_plans_keep_source_and_fixed_pmrem_layouts_independent() {
+        let request = IblBakeArtifactRequest::new(
+            ProceduralSkyParams::default_gradient().ibl_bake_key(),
+            512,
+            10,
+        )
+        .with_required_contents(IblBakeArtifactContents::PMREM_SH9);
+
+        let pmrem = ibl_bake_pmrem_kernel_plan(&request, 0);
+        assert_eq!(
+            pmrem.dispatch.parameters.get("face_size"),
+            Some(&ShaderParameterValue::U32 { value: 128 })
+        );
+        assert_eq!(
+            pmrem.dispatch.parameters.get("mip_count"),
+            Some(&ShaderParameterValue::U32 { value: 8 })
+        );
+        assert_eq!(
+            pmrem.dispatch.dispatch_extent,
+            ShaderDispatchExtent::Fixed([16, 16, 6])
+        );
+
+        let irradiance = ibl_bake_irradiance_sh9_kernel_plan(&request);
+        assert_eq!(
+            irradiance.dispatch.parameters.get("source_face_size"),
+            Some(&ShaderParameterValue::U32 { value: 512 })
+        );
+        assert_eq!(
+            irradiance.dispatch.parameters.get("source_lod"),
+            Some(&ShaderParameterValue::F32 { value: 4.0 })
+        );
+        assert_eq!(pmrem_roughness_for_mip(8, 5), 1.0);
+    }
+
+    #[test]
     fn ibl_bake_pmrem_wgsl_matches_plan06_filtered_importance_contract() {
         assert!(
             IBL_BAKE_PMREM_WGSL.contains("FULL_ROUGHNESS_COSINE_THRESHOLD"),
@@ -451,6 +486,30 @@ mod tests {
         assert!(
             IBL_BAKE_PMREM_WGSL.contains("source_lod_for_pdf"),
             "GGX and cosine paths should share the PDF-driven source mip selection"
+        );
+        assert!(
+            IBL_BAKE_PMREM_WGSL.contains("distribution_ggx(no_h, roughness) * 0.25"),
+            "V=N reduces the GGX light-direction PDF to D/4, matching Unreal"
+        );
+        assert!(
+            !IBL_BAKE_PMREM_WGSL.contains("distribution_ggx(no_h, roughness) * no_h * 0.25"),
+            "the canceled NoH/VoH factor must not be multiplied into the UE PDF"
+        );
+        assert!(
+            IBL_BAKE_PMREM_WGSL.contains("textureDimensions(source_cubemap)")
+                && IBL_BAKE_PMREM_WGSL.contains("textureNumLevels(source_cubemap)"),
+            "source LOD must use the actual source texture layout, not the fixed PMREM layout"
+        );
+        assert!(
+            IBL_BAKE_PMREM_WGSL
+                .matches("source_footprint_lod()")
+                .count()
+                == 2,
+            "destination-footprint source LOD should be defined and used only by mip0 downsampling"
+        );
+        assert!(
+            !IBL_BAKE_PMREM_WGSL.contains("max(lod, source_footprint_lod())"),
+            "filtered GGX/cosine FIS must not apply the mip0 downsampling footprint as a LOD floor"
         );
         assert!(
             IBL_BAKE_PMREM_WGSL.contains("final_pmrem_face_average")

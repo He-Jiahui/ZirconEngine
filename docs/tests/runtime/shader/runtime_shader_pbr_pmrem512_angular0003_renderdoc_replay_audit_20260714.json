@@ -1,0 +1,625 @@
+{
+  "action_count": 3349,
+  "buffer_count": 261,
+  "capture_path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\shader\\zircon_shader_pbr_viewer_pmrem512_angular0003_dx12_renderdoc_20260714_capture.rdc",
+  "copy_count": 3279,
+  "dispatch_count": 0,
+  "draw_actions": [
+    {
+      "event_id": 3991,
+      "flags": "ActionFlags.Instanced|Drawcall",
+      "name": "ID3D12GraphicsCommandList::DrawInstanced()"
+    },
+    {
+      "event_id": 4017,
+      "flags": "ActionFlags.Instanced|Indexed|Drawcall",
+      "name": "ID3D12GraphicsCommandList::DrawIndexedInstanced()"
+    },
+    {
+      "event_id": 4039,
+      "flags": "ActionFlags.Instanced|Drawcall",
+      "name": "ID3D12GraphicsCommandList::DrawInstanced()"
+    }
+  ],
+  "draw_count": 3,
+  "first_actions": [
+    {
+      "event_id": 213,
+      "flags": "ActionFlags.CommandBufferBoundary|BeginPass|PassBoundary",
+      "name": "=> ExecuteCommandLists(8)[0]: Reset(ResourceId::310)"
+    },
+    {
+      "event_id": 215,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 216,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 219,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 223,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 226,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 229,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 232,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 235,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 238,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 241,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 244,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 247,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 250,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 253,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 256,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 259,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 262,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 265,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 268,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 271,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 274,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 277,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 279,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 281,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 283,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 285,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 287,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 289,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 291,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 293,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 295,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 297,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 299,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 301,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 304,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 306,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 308,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 310,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 312,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 314,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 316,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 319,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 322,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 325,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 328,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 331,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 333,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 336,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 339,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 341,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 343,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 345,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 347,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 349,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 351,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyBufferRegion()"
+    },
+    {
+      "event_id": 354,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 357,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 360,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 363,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 366,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 369,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 372,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 375,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 378,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 381,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 384,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 387,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 390,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 393,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 396,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 399,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 402,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 405,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 408,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 411,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 414,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 417,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 420,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    },
+    {
+      "event_id": 423,
+      "flags": "ActionFlags.Copy",
+      "name": "ID3D12GraphicsCommandList::CopyTextureRegion()"
+    }
+  ],
+  "largest_textures": [
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 4096,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 4096
+    },
+    {
+      "array_size": 384,
+      "depth": 1,
+      "height": 128,
+      "mip_count": 8,
+      "type": "TextureType.Texture2DArray",
+      "width": 128
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 512,
+      "mip_count": 10,
+      "type": "TextureType.Texture2DArray",
+      "width": 512
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 512,
+      "mip_count": 10,
+      "type": "TextureType.Texture2DArray",
+      "width": 512
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 960,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1280
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 1024,
+      "mip_count": 11,
+      "type": "TextureType.Texture2D",
+      "width": 1024
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 128,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 128
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 32,
+      "mip_count": 1,
+      "type": "TextureType.Texture2DArray",
+      "width": 32
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 64
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture2DArray",
+      "width": 1
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture2DArray",
+      "width": 1
+    },
+    {
+      "array_size": 6,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture2DArray",
+      "width": 1
+    },
+    {
+      "array_size": 1,
+      "depth": 2,
+      "height": 2,
+      "mip_count": 1,
+      "type": "TextureType.Texture3D",
+      "width": 2
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture3D",
+      "width": 1
+    },
+    {
+      "array_size": 1,
+      "depth": 1,
+      "height": 1,
+      "mip_count": 1,
+      "type": "TextureType.Texture2D",
+      "width": 1
+    }
+  ],
+  "resource_count": 325,
+  "root_action_count": 3316,
+  "status": "replayed",
+  "texture_count": 30
+}

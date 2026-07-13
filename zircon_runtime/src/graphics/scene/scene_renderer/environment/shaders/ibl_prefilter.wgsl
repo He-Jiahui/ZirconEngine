@@ -108,14 +108,14 @@ fn source_lod_for_pdf(pdf: f32, sample_count: u32) -> f32 {
         * FIS_SOLID_ANGLE_TEXEL_SCALE;
     let sample_solid_angle = 1.0 / (f32(max(sample_count, 1u)) * pdf);
     let lod = 0.5 * log2(max(sample_solid_angle / texel_solid_angle, 1.0));
-    return clamp(max(lod, source_footprint_lod()), 0.0, source_max_mip);
+    return clamp(lod, 0.0, source_max_mip);
 }
 
 fn source_lod_for_ggx_sample(no_h: f32, roughness: f32, sample_count: u32) -> f32 {
     if (roughness <= 0.0001) {
         return 0.0;
     }
-    let pdf = max(distribution_ggx(no_h, roughness) * no_h * 0.25, 0.000001);
+    let pdf = max(distribution_ggx(no_h, roughness) * 0.25, 0.000001);
     return source_lod_for_pdf(pdf, sample_count);
 }
 

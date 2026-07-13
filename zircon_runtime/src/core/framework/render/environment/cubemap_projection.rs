@@ -79,6 +79,16 @@ pub fn cubemap_direction_from_scaled_uv(face: CubemapFace, scaled_uv: [Real; 2])
     ])
 }
 
+pub(super) fn cubemap_side_space_direction(face: CubemapFace, direction: [Real; 3]) -> [Real; 3] {
+    let direction = normalize_or_positive_z(direction);
+    let axes = FACE_UVN[face.index()];
+    [
+        dot3(axes[0], direction),
+        dot3(axes[1], direction),
+        dot3(axes[2], direction),
+    ]
+}
+
 pub fn cubemap_texel_direction(face: CubemapFace, x: u32, y: u32, face_size: u32) -> [Real; 3] {
     cubemap_direction_from_scaled_uv(face, cubemap_scaled_uv_for_texel(x, y, face_size))
 }

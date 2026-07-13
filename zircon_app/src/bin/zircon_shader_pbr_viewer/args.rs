@@ -9,6 +9,8 @@ pub(crate) struct ViewerConfig {
     pub(crate) hdri_path: PathBuf,
     // None keeps import sizing tied to the decoded HDRI instead of a viewer-only default.
     pub(crate) face_size: Option<u32>,
+    // None gives PMREM the resolved source face size while retaining an independent override.
+    pub(crate) pmrem_face_size: Option<u32>,
     pub(crate) renderdoc_capture_once: bool,
     pub(crate) exit_after_capture: bool,
     pub(crate) initial_yaw_degrees: f32,
@@ -22,6 +24,7 @@ impl ViewerConfig {
     ) -> Result<Self, Box<dyn Error>> {
         let mut hdri_path = default_hdri_path();
         let mut face_size = None;
+        let mut pmrem_face_size = None;
         let mut renderdoc_capture_once = false;
         let mut exit_after_capture = false;
         let mut initial_yaw_degrees = 0.0;
@@ -52,6 +55,12 @@ impl ViewerConfig {
                     };
                     face_size = Some(parse_face_size(&value)?);
                 }
+                "--pmrem-face-size" => {
+                    let Some(value) = args.next() else {
+                        return Err("--pmrem-face-size requires a pixel value".into());
+                    };
+                    pmrem_face_size = Some(parse_face_size_named("--pmrem-face-size", &value)?);
+                }
                 _ if arg.starts_with('-') => {
                     return Err(format!("unknown argument `{arg}`").into());
                 }
@@ -64,6 +73,7 @@ impl ViewerConfig {
         Ok(Self {
             hdri_path,
             face_size,
+            pmrem_face_size,
             renderdoc_capture_once,
             exit_after_capture,
             initial_yaw_degrees,
@@ -85,10 +95,14 @@ fn parse_angle(name: &str, value: Option<String>) -> Result<f32, Box<dyn Error>>
 }
 
 fn parse_face_size(value: &str) -> Result<u32, Box<dyn Error>> {
+    parse_face_size_named("--face-size", value)
+}
+
+fn parse_face_size_named(name: &str, value: &str) -> Result<u32, Box<dyn Error>> {
     let parsed = value.parse::<u32>()?;
     if !(MIN_FACE_SIZE..=MAX_FACE_SIZE).contains(&parsed) || !parsed.is_power_of_two() {
         return Err(format!(
-            "--face-size must be a power of two between {MIN_FACE_SIZE} and {MAX_FACE_SIZE}, got {parsed}"
+            "{name} must be a power of two between {MIN_FACE_SIZE} and {MAX_FACE_SIZE}, got {parsed}"
         )
         .into());
     }
@@ -114,12 +128,14 @@ pub(crate) fn print_help() {
     println!(
         "zircon_shader_pbr_viewer [--hdri <path>]\n\
          Optional: --face-size <64|128|256|512|1024>\n\
+         Optional: --pmrem-face-size <64|128|256|512|1024>\n\
          Optional: --renderdoc-capture-once [--exit-after-capture]\n\
          Optional: --yaw <degrees> --pitch <degrees>\n\
          Left mouse drag: orbit camera\n\
          Mouse wheel: zoom\n\
          Default HDRI: {}\n\
-         Default face size: automatic from HDRI height (64..1024)",
+         Default source face size: automatic from HDRI height (64..1024)\n\
+         Default PMREM face size: resolved source face size",
         default_hdri_path().display()
     );
 }
@@ -141,6 +157,21 @@ mod tests {
             .expect("the Shader 06 source cubemap maximum should parse");
 
         assert_eq!(config.face_size, Some(1024));
+    }
+
+    #[test]
+    fn default_pmrem_face_size_follows_resolved_source_size() {
+        let config = ViewerConfig::from_args([]).expect("default viewer arguments should parse");
+
+        assert_eq!(config.pmrem_face_size, None);
+    }
+
+    #[test]
+    fn explicit_pmrem_face_size_accepts_plan_maximum() {
+        let config = ViewerConfig::from_args(["--pmrem-face-size".to_owned(), "1024".to_owned()])
+            .expect("the Shader 06 PMREM result-size maximum should parse");
+
+        assert_eq!(config.pmrem_face_size, Some(1024));
     }
 
     #[test]

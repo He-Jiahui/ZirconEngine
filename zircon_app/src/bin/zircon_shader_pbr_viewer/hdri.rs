@@ -5,7 +5,9 @@ use std::path::Path;
 use image::ImageFormat;
 use zircon_runtime::asset::artifact::IblSourceCubemapStagingStore;
 use zircon_runtime::asset::{stage_environment_ibl_source, AssetImportContext, AssetUri};
-use zircon_runtime::core::framework::render::SourceCubemapEnvironment;
+use zircon_runtime::core::framework::render::{
+    SourceCubemapEnvironment, SourceCubemapPrefilterQuality,
+};
 
 use crate::args::{MAX_FACE_SIZE, MIN_FACE_SIZE};
 
@@ -14,6 +16,7 @@ const DEFAULT_ENVIRONMENT_INTENSITY: f32 = 0.65;
 pub(crate) fn source_cubemap_environment(
     hdri_path: &Path,
     requested_face_size: Option<u32>,
+    requested_pmrem_face_size: Option<u32>,
     cache_root: &Path,
 ) -> Result<SourceCubemapEnvironment, Box<dyn Error>> {
     let bytes = fs::read(hdri_path)?;
@@ -36,15 +39,19 @@ pub(crate) fn source_cubemap_environment(
     })?;
     let store = IblSourceCubemapStagingStore::new(cache_root);
     let mut environment = store.read_source_cubemap_environment(&request, uri)?;
+    let pmrem_face_size = resolved_pmrem_face_size(requested_pmrem_face_size, face_size);
+    apply_viewer_pmrem_layout(&mut environment, pmrem_face_size);
     environment.intensity = DEFAULT_ENVIRONMENT_INTENSITY * exposure;
     environment.rotation_radians = 0.0;
     println!(
-        "loaded staged HDRI environment: status={:?}, source_face_size={}, source_mip_count={}, pmrem_face_size={}, pmrem_mip_count={}, source={}, derived={}",
+        "loaded staged HDRI environment: status={:?}, source_face_size={}, source_mip_count={}, staged_pmrem_face_size={}, staged_pmrem_mip_count={}, active_pmrem_face_size={}, active_pmrem_mip_count={}, source={}, derived={}",
         staged.status(),
         request.source_face_size(),
         request.source_mip_count(),
         request.pmrem_face_size(),
         request.pmrem_mip_count(),
+        environment.mip_chain.pmrem_face_size(),
+        environment.mip_chain.pmrem_mip_count(),
         staged
             .source_zcube_path()
             .map(|path| path.display().to_string())
@@ -65,6 +72,23 @@ fn resolved_face_size(requested_face_size: Option<u32>, equirect_height: u32) ->
         )
         .clamp(MIN_FACE_SIZE, MAX_FACE_SIZE)
     })
+}
+
+fn resolved_pmrem_face_size(requested_pmrem_face_size: Option<u32>, source_face_size: u32) -> u32 {
+    requested_pmrem_face_size.unwrap_or(source_face_size)
+}
+
+fn apply_viewer_pmrem_layout(environment: &mut SourceCubemapEnvironment, pmrem_face_size: u32) {
+    if environment.mip_chain.pmrem_face_size() == pmrem_face_size {
+        return;
+    }
+
+    environment.mip_chain = environment
+        .mip_chain
+        .with_pmrem_face_size(pmrem_face_size, SourceCubemapPrefilterQuality::Normal);
+    environment.irradiance_sh9 = *environment.mip_chain.irradiance_sh9();
+    // This PMREM is a viewer-side validation result, not the staged derived artifact.
+    environment.bake_artifact_hash = [0; 4];
 }
 
 fn sampled_hdri_exposure(image: &image::Rgb32FImage) -> f32 {
@@ -91,7 +115,7 @@ fn luma(rgb: [f32; 3]) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::resolved_face_size;
+    use super::{resolved_face_size, resolved_pmrem_face_size};
 
     #[test]
     fn automatic_face_size_matches_native_equirect_angular_resolution() {
@@ -103,5 +127,15 @@ mod tests {
     #[test]
     fn explicit_face_size_overrides_hdri_resolution() {
         assert_eq!(resolved_face_size(Some(128), 4096), 128);
+    }
+
+    #[test]
+    fn automatic_pmrem_result_size_matches_resolved_source_size() {
+        assert_eq!(resolved_pmrem_face_size(None, 512), 512);
+    }
+
+    #[test]
+    fn explicit_pmrem_result_size_is_independent_from_source_size() {
+        assert_eq!(resolved_pmrem_face_size(Some(256), 512), 256);
     }
 }

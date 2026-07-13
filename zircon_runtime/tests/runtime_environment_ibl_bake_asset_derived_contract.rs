@@ -9,10 +9,11 @@ use zircon_runtime::asset::artifact::{
 use zircon_runtime::core::framework::render::{
     build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
     cubemap_face_scaled_uv_from_direction, cubemap_scaled_uv_for_texel,
-    source_cubemap_mip_chain_with_bake_artifact, source_cubemap_mip_size, CubemapFace,
-    IblBakeArtifactBlob, IblBakeArtifactBlobError, IblBakeArtifactContents,
-    IblBakeArtifactDescriptor, IblBakeArtifactPayload, IblBakeArtifactRequest,
-    IblBakeArtifactSource, ProceduralSkyParams, SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
+    source_cubemap_mip_chain_with_bake_artifact, source_cubemap_mip_size,
+    source_cubemap_pmrem_mip_from_roughness, CubemapFace, IblBakeArtifactBlob,
+    IblBakeArtifactBlobError, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactPayload, IblBakeArtifactRequest, IblBakeArtifactSource, ProceduralSkyParams,
+    SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
 };
 
 #[test]
@@ -75,13 +76,8 @@ fn runtime_environment_ibl_bake_asset_derived_store_rejects_stale_blob() {
     let root = unique_temp_root("asset_derived_stale");
     let source = build_source_cubemap_from_equirect(8, synthetic_asset_derived_environment);
     let request = request_for_source(&source);
-    let stale_descriptor = IblBakeArtifactDescriptor::current(
-        request.bake_key(),
-        request.face_size(),
-        request.mip_count(),
-        request.required_contents(),
-    )
-    .with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
+    let stale_descriptor = IblBakeArtifactDescriptor::current_for_request(&request)
+        .with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
     let stale_payload =
         IblBakeArtifactPayload::from_source_cubemap(stale_descriptor, &source, None)
             .expect("stale payload layout should encode");
@@ -124,8 +120,10 @@ fn runtime_environment_ibl_bake_asset_derived_store_preserves_pmrem_seams() {
     let applied = source_cubemap_mip_chain_with_bake_artifact(&source, blob.payload())
         .expect("asset-derived artifact should apply to the matching source cubemap");
 
-    let mid_mip = applied.mip_count().saturating_sub(3);
-    let rough_mip = applied.mip_count().saturating_sub(2);
+    let mid_mip =
+        source_cubemap_pmrem_mip_from_roughness(0.5, applied.pmrem_mip_count()).round() as u32;
+    let rough_mip =
+        source_cubemap_pmrem_mip_from_roughness(1.0, applied.pmrem_mip_count()).round() as u32;
     let expected_mid = pmrem_seam_luma_stats(&source, mid_mip);
     let expected_rough = pmrem_seam_luma_stats(&source, rough_mip);
     let applied_base = pmrem_seam_luma_stats(&applied, 0);
@@ -149,8 +147,8 @@ fn runtime_environment_ibl_bake_asset_derived_store_preserves_pmrem_seams() {
 fn request_for_source(source: &SourceCubemapMipChain) -> IblBakeArtifactRequest {
     IblBakeArtifactRequest::new(
         ProceduralSkyParams::default_gradient().ibl_bake_key(),
-        source.face_size(),
-        source.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
     )
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9)
 }
@@ -159,12 +157,7 @@ fn blob_for_request(
     request: &IblBakeArtifactRequest,
     source: &SourceCubemapMipChain,
 ) -> IblBakeArtifactBlob {
-    let descriptor = IblBakeArtifactDescriptor::current(
-        request.bake_key(),
-        request.face_size(),
-        request.mip_count(),
-        request.required_contents(),
-    );
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
     let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, source, None)
         .expect("fixture payload should encode");
     IblBakeArtifactBlob::from_payload(payload)
@@ -201,7 +194,7 @@ struct SeamLumaStats {
 }
 
 fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> SeamLumaStats {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
     let mut sum = 0.0;
     let mut max = 0.0_f32;
     let mut count = 0.0;
@@ -216,10 +209,11 @@ fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> Sea
             };
             for index in sample_start..sample_end {
                 let (x, y) = side.edge_texel(index, mip_size);
-                let current = cubemap.texel(face, mip_level, x, y);
+                let current = cubemap.pmrem_texel(face, mip_level, x, y);
                 let (neighbor_face, neighbor_x, neighbor_y) =
                     side.neighbor_texel(face, index, mip_size);
-                let neighbor = cubemap.texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
+                let neighbor =
+                    cubemap.pmrem_texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
                 let delta = (luma(current) - luma(neighbor)).abs();
                 sum += delta;
                 max = max.max(delta);

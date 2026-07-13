@@ -35,8 +35,8 @@ impl IblBakeArtifactCacheStore {
             .join(source_hash)
             .join(format!(
                 "face_{:04}_mips_{:02}.{}",
-                request.face_size(),
-                request.mip_count(),
+                request.pmrem_face_size(),
+                request.pmrem_mip_count(),
                 IBL_BAKE_RUNTIME_CACHE_EXTENSION
             ))
     }
@@ -47,8 +47,8 @@ impl IblBakeArtifactCacheStore {
     ) -> PathBuf {
         let request = IblBakeArtifactRequest::new(
             descriptor.bake_key(),
-            descriptor.face_size(),
-            descriptor.mip_count(),
+            descriptor.source_face_size(),
+            descriptor.source_mip_count(),
         )
         .with_required_contents(descriptor.contents());
         self.runtime_cache_path(&request)
@@ -146,8 +146,10 @@ pub enum IblBakeArtifactCacheError {
 pub(super) fn ibl_bake_artifact_request_identity_hash(request: &IblBakeArtifactRequest) -> String {
     let mut hasher = blake3::Hasher::new();
     update_bake_key_hash(&mut hasher, request.bake_key());
-    hasher.update(&request.face_size().to_le_bytes());
-    hasher.update(&request.mip_count().to_le_bytes());
+    hasher.update(&request.source_face_size().to_le_bytes());
+    hasher.update(&request.source_mip_count().to_le_bytes());
+    hasher.update(&request.pmrem_face_size().to_le_bytes());
+    hasher.update(&request.pmrem_mip_count().to_le_bytes());
     hasher.finalize().to_hex().to_string()
 }
 

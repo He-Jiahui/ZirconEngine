@@ -127,8 +127,9 @@ mod tests {
         build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
         cubemap_face_scaled_uv_from_direction, cubemap_scaled_uv_for_texel,
         source_cubemap_face_mip_offset, source_cubemap_mip_chain_with_bake_artifact,
-        source_cubemap_mip_size, CubemapFace, IblBakeArtifactContents, IblBakeArtifactDescriptor,
-        IblBakeArtifactPayload, ProceduralSkyParams, SourceCubemapMipChain,
+        source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness, CubemapFace,
+        IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapMipChain,
     };
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::types::GraphicsError;
@@ -186,12 +187,10 @@ mod tests {
         };
         let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
         let pmrem = build_source_cubemap_from_equirect(32, synthetic_seam_stress_environment);
-        let descriptor = IblBakeArtifactDescriptor::current(
-            key,
-            pmrem.face_size(),
-            pmrem.mip_count(),
-            IblBakeArtifactContents::PMREM_SH9,
-        );
+        let request =
+            IblBakeArtifactRequest::new(key, pmrem.source_face_size(), pmrem.source_mip_count())
+                .with_required_contents(IblBakeArtifactContents::PMREM_SH9);
+        let descriptor = IblBakeArtifactDescriptor::current_for_request(&request);
         let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &pmrem, None)
             .expect("PMREM/SH9 payload should encode");
         let pmrem_range = payload.pmrem_rgba16f_byte_range().expect("pmrem range");
@@ -226,8 +225,10 @@ mod tests {
 
         let applied = source_cubemap_mip_chain_with_bake_artifact(&pmrem, &readback_payload)
             .expect("readback payload should apply to the matching source cubemap");
-        let mid_mip = applied.mip_count().saturating_sub(3);
-        let rough_mip = applied.mip_count().saturating_sub(2);
+        let mid_mip =
+            source_cubemap_pmrem_mip_from_roughness(0.5, applied.pmrem_mip_count()).round() as u32;
+        let rough_mip =
+            source_cubemap_pmrem_mip_from_roughness(1.0, applied.pmrem_mip_count()).round() as u32;
         let expected_mid = pmrem_seam_luma_stats(&pmrem, mid_mip);
         let expected_rough = pmrem_seam_luma_stats(&pmrem, rough_mip);
         let applied_base = pmrem_seam_luma_stats(&applied, 0);
@@ -335,7 +336,7 @@ mod tests {
     }
 
     fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> SeamLumaStats {
-        let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+        let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
         let mut sum = 0.0;
         let mut max = 0.0_f32;
         let mut count = 0.0;
@@ -350,10 +351,11 @@ mod tests {
                 };
                 for index in sample_start..sample_end {
                     let (x, y) = side.edge_texel(index, mip_size);
-                    let current = cubemap.texel(face, mip_level, x, y);
+                    let current = cubemap.pmrem_texel(face, mip_level, x, y);
                     let (neighbor_face, neighbor_x, neighbor_y) =
                         side.neighbor_texel(face, index, mip_size);
-                    let neighbor = cubemap.texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
+                    let neighbor =
+                        cubemap.pmrem_texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
                     let delta = (luma(current) - luma(neighbor)).abs();
                     sum += delta;
                     max = max.max(delta);

@@ -17,26 +17,26 @@ pub const IBL_BAKE_ASSET_DERIVED_EXTENSION: &str = "zribl";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblBakeArtifactAssetDerivedStore {
-    library_root: PathBuf,
+    cache_root: PathBuf,
 }
 
 impl IblBakeArtifactAssetDerivedStore {
-    pub fn new(library_root: impl Into<PathBuf>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>) -> Self {
         Self {
-            library_root: library_root.into(),
+            cache_root: cache_root.into(),
         }
     }
 
     pub fn asset_derived_path(&self, request: &IblBakeArtifactRequest) -> PathBuf {
         let source_hash = ibl_bake_artifact_request_identity_hash(request);
-        self.library_root
+        self.cache_root
             .join(IBL_BAKE_ASSET_DERIVED_DIRECTORY)
             .join(format!("v{:016x}", IBL_BAKE_ALGORITHM_VERSION))
             .join(source_hash)
             .join(format!(
                 "face_{:04}_mips_{:02}.{}",
-                request.face_size(),
-                request.mip_count(),
+                request.pmrem_face_size(),
+                request.pmrem_mip_count(),
                 IBL_BAKE_ASSET_DERIVED_EXTENSION
             ))
     }
@@ -81,12 +81,7 @@ impl IblBakeArtifactAssetDerivedStore {
         cubemap: &SourceCubemapMipChain,
         irradiance_cube: Option<&SourceCubemapIrradianceCube>,
     ) -> Result<IblBakeArtifactAssetDerivedWriteReport, IblBakeArtifactAssetDerivedError> {
-        let descriptor = IblBakeArtifactDescriptor::current(
-            request.bake_key(),
-            request.face_size(),
-            request.mip_count(),
-            request.required_contents(),
-        );
+        let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
         let payload =
             IblBakeArtifactPayload::from_source_cubemap(descriptor, cubemap, irradiance_cube)
                 .map_err(|error| IblBakeArtifactAssetDerivedError::Payload { error })?;
@@ -191,8 +186,8 @@ pub enum IblBakeArtifactAssetDerivedError {
 fn request_for_descriptor(descriptor: IblBakeArtifactDescriptor) -> IblBakeArtifactRequest {
     IblBakeArtifactRequest::new(
         descriptor.bake_key(),
-        descriptor.face_size(),
-        descriptor.mip_count(),
+        descriptor.source_face_size(),
+        descriptor.source_mip_count(),
     )
     .with_required_contents(descriptor.contents())
 }
