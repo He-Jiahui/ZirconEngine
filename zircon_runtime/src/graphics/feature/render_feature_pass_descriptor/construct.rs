@@ -433,8 +433,9 @@ mod tests {
 
     use super::*;
     use crate::core::framework::render::{
-        ComputeDispatchBuilder, ComputeKernelRef, RenderShaderEntryPointDescriptor,
-        RenderShaderStage, ShaderAssetKind, ShaderDispatchExtent, ShaderResourceDescriptor,
+        ComputeDispatchBuilder, ComputeKernelRef, FullscreenPassBuilder, FullscreenShaderRef,
+        RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
+        ShaderDispatchBuildDiagnostic, ShaderDispatchExtent, ShaderResourceDescriptor,
     };
 
     #[test]
@@ -490,5 +491,70 @@ mod tests {
             pass.resources[0].write_mode,
             RenderFeatureResourceWriteMode::Storage
         );
+    }
+
+    #[test]
+    fn feature_pass_descriptor_compute_and_fullscreen_contracts_report_named_resource_errors() {
+        let compute_shader = AssetReference::from_locator(
+            ResourceLocator::parse("res://shaders/simulation.zshader").unwrap(),
+        );
+        let mut compute =
+            ComputeDispatchBuilder::new(ComputeKernelRef::new(compute_shader, "cs_main"));
+        compute
+            .bind_texture("particle_state")
+            .dispatch_groups([1, 1, 1]);
+        let compute_diagnostics = compute
+            .build(
+                ShaderAssetKind::Compute,
+                &[RenderShaderEntryPointDescriptor {
+                    name: "cs_main".to_string(),
+                    stage: RenderShaderStage::Compute,
+                }],
+                &[ShaderResourceDescriptor {
+                    name: "particle_state".to_string(),
+                    kind: ShaderResourceKind::StorageBuffer,
+                    access: Some(ShaderResourceAccess::ReadWrite),
+                }],
+            )
+            .expect_err("compute resource type mismatch should be diagnosed");
+        assert!(compute_diagnostics.contains(
+            &ShaderDispatchBuildDiagnostic::ResourceKindMismatch {
+                name: "particle_state".to_string(),
+                expected: ShaderResourceKind::StorageBuffer,
+                actual: ShaderResourceKind::Texture,
+            }
+        ));
+
+        let fullscreen_shader = AssetReference::from_locator(
+            ResourceLocator::parse("res://shaders/postprocess.zshader").unwrap(),
+        );
+        let mut fullscreen =
+            FullscreenPassBuilder::new(FullscreenShaderRef::new(fullscreen_shader, "fs_main"));
+        fullscreen.bind_texture("scene_color");
+        let fullscreen_plan = fullscreen
+            .build(
+                ShaderAssetKind::Fullscreen,
+                &[RenderShaderEntryPointDescriptor {
+                    name: "fs_main".to_string(),
+                    stage: RenderShaderStage::Fragment,
+                }],
+                &[ShaderResourceDescriptor {
+                    name: "scene_color".to_string(),
+                    kind: ShaderResourceKind::Texture,
+                    access: Some(ShaderResourceAccess::Read),
+                }],
+            )
+            .expect("fullscreen resources should match the authored contract");
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "authoring-fullscreen",
+            QueueLane::Graphics,
+        )
+        .with_fullscreen_pass_plan(&fullscreen_plan);
+
+        assert_eq!(pass.resources.len(), 1);
+        assert_eq!(pass.resources[0].name, "scene_color");
+        assert_eq!(pass.resources[0].kind, RenderFeatureResourceKind::Texture);
+        assert_eq!(pass.resources[0].access, RenderFeatureResourceAccess::Read);
     }
 }
