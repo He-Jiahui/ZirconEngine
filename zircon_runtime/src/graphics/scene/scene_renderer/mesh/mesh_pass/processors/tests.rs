@@ -4,7 +4,9 @@ use crate::core::framework::render::{
     GEOMETRY_SOURCE_ID_SKINNED_MESH,
 };
 use crate::core::framework::scene::Mobility;
-use crate::graphics::scene::resources::default_pipeline_key;
+use crate::graphics::scene::resources::{
+    default_pipeline_key, MaterialDisabledPasses, PipelineKey,
+};
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
@@ -200,6 +202,67 @@ fn render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_v
 }
 
 #[test]
+fn render_material_options_disabled_passes_and_queue_drive_mesh_commands_together() {
+    let mut list = MeshDrawCommandList::new();
+    let mut variants = MeshPipelineVariantRegistry::default();
+    let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
+    let default_material = batch(MeshDrawQueuePhase::Opaque, 1).with_casts_shadow(true);
+    let mut coated_key = default_pipeline_key();
+    coated_key.material_option_bits = 1;
+    let coated_material = batch_with_pipeline_key(MeshDrawQueuePhase::Opaque, 2, coated_key)
+        .with_casts_shadow(true)
+        .with_disabled_passes(MaterialDisabledPasses::from_shader_pass_names(&[
+            "shadow".to_string()
+        ]));
+    let transparent_material = batch(MeshDrawQueuePhase::Transparent, 3);
+
+    OpaqueBasePassProcessor.add_mesh_batch(&default_material, &mut context, &mut list);
+    OpaqueBasePassProcessor.add_mesh_batch(&coated_material, &mut context, &mut list);
+    ShadowPassProcessor.add_mesh_batch(&default_material, &mut context, &mut list);
+    ShadowPassProcessor.add_mesh_batch(&coated_material, &mut context, &mut list);
+    TransparentPassProcessor.add_mesh_batch(&transparent_material, &mut context, &mut list);
+    list.sort();
+
+    assert_eq!(
+        list.commands()
+            .iter()
+            .map(|command| command.phase)
+            .collect::<Vec<_>>(),
+        vec![
+            RenderPhase::Shadow,
+            RenderPhase::Opaque3d,
+            RenderPhase::Opaque3d,
+            RenderPhase::Transparent3d,
+        ]
+    );
+    let option_bits = list
+        .commands()
+        .iter()
+        .filter(|command| command.phase == RenderPhase::Opaque3d)
+        .map(|command| {
+            variants
+                .key_for_variant(command.pipeline_variant_id)
+                .expect("base command should retain its registered variant")
+                .shader_variant_key()
+                .material_option_bits
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(option_bits, vec![0, 1]);
+    assert_eq!(variants.len(), 3);
+    let miss_report = variants.miss_report();
+    assert_eq!(miss_report.request_count, 4);
+    assert_eq!(miss_report.memory_hit_count, 1);
+    assert_eq!(miss_report.compile_miss_count, 0);
+    assert_eq!(
+        list.commands()
+            .iter()
+            .filter(|command| command.phase == RenderPhase::Shadow)
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn taa_reactive_mask_processor_draws_visible_main_view_batches_by_mask_semantics() {
     let mut list = MeshDrawCommandList::new();
     let mut variants = MeshPipelineVariantRegistry::default();
@@ -348,6 +411,28 @@ fn batch_with_geometry(
     sort_key: u64,
     geometry_source: MeshDrawGeometrySource,
 ) -> MeshBatchRef {
+    batch_with_geometry_and_pipeline_key(phase, sort_key, geometry_source, default_pipeline_key())
+}
+
+fn batch_with_pipeline_key(
+    phase: MeshDrawQueuePhase,
+    sort_key: u64,
+    pipeline_key: PipelineKey,
+) -> MeshBatchRef {
+    batch_with_geometry_and_pipeline_key(
+        phase,
+        sort_key,
+        MeshDrawGeometrySource::Prepared,
+        pipeline_key,
+    )
+}
+
+fn batch_with_geometry_and_pipeline_key(
+    phase: MeshDrawQueuePhase,
+    sort_key: u64,
+    geometry_source: MeshDrawGeometrySource,
+    pipeline_key: PipelineKey,
+) -> MeshBatchRef {
     MeshBatchRef::new(
         MeshDrawQueueProfile::new(
             phase,
@@ -361,7 +446,7 @@ fn batch_with_geometry(
             ),
             false,
         ),
-        default_pipeline_key(),
+        pipeline_key,
         RenderPhaseSortComponents::new(sort_key as f32, sort_key),
         MeshGeometryHandle::test(sort_key),
         MeshDrawArgs::direct_indexed(0, 3),
