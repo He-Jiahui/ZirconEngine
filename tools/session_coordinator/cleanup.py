@@ -570,7 +570,7 @@ class CleanupService:
             try:
                 while True:
                     self._async_cleanup_requested.clear()
-                    self.retry_pending_jobs()
+                    self.retry_pending_jobs(include_failed=False)
                     self.evict_idle_pools_under_pressure()
                     if not self._async_cleanup_requested.is_set():
                         break
@@ -588,15 +588,20 @@ class CleanupService:
         ).start()
         return True
 
-    def retry_pending_jobs(self) -> tuple[str, ...]:
+    def retry_pending_jobs(self, *, include_failed: bool = True) -> tuple[str, ...]:
+        cleanup_status_filter = (
+            "cleanup_status IN ('pending', 'failed')"
+            if include_failed
+            else "cleanup_status='pending'"
+        )
         with self.database.connect() as connection:
             job_ids = tuple(
                 row["job_id"]
                 for row in connection.execute(
-                    """
+                    f"""
                     SELECT job_id FROM cargo_jobs
                     WHERE cleanup_policy='delete_on_release'
-                      AND cleanup_status IN ('pending', 'failed')
+                      AND {cleanup_status_filter}
                       AND status IN ('released', 'orphaned')
                     ORDER BY released_at, finished_at, created_at
                     """

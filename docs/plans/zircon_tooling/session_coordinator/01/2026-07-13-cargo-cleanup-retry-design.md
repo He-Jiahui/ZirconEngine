@@ -15,13 +15,13 @@
 
 ## 实现边界
 
-为 `retry_pending_jobs()` 增加是否包含失败任务的最小参数：即时后台清理仅选择 `pending`；守护循环按独立的 30 秒时钟选择 `pending` 与 `failed`。测试验证即时入口不会重复失败任务，并验证守护循环使用 30 秒周期。
+为 `retry_pending_jobs()` 增加是否包含失败任务的最小参数：即时后台清理仅选择 `pending`；现有守护观察循环保持默认 30 秒周期，并继续选择 `pending` 与 `failed`。测试验证即时入口不会重复失败任务，同时固定默认观察周期为 30 秒。
 
 本次不增加持久化重试时间、指数退避、最大重试次数、独立任务服务或新的网页配置项；固定 30 秒常量即可满足本地开发期使用。
 
 ## 关联文件
 
 - `tools/session_coordinator/cleanup.py`
-- `tools/session_coordinator/server.py`
+- `tools/session_coordinator/config.py`
 - `tools/session_coordinator/tests/test_cleanup.py`
 - `docs/cli-and-tooling/local-session-coordinator.md`

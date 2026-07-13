@@ -203,8 +203,9 @@ class CleanupTests(unittest.TestCase):
         second_pass_finished = threading.Event()
         retry_calls = 0
 
-        def retry_pending_jobs() -> tuple[str, ...]:
+        def retry_pending_jobs(*, include_failed: bool = True) -> tuple[str, ...]:
             nonlocal retry_calls
+            self.assertFalse(include_failed)
             retry_calls += 1
             if retry_calls == 1:
                 first_pass_entered.set()
