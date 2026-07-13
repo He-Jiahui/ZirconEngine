@@ -4,7 +4,7 @@ use crate::asset::pack::{
     ZrPackInputAsset, ZrPackPromotionMethod, ZrPackReader, ZrPackWriter,
     ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
-use crate::plugin::BridgeOwnerTransitionMode;
+use crate::core::framework::bridge::BridgeOwnerTransitionMode;
 
 use std::{
     fs,

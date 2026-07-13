@@ -1,8 +1,6 @@
 mod asset_workspace_state;
 mod constants;
 mod editor_project_document;
-mod editor_project_document_create_renderable_template;
-mod editor_project_document_ensure_runtime_assets;
 mod editor_project_document_load_from_path;
 mod editor_project_document_save_to_path;
 mod editor_state_asset_workspace;

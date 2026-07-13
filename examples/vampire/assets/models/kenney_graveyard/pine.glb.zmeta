@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "44cfb6d1-6ea5-422f-8f62-ba528a9e4701"
 url = "res://models/kenney_graveyard/pine.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/3dd215b9-fd3a-e636-2208-233c821715bc.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "8575bf20a69582f7"
+source_digest = "8575bf20a69582f7"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/pine.glb#Node0",
     "res://models/kenney_graveyard/pine.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/pine.glb#Node0",
     "res://models/kenney_graveyard/pine.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "543270d1-839e-49b9-8678-40d8b9fa0da0"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/pine.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/a022bbc1-b3c3-2e9e-8428-62042dcfb3e8.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "7138d982-ee89-43cc-81fb-eddd154d7b7b"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/pine.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/a6272b48-a197-1c1a-b0bd-ff8fc6f5b40e.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "84a181b6-950e-490e-b46a-64fd3abb57aa"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/pine.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "64389fe1-4d08-4ff6-89b3-5f13b39cf124"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/pine.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "2862a4a5-e5bd-4d7d-8954-232b4adb2b81"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/c05e7305-280c-c36b-3d51-ee60cfa3fd42.zasset"
 dependencies = ["res://models/kenney_graveyard/pine.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "ed771f64-6212-4802-b0b6-d13cf8adec66"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/pine.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "eaa93ce5-cd9e-472a-b20b-6e8183b6420c"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/pine.glb#Material0",
 ]
+tags = []

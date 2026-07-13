@@ -1,0 +1,15 @@
+[package]
+name = "zircon_reflect_derive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Derive support for Zircon's unified runtime reflection registry."
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full"] }
+

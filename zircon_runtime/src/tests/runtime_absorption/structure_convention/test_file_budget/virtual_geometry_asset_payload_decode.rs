@@ -10,8 +10,9 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     let frame_context = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
     );
-    let context_builder =
-        read_runtime_src("graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs");
+    let context_builder = read_runtime_src(
+        "graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
+    );
     let snapshot_builder = read_runtime_src(
         "graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs",
     );
@@ -30,14 +31,16 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     let imported_extract_test = read_repo(
         "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let vg_snapshot_doc =
         read_repo("docs/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "nanite automatic extract owns cooked page payload decode in a separate module",
@@ -111,7 +114,6 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
         ("VG debug snapshot doc", vg_snapshot_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

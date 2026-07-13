@@ -9,6 +9,6 @@ description = "Desktop build/export editor plugin package for Zircon."
 zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
 zircon_runtime = { workspace = true }
+zircon_runtime_interface = { workspace = true }
 
 [dev-dependencies]
-zircon_runtime_interface = { workspace = true }

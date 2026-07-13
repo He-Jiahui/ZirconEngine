@@ -2,12 +2,15 @@ use super::super::clip_frame::ProjectedClipFrame;
 use super::super::collection_projection::ProjectedCollection;
 use super::super::drag_overlay::ProjectedDragOverlayData;
 use super::super::popup_actions::ProjectedPopupActions;
+use super::super::sample_grid::ProjectedSampleGrid;
 use super::super::selection_options::ProjectedSelectionOptions;
 use super::super::text_layout::ProjectedTextLayout;
+use super::super::timeline_strip::ProjectedTimelineStrip;
 use super::super::validation_state::ProjectedValidationState;
 use super::super::value_media::ProjectedValueMedia;
 use super::super::visual_state::ProjectedVisualState;
 use super::super::visual_style::ProjectedVisualStyle;
+use super::super::weight_heatmap::ProjectedWeightHeatmap;
 use super::super::world_space::ProjectedWorldSpace;
 
 pub(in super::super) struct ProjectedTemplateNodeParts {
@@ -19,6 +22,9 @@ pub(in super::super) struct ProjectedTemplateNodeParts {
     pub(in super::super) value_media: ProjectedValueMedia,
     pub(in super::super) validation_state: ProjectedValidationState,
     pub(in super::super) selection_options: ProjectedSelectionOptions,
+    pub(in super::super) sample_grid: ProjectedSampleGrid,
+    pub(in super::super) timeline_strip: ProjectedTimelineStrip,
+    pub(in super::super) weight_heatmap: ProjectedWeightHeatmap,
     pub(in super::super) collection: ProjectedCollection,
     pub(in super::super) world_space: ProjectedWorldSpace,
     pub(in super::super) popup_actions: ProjectedPopupActions,

@@ -1,7 +1,9 @@
 mod component;
 
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
-use crate::scene::World;
+use crate::scene::{
+    World, WorldRuntimeExtensionError, WorldRuntimeExtensionPlan, WorldRuntimeExtensionRegistration,
+};
 
 impl RuntimeExtensionRegistry {
     pub fn apply_to_world(
@@ -9,39 +11,68 @@ impl RuntimeExtensionRegistry {
         world: &mut World,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         self.finalize();
-        self.apply_finalized_to_world(world)
+        self.world_runtime_extension_plan()?
+            .apply_to_world(world)
+            .map_err(|error| RuntimeExtensionRegistryError::WorldRegistration(error.to_string()))
     }
 
-    pub(crate) fn apply_finalized_to_world(
+    pub fn world_runtime_extension_plan(
         &self,
-        world: &mut World,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        debug_assert!(self.is_finalized());
-        self.apply_finalized_component_types_to_world(world)?;
+    ) -> Result<WorldRuntimeExtensionPlan, RuntimeExtensionRegistryError> {
+        let mut registrations = Vec::new();
+        for component in self.components().iter().cloned() {
+            let key = format!("component:{}", component.type_id);
+            let apply_key = key.clone();
+            registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
+                world
+                    .register_component_type(component.clone())
+                    .map_err(|error| {
+                        WorldRuntimeExtensionError::registration_failed(&apply_key, error)
+                    })
+            }));
+        }
         for (_, resource) in self.plugin_resources() {
-            resource.apply(world);
+            let resource = resource.clone();
+            let key = format!("resource:{}", resource.type_name());
+            registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
+                resource.apply(world);
+                Ok(())
+            }));
         }
         for (_, event) in self.plugin_events() {
-            event.apply(world);
+            let event = event.clone();
+            let key = format!("event:{}", event.type_name());
+            registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
+                event.apply(world);
+                Ok(())
+            }));
         }
         for (_, system) in self.plugin_systems() {
-            let system = system.build(world).map_err(|error| {
-                RuntimeExtensionRegistryError::WorldRegistration(error.to_string())
-            })?;
-            world
-                .register_boxed_native_system(system)
-                .map_err(|error| {
-                    RuntimeExtensionRegistryError::WorldRegistration(error.to_string())
+            let registration = system.clone();
+            let key = format!("system:{}", registration.id);
+            let apply_key = key.clone();
+            registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
+                let system = registration.build(world).map_err(|error| {
+                    WorldRuntimeExtensionError::registration_failed(&apply_key, error)
                 })?;
+                world.register_boxed_native_system(system).map_err(|error| {
+                    WorldRuntimeExtensionError::registration_failed(&apply_key, error)
+                })
+            }));
         }
         for (_, system) in self.plugin_runtime_systems() {
-            let system = system.build();
-            world
-                .register_boxed_runtime_scene_system(system)
-                .map_err(|error| {
-                    RuntimeExtensionRegistryError::WorldRegistration(error.to_string())
-                })?;
+            let registration = system.clone();
+            let key = format!("system:{}", registration.id);
+            let apply_key = key.clone();
+            registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
+                world
+                    .register_boxed_runtime_scene_system(registration.build())
+                    .map_err(|error| {
+                        WorldRuntimeExtensionError::registration_failed(&apply_key, error)
+                    })
+            }));
         }
-        Ok(())
+        WorldRuntimeExtensionPlan::from_registrations(registrations)
+            .map_err(|error| RuntimeExtensionRegistryError::WorldRegistration(error.to_string()))
     }
 }

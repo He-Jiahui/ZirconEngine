@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleManifest;
 
 use super::super::super::super::module_validation::validate_runtime_plugin_module_target_modes;

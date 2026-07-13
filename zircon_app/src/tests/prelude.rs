@@ -3,10 +3,10 @@ use crate::prelude::*;
 #[test]
 fn app_prelude_exports_entry_and_plugin_group_types() {
     let entry = BuiltinEngineEntry::for_profile(EntryProfile::Runtime).unwrap();
-    let default_group = DefaultPlugins::default().build().unwrap().finish();
-    let dev_group = DevPlugins::default().build().unwrap().finish();
+    let default_group = DefaultPlugins.build().unwrap().finish();
+    let dev_group = DevPlugins.build().unwrap().finish();
     let minimal_group = MinimalPlugins.build().unwrap().finish();
-    let headless_group = HeadlessPlugins::default().build().unwrap().finish();
+    let headless_group = HeadlessPlugins.build().unwrap().finish();
     let custom_group = PluginGroupBuilder::start("CustomPlugins").finish();
     let runtime_profile_config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d);
     let selection_report: EntryModuleSelectionReport = entry.module_selection_report();

@@ -1,3 +1,4 @@
+use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::PaneConstraints;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 
@@ -6,6 +7,11 @@ use super::{
 };
 
 impl ViewDescriptor {
+    pub fn with_document_kind(mut self, document_kind: DocumentKind) -> Self {
+        self.document_kind = Some(document_kind);
+        self
+    }
+
     pub fn with_multi_instance(mut self, multi_instance: bool) -> Self {
         self.multi_instance = multi_instance;
         self

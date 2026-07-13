@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use super::super::plugin::VmStateMigrationError;
+
 #[derive(Debug, Error)]
 pub enum VmError {
     #[error("vm backend unavailable: {0}")]
@@ -12,4 +14,6 @@ pub enum VmError {
     Operation(String),
     #[error("package parse failed: {0}")]
     Parse(String),
+    #[error(transparent)]
+    StateMigration(#[from] VmStateMigrationError),
 }

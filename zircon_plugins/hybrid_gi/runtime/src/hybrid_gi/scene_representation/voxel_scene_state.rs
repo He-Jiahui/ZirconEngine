@@ -4,12 +4,15 @@ use crate::hybrid_gi::{
     hybrid_gi_voxel_clipmap_bounds_cell_ranges, hybrid_gi_voxel_clipmap_cell_bit_index,
     HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
 };
+
 use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::math::Vec3;
 
 use super::representation::HybridGiCardDescriptor;
+
+const HYBRID_GI_VOXEL_CLIPMAP_MAX_LEVEL_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct HybridGiVoxelClipmapDescriptor {
@@ -228,7 +231,8 @@ fn build_clipmap_descriptors(
     let base_half_extent = (((scene_bounds_max - scene_bounds_min).max_element()) * 0.5)
         .max(1.0)
         .ceil();
-    let resident_clipmap_ids = (0..clipmap_budget)
+    let resident_level_count = clipmap_budget.min(HYBRID_GI_VOXEL_CLIPMAP_MAX_LEVEL_COUNT);
+    let resident_clipmap_ids = (0..resident_level_count)
         .map(|clipmap_id| clipmap_id as u32)
         .collect::<Vec<_>>();
     let clipmap_descriptors = resident_clipmap_ids

@@ -269,11 +269,23 @@ fn native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request()
     cache.begin_frame();
     assert!(cache.cached_image(cache_key).is_none());
     let work_id = cache
-        .request_worker_image(&mut font_system, Some(&worker_pool), target, cache_key)
+        .request_worker_image(
+            &mut font_system,
+            &FontDatabase::default(),
+            Some(&worker_pool),
+            target,
+            cache_key,
+        )
         .expect("source miss should submit a worker request");
     assert!(
         cache
-            .request_worker_image(&mut font_system, Some(&worker_pool), target, cache_key)
+            .request_worker_image(
+                &mut font_system,
+                &FontDatabase::default(),
+                Some(&worker_pool),
+                target,
+                cache_key,
+            )
             .is_none(),
         "pending cache key should not enqueue duplicate worker work"
     );

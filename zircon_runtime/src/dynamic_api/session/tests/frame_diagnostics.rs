@@ -1,4 +1,10 @@
 use crate::core::diagnostics::collect_runtime_diagnostics;
+use crate::scene::ecs::{
+    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+};
 use zircon_runtime_interface::{
     ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
@@ -11,6 +17,28 @@ use super::super::{
     RuntimeDynamicSession, RuntimeDynamicSessionProfile,
 };
 use super::vampire_runtime_support::*;
+
+#[test]
+fn headless_session_tick_publishes_ecs_frame_diagnostics() {
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless session");
+
+    session.tick_frame().expect("headless tick");
+
+    let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());
+    assert!(
+        diagnostic_current(&diagnostics, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC).is_some(),
+        "a completed runtime frame must publish the ECS query-cache sample even when the count is zero"
+    );
+    assert!(
+        diagnostic_current(
+            &diagnostics,
+            ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+        )
+        .is_some(),
+        "a completed runtime frame must publish the ECS change-detection sample even when the count is zero"
+    );
+}
 
 #[test]
 fn headless_session_capture_records_frame_extract_diagnostics() {
@@ -195,6 +223,27 @@ fn vampire_project_session_reports_runtime_fps_and_render_work() {
     let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());
     let fps = diagnostic_current(&diagnostics, "time.fps");
     let frame_ms = diagnostic_current(&diagnostics, "time.frame_time");
+    let query_cache_hits =
+        diagnostic_current(&diagnostics, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC);
+    let query_cache_misses =
+        diagnostic_current(&diagnostics, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC);
+    let query_cache_rebuilds =
+        diagnostic_current(&diagnostics, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC);
+    let query_candidates =
+        diagnostic_current(&diagnostics, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC);
+    let query_matches = diagnostic_current(&diagnostics, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC);
+    let change_scanned =
+        diagnostic_current(&diagnostics, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC);
+    let change_added =
+        diagnostic_current(&diagnostics, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC);
+    let change_changed = diagnostic_current(
+        &diagnostics,
+        ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    );
+    let extract_rebuilds = diagnostic_current(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC);
+    let extract_output_bytes = diagnostic_current(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC);
+    let extract_cache_hits = diagnostic_current(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC);
+    let extract_cache_misses = diagnostic_current(&diagnostics, EXTRACT_CACHE_MISSES_DIAGNOSTIC);
     let render_stats = diagnostics
         .render
         .stats
@@ -202,7 +251,7 @@ fn vampire_project_session_reports_runtime_fps_and_render_work() {
         .expect("render stats should be available after capture");
 
     println!(
-        "vampire_runtime_perf ticks={} capture={}x{} fps_current={:?} frame_ms_current={:?} submitted_frames={} graph_passes={} ui_passes={} particle_passes={} shadow_passes={} mesh_draws={} ui_commands={}",
+        "vampire_runtime_perf ticks={} capture={}x{} fps_current={:?} frame_ms_current={:?} submitted_frames={} graph_passes={} ui_passes={} particle_passes={} shadow_passes={} mesh_draws={} ui_commands={} query_cache_hits={:?} query_cache_misses={:?} query_cache_rebuilds={:?} query_candidates={:?} query_matches={:?} change_scanned={:?} change_added={:?} change_changed={:?} extract_rebuilds={:?} extract_output_bytes={:?} extract_cache_hits={:?} extract_cache_misses={:?}",
         tick_count,
         frame.width,
         frame.height,
@@ -215,6 +264,18 @@ fn vampire_project_session_reports_runtime_fps_and_render_work() {
         render_stats.last_shadow_graph_executed_pass_count,
         render_stats.last_mesh_draw_count,
         render_stats.last_ui_command_count,
+        query_cache_hits,
+        query_cache_misses,
+        query_cache_rebuilds,
+        query_candidates,
+        query_matches,
+        change_scanned,
+        change_added,
+        change_changed,
+        extract_rebuilds,
+        extract_output_bytes,
+        extract_cache_hits,
+        extract_cache_misses,
     );
 
     assert!(

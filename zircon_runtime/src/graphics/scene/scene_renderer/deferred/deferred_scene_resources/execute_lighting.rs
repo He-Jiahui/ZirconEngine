@@ -3,6 +3,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::{
     ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
     SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
+use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -24,8 +25,11 @@ impl DeferredSceneResources {
         light_grid_params_buffer: &wgpu::Buffer,
         light_zbins_buffer: &wgpu::Buffer,
         light_tile_masks_buffer: &wgpu::Buffer,
-        background_view: &wgpu::TextureView,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
+        frame: &ViewportRenderFrame,
         scene_color_view: &wgpu::TextureView,
+        subsurface_diffuse_view: Option<&wgpu::TextureView>,
+        subsurface_retained_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
     ) {
@@ -41,6 +45,13 @@ impl DeferredSceneResources {
         let shadow_atlas_globals_buffer = shadow_atlas_resources
             .map(ShadowAtlasResources::globals_buffer)
             .unwrap_or(&self.shadow_atlas_fallback_globals_buffer);
+        let volumetric_params_buffer = self.volumetric_apply.create_params_buffer(
+            device,
+            frame,
+            render_region.local_render_region(),
+            integrated_volumetric_view.is_some(),
+            "zircon-deferred-volumetric-params",
+        );
 
         let mut entries = vec![
             wgpu::BindGroupEntry {
@@ -50,10 +61,6 @@ impl DeferredSceneResources {
             wgpu::BindGroupEntry {
                 binding: 1,
                 resource: wgpu::BindingResource::TextureView(normal_view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 2,
-                resource: wgpu::BindingResource::TextureView(background_view),
             },
             wgpu::BindGroupEntry {
                 binding: 3,
@@ -97,20 +104,52 @@ impl DeferredSceneResources {
             },
         ];
         entries.extend(self.reflection_probe_bindings.bind_group_entries());
+        entries.extend(self.lightmap_bindings.bind_group_entries());
+        entries.extend(
+            self.volumetric_apply
+                .bind_group_entries(&volumetric_params_buffer, integrated_volumetric_view),
+        );
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
             layout: &self.lighting_bind_group_layout,
             entries: &entries,
         });
 
+        let subsurface_mrt =
+            subsurface_diffuse_view.is_some() && subsurface_retained_view.is_some();
+        let mut color_attachments = vec![Some(wgpu::RenderPassColorAttachment {
+            view: scene_color_view,
+            resolve_target: None,
+            depth_slice: None,
+            ops: color_attachment_operations(attachment_ops, wgpu::Color::BLACK),
+        })];
+        if let (Some(diffuse_view), Some(retained_view)) =
+            (subsurface_diffuse_view, subsurface_retained_view)
+        {
+            color_attachments.extend([
+                Some(wgpu::RenderPassColorAttachment {
+                    view: diffuse_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(
+                        RenderGraphAttachmentOps::clear_store(),
+                        wgpu::Color::TRANSPARENT,
+                    ),
+                }),
+                Some(wgpu::RenderPassColorAttachment {
+                    view: retained_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(
+                        RenderGraphAttachmentOps::clear_store(),
+                        wgpu::Color::TRANSPARENT,
+                    ),
+                }),
+            ]);
+        }
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("DeferredLightingPass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: scene_color_view,
-                resolve_target: None,
-                depth_slice: None,
-                ops: color_attachment_operations(attachment_ops, wgpu::Color::BLACK),
-            })],
+            color_attachments: &color_attachments,
             depth_stencil_attachment: None,
             occlusion_query_set: None,
             timestamp_writes: None,
@@ -119,7 +158,11 @@ impl DeferredSceneResources {
         if !render_region.apply_local_to_render_pass(&mut pass) {
             return;
         }
-        pass.set_pipeline(&self.lighting_pipeline);
+        pass.set_pipeline(if subsurface_mrt {
+            &self.lighting_subsurface_mrt_pipeline
+        } else {
+            &self.lighting_pipeline
+        });
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
         pass.set_bind_group(3, gpu_scene_bind_group, &[]);

@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use super::super::DesktopExportExecutionSummary;
 use super::{DesktopExportJobPhase, DesktopExportJobQueue, DesktopExportJobSnapshot};
 
@@ -20,11 +18,10 @@ impl DesktopExportJobQueue {
             .iter()
             .position(|pending| pending.profile_name == profile_name)
         {
-            let pending = self
-                .pending
-                .remove(index)
-                .expect("pending job index came from this queue");
-            pending.cancel_requested.store(true, Ordering::SeqCst);
+            let Some(pending) = self.pending.remove(index) else {
+                return DesktopExportCancellation::NotFound;
+            };
+            pending.cancel.cancel();
             return DesktopExportCancellation::PendingCancelled(
                 DesktopExportExecutionSummary::cancelled(
                     pending.profile_name,
@@ -39,7 +36,8 @@ impl DesktopExportJobQueue {
             .as_ref()
             .filter(|active| active.profile_name == profile_name)
         {
-            active.cancel_requested.store(true, Ordering::SeqCst);
+            active.cancel.cancel();
+            self.jobs.cancel(active.ticket.id());
             return DesktopExportCancellation::ActiveCancelRequested(DesktopExportJobSnapshot {
                 id: active.id,
                 profile_name: active.profile_name.clone(),

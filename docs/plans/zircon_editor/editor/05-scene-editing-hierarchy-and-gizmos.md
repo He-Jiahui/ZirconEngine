@@ -24,6 +24,8 @@ status: planned
 
 # 05 编辑场景 / Hierarchy / Gizmos
 
+- 来自 Editor08 的失败交接（`open / SceneModeId 与 SelectionModel 权威投影`）：[`05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md`](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)
+
 本计划落地 00 §6 的「选中集」权威 `SelectionModel` 与场景交互层。
 
 ## 参照证据（dev/）
@@ -181,3 +183,10 @@ struct DragTxn {
 - `HandleTool` 族现为 `pub(crate)`/`pub(in ...)` 封闭可见性——transform_mode 若与 handles 同 crate 不同模块，需放宽到 `pub(crate)` 一级；不对 crate 外开放（第三方 gizmo 走 `viewport_tool_modes` 整模式粒度）。
 - 多选 inspector 批量改值依赖 03 多 push——本计划只保证 SelectionModel 暴露多选集，批量路径归 06。
 - 框选遮挡语义：默认选全部（无遮挡查询），设置项留位。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-07-12 | Editor08 M1.2 失败移交：`SceneModeId` / `SelectionModel` 权威投影 | 待修复（open） | Editor08 已落地 `SceneModeActive` 与 `SelectionNonEmpty` when 谓词；当前宿主没有向 `CommandEvalCtx.scene_mode` 写入本计划模式栈权威值，`selection_count` 仍只是 inspector 是否存在的 0/1 临时投影。修复要求与静态复现证据见 [failure 交接](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)。本行仅登记待修复，不声明本计划完成。 |
+| 2026-07-13 | Navigation M6 插件 viewport overlay provider 宿主接线 | 待修复（open） | tool-mode provider registry/factory、每帧 extract 合并及 lifecycle/toggle 验收见 [failure 交接](05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。 |

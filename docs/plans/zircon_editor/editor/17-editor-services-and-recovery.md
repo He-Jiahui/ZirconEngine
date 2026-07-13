@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/manager/persistence.rs
   - zircon_editor/src/core/editor_event/replay.rs
   - zircon_editor/src/ui/activity
-  - zircon_editor/src/ui/host/commands/keymap.rs
+  - zircon_editor/src/core/commands/keymap.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
 reference_sources:
   - dev/godot/editor/settings/editor_settings.h

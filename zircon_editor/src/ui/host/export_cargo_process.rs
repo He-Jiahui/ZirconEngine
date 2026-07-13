@@ -1,60 +1,111 @@
-use std::io::Read;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::time::Duration;
 
+use crate::core::jobs::{CancellationToken, EditorJobSystem};
+
 use super::editor_manager_plugins_export::EditorExportCargoInvocation;
+use super::export_process_support::{
+    configure_process_tree_cancellation, create_output_capture, final_output_drain,
+    join_output_with_poll, terminate_process_tree, ExportProcessChildGuard, ExportProcessError,
+    ExportProcessJoin,
+};
 
 const CARGO_PROCESS_CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(100);
 
 pub(in crate::ui::host) fn invoke_cargo_process(
+    jobs: &EditorJobSystem,
     cargo: String,
     args: Vec<String>,
     current_dir: Option<&Path>,
-    cancel_requested: Option<&AtomicBool>,
+    cancel: &CancellationToken,
     label: &str,
-) -> Result<EditorExportCargoInvocation, String> {
+) -> Result<EditorExportCargoInvocation, ExportProcessError> {
+    invoke_cargo_process_with_join(jobs, cargo, args, current_dir, cancel, label)
+}
+
+fn invoke_cargo_process_with_join<J: ExportProcessJoin>(
+    jobs: &J,
+    cargo: String,
+    args: Vec<String>,
+    current_dir: Option<&Path>,
+    cancel: &CancellationToken,
+    label: &str,
+) -> Result<EditorExportCargoInvocation, ExportProcessError> {
     let mut command = Vec::with_capacity(args.len() + 1);
     command.push(cargo.clone());
     command.extend(args.clone());
 
-    if cancel_requested.is_some_and(cancellation_requested) {
+    if cancel.is_cancelled() {
         return Ok(cancelled_invocation(
             command,
             format!("{label} cancelled before Cargo started"),
         ));
     }
 
+    let (stdout_writer, stderr_writer, mut output_readers) = create_output_capture(label)?;
     let mut process = Command::new(&cargo);
     process
         .args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stdout(Stdio::from(stdout_writer))
+        .stderr(Stdio::from(stderr_writer));
     if let Some(current_dir) = current_dir {
         process.current_dir(current_dir);
     }
-    configure_cargo_process_for_tree_cancellation(&mut process);
+    configure_process_tree_cancellation(&mut process);
 
-    let mut child = process
-        .spawn()
-        .map_err(|error| format!("failed to invoke cargo for {label}: {error}"))?;
-    let stdout_reader = child.stdout.take().map(read_pipe_to_string);
-    let stderr_reader = child.stderr.take().map(read_pipe_to_string);
-
-    loop {
-        if cancel_requested.is_some_and(cancellation_requested) {
-            let kill_diagnostic = terminate_cargo_process_tree(&mut child, label);
-            let status = child
-                .wait()
-                .map_err(|error| format!("failed to collect cancelled Cargo output: {error}"))?;
-            let mut invocation = invocation_from_status(
-                command,
-                status,
-                collect_reader_output(stdout_reader, label, "stdout")?,
-                collect_reader_output(stderr_reader, label, "stderr")?,
-            );
+    let child = process.spawn().map_err(|error| {
+        ExportProcessError::io("failed to invoke Cargo", label, None, None, error)
+    })?;
+    let mut child_guard = ExportProcessChildGuard::new(child, label);
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let outcome = loop {
+        let child = child_guard.child_mut();
+        let (output, polled) = join_output_with_poll(jobs, &mut output_readers, || {
+            poll_cargo_process(child, cancel, label)
+        });
+        let output = match output {
+            Ok(output) => output,
+            Err(error) => {
+                let termination = terminate_process_tree(child_guard.child_mut(), label);
+                if termination.succeeded {
+                    let _ = child_guard.child_mut().wait();
+                }
+                return Err(error.with_cleanup(termination.diagnostic, termination.error));
+            }
+        };
+        append_captured_output(output, &mut stdout, &mut stderr);
+        let polled = match polled {
+            Ok(polled) => polled,
+            Err(error) => {
+                let termination = terminate_process_tree(child_guard.child_mut(), label);
+                if termination.succeeded {
+                    let _ = child_guard.child_mut().wait();
+                }
+                return Err(error.with_cleanup(termination.diagnostic, termination.error));
+            }
+        };
+        if let Some(outcome) = polled {
+            break outcome;
+        }
+        thread::sleep(CARGO_PROCESS_CANCEL_POLL_INTERVAL);
+    };
+    append_captured_output(
+        final_output_drain(jobs, &mut output_readers)?,
+        &mut stdout,
+        &mut stderr,
+    );
+    let stdout = String::from_utf8_lossy(&stdout).to_string();
+    let stderr = String::from_utf8_lossy(&stderr).to_string();
+    child_guard.disarm();
+    match outcome {
+        CargoProcessOutcome::Cancelled {
+            status,
+            kill_diagnostic,
+        } => {
+            let mut invocation = invocation_from_status(command, status, stdout, stderr);
             invocation.success = false;
             if invocation.stderr.is_empty() {
                 invocation.stderr = kill_diagnostic;
@@ -62,144 +113,74 @@ pub(in crate::ui::host) fn invoke_cargo_process(
                 invocation.stderr.push('\n');
                 invocation.stderr.push_str(&kill_diagnostic);
             }
-            return Ok(invocation);
+            Ok(invocation)
         }
+        CargoProcessOutcome::Completed(status) => {
+            Ok(invocation_from_status(command, status, stdout, stderr))
+        }
+    }
+}
 
-        match child
-            .try_wait()
-            .map_err(|error| format!("failed to poll cargo process for {label}: {error}"))?
-        {
-            Some(status) => {
-                return Ok(invocation_from_status(
-                    command,
+enum CargoProcessOutcome {
+    Completed(ExitStatus),
+    Cancelled {
+        status: ExitStatus,
+        kill_diagnostic: String,
+    },
+}
+
+fn poll_cargo_process(
+    child: &mut Child,
+    cancel: &CancellationToken,
+    label: &str,
+) -> Result<Option<CargoProcessOutcome>, ExportProcessError> {
+    if cancel.is_cancelled() {
+        let termination = terminate_process_tree(child, label);
+        if !termination.succeeded {
+            if let Some(status) = child.try_wait().map_err(|error| {
+                ExportProcessError::io(
+                    "failed to poll cancelled Cargo process",
+                    label,
+                    None,
+                    None,
+                    error,
+                )
+            })? {
+                return Ok(Some(CargoProcessOutcome::Cancelled {
                     status,
-                    collect_reader_output(stdout_reader, label, "stdout")?,
-                    collect_reader_output(stderr_reader, label, "stderr")?,
-                ));
+                    kill_diagnostic: termination.diagnostic,
+                }));
             }
-            None => thread::sleep(CARGO_PROCESS_CANCEL_POLL_INTERVAL),
+            return Err(ExportProcessError::TerminationFailed {
+                label: label.to_string(),
+                diagnostic: termination.diagnostic,
+                source: Box::new(
+                    termination
+                        .error
+                        .expect("failed process-tree termination must retain a typed cause"),
+                ),
+            });
         }
+        let status = child.wait().map_err(|error| {
+            ExportProcessError::io(
+                "failed to collect cancelled Cargo output",
+                label,
+                None,
+                None,
+                error,
+            )
+        })?;
+        return Ok(Some(CargoProcessOutcome::Cancelled {
+            status,
+            kill_diagnostic: termination.diagnostic,
+        }));
     }
-}
-
-fn cancellation_requested(cancel_requested: &AtomicBool) -> bool {
-    cancel_requested.load(Ordering::SeqCst)
-}
-
-#[cfg(unix)]
-fn configure_cargo_process_for_tree_cancellation(process: &mut Command) {
-    use std::os::unix::process::CommandExt;
-
-    process.process_group(0);
-}
-
-#[cfg(not(unix))]
-fn configure_cargo_process_for_tree_cancellation(_process: &mut Command) {}
-
-fn terminate_cargo_process_tree(child: &mut Child, label: &str) -> String {
-    let child_id = child.id();
-    let mut diagnostics = Vec::new();
-    if let Some(result) = terminate_platform_process_tree(child_id, label) {
-        diagnostics.push(result.diagnostic);
-        if result.succeeded {
-            return diagnostics.join("\n");
-        }
-    }
-    diagnostics.push(match child.kill() {
-        Ok(()) => format!("{label} cancelled; Cargo process was terminated"),
-        Err(error) => {
-            format!("{label} cancellation requested but Cargo termination failed: {error}")
-        }
-    });
-    diagnostics.join("\n")
-}
-
-struct PlatformProcessTreeTermination {
-    diagnostic: String,
-    succeeded: bool,
-}
-
-#[cfg(windows)]
-fn terminate_platform_process_tree(
-    child_id: u32,
-    label: &str,
-) -> Option<PlatformProcessTreeTermination> {
-    let output = Command::new("taskkill")
-        .args(platform_process_tree_termination_args(child_id))
-        .output();
-    Some(match output {
-        Ok(output) if output.status.success() => PlatformProcessTreeTermination {
-            diagnostic: format!("{label} cancelled; Cargo process tree was terminated"),
-            succeeded: true,
-        },
-        Ok(output) => PlatformProcessTreeTermination {
-            diagnostic: format!(
-                "{label} cancellation requested but taskkill failed with status {:?}: {}{}",
-                output.status.code(),
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)
-            ),
-            succeeded: false,
-        },
-        Err(error) => PlatformProcessTreeTermination {
-            diagnostic: format!("{label} cancellation requested but taskkill failed: {error}"),
-            succeeded: false,
-        },
-    })
-}
-
-#[cfg(all(unix, not(windows)))]
-fn terminate_platform_process_tree(
-    child_id: u32,
-    label: &str,
-) -> Option<PlatformProcessTreeTermination> {
-    let output = Command::new("kill")
-        .args(platform_process_tree_termination_args(child_id))
-        .output();
-    Some(match output {
-        Ok(output) if output.status.success() => PlatformProcessTreeTermination {
-            diagnostic: format!("{label} cancelled; Cargo process group was terminated"),
-            succeeded: true,
-        },
-        Ok(output) => PlatformProcessTreeTermination {
-            diagnostic: format!(
-                "{label} cancellation requested but process-group kill failed with status {:?}: {}{}",
-                output.status.code(),
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)
-            ),
-            succeeded: false,
-        },
-        Err(error) => PlatformProcessTreeTermination {
-            diagnostic: format!(
-                "{label} cancellation requested but process-group kill failed: {error}"
-            ),
-            succeeded: false,
-        },
-    })
-}
-
-#[cfg(not(any(windows, unix)))]
-fn terminate_platform_process_tree(
-    _child_id: u32,
-    _label: &str,
-) -> Option<PlatformProcessTreeTermination> {
-    None
-}
-
-#[cfg(windows)]
-fn platform_process_tree_termination_args(child_id: u32) -> Vec<String> {
-    vec![
-        "/PID".to_string(),
-        child_id.to_string(),
-        "/T".to_string(),
-        "/F".to_string(),
-    ]
-}
-
-#[cfg(all(unix, not(windows)))]
-fn platform_process_tree_termination_args(child_id: u32) -> Vec<String> {
-    vec!["-KILL".to_string(), format!("-{child_id}")]
+    child
+        .try_wait()
+        .map(|status| status.map(CargoProcessOutcome::Completed))
+        .map_err(|error| {
+            ExportProcessError::io("failed to poll Cargo process", label, None, None, error)
+        })
 }
 
 fn cancelled_invocation(command: Vec<String>, stderr: String) -> EditorExportCargoInvocation {
@@ -212,29 +193,13 @@ fn cancelled_invocation(command: Vec<String>, stderr: String) -> EditorExportCar
     }
 }
 
-fn read_pipe_to_string<T>(mut pipe: T) -> JoinHandle<String>
-where
-    T: Read + Send + 'static,
-{
-    thread::spawn(move || {
-        let mut bytes = Vec::new();
-        let _ = pipe.read_to_end(&mut bytes);
-        String::from_utf8_lossy(&bytes).to_string()
-    })
-}
-
-fn collect_reader_output(
-    reader: Option<JoinHandle<String>>,
-    label: &str,
-    stream_name: &str,
-) -> Result<String, String> {
-    reader
-        .map(|reader| {
-            reader
-                .join()
-                .map_err(|_| format!("failed to collect Cargo {stream_name} for {label}"))
-        })
-        .unwrap_or_else(|| Ok(String::new()))
+fn append_captured_output(
+    output: super::export_process_support::CapturedOutputChunk,
+    stdout: &mut Vec<u8>,
+    stderr: &mut Vec<u8>,
+) {
+    stdout.extend(output.stdout);
+    stderr.extend(output.stderr);
 }
 
 fn invocation_from_status(
@@ -254,18 +219,21 @@ fn invocation_from_status(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::AtomicBool;
+    use zircon_runtime::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 
     use super::*;
 
     #[test]
     fn cargo_process_returns_cancelled_invocation_before_spawn() {
-        let cancel_requested = AtomicBool::new(true);
+        let jobs = crate::core::jobs::test_job_system();
+        let cancel_requested = crate::core::jobs::CancellationToken::default();
+        cancel_requested.cancel();
         let invocation = invoke_cargo_process(
+            &jobs,
             "cargo".to_string(),
             vec!["build".to_string()],
             None,
-            Some(&cancel_requested),
+            &cancel_requested,
             "test export build",
         )
         .expect("pre-cancelled cargo process should return a diagnostic invocation");
@@ -278,21 +246,39 @@ mod tests {
             .contains("test export build cancelled before Cargo started"));
     }
 
-    #[cfg(windows)]
     #[test]
-    fn cargo_process_tree_termination_args_use_windows_tree_kill() {
-        assert_eq!(
-            platform_process_tree_termination_args(42),
-            vec!["/PID", "42", "/T", "/F"]
+    fn cargo_capture_and_poll_complete_on_a_single_runtime_worker() {
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+        let cancel = CancellationToken::default();
+        #[cfg(windows)]
+        let (program, args) = (
+            "cmd".to_string(),
+            vec![
+                "/C".to_string(),
+                "(for /L %i in (1,1,5000) do @echo stdout-line-%i) & (for /L %i in (1,1,5000) do @echo stderr-line-%i 1>&2)".to_string(),
+            ],
         );
-    }
+        #[cfg(unix)]
+        let (program, args) = (
+            "sh".to_string(),
+            vec![
+                "-c".to_string(),
+                "i=1; while [ $i -le 5000 ]; do printf 'stdout-line-%s\\n' \"$i\"; printf 'stderr-line-%s\\n' \"$i\" >&2; i=$((i+1)); done".to_string(),
+            ],
+        );
 
-    #[cfg(all(unix, not(windows)))]
-    #[test]
-    fn cargo_process_tree_termination_args_use_unix_group_kill() {
-        assert_eq!(
-            platform_process_tree_termination_args(42),
-            vec!["-KILL", "-42"]
-        );
+        let invocation = invoke_cargo_process_with_join(
+            &pool,
+            program,
+            args,
+            None,
+            &cancel,
+            "single-worker export process",
+        )
+        .expect("single-worker export process should complete");
+
+        assert!(invocation.success);
+        assert!(invocation.stdout.contains("stdout-line-5000"));
+        assert!(invocation.stderr.contains("stderr-line-5000"));
     }
 }

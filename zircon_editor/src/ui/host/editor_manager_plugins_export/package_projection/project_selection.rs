@@ -1,5 +1,6 @@
 use zircon_runtime::{
-    plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
+    core::framework::project::ProjectPluginSelection, plugin::PluginModuleKind,
+    plugin::PluginPackageManifest,
 };
 
 use super::module_crate_lookup::module_crate;
@@ -22,7 +23,7 @@ pub(in crate::ui::host::editor_manager_plugins_export) fn project_selection_from
         enabled: false,
         required: false,
         target_modes,
-        packaging: zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
+        packaging: zircon_runtime::core::framework::project::ExportPackagingStrategy::LibraryEmbed,
         runtime_crate: module_crate(package, PluginModuleKind::Runtime),
         editor_crate: module_crate(package, PluginModuleKind::Editor),
         features: Vec::new(),

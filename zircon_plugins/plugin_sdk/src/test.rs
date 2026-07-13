@@ -183,7 +183,7 @@ pub struct TestRuntimeBuilder {
     runtime_registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     install_scene_runtime_hooks: bool,
-    install_world_runtime_extensions: bool,
+    install_scene_runtime_extension_plan: bool,
     activate_base_modules: bool,
     activate_plugin_modules: bool,
 }
@@ -197,7 +197,7 @@ impl Default for TestRuntimeBuilder {
             runtime_registrations: Vec::new(),
             feature_registrations: Vec::new(),
             install_scene_runtime_hooks: true,
-            install_world_runtime_extensions: true,
+            install_scene_runtime_extension_plan: true,
             activate_base_modules: true,
             activate_plugin_modules: true,
         }
@@ -268,8 +268,8 @@ impl TestRuntimeBuilder {
         self
     }
 
-    pub fn without_world_runtime_extensions(mut self) -> Self {
-        self.install_world_runtime_extensions = false;
+    pub fn without_scene_runtime_extension_plan(mut self) -> Self {
+        self.install_scene_runtime_extension_plan = false;
         self
     }
 
@@ -308,21 +308,21 @@ impl TestRuntimeBuilder {
         for module in extension_report.registry.modules() {
             register_module(&runtime, module.clone())?;
         }
-        if self.install_scene_runtime_hooks {
-            runtime
-                .install_scene_runtime_hooks(&extension_report.registry)
+        if self.install_scene_runtime_extension_plan {
+            let plan = extension_report
+                .registry
+                .world_runtime_extension_plan()
                 .map_err(|source| TestRuntimeError::RuntimeExtensionRegistry {
-                    action: "install scene runtime hooks",
+                    action: "project world runtime extensions",
                     source,
                 })?;
-        }
-        if self.install_world_runtime_extensions {
-            runtime
-                .install_world_runtime_extensions(&extension_report.registry)
-                .map_err(|source| TestRuntimeError::RuntimeExtensionRegistry {
+            scene::install_world_runtime_extension_plan(&runtime.handle(), plan).map_err(
+                |source| TestRuntimeError::Core {
                     action: "install world runtime extensions",
+                    target: scene::WORLD_DRIVER_NAME.to_string(),
                     source,
-                })?;
+                },
+            )?;
         }
 
         let mut activated_modules = Vec::new();
@@ -337,6 +337,17 @@ impl TestRuntimeBuilder {
                 activate_module(&runtime, &module.name)?;
                 activated_modules.push(module.name.clone());
             }
+        }
+        if self.install_scene_runtime_hooks {
+            scene::install_scene_runtime_hooks(
+                &runtime.handle(),
+                extension_report.registry.scene_hooks().iter().cloned(),
+            )
+            .map_err(|source| TestRuntimeError::Core {
+                action: "install scene runtime hooks",
+                target: scene::WORLD_DRIVER_NAME.to_string(),
+                source,
+            })?;
         }
 
         Ok(TestRuntime {
@@ -383,11 +394,11 @@ fn duration_from_seconds(seconds: f64) -> Duration {
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
     use zircon_runtime::core::runtime::ServiceObject;
     use zircon_runtime::core::{ManagerDescriptor, ServiceKind, StartupMode};
     use zircon_runtime::engine_module::{factory, qualified_name};
     use zircon_runtime::plugin::{RuntimeExtensionRegistry, RuntimePluginDescriptor};
+    use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
     use super::*;
 

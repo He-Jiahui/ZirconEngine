@@ -17,8 +17,8 @@ related_code:
   - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
@@ -28,10 +28,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/engine.rs
@@ -51,8 +51,8 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
@@ -62,10 +62,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
 plan_sources:
   - docs/superpowers/specs/2026-05-07-debug-observatory-design.md
@@ -81,7 +81,7 @@ tests:
   - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections_tests.rs
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/debug_reflector/model.rs zircon_editor/src/ui/workbench/debug_reflector/tests.rs zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_status_controls.rs (2026-06-07 Canvas layer reflector section: passed after applying rustfmt)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/debug_reflector/model.rs zircon_editor/src/ui/workbench/debug_reflector/tests.rs zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs (2026-06-07 Canvas layer reflector section: passed after applying rustfmt)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never (2026-06-07 Canvas layer reflector section: passed with existing warning noise)
   - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out; first attempt timed out during test-target compilation without diagnostics)
   - cargo test -p zircon_editor --lib runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out)

@@ -4,6 +4,8 @@ related_code:
   - zircon_runtime/Cargo.toml
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/script_visibility.rs
   - zircon_runtime/reflection_macros/src/lib.rs
   - zircon_runtime/reflection_macros/src/args.rs
   - zircon_runtime/reflection_macros/src/attrs.rs
@@ -39,7 +41,7 @@ related_code:
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
@@ -73,6 +75,8 @@ implementation_files:
   - zircon_runtime/Cargo.toml
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/script_visibility.rs
   - zircon_runtime/reflection_macros/src/lib.rs
   - zircon_runtime/reflection_macros/src/args.rs
   - zircon_runtime/reflection_macros/src/attrs.rs
@@ -104,7 +108,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
@@ -151,6 +155,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
+  - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
   - vm_backend_registry_accessors_recover_poisoned_family_lock
@@ -237,14 +242,17 @@ doc_type: module-detail
 
 # ZrVM Host Reflection
 
-The VM host surface is split into two layers:
+The VM host surface is split into three ownership layers:
 
-- `zircon_runtime::core::framework::script` owns neutral descriptors and values. VM backends can read `ScriptHostModuleDescriptor`, `ScriptHostFunctionDescriptor`, `ScriptHostTypeDescriptor`, `ScriptHostValueKind`, `ScriptHostCallContext`, and `ScriptHostResult` without depending on concrete runtime managers.
+- `zircon_runtime_interface::reflect` owns the authoritative type path, ordered field schema, visibility, and documentation in `ReflectTypeRegistration`.
+- `zircon_runtime::core::framework::script` owns neutral host ABI descriptors and values. `ScriptHostTypeDescriptor` is a fallible projection of the unified registration plus ABI-only value/prototype/construction options; it is not a second field schema. VM backends can read `ScriptHostModuleDescriptor`, `ScriptHostFunctionDescriptor`, `ScriptHostTypeDescriptor`, `ScriptHostValueKind`, `ScriptHostCallContext`, and `ScriptHostResult` without depending on concrete runtime managers.
 - `zircon_runtime::script::vm::host` owns registration, handle allocation, validation, capability checks, and callback dispatch.
 
 VM code never receives Rust object pointers. Host objects are represented as `HostHandle` values, and framework-level values carry those handles as `u64` so the neutral contract does not depend on the VM subsystem.
 
-`zircon_runtime_reflection_macros` is the convenience layer for Rust-authored host libraries. `ZirconScriptType`, `zircon_host_function`, and `zircon_host_module` emit the same neutral descriptors as handwritten registrations. Function parameters now derive their exported type names from `ScriptHostFromValue::script_host_type_ref`, so Rust `f64` exports as the VM-facing `float` type instead of leaking a Rust-only spelling into ZrVM native module metadata.
+`zircon_runtime_reflection_macros` is the convenience layer for Rust-authored host libraries. `ZirconScriptType` emits a script-public `ReflectTypeRegistration`, then projects it into the neutral ABI descriptor; field names, field type paths, ordering, and documentation therefore have one source of truth. `zircon_host_function` and `zircon_host_module` add function/module ABI metadata and propagate projection failures as typed host-module registration errors. Function parameters derive their exported type names from `ScriptHostFromValue::script_host_type_ref`, so Rust `f64` exports as the VM-facing `float` type instead of leaking a Rust-only spelling into ZrVM native module metadata.
+
+`ZrReflect` derive output also supplies `u32` field-slot accessors. `ScriptCallTable` uses names only while compiling a module, then retains numeric type/member slots and invokes `ReflectComponent` dense callbacks. The regression test installs both named and slot callbacks and asserts that repeated runtime read/write calls increment only the dense callback counter.
 
 ## Gameplay Host Surface
 

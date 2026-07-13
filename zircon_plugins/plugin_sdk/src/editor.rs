@@ -4,7 +4,7 @@ pub use zircon_editor;
 pub use zircon_runtime;
 
 use zircon_editor::{EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport};
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::{PluginMaturity, PluginPackageManifest};
 
 use crate::{PluginManifestBuilder, RuntimePluginDeclaration};

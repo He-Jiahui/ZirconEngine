@@ -46,7 +46,11 @@ pub struct RenderBackendCaps {
     pub supports_pipeline_cache: bool,
     pub supports_storage_buffers: bool,
     #[serde(default)]
+    pub supports_fragment_writable_storage: bool,
+    #[serde(default)]
     pub max_storage_buffers_per_shader_stage: u32,
+    #[serde(default)]
+    pub max_storage_buffer_binding_size: u64,
     pub supports_indirect_draw: bool,
     pub supports_multi_draw_indirect: bool,
     pub supports_indirect_first_instance: bool,
@@ -74,7 +78,9 @@ impl RenderBackendCaps {
             supports_async_copy: false,
             supports_pipeline_cache: false,
             supports_storage_buffers: false,
+            supports_fragment_writable_storage: false,
             max_storage_buffers_per_shader_stage: 0,
+            max_storage_buffer_binding_size: 0,
             supports_indirect_draw: false,
             supports_multi_draw_indirect: false,
             supports_indirect_first_instance: false,
@@ -133,8 +139,18 @@ impl RenderBackendCaps {
         self
     }
 
+    pub fn with_fragment_writable_storage(mut self, enabled: bool) -> Self {
+        self.supports_fragment_writable_storage = enabled;
+        self
+    }
+
     pub fn with_max_storage_buffers_per_shader_stage(mut self, limit: u32) -> Self {
         self.max_storage_buffers_per_shader_stage = limit;
+        self
+    }
+
+    pub fn with_max_storage_buffer_binding_size(mut self, limit: u64) -> Self {
+        self.max_storage_buffer_binding_size = limit;
         self
     }
 

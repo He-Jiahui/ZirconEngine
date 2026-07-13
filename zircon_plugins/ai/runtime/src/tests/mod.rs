@@ -1,8 +1,12 @@
 mod behavior_tree_compile;
 mod behavior_tree_execution;
 mod behavior_tree_node_catalog;
+mod blackboard_condition_abort;
+mod blackboard_store;
 mod manager_validation;
 mod module;
+mod observer_abort;
+mod observer_binding_lifecycle;
 mod perception_conditions;
 mod registration;
 mod tick;

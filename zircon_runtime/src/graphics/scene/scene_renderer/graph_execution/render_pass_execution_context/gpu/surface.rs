@@ -1,7 +1,28 @@
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::RenderPassGpuExecutionContext;
+
+pub(super) fn record_depth_clear_pass(
+    encoder: &mut wgpu::CommandEncoder,
+    pass_name: &str,
+    depth_view: &wgpu::TextureView,
+    attachment_ops: RenderGraphAttachmentOps,
+) {
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some(pass_name),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
+            stencil_ops: None,
+        }),
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
+}
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn record_sprite_stage_to_resources(
@@ -24,7 +45,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             depth_resource_name,
-            RenderGraphResourceAccessKind::Write,
+            RenderGraphResourceAccessKind::Read,
         )?;
         let render_region = self.render_region_for_write_resource(color_resource_name);
         let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
@@ -70,6 +91,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             color_view,
             self.frame,
             attachment_ops,
+            self.streamer,
         );
         Ok(())
     }
@@ -99,7 +121,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             depth_resource_name,
-            RenderGraphResourceAccessKind::Write,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let integrated_volumetric_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            crate::core::framework::render::PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED,
+            RenderGraphResourceAccessKind::Read,
         )?;
         let render_region = self.render_region_for_write_resource(color_resource_name);
         let overlay_renderer = self
@@ -108,6 +136,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             .expect("preview sky renderer context was checked before resource resolution");
         overlay_renderer.record_preview_sky_with_attachment_ops(
             self.encoder,
+            self.device,
             color_view,
             depth_view,
             self.scene_bind_group,
@@ -115,6 +144,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             render_region,
             color_attachment_ops,
             depth_attachment_ops,
+            integrated_volumetric_view,
         );
         Ok(())
     }

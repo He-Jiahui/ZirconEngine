@@ -11,15 +11,19 @@ use super::SceneProjectError;
 pub(super) fn camera_target_from_asset(
     project: &ProjectManager,
     target: SceneCameraTargetAsset,
-) -> RenderCameraTarget {
+) -> Result<RenderCameraTarget, SceneProjectError> {
     match target {
-        SceneCameraTargetAsset::PrimarySurface => RenderCameraTarget::PrimarySurface,
+        SceneCameraTargetAsset::PrimarySurface => Ok(RenderCameraTarget::PrimarySurface),
         SceneCameraTargetAsset::Texture { texture } => {
-            RenderCameraTarget::Texture(handle_for_reference::<TextureMarker>(project, &texture))
+            Ok(RenderCameraTarget::Texture(handle_for_reference::<
+                TextureMarker,
+            >(
+                project, &texture
+            )?))
         }
-        SceneCameraTargetAsset::Headless { size } => RenderCameraTarget::Headless {
+        SceneCameraTargetAsset::Headless { size } => Ok(RenderCameraTarget::Headless {
             size: crate::core::math::UVec2::new(size[0], size[1]),
-        },
+        }),
     }
 }
 

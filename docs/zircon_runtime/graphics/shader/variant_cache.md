@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/shader_variant.rs
@@ -36,7 +36,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/shader_variant.rs
@@ -66,7 +66,7 @@ doc_type: module-detail
 
 ## Disk Layout
 
-`ShaderVariantCacheDisk` stores entries under the cache root as `v1/<hash-prefix>/<hash>.wgsl.zst` plus a sibling `<hash>.meta`. The default writable root is `<project>/.zircon-cache/shader_variants`, and `ZR_SHADER_CACHE_DIR` can override it. Runtime lookup can also read staged prewarm roots such as `<project>/cache/shader_variants` without writing to them. The hash is `blake3(canonical_string + include/source hashes)`, so changes to the material key or any participating source content produce a different entry instead of reusing stale WGSL.
+`ShaderVariantCacheDisk` stores entries under the cache root as `v1/<hash-prefix>/<hash>.wgsl.zst` plus a sibling `<hash>.meta`. The default writable root is `<project>/.zircon/cache/shader_variants`, and `ZR_SHADER_CACHE_DIR` can override it. Runtime lookup can also read staged prewarm roots such as `<project>/cache/shader_variants` without writing to them. The hash is `blake3(canonical_string + include/source hashes)`, so changes to the material key or any participating source content produce a different entry instead of reusing stale WGSL.
 
 The `.wgsl.zst` file contains compressed WGSL. The `.meta` JSON stores the schema version, hash, canonical key, template revision, naga version, wgpu version, and creation time. Writes use a temporary file followed by rename; if another writer already produced the final path, the current writer treats that as a benign race. Corrupt metadata, schema mismatches, key mismatches, decompression errors, or invalid UTF-8 are reported as cache errors and the entry files are removed so the next lookup becomes a normal miss.
 

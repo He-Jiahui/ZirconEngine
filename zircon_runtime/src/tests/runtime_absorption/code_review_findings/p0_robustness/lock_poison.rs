@@ -10,8 +10,10 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let event_prune = include_str!("../../../../core/runtime/events/prune.rs");
     let level_doc = include_str!("../../../../../../docs/zircon_runtime/scene/level_system.md");
     let event_doc = include_str!("../../../../../../docs/zircon_runtime/core/runtime/events.md");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    );
     let runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );

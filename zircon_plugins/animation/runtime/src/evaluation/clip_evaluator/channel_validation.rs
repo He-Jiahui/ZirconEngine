@@ -1,4 +1,4 @@
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelValueAsset, AnimationClipAsset,
 };
 use zircon_runtime::core::math::{Quat, Real};

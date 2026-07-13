@@ -7,7 +7,6 @@ use super::attributes::{option_index, string_attribute};
 use super::entries::projected_command_entries;
 use super::ids::command_id_set;
 
-const DISABLED_COMMANDS: &str = "disabled_commands";
 const SELECTED_COMMAND_ID: &str = "selected_command_id";
 const FOCUSED_INDEX: &str = "focused_index";
 const QUERY: &str = "query";
@@ -34,7 +33,6 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_structured_opt
     }
 
     let selected_id = string_attribute(attributes, SELECTED_COMMAND_ID).unwrap_or_default();
-    let disabled_ids = command_id_set(attributes.get(DISABLED_COMMANDS));
     let recent_ids = command_id_set(attributes.get(RECENT_COMMANDS));
     let focused_index = option_index(attributes.get(FOCUSED_INDEX));
     let query = string_attribute(attributes, QUERY)
@@ -48,7 +46,7 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_structured_opt
             .map(|(index, entry)| host_contract::TemplatePaneOptionData {
                 matched: entry.filter_matched || entry.matches_query(query.as_deref()),
                 selected: !selected_id.is_empty() && entry.id == selected_id,
-                disabled: entry.disabled || disabled_ids.contains(&entry.id),
+                disabled: entry.disabled,
                 special: recent_ids.contains(&entry.id),
                 focused: focused_index == Some(index),
                 hovered: false,

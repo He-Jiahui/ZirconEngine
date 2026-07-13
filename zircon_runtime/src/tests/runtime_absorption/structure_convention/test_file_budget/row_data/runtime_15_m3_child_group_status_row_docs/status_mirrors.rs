@@ -9,21 +9,15 @@ mod folder_backed_status;
 #[path = "mirrors/m3_row_status.rs"]
 mod m3_row_status;
 
-const STATUS_MIRRORS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_split_status.rs";
-const CHILD_OWNER_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_owner_status.rs";
-const M3_ROW_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/m3_row_status.rs";
-const FOLDER_BACKED_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/folder_backed_status.rs";
+const STATUS_MIRRORS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_split_status.rs";
+const CHILD_OWNER_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_owner_status.rs";
+const M3_ROW_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/m3_row_status.rs";
+const FOLDER_BACKED_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/folder_backed_status.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_NAME: &str =
     "Runtime 15 M3 child-group status-row-doc status-mirror child split";
-const STATUS_MIRROR_CHILD_SPLIT_ID: &str =
-    "runtime_15_m3_child_group_status_row_docs_status_mirror_child_split_static_passed_cargo_deferred";
+const STATUS_MIRROR_CHILD_SPLIT_ID: &str = "runtime_15_m3_child_group_status_row_docs_status_mirror_child_split_static_passed_cargo_deferred";
 
 const STATUS_MIRROR_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
     (

@@ -4,7 +4,8 @@ use crate::runtime_obstacles::{
     collect_runtime_obstacles, distance_xz, find_path_with_runtime_obstacles, RuntimeObstacle,
 };
 use zircon_runtime::core::framework::navigation::{
-    NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus, NavigationError,
+    NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
+    NavigationAgentDebugState, NavigationDebugCapture, NavigationError, NavigationManager,
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
@@ -142,6 +143,7 @@ pub(crate) fn tick_world_agents_legacy(
                     Err(_) => destination,
                 }
             };
+        let desired_target = movement_target;
         let movement_target = avoidance_adjusted_target(
             entity,
             current,
@@ -163,6 +165,37 @@ pub(crate) fn tick_world_agents_legacy(
             &agent,
             dt_seconds,
         );
+        if world
+            .get_resource::<NavigationDebugCapture>()
+            .is_some_and(|capture| capture.enabled)
+        {
+            let path = manager
+                .find_path(NavPathQuery {
+                    nav_mesh: agent.nav_mesh,
+                    start: current.to_array(),
+                    end: destination.to_array(),
+                    agent_type: agent.agent_type.clone(),
+                    area_mask: agent.area_mask,
+                })
+                .ok();
+            report.debug_agents.push(NavigationAgentDebugState {
+                entity,
+                position: current.to_array(),
+                destination: agent.destination,
+                desired_velocity: ((desired_target - current).normalize_or_zero() * agent.speed)
+                    .to_array(),
+                avoidance_velocity: velocity.to_array(),
+                path_status: path.as_ref().map(|path| path.status),
+                path: path
+                    .map(|path| {
+                        path.points
+                            .into_iter()
+                            .map(|point| point.position)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            });
+        }
         let displacement =
             agent_displacement(velocity, current, movement_target, &agent, dt_seconds);
         if displacement.length_squared() <= Real::EPSILON {

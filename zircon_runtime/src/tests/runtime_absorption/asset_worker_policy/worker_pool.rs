@@ -11,6 +11,12 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     let runtime_11_plan = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"
     );
+    let runtime_04_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/04/2026-07-09-asset-pipeline-alignment-output-records.md"
+    );
+    let runtime_11_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"
+    );
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 
     for required_source_anchor in [
@@ -112,6 +118,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         assert!(
             runtime_04_plan.contains(required_plan_anchor)
                 || runtime_11_plan.contains(required_plan_anchor)
+                || runtime_04_output.contains(required_plan_anchor)
+                || runtime_11_output.contains(required_plan_anchor)
                 || runtime_index.contains(required_plan_anchor),
             "runtime worker-pool plans should record `{required_plan_anchor}`"
         );

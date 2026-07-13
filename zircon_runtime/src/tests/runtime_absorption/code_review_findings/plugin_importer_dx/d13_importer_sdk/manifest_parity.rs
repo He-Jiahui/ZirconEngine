@@ -2,29 +2,9 @@ use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 
 #[test]
 fn review_d13_importer_manifest_parity_guard_lives_in_sdk_builder() {
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let importer_doc = include_str!(
-        "../../../../../../../docs/zircon_plugins/asset_importers/runtime-skeletons.md"
-    );
-    let runtime_15 = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs"
-    );
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_importer_manifest = include_str!(
         "../../../../../../../zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs"
@@ -89,8 +69,8 @@ fn review_d13_importer_manifest_parity_guard_lives_in_sdk_builder() {
         "NATIVE_DESCRIPTOR_SYMBOL_V3",
     ] {
         assert!(
-            d13_row.contains(required),
-            "D13 row should record importer parity guard anchor `{required}`"
+            review_findings.contains(required),
+            "D13 numbered review evidence should record importer parity guard anchor `{required}`"
         );
     }
     assert!(
@@ -98,28 +78,10 @@ fn review_d13_importer_manifest_parity_guard_lives_in_sdk_builder() {
         "D13 row should mark the current importer SDK convergence chain closed"
     );
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("asset importer doc", importer_doc),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("module convention", module_convention),
-        ("status-output row data", status_rows),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D13 importer manifest parity guard",
-            "d13_importer_manifest_parity_guard_static_passed_cargo_deferred",
-            "review_d13_importer_manifest_parity_guard_lives_in_sdk_builder",
-            "importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D13 importer manifest parity guard anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D13 importer manifest parity guard")
+            && review_findings
+                .contains("review_d13_importer_manifest_parity_guard_lives_in_sdk_builder",),
+        "D13 numbered output should own the concrete importer parity evidence"
+    );
 }

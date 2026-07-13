@@ -31,9 +31,9 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/ui/style.rs
@@ -46,9 +46,9 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/ui/style.rs
@@ -63,10 +63,10 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs inline unit tests
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs inline unit tests
   - zircon_runtime/src/ui/tests/material_button_style.rs
   - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
-  - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs
   - cargo metadata --locked --no-deps --format-version 1
   - git diff --check -- docs/ui-and-layout/slint-material-retained-editor-migration.md docs/ui-and-layout/index.md zircon_editor/assets/ui/theme/editor_material.zui zircon_editor/src/tests/ui/boundary/mod.rs zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
 doc_type: milestone-detail
@@ -216,7 +216,7 @@ The retained priority is encoded in `slint_material_state_layer_priority = "disa
 | Layer | Implementation |
 |---|---|
 | Runtime style fallback | `zircon_runtime/src/ui/style.rs` resolves bool-only interaction state as disabled, pressed, focused, hovered after explicit `button_interaction_state` / `interaction_state` strings. |
-| Editor host painter | `zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs` resolves disabled, pressed/`enter_pressed`, dragging, focused/selected/checked, hover/drop/active-drag-target, default. |
+| Editor host painter | `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs` resolves disabled, pressed/`enter_pressed`, dragging, focused/selected/checked, hover/drop/active-drag-target, default. |
 
 M2 metadata fields on `TemplatePaneNodeData` are:
 

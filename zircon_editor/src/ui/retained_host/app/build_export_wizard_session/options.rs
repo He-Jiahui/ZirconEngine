@@ -1,8 +1,15 @@
 use std::path::PathBuf;
 
-use crate::ui::host::{export_wizard_compile_host_executable_path, ExportWizardPipelineOptions};
+use crate::core::export::{ExportPresetStore, PlatformBundleLayout};
+use crate::ui::host::{
+    export_wizard_compile_host_executable_path, EditorExportBuildError, ExportWizardPipelineOptions,
+};
 use crate::ui::workbench::project::project_root_path;
-use zircon_runtime::plugin::ExportProfile;
+use zircon_runtime::{
+    asset::ProjectManifest, core::framework::platform::RuntimeTargetMode,
+    core::framework::project::ExportProfile,
+};
+use zircon_runtime_interface::export::ExportTargetMode;
 
 use super::super::*;
 
@@ -11,16 +18,28 @@ const DEFAULT_SOURCE_ASSET_MANIFEST: &str = "assets/assets.json";
 impl RetainedEditorHost {
     pub(super) fn export_wizard_options(
         &self,
-        profile_name: &str,
-    ) -> Result<ExportWizardPipelineOptions, String> {
+        preset_name: &str,
+    ) -> Result<ExportWizardPipelineOptions, EditorExportBuildError> {
         let project_path = self.runtime.editor_snapshot().project_path;
-        let project_root = project_root_path(&project_path).map_err(|error| error.to_string())?;
+        let project_root = project_root_path(&project_path)?;
         let manifest_path = project_root.join("zircon-project.toml");
-        let output_root = self.effective_desktop_export_output_root(&project_root, profile_name);
-        let profile = build_export_actions::desktop_export_profile(profile_name)
-            .ok_or_else(|| format!("unknown desktop export profile `{profile_name}`"))?;
-        let mut options = ExportWizardPipelineOptions::new(
-            profile_name,
+        let store = ExportPresetStore::new(&project_root);
+        let preset = store.load(preset_name)?;
+        let preset_path = store.preset_path(preset_name)?;
+        let output_root = self.effective_desktop_export_output_root(&project_root, preset_name);
+        let manifest = ProjectManifest::load(&manifest_path).map_err(|source| {
+            EditorExportBuildError::project_manifest(manifest_path.clone(), source)
+        })?;
+        let profile = manifest
+            .export_profiles
+            .into_iter()
+            .find(|profile| profile.name == preset.profile_ref)
+            .ok_or_else(|| EditorExportBuildError::unknown_profile(&preset.profile_ref))?;
+        validate_preset_profile_target_mode(preset_name, preset.target_mode, &profile)?;
+        let mut options = ExportWizardPipelineOptions::from_preset(
+            preset_name,
+            preset_path.display().to_string(),
+            preset,
             manifest_path.display().to_string(),
             output_root.display().to_string(),
         );
@@ -32,15 +51,52 @@ impl RetainedEditorHost {
                 .display()
                 .to_string(),
         );
-        options.host_executable = Some(export_wizard_default_host_executable(
-            &options.out,
-            &profile,
-            options.target_dir.as_deref(),
-        ));
+        options.host_executable = Some(
+            PlatformBundleLayout::expected(
+                output_root
+                    .join("stages")
+                    .join("compile_host")
+                    .join("staged"),
+                options.preset.target_mode,
+            )
+            .launcher
+            .display()
+            .to_string(),
+        );
         options.target_platform =
             Some(build_export_actions::export_platform_label(profile.target_platform).to_string());
         Ok(options)
     }
+}
+
+fn validate_preset_profile_target_mode(
+    preset_name: &str,
+    preset_mode: ExportTargetMode,
+    profile: &ExportProfile,
+) -> Result<(), EditorExportBuildError> {
+    if matches!(
+        (preset_mode, profile.target_mode),
+        (
+            ExportTargetMode::ClientRuntime,
+            RuntimeTargetMode::ClientRuntime
+        ) | (
+            ExportTargetMode::ServerRuntime,
+            RuntimeTargetMode::ServerRuntime
+        )
+    ) {
+        return Ok(());
+    }
+    let profile_mode = match profile.target_mode {
+        RuntimeTargetMode::ClientRuntime => "client_runtime",
+        RuntimeTargetMode::ServerRuntime => "server_runtime",
+        RuntimeTargetMode::EditorHost => "editor_host",
+    };
+    Err(EditorExportBuildError::PresetTargetModeMismatch {
+        preset_name: preset_name.to_string(),
+        profile_name: profile.name.clone(),
+        preset_mode,
+        profile_mode,
+    })
 }
 
 pub(super) fn export_wizard_default_host_executable(

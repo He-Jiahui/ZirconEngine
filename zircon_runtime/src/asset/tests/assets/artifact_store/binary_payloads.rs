@@ -44,7 +44,9 @@ fn artifact_store_bincode_roundtrips_scene_mesh_instance_asset() {
 fn artifact_store_roundtrips_mesh_assets_with_binary_attribute_payloads() {
     let root = unique_temp_project_root("artifact_store_mesh_binary_payloads");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let mesh = MeshAsset {
         uri: AssetUri::parse("res://meshes/arena_floor.zmesh").unwrap(),
@@ -95,7 +97,9 @@ fn artifact_store_roundtrips_mesh_assets_with_binary_attribute_payloads() {
 fn artifact_store_roundtrips_texture_assets_with_binary_payloads() {
     let root = unique_temp_project_root("artifact_store_texture_binary_payloads");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let texture = TextureAsset::new_rgba8(
         AssetUri::parse("res://textures/jungle_ground_albedo.png").unwrap(),

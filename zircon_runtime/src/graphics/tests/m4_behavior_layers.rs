@@ -38,7 +38,7 @@ mod queue_override;
 mod transparent3d;
 
 #[test]
-fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_rendering() {
+fn offline_bake_outputs_reflection_probe_data_without_fake_baked_ambient() {
     let fixture = RenderFixture::new("graphics_m4_offline_bake", [0.5, 0.5, 0.5, 1.0]);
     let base_extract = fixture.frame_extract(
         vec![RenderMeshSnapshot {
@@ -65,6 +65,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
             direction: Vec3::new(-0.4, -0.4, -1.0).normalize_or_zero(),
             color: Vec3::new(1.0, 0.62, 0.28),
             intensity: 3.2,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }],
         |_extract| {},
@@ -73,14 +74,9 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
     let bake_output = offline_bake_frame(
         &base_extract,
         &OfflineBakeSettings {
-            ambient_scale: 0.24,
             reflection_probe_scale: 0.8,
             max_reflection_probes: 1,
         },
-    );
-    assert!(
-        bake_output.baked_lighting.intensity > 0.0,
-        "offline bake should produce non-zero baked lighting"
     );
     assert!(
         !bake_output.reflection_probes.is_empty(),
@@ -88,7 +84,6 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
     );
 
     let mut baked_extract = base_extract.clone();
-    baked_extract.lighting.baked_lighting = Some(bake_output.baked_lighting);
     baked_extract.environment.probes = bake_output.reflection_probes;
 
     let server = fixture.server();
@@ -115,7 +110,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
     let unbaked_red = average_channel(&unbaked_frame.rgba, 0);
     assert!(
         baked_red > unbaked_red + 8.0,
-        "expected baked lighting and probes to change the frame; baked red={baked_red:.2}, unbaked red={unbaked_red:.2}"
+        "expected reflection probes to change the frame; probe red={baked_red:.2}, baseline red={unbaked_red:.2}"
     );
 }
 
@@ -135,7 +130,9 @@ impl RenderFixture {
     fn new_with_alpha_mode(label: &str, base_color: [f32; 4], alpha_mode: AlphaMode) -> Self {
         let root = unique_temp_project_root(label);
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             label,
             AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -145,17 +142,28 @@ impl RenderFixture {
         .unwrap();
 
         write_flat_color_wgsl(
-            paths.assets_root().join("shaders").join("flat_color.wgsl"),
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("shaders")
+                .join("flat_color.wgsl"),
             [base_color[0], base_color[1], base_color[2]],
         );
         write_solid_png(
-            paths.assets_root().join("textures").join("white.png"),
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("textures")
+                .join("white.png"),
             [255, 255, 255, 255],
         );
-        write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+        write_quad_obj(
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("models")
+                .join("quad.obj"),
+        );
         write_material_with_base_color_and_texture(
             paths
-                .assets_root()
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
                 .join("materials")
                 .join("flat_color.zmaterial"),
             "res://shaders/flat_color.wgsl",

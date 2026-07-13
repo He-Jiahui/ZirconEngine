@@ -37,8 +37,8 @@
 - Modify as needed: `zircon_editor/src/ui/workbench/snapshot/workbench/view_content_kind.rs` for content-kind variants.
 - Modify as needed: `zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs` for descriptor-to-content mapping.
 - Modify as needed: `zircon_editor/src/ui/workbench/reflection/name_mapping.rs` for host reflection names.
-- Modify as needed: `zircon_editor/src/ui/workbench/model/menu/view_menu.rs` for View menu entries.
-- Modify as needed: `zircon_editor/src/ui/workbench/model/menu_item_model.rs` for operation paths `View.PluginManager.Open` and `View.BuildExport.Open`.
+- Modify as needed: `zircon_editor/src/core/commands/menu.rs` for View menu entries.
+- Modify as needed: `zircon_editor/src/core/commands/menu_model.rs` for operation paths `View.PluginManager.Open` and `View.BuildExport.Open`.
 - Modify as needed: `zircon_editor/src/ui/workbench/view/pane_payload_kind.rs` for pane payload variants.
 - Modify as needed: `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs` for pane view-data DTOs.
 - Modify as needed: `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs` for stable payload structs.
@@ -61,8 +61,8 @@
 - Modify as needed: `zircon_editor/src/ui/slint_host/app/module_plugin_actions.rs` for host-level Plugin Manager action parsing and backend diagnostics.
 - Modify as needed: `zircon_editor/src/ui/slint_host/app/build_export_actions.rs` for host-level Build Export action parsing, queue state, cancellation state, and output-root summary.
 - Modify as needed: `zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs` for routing `ModulePluginAction` and `BuildExportAction` button clicks.
-- Modify as needed: `zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml` for Plugin Manager host template anchors.
-- Modify as needed: `zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml` for Build Export host template anchors.
+- Modify as needed: `zircon_editor/assets/ui/editor/host/module_plugins_body.zui` for Plugin Manager host template anchors.
+- Modify as needed: `zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui` for Build Export host template anchors.
 - Modify: `zircon_editor/src/tests/workbench/view_model/document_workspace.rs` for default workbench, menu, and idempotent open-route coverage.
 - Modify: `zircon_editor/src/tests/host/pane_presentation.rs` for payload/presentation coverage.
 - Modify as needed: `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs` or extracted child module tests for projection coverage.
@@ -262,7 +262,7 @@ Close the usable editor loop with explicit diagnostics, docs that map code to be
 - [ ] Run `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never`.
 - [ ] Run `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never` if focused editor checks pass and active compile load allows the broader editor lib suite.
 - [ ] If the broader editor lib suite is impractical under active compile load, rerun the focused test filters from Milestones 1 through 3 individually and record each result.
-- [ ] Run `git diff --check -- docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md docs/editor-and-tooling/editor-workbench-shell.md docs/editor-and-tooling/editor-host-minimal-plugin-loading.md docs/engine-architecture/runtime-editor-pluginized-export.md zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs zircon_editor/src/ui/host/builtin_views/activity_views/build_export_view_descriptor.rs zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs zircon_editor/src/ui/workbench/model/menu/view_menu.rs zircon_editor/src/ui/workbench/model/menu_item_model.rs zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs zircon_editor/src/ui/workbench/reflection/name_mapping.rs zircon_editor/src/ui/layouts/windows/workbench_host_window zircon_editor/src/ui/slint_host/app.rs zircon_editor/src/ui/slint_host/app zircon_editor/src/ui/slint_host/ui/apply_presentation.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/workbench/view_model/document_workspace.rs`.
+- [ ] Run `git diff --check -- docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md docs/editor-and-tooling/editor-workbench-shell.md docs/editor-and-tooling/editor-host-minimal-plugin-loading.md docs/engine-architecture/runtime-editor-pluginized-export.md zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs zircon_editor/src/ui/host/builtin_views/activity_views/build_export_view_descriptor.rs zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs zircon_editor/src/ui/host/builtin_layout/layout_drawers.rs zircon_editor/src/core/commands/menu.rs zircon_editor/src/core/commands/menu_model.rs zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs zircon_editor/src/ui/workbench/reflection/name_mapping.rs zircon_editor/src/ui/layouts/windows/workbench_host_window zircon_editor/src/ui/slint_host/app.rs zircon_editor/src/ui/slint_host/app zircon_editor/src/ui/slint_host/ui/apply_presentation.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/workbench/view_model/document_workspace.rs`.
 - [ ] Run `.\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput` if focused editor checks pass and no active Cargo load makes the validator impractical.
 - [ ] Do not claim workspace green unless `cargo build --workspace --locked --verbose` and `cargo test --workspace --locked --verbose` or the repository validator equivalent ran fresh and passed.
 

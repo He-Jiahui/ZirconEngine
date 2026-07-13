@@ -4,7 +4,9 @@ use super::*;
 fn project_manager_scans_ui_theme_assets_and_restores_theme_payloads() {
     let root = unique_temp_project_root("ui_theme_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "UiThemeSandbox",
         AssetUri::parse("res://ui/theme/editor.theme.toml").unwrap(),
@@ -13,7 +15,10 @@ fn project_manager_scans_ui_theme_assets_and_restores_theme_payloads() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let theme_dir = paths.assets_root().join("ui").join("theme");
+    let theme_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("ui")
+        .join("theme");
     fs::create_dir_all(&theme_dir).unwrap();
     fs::write(theme_dir.join("editor.theme.toml"), THEME_UI_TOML).unwrap();
 
@@ -48,7 +53,9 @@ fn project_manager_scans_ui_theme_assets_and_restores_theme_payloads() {
 fn project_manager_scans_ui_icon_assets_and_restores_icon_payloads() {
     let root = unique_temp_project_root("ui_icon_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "UiIconSandbox",
         AssetUri::parse("res://ui/icons/run.icon.toml").unwrap(),
@@ -57,7 +64,10 @@ fn project_manager_scans_ui_icon_assets_and_restores_icon_payloads() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let icon_dir = paths.assets_root().join("ui").join("icons");
+    let icon_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("ui")
+        .join("icons");
     fs::create_dir_all(&icon_dir).unwrap();
     fs::write(icon_dir.join("run.icon.toml"), ICON_UI_TOML).unwrap();
 
@@ -96,7 +106,9 @@ fn project_manager_scans_ui_icon_assets_and_restores_icon_payloads() {
 fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     let root = unique_temp_project_root("ui_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "UiSandbox",
         AssetUri::parse("res://ui/panel.zui").unwrap(),
@@ -105,7 +117,9 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let ui_dir = paths.assets_root().join("ui");
+    let ui_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("ui");
     fs::create_dir_all(&ui_dir).unwrap();
     fs::write(ui_dir.join("panel.zui"), V2_VIEW_UI_TOML).unwrap();
     fs::write(ui_dir.join("button.zui"), V2_COMPONENT_UI_TOML).unwrap();
@@ -151,7 +165,9 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
 fn project_manager_scans_zui_assets_and_restores_component_payloads() {
     let root = unique_temp_project_root("zui_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "ZuiSandbox",
         AssetUri::parse("res://ui/button.zui").unwrap(),
@@ -160,7 +176,9 @@ fn project_manager_scans_zui_assets_and_restores_component_payloads() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let ui_dir = paths.assets_root().join("ui");
+    let ui_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("ui");
     fs::create_dir_all(&ui_dir).unwrap();
     fs::write(ui_dir.join("button.zui"), V2_COMPONENT_UI_TOML).unwrap();
 

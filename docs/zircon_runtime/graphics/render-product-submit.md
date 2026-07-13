@@ -64,7 +64,7 @@ related_code:
   - zircon_runtime/src/asset/assets/material/material_control.rs
   - zircon_runtime/src/asset/assets/material/texture_slot.rs
   - zircon_runtime/src/asset/assets/material/validation.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
@@ -146,7 +146,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/ensure_offscreen_target.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
-  - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/backend/render_backend/render_backend_new_offscreen.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
   - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
@@ -158,7 +157,6 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
-  - zircon_runtime/src/core/framework/render/sprite/image_mode.rs
   - zircon_runtime/src/scene/components/render2d/sprite.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
@@ -181,7 +179,6 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/manifest.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_product_png.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/product_png.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/render_plan08_three_shading_models_forward_deferred_parity.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/render_plan08_staged_prewarm_product_sweep.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_mesh_cache_virtual_geometry_tests.rs
@@ -203,8 +200,6 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/camera_history_key.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
@@ -237,7 +232,6 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/generation.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
@@ -246,12 +240,9 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_camera.rs
-  - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
@@ -273,7 +264,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_post_process_lut_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
@@ -281,11 +271,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/model_uniform_cache/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/model_uniform_cache/model_uniform_cache.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/material_texture_set.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
@@ -294,7 +283,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/model_uniform/model_uniform.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/debug_overlay.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
@@ -304,22 +292,17 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/constants/gbuffer_material_format.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/deferred_scene_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
   - zircon_runtime/src/graphics/tests/project_render/render_quality.rs
@@ -352,8 +335,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_depth_pyramid/execute_screen_space_reflection_depth_pyramid.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_depth_pyramid_coarse/execute_screen_space_reflection_depth_pyramid_coarse.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid/execute_screen_space_reflection_reflection_pyramid.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid_coarse/execute_screen_space_reflection_reflection_pyramid_coarse.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_resolve/execute_screen_space_reflection_resolve.rs
@@ -380,8 +362,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_neighbor_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_coarse_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs
@@ -403,11 +384,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs
@@ -430,26 +409,19 @@ related_code:
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/preview_sky_pass.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_preview_sky.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/partition_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/hzb_occlusion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
@@ -459,35 +431,21 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/terminal.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_plugins/particles/runtime/src/render/executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/model_uniform_cache/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/model_uniform_cache/model_uniform_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_uniform.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_transparent.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/record_overlays.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
@@ -508,7 +466,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/error.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
@@ -558,7 +515,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/texture_transform.rs
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
@@ -656,7 +613,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_uniform.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
@@ -667,11 +624,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
@@ -680,10 +633,8 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/generation.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_camera.rs
-  - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
@@ -711,8 +662,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_depth_pyramid/execute_screen_space_reflection_depth_pyramid.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_depth_pyramid_coarse/execute_screen_space_reflection_depth_pyramid_coarse.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid/execute_screen_space_reflection_reflection_pyramid.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid_coarse/execute_screen_space_reflection_reflection_pyramid_coarse.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_resolve/execute_screen_space_reflection_resolve.rs
@@ -739,8 +689,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_neighbor_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_coarse_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs
@@ -759,7 +708,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
@@ -785,16 +734,14 @@ implementation_files:
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/preview_sky_pass.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_preview_sky.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/partition_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
@@ -816,7 +763,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/record_overlays.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
@@ -830,7 +776,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/ensure_offscreen_target.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
 plan_sources:
@@ -1035,16 +980,16 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_conventional_mesh_lod_draws
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_composes_pose_world_against_bind_world_matrices
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_reports_missing_parent_bone_reference
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_packs_gpu_matrices_and_count
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_rejects_current_uniform_limit_overflow
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_storage_packs_gpu_matrices_and_count
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_storage_rejects_current_storage_limit_overflow
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_storage_limit
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::phase_ordered_meshes_apply_material_sort_offsets_to_extract_phase_queue
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/model_uniform_cache/model_uniform_cache.rs::tests::model_uniform_cache_key_separates_lod_and_index_ranges
+  - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs::tests::model_uniform_cache_key_separates_lod_and_index_ranges
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics/shader_redirect.rs::render_product_streamer_resolves_shader_redirect_imports_into_module_sources
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics/shader_redirect.rs::render_product_streamer_reports_missing_shader_redirect_import_as_fallback
@@ -1061,13 +1006,9 @@ tests:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs::tests::renderer_material_layout_diagnostics_validate_skinning_and_texture_bindings
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_samples_standard_pbr_texture_set
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_writes_sampled_material_gbuffer_channels
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_samples_material_normal_map_into_scene_normal
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs::tests::compiled_scene_outputs_carry_prepared_mesh_queue_stats
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
@@ -1095,11 +1036,6 @@ tests:
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_pbr_submit_reports_material_fallback_and_light_stats
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_material_revision_invalidates_pre_mesh_cache
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/virtual_geometry.rs::render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache
   - cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan02-static-cache-product-0623 --message-format short --color never render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse -- --test-threads=1 --nocapture (timed out after about 184 seconds with no result; matching target cargo/rustc stopped)
   - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_accepts_layered_shapes_with_complete_payloads
   - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_accepts_complete_layered_mip_chain_payloads
@@ -1170,7 +1106,6 @@ tests:
   - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs::reload_pipeline_rejects_plugin_executor_from_descriptor_only
   - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs::reload_pipeline_accepts_plugin_executor_from_explicit_registration
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::execution_record_preserves_pass_debug_markers
-  - zircon_runtime/src/graphics/tests/render_debugger_and_history.rs::renderdoc_debug_marker_registry_covers_capture_timeline
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_records_storage_writes_without_attachment_ops
   - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs::compile_options_fallback_async_compute_passes_to_graphics_queue
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs::pipeline_compile_rejects_storage_write_mode_on_read_access
@@ -1232,8 +1167,6 @@ tests:
   - zircon_runtime/src/rhi/tests/capabilities.rs::backend_caps_report_queue_classes_and_rt_support_independently
   - zircon_runtime/src/rhi_wgpu/tests.rs::wgpu_caps_fall_back_to_graphics_and_copy_without_rt
   - cargo test -p zircon_runtime --lib compiled_pipeline_capability_validation_reports_neural_compute_requirement --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
-  - cargo test -p zircon_runtime --lib runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
-  - zircon_runtime/src/graphics/tests/project_render/render_quality.rs::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs::sprite_subpasses_apply_graph_attachment_ops_only_to_outer_draws
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::build_sprite_vertices_routes_transparent3d_to_transparent3d_phase
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs::sprite_queue_stats_count_stage_batches_sprites_and_vertices
@@ -1295,8 +1228,8 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_depth_texture
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_refines_projected_ssr_hits
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_reprojects_ssr_history_with_motion_vectors
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_depth_pyramid_coarse_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_coarse_entry_point
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_entry_point
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_coarse_entry_point
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs::tests::post_process_shader_exposes_split_ssr_reflection_pyramid_entry_point
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs::tests::post_process_shader_exposes_split_ssr_reflection_pyramid_coarse_entry_point
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs::tests::post_process_shader_exposes_split_ssr_resolve_entry_point
@@ -1320,7 +1253,6 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::velocity_camera_shader_parses_and_reconstructs_previous_uv
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::velocity_camera_fallback_shader_parses_without_depth_texture_sampling
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs::tests::reconstructed_motion_vectors_are_requested_for_temporal_effects
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/depth_of_field_settings.rs::tests::depth_of_field_lens_settings_are_sanitized_for_renderer_upload
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::velocity_object_executor_requires_graph_target_instead_of_nooping
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::velocity_camera_executor_requires_post_process_context_instead_of_nooping
@@ -1465,11 +1397,11 @@ M8 follow-up feature slots use the same descriptor-first boundary. The descripto
 
 The 2026-06-07 `MeshLod` follow-up extends that descriptor-first set for ordinary mesh LOD work, and the 2026-06-08 scene-extract slice adds the first conventional runtime input. `BuiltinRenderFeature::MeshLod` still requires explicit feature opt-in and reserves only the neutral `mesh_lod` extract section in compiled pipelines. Scene assets and runtime mesh renderers can now carry `lods`: distance-threshold levels with the same model, optional direct mesh, material, and primitive binding shape as the base mesh renderer. During scene render extraction, the selected camera position chooses the highest finite `min_distance` level that is within range, then emits ordinary `RenderMeshSnapshot` rows for the selected source. That means submit, resource streaming, and draw preparation still consume the flat mesh snapshot contract. It does not add screen-error selection, LOD group assets, cross-fade, streaming residency, editor authoring UI, graph pass, executor, history binding, or backend capability. Virtual Geometry keeps its separate Nanite-style LOD/runtime provider path; `MeshLod` remains the conventional mesh-renderer path for non-VG LOD authoring.
 
-The same descriptor-first boundary now also reserves `BuiltinRenderFeature::SkinnedMesh`: renderer data can name `SkinnedMesh` as a source/quality gate, explicit feature opt-in adds only the neutral `skinned_mesh` extract section, and default product pipelines still omit it. Current mesh draw preparation computes a renderer-private `SkinnedMeshJointPalette` from skeleton bind transforms plus pose-local transforms, reuses it for the CPU-skinned dynamic fallback, packs the same palette through the mesh-level fixed 256-matrix `SkinnedMeshJointPaletteUniform` ABI, and uploads that packed uniform into a renderer-owned per-draw WGPU buffer when it fits the current ABI. Oversized palettes keep the CPU-skinned fallback draw and skip only the uniform upload. Draw construction retains a skinned GPU-source candidate when a palette uniform exists: unchanged prepared mesh sources are used for non-morphed prepared/model paths, while direct `MeshAsset` draws with active morph weights keep a CPU-morphed-but-unskinned primitive as a dynamic shader-skinning source. That hybrid keeps direct mesh morph deformation visible without claiming full GPU morph deformation.
+The same descriptor-first boundary now also reserves `BuiltinRenderFeature::SkinnedMesh`: renderer data can name `SkinnedMesh` as a source/quality gate, explicit feature opt-in adds only the neutral `skinned_mesh` extract section, and default product pipelines still omit it. Current mesh draw preparation computes a renderer-private `SkinnedMeshJointPalette` from skeleton bind transforms plus pose-local transforms, reuses it for the CPU-skinned dynamic fallback, packs the same palette through the mesh-level fixed 256-matrix `SkinnedMeshJointPaletteStorage` ABI, and uploads that payload into a renderer-owned per-draw read-only WGPU storage buffer when it fits the current ABI. Oversized palettes keep the CPU-skinned fallback draw and skip only the storage upload. Draw construction retains a skinned GPU-source candidate when a palette storage payload exists: unchanged prepared mesh sources are used for non-morphed prepared/model paths, while direct `MeshAsset` draws with active morph weights keep a CPU-morphed-but-unskinned primitive as a dynamic shader-skinning source. That hybrid keeps direct mesh morph deformation visible without claiming full GPU morph deformation.
 
 Eligible candidates now switch the active draw geometry away from the CPU-skinned fallback only on the built-in fallback shader pipeline and set the GPUScene primitive motion params shader-skinning execution flag. Non-morphed prepared sources still count as prepared geometry; CPU-morphed direct-mesh shader-skinning sources count as dynamic geometry through `MeshDrawGeometrySource::DynamicGpuSkinningSource`, so they do not enter ordinary direct prepared batching or GPU-instancing candidates. The previous CPU `ViewportMotionVectorObjectHistory` sideband has been removed; unskinned object motion-vector readiness now comes from GPUScene's rolled previous transform. Skinned previous palette readiness now comes from GPUScene's renderer-owned previous-palette map when the current/previous skeleton signature plus joint count match. CPU-morphed direct-mesh sources additionally use GPUScene's renderer-owned previous skinned GPU source map: matching morph-shape signatures reuse the current source as the previous shape, while changed signatures use the rolled previous source mesh for velocity. Mesh pipeline shader source owner split moved Base pass fallback or missing shader id resolution into `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs`: the source owner feeds `PipelineKey::shader_feature_bits()` and alpha cutoff into `standard_material_surface_source_for_features(...)`, can assemble the requested built-in geometry source via `mesh_pipeline_standard_material_template_source_for_geometry(...)`, and hashes both template include content and final WGSL source; `ensure_pipeline.rs` consumes the returned `MeshPipelineShaderSource` for disk/module cache identity and WGPU pipeline creation without owning template assembly imports. Runtime mesh variant geometry-source key wiring now maps `MeshDrawGeometrySource::DynamicGpuSkinningSource` to `GEOMETRY_SOURCE_ID_SKINNED_MESH`, stores that id in the registry-owned `ShaderVariantKey`, and forwards `shader_variant_key.geometry_source` into Base source assembly; `mesh_pipeline_variant_registry_separates_geometry_sources` and `render_mesh_draw_processor_uses_batch_geometry_source_for_pipeline_variant_key` lock the non-static path under status `render_plan08_runtime_mesh_variant_geometry_source_key_wiring_static_passed_cargo_deferred_implementation_cadence`. `mesh_pipeline_template_source_hashes_include_template_revision` locks the source-owner revision/hash contract. The dynamic built-in fallback prewarm manifest uses the same DTO, so staged cache entries carry the same template WGSL, include/source hashes, and revision instead of the old monolithic fallback shader source; status: `render_plan08_builtin_fallback_prewarm_template_source_static_passed_cargo_deferred_implementation_cadence`. Asset-root builtin standard material template prewarm now uses `dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry(...)` for each requested built-in geometry source on `.zmaterial` references to `builtin://shader/pbr.wgsl`; static and skinned staged requests carry matching `ShaderVariantKey.geometry_source` values and geometry includes. `shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source`, `builtin_standard_material_shader_prewarm_manifest_projects_geometry_source`, and `runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired` lock that staged-cache path under status `render_plan08_asset_root_builtin_standard_material_multi_geometry_prewarm_static_passed_cargo_deferred_implementation_cadence` while the original static wrapper remains tracked as `render_plan08_asset_root_builtin_standard_material_template_prewarm_static_passed_cargo_deferred_implementation_cadence`. Ready custom material WGSL and asset-root `.zshader`/standalone `.wgsl` prewarm still use raw shader source paths, and Velocity/TAA/deferred pass cache owners still use their narrower current sources until later cutover slices. Custom material shaders still stay on the CPU-skinned fallback for execution, and runtime morphed/skinned-morphed template selection still needs finer draw metadata, but authored non-empty pipeline layouts are now diagnosed by `ResourceStreamer` against the same renderer-owned GPUScene/material ABI. Status: `render_plan08_mesh_pipeline_standard_material_template_source_static_passed_cargo_deferred_implementation_cadence`; source-owner split status: `render_plan08_mesh_pipeline_shader_source_owner_split_static_passed_cargo_deferred_implementation_cadence`.
 
-Queue stats submit all skinned draws as `render.mesh.queue.skinned_draw_count`, successful current-palette buffer preparation as `render.mesh.queue.skinned_palette_upload_count`, source readiness as `render.mesh.queue.skinned_gpu_source_candidate_count`, the CPU-morphed source subset as `render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count`, actual shader-skinning selection as `render.mesh.queue.skinned_gpu_skinning_draw_count`, successful previous-palette upload as `render.mesh.queue.skinned_previous_palette_upload_count`, and GPU-skinned object-velocity readiness as `render.mesh.queue.skinned_gpu_velocity_draw_count`; `fallback_mesh.wgsl` declares the joint-index and joint-weight vertex channels that already exist in the mesh vertex layout. GPUScene group3 binding 3 holds the current skinned palette and binding 4 holds the previous skinned palette. Each skinned draw may supply a command-local GPUScene bind group with real palette buffers; non-skinned and palette-missing draws bind the shared empty palette fallback owned by `SceneRendererCore`. Fallback mesh, deferred geometry, normal prepass, and shadow map WGSL now execute current-palette skinning only behind the per-draw flag and joint-count bounds, and fallback mesh object velocity uses the primitive motion params to switch the previous clip position to the previous skinned palette when the previous-palette upload exists. CPU-morphed shader-skinning sources require a current morph-shape signature; matching signatures reuse the current morphed source as previous shape, and changed signatures use the rolled previous source mesh through the velocity pipeline's second vertex slot at `@location(8) previous_position`. Signature/source gaps continue to report `render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count`. CPU fallback draws can keep palette diagnostics without double skinning. This still does not add graph pass, executor, backend capability, storage-buffer large-skeleton support, full GPU morph deformation, custom material shader GPU-skinning execution policy, particle/custom-shader skinned velocity output, or full WGSL source reflection. Renderer ABI readiness diagnostics now cover authored non-empty shader pipeline layouts for group2 material and group3 GPUScene bindings; those diagnostics do not reflect WGSL source or enable custom shader execution.
+Queue stats submit all skinned draws as `render.mesh.queue.skinned_draw_count`, successful current-palette buffer preparation as `render.mesh.queue.skinned_palette_upload_count`, source readiness as `render.mesh.queue.skinned_gpu_source_candidate_count`, the CPU-morphed source subset as `render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count`, actual shader-skinning selection as `render.mesh.queue.skinned_gpu_skinning_draw_count`, successful previous-palette upload as `render.mesh.queue.skinned_previous_palette_upload_count`, and GPU-skinned object-velocity readiness as `render.mesh.queue.skinned_gpu_velocity_draw_count`; `fallback_mesh.wgsl` declares the joint-index and joint-weight vertex channels that already exist in the mesh vertex layout. GPUScene group3 binding 3 holds the current skinned palette and binding 4 holds the previous skinned palette. Each skinned draw may supply a command-local GPUScene bind group backed by a persistent two-slot storage pair keyed by stable instance; draw build updates the alternate slot and successful submission commits it as previous. Non-skinned and palette-missing draws bind the shared empty palette fallback owned by `SceneRendererCore`. Fallback mesh, deferred geometry, normal prepass, and shadow map WGSL execute current-palette skinning only behind the per-draw flag and joint-count bounds, and fallback mesh object velocity uses the primitive motion params to switch the previous clip position to the committed previous skinned palette when it exists. CPU-morphed shader-skinning sources require a current morph-shape signature; matching signatures reuse the current morphed source as previous shape, and changed signatures use the rolled previous source mesh through the velocity pipeline's second vertex slot at `@location(8) previous_position`. Signature/source gaps continue to report `render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count`. CPU fallback draws can keep palette diagnostics without double skinning. This still does not add graph pass, executor, backend capability, storage-buffer large-skeleton support, full GPU morph deformation, custom material shader GPU-skinning execution policy, particle/custom-shader skinned velocity output, or full WGSL source reflection. Renderer ABI readiness diagnostics now cover authored non-empty shader pipeline layouts for group2 material and group3 GPUScene bindings; those diagnostics do not reflect WGSL source or enable custom shader execution.
 
 The 2026-06-08 standard material ABI follow-up fills the core WGPU material slot gap without changing authored custom shader property offsets. `ResourceStreamer` now prepares two material uniforms: the existing shader-property payload for custom material shaders, and a renderer-owned standard material uniform that packs metallic, roughness, default occlusion, emissive, unlit state, per-slot UV transforms, shading model id, TAA reactive mask strength, and alpha-mask cutoff for built-in fallback/deferred/prepass/shadow/motion-vector shader paths. Mesh draws carry a five-slot `MaterialTextureSet` for base color, normal, metallic-roughness, occlusion, and emissive; the renderer material texture bind group layout now reserves bindings 0-9 for texture/sampler pairs. The standard material uniform is 144 bytes: `data0` and `data1` preserve the scalar/emissive ABI, `data2..data6` carry base-color, normal, metallic-roughness, occlusion, and emissive transforms as `(scale.x, scale.y, offset.x, offset.y)`, `data7` carries standard texture UV-channel selectors, and `data8.x/y/z` carry TAA reactive mask strength, normalized `ShadingModelId`, and clamped alpha-mask cutoff. Custom shader-property payloads are padded to the same minimum binding size without moving authored field offsets. Fallback mesh WGSL samples all five slots, applies the transform before base-color, normal, metallic-roughness, occlusion, emissive, and motion-vector alpha sampling, uses metallic-roughness blue/green channels for metallic/roughness, and modulates occlusion and emissive. Deferred geometry applies the same base-color/metallic-roughness/occlusion transforms before writing the material G-buffer. Normal prepass now includes and binds group 3 so normal-map sampling uses the authored normal transform, and alpha-mask shadow rendering binds group 3 so cutoff sampling uses the authored base-color transform; the shader-template path reads the same cutoff from `standard_material_properties.data8.z` with the descriptor constant as a static fallback while runtime WGPU cutover is still in progress. Custom shaders with non-empty authored layouts are now diagnosed against the full group 2 material texture ABI plus the existing group 1 and group 3 renderer ABI; this still does not add bindless material allocation, clearcoat/transmission/anisotropy/parallax/lightmap families, full WGSL source reflection, or custom shader execution of renderer-owned standard uniforms.
 
@@ -1547,7 +1479,7 @@ The basic renderer now has a fixed scene-uniform point-light path. `SceneUniform
 
 Mesh queue preparation now computes counters for early-z eligible draws, shadow-casting draws, alpha-mask shadow casters, prepared versus dynamic geometry, CPU-skinned fallback draws, skinned palette-buffer upload readiness, skinned GPU-source candidate readiness, selected GPU-skinning draws, GPU Morphed/SkinnedMorphed source draws, indirect draws, selected conventional mesh LOD draws, static/dynamic/GPU-instancing candidate groups, and dynamic draw previous/missing motion-vector transform readiness. The command layer also reports immutable mesh command totals, cached command hits, command rebuilds, dynamic command rebuilds, cold cache misses, transform/geometry/material command-cache invalidations, and replay state/bind skip counts. Those counters live under `zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs`, are consumed by the compiled-scene path to keep transparent draws out of the depth lane and to keep material opt-outs out of the shadow-caster lane, and are carried through `SceneRendererCompiledSceneOutputs` into `RenderStats.last_mesh_*` after a successful submit. `collect_runtime_diagnostics(...)` mirrors them into `DiagnosticStore` under `render.mesh.queue.*` paths, including `render.mesh.queue.shadow_caster_draw_count`, `render.mesh.queue.alpha_mask_shadow_caster_draw_count`, `render.mesh.queue.skinned_draw_count`, `render.mesh.queue.skinned_palette_upload_count`, `render.mesh.queue.skinned_gpu_source_candidate_count`, `render.mesh.queue.skinned_gpu_skinning_draw_count`, `render.mesh.queue.gpu_morphed_source_draw_count`, `render.mesh.queue.gpu_skinned_morphed_source_draw_count`, `render.mesh.queue.indirect_draw_count`, `render.mesh.queue.lod_draw_count`, `render.mesh.queue.command_count`, `render.mesh.queue.cached_command_hit_count`, `render.mesh.queue.command_cache_miss_count`, `render.mesh.queue.command_cache_invalidated_material_count`, `render.mesh.queue.replay_state_change_count`, `render.mesh.queue.replay_bind_skip_count`, `render.mesh.queue.previous_motion_vector_transform_draw_count`, and `render.mesh.queue.missing_motion_vector_transform_draw_count`, so tools can observe current-frame queue readiness without reading renderer-private draw lists.
 
-The skinned counter covers both selected GPU-skinned draws and CPU fallback draws; the current-palette upload counter proves a fixed-size renderer-owned uniform buffer was created for a skinned draw; the GPU-source candidate counter proves that the draw also has a shader-skinning source; the CPU-morphed source counter proves that source came from direct mesh CPU morphing before shader skinning; and the GPU-skinning draw counter proves that draw construction actually selected that source and enabled shader skinning on the built-in fallback shader pipeline. The previous-palette upload and skinned GPU motion-vector counters remain part of the stats surface, but the current Plan 06 hard cut no longer reconstructs previous palettes from CPU viewport history; they stay zero for production draw construction until GPUScene owns a persistent previous skinned-palette roll. GPU-skinned prepared draws remain in prepared-geometry counts but are excluded from ordinary direct prepared batch and GPU-instancing candidates until the batch key can express palette identity. Changed active morph weights still stay out of the actual GPU-skinning and GPU motion-vector counters until GPU morph deformation exists; custom material shaders also stay out until execution and velocity policy is implemented, even though authored layouts now receive renderer ABI diagnostics. The motion-vector queue counters are pre-executor telemetry over dynamic draw profiles. They are queue-preparation diagnostics, not generic render-asset, mesh allocator, or shadow-map GPU execution diagnostics.
+The skinned counter covers both selected GPU-skinned draws and CPU fallback draws; the current-palette upload counter proves a fixed-size renderer-owned storage payload was staged for a skinned draw; the GPU-source candidate counter proves that the draw also has a shader-skinning source; the CPU-morphed source counter proves that source came from direct mesh CPU morphing before shader skinning; and the GPU-skinning draw counter proves that draw construction actually selected that source and enabled shader skinning on the built-in fallback shader pipeline. The previous-palette upload and skinned GPU motion-vector counters now reflect GPUScene's persistent previous-palette roll: a compatible committed slot is available only after a successful prior submit, and failed/incomplete frames do not advance the slot. GPU-skinned prepared draws remain in prepared-geometry counts but are excluded from ordinary direct prepared batch and GPU-instancing candidates until the batch key can express palette identity. Changed active morph weights still stay out of the actual GPU-skinning and GPU motion-vector counters until GPU morph deformation exists; custom material shaders also stay out until execution and velocity policy is implemented, even though authored layouts now receive renderer ABI diagnostics. The motion-vector queue counters are pre-executor telemetry over dynamic draw profiles. They are queue-preparation diagnostics, not generic render-asset, mesh allocator, or shadow-map GPU execution diagnostics.
 
 Sprite readiness and queue preparation follow the same public diagnostics rule. `RenderStats.last_sprite_*` carries sprite count, ready count, texture fallback count, graph executed pass count, adjacent draw-batch count, batched sprite count, generated image-slice count, expanded image-slice count, generated vertex count, and per-phase batch counts. `DiagnosticStore` mirrors these as `render.sprite.*` and `render.sprite.queue.*` count rows, keeping Core2d batching, tiled/nine-slice expansion, and fallback visibility available to runtime/editor tooling without promoting Bevy-style sprite binning or per-view pipeline specialization. `render_plan14_sprite_queue_stats_suppression_cleanup_static_passed_cargo_deferred_active_lanes` records that `PreparedSpriteQueueStats` is treated as this production diagnostics DTO rather than a suppressed scaffold.
 
@@ -1950,7 +1882,7 @@ The 2026-06-15 Plan 07 PP-M3-S1a exposure contract follow-up extends that same s
 
 The 2026-06-15 Plan 07 PP-M3-S1b follow-up connects that exposure contract to WGPU. The compiled post-process graph now declares `postprocess.exposure.histogram`, `history.previous.exposure`, and `history.current.exposure`; histogram mode records `post.exposure.histogram` and `post.exposure.resolve`, while manual mode skips the histogram pass and still writes the same current exposure buffer through resolve. `SceneFrameHistoryTextures` owns previous/current exposure buffers, invalidates them with the rest of compatible frame history, and flips them after successful graph execution. Final post-process composition binds the resolved exposure buffer at binding 28 and multiplies it with authored color-grading exposure, keeping manual and histogram modes on one shader path.
 
-The 2026-06-06 camera scheduling diagnostics follow-up keeps `RenderViewExtract.scene_camera_order_report` as the single scheduling evidence source at submit. The shared context builder copies that report into `FrameSubmissionContext`, `update_base_stats(...)` projects active scheduled-camera count and same-order ambiguity-group count into `RenderStats.last_scene_camera_scheduled_count` and `RenderStats.last_scene_camera_order_ambiguity_count`, and core diagnostics records `render.camera.scheduled_count` plus `render.camera.order_ambiguity_count`. Since the 2026-06-18 Plan 09 M1-S2 loop scaffold, generated offscreen submit consumes the descriptor list by running Base and Overlay descriptors as selected-camera child extracts, with shared UI routed only to the terminal child of the selected Base stack. The renderer now also derives per-child scene color/depth first-clear load ops from `RenderCameraClear` and Overlay `clear_depth`, keeps live `scene-color`/`scene-depth` bound to the fixed `OffscreenTarget` views for child-to-child physical reuse, suppresses texture output direct-import/writeback/capture for non-stack-terminal child frames, gates shared viewport record/present ownership to the viewport-terminal child, routes shared `RenderStats`, graphics-debugger capture, and last virtual-geometry debug snapshot writes through `ViewportCameraStackOutputPolicy::owns_shared_viewport_products()`, snapshots `SceneRenderer::last_light_grid_report()` through `SharedViewportProductReports` before `update_stats(...)`, applies selected-camera `viewport_rect` as WGPU viewport/scissor state for graph-raster passes and terminal post-process output-transfer/FXAA/SMAA resolve passes, and includes the selected camera target fingerprint, Base/Overlay render type, and viewport-rect presence in the compiled graph cache key so child submits do not reuse graphs compiled for a different selected-camera shape. Texture child target fingerprints now include the texture `ResourceId`, resolved extent, and `rgba8unorm_srgb` versus `rgba8unorm` format class supplied by target preflight. Temporal color history, the visibility static index, previous motion-vector camera, particle previous sprites, Hybrid GI runtime, Virtual Geometry runtime state, light-grid reports, and virtual-geometry debug snapshots now live in per-selected-camera viewport-record slots, so non-terminal children can keep state and product-debug records without taking over shared viewport stats or capture. Post-process keeps graph-owned intermediates in local viewport coordinates while translating fixed full-frame source reads through the selected camera origin, and Hybrid GI history writeback copies graph-owned `postprocess.global-illumination` into the selected camera's physical history region. Native surface present and direct runtime-frame submit now use the same selected-camera loop and viewport-terminal ownership gate. This is still not final multi-camera target routing: final custom-target composite, remaining custom-target product runs, unified sort-key RenderDoc coverage, and wider RenderDoc/product evidence remain renderer milestones.
+The 2026-06-06 camera scheduling diagnostics follow-up keeps `RenderViewExtract.scene_camera_order_report` as the single scheduling evidence source at submit. The shared context builder copies that report into `FrameSubmissionContext`, `update_base_stats(...)` projects active scheduled-camera count and same-order ambiguity-group count into `RenderStats.last_scene_camera_scheduled_count` and `RenderStats.last_scene_camera_order_ambiguity_count`, and core diagnostics records `render.camera.scheduled_count` plus `render.camera.order_ambiguity_count`. Since the 2026-06-18 Plan 09 M1-S2 loop scaffold, generated offscreen submit consumes the descriptor list by running Base and Overlay descriptors as selected-camera child extracts, with shared UI routed only to the terminal child of the selected Base stack. The renderer now also derives per-child scene color/depth first-clear load ops from `RenderCameraClear` and Overlay `clear_depth`, keeps live `scene-color`/`scene-depth` bound to the fixed `OffscreenTarget` views for child-to-child physical reuse, suppresses texture output direct-import/writeback/capture for non-stack-terminal child frames, gates shared viewport record/present ownership to the viewport-terminal child, routes shared `RenderStats`, graphics-debugger capture, and last virtual-geometry debug snapshot writes through `ViewportCameraStackOutputPolicy::owns_shared_viewport_products()`, snapshots `SceneRenderer::last_light_grid_report()` through `SharedViewportProductReports` before `update_stats(...)`, applies selected-camera `viewport_rect` as WGPU viewport/scissor state for graph-raster passes and terminal post-process output-transfer/FXAA/SMAA resolve passes, and includes the selected camera target fingerprint, Base/Overlay render type, and viewport-rect presence in the compiled graph cache key so child submits do not reuse graphs compiled for a different selected-camera shape. Texture child target fingerprints now include the texture `ResourceId`, resolved extent, and `rgba8unorm_srgb` versus `rgba8unorm` format class supplied by target preflight. Temporal color history, the visibility static index, previous motion-vector camera, particle previous sprites, Hybrid GI runtime, Virtual Geometry runtime state, light-grid reports, and virtual-geometry debug snapshots now live in per-selected-camera viewport-record slots, so non-terminal children can keep state and product-debug records without taking over shared viewport stats or capture. Post-process keeps graph-owned intermediates in local viewport coordinates while translating fixed full-frame source reads through the selected camera origin, and Hybrid GI history writeback copies graph-owned `postprocess.global-illumination` into the selected camera's physical history region. Native surface present and direct runtime-frame submit now use the same selected-camera loop and viewport-terminal ownership gate. `RenderStats.last_camera_loop_submission_count` is written by the outer loop after the full sequence succeeds and projected as `render.camera.loop_submission_count`; unlike `last_scene_camera_scheduled_count`, it counts actual selected-camera submissions, including a derived planar reflection capture, even when the direct product extract has no `RenderCameraOrderReport`. This is still not final multi-camera target routing: final custom-target composite, remaining custom-target product runs, unified sort-key RenderDoc coverage, and wider RenderDoc/product evidence remain renderer milestones.
 
 The 2026-06-20 PrimarySurface render-order product guard historically added `primary_surface_base_camera_render_order_swap_changes_composite`. It submitted two full-viewport Base cameras to the primary surface, first with green after red and then red after green, and sampled the final capture to prove the later `render_order` Base owns the final composite color. The focused Cargo wrapper generated the lib-test binary but failed while writing the Windows target fingerprint path; direct execution of the generated binary passed the exact test. On 2026-06-23 the current source guard moved to the folder-backed camera-target owner under the Plan 09 product name `render_product_camera_render_order_swap_changes_composite`, and the old `m4_behavior_layers.rs` source test/helper was removed. The 2026-07-04 current-source camera-target group rerun gives the migrated guard fresh WGPU evidence; RenderDoc capture and broader non-camera-target product parity remain separate acceptance gates.
 
@@ -2018,7 +1950,7 @@ The 2026-07-02 Plan 08 three shading-model forward/deferred product parity defau
 
 The same guard now also locks the existing `graphics/tests/project_render/render_quality.rs::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path` probe under status `render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred`. That test uses pure green `write_flat_color_wgsl(..., [0.0, 1.0, 0.0])` for the Forward project shader side and `average_channel_in_region(...)` for center-region sampling, so the Forward assertion is no longer diluted by the red material tint needed for Deferred GBuffer material/base-color decode. After an initial 120s Cargo build timeout and an interim direct-binary pass, final no-default Cargo validation passed 1/1 with 5825 filtered. RenderDoc/product capture, default features, workspace/full CI, and broader product coverage outside the focused filters remain pending.
 
-The 2026-06-25 Asset-root shader edit revision export slice closes the offline staged-cache edit-key gap before product capture. `bin/zircon_shader_prewarm/manifest/revision.rs` projects `.zmeta.source_hash` and raw source/include content hashes into stable non-zero `ShaderVariantKey.material_revision` values, while `manifest.rs` consumes them in `shader_source_from_zmeta(...)` and fallback `shader_prewarm_source(...)`. `shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision`, `shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision`, and `runtime_15_shader_prewarm_asset_revision_export_is_wired` lock the tests, child owner, and docs/status anchors. Status is `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`.
+The 2026-06-25 Asset-root shader edit revision export slice closes the offline staged-cache edit-key gap before product capture. `bin/zircon_shader_prewarm/manifest/revision.rs` projects `.zmeta.source_digest` and raw source/include content hashes into stable non-zero `ShaderVariantKey.material_revision` values, while `manifest.rs` consumes them in `shader_source_from_zmeta(...)` and fallback `shader_prewarm_source(...)`. `shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision`, `shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision`, and `runtime_15_shader_prewarm_asset_revision_export_is_wired` lock the tests, child owner, and docs/status anchors. Status is `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`.
 
 The 2026-06-29 Runtime 15 F5 shader prewarm args typed errors slice keeps the render-product prewarm CLI's usage failures structured before the CLI/run boundary. `bin/zircon_shader_prewarm/error.rs` owns `ShaderPrewarmArgsError::Usage` and `ShaderPrewarmArgsResult`, while `args.rs` now returns typed usage errors for argv UTF-8, missing value, quality/geometry/shading id parsing, custom token normalization, and duplicate id validation. `run.rs` remains the string display boundary for this args slice, and manifest/report/resource-registry write failures remain follow-up work. Status is `runtime_15_shader_prewarm_args_typed_errors_static_passed_cargo_deferred`, guarded by `shader_prewarm_args_missing_value_reports_typed_usage_error` and `review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary`.
 
@@ -2111,3 +2043,11 @@ The 2026-06-02 M7 effect-stack parameter slice added focused regressions for `re
 Status `runtime_15_production_file_budget_ui_ibl_project_owner_split_static_passed_cargo_check_offline_locked_blocked` keeps the screen-space UI render and project-render product owners below the production-file budget without compatibility routes. `graphics/scene/scene_renderer/ui/render.rs` remains the UI render orchestration owner, while `graphics/scene/scene_renderer/ui/render/color.rs` owns color parsing, `graphics/scene/scene_renderer/ui/render/geometry.rs` owns screen-space vertex and scissor conversion, and `graphics/scene/scene_renderer/ui/render/tests/background.rs` owns framebuffer background regressions. `graphics/tests/project_render/project_scenes.rs` keeps the ignored product test entry anchors, while `graphics/tests/project_render/project_scenes/pbr_matrix.rs` owns the PBR/HDRI matrix helpers, output directories, and environment-response assertions.
 
 Verification for this structure slice passed scoped rustfmt, standalone structure-convention `production_file_budget` 104/104, and no-default-features runtime tests offline cargo check with warnings only. The locked Cargo gate is blocked by current non-slice `Cargo.lock` drift, so no locked pass is claimed here.
+
+## 2026-07-12 Graph Execution Budget Convergence
+
+Graph execution keeps behavior in feature owners while moving secondary responsibilities into folder-backed children. Compute-workload dispatch/audit tests now live in `render_graph_execution_record/compute_workload/tests.rs`; depth-clear command recording lives in `render_pass_execution_context/gpu/surface.rs`; screen-space UI border geometry lives in `scene_renderer/ui/render/geometry.rs`. The parent owners retain orchestration and public contracts, with no compatibility forwarding for the moved functions.
+
+## 2026-07-13 Runtime 05 Scene-Fixture Contract Refresh
+
+The Runtime 05 broad-scene follow-up keeps renderer-neutral camera projection separate from the selected core pipeline: the sprite layer fixture now opts into `CorePipelineKind::Core2d` explicitly before asserting 2D phase filtering. Output-target conversion fixtures likewise declare a linear texture target and pass the same prepared linear format into `writeback_plan`; the conversion is then the intentional linear-to-framework-output transfer instead of a prepared-format mismatch. A fresh current-source Runtime test binary passed the sprite regression 1/1 and the complete output-target writeback group 6/6. The subsequent `scene::` sweep reached 1622 passed / 11 failed / 5 ignored; none of the Runtime 05 scene/editor-boundary regressions recurred, while the remaining failures stay in active volumetric, deferred-shader, IBL, fallback-shader, and Text SDF owners.

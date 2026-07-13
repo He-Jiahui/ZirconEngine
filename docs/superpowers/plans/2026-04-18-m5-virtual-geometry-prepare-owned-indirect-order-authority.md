@@ -1,28 +1,28 @@
 ---
 related_code:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 implementation_files:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
 plan_sources:
   - user: 2026-04-18 继续下一刀
   - user: 2026-04-18 把 renderer-side authoritative ordering 继续下沉到真正的 visibility-owned unified indirect args buffer / GPU compaction
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-indirect-args-compaction.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_authority.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
   - cargo test -p zircon_graphics --offline virtual_geometry_prepare_frame_sorts_unified_indirect_draws_by_submission_authority -- --nocapture

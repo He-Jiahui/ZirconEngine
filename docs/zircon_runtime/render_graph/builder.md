@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
-  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
@@ -76,7 +76,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/rhi/descriptors.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
-  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/new.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs

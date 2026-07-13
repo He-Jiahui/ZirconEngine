@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 use super::{PluginDistributionManifest, PluginFeatureDependency, PluginModuleManifest};
 

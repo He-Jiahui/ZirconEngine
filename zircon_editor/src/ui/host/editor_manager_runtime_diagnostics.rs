@@ -4,6 +4,9 @@ use super::editor_manager::EditorManager;
 
 impl EditorManager {
     pub fn runtime_diagnostics(&self) -> RuntimeDiagnosticsSnapshot {
-        collect_runtime_diagnostics(&self.host.core)
+        self.host
+            .runtime_core()
+            .map(|core| collect_runtime_diagnostics(&core))
+            .unwrap_or_default()
     }
 }

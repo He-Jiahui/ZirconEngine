@@ -15,7 +15,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs

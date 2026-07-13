@@ -21,6 +21,21 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ControlHttpTests(unittest.TestCase):
+    def test_direct_browser_session_query_accepts_no_bearer_or_cookie(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                response = urllib.request.urlopen(
+                    f"{running.base_url}/control/v1/auth/session", timeout=2
+                )
+                payload = json.loads(response.read())
+                response.close()
+
+        self.assertEqual("local-runtime", payload["data"]["actor"])
+        self.assertEqual("maintainer", payload["data"]["role"])
+
     def test_codex_wake_is_runtime_authenticated_exact_and_non_blocking(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

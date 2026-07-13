@@ -62,9 +62,9 @@ related_code:
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
   - zircon_plugins/physics/editor/src/tests.rs
-  - zircon_runtime/src/asset/assets/scene.rs
-  - zircon_runtime/src/core/framework/physics/joint_constraint_metadata.rs
-  - zircon_runtime/src/core/framework/physics/joint_drive.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/core/framework/scene/physics/joint_constraint_metadata.rs
+  - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
   - zircon_runtime/src/core/framework/physics/joint_sync_state.rs
   - zircon_runtime/src/core/framework/physics/joint_type.rs
   - zircon_runtime/src/core/framework/physics/manager.rs
@@ -79,7 +79,7 @@ related_code:
   - zircon_runtime/src/core/framework/physics/shape_overlap_query.rs
   - zircon_runtime/src/core/framework/physics/mesh_asset.rs
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
-  - zircon_runtime/src/core/framework/physics/skeleton_joint_binding.rs
+  - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
@@ -89,9 +89,9 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
   - zircon_runtime/src/scene/components/scene.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/plugin/scene_hook/mod.rs
+  - zircon_runtime/src/scene/runtime_hook/mod.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
@@ -154,9 +154,9 @@ implementation_files:
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
   - zircon_plugins/physics/editor/src/tests.rs
-  - zircon_runtime/src/asset/assets/scene.rs
-  - zircon_runtime/src/core/framework/physics/joint_constraint_metadata.rs
-  - zircon_runtime/src/core/framework/physics/joint_drive.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/core/framework/scene/physics/joint_constraint_metadata.rs
+  - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
   - zircon_runtime/src/core/framework/physics/joint_sync_state.rs
   - zircon_runtime/src/core/framework/physics/joint_type.rs
   - zircon_runtime/src/core/framework/physics/manager.rs
@@ -168,7 +168,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/shape_overlap_hit.rs
   - zircon_runtime/src/core/framework/physics/shape_overlap_query.rs
   - zircon_runtime/src/core/framework/physics/mesh_asset.rs
-  - zircon_runtime/src/core/framework/physics/skeleton_joint_binding.rs
+  - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
@@ -176,9 +176,12 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
   - zircon_runtime/src/scene/components/scene.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
 plan_sources:
+  - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - docs/plans/zircon_plugins/03-physics.md
   - docs/plans/zircon_plugins/04-animation.md
   - docs/plans/engine-code-structure-convention.md
@@ -189,6 +192,7 @@ plan_sources:
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - docs/superpowers/plans/2026-05-03-physics-animation-aggressive-plugin-migration.md
 tests:
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_plugins/physics/runtime/src/skeletal/tests.rs::ragdoll_profile_spawns_expected_body_count
   - zircon_plugins/physics/runtime/src/skeletal/tests.rs::ragdoll_profile_rejects_parent_cycles_before_scene_mutation
@@ -270,7 +274,7 @@ The current backend option decision is recorded in [Physics Plugin Options](../p
 - The plugin descriptor embeds `module_descriptor_with_manager(...)`; `RuntimePluginRegistrationReport` registers that lifecycle module once, then `RuntimePluginRegistrationBuilder::new(registry).module(PLUGIN_RUNTIME_MODULE_NAME)` opens the same owner scope for the query interface and runtime system contributions.
 - The plugin contributes two scheduled systems through `RuntimePluginModuleRegistration::runtime_scene_system(...)`: `physics.step` in `SystemStage::FixedUpdate` and `physics.sync_to_scene` in `SystemStage::FixedPostUpdate`, both in `physics.main`. The runtime-system owner no longer receives `PluginModuleId` or calls `RuntimeExtensionRegistry::register_runtime_scene_system(...)` directly.
 - D8 runtime registration builder original evidence paths are locked by `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` and status `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred`.
-- D10 animation/physics bridge call migration exports the runtime-owned `physics.query.v1` bridge interface from this plugin. `PhysicsRuntimePlugin::register(...)` creates a shared `DefaultPhysicsManager`, registers it as the module manager, and exports it as `Arc<dyn PhysicsQueryInterface>` through `RuntimePluginModuleRegistration::export_interface::<dyn PhysicsQueryInterface>(...)`; module activation binds the same manager back to `CoreHandle` so settings persistence remains on the original path. Guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred` and locks consumers to `WeakBridge<dyn PhysicsQueryInterface>`.
+- D10 animation/physics bridge call migration exports the runtime-owned `physics.query.v1` bridge interface from this plugin. `PhysicsRuntimePlugin::register(...)` creates a shared `DefaultPhysicsManager`, registers it as the module manager, and exports it as `Arc<dyn PhysicsQueryInterface>` through `RuntimePluginModuleRegistration::export_interface::<dyn PhysicsQueryInterface>(...)`; module activation borrows `&CoreHandle` and stores only `CoreWeak`, upgrading it at the settings-persistence boundary. The registry-owned manager therefore cannot retain the Runtime root through `ServiceEntry.instance`. Guard `review_d10_animation_physics_tests_use_sdk_bridge_call` records status `d10_animation_physics_bridge_call_static_passed_cargo_deferred` and locks consumers to `WeakBridge<dyn PhysicsQueryInterface>`.
 - `plugins_13_m5_t1_runtime_descriptor_provided_interface_projection` keeps the linked Physics package manifest on the same bridge declaration path as the runtime export. `RuntimePluginDescriptorBuilder::with_provided_interface_id` stores `PHYSICS_QUERY_INTERFACE_ID` in descriptor `provided_interfaces`; `RuntimePluginDescriptor::package_manifest()` projects it into `PluginPackageManifest.provides_interfaces`, so `zircon_plugin_physics_runtime` continues to declare `.with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)` and export `PhysicsQueryInterface` from one descriptor/registration pair. Regression anchor: `runtime_plugin_descriptor_projects_public_metadata_to_package_manifest`. Validation: `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime --locked --all-targets` passed with existing warnings; Rust 单测两次超时未采信.
 - D5 editor authoring macro consumer guard keeps the editor package on the SDK macro path: `zircon_plugins/physics/editor/src/plugin.rs` uses `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest: zircon_plugin_physics_runtime::package_manifest()` and only keeps the Physics-specific extension registration body outside the macro. Status `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` is locked by `review_d5_editor_authoring_plugins_use_sdk_macro`.
 - D9 editor/runtime mirror consumer guard keeps the editor package tied to this runtime package manifest through the SDK declaration projection: editor tests assert `mirrored_runtime_package_id()`, and the package manifest carries both `zircon_plugin_physics_runtime::PHYSICS_RUNTIME_CAPABILITY` and the Physics authoring capability. `tools/audit_plugin_structure.py --json` reports `editor_runtime_mirror_violations = 0` and `d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`; status `d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred` is locked by `review_d9_editor_runtime_mirror_consumers_use_sdk_declaration`.
@@ -351,7 +355,7 @@ Native Jolt query/event/constraint breadth remains explicit follow-up work behin
 - Previous hard-cutover evidence: `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract --target-dir target\codex-shared-a` passed with 21 plugin contract tests before the backend selector seam was added.
 - Previous hard-cutover evidence: `cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a` passed for the independent plugin workspace with physics included but still outside the root workspace.
 - Previous hard-cutover evidence: `cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a` passed with 767 runtime lib tests, validating scene hook dispatch, manager contracts, and hard-cutover structural assertions without depending on the plugin crate.
-- Current plugin-architecture slice: `runtime_system.rs` replaces the old root `scene_hook.rs` entry, `plugin.toml` declares `system_sets = ["physics.main"]` and `system_anchors = ["physics.step", "physics.sync_to_scene"]`, and the runtime contract test installs world runtime extensions through `CoreRuntime::install_world_runtime_extensions(...)` instead of manual hook installation. The legacy single-system registration symbol and `physics.simulation` set are absent from the Physics plugin.
+- Current plugin-architecture slice: `runtime_system.rs` owns the runtime systems, `plugin.toml` declares `system_sets = ["physics.main"]` and `system_anchors = ["physics.step", "physics.sync_to_scene"]`, and the runtime contract test projects `RuntimeExtensionRegistry` into a scene-owned plan and installs it through `scene::install_world_runtime_extension_plan(...)`. The retired CoreRuntime extension installation API, legacy single-system symbol, and `physics.simulation` set are absent.
 - The 2026-07-11 skeletal-pose bridge slice makes Physics the registration owner for `SkeletalPoseTargets`, `SimulatedPoseFeed`, and plugin-local `RagdollRuntime`. `RagdollProfile::from_toml` owns strict `.ragdoll.toml` parsing and validates ids, unique/non-empty bone paths, parent existence/cycles, mass, shapes, body offsets, and blend weights before mutation. `spawn_configured` performs a two-phase target/topology preparation, then creates rigid bodies, colliders, Generic6Dof joints, and skeleton bindings transactionally. FixedUpdate drives Animated bodies from the prior Animation target pose, retains the latest finite linear/angular release velocity, and injects it once when switching to Simulated or Blended without moving the body; ordinary physical frames never overwrite solver velocity. FixedPostUpdate removes profile body offsets, reconstructs parent-local bone transforms from synchronized bodies, composes mode × profile-mask × interpolation weight, drops ambiguous leaf rows, and replaces `SimulatedPoseFeed` for the next Animation frame. Windows nightly locked/offline focused behavior passed 5/5, including strict profile spawn/rollback, Animated→Simulated no-pop velocity inheritance, blended local-pose weighting, and the plan-named `ragdoll_drop_golden_snapshot`; the production Physics library check also passed before the focused run.
 - Current fixed-update runtime-system seam: `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime runtime_fixed_update_runs_one_physics_step_without_reaccumulating --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never -- --nocapture` passed, proving `physics.step` does not feed the runtime fixed delta back through the manager's frame-level accumulator when the runtime fixed timestep and `PhysicsSettings.fixed_hz` differ. `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never` also passes with existing warnings after this correction.
 - Current backend selector seam: `rustfmt --edition 2021` passed for the touched physics runtime source and test files.

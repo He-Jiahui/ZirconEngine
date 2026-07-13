@@ -1,8 +1,7 @@
 use zircon_runtime::core::framework::physics::{
-    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan, SimulatedPoseFeed,
-    SkeletalPoseTargets,
+    PhysicsContactEvent, PhysicsManager, PhysicsTriggerEvent, PhysicsWorldStepPlan,
+    SimulatedPoseFeed, SkeletalPoseTargets,
 };
-use zircon_runtime::core::manager::resolve_physics_manager;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError};
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
@@ -13,6 +12,7 @@ use crate::record_physics_step_diagnostic;
 use crate::skeletal::{
     drive_ragdoll_bodies_from_animation, write_simulated_pose_feed, RagdollRuntime,
 };
+use crate::{DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME};
 
 #[derive(Clone, Debug, Default)]
 pub struct PhysicsRuntimeSystem;
@@ -62,7 +62,10 @@ pub fn register_runtime_systems(
 fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
     let started_at = Instant::now();
     let frame_index = context.core.real_time().frame_index();
-    let Ok(physics) = resolve_physics_manager(context.core) else {
+    let Ok(physics) = context
+        .core
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+    else {
         context
             .level
             .record_physics_step(PhysicsWorldStepPlan::default(), Vec::new(), Vec::new());
@@ -97,7 +100,10 @@ fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<
 fn run_physics_sync_to_scene_system(
     context: RuntimeSceneSystemContext<'_>,
 ) -> Result<(), CoreError> {
-    let Ok(physics) = resolve_physics_manager(context.core) else {
+    let Ok(physics) = context
+        .core
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+    else {
         return Ok(());
     };
     let Some(sync) = physics.synchronized_world(context.level.world_handle()) else {

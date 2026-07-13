@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 plan_sources:
   - user: 2026-04-19 visibility-owned / GPU-generated args compaction ownership continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
 tests:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline --locked shared_indirect_args_layout_keeps_distinct_gpu_args_slots_for_repeated_draw_refs -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_args_for_multi_primitive_model -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_ -- --nocapture

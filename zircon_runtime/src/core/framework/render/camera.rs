@@ -1,4 +1,4 @@
-use crate::core::math::{Real, Transform, UVec2, Vec4};
+use crate::core::math::{Mat4, Real, Transform, UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, TextureMarker};
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,8 @@ pub struct ViewportCameraSnapshot {
     pub z_near: Real,
     pub z_far: Real,
     pub aspect_ratio: Real,
+    #[serde(default)]
+    pub projection_override: Option<Mat4>,
     #[serde(default = "default_true")]
     pub is_active: bool,
     #[serde(default)]
@@ -385,6 +387,7 @@ impl Default for ViewportCameraSnapshot {
             z_near: 0.1,
             z_far: 200.0,
             aspect_ratio: default_viewport_aspect_ratio(),
+            projection_override: None,
             is_active: true,
             hdr: false,
             exposure_ev100: DEFAULT_CAMERA_EXPOSURE_EV100,

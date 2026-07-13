@@ -5,12 +5,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+DEFAULT_COORDINATOR_PORT = 65189
+
+
 @dataclass(frozen=True, slots=True)
 class CoordinatorConfig:
     repo_root: Path
     state_root: Path
     host: str = "127.0.0.1"
-    port: int = 0
+    port: int = DEFAULT_COORDINATOR_PORT
     session_ttl_seconds: int = 600
     lease_ttl_seconds: int = 300
     lease_grace_seconds: int = 120
@@ -28,7 +31,7 @@ class CoordinatorConfig:
         *,
         state_root: str | Path | None = None,
         host: str = "127.0.0.1",
-        port: int = 0,
+        port: int = DEFAULT_COORDINATOR_PORT,
         watch_interval_seconds: float = 30.0,
         maintenance_interval_seconds: float = 900.0,
         codex_home: str | Path | None = None,

@@ -2,13 +2,13 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::AssetUri;
+use crate::core::resource::ResourceLocator;
 
 use super::variant_key::ShaderPassType;
 use super::ShaderAssetKind;
 
 pub const SHADER_IDE_ENV_SCHEMA_VERSION: u32 = 1;
-pub const SHADER_IDE_ENV_CACHE_DIR: &str = ".zircon-cache/shader_ide/v1";
+pub const SHADER_IDE_ENV_CACHE_DIR: &str = "shader_ide/v1";
 pub const SHADER_IDE_MODULE_MAP_FILE: &str = "module_map.json";
 pub const SHADER_IDE_PREVIEW_DEFAULT_VARIANT: &str = "default";
 
@@ -67,11 +67,11 @@ impl ShaderIdeModuleMap {
 pub struct ShaderIdeModuleMapEntry {
     pub import_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scope_uri: Option<AssetUri>,
+    pub scope_uri: Option<ResourceLocator>,
     pub kind: ShaderAssetKind,
     pub stub_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_uri: Option<AssetUri>,
+    pub source_uri: Option<ResourceLocator>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub source_files: Vec<String>,
     pub content_hash: String,
@@ -82,7 +82,7 @@ pub struct ShaderIdeModuleMapEntry {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderIdePreviewMap {
     pub schema_version: u32,
-    pub shader_uri: AssetUri,
+    pub shader_uri: ResourceLocator,
     pub variant: String,
     pub wgsl_path: String,
     pub segments: Vec<ShaderIdePreviewSegment>,
@@ -90,7 +90,7 @@ pub struct ShaderIdePreviewMap {
 
 impl ShaderIdePreviewMap {
     pub fn new(
-        shader_uri: AssetUri,
+        shader_uri: ResourceLocator,
         variant: impl Into<String>,
         wgsl_path: impl Into<String>,
         segments: Vec<ShaderIdePreviewSegment>,
@@ -156,7 +156,7 @@ pub fn shader_ide_module_stub_relative_path(import_path: &str) -> PathBuf {
     path
 }
 
-pub fn shader_ide_generated_material_stub_relative_path(source_uri: &AssetUri) -> PathBuf {
+pub fn shader_ide_generated_material_stub_relative_path(source_uri: &ResourceLocator) -> PathBuf {
     let file_name = format!(
         "{}.material.wgsl",
         sanitize_shader_ide_path_segment(&source_uri.to_string())
@@ -164,7 +164,7 @@ pub fn shader_ide_generated_material_stub_relative_path(source_uri: &AssetUri) -
     PathBuf::from("generated").join(file_name)
 }
 
-pub fn shader_ide_preview_relative_path(source_uri: &AssetUri, variant: &str) -> PathBuf {
+pub fn shader_ide_preview_relative_path(source_uri: &ResourceLocator, variant: &str) -> PathBuf {
     let file_name = format!(
         "{}.{}.wgsl",
         sanitize_shader_ide_path_segment(&source_uri.to_string()),
@@ -173,7 +173,10 @@ pub fn shader_ide_preview_relative_path(source_uri: &AssetUri, variant: &str) ->
     PathBuf::from("preview").join(file_name)
 }
 
-pub fn shader_ide_preview_segments_relative_path(source_uri: &AssetUri, variant: &str) -> PathBuf {
+pub fn shader_ide_preview_segments_relative_path(
+    source_uri: &ResourceLocator,
+    variant: &str,
+) -> PathBuf {
     let file_name = format!(
         "{}.{}.segments.json",
         sanitize_shader_ide_path_segment(&source_uri.to_string()),
@@ -237,7 +240,7 @@ fn sanitize_shader_ide_path_segment(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::asset::AssetUri;
+    use crate::core::resource::ResourceLocator;
 
     use super::*;
 
@@ -259,7 +262,7 @@ mod tests {
 
     #[test]
     fn shader_ide_generated_material_stub_path_is_scoped_by_source_uri() {
-        let uri = AssetUri::parse("res://shaders/hero_cloth").unwrap();
+        let uri = ResourceLocator::parse("res://shaders/hero_cloth").unwrap();
 
         assert_eq!(
             shader_ide_relative_path_string(&shader_ide_generated_material_stub_relative_path(
@@ -271,7 +274,7 @@ mod tests {
 
     #[test]
     fn shader_ide_preview_paths_are_scoped_by_source_uri_and_variant() {
-        let uri = AssetUri::parse("res://shaders/hero_cloth").unwrap();
+        let uri = ResourceLocator::parse("res://shaders/hero_cloth").unwrap();
         let variant = ShaderIdePreviewVariant::new(ShaderPassType::GBuffer, 1);
 
         assert_eq!(

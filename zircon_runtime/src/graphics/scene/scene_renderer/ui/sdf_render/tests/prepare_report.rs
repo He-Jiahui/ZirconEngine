@@ -10,6 +10,11 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         atlas_byte_len: 512 * 512,
         nonzero_pixel_count: 64,
         loaded_font_count: 1,
+        generation_failure_count: 0,
+        r8_byte_len: 512 * 512,
+        rgba_byte_len: 0,
+        offline_glyph_count: 0,
+        dynamic_glyph_count: 2,
     };
 
     let cache_report = SdfAtlasCacheReport {
@@ -46,7 +51,19 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
     };
 
     let upload_report = sdf_atlas_upload_report(&plan, cache_report, true, 512 * 512, true);
-    let report = sdf_prepare_report(1, &plan, true, 1, bake_report, upload_report, 12);
+    let draw_plan = SdfTextMaterialDrawPlan::default();
+    let report = sdf_prepare_report(
+        1,
+        &plan,
+        true,
+        1,
+        1,
+        bake_report,
+        upload_report,
+        12,
+        0,
+        &draw_plan,
+    );
 
     assert_eq!(
         report,
@@ -55,6 +72,7 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
             atlas_slot_count: 2,
             atlas_size: plan.atlas_size,
             atlas_page_count: 1,
+            msdf_atlas_page_count: 1,
             atlas_allocation_failure_count: 0,
             atlas_page_limit_failure_count: 0,
             atlas_oversized_failure_count: 0,
@@ -92,6 +110,12 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
                 }],
             },
             vertex_count: 12,
+            decoration_vertex_count: 0,
+            material_count: 0,
+            draw_count: 0,
+            outline_batch_count: 0,
+            shadow_batch_count: 0,
+            glow_batch_count: 0,
         }
     );
 }
@@ -109,9 +133,12 @@ fn sdf_prepare_report_summarizes_atlas_allocation_failures() {
         &plan,
         false,
         1,
+        1,
         SdfAtlasBakeReport::default(),
         SdfAtlasUploadReport::default(),
         0,
+        0,
+        &SdfTextMaterialDrawPlan::default(),
     );
 
     assert_eq!(report.atlas_allocation_failure_count, 2);

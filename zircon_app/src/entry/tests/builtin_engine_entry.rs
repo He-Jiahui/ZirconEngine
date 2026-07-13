@@ -2,13 +2,14 @@ use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode, EntryRunner,
 };
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowResolution};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
-    RuntimePluginDescriptor, RuntimePluginRegistrationReport, RuntimeProfileId,
+    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
 
@@ -22,11 +23,7 @@ fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
     assert_eq!(entry.plugin_group().name(), "DefaultPlugins");
     assert_eq!(
         entry.plugin_group().module_keys(),
-        DefaultPlugins::default()
-            .build()
-            .unwrap()
-            .finish()
-            .module_keys()
+        DefaultPlugins.build().unwrap().finish().module_keys()
     );
     assert_eq!(entry.modules().len(), descriptors.len());
     assert!(entry
@@ -72,11 +69,7 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
     assert_eq!(entry.run_mode(), EntryRunMode::Headless);
     assert_eq!(
         entry.plugin_group().module_keys(),
-        HeadlessPlugins::default()
-            .build()
-            .unwrap()
-            .finish()
-            .module_keys()
+        HeadlessPlugins.build().unwrap().finish().module_keys()
     );
     assert!(descriptors
         .iter()
@@ -132,7 +125,7 @@ fn dev_runtime_profile_selects_dev_plugin_group() {
         ],
     )
     .unwrap();
-    let expected = DevPlugins::default().build().unwrap().finish();
+    let expected = DevPlugins.build().unwrap().finish();
     let report = entry.module_selection_report();
 
     assert_eq!(entry.run_mode(), EntryRunMode::Editor);

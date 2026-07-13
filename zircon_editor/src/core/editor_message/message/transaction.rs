@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::editor_message::HistoryContextId;
+use crate::core::editing::engine::HistoryContextId;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionMessage {

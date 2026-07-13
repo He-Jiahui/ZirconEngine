@@ -496,7 +496,7 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
     let root = unique_temp_project_root("vg_provider_automatic_extract");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("project layout should be created");
     ProjectManifest::new(
         "VirtualGeometryProviderAutomaticExtract",
@@ -505,13 +505,21 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
     )
     .save(paths.manifest_path())
     .expect("manifest should save");
-    fs::create_dir_all(paths.assets_root().join("models"))
-        .expect("model directory should be created");
-    fs::create_dir_all(paths.assets_root().join("scenes"))
-        .expect("scene directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models"),
+    )
+    .expect("model directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes"),
+    )
+    .expect("scene directory should be created");
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("provider_vg.model.toml"),
         sample_virtual_geometry_model_asset()
@@ -520,7 +528,10 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
     )
     .expect("model asset should write");
     fs::write(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         SceneAsset {
             entities: Vec::new(),
         }
@@ -876,7 +887,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
     let root = unique_temp_project_root("vg_debug_snapshot_auto_bvh");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("project layout should be created");
     ProjectManifest::new(
         "VirtualGeometryDebugSnapshot",
@@ -885,13 +896,21 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
     )
     .save(paths.manifest_path())
     .expect("manifest should save");
-    fs::create_dir_all(paths.assets_root().join("models"))
-        .expect("model directory should be created");
-    fs::create_dir_all(paths.assets_root().join("scenes"))
-        .expect("scene directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models"),
+    )
+    .expect("model directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes"),
+    )
+    .expect("scene directory should be created");
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
@@ -900,7 +919,10 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
     )
     .expect("model asset should write");
     fs::write(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         SceneAsset {
             entities: Vec::new(),
         }
@@ -1295,7 +1317,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
     let root = unique_temp_project_root("vg_debug_snapshot_auto_forced_mip");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("project layout should be created");
     ProjectManifest::new(
         "VirtualGeometryAutomaticForcedMip",
@@ -1304,13 +1326,21 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
     )
     .save(paths.manifest_path())
     .expect("manifest should save");
-    fs::create_dir_all(paths.assets_root().join("models"))
-        .expect("model directory should be created");
-    fs::create_dir_all(paths.assets_root().join("scenes"))
-        .expect("scene directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models"),
+    )
+    .expect("model directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes"),
+    )
+    .expect("scene directory should be created");
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset_with_root_page_table(vec![10, 20, 30])
@@ -1319,7 +1349,10 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
     )
     .expect("model asset should write");
     fs::write(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         SceneAsset {
             entities: Vec::new(),
         }
@@ -1444,7 +1477,7 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
     let root = unique_temp_project_root("vg_debug_snapshot_bvh_overlay");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("project layout should be created");
     ProjectManifest::new(
         "VirtualGeometryBvhOverlay",
@@ -1453,13 +1486,21 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
     )
     .save(paths.manifest_path())
     .expect("manifest should save");
-    fs::create_dir_all(paths.assets_root().join("models"))
-        .expect("model directory should be created");
-    fs::create_dir_all(paths.assets_root().join("scenes"))
-        .expect("scene directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models"),
+    )
+    .expect("model directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes"),
+    )
+    .expect("scene directory should be created");
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
@@ -1468,7 +1509,10 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
     )
     .expect("model asset should write");
     fs::write(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         SceneAsset {
             entities: Vec::new(),
         }
@@ -1547,7 +1591,7 @@ fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_vir
     let root = unique_temp_project_root("vg_debug_snapshot_visbuffer_overlay");
     let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("project layout should be created");
     ProjectManifest::new(
         "VirtualGeometryVisBufferOverlay",
@@ -1556,13 +1600,21 @@ fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_vir
     )
     .save(paths.manifest_path())
     .expect("manifest should save");
-    fs::create_dir_all(paths.assets_root().join("models"))
-        .expect("model directory should be created");
-    fs::create_dir_all(paths.assets_root().join("scenes"))
-        .expect("scene directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models"),
+    )
+    .expect("model directory should be created");
+    fs::create_dir_all(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes"),
+    )
+    .expect("scene directory should be created");
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
@@ -1571,7 +1623,10 @@ fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_vir
     )
     .expect("model asset should write");
     fs::write(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         SceneAsset {
             entities: Vec::new(),
         }

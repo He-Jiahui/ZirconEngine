@@ -11,7 +11,7 @@ use super::super::super::super::paint_template_nodes::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
 };
 
-use asset_content::ActivityAssetContentProjector;
+use asset_content::{ActivityAssetContentProjector, BrowserAssetContentProjector};
 use selection::select_pane_template_nodes;
 
 pub(super) fn draw_pane_template_nodes(
@@ -51,6 +51,18 @@ fn draw_if_present(
     }
     if pane.kind.as_str() == "Assets" {
         if let Some(projector) = ActivityAssetContentProjector::new(nodes, origin, interaction) {
+            return draw_template_nodes_with_transform(
+                frame,
+                nodes,
+                origin,
+                clip,
+                text_input_focus,
+                Some(&projector),
+            );
+        }
+    }
+    if pane.kind.as_str() == "AssetBrowser" {
+        if let Some(projector) = BrowserAssetContentProjector::new(nodes, origin, interaction) {
             return draw_template_nodes_with_transform(
                 frame,
                 nodes,

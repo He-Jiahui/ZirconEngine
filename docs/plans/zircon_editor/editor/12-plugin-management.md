@@ -175,3 +175,12 @@ Faulted → (用户重试/升级) Validated
 - **cdylib 热卸载不做**：热停用=revoke 贡献 + 停投事件，**库本体不卸**（悬挂函数指针风险；UE 同样不卸编辑器模块）。真卸载留待「零活跃回调证明」机制，立场写入模块文档。
 - `Custom{topic,payload}` 消息的 topic 命名空间须以插件 id 前缀强制（物化器注入），防插件互踩——与 06 命名空间规则同处定稿。
 - 序列化贡献表达力上限：完全自定义绘制走 `editor_layout/08` 页面协议；仍不足者要求插件提供进程内伴生 rlib（文档明示此阶梯）。
+
+## 产出记录与时间
+
+- 当前失败交接（`open / 待修复`）：[`12/failure-2026-07-12-plugin-extension-validation-regressions.md`](12/failure-2026-07-12-plugin-extension-validation-regressions.md)
+- fixed 已修复：[native-plugin-runtime-target-mode-test-path](09/fixed-2026-07-13-native-plugin-runtime-target-mode-test-path.md)
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
+|---|---|---|---|---|
+| M1/M2 | 插件贡献注册、capability gate 与失败原子性 | `未通过-已归档到本功能计划` | 2026-07-12 | Editor03/08 统一受管 job `520d85713df249afae31661a7697ad07` 复现无效 operation schema、plugin registration report capability gate、duplicate extension view 三项失败；同一 binary 的 Editor08 command registry hard-cut 用例通过，因此本组由 Editor12 贡献物化/校验 owner 处理。精确用例与验收见 [`failure-2026-07-12-plugin-extension-validation-regressions.md`](12/failure-2026-07-12-plugin-extension-validation-regressions.md)，禁止恢复旧 operation registry。 |

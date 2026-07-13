@@ -72,7 +72,7 @@ fn restore_policy_prefers_project_workspace_before_global_default() {
                 layout_version: 1,
                 workbench: project.clone(),
                 open_view_instances: Vec::new(),
-                active_center_tab: None,
+                focused_view: None,
                 active_drawers: Vec::new(),
             }),
             Some(global),

@@ -111,6 +111,19 @@ pub enum AiManagerError {
         schema_id: String,
         key: String,
     },
+    BehaviorObserverMissingBlackboardKey {
+        tree_id: String,
+        node_id: String,
+    },
+    BehaviorObserverRequiresBlackboardSchema {
+        tree_id: String,
+    },
+    BehaviorObserverUnknownBlackboardKey {
+        tree_id: String,
+        node_id: String,
+        schema_id: String,
+        key: String,
+    },
     MissingBlackboardKey {
         schema_id: String,
         key: String,
@@ -280,6 +293,23 @@ impl fmt::Display for AiManagerError {
             Self::UnknownBlackboardKey { schema_id, key } => write!(
                 f,
                 "AI blackboard entry `{key}` is not declared by schema `{schema_id}`"
+            ),
+            Self::BehaviorObserverMissingBlackboardKey { tree_id, node_id } => write!(
+                f,
+                "AI behavior-tree `{tree_id}` observer node `{node_id}` does not declare `blackboard_key`"
+            ),
+            Self::BehaviorObserverRequiresBlackboardSchema { tree_id } => write!(
+                f,
+                "AI behavior-tree `{tree_id}` declares observer aborts but no blackboard schema was bound"
+            ),
+            Self::BehaviorObserverUnknownBlackboardKey {
+                tree_id,
+                node_id,
+                schema_id,
+                key,
+            } => write!(
+                f,
+                "AI behavior-tree `{tree_id}` observer node `{node_id}` references key `{key}` outside schema `{schema_id}`"
             ),
             Self::MissingBlackboardKey { schema_id, key } => write!(
                 f,

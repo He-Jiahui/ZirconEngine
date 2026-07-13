@@ -21,7 +21,6 @@ fn runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired() {
     let structure_convention = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "build prewarm helper validates the complete staged WGPU handoff command",
@@ -51,7 +50,10 @@ fn runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired() {
     );
 
     for (path, source) in [
-        ("tools/zircon_build_shader_prewarm.py", build_prewarm.as_str()),
+        (
+            "tools/zircon_build_shader_prewarm.py",
+            build_prewarm.as_str(),
+        ),
         (
             "tools/tests/test_zircon_build_shader_prewarm_command_contract.py",
             command_contract_tests.as_str(),
@@ -75,7 +77,6 @@ fn runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired() {
         ("build tool doc", build_tool_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

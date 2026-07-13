@@ -71,7 +71,7 @@ fn default_desktop_diagnostics_match_report_statuses() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Windows,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert_capability_diagnostic_status_prefixes(&report);
@@ -97,7 +97,7 @@ fn default_desktop_diagnostics_match_report_statuses() {
 fn headless_fixture_diagnostics_match_disabled_and_unavailable_statuses() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::headless()).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
     );
 
     assert_capability_diagnostic_status_prefixes(&report);
@@ -130,7 +130,7 @@ fn browser_gamepad_gate_diagnostics_follow_status_transitions() {
 
     let disabled = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::WebGpu,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_capability_diagnostic_status_prefixes(&disabled);
@@ -158,7 +158,7 @@ fn browser_gamepad_gate_diagnostics_follow_status_transitions() {
     features.gamepad_browser = true;
     let enabled = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::WebGpu,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_capability_diagnostic_status_prefixes(&enabled);

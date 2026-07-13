@@ -1,4 +1,56 @@
 use super::*;
+use crate::core::asset::AssetToolkitOpenRoute;
+use crate::tests::editor_event::support::TestProjectAssets;
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::{
+    AnimationGraphAsset, AnimationSequenceAsset, AnimationStateAsset, AnimationStateMachineAsset,
+};
+
+const SEQUENCE_LOCATOR: &str = "res://animation/hero.sequence.zranim";
+const GRAPH_LOCATOR: &str = "res://animation/hero.graph.zranim";
+const STATE_MACHINE_LOCATOR: &str = "res://animation/hero.state_machine.zranim";
+
+fn write_animation_open_route_assets(project: &TestProjectAssets) {
+    fs::write(
+        project.source_path(SEQUENCE_LOCATOR),
+        AnimationSequenceAsset {
+            name: Some("Hero Sequence".to_string()),
+            duration_seconds: 1.0,
+            frames_per_second: 30.0,
+            bindings: Vec::new(),
+        }
+        .to_bytes()
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        project.source_path(GRAPH_LOCATOR),
+        AnimationGraphAsset {
+            name: Some("Hero Graph".to_string()),
+            parameters: Vec::new(),
+            nodes: Vec::new(),
+        }
+        .to_bytes()
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        project.source_path(STATE_MACHINE_LOCATOR),
+        AnimationStateMachineAsset {
+            name: Some("Hero State Machine".to_string()),
+            entry_state: "Idle".to_string(),
+            states: vec![AnimationStateAsset::graph_ref(
+                "Idle",
+                AssetReference::from_locator(AssetUri::parse(GRAPH_LOCATOR).unwrap()),
+            )],
+            transitions: Vec::new(),
+            layers: Vec::new(),
+        }
+        .to_bytes()
+        .unwrap(),
+    )
+    .unwrap();
+}
 
 #[test]
 fn animation_binding_without_active_sequence_editor_reports_ignored_status_line() {
@@ -33,7 +85,7 @@ fn animation_binding_without_active_sequence_editor_reports_ignored_status_line(
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
-        "Ignored animation command because active center tab is not an animation sequence editor"
+        "Ignored animation command because focused view is not an animation sequence editor"
     );
 }
 
@@ -47,7 +99,7 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
         "CreateTransition",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::animation_command(AnimationCommand::CreateTransition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_frames: 8,
@@ -62,7 +114,7 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
     assert_eq!(
         record.event,
         EditorEvent::Animation(EditorAnimationEvent::CreateTransition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_frames: 8,
@@ -76,7 +128,7 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
-        "Ignored animation command because active center tab is not an animation graph editor"
+        "Ignored animation command because focused view is not an animation graph editor"
     );
 }
 
@@ -110,7 +162,7 @@ props = { text = "Menu" }
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: ui_asset_path.to_string_lossy().into_owned(),
+                asset_locator: ui_asset_path.to_string_lossy().into_owned(),
             }),
         )
         .expect("menu open ui asset");
@@ -118,7 +170,7 @@ props = { text = "Menu" }
     assert_eq!(
         record.event,
         EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-            asset_path: ui_asset_path.to_string_lossy().into_owned(),
+            asset_locator: ui_asset_path.to_string_lossy().into_owned(),
         })
     );
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
@@ -135,23 +187,22 @@ props = { text = "Menu" }
 fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
     let _guard = env_lock().lock().unwrap();
 
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_animation_asset_open");
-    let sequence_path =
-        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.sequence.zranim");
-    let graph_path =
-        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.graph.zranim");
-    let state_machine_path =
-        std::env::temp_dir().join("zircon_editor_event_animation_asset_open.state_machine.zranim");
-    fs::write(&sequence_path, b"").unwrap();
-    fs::write(&graph_path, b"").unwrap();
-    fs::write(&state_machine_path, b"").unwrap();
+    let mut runtime = EventRuntimeHarness::new("zircon_editor_event_animation_asset_open");
+    runtime.register_animation_asset_toolkits();
+    let catalog = runtime.open_project_with_assets(
+        "zircon_editor_event_animation_asset_open_project",
+        write_animation_open_route_assets,
+    );
+    for locator in [SEQUENCE_LOCATOR, GRAPH_LOCATOR, STATE_MACHINE_LOCATOR] {
+        assert!(catalog.assets.iter().any(|asset| asset.locator == locator));
+    }
 
     let sequence_record = runtime
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: sequence_path.to_string_lossy().into_owned(),
+                asset_locator: SEQUENCE_LOCATOR.to_string(),
             }),
         )
         .expect("open animation sequence asset");
@@ -166,9 +217,12 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
         })
         .expect("animation sequence view should open");
+    let sequence_route: AssetToolkitOpenRoute =
+        serde_json::from_value(sequence_view.serializable_payload.clone()).unwrap();
+    assert_eq!(sequence_route.asset_locator().to_string(), SEQUENCE_LOCATOR);
     assert_eq!(
-        sequence_view.serializable_payload["path"],
-        json!(sequence_path.to_string_lossy().to_string())
+        sequence_route.open_operation().as_str(),
+        "timeline_sequence.authoring.open"
     );
 
     runtime
@@ -176,7 +230,7 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: graph_path.to_string_lossy().into_owned(),
+                asset_locator: GRAPH_LOCATOR.to_string(),
             }),
         )
         .expect("open animation graph asset");
@@ -185,7 +239,7 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: state_machine_path.to_string_lossy().into_owned(),
+                asset_locator: STATE_MACHINE_LOCATOR.to_string(),
             }),
         )
         .expect("open animation state machine asset");
@@ -199,24 +253,25 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
         })
         .collect::<Vec<_>>();
     assert_eq!(graph_views.len(), 2);
-    assert!(graph_views.iter().any(|instance| {
-        instance.serializable_payload["path"] == json!(graph_path.to_string_lossy().to_string())
+    let graph_routes = graph_views
+        .iter()
+        .map(|instance| {
+            serde_json::from_value::<AssetToolkitOpenRoute>(instance.serializable_payload.clone())
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    assert!(graph_routes.iter().any(|route| {
+        route.asset_locator().to_string() == GRAPH_LOCATOR
+            && route.open_operation().as_str() == "animation_graph.authoring.open_graph"
     }));
-    assert!(graph_views.iter().any(|instance| {
-        instance.serializable_payload["path"]
-            == json!(state_machine_path.to_string_lossy().to_string())
+    assert!(graph_routes.iter().any(|route| {
+        route.asset_locator().to_string() == STATE_MACHINE_LOCATOR
+            && route.open_operation().as_str() == "animation_graph.authoring.open_state_machine"
     }));
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
-        format!(
-            "Opened animation graph editor for {}",
-            state_machine_path.to_string_lossy()
-        )
+        format!("Opened asset toolkit for {STATE_MACHINE_LOCATOR}")
     );
-
-    let _ = fs::remove_file(sequence_path);
-    let _ = fs::remove_file(graph_path);
-    let _ = fs::remove_file(state_machine_path);
 }
 
 #[test]

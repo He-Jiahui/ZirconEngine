@@ -1,10 +1,10 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::ViewTemplateNodeData;
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
-use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetWorkspaceSnapshot};
+use crate::ui::workbench::asset_content_layout::BROWSER_CONTENT_ITEM_PREFIX;
+use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::resource::ResourceKind;
 
-use super::labels::compact_resource_kind_label;
 use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 
 const ASSET_TABLE_HEADER_CELLS: [&str; 4] = ["Name", "Type", "Size", "Rev"];
@@ -15,21 +15,50 @@ const ASSET_TABLE_NAME_MIN_TAIL_CHARS: usize = 4;
 const ASSET_TABLE_NAME_PREFERRED_TAIL_CHARS: usize = 8;
 
 pub(super) fn asset_table_rows(snapshot: &AssetWorkspaceSnapshot) -> Vec<[String; 4]> {
-    let mut rows = snapshot
+    snapshot
         .visible_assets
         .iter()
-        .take(4)
         .map(asset_table_row_cells)
-        .collect::<Vec<_>>();
-    while rows.len() < 4 {
-        rows.push([
-            "Empty Asset".to_string(),
-            "Asset".to_string(),
-            "0KB".to_string(),
-            "pending".to_string(),
-        ]);
+        .collect()
+}
+
+pub(super) fn sync_asset_table_nodes(
+    nodes: &mut Vec<ViewTemplateNodeData>,
+    snapshot: &AssetWorkspaceSnapshot,
+) {
+    let Some(prototype) = nodes
+        .iter()
+        .find(|node| asset_table_row_index(node.control_id.as_str()) == Some(0))
+        .cloned()
+    else {
+        return;
+    };
+    let asset_count = if snapshot.view_mode == AssetViewMode::List {
+        snapshot.visible_assets.len()
+    } else {
+        0
+    };
+    nodes.retain(|node| {
+        asset_table_row_index(node.control_id.as_str())
+            .map(|index| index < asset_count)
+            .unwrap_or(true)
+    });
+
+    for index in 0..asset_count {
+        if nodes
+            .iter()
+            .any(|node| asset_table_row_index(node.control_id.as_str()) == Some(index))
+        {
+            continue;
+        }
+        let mut row = prototype.clone();
+        row.node_id = format!("asset_browser.runtime.asset_row_{index:02}").into();
+        row.control_id = asset_table_row_control_id(index).into();
+        row.selected = false;
+        row.focused = false;
+        row.hovered = false;
+        nodes.push(row);
     }
-    rows
 }
 
 pub(super) fn mark_asset_table_rows(
@@ -37,8 +66,8 @@ pub(super) fn mark_asset_table_rows(
     snapshot: &AssetWorkspaceSnapshot,
 ) {
     let selected_uuid = snapshot.selected_asset_uuid.as_deref();
-    for index in 0..4 {
-        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
+    for index in 0..snapshot.visible_assets.len() {
+        let control_id = asset_table_row_control_id(index);
         if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
             let selected = snapshot
                 .visible_assets
@@ -69,7 +98,7 @@ pub(super) fn apply_asset_browser_table_cells(
     }
 
     for (index, row) in rows.iter().enumerate() {
-        let control_id = format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1);
+        let control_id = asset_table_row_control_id(index);
         if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
             node.options = shared_string_options(row.iter().cloned().collect());
             node.text = asset_table_row_text(row).into();
@@ -77,10 +106,22 @@ pub(super) fn apply_asset_browser_table_cells(
     }
 }
 
+pub(super) fn asset_table_row_control_id(index: usize) -> String {
+    format!("{BROWSER_CONTENT_ITEM_PREFIX}{:02}", index + 1)
+}
+
+pub(super) fn asset_table_row_index(control_id: &str) -> Option<usize> {
+    control_id
+        .strip_prefix(BROWSER_CONTENT_ITEM_PREFIX)?
+        .parse::<usize>()
+        .ok()?
+        .checked_sub(1)
+}
+
 fn asset_table_row_cells(asset: &AssetItemSnapshot) -> [String; 4] {
     [
         compact_asset_table_name(&asset.display_name, &asset.extension),
-        compact_resource_kind_label(asset.kind).to_string(),
+        asset.asset_type.display_name.clone(),
         asset_size_hint(asset).to_string(),
         asset
             .resource_revision
@@ -160,5 +201,35 @@ mod tests {
                 <= ASSET_TABLE_NAME_MAX_WIDTH + 0.01,
             "wide table name should fit measured width: {compact_wide}"
         );
+    }
+
+    #[test]
+    fn asset_table_rows_follow_the_real_catalog_without_padding_or_truncation() {
+        let snapshot = AssetWorkspaceSnapshot {
+            visible_assets: (0..7)
+                .map(|index| AssetItemSnapshot {
+                    uuid: format!("asset-{index}"),
+                    locator: format!("res://Asset_{index}.mesh"),
+                    display_name: format!("Asset_{index}.mesh"),
+                    file_name: format!("Asset_{index}.mesh"),
+                    extension: "mesh".to_string(),
+                    kind: ResourceKind::Mesh,
+                    asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(ResourceKind::Mesh),
+                    preview_artifact_path: String::new(),
+                    dirty: false,
+                    diagnostics: Vec::new(),
+                    selected: false,
+                    resource_state: None,
+                    resource_revision: Some(1),
+                })
+                .collect(),
+            ..AssetWorkspaceSnapshot::default()
+        };
+
+        let rows = asset_table_rows(&snapshot);
+
+        assert_eq!(rows.len(), 7);
+        assert!(rows.iter().all(|row| row[0] != "Empty Asset"));
+        assert_eq!(rows[6][0], "Asset_6.mesh");
     }
 }

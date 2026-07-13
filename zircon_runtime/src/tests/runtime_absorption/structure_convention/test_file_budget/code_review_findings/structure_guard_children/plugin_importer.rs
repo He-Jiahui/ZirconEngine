@@ -14,18 +14,12 @@ mod structure_assertions;
 #[path = "plugin_importer/top_level_children.rs"]
 mod top_level_children;
 
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_TOP_LEVEL_CHILDREN_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/top_level_children.rs";
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STRUCTURE_ASSERTIONS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/structure_assertions.rs";
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_SOURCE_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/source_inventory.rs";
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_DOCS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_docs.rs";
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_OWNERSHIP_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/child_ownership.rs";
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_mirrors.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_TOP_LEVEL_CHILDREN_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/top_level_children.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STRUCTURE_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/structure_assertions.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_SOURCE_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/source_inventory.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_DOCS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_docs.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/child_ownership.rs";
+pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_mirrors.rs";
 
 pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_SPLIT_SLICE: &str =
     "Runtime 15 M3 structure guard plugin-importer child split";

@@ -1,10 +1,10 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::navigation::{
-    NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshObstacleDescriptor, NavMeshObstacleShape,
-    NavSampleQuery, NavigationManager, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK,
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshAsset, NavMeshObstacleDescriptor,
+    NavMeshObstacleShape, NavSampleQuery, NavigationManager, NavigationSettingsAsset,
+    DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::components::NodeKind;

@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::asset::{AnimationClipAsset, AnimationSkeletonAsset, ProjectAssetManager};
+use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
+use zircon_runtime::core::framework::animation::{AnimationClipAsset, AnimationSkeletonAsset};
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationSkeletonMarker, ResourceHandle, ResourceSnapshot,
 };

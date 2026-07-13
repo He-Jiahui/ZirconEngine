@@ -2,6 +2,10 @@ use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::layout::UiSize;
 
+use super::compact_table_layout::{
+    apply_compact_table_layout, asset_table_row_count, collapse_compact_table_nodes,
+    compact_table_stack_height,
+};
 use super::summary_layout::apply_compact_content_preview_summary_layout;
 use super::thumbnail_layout::{apply_compact_thumbnail_grid_layout, has_thumbnail_grid};
 
@@ -27,9 +31,6 @@ const COMPACT_UTILITY_LOCATOR_GAP: f32 = 12.0;
 const COMPACT_UTILITY_LOCATOR_WIDTH: f32 = 156.0;
 const COMPACT_COLLAPSED_SOURCES_WIDTH_THRESHOLD: f32 = 900.0;
 const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
-const COMPACT_TABLE_HEADER_HEIGHT: f32 = 24.0;
-const COMPACT_TABLE_MIN_ROW_HEIGHT: f32 = 22.0;
-const COMPACT_TABLE_MAX_ROW_HEIGHT: f32 = 30.0;
 const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_HEADER_HEIGHT: f32 = 42.0;
 const COMPACT_DETAILS_DIVIDER_HEIGHT: f32 = 1.0;
@@ -238,8 +239,10 @@ fn apply_compact_content_panel_layout(
     } else {
         COMPACT_PREVIEW_CARD_HEIGHT.min((height * 0.28).max(42.0))
     };
+    let row_count = asset_table_row_count(nodes);
     let table_height = compact_table_stack_height(
         height - header_height - preview_height - COMPACT_HEADER_TABLE_GAP - COMPACT_CONTENT_GAP,
+        row_count,
     );
     let table_y = y + header_height + COMPACT_HEADER_TABLE_GAP;
     let preview_y = (y + height - preview_height).max(table_y + table_height + COMPACT_CONTENT_GAP);
@@ -266,26 +269,13 @@ fn apply_compact_content_panel_layout(
         let grid_height = (height - header_height - COMPACT_HEADER_TABLE_GAP).max(0.0);
         apply_compact_thumbnail_grid_layout(nodes, x, table_y, width, grid_height);
     } else {
-        apply_compact_table_layout(nodes, x, table_y, width, table_height);
+        apply_compact_table_layout(nodes, x, table_y, width, row_count);
         apply_compact_content_preview_summary_layout(nodes, x, preview_y, width, preview_height);
     }
     collapse_duplicate_compact_container_nodes(
         nodes,
         &["AssetBrowserContentPanel", "AssetBrowserAssetTablePanel"],
     );
-}
-
-fn collapse_compact_table_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
-    for control_id in [
-        "AssetBrowserAssetTablePanel",
-        "WorkbenchAssetBrowserTableHeader",
-        "WorkbenchAssetBrowserAssetRow01",
-        "WorkbenchAssetBrowserAssetRow02",
-        "WorkbenchAssetBrowserAssetRow03",
-        "WorkbenchAssetBrowserAssetRow04",
-    ] {
-        set_node_frame(nodes, control_id, x, y, 0.0, 0.0);
-    }
 }
 
 fn apply_compact_content_header_layout(
@@ -317,45 +307,6 @@ fn apply_compact_content_header_layout(
         path_width,
         10.0,
     );
-}
-
-fn apply_compact_table_layout(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) {
-    let row_height = compact_table_row_height(height);
-    set_node_frame(
-        nodes,
-        "WorkbenchAssetBrowserTableHeader",
-        x,
-        y,
-        width,
-        COMPACT_TABLE_HEADER_HEIGHT,
-    );
-    for index in 0..4 {
-        let row_y = y + COMPACT_TABLE_HEADER_HEIGHT + row_height * index as f32;
-        set_node_frame(
-            nodes,
-            &format!("WorkbenchAssetBrowserAssetRow{:02}", index + 1),
-            x,
-            row_y,
-            width,
-            row_height,
-        );
-    }
-}
-
-fn compact_table_stack_height(available_height: f32) -> f32 {
-    COMPACT_TABLE_HEADER_HEIGHT + compact_table_row_height(available_height) * 4.0
-}
-
-fn compact_table_row_height(available_height: f32) -> f32 {
-    ((available_height - COMPACT_TABLE_HEADER_HEIGHT) / 4.0)
-        .max(COMPACT_TABLE_MIN_ROW_HEIGHT)
-        .min(COMPACT_TABLE_MAX_ROW_HEIGHT)
 }
 
 fn apply_compact_details_panel_layout(
@@ -525,7 +476,7 @@ fn apply_compact_details_field_layout(
             );
             set_node_frame(
                 nodes,
-                "AssetBrowserDetailsMetadataAdapterValue",
+                "AssetBrowserDetailsMetadataToolkitValue",
                 value_x,
                 y + 34.0,
                 text_width,
@@ -597,7 +548,7 @@ fn apply_compact_details_preview_layout(
         ("AssetBrowserDetailsPreviewLocatorText", 27.0, 12.0),
         ("AssetBrowserDetailsPreviewKindText", 42.0, 12.0),
         ("AssetBrowserDetailsPreviewIdentityText", 56.0, 12.0),
-        ("AssetBrowserDetailsPreviewAdapterText", 69.0, 12.0),
+        ("AssetBrowserDetailsPreviewToolkitText", 69.0, 12.0),
         ("AssetBrowserDetailsPreviewMetaPathText", 82.0, 10.0),
         ("AssetBrowserDetailsPreviewDiagnosticsText", 94.0, 10.0),
     ] {
@@ -709,7 +660,7 @@ fn collapse_compact_utility_content(
         "AssetBrowserPreviewLocatorText",
         "AssetBrowserPreviewKindText",
         "AssetBrowserPreviewIdentityText",
-        "AssetBrowserPreviewAdapterText",
+        "AssetBrowserPreviewToolkitText",
         "AssetBrowserPreviewMetaPathText",
         "AssetBrowserPreviewDiagnosticsText",
     ] {
@@ -741,7 +692,7 @@ fn apply_compact_preview_utility_layout(
         ("AssetBrowserPreviewLocatorText", 27.0, 12.0),
         ("AssetBrowserPreviewKindText", 42.0, 12.0),
         ("AssetBrowserPreviewIdentityText", 56.0, 12.0),
-        ("AssetBrowserPreviewAdapterText", 69.0, 10.0),
+        ("AssetBrowserPreviewToolkitText", 69.0, 10.0),
         ("AssetBrowserPreviewMetaPathText", 80.0, 10.0),
         ("AssetBrowserPreviewDiagnosticsText", 91.0, 10.0),
     ] {
@@ -768,7 +719,7 @@ fn is_asset_browser_utility_control(control_id: &str) -> bool {
         || control_id.starts_with("AssetBrowserMetadata")
         || control_id.starts_with("AssetBrowserReference")
         || control_id.starts_with("AssetBrowserMetaPath")
-        || control_id.starts_with("AssetBrowserAdapter")
+        || control_id.starts_with("AssetBrowserToolkit")
         || control_id.starts_with("AssetBrowserDiagnostics")
         || control_id.starts_with("AssetBrowserPlugins")
         || control_id == "AssetBrowserSelectionLocatorText"

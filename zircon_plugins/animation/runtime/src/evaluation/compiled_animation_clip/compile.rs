@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use zircon_runtime::asset::AnimationClipBoneTrackAsset;
+use zircon_runtime::core::framework::animation::AnimationClipBoneTrackAsset;
 use zircon_runtime::core::framework::animation::AnimationTargetId;
 use zircon_runtime::core::framework::scene::EntityPath;
 

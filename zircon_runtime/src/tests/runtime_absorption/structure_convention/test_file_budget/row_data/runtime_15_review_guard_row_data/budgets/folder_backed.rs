@@ -1,9 +1,7 @@
 use super::*;
 
-const REVIEW_GUARD_ROW_DATA_BUDGETS_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
-const REVIEW_GUARD_ROW_DATA_BUDGETS_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
+const REVIEW_GUARD_ROW_DATA_BUDGETS_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
+const REVIEW_GUARD_ROW_DATA_BUDGETS_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
 
 #[test]
 fn runtime_15_review_guard_row_data_budgets_guard_is_folder_backed() {

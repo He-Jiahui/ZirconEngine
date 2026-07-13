@@ -3,20 +3,19 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::Path;
 use std::process::ExitCode;
-
-use crate::pack::{
-    ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriter, ZrPackDocumentManifest,
-    ZrPackInputAsset, ZrPackReader, ZrPackTrimReport, ZrPackWriter,
-};
-use crate::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::args::{parse, usage};
 use super::error::{ExportPackError, ExportPackResult};
 use super::manifest::ExportAssetPackManifest;
+use crate::pack::{
+    ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriter, ZrPackDocumentManifest,
+    ZrPackInputAsset, ZrPackReader, ZrPackTrimReport, ZrPackWriter,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ExportPackReport {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub profile: String,
     pub asset_manifest: String,
     pub pack: String,
@@ -67,7 +66,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
 
     let mut report = if fatal_preflight {
         ExportPackReport {
-            stage: ExportPipelineStage::Pack,
+            stage: ExportStage::Pack,
             profile: args.profile.clone(),
             asset_manifest: args.manifest.display().to_string(),
             pack: args.pack.display().to_string(),
@@ -125,7 +124,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
                 })?;
                 let delta_report = write_delta_pack_if_requested(&args, &write_report.bytes)?;
                 ExportPackReport {
-                    stage: ExportPipelineStage::Pack,
+                    stage: ExportStage::Pack,
                     profile: args.profile.clone(),
                     asset_manifest: args.manifest.display().to_string(),
                     pack: args.pack.display().to_string(),
@@ -173,7 +172,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExportPackResult<ExitCod
                 }
             }
             Err(error) => ExportPackReport {
-                stage: ExportPipelineStage::Pack,
+                stage: ExportStage::Pack,
                 profile: args.profile.clone(),
                 asset_manifest: args.manifest.display().to_string(),
                 pack: args.pack.display().to_string(),

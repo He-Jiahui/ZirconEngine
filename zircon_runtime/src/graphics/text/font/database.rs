@@ -24,6 +24,10 @@ use super::descriptors::{
     descriptor_from_font_bytes, descriptor_from_fontdb_face, source_key_from_fontdb_source,
 };
 use super::fallback::{MissingGlyphDiagnosticsReport, MissingGlyphLog};
+use super::instance::{
+    font_instance_identity, variations_for_face, variations_with_font_weight, FontInstance,
+    FontInstanceError, FontInstanceRegistry,
+};
 use super::matching::{dedupe_families, stretch_distance, style_distance, weight_distance};
 
 #[derive(Debug, thiserror::Error)]
@@ -56,6 +60,8 @@ pub(crate) enum FontDatabaseError {
     UnknownFace(FontFaceId),
     #[error("font face has no shaping-backend identity: {0:?}")]
     BackendFaceUnavailable(FontFaceId),
+    #[error(transparent)]
+    FontInstance(#[from] FontInstanceError),
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -117,6 +123,8 @@ pub(crate) struct FontDatabase {
     active_composite_font: Option<CompositeFontDescriptor>,
     backend_database: fontdb::Database,
     backend_faces: BackendFaceMap,
+    instances: FontInstanceRegistry,
+    default_instances: HashMap<FontFaceId, InstancedFaceId>,
     missing_glyphs: Arc<Mutex<MissingGlyphLog>>,
 }
 
@@ -131,6 +139,8 @@ impl Default for FontDatabase {
             active_composite_font: None,
             backend_database: fontdb::Database::new(),
             backend_faces: BackendFaceMap::default(),
+            instances: FontInstanceRegistry::default(),
+            default_instances: HashMap::new(),
             missing_glyphs: Arc::new(Mutex::new(MissingGlyphLog::default())),
         }
     }
@@ -307,6 +317,16 @@ impl FontDatabase {
         }
 
         let id = FontFaceId(self.faces.len() as u64 + 1);
+        let default_variations = match &source {
+            StoredFontSource::SharedBytes(bytes) => variations_for_face(
+                bytes.as_ref(),
+                descriptor.face_index,
+                &descriptor.variations,
+                None,
+            ),
+            StoredFontSource::FontDb { .. } => descriptor.variations.clone(),
+        };
+        let default_instance = self.instances.resolve_or_insert(id, &default_variations)?;
         let family_key = normalized_family_key(descriptor.family.as_str());
         let face_index = descriptor.face_index;
         let backend_source = backend_face
@@ -317,6 +337,7 @@ impl FontDatabase {
             source,
             coverage,
         });
+        self.default_instances.insert(id, default_instance);
         self.family_index.entry(family_key).or_default().push(id);
         if let Some(source_path) = source_path {
             self.source_face_index.insert(
@@ -339,16 +360,21 @@ impl FontDatabase {
         }) {
             self.backend_faces.insert(backend_face, id);
         }
-        let _ = self.instance(id, &VariationCoords::default())?;
         Ok(id)
     }
 
     fn register_asset_descriptor(
         &mut self,
-        descriptor: FontFaceDescriptor,
+        mut descriptor: FontFaceDescriptor,
         bytes: Arc<[u8]>,
         source_path: &Path,
     ) -> Result<FontFaceId, FontDatabaseError> {
+        descriptor.variations = variations_for_face(
+            bytes.as_ref(),
+            descriptor.face_index,
+            &descriptor.variations,
+            None,
+        );
         let source_key = FontAssetSourceKey::from_descriptor(source_path, &descriptor);
         if let Some(face) = self.asset_source_index.get(&source_key) {
             return Ok(*face);
@@ -477,28 +503,79 @@ impl FontDatabase {
     }
 
     pub(crate) fn instance(
-        &self,
+        &mut self,
         face: FontFaceId,
         variations: &VariationCoords,
     ) -> Result<InstancedFaceId, FontDatabaseError> {
         if self.face(face).is_none() {
             return Err(FontDatabaseError::UnknownFace(face));
         }
+        let bytes = self.face_bytes(face)?;
+        let face_index = self.face_index(face)?;
+        let variations = variations_for_face(bytes.as_ref(), face_index, variations, None);
+        self.instances
+            .resolve_or_insert(face, &variations)
+            .map_err(FontDatabaseError::from)
+    }
 
-        let mut normalized: Vec<(u32, u32)> = variations
-            .0
-            .iter()
-            .map(|(tag, value)| (*tag, value.to_bits()))
-            .collect();
-        normalized.sort_unstable();
-        let mut hash = face.0.wrapping_mul(1_099_511_628_211);
-        for (tag, value_bits) in normalized {
-            hash ^= tag as u64;
-            hash = hash.wrapping_mul(1_099_511_628_211);
-            hash ^= value_bits as u64;
-            hash = hash.wrapping_mul(1_099_511_628_211);
-        }
-        Ok(InstancedFaceId(hash))
+    pub(crate) fn default_instance_id(
+        &self,
+        face: FontFaceId,
+    ) -> Result<InstancedFaceId, FontDatabaseError> {
+        self.default_instances
+            .get(&face)
+            .copied()
+            .ok_or(FontDatabaseError::UnknownFace(face))
+    }
+
+    pub(crate) fn font_instance(&self, id: InstancedFaceId) -> Option<&FontInstance> {
+        self.instances.get(id)
+    }
+
+    pub(crate) fn default_font_instance(
+        &self,
+        face: FontFaceId,
+    ) -> Result<&FontInstance, FontDatabaseError> {
+        let instance = self.default_instance_id(face)?;
+        self.font_instance(instance)
+            .ok_or(FontDatabaseError::UnknownFace(face))
+    }
+
+    pub(crate) fn effective_variations(
+        &self,
+        face: FontFaceId,
+        font_weight: u16,
+    ) -> Result<VariationCoords, FontDatabaseError> {
+        self.effective_instance_variations(face, None, font_weight)
+    }
+
+    pub(crate) fn effective_instance_id(
+        &self,
+        face: FontFaceId,
+        font_weight: u16,
+    ) -> Result<InstancedFaceId, FontDatabaseError> {
+        let variations = self.effective_variations(face, font_weight)?;
+        font_instance_identity(face, &variations).map_err(FontDatabaseError::from)
+    }
+
+    pub(crate) fn effective_instance_variations(
+        &self,
+        face: FontFaceId,
+        instance: Option<InstancedFaceId>,
+        font_weight: u16,
+    ) -> Result<VariationCoords, FontDatabaseError> {
+        let bytes = self.face_bytes(face)?;
+        let face_index = self.face_index(face)?;
+        let base = instance
+            .and_then(|instance| self.font_instance(instance))
+            .filter(|instance| instance.face == face)
+            .unwrap_or(self.default_font_instance(face)?);
+        Ok(variations_with_font_weight(
+            bytes.as_ref(),
+            face_index,
+            &base.variations,
+            font_weight,
+        ))
     }
 
     fn face(&self, face: FontFaceId) -> Option<&StoredFontFace> {

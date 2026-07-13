@@ -28,6 +28,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
 - For execution order, validation depth, regression repair, or continuous milestone delivery:
   - `layered-milestone-development/SKILL.md`
   - `continuous-milestone-execution/SKILL.md`
+  - `prefer-windows-validation/SKILL.md`
   - `evidence-driven-wsl-validation/SKILL.md`
   - `support-first-regression-testing/SKILL.md`
 - For Hub visual verification and real Windows window screenshots:

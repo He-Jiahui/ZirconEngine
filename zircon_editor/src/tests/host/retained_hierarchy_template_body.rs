@@ -22,6 +22,7 @@ use crate::ui::workbench::view::{
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -76,7 +77,7 @@ fn hierarchy_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
         ),
         build_pane_body_presentation(
             &PaneBodySpec::new(
-                "pane.hierarchy.body",
+                "res://ui/editor/host/hierarchy_body.zui",
                 PanePayloadKind::HierarchyV1,
                 PaneRouteNamespace::Selection,
                 PaneInteractionMode::HybridNativeSlot,

@@ -3,24 +3,30 @@ use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord,
 };
 
+use crate::core::asset::{
+    AssetContextCommandDescriptor, AssetCreationTemplateDescriptor, AssetTypeDefinition,
+    AssetTypeId, AssetTypeRegistry,
+};
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
 };
 use crate::core::editor_extension::{
-    AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
-    EditorUiTemplateDescriptor,
+    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorUiTemplateDescriptor,
 };
 use crate::core::editor_message::EditorViewInvalidationMask;
-use crate::core::editor_operation::EditorOperationStack;
+use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationSource};
+use crate::core::jobs::EditorJobProgressSnapshot;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
 };
+use crate::ui::host::editor_extension_registration::materialize_enabled_asset_types;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
+    AssetOperationProjectionSnapshot, AssetTypeProjectionSnapshot, AssetWorkspaceSnapshot,
     EditorChromeSnapshot, EditorDataSnapshot, StatusTaskProgressSnapshot,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
@@ -37,9 +43,11 @@ impl EditorHostEventController {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
         let inner = self.shell().lock();
         let component_drawers = Self::active_component_drawers_for_shell(&inner);
-        inner
+        let mut snapshot = inner
             .state
-            .snapshot_with_component_drawers(&component_drawers)
+            .snapshot_with_component_drawers(&component_drawers);
+        Self::project_asset_type_registry_for_shell(&inner, &mut snapshot);
+        snapshot
     }
 
     pub fn current_layout(&self) -> WorkbenchLayout {
@@ -102,6 +110,10 @@ impl EditorHostEventController {
         self.shell().lock().state.status_task_progress.clone()
     }
 
+    pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot> {
+        self.context().jobs().progress().snapshot()
+    }
+
     pub(crate) fn dispatch_ui_component_adapter_event(
         &self,
         envelope: &UiComponentEventEnvelope,
@@ -148,7 +160,7 @@ impl EditorHostEventController {
         keyboard: &UiKeyboardInputEvent,
         source: EditorEventSource,
     ) -> Result<Option<EditorEventRecord>, String> {
-        let keymap = crate::ui::host::EditorKeymap::default_workbench();
+        let keymap = crate::core::commands::EditorKeymap::default_workbench();
         let Some(command_id) = keymap.resolve_keyboard_input(keyboard) else {
             return Ok(None);
         };
@@ -291,10 +303,6 @@ impl EditorHostEventController {
         self.context().events().journal()
     }
 
-    pub fn operation_stack(&self) -> EditorOperationStack {
-        self.operations().stack()
-    }
-
     pub fn activity_view_descriptor(&self, view_id: &str) -> Option<ActivityViewDescriptor> {
         self.shell()
             .lock()
@@ -364,20 +372,108 @@ impl EditorHostEventController {
             .collect()
     }
 
-    pub fn asset_editor_descriptor(&self, asset_kind: &str) -> Option<AssetEditorDescriptor> {
+    pub fn asset_type_definition(&self, asset_type: &AssetTypeId) -> Option<AssetTypeDefinition> {
         let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        inner
-            .editor_extensions
-            .iter()
-            .filter(|registration| registration.is_enabled_by(&enabled_capabilities))
-            .flat_map(|registration| registration.registry().asset_editors())
-            .find(|descriptor| descriptor.asset_kind() == asset_kind)
+        materialize_enabled_asset_types(&inner.editor_extensions, &enabled_capabilities)
+            .ok()?
+            .get(asset_type)
             .cloned()
+    }
+
+    pub(crate) fn project_asset_type_registry_for_shell(
+        shell: &crate::ui::workbench::shell_state::WorkbenchShellStateData,
+        snapshot: &mut EditorDataSnapshot,
+    ) {
+        let enabled_capabilities = shell
+            .manager
+            .capability_snapshot()
+            .enabled_capabilities()
+            .to_vec();
+        let Ok(registry) =
+            materialize_enabled_asset_types(&shell.editor_extensions, &enabled_capabilities)
+        else {
+            return;
+        };
+        project_asset_workspace(&mut snapshot.asset_activity, &registry);
+        project_asset_workspace(&mut snapshot.asset_browser, &registry);
+    }
+
+    pub fn asset_creation_templates(
+        &self,
+        asset_type: &AssetTypeId,
+    ) -> Vec<AssetCreationTemplateDescriptor> {
+        self.asset_type_definition(asset_type)
+            .map(|definition| definition.creation_templates().to_vec())
+            .unwrap_or_default()
+    }
+
+    pub fn asset_context_commands(
+        &self,
+        asset_type: &AssetTypeId,
+    ) -> Vec<AssetContextCommandDescriptor> {
+        self.asset_type_definition(asset_type)
+            .map(|definition| definition.context_commands().to_vec())
+            .unwrap_or_default()
+    }
+
+    pub fn invoke_asset_creation_template(
+        &self,
+        source: EditorOperationSource,
+        asset_type: &AssetTypeId,
+        template_id: &str,
+        target_folder: &str,
+    ) -> Result<EditorEventRecord, String> {
+        let template = self
+            .asset_creation_templates(asset_type)
+            .into_iter()
+            .find(|template| template.id() == template_id)
+            .ok_or_else(|| {
+                format!(
+                    "asset creation template `{template_id}` is not registered for `{asset_type}`"
+                )
+            })?;
+        self.invoke_operation(
+            source,
+            EditorOperationInvocation::new(template.operation().clone()).with_arguments(
+                serde_json::json!({
+                    "asset_type": asset_type.as_str(),
+                    "template_id": template.id(),
+                    "target_folder": target_folder,
+                    "default_document": template.default_document(),
+                }),
+            ),
+        )
+    }
+
+    pub fn invoke_asset_context_command(
+        &self,
+        source: EditorOperationSource,
+        asset_type: &AssetTypeId,
+        command_id: &str,
+        asset_locator: &str,
+    ) -> Result<EditorEventRecord, String> {
+        let command = self
+            .asset_context_commands(asset_type)
+            .into_iter()
+            .find(|command| command.id() == command_id)
+            .ok_or_else(|| {
+                format!("asset context command `{command_id}` is not registered for `{asset_type}`")
+            })?;
+        self.invoke_operation(
+            source,
+            EditorOperationInvocation::new(command.operation().clone()).with_arguments(
+                serde_json::json!({
+                    "asset_type": asset_type.as_str(),
+                    "command_id": command.id(),
+                    "asset_locator": asset_locator,
+                }),
+            ),
+        )
     }
 
     pub fn dispatch_envelope(
@@ -402,4 +498,84 @@ impl EditorHostEventController {
     ) -> Result<EditorEventRecord, String> {
         <Self as EditorEventDispatcher>::dispatch_event(self, source, event)
     }
+}
+
+fn project_asset_workspace(snapshot: &mut AssetWorkspaceSnapshot, registry: &AssetTypeRegistry) {
+    for item in &mut snapshot.visible_assets {
+        let Ok(asset_type) = AssetTypeId::parse(item.asset_type.asset_type_id.clone()) else {
+            continue;
+        };
+        if let Some(definition) = registry.get(&asset_type) {
+            item.asset_type = AssetTypeProjectionSnapshot::from_definition(definition);
+        }
+    }
+
+    snapshot.creation_templates = registry
+        .definitions()
+        .flat_map(|definition| {
+            definition.creation_templates().iter().map(|template| {
+                AssetOperationProjectionSnapshot {
+                    asset_type_id: definition.id().to_string(),
+                    id: template.id().to_owned(),
+                    display_name: template.display_name().to_owned(),
+                    operation_id: template.operation().to_string(),
+                    icon_name: None,
+                    default_document: template.default_document().map(str::to_owned),
+                }
+            })
+        })
+        .collect();
+
+    let selection_type = snapshot.selection.asset_type.asset_type_id.clone();
+    let Ok(asset_type) = AssetTypeId::parse(selection_type) else {
+        return;
+    };
+    let Some(definition) = registry.get(&asset_type) else {
+        return;
+    };
+    snapshot.selection.asset_type = AssetTypeProjectionSnapshot::from_definition(definition);
+    snapshot.selection.toolkit_view_id = definition
+        .toolkit()
+        .map(|toolkit| toolkit.view_id().to_owned())
+        .unwrap_or_default();
+    snapshot.selection.toolkit_open_operation = definition
+        .toolkit()
+        .map(|toolkit| toolkit.open_operation().to_string())
+        .unwrap_or_default();
+    snapshot.selection.context_commands = definition
+        .context_commands()
+        .iter()
+        .map(|command| AssetOperationProjectionSnapshot {
+            asset_type_id: definition.id().to_string(),
+            id: command.id().to_owned(),
+            display_name: command.display_name().to_owned(),
+            operation_id: command.operation().to_string(),
+            icon_name: command.icon_name().map(str::to_owned),
+            default_document: None,
+        })
+        .collect();
+    for reference in snapshot
+        .selection
+        .references
+        .iter_mut()
+        .chain(snapshot.selection.used_by.iter_mut())
+    {
+        reference.asset_type = reference
+            .kind
+            .and_then(|kind| projected_asset_type_for_kind(registry, kind));
+    }
+    for subasset in &mut snapshot.selection.subassets {
+        if let Some(asset_type) = projected_asset_type_for_kind(registry, subasset.kind) {
+            subasset.asset_type = asset_type;
+        }
+    }
+}
+
+fn projected_asset_type_for_kind(
+    registry: &AssetTypeRegistry,
+    kind: zircon_runtime_interface::resource::ResourceKind,
+) -> Option<AssetTypeProjectionSnapshot> {
+    registry
+        .get(&AssetTypeId::from_resource_kind(kind))
+        .map(AssetTypeProjectionSnapshot::from_definition)
 }

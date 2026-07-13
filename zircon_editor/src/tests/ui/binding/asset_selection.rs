@@ -28,7 +28,7 @@ fn asset_command_binding_roundtrips_for_asset_open() {
         "OpenAsset",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::asset_command(AssetCommand::OpenAsset {
-            asset_path: "crate://prefabs/player.prefab".to_string(),
+            asset_locator: "crate://prefabs/player.prefab".to_string(),
         }),
     );
 

@@ -1,10 +1,13 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::project::{
+    ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
+    ProjectPluginSelection,
+};
 use crate::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleManifest, PluginPackageManifest, ProjectPluginFeatureSelection,
-    ProjectPluginManifest, ProjectPluginSelection, RuntimePluginCatalog, RuntimePluginDescriptor,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
+    PluginPackageManifest, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[path = "runtime_plugin_catalog_features/feature_dependency_reports.rs"]
 mod feature_dependency_reports;
@@ -96,7 +99,8 @@ fn runtime_plugin_catalog_completes_owner_feature_selections_in_declaration_orde
 
 #[test]
 fn runtime_plugin_catalog_projects_external_feature_packages_under_owner() {
-    let feature = sound_timeline_feature_manifest();
+    let feature = sound_timeline_feature_manifest()
+        .with_default_packaging([ExportPackagingStrategy::NativeDynamic]);
     let catalog = RuntimePluginCatalog::from_registration_reports(
         [sound_registration(), animation_timeline_registration()],
         [
@@ -139,6 +143,11 @@ fn runtime_plugin_catalog_projects_external_feature_packages_under_owner() {
         .find(|selection| selection.id == "sound_timeline_animation_track")
         .expect("external feature provider package selection");
     assert!(!provider.enabled);
+    assert_eq!(
+        provider.packaging,
+        ExportPackagingStrategy::NativeDynamic,
+        "the provider package selection must preserve the feature declaration packaging"
+    );
     assert_eq!(
         provider.runtime_crate.as_deref(),
         Some("zircon_plugin_sound_timeline_animation_runtime")

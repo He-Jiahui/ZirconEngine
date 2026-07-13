@@ -20,7 +20,8 @@ fn chrome_builder_reads_active_window_menu_overflow_preference() {
         .expect("default workbench window")
         .menu_overflow_mode = MenuOverflowMode::MultiColumn;
 
-    let chrome = EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), Vec::new());
+    let chrome =
+        EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), Vec::new(), None);
 
     assert_eq!(chrome.menu_overflow_mode, MenuOverflowMode::MultiColumn);
 }
@@ -33,9 +34,12 @@ fn chrome_builder_carries_default_workbench_window_template() {
         ViewKind::ActivityWindow,
         "Workbench",
     )
-    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.workbench"))];
+    .with_activity_window_template(ActivityWindowTemplateSpec::new(
+        "res://ui/editor/windows/workbench_window.zui",
+    ))];
 
-    let chrome = EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), descriptors);
+    let chrome =
+        EditorChromeSnapshot::build(empty_editor_data(), &layout, Vec::new(), descriptors, None);
 
     let MainPageSnapshot::Workbench {
         activity_window_template,
@@ -48,7 +52,7 @@ fn chrome_builder_carries_default_workbench_window_template() {
         activity_window_template
             .as_ref()
             .map(|template| template.document_id.as_str()),
-        Some("editor.window.workbench")
+        Some("res://ui/editor/windows/workbench_window.zui")
     );
 }
 

@@ -2,6 +2,7 @@ mod activity_rail_template_boundary;
 mod callback_source_window;
 mod generic_host_boundary;
 mod generic_host_layout_paths;
+mod host_page_overflow_keyboard;
 mod native_chrome_routing;
 mod native_host_contract;
 mod native_material_painter;

@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "00000000-0000-0000-0000-000000000142"
 url = "res://shaders/vampire_forest"
 asset_kind = "Shader"
@@ -11,12 +11,13 @@ included_files = [
 artifact_locator = "lib://shaders/e1b52f39-5e12-878b-a2e4-ebe036ce91c2.zasset"
 importer_id = "zircon.builtin.shader.zshader_package"
 config_hash = "8b08af2c8fb73523"
-source_mtime_unix_ms = 1783699238139
-source_hash = "a5697e309010b67e"
+source_mtime_unix_ms = 1783980113730
+source_digest = "9c1d9c23f2e450d4"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""
 dependencies = []
+tags = []
 
 [import_settings]
 
@@ -26,6 +27,7 @@ url = "res://shaders/vampire_forest"
 asset_kind = "Shader"
 artifact_locator = "lib://shaders/e1b52f39-5e12-878b-a2e4-ebe036ce91c2.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "6a300888-7758-40f4-9ef0-85a1acdcc232"
@@ -33,6 +35,7 @@ url = "res://shaders/vampire_forest#zshader:vampire_forest.zshader"
 asset_kind = "Data"
 artifact_locator = "lib://data/982adcf5-f5a3-7c41-a878-b4dca72499d4.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "7dfaad27-f3cc-42b7-866f-4d69e73bdf58"
@@ -40,6 +43,7 @@ url = "res://shaders/vampire_forest#wgsl:vampire_forest_base.wgsl"
 asset_kind = "Data"
 artifact_locator = "lib://data/91ee6394-e9be-a321-595f-00c73c894460.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "10102c70-1bef-46a5-8f19-8a4319371b3a"
@@ -47,3 +51,4 @@ url = "res://shaders/vampire_forest#wgsl:vampire_forest_variant.wgsl"
 asset_kind = "Data"
 artifact_locator = "lib://data/60fad59e-e265-2b5f-6f00-1a9e2455b7b2.zasset"
 dependencies = []
+tags = []

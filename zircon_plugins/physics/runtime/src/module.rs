@@ -48,10 +48,10 @@ pub(crate) fn module_descriptor_with_manager(
         Vec::new(),
         factory(move |core| {
             if let Some(manager) = shared_manager.as_ref() {
-                manager.attach_core(core.clone());
+                manager.attach_core(core);
                 return Ok(manager.clone() as ServiceObject);
             }
-            Ok(Arc::new(DefaultPhysicsManager::new(Some(core.clone()))) as ServiceObject)
+            Ok(Arc::new(DefaultPhysicsManager::new(Some(core))) as ServiceObject)
         }),
     ))
     .with_manager(ManagerDescriptor::new(

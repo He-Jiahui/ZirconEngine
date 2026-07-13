@@ -6,6 +6,7 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
     let value_sync = read_runtime_src("asset/assets/material/material_asset/value_sync.rs");
     let readiness = read_runtime_src("asset/assets/material/material_asset/readiness.rs");
     let management = read_runtime_src("asset/assets/material/material_asset/management.rs");
+    let subsurface = read_runtime_src("asset/assets/material/material_asset/subsurface.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,6 +23,7 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
         &parent,
         &[
             "mod readiness;",
+            "mod subsurface;",
             "mod value_sync;",
             "mod management;",
             "pub use self::management::{",
@@ -43,6 +45,9 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
         "fn material_readiness_diagnostics",
         "ShaderRuntimeSourceKind::Unavailable",
         "RenderMaterialDiagnosticSource::ShaderReadiness",
+        "pub fn authored_subsurface_profile",
+        "pub fn is_subsurface_material",
+        "pub fn subsurface_profile_index",
     ] {
         assert!(
             !parent.contains(moved_owner),
@@ -59,6 +64,17 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
             "pub(super) fn sync_texture_slot",
             "pub(super) fn sync_f32_override",
             "fn toml_array",
+        ],
+    );
+    assert_contains_all(
+        "subsurface child owns authored profile projection",
+        &subsurface,
+        &[
+            "impl MaterialAsset",
+            "pub fn subsurface_profile_index",
+            "pub fn is_subsurface_material",
+            "pub fn authored_subsurface_profile",
+            "SubsurfaceProfileData::new",
         ],
     );
     assert_contains_all(
@@ -87,6 +103,10 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
         (
             "asset/assets/material/material_asset/management.rs",
             management.as_str(),
+        ),
+        (
+            "asset/assets/material/material_asset/subsurface.rs",
+            subsurface.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

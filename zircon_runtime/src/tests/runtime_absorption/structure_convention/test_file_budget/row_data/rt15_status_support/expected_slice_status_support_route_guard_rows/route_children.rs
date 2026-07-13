@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS_SUPPORT_ROUTE_GUARD_ROWS_PARENT: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows.rs";
+const STATUS_SUPPORT_ROUTE_GUARD_ROWS_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows.rs";
 const STATUS_SUPPORT_ROUTE_GUARD_ROWS_CHILDREN: &[(&str, &str, &str)] = &[
     (
         "runtime_index_anchor_rows",
@@ -51,7 +50,9 @@ pub(super) fn assert_route_guard_rows_are_child_owned() {
         );
     }
     assert!(
-        !parent.contains("Runtime 15 M3 status-support parent-route expected-slice guard folder-backed split"),
+        !parent.contains(
+            "Runtime 15 M3 status-support parent-route expected-slice guard folder-backed split"
+        ),
         "route_guard_rows.rs should route row groups instead of retaining concrete route guard rows"
     );
     assert!(

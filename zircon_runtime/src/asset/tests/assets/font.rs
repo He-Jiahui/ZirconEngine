@@ -196,7 +196,9 @@ fn importer_preserves_woff2_decode_error_source() {
 fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
     let root = unique_temp_project_root("font_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "FontSandbox",
         AssetUri::parse("res://fonts/default.font.toml").unwrap(),
@@ -205,7 +207,9 @@ fn project_manager_scans_font_assets_and_assigns_font_asset_kind() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let font_dir = paths.assets_root().join("fonts");
+    let font_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("fonts");
     fs::create_dir_all(&font_dir).unwrap();
     fs::write(font_dir.join("default.font.toml"), FONT_TOML).unwrap();
     fs::copy(runtime_font_fixture(), font_dir.join("FiraMono-subset.ttf")).unwrap();

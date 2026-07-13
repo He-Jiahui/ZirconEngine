@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::core::commands::EditorCommandDescriptor;
 
 #[test]
 fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher() {
@@ -122,8 +123,8 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
     let operation_path = EditorOperationPath::parse("view.weather.open").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_operation(
-            EditorOperationDescriptor::new(operation_path.clone(), "Open Weather")
+        .register_command(
+            EditorCommandDescriptor::pending_operation(operation_path.clone(), "Open Weather")
                 .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
                     page_id: MainPageId::new("weather"),
                 }))
@@ -178,9 +179,8 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
         .expect("operation-backed menu item should dispatch into runtime");
     assert!(effects.layout_dirty);
     assert!(effects.presentation_dirty);
-    let stack = harness.runtime.operation_stack();
     assert_eq!(
-        stack.undo_stack().last().map(|entry| entry.operation_id.as_str()),
+        harness.runtime.journal().records().last().and_then(|record| record.operation_id.as_deref()),
         Some("view.weather.open"),
         "menu dispatch should invoke the EditorOperation id instead of parsing it as a legacy MenuAction"
     );
@@ -195,14 +195,17 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_operation(
-            EditorOperationDescriptor::new(operation_path.clone(), "Refresh Cloud Layers")
-                .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
-                    page_id: MainPageId::new("weather"),
-                }))
-                .with_undoable(crate::core::editor_operation::UndoableEditorOperation::new(
-                    "Refresh Cloud Layers",
-                )),
+        .register_command(
+            EditorCommandDescriptor::pending_operation(
+                operation_path.clone(),
+                "Refresh Cloud Layers",
+            )
+            .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
+                page_id: MainPageId::new("weather"),
+            }))
+            .with_undoable(
+                crate::core::editor_operation::UndoableEditorOperation::new("Refresh Cloud Layers"),
+            ),
         )
         .expect("test operation should register in extension");
     harness
@@ -218,12 +221,6 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
                 vec![MenuItemModel::leaf(
                     "Refresh Cloud Layers",
                     None,
-                    EditorUiBinding::new(
-                        "WorkbenchMenuBar",
-                        operation_path.as_str(),
-                        EditorUiEventKind::Click,
-                        EditorUiBindingPayload::editor_operation(operation_path.as_str()),
-                    ),
                     Some(operation_path.clone()),
                     Some("Ctrl+Alt+R".to_string()),
                     true,
@@ -293,10 +290,10 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
     assert_eq!(
         harness
             .runtime
-            .operation_stack()
-            .undo_stack()
+            .journal()
+            .records()
             .last()
-            .map(|entry| entry.operation_id.as_str()),
+            .and_then(|record| record.operation_id.as_deref()),
         Some("weather.cloud_layer.refresh")
     );
 }

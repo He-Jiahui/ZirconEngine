@@ -150,7 +150,7 @@ mod tests {
             "engine@example.com",
         );
         let mut session = session_with_source(&temp, &source_repo);
-        session.config.recent_projects = vec![RecentProject::new("Game", &project_repo, 10)];
+        session.config.recent_projects = vec![RecentProject::fixture("Game", &project_repo, 10)];
         session.selected_project_path = Some(project_repo.clone());
 
         session

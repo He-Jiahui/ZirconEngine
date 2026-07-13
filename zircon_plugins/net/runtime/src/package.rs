@@ -1,4 +1,4 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::PluginEventCatalogManifest, plugin::PluginEventManifest,
     plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,

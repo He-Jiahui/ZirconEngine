@@ -1,18 +1,20 @@
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::script::{VmGcBudget, VmGcDiagnostics, VmSystemStage};
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
-    module_descriptor, PLUGIN_ID, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
-    ZR_VM_PROJECT_BACKEND_CAPABILITY,
+    module_descriptor, PLUGIN_ID, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_MODULE_NAME,
+    ZR_VM_LANGUAGE_RUNTIME_CAPABILITY, ZR_VM_PROJECT_BACKEND_CAPABILITY,
 };
 
 pub const ZR_VM_LANGUAGE_DIST_CRATE_NAME: &str = "zircon_plugin_zr_vm_language_dist";
 pub const ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_zr_vm_language_runtime_entry_v3";
+pub const ZR_VM_GC_STEP_SYSTEM: &str = "zr_vm_language.script.gc_step";
 const ZR_VM_LANGUAGE_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
@@ -71,11 +73,91 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module(ZR_VM_LANGUAGE_MODULE_NAME)?;
+        registry.register_resource(owner, VmGcBudget::default)?;
+        registry.register_resource(owner, VmGcDiagnostics::default)?;
+        for stage in zircon_runtime::script::VmSystemStage::ALL {
+            let system_id = vm_system_dispatcher_id(stage);
+            registry
+                .register_runtime_scene_system(
+                    owner,
+                    system_id,
+                    stage.system_stage(),
+                    move |context| {
+                        let manager = context
+                            .core
+                            .resolve_manager::<zircon_runtime::script::VmPluginManager>(
+                                zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
+                            )?;
+                        manager
+                            .run_registered_systems(stage, context.delta_seconds)
+                            .map(|_| ())
+                            .map_err(|error| {
+                                zircon_runtime::core::CoreError::Initialization(
+                                    vm_system_dispatcher_id(stage).to_string(),
+                                    error.to_string(),
+                                )
+                            })
+                    },
+                )
+                .register()?;
+        }
+        registry
+            .register_runtime_scene_system(
+                owner,
+                ZR_VM_GC_STEP_SYSTEM,
+                zircon_runtime::scene::SystemStage::Last,
+                |context| {
+                    let manager = context
+                        .core
+                        .resolve_manager::<zircon_runtime::script::VmPluginManager>(
+                            zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
+                        )?;
+                    let budget = context.level.with_world(|world| {
+                        world.get_resource::<VmGcBudget>().copied().ok_or_else(|| {
+                            zircon_runtime::core::CoreError::Initialization(
+                                ZR_VM_GC_STEP_SYSTEM.to_string(),
+                                "VmGcBudget resource is not registered".to_string(),
+                            )
+                        })
+                    })?;
+                    let report = manager.gc_step(budget).map_err(|error| {
+                        zircon_runtime::core::CoreError::Initialization(
+                            ZR_VM_GC_STEP_SYSTEM.to_string(),
+                            error.to_string(),
+                        )
+                    })?;
+                    context.level.with_world_mut(|world| {
+                        let diagnostics =
+                            world.get_resource_mut::<VmGcDiagnostics>().ok_or_else(|| {
+                                zircon_runtime::core::CoreError::Initialization(
+                                    ZR_VM_GC_STEP_SYSTEM.to_string(),
+                                    "VmGcDiagnostics resource is not registered".to_string(),
+                                )
+                            })?;
+                        diagnostics.push(report);
+                        Ok(())
+                    })
+                },
+            )
+            .after(zircon_runtime::scene::ecs::SystemRef::System(
+                vm_system_dispatcher_id(VmSystemStage::Last).to_string(),
+            ))
+            .register()?;
         registry.register_scene_hook(
             zircon_runtime::script::script_scene_fixed_update_hook_registration(),
         )?;
         registry
             .register_scene_hook(zircon_runtime::script::script_scene_update_hook_registration())
+    }
+}
+
+/// Returns the fixed runtime dispatcher identifier for a VM system stage.
+pub const fn vm_system_dispatcher_id(stage: zircon_runtime::script::VmSystemStage) -> &'static str {
+    match stage {
+        zircon_runtime::script::VmSystemStage::FixedUpdate => "zr_vm_language.systems.fixed_update",
+        zircon_runtime::script::VmSystemStage::Update => "zr_vm_language.systems.update",
+        zircon_runtime::script::VmSystemStage::Last => "zr_vm_language.systems.last",
     }
 }
 
@@ -97,6 +179,12 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     .with_enabled_by_default(false)
     .with_capability(ZR_VM_LANGUAGE_RUNTIME_CAPABILITY)
     .with_capability(ZR_VM_PROJECT_BACKEND_CAPABILITY)
+    .with_system_anchors([
+        vm_system_dispatcher_id(VmSystemStage::FixedUpdate),
+        vm_system_dispatcher_id(VmSystemStage::Update),
+        vm_system_dispatcher_id(VmSystemStage::Last),
+        ZR_VM_GC_STEP_SYSTEM,
+    ])
     .with_capability_status(CapabilityStatusManifest::new(
         ZR_VM_LANGUAGE_RUNTIME_CAPABILITY,
         CapabilityStatus::Partial,

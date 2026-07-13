@@ -7,7 +7,6 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/backend.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
   - dev/godot/core/extension/gdextension_manager.cpp
   - dev/bevy/crates/bevy_app/src/app.rs
   - dev/bevy/crates/bevy_app/src/sub_app.rs
@@ -85,7 +84,7 @@ Godot `dev/godot/core/extension/gdextension_manager.cpp` keeps extension lifecyc
 
 Bevy `dev/bevy/crates/bevy_app/src/app.rs` and `dev/bevy/crates/bevy_app/src/sub_app.rs` keep plugin lifecycle stages (`build`, readiness, `finish`, `cleanup`) explicit and identify plugin names in tracing spans or duplicate-plugin errors. This supports preserving stage names and plugin/export context in ZrVM lifecycle diagnostics.
 
-The ZrVM binding `E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs` exposes `ProjectSession::call_module_export(module_name, export_name, arguments)`, so the real backend has the exact module/export context at the boundary and can report it without changing lower binding APIs.
+The external ZrVM binding exposes `ProjectSession::call_module_export(module_name, export_name, arguments)`, so the real backend has the exact module/export context at the boundary and can report it without changing lower binding APIs. Its checkout location is environment-owned and is intentionally not declared as a repository `related_code` path.
 
 ## Testing Plan
 

@@ -13,7 +13,7 @@ fn showcase_binding(
     binding_id: &str,
 ) -> crate::ui::binding::EditorUiBinding {
     runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap()
         .bindings
         .into_iter()
@@ -188,10 +188,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         UiComponentShowcaseDemoEventInput::None,
     );
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -209,10 +209,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         UiComponentShowcaseDemoEventInput::None,
     );
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -364,10 +364,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
     );
 
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -478,10 +478,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         UiComponentShowcaseDemoEventInput::None,
     );
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -524,10 +524,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
     assert!(error.to_string().contains("invalid value kind"));
 
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -667,10 +667,10 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
         Some("false")
     );
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -763,10 +763,10 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
     );
 
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -824,10 +824,10 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
         UiComponentShowcaseDemoEventInput::ActiveDragTarget(false),
     );
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)
@@ -938,10 +938,10 @@ fn showcase_context_action_menu_opens_at_retained_pointer_anchor() {
     );
 
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = runtime
         .build_retained_host_projection_with_surface(&projection, &surface)

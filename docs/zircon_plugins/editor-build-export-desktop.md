@@ -25,7 +25,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/options.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/stage.rs
+  - zircon_runtime_interface/src/export/stage.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/command.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
@@ -63,7 +63,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
 implementation_files:
@@ -91,7 +91,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/options.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/stage.rs
+  - zircon_runtime_interface/src/export/stage.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/command.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
@@ -129,7 +129,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
 plan_sources:

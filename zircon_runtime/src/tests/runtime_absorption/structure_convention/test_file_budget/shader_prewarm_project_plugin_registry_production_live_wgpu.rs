@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_project_plugin_registry_production_direct_wgpu_export_passed_product_renderdoc_deferred";
+const STATUS: &str = "render_plan08_project_plugin_registry_production_direct_wgpu_export_passed_product_renderdoc_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wired() {
@@ -9,12 +8,14 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wir
     let acceptance = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
     let registry_helper = read_repo("tools/zircon_build_shader_resource_registry.py");
     let plugin_meta = read_repo("zircon_plugins/native_dynamic_fixture/assets/shader.wgsl.zmeta");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "direct prewarm run exports registry then consumes it for asset-root manifest scans",
@@ -86,7 +87,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wir
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

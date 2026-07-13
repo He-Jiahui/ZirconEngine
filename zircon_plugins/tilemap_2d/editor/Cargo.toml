@@ -10,3 +10,4 @@ zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
 zircon_plugin_tilemap_2d_runtime = { path = "../runtime" }
 zircon_runtime = { workspace = true }
+zircon_runtime_interface = { workspace = true }

@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::{
-    builtin::RuntimeTargetMode, plugin::ExportProfile, plugin::ProjectPluginManifest,
+    core::framework::platform::RuntimeTargetMode, core::framework::project::ExportProfile,
+    core::framework::project::ProjectPluginManifest,
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 

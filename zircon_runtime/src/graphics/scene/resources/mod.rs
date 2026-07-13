@@ -9,6 +9,7 @@ mod post_process_lut_texture;
 mod prepared;
 mod resource_streamer;
 mod runtime;
+mod ui_texture;
 
 pub(crate) use fallback::fallback_shader_uri;
 pub(crate) use gpu_material_uniform::{GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE};
@@ -22,3 +23,7 @@ pub(in crate::graphics::scene::resources) use post_process_lut_texture::PostProc
 pub(crate) use resource_streamer::ResourceStreamer;
 pub(crate) use runtime::MaterialCaptureSeed;
 pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};
+pub(crate) use ui_texture::ui_image_resource_id;
+pub(in crate::graphics::scene::resources) use ui_texture::{
+    ui_texture_id_for_upload, ui_texture_ids,
+};

@@ -3,7 +3,7 @@ id = "rendering"
 version = "0.1.0"
 display_name = "Rendering"
 category = "rendering"
-description = "Optional rendering feature owner package for post process, SSAO, contact shadows, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
+description = "Optional rendering feature owner package for post process, SSAO, contact shadows, volumetric fog, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
 sdk_api_version = "0.1.0"
 maturity = "stable"
 supported_targets = ["client_runtime", "editor_host"]
@@ -131,6 +131,122 @@ kind = "editor"
 crate_name = "zircon_plugin_rendering_contact_shadow_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.feature.rendering.contact_shadow"]
+
+[[optional_features]]
+id = "rendering.volumetric_fog"
+display_name = "Volumetric Fog"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.volumetric_fog"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.volumetric_fog.runtime"
+description = "Runtime plugin module rendering.volumetric_fog.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_volumetric_fog_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.volumetric_fog"]
+
+[[optional_features.modules]]
+name = "rendering.volumetric_fog.editor"
+description = "Editor plugin module rendering.volumetric_fog.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_volumetric_fog_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.volumetric_fog"]
+
+[[optional_features]]
+id = "rendering.oit"
+display_name = "Order Independent Transparency"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.oit"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.oit.runtime"
+description = "Runtime plugin module rendering.oit.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_oit_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.oit"]
+
+[[optional_features.modules]]
+name = "rendering.oit.editor"
+description = "Editor plugin module rendering.oit.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_oit_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.oit"]
+
+[[optional_features]]
+id = "rendering.planar_reflections"
+display_name = "Planar Reflections"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.planar_reflections"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.planar_reflections.runtime"
+description = "Runtime plugin module rendering.planar_reflections.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_planar_reflections_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.planar_reflections"]
+
+[[optional_features.modules]]
+name = "rendering.planar_reflections.editor"
+description = "Editor plugin module rendering.planar_reflections.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_planar_reflections_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.planar_reflections"]
+
+[[optional_features]]
+id = "rendering.subsurface_scattering"
+display_name = "Subsurface Scattering"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.subsurface_scattering"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.subsurface_scattering.runtime"
+description = "Runtime plugin module rendering.subsurface_scattering.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_subsurface_scattering_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.subsurface_scattering"]
+
+[[optional_features.modules]]
+name = "rendering.subsurface_scattering.editor"
+description = "Editor plugin module rendering.subsurface_scattering.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_subsurface_scattering_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.subsurface_scattering"]
 
 [[optional_features]]
 id = "rendering.decals"

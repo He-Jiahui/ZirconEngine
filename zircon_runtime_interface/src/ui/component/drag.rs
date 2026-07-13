@@ -153,6 +153,6 @@ impl UiDropPolicy {
     }
 
     pub fn accepts(&self, kind: UiDragPayloadKind) -> bool {
-        self.accepts.iter().any(|accepted| *accepted == kind)
+        self.accepts.contains(&kind)
     }
 }

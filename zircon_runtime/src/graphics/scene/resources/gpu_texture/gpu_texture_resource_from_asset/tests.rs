@@ -117,6 +117,24 @@ fn texture_array_view_uses_d2_array_dimension_and_all_layers() {
 }
 
 #[test]
+fn single_page_lightmap_view_preserves_d2_array_binding_contract() {
+    let view = lightmap_texture_view_descriptor(1);
+
+    assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2Array));
+    assert_eq!(view.base_array_layer, 0);
+    assert_eq!(view.array_layer_count, Some(1));
+}
+
+#[test]
+fn lightmap_legacy_bind_group_view_uses_first_page_as_d2() {
+    let view = lightmap_legacy_bind_group_view_descriptor();
+
+    assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2));
+    assert_eq!(view.base_array_layer, 0);
+    assert_eq!(view.array_layer_count, Some(1));
+}
+
+#[test]
 fn cube_texture_view_uses_cube_dimension_and_all_faces() {
     let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
     descriptor.dimension = RenderImageDimension::Cube;

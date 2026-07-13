@@ -60,7 +60,7 @@ pub(super) fn dispatch_drag_drop_input(
         pointer_id,
         session_id: drag_drop.session_id,
         point: Some(drag_drop.point),
-        payload: drag_drop.payload.clone(),
+        payload: drag_drop.payload.as_deref().cloned(),
     });
     let mut result = apply_dispatch_reply(surface, event, reply);
     result.diagnostics.routed = result.rejected_effects.is_empty();

@@ -30,13 +30,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElementTypes.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElements.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElementPayloads.h
@@ -79,13 +79,13 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
 plan_sources:
   - user: 2026-05-06 完善渲染方面内容，参照 dev 下虚幻源码
   - user: 2026-05-06 Zircon UI 与 Unreal Slate 差异审计及后续里程碑

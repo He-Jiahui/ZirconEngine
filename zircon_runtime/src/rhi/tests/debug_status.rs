@@ -22,11 +22,13 @@ fn wgpu_capability_mapping_keeps_debug_hooks_independent_from_surface_support() 
         wgpu::Features::empty(),
         wgpu::Limits::default(),
         false,
+        true,
     );
     let surface_caps = wgpu_backend_caps(
         "wgpu-surface",
         wgpu::Features::empty(),
         wgpu::Limits::default(),
+        true,
         true,
     );
 

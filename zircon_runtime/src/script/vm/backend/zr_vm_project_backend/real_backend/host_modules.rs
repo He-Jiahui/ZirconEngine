@@ -68,6 +68,9 @@ pub(super) fn register_host_modules(
                 .map_err(map_zr_error)?,
         );
     }
+    registrations.push(super::host_interfaces::register_host_interface_module(
+        runtime, host,
+    )?);
     Ok(registrations)
 }
 

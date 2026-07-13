@@ -1,5 +1,6 @@
 use std::sync::{Mutex, MutexGuard};
 
+use crate::core::framework::render::PlanarReflectionUpdateState;
 #[cfg(test)]
 use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
 use crate::core::TaskPool;
@@ -16,6 +17,8 @@ pub struct WgpuRenderFramework {
     pub(in crate::graphics::runtime::render_framework) state: Mutex<RenderFrameworkState>,
     pub(in crate::graphics::runtime::render_framework) operation_lock: Mutex<()>,
     pub(in crate::graphics::runtime::render_framework) compute_task_pool: TaskPool,
+    pub(in crate::graphics::runtime::render_framework) planar_reflection_updates:
+        Mutex<PlanarReflectionUpdateState>,
 }
 
 impl WgpuRenderFramework {
@@ -37,6 +40,21 @@ impl WgpuRenderFramework {
         self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn lock_planar_reflection_updates(
+        &self,
+    ) -> MutexGuard<'_, PlanarReflectionUpdateState> {
+        match self.planar_reflection_updates.lock() {
+            Ok(updates) => updates,
+            Err(poisoned) => poisoned.into_inner(),
+        }
+    }
+
+    /// Invalidates one on-demand planar probe so the next camera loop submits
+    /// its mirror capture before the owning main camera.
+    pub fn request_planar_reflection_capture(&self, probe_id: u64) {
+        self.lock_planar_reflection_updates().mark_dirty(probe_id);
     }
 
     #[cfg(test)]

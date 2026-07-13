@@ -8,9 +8,3 @@ mod mirror_docs;
 mod split_layout;
 #[path = "ui_architecture/support.rs"]
 mod support;
-
-// Route-level helper mirrors; implementations stay in support.rs.
-// fn repo_root()
-// fn top_level_entry_names(
-// fn rust_files_under(
-// fn production_ui_file(

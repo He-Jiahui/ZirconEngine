@@ -1,6 +1,8 @@
+use crate::core::commands::EditorCommandDescriptor;
+pub(super) use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 pub(super) use crate::core::editor_event::{EditorEvent, LayoutCommand, MainPageId, MenuAction};
 pub(super) use crate::core::editor_extension::EditorExtensionRegistry;
-pub(super) use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+pub(super) use crate::core::editor_operation::EditorOperationPath;
 pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 pub(super) use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 pub(super) use crate::ui::retained_host::callback_dispatch::{
@@ -15,9 +17,7 @@ pub(super) use crate::ui::retained_host::menu_pointer::{
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
 };
-pub(super) use crate::ui::workbench::model::{
-    MenuBarModel, MenuItemModel, MenuModel, WorkbenchViewModel,
-};
+pub(super) use crate::ui::workbench::model::WorkbenchViewModel;
 pub(super) use crate::ui::workbench::window_registry::MenuOverflowMode;
 pub(super) use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint, UiSize};
 

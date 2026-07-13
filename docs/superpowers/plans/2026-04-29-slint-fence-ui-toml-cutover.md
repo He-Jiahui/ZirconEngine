@@ -48,7 +48,7 @@ zircon_editor/tests/integration_contracts/workbench_slint_shell.rs -> reads ui/w
 **Files:**
 - Modify: `zircon_editor/build.rs`
 - Modify: `zircon_editor/src/ui/slint_host/mod.rs`
-- Test: `zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs`
+- Test: `zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs`
 
 - [x] **Step 1: Convert root Slint build guards into migration-fence guards**
 
@@ -147,7 +147,7 @@ Latest evidence: `cargo test -p zircon_editor --lib generic_host_layout_paths --
 ### Task 6: Add Runtime UI Input Dispatch Acceptance
 
 **Files:**
-- Modify: `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs`
+- Modify: `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs`
 - Modify: `zircon_runtime/src/tests/ui_boundary/runtime_host.rs`
 
 - [x] **Step 1: Add acceptance for pointer and navigation dispatch through `RuntimeUiManager`**

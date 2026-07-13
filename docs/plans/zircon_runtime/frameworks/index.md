@@ -59,7 +59,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 | P1 | 单 crate 巨石：120 万行单编译单元，无法并行编译、无法按域增量 | `zircon_runtime/src`、`zircon_runtime/Cargo.toml` | 01 |
 | P2 | 模块边界靠纪律而非编译器：`lib.rs` 模块声明顺序敏感（"ui must be declared before asset"）、graphics 35 处直接 `use crate::scene::`、graphics 直接引用 `crate::ui::text::shaper` | `zircon_runtime/src/lib.rs`、`src/graphics/scene/scene_renderer/ui/text.rs` | 01、05 |
 | P3 | feature 门控不完整：animation/navigation/script/diagnostic_log 及 `core/framework` 的 ai/physics/sound/net 子域无条件编译，server/headless 目标携带无用代码 | `zircon_runtime/src/lib.rs`、`zircon_runtime/Cargo.toml` features 段 | 03 |
-| P4 | 模块生命周期语义偏薄：五态生命周期无 bevy 式 `ready/finish` 异步就绪语义，无 godot/UE 式初始化层级（Core→Servers→Scene→Editor→Post），模块排序靠 `builtin/runtime_modules` 手工列表 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules/core_modules.rs` | 02 |
+| P4 | 模块生命周期语义偏薄：五态生命周期无 bevy 式 `ready/finish` 异步就绪语义，无明确初始化层级（Kernel→Services→Scene→Editor→Post），模块排序靠 `builtin/runtime_modules` 手工列表 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules/core_modules.rs` | 02 |
 | P5 | 插件 DX 债务：PLUGIN_ID 等元数据三处重复声明（plugin.toml / capability.rs / dist lib.rs）、新插件需 touch ~11 个文件、无脚手架、manifest 校验只在 Python 审计脚本、加载失败诊断贫弱、native 热重载 save/restore 未实装 | `zircon_plugins/gltf_importer/**`、`zircon_plugins/first_party_runtime_catalog/src/lib.rs` | 04 |
 | P6 | 规范散落且部分不可执行：结构规范分散在 convention 文档 + 技能 + 审计脚本，CI 无 clippy、无依赖方向守卫、无 feature 组合验证 | `.github/workflows/ci.yml`、`docs/plans/engine-code-structure-convention.md` | 06 |
 | P7 | 开发期链接慢：无 bevy_dylib/fyrox-dylib 式 `dynamic_linking` 开发模式 | 对照 `dev/bevy/crates/bevy_dylib`、`dev/Fyrox/fyrox-dylib` | 01 |
@@ -107,7 +107,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 ### D2：模块生命周期统一为"描述符 + 四阶段 + 初始化层级"
 
-`EngineModule`/`RuntimePlugin` 收敛到统一内核语义：保留五态生命周期与 Driver/Manager 依赖规则，补齐 bevy 式 `build/ready/finish/cleanup` 四阶段（支持 GPU 上下文等异步就绪）与 godot/UE 式初始化层级 `InitLevel::{Kernel, Servers, Scene, Editor, Post}`，`builtin/runtime_modules` 的手工排序列表退役为"按层级 + 声明依赖自动排序"。详见计划 02。
+`EngineModule`/`RuntimePlugin` 收敛到统一内核语义：保留五态生命周期与 Driver/Manager 依赖规则，补齐 bevy 式 `build/ready/finish/cleanup` 四阶段（支持 GPU 上下文等异步就绪）与 `InitLevel::{Kernel, Services, Scene, Editor, Post}` 初始化层级，`builtin/runtime_modules` 的手工排序列表退役为"按层级 + 声明依赖自动排序"。非网络语义统一使用 `Services`，不恢复已退役的 `Servers` 变体。详见计划 02。
 
 ### D3：feature 矩阵单源，profile 即 feature 预设
 

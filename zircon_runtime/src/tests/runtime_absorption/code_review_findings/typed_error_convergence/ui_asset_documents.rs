@@ -11,8 +11,10 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         include_str!("../../../../asset/importer/ingest/import_ui_icon_asset.rs");
     let wrapper_tests = include_str!("../../../../asset/tests/assets/ui/wrappers.rs");
     let importer_tests = include_str!("../../../../asset/tests/assets/ui/importer.rs");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_15_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
@@ -103,7 +105,6 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     for required in [
         "AssetImportError::UiV2Document",
         "source: source.into()",
-        "UiV2AssetDocumentError::ComponentRequiresZui",
         "UiV2AssetKind::ThemeTokens",
     ] {
         assert!(
@@ -131,17 +132,16 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         "ui_asset_wrappers_preserve_typed_parse_sources",
         "ui_icon_asset_reports_typed_validation_errors",
         "importer_preserves_typed_theme_and_icon_document_sources",
-        "fixture_v2_toml_importer_rejects_component_kind_in_favor_of_zui",
+        "zui_importer_decodes_single_component_asset",
         "importer_decodes_zui_component_assets_from_zui",
         "UiAssetError::ParseToml",
         "UiV2AssetError::ParseToml",
         "UiIconAssetDocumentError::InvalidSourceUri",
-        "UiV2AssetDocumentError::ComponentRequiresZui",
     ] {
         assert!(
             wrapper_tests.contains(required)
                 || importer_tests.contains(required)
-                || wrapper_tests.contains(required),
+                || ui_document_importer.contains(required),
             "UI asset typed-error behavior tests should contain `{required}`"
         );
     }

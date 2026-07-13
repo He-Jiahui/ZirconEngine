@@ -1,3 +1,6 @@
+mod migration;
 mod read;
-mod v1_project_document;
+mod schema;
 mod write;
+
+pub(crate) use schema::current_dynamic_scene_header;

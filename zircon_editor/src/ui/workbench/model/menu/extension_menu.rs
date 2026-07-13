@@ -1,19 +1,17 @@
+use crate::core::commands::{
+    CommandEvalCtx, EditorCommandRegistry, MenuBarModel, MenuItemModel, MenuModel,
+};
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
-use crate::ui::workbench::event::editor_operation_binding;
-
-use super::super::menu_item_model::MenuItemModel;
-use super::super::menu_model::MenuModel;
-use super::super::MenuBarModel;
 
 pub(super) fn append_extension_menus(
     menu_bar: &mut MenuBarModel,
+    command_registry: &EditorCommandRegistry,
     extensions: &[EditorExtensionRegistry],
-    enabled_capabilities: &[String],
+    context: &CommandEvalCtx,
 ) {
     let mut contributions = extensions
         .iter()
         .flat_map(EditorExtensionRegistry::menu_items)
-        .filter(|descriptor| descriptor_enabled(descriptor, enabled_capabilities))
         .collect::<Vec<_>>();
     contributions.sort_by(|left, right| {
         left.priority()
@@ -22,7 +20,7 @@ pub(super) fn append_extension_menus(
     });
 
     for descriptor in contributions {
-        append_extension_menu_item(menu_bar, descriptor);
+        append_extension_menu_item(menu_bar, command_registry, descriptor, context);
     }
 
     for extension in extensions {
@@ -37,13 +35,15 @@ pub(super) fn append_extension_menus(
             }) {
                 continue;
             }
+            let enabled = command_registry
+                .command(operation_path.as_str())
+                .is_some_and(|descriptor| descriptor.is_enabled(context));
             let item = MenuItemModel::leaf(
                 view.display_name(),
                 None,
-                editor_operation_binding(&operation_path),
                 Some(operation_path),
                 None,
-                true,
+                enabled,
             );
             if let Some(menu) = menu_bar
                 .menus
@@ -61,18 +61,12 @@ pub(super) fn append_extension_menus(
     }
 }
 
-fn descriptor_enabled(
+fn append_extension_menu_item(
+    menu_bar: &mut MenuBarModel,
+    command_registry: &EditorCommandRegistry,
     descriptor: &EditorMenuItemDescriptor,
-    enabled_capabilities: &[String],
-) -> bool {
-    descriptor.required_capabilities().iter().all(|required| {
-        enabled_capabilities
-            .iter()
-            .any(|enabled| enabled == required)
-    })
-}
-
-fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMenuItemDescriptor) {
+    context: &CommandEvalCtx,
+) {
     let segments = descriptor
         .path()
         .split('/')
@@ -89,10 +83,12 @@ fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMe
     let item = MenuItemModel::leaf(
         item_label,
         None,
-        editor_operation_binding(descriptor.operation()),
         Some(descriptor.operation().clone()),
         descriptor.shortcut().map(str::to_string),
-        descriptor.enabled(),
+        descriptor.enabled()
+            && command_registry
+                .command(descriptor.operation().as_str())
+                .is_some_and(|command| command.is_enabled(context)),
     );
     let branch_path = &segments[1..segments.len().saturating_sub(1)];
 
@@ -107,10 +103,8 @@ fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMe
             label: menu_label.to_string(),
             items: Vec::new(),
         });
-        menu_bar
-            .menus
-            .last_mut()
-            .expect("just pushed extension menu")
+        let index = menu_bar.menus.len() - 1;
+        &mut menu_bar.menus[index]
     };
     insert_menu_item(&mut menu.items, branch_path, item);
 }

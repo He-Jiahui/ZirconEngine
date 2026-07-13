@@ -10,6 +10,7 @@ use crate::graphics::text::atlas::{
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasSet,
     GlyphAtlasStorageFormat,
 };
+use crate::graphics::text::font::FontDatabase;
 use crate::graphics::text::parallel::raster_pool::{TextRasterWorkTarget, TextRasterWorkerPool};
 
 mod handoff;
@@ -288,6 +289,7 @@ impl<'a, 'text> NativeBitmapAtlasTextArea<'a, 'text> {
 
 pub(super) fn native_bitmap_atlas_frame(
     font_system: &mut FontSystem,
+    font_database: &FontDatabase,
     raster_worker_pool: Option<&TextRasterWorkerPool>,
     source_cache: &mut NativeBitmapAtlasSourceCache,
     retry_state: &mut GlyphAtlasBitmapRetryFrameState,
@@ -329,6 +331,7 @@ pub(super) fn native_bitmap_atlas_frame(
                                 approximate_raster_image_count.saturating_add(1);
                             source_cache.request_worker_image(
                                 font_system,
+                                font_database,
                                 raster_worker_pool,
                                 worker_target,
                                 physical.cache_key,
@@ -340,6 +343,7 @@ pub(super) fn native_bitmap_atlas_frame(
                             let submitted = source_cache
                                 .request_worker_image(
                                     font_system,
+                                    font_database,
                                     raster_worker_pool,
                                     worker_target,
                                     physical.cache_key,

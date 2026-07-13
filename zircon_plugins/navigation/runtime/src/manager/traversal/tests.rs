@@ -1,8 +1,10 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavAvoidanceQuality, NavLinkMotion, NavMeshAgentDescriptor, NavPathPoint, NavPathResult,
     NavPathStatus, NavigationManager, OffMeshTraverseEventKind, AREA_JUMP, AREA_WALKABLE,
     NAV_MESH_AGENT_COMPONENT_TYPE,
+};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity,
 };
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{Mobility, NodeKind};

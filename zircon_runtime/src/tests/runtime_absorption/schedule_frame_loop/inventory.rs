@@ -7,7 +7,7 @@ pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
     "src/dynamic_api/session/menu.rs",
     "src/scene/level_system.rs",
     "src/scene/module/world_driver.rs",
-    "src/scene/ecs/system_stage.rs",
+    "src/core/framework/scene/system_stage.rs",
     "src/scene/ecs/schedule_stage_plan.rs",
     "src/scene/ecs/schedule_runner.rs",
     "src/scene/ecs/schedule_parallel_executor.rs",

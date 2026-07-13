@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::plugin::{PluginFeatureBundleManifest, ProjectPluginSelection};
+use crate::core::framework::project::ProjectPluginSelection;
+use crate::plugin::PluginFeatureBundleManifest;
 
 use super::super::feature_status_record::FeatureStatus;
 use super::super::feature_support::plugin_is_enabled_for_target;

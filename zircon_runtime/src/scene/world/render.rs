@@ -182,8 +182,8 @@ impl World {
                 spot_lights,
                 ambient_lights,
                 rect_lights,
-                baked_lighting: None,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
+                advanced_lighting: Default::default(),
             },
             environment: build_environment_extract(request),
             post_process: build_post_process_extract(
@@ -692,8 +692,8 @@ fn inactive_camera_frame_extract(
             spot_lights: Vec::new(),
             ambient_lights: Vec::new(),
             rect_lights: Vec::new(),
-            baked_lighting: None,
             hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
+            advanced_lighting: Default::default(),
         },
         environment: build_environment_extract(request),
         post_process: build_post_process_extract(

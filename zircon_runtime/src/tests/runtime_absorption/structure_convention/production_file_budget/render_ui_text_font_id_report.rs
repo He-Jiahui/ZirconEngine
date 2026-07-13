@@ -34,7 +34,7 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         ],
     );
     for moved_owner in [
-        "pub(super) struct ScreenSpaceUiTextFontIdReport",
+        "pub(crate) struct ScreenSpaceUiTextFontIdReport",
         "fn resolved_style_for_text_batch(",
         "fn accumulate_text_font_id_report(",
         "fn accumulate_backend_glyphs(",
@@ -53,14 +53,14 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         "screen-space UI text font-id child owns actual backend reporting",
         &font_id_report,
         &[
-            "pub(super) struct ScreenSpaceUiTextFontIdReport",
+            "pub(crate) struct ScreenSpaceUiTextFontIdReport",
             "pub(super) fn accumulate_text_font_id_report",
             "UiResolvedStyle",
             "font_query_for_style",
             "buffer.layout_runs()",
             "font_database.font_face_id(glyph.font_id)",
             "unmapped_glyph_count",
-            "resolve_text_render_mode(UiTextRenderMode::Native, None)",
+            "resolve_ui_text_render_mode(UiTextRenderMode::Native, None)",
         ],
     );
     for moved_report_owner in [

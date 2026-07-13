@@ -21,7 +21,7 @@ use crate::ui::template_runtime::component_adapter::registry::EditorUiComponentA
 
 fn inspector_value_envelope(field_path: &str, value: UiValue) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "inspector.surface_controls",
+        "res://ui/editor/host/inspector_surface_controls.zui",
         field_path.replace('.', "_"),
         UiComponentBindingTarget::inspector("entity://selected", field_path),
         UiComponentEvent::ValueChanged {
@@ -34,7 +34,7 @@ fn inspector_value_envelope(field_path: &str, value: UiValue) -> UiComponentEven
 
 fn inspector_commit_envelope(field_path: &str, value: UiValue) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "inspector.surface_controls",
+        "res://ui/editor/host/inspector_surface_controls.zui",
         field_path.replace('.', "_"),
         UiComponentBindingTarget::inspector("entity://selected", field_path),
         UiComponentEvent::Commit {
@@ -93,7 +93,7 @@ fn command_commit_envelope(command_id: &str) -> UiComponentEventEnvelope {
 
 fn command_commit_envelope_with_value(value: UiValue) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "editor.window.workbench",
+        "res://ui/editor/windows/workbench_window.zui",
         "WorkbenchCommandPalette",
         UiComponentBindingTarget::new("command", "committed_command_id"),
         UiComponentEvent::Commit {
@@ -389,7 +389,7 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
 fn command_component_adapter_dispatches_committed_command_id_through_editor_events() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_command_component_adapter_commit");
-    let envelope = command_commit_envelope("workbench.project.open");
+    let envelope = command_commit_envelope("file.project.open");
 
     let result = harness
         .runtime
@@ -400,7 +400,7 @@ fn command_component_adapter_dispatches_committed_command_id_through_editor_even
     assert!(!result.dirty);
     assert_eq!(
         result.transaction_id.as_deref(),
-        Some("command:workbench.project.open")
+        Some("command:file.project.open")
     );
     assert_eq!(result.mutation_source.as_deref(), Some("command"));
     let journal = harness.runtime.journal();
@@ -446,7 +446,7 @@ fn command_component_adapter_rejects_non_string_command_value() {
 fn command_component_adapter_dispatches_palette_open_command() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_command_component_adapter_palette_open");
-    let envelope = command_commit_envelope("editor.command_palette");
+    let envelope = command_commit_envelope("editor.command.palette");
 
     let result = harness
         .runtime
@@ -539,7 +539,7 @@ fn inspector_component_adapter_rejects_missing_selection_without_mutation() {
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_missing_subject");
     let before = harness.runtime.editor_snapshot().inspector.unwrap().name;
     let envelope = UiComponentEventEnvelope::new(
-        "inspector.surface_controls",
+        "res://ui/editor/host/inspector_surface_controls.zui",
         "NameField",
         UiComponentBindingTarget::new("inspector", "name"),
         UiComponentEvent::ValueChanged {
@@ -625,7 +625,7 @@ fn inspector_component_adapter_rejects_non_value_property_without_mutation() {
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_invalid_property");
     let before = harness.runtime.editor_snapshot().inspector.unwrap();
     let envelope = UiComponentEventEnvelope::new(
-        "inspector.surface_controls",
+        "res://ui/editor/host/inspector_surface_controls.zui",
         "NameField",
         UiComponentBindingTarget::inspector("entity://selected", "name"),
         UiComponentEvent::ValueChanged {

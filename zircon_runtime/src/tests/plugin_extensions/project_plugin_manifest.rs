@@ -1,5 +1,7 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::project::{
+    ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
+};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn project_plugin_manifest_preserves_nested_feature_selections() {

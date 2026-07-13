@@ -1,6 +1,8 @@
 pub const PLUGIN_ID: &str = "ai";
 
 pub mod behavior_tree;
+/// Dense, schema-compiled blackboard storage and slot contracts.
+pub mod blackboard;
 mod capability;
 mod manager;
 mod module;

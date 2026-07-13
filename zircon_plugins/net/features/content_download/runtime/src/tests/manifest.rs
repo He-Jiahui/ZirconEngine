@@ -4,6 +4,8 @@ use zircon_runtime::core::framework::net::{
 
 use crate::net_content_download_runtime_manager;
 
+use super::support::zrpack_hash;
+
 #[test]
 fn content_download_manager_rejects_empty_manifest_before_queueing() {
     let manager = net_content_download_runtime_manager();
@@ -32,14 +34,14 @@ fn content_download_manager_rejects_duplicate_chunk_ids_before_queueing() {
             "https://cdn.example/a",
             0,
             4,
-            "hash-a",
+            zrpack_hash(b"hash-a"),
         ))
         .with_chunk(NetDownloadChunk::new(
             "chunk-duplicate",
             "https://cdn.example/b",
             4,
             4,
-            "hash-b",
+            zrpack_hash(b"hash-b"),
         ));
 
     let rejected = manager.queue_manifest(manifest);
@@ -57,7 +59,7 @@ fn content_download_manager_rejects_invalid_chunk_fields_before_queueing() {
     let manager = net_content_download_runtime_manager();
     let download = NetDownloadId::new(11);
     let manifest = NetDownloadManifest::new(download, "asset://invalid/package").with_chunk(
-        NetDownloadChunk::new("chunk-invalid", "", 0, 0, "hash-invalid"),
+        NetDownloadChunk::new("chunk-invalid", "", 0, 0, zrpack_hash(b"hash-invalid")),
     );
 
     let rejected = manager.queue_manifest(manifest);
@@ -80,7 +82,7 @@ fn content_download_manager_rejects_resume_offsets_before_chunk_start() {
             "https://cdn.example/chunk",
             4,
             8,
-            "hash",
+            zrpack_hash(b"hash"),
         )
         .with_resume_from_byte(3),
     );

@@ -5,13 +5,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{
-    module_descriptor as asset_module_descriptor, AnimationClipAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationSequenceAsset, AnimationSkeletonAsset, AnimationStateAsset,
-    AnimationStateMachineAsset, AssetReference, AssetUri, PhysicsMaterialAsset,
-    SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
-    SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
-    SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset, SceneMobilityAsset,
-    TransformAsset, ASSET_MODULE_NAME,
+    module_descriptor as asset_module_descriptor, AssetReference, AssetUri, PhysicsMaterialAsset,
+    ReferenceResolutionError, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
+    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneEntityAsset, SceneMobilityAsset, TransformAsset, ASSET_MODULE_NAME,
+};
+use zircon_runtime::core::framework::animation::{
+    AnimationClipAsset, AnimationGraphAsset, AnimationGraphNodeAsset, AnimationSequenceAsset,
+    AnimationSkeletonAsset, AnimationStateAsset, AnimationStateMachineAsset,
 };
 use zircon_runtime::core::framework::scene::physics::{
     PhysicsCombineRule, PhysicsMaterialMetadata,
@@ -20,6 +22,8 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::tests::support::env_lock;
 use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;
@@ -77,7 +81,9 @@ fn editor_asset_manager_tracks_scene_animation_and_physics_references() {
     let editor_assets = resolve_editor_asset_manager(&runtime.handle()).unwrap();
 
     let paths = ProjectPaths::from_root(&project_root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -166,52 +172,61 @@ fn editor_asset_manager_tracks_scene_animation_and_physics_references() {
 fn write_animation_reference_project(paths: &ProjectPaths) {
     write_physics_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("physics")
             .join("materials")
             .join("default.physics_material.toml"),
     );
     write_animation_bytes(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("animation")
             .join("hero.skeleton.zranim"),
         skeleton_asset().to_bytes().unwrap(),
     );
     write_animation_bytes(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("animation")
             .join("hero.clip.zranim"),
         clip_asset().to_bytes().unwrap(),
     );
     write_animation_bytes(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("animation")
             .join("hero.sequence.zranim"),
         sequence_asset().to_bytes().unwrap(),
     );
     write_animation_bytes(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("animation")
             .join("hero.graph.zranim"),
         graph_asset().to_bytes().unwrap(),
     );
     write_animation_bytes(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("animation")
             .join("hero.state_machine.zranim"),
         state_machine_asset().to_bytes().unwrap(),
     );
 
-    let scene_path = paths.assets_root().join("scenes").join("main.scene.toml");
+    let scene_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("scenes")
+        .join("main.scene.toml");
     if let Some(parent) = scene_path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
-    fs::write(scene_path, scene_asset().to_toml_string().unwrap()).unwrap();
+    fs::write(
+        scene_path,
+        scene_asset()
+            .to_project_toml_string(persist_test_project_reference)
+            .unwrap(),
+    )
+    .unwrap();
 }
 
 fn write_physics_material(path: PathBuf) {
@@ -289,11 +304,12 @@ fn state_machine_asset() -> AnimationStateMachineAsset {
     AnimationStateMachineAsset {
         name: Some("HeroStateMachine".to_string()),
         entry_state: "Locomotion".to_string(),
-        states: vec![AnimationStateAsset {
-            name: "Locomotion".to_string(),
-            graph: asset_reference("res://animation/hero.graph.zranim"),
-        }],
+        states: vec![AnimationStateAsset::graph_ref(
+            "Locomotion",
+            asset_reference("res://animation/hero.graph.zranim"),
+        )],
         transitions: Vec::new(),
+        layers: Vec::new(),
     }
 }
 
@@ -370,6 +386,31 @@ fn scene_asset() -> SceneAsset {
 
 fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+fn persist_test_project_reference(
+    reference: &AssetReference,
+) -> Result<PersistedAssetReference, ReferenceResolutionError> {
+    match reference.locator.scheme() {
+        ResourceScheme::Builtin => Ok(PersistedAssetReference::builtin(reference.locator.clone())),
+        ResourceScheme::Res => {
+            let path_hint = RelPath::parse(format!("assets/{}", reference.locator.path()))
+                .map_err(|source| ReferenceResolutionError::Path {
+                    path: reference.locator.to_string(),
+                    source,
+                })?;
+            let project_reference = AssetRef::try_new(
+                reference.uuid,
+                path_hint,
+                reference.locator.label().map(str::to_string),
+            )
+            .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
+            Ok(PersistedAssetReference::project(project_reference))
+        }
+        _ => Err(ReferenceResolutionError::UnsupportedScheme {
+            locator: reference.locator.clone(),
+        }),
+    }
 }
 
 fn sorted_strings(mut values: Vec<String>) -> Vec<String> {

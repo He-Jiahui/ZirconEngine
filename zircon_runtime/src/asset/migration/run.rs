@@ -1,0 +1,218 @@
+use std::path::PathBuf;
+
+use zircon_runtime_interface::project::RelPath;
+
+use crate::asset::project::{ProjectManifest, ProjectPaths};
+
+use super::document::{migrate_document, PendingDocument};
+use super::resolver::MigrationResolver;
+use super::scan::{
+    prospective_sidecar_targets, recognized_sources, supported_authoring_files,
+    supported_transaction_targets,
+};
+use super::sidecar::preflight_sidecars;
+use super::transaction::{
+    apply_transaction, detect_pending_transactions, recover_pending_transactions, CommitFault,
+};
+use super::{
+    AssetMigrationChange, AssetMigrationError, AssetMigrationIssue, AssetMigrationIssueKind,
+    AssetMigrationMode, AssetMigrationOptions, AssetMigrationReport,
+};
+
+pub fn migrate_project_assets(
+    options: AssetMigrationOptions,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(options, CommitFault::Never)
+}
+
+fn migrate_project_assets_inner(
+    options: AssetMigrationOptions,
+    commit_fault: CommitFault,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    let paths = ProjectPaths::from_root(&options.project_root).map_err(|source| {
+        AssetMigrationError::ProjectRoot {
+            path: options.project_root.clone(),
+            source,
+        }
+    })?;
+    let manifest = ProjectManifest::load(paths.manifest_path()).map_err(|source| {
+        AssetMigrationError::Manifest {
+            path: paths.manifest_path().to_path_buf(),
+            source,
+        }
+    })?;
+    let roots = migration_roots(&paths, &manifest.asset_roots);
+    let root_paths = roots
+        .iter()
+        .map(|(_, path)| path.clone())
+        .collect::<Vec<_>>();
+    let mut report = AssetMigrationReport::new(options.mode);
+    let recognized =
+        recognized_sources(&root_paths).map_err(|source| AssetMigrationError::Scan {
+            path: paths.root().to_path_buf(),
+            source,
+        })?;
+    let mut recovery_targets =
+        supported_transaction_targets(&root_paths).map_err(|source| AssetMigrationError::Scan {
+            path: paths.root().to_path_buf(),
+            source,
+        })?;
+    recovery_targets.extend(prospective_sidecar_targets(&recognized));
+    recovery_targets.sort();
+    recovery_targets.dedup();
+    let pending_recovery =
+        detect_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
+    if options.mode == AssetMigrationMode::DryRun {
+        for journal in pending_recovery {
+            report.push_issue(AssetMigrationIssue::new(
+                AssetMigrationIssueKind::PendingRecovery,
+                Some(journal),
+                "pending migration recovery requires apply mode",
+            ));
+        }
+    } else if !pending_recovery.is_empty() {
+        recover_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
+    }
+    let sidecars = match preflight_sidecars(&root_paths, &recognized) {
+        Ok(sidecars) => sidecars,
+        Err(issue) => {
+            report.push_issue(issue);
+            return Ok(report);
+        }
+    };
+    let files =
+        supported_authoring_files(&root_paths).map_err(|source| AssetMigrationError::Scan {
+            path: paths.root().to_path_buf(),
+            source,
+        })?;
+    report.set_scanned_files(files.len());
+    let resolver = MigrationResolver::new(&sidecars.index, &roots);
+    let mut pending = sidecars.pending;
+    for document in &pending {
+        report.push_change(AssetMigrationChange::new(document.path.clone(), 0));
+    }
+    for path in files {
+        match migrate_document(&path, &resolver) {
+            Ok(Some(document)) => {
+                report.push_change(AssetMigrationChange::new(
+                    document.path.clone(),
+                    document.reference_count,
+                ));
+                pending.push(document);
+            }
+            Ok(None) => {}
+            Err(issue) => report.push_issue(issue),
+        }
+    }
+    if !report.succeeded() || options.mode == AssetMigrationMode::DryRun {
+        return Ok(report);
+    }
+    apply_transaction(paths.root(), pending, commit_fault)?;
+    report.mark_applied();
+    Ok(report)
+}
+
+fn migration_roots(paths: &ProjectPaths, roots: &[RelPath]) -> Vec<(RelPath, PathBuf)> {
+    roots
+        .iter()
+        .cloned()
+        .map(|root| {
+            let path = paths.asset_root(&root);
+            (root, path)
+        })
+        .collect()
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_commit_fault(
+    options: AssetMigrationOptions,
+    commit_index: usize,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(options, CommitFault::At(commit_index))
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_restore_fault(
+    options: AssetMigrationOptions,
+    commit_index: usize,
+    restore_index: usize,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(
+        options,
+        CommitFault::AtWithRestoreFailure {
+            commit_index,
+            restore_index,
+        },
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_process_interruption(
+    options: AssetMigrationOptions,
+    commit_index: usize,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(options, CommitFault::CrashAfter(commit_index))
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_terminal_interruption(
+    options: AssetMigrationOptions,
+    after_cleanup_state: bool,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(
+        options,
+        if after_cleanup_state {
+            CommitFault::CrashAfterCleanup
+        } else {
+            CommitFault::CrashAfterAllCommitted
+        },
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_rollback_cleanup_fault(
+    options: AssetMigrationOptions,
+    commit_index: usize,
+    fail_journal_delete: bool,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(
+        options,
+        if fail_journal_delete {
+            CommitFault::FailRollbackJournalDelete { commit_index }
+        } else {
+            CommitFault::CrashAfterRollbackCompleted { commit_index }
+        },
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_stage_fault(
+    options: AssetMigrationOptions,
+    document_index: usize,
+    point: u8,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    let fault = match point {
+        0 => CommitFault::FailStageWrite(document_index),
+        1 => CommitFault::FailBackupCopy(document_index),
+        2 => CommitFault::FailRetiredBackupSync(document_index),
+        3 => CommitFault::CrashAfterStaging(document_index),
+        _ => panic!("unknown stage fault point"),
+    };
+    migrate_project_assets_inner(options, fault)
+}
+
+#[cfg(test)]
+pub(crate) fn migrate_project_assets_with_commit_window_fault(
+    options: AssetMigrationOptions,
+    document_index: usize,
+    after_retired_delete: bool,
+) -> Result<AssetMigrationReport, AssetMigrationError> {
+    migrate_project_assets_inner(
+        options,
+        if after_retired_delete {
+            CommitFault::CrashAfterRetiredDelete(document_index)
+        } else {
+            CommitFault::CrashAfterTargetReplace(document_index)
+        },
+    )
+}

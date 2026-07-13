@@ -42,8 +42,6 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = review_guard_status_rows_source();
     let status_maps = format!(
         "{}\n{}\n{}\n{}",
@@ -57,8 +55,6 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
         review_guard_date_map_source()
     );
     let status_doc_child_anchors = status_anchors::status_doc_child_anchors();
-    let status_doc_session_anchors = status_anchors::status_doc_session_anchors();
-
     source_anchors::assert_code_review_findings_status_doc_source_anchors(
         [
             ("Runtime 15 plan", runtime_15_plan.as_str()),
@@ -75,10 +71,5 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
         "status/date expected-slice maps",
         &status_maps,
         status_anchors::STATUS_DOC_MAP_ANCHORS,
-    );
-    assert_contains_all(
-        "runtime architecture session note",
-        &session_note,
-        &status_doc_session_anchors,
     );
 }

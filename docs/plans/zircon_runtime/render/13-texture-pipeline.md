@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
-  - zircon_runtime/src/core/framework/render/image.rs
+  - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_texture_from_asset_tests.rs
   - zircon_plugins/rendering/plugin.toml
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTextureSystem.cpp

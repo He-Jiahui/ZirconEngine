@@ -19,7 +19,7 @@ pub(crate) fn execute_event(
         EditorEvent::WorkbenchMenu(action) => execute_menu_action(controller, &mut shell, action),
         EditorEvent::Layout(command) => execute_layout_command(&mut shell, command),
         EditorEvent::Selection(event) => execute_selection(&mut shell, event),
-        EditorEvent::Asset(event) => execute_asset_event(&mut shell, event),
+        EditorEvent::Asset(event) => execute_asset_event(controller, &mut shell, event),
         EditorEvent::Draft(event) => execute_draft_event(&mut shell, event),
         EditorEvent::Animation(event) => execute_animation_event(&mut shell, event),
         EditorEvent::Inspector(event) => execute_inspector_event(&mut shell, event),

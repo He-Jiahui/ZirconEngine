@@ -79,6 +79,7 @@ impl EntryRunner {
     }
 }
 
+#[cfg(test)]
 fn runtime_entry_app_config_for_session_profile(
     profile: RuntimeSessionProfile,
 ) -> RuntimeEntryAppConfig {

@@ -17,10 +17,10 @@ pub(super) fn material_component_lab_view_descriptor() -> ViewDescriptor {
         ViewContentKind::UiComponentShowcase,
     ))
     .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "editor.window.material_component_lab",
+        "res://ui/editor/material_component_lab.zui",
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "editor.window.material_component_lab",
+        "res://ui/editor/material_component_lab.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,

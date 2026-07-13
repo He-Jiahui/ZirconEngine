@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use crate::core::commands::EditorCommandRegistryHandle;
 use crate::core::context::EditorContext;
-use crate::core::editing::operation_state::EditorOperationState;
 use crate::core::play::{EditorPlayBridge, SharedEditorRuntimePlayModeBackend};
 use crate::scene::viewport::GizmoDragState;
 use crate::ui::workbench::shell_state::WorkbenchShellState;
@@ -13,17 +13,19 @@ use super::EditorManager;
 pub struct EditorHostEventController {
     context: Arc<EditorContext>,
     shell: Arc<WorkbenchShellState>,
-    operations: Arc<EditorOperationState>,
+    commands: EditorCommandRegistryHandle,
     play_bridge: Arc<EditorPlayBridge>,
     gizmo_drag: Arc<GizmoDragState>,
 }
 
 impl EditorHostEventController {
     pub fn new(state: EditorState, manager: Arc<EditorManager>) -> Self {
+        let context = manager.context().clone();
+        let commands = context.commands().clone();
         let controller = Self {
-            context: manager.context().clone(),
+            context,
             shell: Arc::new(WorkbenchShellState::new(state, manager)),
-            operations: Arc::new(EditorOperationState::with_builtin_operations()),
+            commands,
             play_bridge: Arc::new(EditorPlayBridge::new()),
             gizmo_drag: Arc::new(GizmoDragState::default()),
         };
@@ -43,8 +45,8 @@ impl EditorHostEventController {
         &self.shell
     }
 
-    pub(crate) fn operations(&self) -> &EditorOperationState {
-        &self.operations
+    pub(crate) fn commands(&self) -> &EditorCommandRegistryHandle {
+        &self.commands
     }
 
     pub(crate) fn play_bridge(&self) -> &EditorPlayBridge {

@@ -32,38 +32,38 @@ related_code:
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/runtime/src/websocket.rs
   - zircon_plugins/net/features/http/runtime/Cargo.toml
   - zircon_plugins/net/features/http/runtime/src/backend.rs
   - zircon_plugins/net/features/http/runtime/src/feature.rs
   - zircon_plugins/net/features/http/runtime/src/lib.rs
-  - zircon_plugins/net/features/http/runtime/src/tests.rs
+  - zircon_plugins/net/features/http/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/rpc/runtime/Cargo.toml
   - zircon_plugins/net/features/rpc/runtime/src/feature.rs
   - zircon_plugins/net/features/rpc/runtime/src/lib.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager.rs
-  - zircon_plugins/net/features/rpc/runtime/src/tests.rs
+  - zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/replication/runtime/Cargo.toml
   - zircon_plugins/net/features/replication/runtime/src/feature.rs
   - zircon_plugins/net/features/replication/runtime/src/lib.rs
   - zircon_plugins/net/features/replication/runtime/src/manager.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/reliable_udp/runtime/Cargo.toml
   - zircon_plugins/net/features/reliable_udp/runtime/src/feature.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/lib.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/manager.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/websocket/runtime/Cargo.toml
   - zircon_plugins/net/features/websocket/runtime/src/backend.rs
   - zircon_plugins/net/features/websocket/runtime/src/feature.rs
   - zircon_plugins/net/features/websocket/runtime/src/lib.rs
-  - zircon_plugins/net/features/websocket/runtime/src/tests.rs
+  - zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/Cargo.toml
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_plugins/net/features/content_download/runtime/src/lib.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_plugins/net/editor/src/lib.rs
 implementation_files:
   - zircon_runtime/src/core/framework/net/mod.rs

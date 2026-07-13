@@ -15,8 +15,6 @@ fn runtime_15_review_guard_expected_slice_route_metadata_route_mounts_folder_bac
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     for (literal, mirrored) in [
         (
@@ -60,7 +58,6 @@ fn runtime_15_review_guard_expected_slice_route_metadata_route_mounts_folder_bac
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,

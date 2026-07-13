@@ -1,6 +1,7 @@
+use crate::core::framework::project::ExportPackagingStrategy;
 use crate::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginFeatureBundleManifest,
-    PluginFeatureDependency, PluginModuleManifest,
+    PluginDistributionManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
+    PluginModuleManifest,
 };
 
 use super::rows::SoundFeatureRow;

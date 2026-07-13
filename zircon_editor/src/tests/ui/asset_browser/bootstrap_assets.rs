@@ -160,7 +160,6 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     let sources_scroll_body = find_node(&nodes, "AssetBrowserSourcesScrollBody");
     let content = find_node(&nodes, "AssetBrowserContentPanel");
     let table_header = find_node(&nodes, "WorkbenchAssetBrowserTableHeader");
-    let table_row = find_node(&nodes, "WorkbenchAssetBrowserAssetRow01");
     let details = find_node(&nodes, "AssetBrowserDetailsPanel");
     let details_title = find_node(&nodes, "AssetBrowserDetailsHeaderTitleText");
     let details_header = find_node(&nodes, "AssetBrowserDetailsHeaderPanel");
@@ -231,11 +230,7 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         ["Name", "Type", "Size", "Rev"],
         "asset table headers should use declared cells instead of whitespace-split text"
     );
-    assert_eq!(
-        shared_string_model_values(&table_row.options),
-        ["Empty Asset", "Asset", "0KB", "pending"],
-        "asset table rows should carry four explicit cells for stable retained-host table painting"
-    );
+    assert_control_absent(&nodes, "WorkbenchAssetBrowserAssetRow01");
     assert_eq!(details_title.text.to_string(), "Details");
     assert!(!details_header.selected);
     assert_eq!(details_preview.role.to_string(), "Panel");
@@ -435,6 +430,10 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
                 display_name: "workbench_page_chrome.zui".to_string(),
                 locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
                 kind: Some(ResourceKind::UiLayout),
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::UiLayout,
+                    ),
                 ..AssetSelectionSnapshot::default()
             },
             ..AssetWorkspaceSnapshot::default()
@@ -470,7 +469,8 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     let content_header_path = find_node(&nodes, "AssetBrowserContentHeaderPathText");
     let table_panel = find_node(&nodes, "AssetBrowserAssetTablePanel");
     let table_header = find_node(&nodes, "WorkbenchAssetBrowserTableHeader");
-    let table_row04 = find_node(&nodes, "WorkbenchAssetBrowserAssetRow04");
+    let table_row01 = find_node(&nodes, "WorkbenchAssetBrowserAssetRow01");
+    assert_control_absent(&nodes, "WorkbenchAssetBrowserAssetRow02");
     let content_preview_card = find_node(&nodes, "AssetBrowserContentPreviewCard");
     let content_preview_name = find_node(&nodes, "AssetBrowserContentPreviewName");
     let content_preview_name_continuation =
@@ -560,7 +560,7 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
             "AssetBrowserPreviewLocatorText",
             "AssetBrowserPreviewKindText",
             "AssetBrowserPreviewIdentityText",
-            "AssetBrowserPreviewAdapterText",
+            "AssetBrowserPreviewToolkitText",
             "AssetBrowserPreviewMetaPathText",
             "AssetBrowserPreviewDiagnosticsText",
         ],
@@ -606,7 +606,7 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
     assert_frame_value(
         "compact table panel closes on last visible row",
         table_panel.frame.y + table_panel.frame.height
-            - (table_row04.frame.y + table_row04.frame.height),
+            - (table_row01.frame.y + table_row01.frame.height),
         0.0,
     );
     assert_eq!(
@@ -619,8 +619,8 @@ fn asset_browser_projection_compacts_preview_utility_for_short_viewport() {
         1,
         "compact table panel should not leave a second visible projected container"
     );
-    assert!(table_row04.frame.height <= 30.0);
-    assert!(content_preview_card.frame.y >= table_row04.frame.y + table_row04.frame.height + 8.0);
+    assert!(table_row01.frame.height <= 30.0);
+    assert!(content_preview_card.frame.y >= table_row01.frame.y + table_row01.frame.height + 8.0);
     assert!(
         content_preview_card.frame.y + content_preview_card.frame.height
             <= content_panel.frame.y + content_panel.frame.height + FRAME_EPSILON
@@ -698,6 +698,9 @@ fn sample_asset(
         file_name: display_name.to_string(),
         extension: String::new(),
         kind,
+        asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            kind,
+        ),
         preview_artifact_path: String::new(),
         dirty: false,
         diagnostics: Vec::new(),

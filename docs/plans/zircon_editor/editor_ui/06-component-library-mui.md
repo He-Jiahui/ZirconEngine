@@ -67,7 +67,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/text_fields.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/tests/render_dialog.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime_interface/src/ui/component/state.rs
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime_interface/src/ui/component/descriptor
@@ -420,8 +420,9 @@ pub enum UiTreeViewCommand {               // editor 经 route id 收到的语�
 
 ## 状态与产出记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`06/2026-07-09-component-library-mui-output-records.md`](06/2026-07-09-component-library-mui-output-records.md)
+- 当前失败交接（`open / 待修复`）：[`06/failure-2026-07-11-mui-native-painter-contract-drift.md`](06/failure-2026-07-11-mui-native-painter-contract-drift.md)

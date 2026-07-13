@@ -83,6 +83,11 @@ pub enum UiDispatchEffect {
     RequestClipboard {
         request: UiClipboardRequest,
     },
+    /// Requests host-side activation of a parser-approved rich-text link.
+    RequestLinkActivation {
+        target: UiNodeId,
+        href: String,
+    },
     DirtyRedraw {
         target: UiNodeId,
         dirty: UiDirtyFlags,

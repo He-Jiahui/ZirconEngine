@@ -99,7 +99,8 @@ impl ShaderVariantCacheDisk {
             .map(PathBuf::from)
             .unwrap_or_else(|| {
                 project_root
-                    .join(".zircon-cache")
+                    .join(".zircon")
+                    .join("cache")
                     .join(SHADER_VARIANT_CACHE_DIR)
             })
     }

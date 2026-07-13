@@ -38,21 +38,20 @@ pub(crate) fn assets_activity_pane_data(
     } else {
         snapshot.selection.locator.clone()
     };
-    let selection_kind = snapshot
-        .selection
-        .kind
-        .map(resource_kind_label)
-        .unwrap_or("Unknown Type")
-        .to_string();
+    let selection_kind = if snapshot.selection.asset_type.display_name.is_empty() {
+        "Unknown Type".to_string()
+    } else {
+        snapshot.selection.asset_type.display_name.clone()
+    };
     let selection_identity = snapshot
         .selection
         .uuid
         .clone()
         .unwrap_or_else(|| "No UUID".to_string());
-    let selection_adapter = if snapshot.selection.adapter_key.is_empty() {
-        "No adapter".to_string()
+    let selection_toolkit = if snapshot.selection.toolkit_view_id.is_empty() {
+        "No toolkit".to_string()
     } else {
-        snapshot.selection.adapter_key.clone()
+        snapshot.selection.toolkit_view_id.clone()
     };
     let selection_meta_path = if snapshot.selection.meta_path.is_empty() {
         "No meta path".to_string()
@@ -103,8 +102,8 @@ pub(crate) fn assets_activity_pane_data(
         selection_identity,
     );
     text_overrides.insert(
-        "AssetsActivityPreviewAdapterText".to_string(),
-        selection_adapter,
+        "AssetsActivityPreviewToolkitText".to_string(),
+        selection_toolkit,
     );
     text_overrides.insert(
         "AssetsActivityPreviewMetaPathText".to_string(),
@@ -191,38 +190,6 @@ pub(crate) fn assets_activity_pane_data(
 
     AssetsActivityPaneViewData {
         nodes: model_rc(nodes),
-    }
-}
-
-fn resource_kind_label(kind: zircon_runtime_interface::resource::ResourceKind) -> &'static str {
-    use zircon_runtime_interface::resource::ResourceKind;
-    match kind {
-        ResourceKind::Texture => "Texture",
-        ResourceKind::Material => "Material",
-        ResourceKind::Scene => "Scene",
-        ResourceKind::Model => "Model",
-        ResourceKind::Mesh => "Mesh",
-        ResourceKind::Shader => "Shader",
-        ResourceKind::Sound => "Sound",
-        ResourceKind::Font => "Font",
-        ResourceKind::PhysicsMaterial => "PhysicsMaterial",
-        ResourceKind::NavMesh => "NavMesh",
-        ResourceKind::NavigationSettings => "NavigationSettings",
-        ResourceKind::Terrain => "Terrain",
-        ResourceKind::TerrainLayerStack => "TerrainLayerStack",
-        ResourceKind::TileSet => "TileSet",
-        ResourceKind::TileMap => "TileMap",
-        ResourceKind::Prefab => "Prefab",
-        ResourceKind::AnimationSkeleton => "AnimationSkeleton",
-        ResourceKind::AnimationClip => "AnimationClip",
-        ResourceKind::AnimationSequence => "AnimationSequence",
-        ResourceKind::AnimationGraph => "AnimationGraph",
-        ResourceKind::AnimationStateMachine => "AnimationStateMachine",
-        ResourceKind::UiLayout => "UiLayout",
-        ResourceKind::UiWidget => "UiWidget",
-        ResourceKind::UiStyle => "UiStyle",
-        ResourceKind::Data => "Data",
-        ResourceKind::MaterialGraph => "MaterialGraph",
     }
 }
 
@@ -314,7 +281,7 @@ fn apply_assets_activity_visual_state(
             "AssetsActivityPreviewLocatorText",
             "AssetsActivityPreviewKindText",
             "AssetsActivityPreviewIdentityText",
-            "AssetsActivityPreviewAdapterText",
+            "AssetsActivityPreviewToolkitText",
             "AssetsActivityPreviewMetaPathText",
             "AssetsActivityPreviewDiagnosticsText",
         ],

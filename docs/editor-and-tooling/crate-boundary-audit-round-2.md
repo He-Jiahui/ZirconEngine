@@ -1,52 +1,52 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_manager/src/records/asset.rs
-  - zircon_manager/src/records/mod.rs
-  - zircon_manager/src/lib.rs
-  - zircon_manager/src/handles.rs
-  - zircon_manager/src/traits.rs
-  - zircon_manager/src/service_names.rs
-  - zircon_manager/src/tests.rs
-  - zircon_scene_protocol/Cargo.toml
-  - zircon_scene_protocol/src/lib.rs
-  - zircon_scene_protocol/src/world_handle.rs
-  - zircon_scene_protocol/src/level_summary.rs
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/level_system.rs
-  - zircon_scene/src/render_extract/mod.rs
-  - zircon_scene/src/module/default_level_manager.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/asset/pipeline/manager/records
+  - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
+  - zircon_runtime/src/core/manager/mod.rs
+  - zircon_runtime/src/core/framework
+  - zircon_runtime/src/core/framework
+  - zircon_runtime/src/core/manager/service_names.rs
+  - zircon_runtime/src/core/manager/tests.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/core/framework/scene
+  - zircon_runtime/src/core/framework/scene/world_handle.rs
+  - zircon_runtime/src/core/framework/scene/level_summary.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_manager_contract.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/tests/boundary.rs
-  - zircon_asset/src/editor/records.rs
-  - zircon_asset/src/editor/manager.rs
-  - zircon_asset/src/pipeline/manager/records/mod.rs
-  - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
-  - zircon_asset/src/pipeline/manager/records/status_record.rs
-  - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/tests
+  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/asset_status_record.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/status_record.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/metadata_import_state.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
-  - zircon_asset/src/pipeline/manager/registration/service_names.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs
-  - zircon_asset/src/tests/editor/boundary.rs
-  - zircon_asset/src/tests/editor/manager.rs
-  - zircon_asset/src/tests/pipeline/manager.rs
-  - zircon_resource/src/marker.rs
-  - zircon_resource/src/record/resource_event.rs
-  - zircon_resource/src/record/resource_event_kind.rs
-  - zircon_resource/src/record/resource_record.rs
-  - zircon_framework/src/input/mod.rs
-  - zircon_framework/src/input/input_button.rs
-  - zircon_framework/src/input/input_event.rs
-  - zircon_framework/src/input/input_event_record.rs
-  - zircon_framework/src/input/input_snapshot.rs
+  - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+  - zircon_editor/src/tests/host/manager/mod.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
+  - zircon_runtime_interface/src/resource/marker.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
+  - zircon_runtime_interface/src/resource/resource_event_kind.rs
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/framework/input/mod.rs
+  - zircon_runtime/src/core/framework/input/input_button.rs
+  - zircon_runtime/src/core/framework/input/input_event.rs
+  - zircon_runtime/src/core/framework/input/input_event_record.rs
+  - zircon_runtime/src/core/framework/input/input_snapshot.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/builtin/mod.rs
@@ -69,10 +69,10 @@ related_code:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/common.rs
+  - zircon_editor/src/ui/host/editor_event_execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
@@ -88,48 +88,48 @@ related_code:
   - zircon_editor/src/tests/host/resource_access/mod.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/mod.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/tests/mod.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - Cargo.toml
-  - zircon_manager/src/records/asset.rs
-  - zircon_manager/Cargo.toml
-  - zircon_manager/src/records/mod.rs
-  - zircon_manager/src/lib.rs
-  - zircon_manager/src/handles.rs
-  - zircon_manager/src/traits.rs
-  - zircon_scene_protocol/Cargo.toml
-  - zircon_scene_protocol/src/lib.rs
-  - zircon_scene_protocol/src/world_handle.rs
-  - zircon_scene_protocol/src/level_summary.rs
-  - zircon_scene/Cargo.toml
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/level_system.rs
-  - zircon_scene/src/render_extract/mod.rs
-  - zircon_scene/src/module/default_level_manager.rs
-  - zircon_runtime/src/scene/module/level_manager_contract.rs
-  - zircon_scene/src/module/level_manager_lifecycle.rs
-  - zircon_scene/src/module/level_manager_project_io.rs
-  - zircon_scene/src/tests/boundary.rs
-  - zircon_framework/Cargo.toml
-  - zircon_framework/src/input/mod.rs
-  - zircon_framework/src/input/input_button.rs
-  - zircon_framework/src/input/input_event.rs
-  - zircon_framework/src/input/input_event_record.rs
-  - zircon_framework/src/input/input_snapshot.rs
+  - zircon_runtime/src/asset/pipeline/manager/records
   - zircon_runtime/Cargo.toml
-  - zircon_asset/src/editor/records.rs
-  - zircon_asset/src/editor/manager.rs
-  - zircon_asset/src/pipeline/manager/records/mod.rs
-  - zircon_asset/src/pipeline/manager/records/asset_status_record.rs
-  - zircon_asset/src/pipeline/manager/records/status_record.rs
-  - zircon_asset/src/pipeline/manager/records/metadata_import_state.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
+  - zircon_runtime/src/core/manager/mod.rs
+  - zircon_runtime/src/core/framework
+  - zircon_runtime/src/core/framework
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/core/framework/scene
+  - zircon_runtime/src/core/framework/scene/world_handle.rs
+  - zircon_runtime/src/core/framework/scene/level_summary.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_contract.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/scene/module/level_manager_project_io.rs
+  - zircon_runtime/src/scene/tests
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/core/framework/input/mod.rs
+  - zircon_runtime/src/core/framework/input/input_button.rs
+  - zircon_runtime/src/core/framework/input/input_event.rs
+  - zircon_runtime/src/core/framework/input/input_event_record.rs
+  - zircon_runtime/src/core/framework/input/input_snapshot.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/asset_status_record.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/status_record.rs
+  - zircon_runtime/src/asset/pipeline/manager/records/metadata_import_state.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
-  - zircon_asset/src/pipeline/manager/registration/service_names.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/mod.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
@@ -146,11 +146,11 @@ implementation_files:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/common.rs
+  - zircon_editor/src/ui/host/editor_event_execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
@@ -160,8 +160,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_snapshot.rs
-  - zircon_resource/src/record/resource_event.rs
-  - zircon_resource/src/record/resource_event_kind.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
+  - zircon_runtime_interface/src/resource/resource_event_kind.rs
 plan_sources:
   - user: 2026-04-19 先根据Runtime吸收层 Editor吸收的规则迁移，外部目录干净化
   - user: 2026-04-18 直接转去处理 zircon_graphics 红测，再开一轮更严格的包边界审计标准
@@ -172,7 +172,7 @@ plan_sources:
   - user: 2026-04-18 下一步先做 ResourceStateRecord -> zircon_resource::ResourceState，再处理 ResourceStatusRecord 的 canonical 收口
   - user: 2026-04-18 继续下一步
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_multi_primitive_model --locked -- --nocapture
   - cargo test -p zircon_graphics --locked
   - cargo check --workspace --locked
@@ -250,7 +250,7 @@ doc_type: module-detail
 
 因此，lib test 一开始先死在类型不匹配上，根本没有进入 unified indirect 的断言。
 
-最小修复就是在 [render_scene.rs](../../zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs) 里按新接口解包：
+最小修复就是在 [render_scene.rs](../../zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs) 里按新接口解包：
 
 - `let built_mesh_draws = build_mesh_draws(...)`
 - `let mesh_draws = built_mesh_draws.draws`
@@ -291,7 +291,7 @@ doc_type: module-detail
 
 ### Strong Candidate 1: `AssetRecordKind`
 
-当前 [zircon_manager/src/records/asset.rs](../../zircon_manager/src/records/asset.rs) 里的 `AssetRecordKind` 与 [zircon_resource/src/marker.rs](../../zircon_resource/src/marker.rs) 里的 `ResourceKind` 是一组语义重复的公共枚举：
+当前 [zircon_runtime/src/asset/pipeline/manager/records](../../zircon_runtime/src/asset/pipeline/manager/records) 里的 `AssetRecordKind` 与 [zircon_runtime_interface/src/resource/marker.rs](../../zircon_runtime_interface/src/resource/marker.rs) 里的 `ResourceKind` 是一组语义重复的公共枚举：
 
 - 两者成员集合一致：`Model / Material / Texture / Shader / Scene / UiLayout / UiWidget / UiStyle`
 - 迁移前旧的 pipeline-manager records 投影链每次投影 `AssetMetadata` 时都要把 `AssetKind` 手动映射成 `AssetRecordKind`
@@ -310,9 +310,9 @@ doc_type: module-detail
 
 ### Strong Candidate 2: `PreviewStateRecord`
 
-当前 `PreviewStateRecord` 仍在 [zircon_manager/src/records/asset.rs](../../zircon_manager/src/records/asset.rs)，但它的实际消费面已经明显偏向 asset/editor：
+当前 `PreviewStateRecord` 仍在 [zircon_runtime/src/asset/pipeline/manager/records](../../zircon_runtime/src/asset/pipeline/manager/records)，但它的实际消费面已经明显偏向 asset/editor：
 
-- `zircon_asset/src/editor/manager.rs` 负责把 `PreviewState` 投影成 `PreviewStateRecord`
+- `zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs` 负责把 `PreviewState` 投影成 `PreviewStateRecord`
 - `zircon_editor` 的 asset workspace 和 host tests 通过这组 preview 状态来投影 catalog/details
 - `zircon_manager::traits::AssetManager` / `ResourceManager` 并不直接暴露 preview 生命周期
 
@@ -331,7 +331,7 @@ doc_type: module-detail
 
 ### Watchlist: `zircon_manager::service_names`
 
-[zircon_manager/src/service_names.rs](../../zircon_manager/src/service_names.rs) 现在仍然持有：
+[zircon_runtime/src/core/manager/service_names.rs](../../zircon_runtime/src/core/manager/service_names.rs) 现在仍然持有：
 
 - `ASSET_MANAGER_NAME = "AssetModule.Manager.AssetManager"`
 - `RENDERING_MANAGER_NAME = "GraphicsModule.Manager.RenderingManager"`
@@ -355,7 +355,7 @@ doc_type: module-detail
 
 - [zircon_manager/src/resolver.rs](../../zircon_manager/src/resolver.rs) 的 `resolve_asset_manager` / `resolve_resource_manager` / `resolve_rendering_manager` / `resolve_level_manager` / `resolve_input_manager` 直接把这些常量作为解析协议使用
 - `ManagerResolver::{asset, resource, rendering, level, input}` 这些稳定入口也直接绑定到同一组常量
-- [zircon_asset/src/pipeline/manager/registration/service_names.rs](../../zircon_asset/src/pipeline/manager/registration/service_names.rs)、[zircon_scene/src/module/service_names.rs](../../zircon_scene/src/module/service_names.rs)、[zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs](../../zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs) 当前都不是自定义一份新名字，而是主动 alias `zircon_manager::*_MANAGER_NAME`
+- [zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs](../../zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs)、[zircon_scene/src/module/service_names.rs](../../zircon_scene/src/module/service_names.rs)、[zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs](../../zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs) 当前都不是自定义一份新名字，而是主动 alias `zircon_manager::*_MANAGER_NAME`
 - 上层调用方如 [zircon_app/src/entry/tests/mod.rs](../../zircon_app/src/entry/tests/mod.rs) 直接通过 `zircon_manager::resolve_*` / `ManagerResolver` 消费这组 façade 入口，而不是绕到实现 crate 私有名字上
 
 这意味着如果现在把这些常量“迁回实现域”，真正要改的不是 import 路径，而是：
@@ -383,11 +383,11 @@ doc_type: module-detail
 
 这批最终没有继续保留独立 `zircon_input` / `zircon_input_protocol` crate，而是进一步收束为 `zircon_framework::input` 契约 + `zircon_runtime::input` 实现：
 
-- [zircon_framework/src/input/mod.rs](../../zircon_framework/src/input/mod.rs)、[zircon_framework/src/input/input_button.rs](../../zircon_framework/src/input/input_button.rs)、[zircon_framework/src/input/input_event.rs](../../zircon_framework/src/input/input_event.rs)、[zircon_framework/src/input/input_event_record.rs](../../zircon_framework/src/input/input_event_record.rs)、[zircon_framework/src/input/input_snapshot.rs](../../zircon_framework/src/input/input_snapshot.rs) 成为这组类型的唯一 owner
-- [zircon_manager/src/traits.rs](../../zircon_manager/src/traits.rs) 只保留 `InputManager` façade trait，本身改为直接依赖 `zircon_framework`
+- [zircon_runtime/src/core/framework/input/mod.rs](../../zircon_runtime/src/core/framework/input/mod.rs)、[zircon_runtime/src/core/framework/input/input_button.rs](../../zircon_runtime/src/core/framework/input/input_button.rs)、[zircon_runtime/src/core/framework/input/input_event.rs](../../zircon_runtime/src/core/framework/input/input_event.rs)、[zircon_runtime/src/core/framework/input/input_event_record.rs](../../zircon_runtime/src/core/framework/input/input_event_record.rs)、[zircon_runtime/src/core/framework/input/input_snapshot.rs](../../zircon_runtime/src/core/framework/input/input_snapshot.rs) 成为这组类型的唯一 owner
+- [zircon_runtime/src/core/framework](../../zircon_runtime/src/core/framework) 只保留 `InputManager` façade trait，本身改为直接依赖 `zircon_framework`
 - `zircon_manager` 根和 `records/mod.rs` 不再 re-export 输入协议类型，旧的 `src/records/input.rs` 已删除
 - [zircon_runtime/src/input/mod.rs](../../zircon_runtime/src/input/mod.rs) 继续作为 runtime 输入子系统的公共入口 re-export 这组协议；[zircon_runtime/src/input/runtime/default_input_manager.rs](../../zircon_runtime/src/input/runtime/default_input_manager.rs) 与 [zircon_runtime/src/input/runtime/input_state.rs](../../zircon_runtime/src/input/runtime/input_state.rs) 改为消费 crate-local re-export
-- [zircon_app/src/entry/runtime_entry_app/application_handler.rs](../../zircon_app/src/entry/runtime_entry_app/application_handler.rs) 改成从 `zircon_runtime::input` 导入 `InputButton` / `InputEvent`，runtime 不再从 `zircon_manager` 获取输入协议类型
+- [zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs](../../zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs) 改成从 `zircon_runtime::input` 导入 `InputButton` / `InputEvent`，runtime 不再从 `zircon_manager` 获取输入协议类型
 
 这样 `service_names` 仍保留在 façade contract 层，而输入协议则下沉为真正的共享协议层，两者边界不再混淆。
 
@@ -414,7 +414,7 @@ doc_type: module-detail
 
 - 新增 [zircon_runtime/src/script/vm/capability_set.rs](../../zircon_runtime/src/script/vm/capability_set.rs) 和 [zircon_runtime/src/script/vm/handles.rs](../../zircon_runtime/src/script/vm/handles.rs)
 - [zircon_runtime/src/script/vm/mod.rs](../../zircon_runtime/src/script/vm/mod.rs) 与 [zircon_runtime/src/script/mod.rs](../../zircon_runtime/src/script/mod.rs) 改为由脚本子系统根级 re-export `CapabilitySet` / `HostHandle` / `PluginSlotId`
-- [zircon_manager/src/lib.rs](../../zircon_manager/src/lib.rs)、[zircon_manager/src/records/mod.rs](../../zircon_manager/src/records/mod.rs)、[zircon_manager/src/handles.rs](../../zircon_manager/src/handles.rs) 已删除这组 public surface；旧的 `src/records/capability_set.rs` 已删除
+- [zircon_runtime/src/core/manager/mod.rs](../../zircon_runtime/src/core/manager/mod.rs)、[zircon_runtime/src/asset/pipeline/manager/records/mod.rs](../../zircon_runtime/src/asset/pipeline/manager/records/mod.rs)、[zircon_runtime/src/core/framework](../../zircon_runtime/src/core/framework) 已删除这组 public surface；旧的 `src/records/capability_set.rs` 已删除
 - `zircon_runtime::script` 子树内部实现不再从 `zircon_manager` 反向取脚本私有类型；随着独立 `zircon_script` package 删除，这组能力现在只经 runtime script surface 暴露
 
 这批收口以后，脚本 VM 的 manifest/state/hot-reload 协议终于回到了脚本子系统自己名下；`zircon_manager` 继续只保留真正的 manager service contract surface。
@@ -429,11 +429,11 @@ doc_type: module-detail
 
 因此这批最终不是只搬 DTO，而是整条协议线一起迁回 `zircon_asset`：
 
-- 新增 [zircon_asset/src/pipeline/manager/asset_manager/mod.rs](../../zircon_asset/src/pipeline/manager/asset_manager/mod.rs)，并把 trait/handle/resolver 继续下沉到 [zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager.rs)、[zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs) 与 [zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs](../../zircon_asset/src/pipeline/manager/asset_manager/resolve_asset_manager.rs)
-- [zircon_asset/src/pipeline/manager/mod.rs](../../zircon_asset/src/pipeline/manager/mod.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
+- 新增 [zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs)，并把 trait/handle/resolver 继续下沉到 [zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs)、[zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs) 与 [zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs)
+- [zircon_asset/src/pipeline/manager/mod.rs](../../zircon_asset/src/pipeline/manager/mod.rs) 与 [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 继续持有 `AssetModule`、`ASSET_MODULE_NAME`、`ASSET_MANAGER_NAME`、`RESOURCE_MANAGER_NAME`、`PROJECT_ASSET_MANAGER_NAME` 与 `EDITOR_ASSET_MANAGER_NAME`
 - [zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs](../../zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs) 的 `subscribe_asset_changes()` 已统一返回 `ChannelReceiver<zircon_asset::watch::AssetChange>`
-- `zircon_manager` 已删除 `AssetManager` trait、asset/project records、handle、resolver 和 service-name surface；旧的 [zircon_manager/src/records/asset.rs](../../zircon_manager/src/records/asset.rs) 与 [zircon_manager/src/records/project.rs](../../zircon_manager/src/records/project.rs) 已删除
+- `zircon_manager` 已删除 `AssetManager` trait、asset/project records、handle、resolver 和 service-name surface；旧的 [zircon_runtime/src/asset/pipeline/manager/records](../../zircon_runtime/src/asset/pipeline/manager/records) 与 [zircon_manager/src/records/project.rs](../../zircon_manager/src/records/project.rs) 已删除
 
 这说明 `AssetPipelineInfo` / `ProjectInfo` 已经随 canonical owner 一起回到 asset 子系统，不再属于剩余 watchlist。
 
@@ -447,7 +447,7 @@ doc_type: module-detail
 它们的问题和上一轮 `InputButton` / `InputEvent` 很像：
 
 1. 这组类型只服务 `LevelManager` 协议与 `zircon_scene` 运行时实现
-2. 当前真实生产/消费面只在 [zircon_scene/src/module/default_level_manager.rs](../../zircon_runtime/src/scene/module/default_level_manager.rs)、[zircon_runtime/src/scene/module/level_manager_contract.rs](../../zircon_runtime/src/scene/module/level_manager_contract.rs)、[zircon_scene/src/level_system.rs](../../zircon_runtime/src/scene/level_system.rs) 与 [zircon_scene/src/render_extract/mod.rs](../../zircon_scene/src/render_extract/mod.rs)
+2. 当前真实生产/消费面只在 [zircon_runtime/src/scene/module/default_level_manager.rs](../../zircon_runtime/src/scene/module/default_level_manager.rs)、[zircon_runtime/src/scene/module/level_manager_contract.rs](../../zircon_runtime/src/scene/module/level_manager_contract.rs)、[zircon_runtime/src/scene/level_system.rs](../../zircon_runtime/src/scene/level_system.rs) 与 [zircon_runtime/src/scene/render_extract/mod.rs](../../zircon_runtime/src/scene/render_extract/mod.rs)
 3. `zircon_manager` 只是顺手持有了 scene 专属 handle 和 summary，本身并不是这组协议的实现 owner
 
 但它们不能直接迁到 `zircon_scene`，否则会形成依赖环：
@@ -455,13 +455,13 @@ doc_type: module-detail
 - `zircon_scene` 依赖 `zircon_manager::LevelManager`
 - 如果 `zircon_manager` 再反向依赖 `zircon_scene` 来拿 `WorldHandle` / `LevelSummary`，就会出现 cycle
 
-因此最终方案是新增独立协议层 [zircon_scene_protocol/src/lib.rs](../../zircon_scene_protocol/src/lib.rs)：
+因此最终方案是新增独立协议层 [zircon_runtime/src/core/framework/scene](../../zircon_runtime/src/core/framework/scene)：
 
-- [zircon_scene_protocol/src/world_handle.rs](../../zircon_scene_protocol/src/world_handle.rs) 成为 `WorldHandle` 的唯一 owner
-- [zircon_scene_protocol/src/level_summary.rs](../../zircon_scene_protocol/src/level_summary.rs) 成为 `LevelSummary` 的唯一 owner
-- [zircon_manager/src/lib.rs](../../zircon_manager/src/lib.rs) 不再 re-export `WorldHandle` / `LevelSummary`；旧的 [zircon_manager/src/handles.rs](../../zircon_manager/src/handles.rs) 与 [zircon_manager/src/records/level.rs](../../zircon_manager/src/records/level.rs) 已删除
-- [zircon_manager/src/traits.rs](../../zircon_manager/src/traits.rs) 改为直接依赖 `zircon_scene_protocol`
-- [zircon_scene/src/lib.rs](../../zircon_scene/src/lib.rs) 继续从 scene 子系统根级 re-export `WorldHandle` / `LevelSummary`，运行时实现不再从 `zircon_manager` 反向取 scene 协议类型
+- [zircon_runtime/src/core/framework/scene/world_handle.rs](../../zircon_runtime/src/core/framework/scene/world_handle.rs) 成为 `WorldHandle` 的唯一 owner
+- [zircon_runtime/src/core/framework/scene/level_summary.rs](../../zircon_runtime/src/core/framework/scene/level_summary.rs) 成为 `LevelSummary` 的唯一 owner
+- [zircon_runtime/src/core/manager/mod.rs](../../zircon_runtime/src/core/manager/mod.rs) 不再 re-export `WorldHandle` / `LevelSummary`；旧的 [zircon_runtime/src/core/framework](../../zircon_runtime/src/core/framework) 与 [zircon_manager/src/records/level.rs](../../zircon_manager/src/records/level.rs) 已删除
+- [zircon_runtime/src/core/framework](../../zircon_runtime/src/core/framework) 改为直接依赖 `zircon_scene_protocol`
+- [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 继续从 scene 子系统根级 re-export `WorldHandle` / `LevelSummary`，运行时实现不再从 `zircon_manager` 反向取 scene 协议类型
 
 这样 `zircon_manager` 继续只保留 `LevelManager` façade trait，自身不再错误持有 scene 专属协议模型。
 
@@ -469,7 +469,7 @@ doc_type: module-detail
 
 - [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/scene/module/mod.rs](../../zircon_runtime/src/scene/module/mod.rs) 现在持有 `SceneModule`、`SCENE_MODULE_NAME`、`DEFAULT_LEVEL_MANAGER_NAME`、`LEVEL_MANAGER_NAME`、`create_default_level()` 与 `load_level_asset()`
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 现在持有 `AssetModule`、`module_descriptor()` 与整组 asset/resource manager service names
-- [zircon_scene/src/lib.rs](../../zircon_scene/src/lib.rs) 与 [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 则继续收窄到 world authority / asset API 本体，不再把 module owner、service-name 和 bootstrap helper 混在领域 root surface
+- [zircon_runtime/src/scene/mod.rs](../../zircon_runtime/src/scene/mod.rs) 与 [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 则继续收窄到 world authority / asset API 本体，不再把 module owner、service-name 和 bootstrap helper 混在领域 root surface
 
 ### Not Promoted: `zircon_ui` Binding / Reflection / Template Protocols
 
@@ -479,7 +479,7 @@ doc_type: module-detail
 
 - [zircon_ui/src/binding/mod.rs](../../zircon_ui/src/binding/mod.rs) 与 [zircon_ui/src/event_ui/mod.rs](../../zircon_ui/src/event_ui/mod.rs) 自己就拥有 binding parser、event manager、reflection store 和 invocation 协议
 - [zircon_ui/src/template/mod.rs](../../zircon_ui/src/template/mod.rs) 自己拥有 template loader、validator、asset loader、document compiler 和 surface builder
-- `zircon_ui` crate 内部测试直接覆盖这组能力：[zircon_ui/src/tests/binding.rs](../../zircon_ui/src/tests/binding.rs)、[zircon_ui/src/tests/event_manager.rs](../../zircon_ui/src/tests/event_manager.rs)、[zircon_ui/src/tests/template.rs](../../zircon_ui/src/tests/template.rs)、[zircon_ui/src/tests/asset.rs](../../zircon_ui/src/tests/asset.rs)
+- `zircon_ui` crate 内部测试直接覆盖这组能力：[zircon_ui/src/tests/binding.rs](../../zircon_ui/src/tests/binding.rs)、[zircon_ui/src/tests/event_manager.rs](../../zircon_ui/src/tests/event_manager.rs)、[zircon_ui/src/tests/template.rs](../../zircon_ui/src/tests/template.rs)、[zircon_runtime/src/ui/tests/asset.rs](../../zircon_runtime/src/ui/tests/asset.rs)
 
 也就是说，虽然 editor 是这组协议的重度调用方，但权威实现和验证目前仍然在 `zircon_ui` 子系统内部。这更像“UI runtime/authoring 共用协议”而不是“editor-only 语义误挂在 runtime crate”。因此这轮先不升级它，继续留在 watchlist。
 
@@ -498,10 +498,10 @@ doc_type: module-detail
 
 - `RenderingBackendInfo`
   原因：它是 `RenderingManager` façade 的能力摘要，不携带 editor-specific 或 preview-specific 语义；而且这轮已经补齐了“它不是空心壳”的证据链：
-  - [zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs](../../zircon_runtime/src/graphics/host/module_host/rendering_manager/manager_backend_info.rs) 为 `WgpuRenderingManager` 提供了实际 `backend_info()` 实现
+  - [zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs](../../zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs) 为 `WgpuRenderingManager` 提供了实际 `backend_info()` 实现
   - [zircon_runtime/src/graphics/host/module_host/module_registration/module_descriptor.rs](../../zircon_runtime/src/graphics/host/module_host/module_registration/module_descriptor.rs) 把它注册成 `GraphicsModule.Manager.RenderingManager`
   - [zircon_app/src/entry/tests/builtin_engine_entry.rs](../../zircon_app/src/entry/tests/builtin_engine_entry.rs) 仍通过 `resolve_rendering_manager(...).backend_info()` 验证 bootstrap 合同
-  - [docs/assets-and-rendering/srp-rhi-render-server-architecture.md](../assets-and-rendering/srp-rhi-render-server-architecture.md) 与 [docs/assets-and-rendering/index.md](../assets-and-rendering/index.md) 也已经把它放在“`RenderingManager` 向纯兼容桥继续收束”的语境里
+  - [docs/assets-and-rendering/render-framework-architecture.md](../assets-and-rendering/srp-rhi-render-server-architecture.md) 与 [docs/assets-and-rendering/index.md](../assets-and-rendering/index.md) 也已经把它放在“`RenderingManager` 向纯兼容桥继续收束”的语境里
 
   现阶段它更像“仍被消费的 façade compat contract”，不是应该立即下沉到 graphics 内部的孤立 DTO。
 
@@ -509,7 +509,7 @@ doc_type: module-detail
 
 这轮避开 `zircon_editor` / `zircon_graphics` 热区继续重扫时，新的高证据候选不是再搬一组实现类型，而是清理 `zircon_asset` 根级错误代持的 foreign surface：
 
-- [zircon_asset/src/lib.rs](../../zircon_asset/src/lib.rs) 当前直接 `pub use zircon_resource::{...}`，把 `ResourceLocator`、`ResourceKind`、`ResourceRecord`、`ResourceState`、`ResourceManager`、marker/type-descriptor/runtime-info 等一整批 raw resource 基础类型重新挂到了 asset crate 根下
+- [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 当前直接 `pub use zircon_resource::{...}`，把 `ResourceLocator`、`ResourceKind`、`ResourceRecord`、`ResourceState`、`ResourceManager`、marker/type-descriptor/runtime-info 等一整批 raw resource 基础类型重新挂到了 asset crate 根下
 - 但这批 raw surface 的 canonical owner 明确还是 `zircon_resource`；`zircon_asset` 自己真正拥有的是 `AssetManager`、project/import/watch/editor asset API，以及基于 resource 基础层再包装出来的 asset 语义
 - 这轮对 workspace 和 `docs/` 的源码扫描里，没有发现任何 `zircon_asset::ResourceLocator`、`zircon_asset::ResourceKind`、`zircon_asset::ResourceRecord`、`zircon_asset::ResourceManager` 等 raw resource 外部消费面；后续补扫确认 `zircon_asset::AssetReference` 仍被 scene/editor/graphics 测试与 helper 代码当作 asset 语义别名消费，因此它应保留为 asset-named alias，而不是与 raw resource surface 一起删除
 - 相反，当前实际代码已经直接使用 canonical owner：
@@ -695,4 +695,4 @@ graphics public owner cutover 在入口侧已经继续收口：
 - `cargo test -p zircon_editor --lib --no-run --locked --offline --target-dir target/codex-shared-b` 本轮没有命中新的 namespace 编译错误，但会在本机现有 Skia 链接环境上失败于 `skparagraph.lib` 缺失；因此这次对 editor-side root-surface 切换的编译证据以 `cargo check --workspace --locked --offline --target-dir target/codex-shared-b` 和该 no-run 命令到 link 阶段为准
 - 当前仓库不存在 `docs/source/` 目录；这轮文档清扫已转为更新 `docs/` 下的 live 总览文档，避免继续沿用过期的 manager-owned asset/scene 表述
 - 本轮没有重新跑 full workspace `--locked` 联测；原因是工作树里的 `Cargo.lock` 已脏，这不在本批边界收口范围内
-- `cargo check -p zircon_editor --lib --offline --target-dir target/tdd-red-editor --message-format short` 目前仍被 crate 内现有无关红阻塞；失败点落在 [`inspector_semantics.rs`](../../zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs) 里 `UiAssetStructuredLayoutSemanticFields` 缺少 `box_gap` 字段初始化，不是这轮 `ResourceEvent` 迁移直接引入的断点
+- `cargo check -p zircon_editor --lib --offline --target-dir target/tdd-red-editor --message-format short` 目前仍被 crate 内现有无关红阻塞；失败点落在 [`inspector_semantics.rs`](../../zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs) 里 `UiAssetStructuredLayoutSemanticFields` 缺少 `box_gap` 字段初始化，不是这轮 `ResourceEvent` 迁移直接引入的断点

@@ -15,9 +15,9 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
@@ -37,7 +37,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 plan_sources:

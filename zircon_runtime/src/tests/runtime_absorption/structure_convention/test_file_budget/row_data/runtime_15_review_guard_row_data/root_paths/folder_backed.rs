@@ -1,7 +1,6 @@
 use super::*;
 
-const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_CHILD_ROOT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_paths";
+const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_CHILD_ROOT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_paths";
 const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_CHILDREN: &[(&str, &str)] = &[
     ("delegation", "DELEGATION_GUARD_PATH"),
     ("foundation", "STATUS_OUTPUT_ROW_DATA_PARENT_PATH"),
@@ -10,10 +9,8 @@ const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_CHILDREN: &[(&str, &str)] = &[
     ("status_support_rows", "STATUS_SUPPORT_ROWS_GUARD_PATH"),
     ("typed_error_rows", "TYPED_ERROR_ROWS_GUARD_PATH"),
 ];
-const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
-const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
+const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
+const REVIEW_GUARD_ROW_DATA_ROOT_PATHS_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/base_child_owner_maps.rs";
 
 fn review_guard_row_data_root_paths_child_path(module_name: &str) -> String {
     format!("{REVIEW_GUARD_ROW_DATA_ROOT_PATHS_CHILD_ROOT}/{module_name}.rs")

@@ -233,7 +233,8 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
         z: f64,
     }
 
-    let type_descriptor = TestVec3::script_host_type_descriptor();
+    let registration = TestVec3::reflect_type_registration().unwrap();
+    let type_descriptor = TestVec3::script_host_type_descriptor().unwrap();
     let test_vec3 = TestVec3 {
         x: 1.0,
         y: 2.0,
@@ -241,6 +242,40 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
     };
     assert_eq!(test_vec3.x + test_vec3.y + test_vec3.z, 6.0);
     assert_eq!(type_descriptor.name, "TestVec3");
+    assert_eq!(registration.display_name, type_descriptor.name);
+    assert_eq!(registration.documentation.as_deref(), Some("test vector"));
+    assert_eq!(type_descriptor.documentation, registration.documentation);
+    assert_eq!(
+        registration.script_visibility,
+        zircon_runtime_interface::reflect::ReflectScriptVisibility::Public
+    );
+    assert_eq!(
+        registration.type_info.fields,
+        vec![
+            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+                "x",
+                "float",
+                zircon_runtime_interface::reflect::ReflectEditorHint::None,
+            )
+            .with_serializable(false)
+            .with_editor_visible(false)
+            .with_documentation("x axis"),
+            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+                "y",
+                "float",
+                zircon_runtime_interface::reflect::ReflectEditorHint::None,
+            )
+            .with_serializable(false)
+            .with_editor_visible(false),
+            zircon_runtime_interface::reflect::ReflectFieldInfo::new(
+                "z",
+                "float",
+                zircon_runtime_interface::reflect::ReflectEditorHint::None,
+            )
+            .with_serializable(false)
+            .with_editor_visible(false),
+        ]
+    );
     assert_eq!(type_descriptor.type_ref.type_name, "TestVec3");
     assert_eq!(type_descriptor.fields[0].type_ref.type_name, "float");
     assert_eq!(
@@ -256,7 +291,7 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
     }
 
     assert!(matches!(TestEnum::A, TestEnum::A));
-    let enum_descriptor = TestEnum::script_host_type_descriptor();
+    let enum_descriptor = TestEnum::script_host_type_descriptor().unwrap();
     assert_eq!(
         enum_descriptor.prototype_kind,
         ScriptHostPrototypeKind::Enum
@@ -297,7 +332,7 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
         }
     }
 
-    let descriptor = macro_math::macro_math_host_module_descriptor();
+    let descriptor = macro_math::macro_math_host_module_descriptor().unwrap();
     assert_eq!(descriptor.name, "test.macro.math");
     assert_eq!(descriptor.capabilities, vec!["test.math".to_string()]);
     assert_eq!(descriptor.types[0].name, "Point");

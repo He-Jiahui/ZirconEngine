@@ -13,8 +13,11 @@ use super::super::super::status_slices::{
     TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_GUARD_GUARD,
 };
 
-pub(super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_CHILDREN:
-    &[(&str, &str, &str)] = &[
+pub(super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_CHILDREN: &[(
+    &str,
+    &str,
+    &str,
+)] = &[
     (
         "budgets",
         TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_BUDGETS_CHILD,

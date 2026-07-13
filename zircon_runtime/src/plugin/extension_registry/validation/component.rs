@@ -1,6 +1,5 @@
-use crate::plugin::{
-    ComponentTypeDescriptor, RuntimeExtensionRegistryError, UiComponentDescriptor,
-};
+use crate::core::framework::scene::ComponentTypeDescriptor;
+use crate::plugin::{RuntimeExtensionRegistryError, UiComponentDescriptor};
 use std::collections::BTreeSet;
 
 use super::is_lowercase_plugin_package_id;
@@ -75,9 +74,11 @@ fn validate_component_type_field(
 
 fn validate_component_type_plugin_id(plugin_id: &str) -> Result<(), RuntimeExtensionRegistryError> {
     if !is_lowercase_plugin_package_id(plugin_id) {
-        return Err(RuntimeExtensionRegistryError::InvalidComponentType(format!(
-            "plugin_id `{plugin_id}` must start with a lowercase ASCII letter and contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments without trailing or repeated underscores"
-        )));
+        return Err(RuntimeExtensionRegistryError::InvalidComponentType(
+            format!(
+                "plugin_id `{plugin_id}` must start with a lowercase ASCII letter and contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments without trailing or repeated underscores"
+            ),
+        ));
     }
     Ok(())
 }

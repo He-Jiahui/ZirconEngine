@@ -3,7 +3,7 @@ use std::fs;
 
 use crate::core::framework::render::{RenderShaderDefinitionValue, ShaderAssetKind};
 use crate::core::framework::scene::physics::{
-    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata,
+    PhysicsJointConstraintMetadata, PhysicsMassProperties, PhysicsMaterialMetadata,
 };
 use crate::core::resource::ResourceRecord;
 
@@ -17,20 +17,21 @@ use crate::asset::{
     DataAssetFormat, ImportedAsset, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices,
     SceneAsset, SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset,
     SceneColliderShapeAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
-    SceneMobilityAsset, SceneScriptBindingAsset, ShaderAsset, ShaderImportRedirectAsset,
-    ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, TextureAsset,
-    TransformAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    SceneMobilityAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset,
+    ShaderAsset, ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset, TextureAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
+mod artifact_cache_assets;
 mod binary_payloads;
-mod library_assets;
 mod material_data;
 mod scene_components;
 mod scene_script;
 
 fn assert_binary_artifact_payload(paths: &ProjectPaths, artifact_uri: &AssetUri) {
-    let payload = fs::read(paths.library_root().join(artifact_uri.path())).unwrap();
+    let payload = fs::read(paths.asset_artifact_root().join(artifact_uri.path())).unwrap();
     assert!(payload.starts_with(b"ZRARTZ01"));
     assert_ne!(
         payload.get(b"ZRARTZ01".len()..b"ZRARTZ01".len() + 4),

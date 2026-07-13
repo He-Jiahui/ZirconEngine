@@ -9,9 +9,10 @@ pub struct EditorManager {
 }
 
 impl EditorManager {
-    pub fn new(core: CoreHandle) -> Self {
+    pub fn new(core: &CoreHandle) -> Self {
+        let scheduler = core.scheduler().clone();
         let host = EditorUiHost::bootstrap(core).expect("bootstrap editor ui host");
-        let context = EditorContextBuilder::new().build();
+        let context = EditorContextBuilder::new(scheduler).build();
         Self { host, context }
     }
 

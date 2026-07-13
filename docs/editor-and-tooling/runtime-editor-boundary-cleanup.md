@@ -13,11 +13,11 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
   - zircon_editor/src/tests/host/asset_metadata/runtime_sidecar_isolation.rs
   - zircon_editor/src/tests/host/asset_metadata/precedence.rs
-  - zircon_editor/src/tests/host/asset_manager_boundary.rs
-  - zircon_editor/src/tests/host/asset_metadata.rs
+  - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+  - zircon_editor/src/tests/host/asset_metadata/mod.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/core/host/mod.rs
+  - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
@@ -28,8 +28,8 @@ related_code:
   - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
   - zircon_editor/src/tests/editing/viewport.rs
-  - zircon_editor/src/tests/host/render_framework_boundary.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -50,10 +50,10 @@ related_code:
   - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/animation/runtime/src/sequence/apply.rs
   - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_runtime/src/animation/scene_hook.rs
   - zircon_plugins/physics/runtime/src/manager.rs
-  - zircon_plugins/physics/runtime/src/scene_hook.rs
-  - zircon_runtime/src/scene/world/property_access.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
+  - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -84,7 +84,7 @@ implementation_files:
   - zircon_editor/src/tests/host/asset_metadata/precedence.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/core/host/mod.rs
+  - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
@@ -94,7 +94,7 @@ implementation_files:
   - zircon_editor/src/scene/viewport/handles/move_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -115,10 +115,10 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/animation/runtime/src/sequence/apply.rs
   - zircon_plugins/animation/runtime/src/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_runtime/src/animation/scene_hook.rs
   - zircon_plugins/physics/runtime/src/manager.rs
-  - zircon_plugins/physics/runtime/src/scene_hook.rs
-  - zircon_runtime/src/scene/world/property_access.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
+  - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -130,6 +130,9 @@ implementation_files:
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/ui/retained_host/app/tests/mod.rs
 plan_sources:
+  - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - user: 2026-04-20 继续，把 runtime 层仍然存在的 editor only 实现迁回 editor
   - user: 2026-04-20 继续
   - user: 2026-04-20 继续，runtime asset metadata / preview surface 里的 editor-only 实现也迁回 editor
@@ -137,6 +140,11 @@ plan_sources:
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::registry_owned_editor_manager_does_not_retain_the_runtime_root
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::failed_project_open_does_not_make_the_editor_manager_retain_the_runtime_root
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::project_open_panic_unwind_drops_temporary_editor_manager_owners
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - cargo check -p zircon_runtime --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
@@ -195,13 +203,13 @@ doc_type: module-detail
 
 - [Cargo.toml](/E:/Git/ZirconEngine/Cargo.toml) 里的 editor host dependency profile 当时被收窄到 software renderer baseline；当前 retained-host cutover 已删除 active Slint dependency authority
 - [app.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app.rs) 是 current editor host startup owner
-- [render_framework_boundary.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/render_framework_boundary.rs) 新增源码边界断言，持续拦截 `renderer-skia`、`unstable-wgpu-27` 和任何 `wgpu::` 直接回流到 editor host
+- [render_framework_boundary.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/render_framework_boundary/mod.rs) 新增源码边界断言，持续拦截 `renderer-skia`、`unstable-wgpu-27` 和任何 `wgpu::` 直接回流到 editor host
 
 这样做的目标不是长期放弃 GPU 渲染，而是在当前吸收后的目录结构里先恢复 editor/runtime 的图形编译闭环。运行时图形能力仍然留在 `zircon_runtime::graphics` 的 RenderFramework/SRP 主链里；当前 retained host 继续遵守“不直接拥有 `wgpu`”的 authoring boundary。
 
 ### Retained Host Binding Recovery
 
-[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 与 Rust-owned [`host_contract`](../../zircon_editor/src/ui/retained_host/host_contract/mod.rs) 现在把 `UiHostWindow.host_presentation` 作为 retained host presentation 输入，再单向投影到 host DTO/surface：
+[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 与 Rust-owned [`host_contract`](../../zircon_editor/src/ui/retained_host/host_contract/mod.rs) 现在把 `UiHostWindow.host_presentation` 作为 retained host presentation 输入，再单向投影到 host DTO/surface：
 
 - `UiHostWindow` 保留 `in property <HostWindowPresentationData> host_presentation`
 - retained host presentation 从 root state 投影到 `HostWindowPresentationData`
@@ -215,8 +223,10 @@ doc_type: module-detail
 
 - [zircon_editor/src/ui/host/mod.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/mod.rs) 才是 editor host manager internals 的真实 owner
 - 这里集中声明了 `editor_manager`、`project_access`、`layout_hosts`、`window_host_manager`、`asset_editor_sessions` 等 orchestration 子域
-- [zircon_editor/src/core/host/mod.rs](/E:/Git/ZirconEngine/zircon_editor/src/core/host/mod.rs) 现在只保留更窄的 shared host surface：`asset_editor`、`module`、`resource_access`
-- 旧的 `zircon_editor/src/core/host/manager.rs` 路径已经不再是实现 owner，相关 boundary tests 也已改成跟随新 owner 读取 [project_access.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/project_access.rs) 这类实际文件
+- [zircon_editor/src/ui/host/mod.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/mod.rs) 现在只保留更窄的 shared host surface：`asset_editor`、`module`、`resource_access`
+- `core::host` 旧树已经删除；当前协调 owner 是 [`ui/host/editor_manager.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/editor_manager.rs)，boundary tests 同时直接读取 [project_access.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/project_access.rs) 等具体能力 owner
+
+`EditorManager` 作为 Runtime service registry 持有的服务时，内部 `EditorUiHost` 只保存 `CoreWeak`。项目访问、插件能力和 host capability bridge 在每次操作边界升级；Runtime 已释放时返回 typed runtime-unavailable 结果，运行时诊断读取则返回默认快照。没有保留强/弱双字段或 shutdown 专用补丁路径，因此外部保留的 editor manager 不会反向延长 Runtime 根生命周期。
 
 这点很关键，因为 compile recovery 不能靠“恢复旧路径”达成；当前 absorbed 目录结构下，正确做法是沿着 `ui::host` 的新 owner 继续收边界，而不是把实现搬回历史位置。
 
@@ -398,7 +408,7 @@ runtime foundation 现在统一使用中性命名：
 - `included_files`
 - `import_settings`
 - `source_mtime_unix_ms`
-- `source_hash`
+- `source_digest`
 - `preview_state`
 - `entries[*].uuid/url/asset_kind/artifact_locator/dependencies`
 

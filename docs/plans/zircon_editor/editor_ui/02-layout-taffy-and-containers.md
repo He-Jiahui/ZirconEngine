@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/ui/layout/mod.rs
-  - zircon_runtime/src/ui/layout/taffy_bridge.rs
+  - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/layout/virtualization.rs
@@ -44,7 +44,7 @@ status: planned
 | 引擎选择与回退建模 | `zircon_runtime_interface/src/ui/layout/engine.rs` | `UiLayoutEngineBackend`（:11）、`UiLayoutEngineFamily`（:18）、`UiLayoutEngineCapability::taffy_flex_grid_wrap_block`（:88）、`UiLayoutEngineSelection::select`（:239，带 per-node `fallback_reason`）、`UiLayoutEngineSelectionReport::from_selections/recompute_counts`（:283–:341） |
 | Fallback 原因枚举（13 variant） | 同上 :171 | `UiLayoutEngineFallbackReason`{UnsupportedFamily, MissingContentMeasure, MissingDpiScaling, ZirconOwnedSemantics, UnsupportedChildVisibility, ChildPlacementPolicy, AxisConstraintPriority, InvalidLayoutValue, SlotFramePolicy, SlotCanvasPlacement, TaffyStyleUnavailable, TaffyTreeBuildFailed, TaffyComputeFailed} |
 | 约束词汇（legacy） | `zircon_runtime_interface/src/ui/layout/constraints.rs` | `StretchMode`（:4）、`AxisConstraint`（:11）、`BoxConstraints`（:66）、`DesiredSize`（:74）、`LayoutBoundary`（:86） |
-| taffy 映射 | `zircon_runtime/src/ui/layout/taffy_bridge.rs` | `taffy_style_for_container`（:8）、`taffy_display_for_family`（:100）——容器级映射已单点化 |
+| taffy 映射 | `zircon_runtime/src/ui/layout/taffy_bridge/mod.rs` | `taffy_style_for_container`（:8）、`taffy_display_for_family`（:100）——容器级映射已单点化 |
 | 布局 pass | `zircon_runtime/src/ui/layout/pass/` | arrange、axis、child_frame、clip、engine、incremental、layout_tree、material、measure、responsive_mui、slot、taffy_arrange 共 13 文件 |
 | 滚动/虚拟化 | `zircon_runtime/src/ui/layout/{scroll,virtualization}.rs` | `virtual_window_for_scrollable_box`（scroll.rs:6）、`compute_virtual_list_window`（virtualization.rs:3） |
 | editor docking 几何 | `zircon_editor/src/ui/workbench/autolayout/` | workbench_shell_geometry.rs、region/、constraints/、axis_constraint_override.rs、pane_constraint_override.rs、floating_window.rs |
@@ -180,7 +180,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 
 | 路径 | 改什么 |
 |------|--------|
-| `zircon_runtime/src/ui/layout/taffy_bridge.rs` | `taffy_style_for_container` 收编进 style_mapping，桥只做 tree build |
+| `zircon_runtime/src/ui/layout/taffy_bridge/mod.rs` | `taffy_style_for_container` 收编进 style_mapping，桥只做 tree build |
 | `zircon_runtime/src/ui/layout/pass/{axis,slot,taffy_arrange,engine}.rs` | 改读 `UiLayoutStyle`（经 adapter 过渡） |
 | `zircon_runtime/src/ui/layout/{scroll,virtualization}.rs` | 嵌套消费次序、行高三档策略 |
 | `zircon_runtime/src/ui/surface/`（帧报告处） | SelectionReport 聚合 + debug packet 采集开关 |

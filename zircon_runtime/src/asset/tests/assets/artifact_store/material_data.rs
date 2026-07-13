@@ -4,7 +4,9 @@ use super::*;
 fn artifact_store_roundtrips_material_assets_in_library() {
     let root = unique_temp_project_root("artifact_store");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let material = MaterialAsset {
         name: Some("Grid".to_string()),
@@ -54,7 +56,9 @@ fn artifact_store_roundtrips_material_assets_in_library() {
 fn artifact_store_roundtrips_material_assets_with_dynamic_property_values() {
     let root = unique_temp_project_root("artifact_store_material_dynamic_values");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let material = MaterialAsset::from_toml_str(
         r#"
@@ -103,7 +107,9 @@ mode = "opaque"
 fn artifact_store_roundtrips_data_assets_with_dynamic_json_values() {
     let root = unique_temp_project_root("artifact_store_data_dynamic_json");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let data = DataAsset {
         uri: AssetUri::parse("res://data/balance.json").unwrap(),

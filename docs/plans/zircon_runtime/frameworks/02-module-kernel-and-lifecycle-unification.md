@@ -19,8 +19,8 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/owner_path_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_path_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/guard_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_groups/root_paths/production_guard_core_and_evidence_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_groups/root_owner_paths/production_guard_row_owner_paths/core_and_evidence.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_core_and_evidence_paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/core_and_evidence.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
@@ -136,7 +136,7 @@ Frameworks 02 显式子路径锚：`code_review_findings/plugin_importer_dx/d1_c
 ```rust
 pub enum InitLevel {
     Kernel,   // 内核就绪后：反射/类型注册、纯逻辑服务
-    Servers,  // 平台/RHI/asset 服务层就绪后
+    Services, // 平台/RHI/asset 服务层就绪后；非网络 server 语义
     Scene,    // ECS 世界与调度就绪后
     Editor,   // 仅 editor-host：编辑器宿主就绪后
     Post,     // 一切就绪后：插件默认层、脚本 VM、诊断汇总
@@ -160,11 +160,13 @@ pub enum InitLevel {
 
 ### 3.3 描述符单源
 
-`ModuleDescriptor` 扩展为唯一权威：`name / init_level / dependencies(DependencySpec) / drivers / managers / systems / plugins / features`。`RuntimePluginDescriptor` 改为内嵌一个 `ModuleDescriptor`（组合而非平行），builder 单源生成，`ModuleName.ServiceKind.ServiceName` 命名规则不变。
+`ModuleDescriptor` 是内核通用权威：`name / description / init_level / module_dependencies / lifecycle / drivers / managers / plugins`。它不直接持有 scene `SceneSystemDescriptor` 或 RuntimePlugin feature/capability 字段，否则 core/runtime 会反向依赖 scene/plugin 语义。
+
+`RuntimePluginDescriptor` 内嵌且只内嵌一份 `ModuleDescriptor`，再拥有插件域的 `package_id / target_modes / capabilities / provided_interfaces / system_sets / system_anchors / optional_features / packaging`。实际 system/resource/event/component 等贡献仍在插件的 `register(...)` 中通过 `RuntimeExtensionRegistry` 类型化注册；`RuntimePluginRegistrationReport::from_plugin(...)` 自动投影内嵌 module descriptor，provider 不得再注册第二份 module row。这样生命周期/排序只有内核 descriptor 一个事实源，插件扩展元数据也只有 RuntimePlugin descriptor/registry 一个事实源，而 core 不吸收上层类型。`ModuleName.ServiceKind.ServiceName` 命名规则不变。
 
 ### 3.4 类型化内核错误
 
-`KernelError` 枚举收敛：`DependencyCycle{path}`、`MissingDependency{who, wants}`、`DuplicateRegistration{name}`、`InitLevelViolation{...}`、`ReadyTimeout{module, budget}`，全部携带可打印的解析上下文；宿主（zircon_app）拿到的是结构化报告而非日志串。
+`CoreError` 是内核唯一错误枚举：模块排序使用 `ModuleDependencyCycle { path }`、`MissingModuleDependency { module, dependency }`、`DuplicateModule(name)`、`ModuleInitLevelViolation { ... }`，就绪阶段使用 `ModuleReadyTimeout { module, budget }`；激活失败且 cleanup 也失败时由 `ModuleActivationRollback` / `ModuleBatchActivationRollback` 同时保留主错误和回滚错误。宿主（zircon_app）拿到结构化错误或结构化 `RuntimeModuleLoadReport`，只在日志/ABI 展示边界投影字符串。
 
 ## 4. 里程碑
 
@@ -172,7 +174,7 @@ pub enum InitLevel {
 
 实现切片：
 - `core/runtime` 增加 InitLevel、四阶段钩子 trait、描述符扩展与拓扑排序器；
-- `KernelError` 类型化；`CoreRuntime` 推进循环支持 ready 轮询与超时预算；
+- `CoreError` 类型化；`CoreRuntime` 推进循环支持 ready 轮询、超时预算与失败 rollback；
 - 既有内建模块签名批量适配（行为不变：全部默认 ready=true 时序等价于现状）。
 
 测试阶段：
@@ -218,7 +220,11 @@ pub enum InitLevel {
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md`](02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md)
-- 失败交接（`open / 待修复`）：[`02/failure-2026-07-11-editor-m1-plugin-provider-lookup.md`](02/failure-2026-07-11-editor-m1-plugin-provider-lookup.md)
+- 当前修正记录：[`02/2026-07-13-module-lifecycle-rollback-output-records.md`](02/2026-07-13-module-lifecycle-rollback-output-records.md)
+- 已修复交接（`fixed / 2026-07-11`）：[`Editor 01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md`](../../zircon_editor/editor/01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md)；当前 provider completion/dependency enablement 上层 exact 为 1/1，功能计划保留回链与摘要，不保留重复真相。
+- fixed 已修复：[stale-subasset-reference-repair](02/fixed-2026-07-14-stale-subasset-reference-repair.md)
+- fixed 已修复：[runtime-module-lifecycle-observer-import-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-runtime-module-lifecycle-observer-import-cutover.md)
+- 插件结构硬切换：[`Plugins 05 Navigation registration hard cut`](../../zircon_plugins/05/2026-07-13-navigation-registration-hard-cut-output-records.md) 已关闭全仓最后两处 registration compatibility debt；静态门禁与 10 项审计回归通过，当前源包级 Cargo 复验正在等待受管通道。
 
 
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Minimum Cross-Doc Anchors

@@ -31,7 +31,6 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             .map(|pass| pass.name.as_str())
             .collect::<Vec<_>>(),
         vec![
-            "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
             "velocity-object",
@@ -41,6 +40,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
+            "preview-sky",
             "transparent-mesh",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
@@ -413,7 +413,6 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             .map(|pass| pass.name.as_str())
             .collect::<Vec<_>>(),
         vec![
-            "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
             "velocity-object",
@@ -423,6 +422,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "hzb-build",
             "light-grid-build",
             "deferred-lighting",
+            "preview-sky",
             "transparent-mesh",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",

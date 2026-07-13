@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::SceneError;
 
 #[test]
 fn projected_reads_stay_fresh_until_post_update_refreshes_retained_cache() {
@@ -94,7 +95,12 @@ fn no_op_mutators_do_not_mark_derived_state_dirty() {
 
     assert!(!world.has_pending_scene_systems());
     let static_reparent_error = world.set_parent_checked(static_child, None).unwrap_err();
-    assert!(static_reparent_error.to_string().contains("Static"));
+    assert_eq!(
+        static_reparent_error,
+        SceneError::StaticReparentMutation {
+            entity: static_child,
+        }
+    );
     assert!(!world.has_pending_scene_systems());
 
     assert!(!world.has_pending_scene_systems());

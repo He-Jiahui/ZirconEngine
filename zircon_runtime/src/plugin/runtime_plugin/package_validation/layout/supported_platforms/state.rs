@@ -1,4 +1,4 @@
-use crate::plugin::ExportTargetPlatform;
+use crate::core::framework::project::ExportTargetPlatform;
 
 pub(super) type RuntimePluginPackageSupportedPlatformState = Vec<ExportTargetPlatform>;
 

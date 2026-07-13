@@ -1,15 +1,10 @@
 use super::*;
 
-const ASSERTIONS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions.rs";
-const ASSERTION_LINE_BUDGETS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/line_budgets.rs";
-const ASSERTION_PRE_RUNTIME_15_MAPS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/pre_runtime_15_maps.rs";
-const ASSERTION_RUNTIME_15_MAPS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/runtime_15_maps.rs";
-const ASSERTION_STATUS_AND_DOCS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/status_and_docs.rs";
+const ASSERTIONS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions.rs";
+const ASSERTION_LINE_BUDGETS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/line_budgets.rs";
+const ASSERTION_PRE_RUNTIME_15_MAPS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/pre_runtime_15_maps.rs";
+const ASSERTION_RUNTIME_15_MAPS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/runtime_15_maps.rs";
+const ASSERTION_STATUS_AND_DOCS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/status_and_docs.rs";
 
 #[test]
 fn runtime_15_top_level_expected_slice_assertion_helpers_are_child_owned() {

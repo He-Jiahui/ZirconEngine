@@ -96,7 +96,9 @@ fn tile_bake_matches_simple_bake_geometry() {
     );
 }
 
-fn asset_bounds(asset: &zircon_runtime::asset::NavMeshAsset) -> ([Real; 3], [Real; 3]) {
+fn asset_bounds(
+    asset: &zircon_runtime::core::framework::navigation::NavMeshAsset,
+) -> ([Real; 3], [Real; 3]) {
     let first = asset.vertices[0];
     asset
         .vertices
@@ -122,7 +124,7 @@ fn assert_bounds_close(
     }
 }
 
-fn triangle_area(asset: &zircon_runtime::asset::NavMeshAsset) -> Real {
+fn triangle_area(asset: &zircon_runtime::core::framework::navigation::NavMeshAsset) -> Real {
     asset
         .debug_triangles()
         .iter()

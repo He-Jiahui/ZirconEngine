@@ -5,7 +5,7 @@ use zircon_runtime_interface::reflect::{
     ReflectWriteResponse, ReflectedValue,
 };
 
-use crate::plugin::ComponentTypeDescriptor;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::{components::ActiveSelf, components::Name, NodeKind, World};
 
 #[test]

@@ -23,12 +23,25 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
     let documentation = args
         .documentation
         .map(|doc| quote!(.with_documentation(#doc)));
-    let (fields, default_prototype) = match input.data {
-        Data::Struct(data) => (
-            field_descriptor_tokens(&data.fields)?,
-            quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Struct),
-        ),
+    let (type_info, fields, default_prototype) = match input.data {
+        Data::Struct(data) => {
+            let registrations = field_registration_tokens(&data.fields)?;
+            let projections = field_projection_tokens(&data.fields)?;
+            (
+                quote!(::zircon_runtime::core::framework::script::__reflect::ReflectTypeInfo::struct_with_fields(
+                    vec![#(#registrations),*]
+                )),
+                projections,
+                quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Struct),
+            )
+        }
         Data::Enum(_) => (
+            quote!(
+                ::zircon_runtime::core::framework::script::__reflect::ReflectTypeInfo::new(
+                    ::zircon_runtime::core::framework::script::__reflect::ReflectTypeKind::Enum,
+                    Vec::new(),
+                )
+            ),
             Vec::new(),
             quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Enum),
         ),
@@ -43,23 +56,40 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
 
     Ok(quote! {
         impl ::zircon_runtime::core::framework::script::ZirconScriptType for #ident {
-            fn script_host_type_descriptor() -> ::zircon_runtime::core::framework::script::ScriptHostTypeDescriptor {
-                ::zircon_runtime::core::framework::script::ScriptHostTypeDescriptor::new(
+            fn reflect_type_registration() -> Result<
+                ::zircon_runtime::core::framework::script::__reflect::ReflectTypeRegistration,
+                ::zircon_runtime::core::framework::script::__reflect::ReflectError,
+            > {
+                let type_path = ::zircon_runtime::core::framework::script::__reflect::ReflectTypePath::new(
+                    concat!(module_path!(), "::", stringify!(#ident)),
                     #type_name,
-                    #value_kind,
+                )?;
+                Ok(::zircon_runtime::core::framework::script::__reflect::ReflectTypeRegistration::new(
+                    type_path,
+                    #type_name,
+                    #type_info,
+                    ::zircon_runtime::core::framework::script::__reflect::ReflectSerializationStrategy::None,
                 )
-                .with_type_ref(::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(#value_kind, #type_name))
+                .with_serializable(false)
+                .with_editor_visible(false)
+                .with_script_visibility(
+                    ::zircon_runtime::core::framework::script::__reflect::ReflectScriptVisibility::Public,
+                )
+                #documentation)
+            }
+
+            fn script_host_type_projection() -> ::zircon_runtime::core::framework::script::ScriptHostTypeProjection {
+                ::zircon_runtime::core::framework::script::ScriptHostTypeProjection::new(#value_kind)
                 .with_prototype_kind(#prototype)
                 .allow_value_construction(#allow_value_construction)
                 #(#fields)*
-                #documentation
             }
         }
     })
 }
 
-fn field_descriptor_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
-    let mut descriptors = Vec::new();
+fn field_registration_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
+    let mut registrations = Vec::new();
     for (index, field) in fields.iter().enumerate() {
         let args = parse_field_attrs(&field.attrs)?;
         if args.skip {
@@ -80,14 +110,49 @@ fn field_descriptor_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
         let documentation = args
             .documentation
             .map(|doc| quote!(.with_documentation(#doc)));
-        descriptors.push(quote! {
+        registrations.push(quote! {{
+            let type_ref = #type_ref;
+            ::zircon_runtime::core::framework::script::__reflect::ReflectFieldInfo::new(
+                #field_name,
+                type_ref.type_name,
+                ::zircon_runtime::core::framework::script::__reflect::ReflectEditorHint::None,
+            )
+            .with_serializable(false)
+            .with_editor_visible(false)
+            #documentation
+        }});
+    }
+    Ok(registrations)
+}
+
+fn field_projection_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
+    let mut projections = Vec::new();
+    for (index, field) in fields.iter().enumerate() {
+        let args = parse_field_attrs(&field.attrs)?;
+        if args.skip {
+            continue;
+        }
+        let field_name = match (&args.name, &field.ident) {
+            (Some(name), _) => name.clone(),
+            (None, Some(ident)) => ident.to_string(),
+            (None, None) => index.to_string(),
+        };
+        let field_type = &field.ty;
+        let type_ref = script_host_type_ref_tokens(
+            field_type,
+            args.value_kind.map(path_tokens),
+            args.type_name,
+            quote!(::zircon_runtime::core::framework::script::ScriptHostFromValue),
+        );
+        projections.push(quote! {
             .with_field({
                 let type_ref = #type_ref;
-                ::zircon_runtime::core::framework::script::ScriptHostFieldDescriptor::new(#field_name, type_ref.value_kind)
-                    .with_type_ref(type_ref)
-                    #documentation
+                ::zircon_runtime::core::framework::script::ScriptHostFieldProjection::new(
+                    #field_name,
+                    type_ref.value_kind,
+                )
             })
         });
     }
-    Ok(descriptors)
+    Ok(projections)
 }

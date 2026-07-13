@@ -390,8 +390,10 @@ mod tests {
                 .expect("request rebuild");
 
         assert_eq!(rebuilt.bake_key(), bake_key);
-        assert_eq!(rebuilt.face_size(), 4);
-        assert_eq!(rebuilt.mip_count(), 3);
+        assert_eq!(rebuilt.source_face_size(), 4);
+        assert_eq!(rebuilt.source_mip_count(), 3);
+        assert_eq!(rebuilt.pmrem_face_size(), 128);
+        assert_eq!(rebuilt.pmrem_mip_count(), 8);
         assert_eq!(
             rebuilt.required_contents(),
             IblBakeArtifactContents::PMREM_SH9_IEM
@@ -435,8 +437,10 @@ mod tests {
                 .expect("SH9-only graph should rebuild from the frame source cubemap request");
 
         assert_eq!(rebuilt.bake_key(), bake_key);
-        assert_eq!(rebuilt.face_size(), 4);
-        assert_eq!(rebuilt.mip_count(), 3);
+        assert_eq!(rebuilt.source_face_size(), 4);
+        assert_eq!(rebuilt.source_mip_count(), 3);
+        assert_eq!(rebuilt.pmrem_face_size(), 128);
+        assert_eq!(rebuilt.pmrem_mip_count(), 8);
         assert_eq!(rebuilt.required_contents(), IblBakeArtifactContents::SH9);
     }
 

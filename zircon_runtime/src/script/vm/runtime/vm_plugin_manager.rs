@@ -7,10 +7,16 @@ use crate::core::{CoreRuntime, PluginContext};
 use super::super::backend::{
     BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError, ZrVmBackendFamily,
 };
+use super::super::gc_bridge::{VmGcBudget, VmGcStepReport};
 use super::super::handles::PluginSlotId;
 use super::super::host::{
     register_builtin_host_modules, HostExportRegistry, HostRegistry, VmPluginHostContext,
     VmPluginSlotLifecycle, VM_PLUGIN_RUNTIME_NAME,
+};
+use super::super::host_interface::{
+    VmBehaviorNodeRegistration, VmCallbackHandle, VmEditorOperationRegistration,
+    VmHostInterfaceError, VmHostInterfaceRegistry, VmRpcHandlerRegistration, VmSystemRegistration,
+    VmSystemStage,
 };
 use super::super::plugin::{
     discover_vm_plugin_packages, DiscoveredVmPluginPackage, VmPluginPackage, VmPluginPackageSource,
@@ -26,6 +32,7 @@ pub struct VmPluginManager {
     plugin_context: PluginContext,
     host_registry: HostRegistry,
     host_exports: HostExportRegistry,
+    host_interfaces: VmHostInterfaceRegistry,
     coordinator: HotReloadCoordinator,
     backends: VmBackendRegistry,
     selected_backend: RwLock<String>,
@@ -118,6 +125,7 @@ impl VmPluginManager {
             plugin_context,
             host_registry: host,
             host_exports,
+            host_interfaces: VmHostInterfaceRegistry::default(),
             coordinator: HotReloadCoordinator::new(),
             backends: VmBackendRegistry::new(),
             selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
@@ -230,7 +238,9 @@ impl VmPluginManager {
     }
 
     pub fn unload_slot(&self, slot: PluginSlotId) -> Result<(), VmError> {
-        self.coordinator.unload_slot(slot).map(|_| ())
+        let result = self.coordinator.unload_slot(slot);
+        self.host_interfaces.discard_slot(slot);
+        result.map(|_| ())
     }
 
     pub fn slot(&self, slot: PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
@@ -263,6 +273,61 @@ impl VmPluginManager {
         self.call_slot_export(slot, module_name, export_name, arguments)
     }
 
+    pub fn gc_step(&self, budget: VmGcBudget) -> Result<VmGcStepReport, VmError> {
+        self.coordinator.gc_step(budget)
+    }
+
+    /// Invokes a stable callback handle against the owning slot's active generation.
+    pub fn invoke_callback(
+        &self,
+        handle: &mut VmCallbackHandle,
+        arguments: &[ScriptHostValue],
+    ) -> Result<Option<ScriptHostValue>, VmHostInterfaceError> {
+        let generation = self
+            .slot(handle.slot)
+            .map_err(VmHostInterfaceError::CallbackFailed)?
+            .generation;
+        let (module, function) = self.host_interfaces.resolve_callback(handle, generation)?;
+        self.call_slot_export(handle.slot, module.as_ref(), function.as_ref(), arguments)
+            .map_err(VmHostInterfaceError::CallbackFailed)
+    }
+
+    /// Runs every active VM system registered for `stage` in deterministic order.
+    pub fn run_registered_systems(
+        &self,
+        stage: VmSystemStage,
+        delta_seconds: f32,
+    ) -> Result<usize, VmHostInterfaceError> {
+        let systems = self.registered_systems(stage);
+        for mut system in systems.iter().cloned() {
+            self.invoke_callback(
+                &mut system.callback,
+                &[ScriptHostValue::Float(f64::from(delta_seconds))],
+            )?;
+        }
+        Ok(systems.len())
+    }
+
+    /// Returns active VM system descriptors for one scheduler stage.
+    pub fn registered_systems(&self, stage: VmSystemStage) -> Vec<VmSystemRegistration> {
+        self.host_interfaces.systems(&self.list_slots(), stage)
+    }
+
+    /// Returns active behavior-node descriptors for AI adapters.
+    pub fn registered_behavior_nodes(&self) -> Vec<VmBehaviorNodeRegistration> {
+        self.host_interfaces.behavior_nodes(&self.list_slots())
+    }
+
+    /// Returns active RPC-handler descriptors for networking adapters.
+    pub fn registered_rpc_handlers(&self) -> Vec<VmRpcHandlerRegistration> {
+        self.host_interfaces.rpc_handlers(&self.list_slots())
+    }
+
+    /// Returns active editor-operation descriptors for editor adapters.
+    pub fn registered_editor_operations(&self) -> Vec<VmEditorOperationRegistration> {
+        self.host_interfaces.editor_operations(&self.list_slots())
+    }
+
     pub fn list_slots(&self) -> Vec<VmPluginSlotRecord> {
         self.coordinator.list_slots()
     }
@@ -277,6 +342,11 @@ impl VmPluginManager {
 
     pub fn host_exports(&self) -> HostExportRegistry {
         self.host_exports.clone()
+    }
+
+    /// Returns the shared VM extension registry used by package host contexts.
+    pub fn host_interfaces(&self) -> VmHostInterfaceRegistry {
+        self.host_interfaces.clone()
     }
 
     pub fn base_plugin_context(&self) -> &PluginContext {
@@ -313,7 +383,9 @@ impl VmPluginManager {
             package_source: source,
             host_registry: self.host_registry.clone(),
             host_exports: self.host_exports.clone(),
+            host_interfaces: self.host_interfaces.clone(),
             slot_lifecycle: Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
+            vm_owner: None,
         }
     }
 

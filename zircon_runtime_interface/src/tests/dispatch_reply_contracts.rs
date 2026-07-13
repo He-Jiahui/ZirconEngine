@@ -123,3 +123,24 @@ fn dispatch_reply_transient_dismissal_effect_roundtrips_with_host_request_kind()
         serde_json::from_value(serde_json::to_value(&host_request).unwrap()).unwrap();
     assert_eq!(host_request_round_trip, host_request);
 }
+
+#[test]
+fn dispatch_reply_rich_link_activation_roundtrips_with_host_request_kind() {
+    let target = UiNodeId::new(23);
+    let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::RequestLinkActivation {
+        target,
+        href: "res://docs/help.md".to_string(),
+    });
+
+    let reply_round_trip: UiDispatchReply =
+        serde_json::from_value(serde_json::to_value(&reply).unwrap()).unwrap();
+    assert_eq!(reply_round_trip, reply);
+
+    let host_request = UiDispatchHostRequestKind::ActivateLink {
+        target,
+        href: "res://docs/help.md".to_string(),
+    };
+    let host_request_round_trip: UiDispatchHostRequestKind =
+        serde_json::from_value(serde_json::to_value(&host_request).unwrap()).unwrap();
+    assert_eq!(host_request_round_trip, host_request);
+}

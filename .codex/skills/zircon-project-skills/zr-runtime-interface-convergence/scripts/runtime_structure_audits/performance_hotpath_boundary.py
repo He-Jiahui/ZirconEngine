@@ -87,6 +87,9 @@ def performance_hotpath_boundary_audit(
     query_state_system_param = (
         root / "zircon_runtime/src/scene/ecs/query/query_state/system_param.rs"
     )
+    ecs_frame_performance_diagnostics = (
+        root / "zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs"
+    )
     system_param = root / "zircon_runtime/src/scene/ecs/system/system_param.rs"
     system_state = root / "zircon_runtime/src/scene/ecs/system/system_state.rs"
     param_set = root / "zircon_runtime/src/scene/ecs/system/param_set.rs"
@@ -144,6 +147,7 @@ def performance_hotpath_boundary_audit(
             query_state_read_only_cached,
             query_state_stats,
             query_state_system_param,
+            ecs_frame_performance_diagnostics,
             query_filter,
             query_iter,
             query_many_iter,

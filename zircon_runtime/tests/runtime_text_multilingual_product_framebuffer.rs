@@ -1,7 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use glyphon::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, SwashContent};
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use unicode_segmentation::UnicodeSegmentation;
+use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
     RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
@@ -15,7 +18,21 @@ use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
-    UiTextAlign, UiTextDirection, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
+    UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextWrap,
+    UiTextWritingMode,
+};
+
+#[path = "runtime_text_multilingual_product_framebuffer/proof_assertions.rs"]
+mod proof_assertions;
+#[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
+mod proof_commands;
+
+use proof_commands::{
+    proof_background, proof_bbcode_text, proof_horizontal_rich_table,
+    proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
+    proof_rich_text_with_direction, proof_rich_text_with_overflow, proof_rich_text_with_wrap,
+    proof_text, proof_vertical_bbcode_paragraphs, proof_vertical_rich_table,
+    proof_vertical_rich_text, proof_vertical_text,
 };
 
 #[test]
@@ -24,20 +41,30 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_color_emoji_backend_raster_contract();
     assert_arabic_mark_cluster_backend_face_contract();
 
-    let viewport_size = UVec2::new(1080, 620);
+    let viewport_size = UVec2::new(1080, 1690);
+    let (asset_manager, fixture_root) = rich_inline_fixture_asset_manager();
     let background = proof_background(viewport_size);
-    let samples = vec![
-        proof_text(
+    let mut samples = vec![
+        proof_rich_text(
             101,
             UiFrame::new(42.0, 34.0, 876.0, 52.0),
-            "Zircon Text · AV fi café — Runtime Layout",
-            UiTextDirection::LeftToRight,
-            None,
-            UiTextRenderMode::Native,
+            "Zircon <b>Text</b> <img src=\"res://ui/rich-inline-checker.png\" width=\"28\" height=\"28\" baseline=\"center\"> · AV fi café — Runtime Layout",
+        ),
+        proof_rich_text_with_wrap(
+            111,
+            UiFrame::new(42.0, 104.0, 360.0, 116.0),
+            "Word wrap alpha beta gamma <img src=\"res://ui/rich-inline-checker.png\" width=\"36\" height=\"36\" baseline=\"center\"> omega",
+            UiTextWrap::Word,
+        ),
+        proof_rich_text_with_wrap(
+            112,
+            UiFrame::new(480.0, 104.0, 410.0, 116.0),
+            "WordSmart prefix segment <img src=\"res://ui/rich-inline-checker.png\" width=\"36\" height=\"36\" baseline=\"center\"> suffix",
+            UiTextWrap::WordSmart,
         ),
         proof_text(
             102,
-            UiFrame::new(42.0, 104.0, 876.0, 52.0),
+            UiFrame::new(42.0, 244.0, 876.0, 52.0),
             "中文排版：引擎文本与布局",
             UiTextDirection::LeftToRight,
             Some("zh-Hans"),
@@ -45,7 +72,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             103,
-            UiFrame::new(42.0, 174.0, 876.0, 52.0),
+            UiFrame::new(42.0, 314.0, 876.0, 52.0),
             "العَرَبِيَّةُ — مرحبًا بالعالم",
             UiTextDirection::RightToLeft,
             Some("ar"),
@@ -53,7 +80,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             104,
-            UiFrame::new(42.0, 244.0, 876.0, 52.0),
+            UiFrame::new(42.0, 384.0, 876.0, 52.0),
             "עברית RTL — שלום עולם — 2026",
             UiTextDirection::RightToLeft,
             Some("he"),
@@ -61,7 +88,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             105,
-            UiFrame::new(42.0, 314.0, 876.0, 52.0),
+            UiFrame::new(42.0, 454.0, 876.0, 52.0),
             "Emoji 😀  🧑‍🚀  ❤️  🎮  ✨",
             UiTextDirection::LeftToRight,
             Some("en"),
@@ -69,7 +96,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             106,
-            UiFrame::new(42.0, 384.0, 876.0, 52.0),
+            UiFrame::new(42.0, 524.0, 876.0, 52.0),
             "Mixed: Build 构建 — مرحبًا — FPS 60",
             UiTextDirection::LeftToRight,
             Some("zh-Hans"),
@@ -77,15 +104,15 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             107,
-            UiFrame::new(42.0, 464.0, 876.0, 46.0),
-            "SDF atlas · 0123456789 · glyph spacing",
+            UiFrame::new(42.0, 594.0, 410.0, 58.0),
+            "A/M/W · SDF 尖角",
             UiTextDirection::LeftToRight,
             Some("en"),
             UiTextRenderMode::Sdf,
         ),
         proof_text(
             108,
-            UiFrame::new(42.0, 534.0, 410.0, 52.0),
+            UiFrame::new(42.0, 664.0, 410.0, 52.0),
             "骨直示辺",
             UiTextDirection::LeftToRight,
             Some("zh-Hans"),
@@ -93,7 +120,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         ),
         proof_text(
             109,
-            UiFrame::new(508.0, 534.0, 410.0, 52.0),
+            UiFrame::new(508.0, 664.0, 410.0, 52.0),
             "骨直示辺",
             UiTextDirection::LeftToRight,
             Some("ja"),
@@ -104,8 +131,43 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             UiFrame::new(982.0, 34.0, 76.0, 240.0),
             "竖排「标点」。第二列，验证。",
         ),
+        proof_rich_text_with_direction(
+            113,
+            UiFrame::new(42.0, 734.0, 876.0, 72.0),
+            "RTL rich: שלום <img src=\"res://ui/rich-inline-checker.png\" width=\"36\" height=\"36\" baseline=\"center\"> עולם",
+            UiTextDirection::RightToLeft,
+            Some("he"),
+        ),
+        proof_rich_text_with_overflow(
+            114,
+            UiFrame::new(42.0, 814.0, 220.0, 52.0),
+            "Ellipsis A <img src=\"res://ui/rich-inline-checker.png\" width=\"36\" height=\"36\" baseline=\"center\"> trailing content",
+            UiTextOverflow::Ellipsis,
+        ),
+        proof_vertical_rich_text(
+            115,
+            UiFrame::new(934.0, 330.0, 124.0, 100.0),
+            "竖<img src=\"res://ui/rich-inline-checker.png\" width=\"36\" height=\"40\" baseline=\"center\">排富文本",
+        ),
+        proof_bbcode_text(
+            116,
+            UiFrame::new(42.0, 884.0, 430.0, 220.0),
+            "[p align=center]BBCode V1 [icon=★|Microsoft YaHei UI] :rocket:[/p][ul bullet=◆][li][b]Hanging list[/b] alpha beta gamma delta epsilon[/li][li]Nested[ol type=A][li]Alpha item[/li][li]Beta item[/li][/ol][/li][/ul]",
+            UiTextWrap::WordSmart,
+        ),
+        proof_bbcode_text(
+            117,
+            UiFrame::new(520.0, 884.0, 500.0, 220.0),
+            "[p align=right indent=28][color=#64d8ff]Paragraph container[/color][/p][indent]Logical indent wraps through the shared text layout owner instead of manufactured spaces.[/indent]",
+            UiTextWrap::WordSmart,
+        ),
+        proof_vertical_bbcode_paragraphs(),
+        proof_horizontal_rich_table(),
+        proof_vertical_rich_table(),
     ];
-    let vertical_layout = samples[9]
+    samples.extend(proof_native_sdf_parity());
+    samples.push(proof_msdf_sharp_corner_sample());
+    let vertical_layout = samples[11]
         .text_layout
         .as_ref()
         .expect("VerticalRl product proof must consume a resolved layout");
@@ -122,6 +184,11 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             .all(|columns| columns[0].frame.x > columns[1].frame.x),
         "VerticalRl product columns must be laid out from right to left"
     );
+    proof_assertions::assert_bbcode_block_layouts(&samples);
+    proof_assertions::assert_vertical_bbcode_paragraph_layout(&samples);
+    proof_assertions::assert_native_sdf_parity_layout(&samples);
+    proof_assertions::assert_bbcode_table_layout(&samples);
+    proof_assertions::assert_vertical_bbcode_table_layout(&samples);
     let mut commands = vec![background.clone()];
     commands.extend(samples.iter().cloned());
     let (capture, stats) = render_ui_extract_frame(
@@ -130,6 +197,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             list: UiRenderList { commands },
         },
         viewport_size,
+        asset_manager.clone(),
     );
     let (background_capture, _) = render_ui_extract_frame(
         UiRenderExtract {
@@ -139,6 +207,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             },
         },
         viewport_size,
+        asset_manager,
     );
 
     assert_eq!(stats.last_ui_text_payload_count, samples.len());
@@ -157,24 +226,109 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             sample.node_id
         );
     }
+    proof_assertions::assert_native_sdf_parity_pixels(&samples, &capture, &background_capture);
+    proof_assertions::assert_msdf_sharp_corner_pixels(&samples, &capture, &background_capture);
     let locale_variant_delta = count_relative_pixel_differences(
         &capture.rgba,
         capture.width,
         capture.height,
-        samples[7].frame,
-        samples[8].frame,
+        samples[9].frame,
+        samples[10].frame,
         10,
     );
     assert!(
         locale_variant_delta > 48,
         "zh-Hans and ja must not collapse the same Han codepoints onto one rendered face; changed={locale_variant_delta}"
     );
+    let checker_channels = dominant_checker_channel_counts(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        samples[0].frame,
+    );
+    assert!(
+        checker_channels.iter().all(|count| *count > 20),
+        "rich inline image must sample the imported checker texture, not a solid placeholder: {checker_channels:?}"
+    );
+    for (label, sample_index) in [("Word", 1_usize), ("WordSmart", 2_usize)] {
+        let channels = dominant_checker_channel_counts(
+            &capture.rgba,
+            capture.width,
+            capture.height,
+            samples[sample_index].frame,
+        );
+        assert!(
+            channels.iter().all(|count| *count > 20),
+            "{label} inline image must survive wrapping and sample the imported checker texture: {channels:?}"
+        );
+    }
+    let rtl_rich_channels = dominant_checker_channel_counts(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        samples[12].frame,
+    );
+    assert!(
+        rtl_rich_channels.iter().all(|count| *count > 20),
+        "RTL rich inline image must follow visual order and sample the imported checker texture: {rtl_rich_channels:?}"
+    );
+    let ellipsis_layout = samples[13]
+        .text_layout
+        .as_ref()
+        .expect("rich ellipsis product proof must consume resolved layout");
+    assert!(ellipsis_layout.lines[0].ellipsized);
+    assert!(ellipsis_layout.lines[0].text.ends_with('…'));
+    assert!(ellipsis_layout.lines[0].text.contains('\u{fffc}'));
+    let ellipsis_checker_frame = checker_frame_from_layout(&samples[13]);
+    let ellipsis_rich_channels = dominant_checker_channel_counts(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        ellipsis_checker_frame,
+    );
+    assert!(
+        ellipsis_rich_channels.iter().all(|count| *count > 20),
+        "ellipsized rich inline image must retain its real sampled texture: channels={ellipsis_rich_channels:?}, frame={ellipsis_checker_frame:?}, line={:?}, advances={:?}",
+        ellipsis_layout.lines[0].text,
+        ellipsis_layout.lines[0].glyph_advances,
+    );
+    let vertical_rich_layout = samples[14]
+        .text_layout
+        .as_ref()
+        .expect("vertical rich product proof must consume resolved layout");
+    assert_eq!(
+        vertical_rich_layout.writing_mode,
+        UiTextWritingMode::VerticalRl
+    );
+    assert!(vertical_rich_layout.lines.len() >= 2);
+    let vertical_inline_line = vertical_rich_layout
+        .lines
+        .iter()
+        .find(|line| line.text.contains('\u{fffc}'))
+        .expect("vertical rich product proof must retain inline image");
+    let inline_index = vertical_inline_line
+        .text
+        .graphemes(true)
+        .position(|grapheme| grapheme == "\u{fffc}")
+        .expect("vertical rich inline grapheme");
+    assert!((vertical_inline_line.glyph_advances[inline_index] - 40.0).abs() < 0.01);
+    let vertical_checker_frame = checker_frame_from_layout(&samples[14]);
+    let vertical_rich_channels = dominant_checker_channel_counts(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        vertical_checker_frame,
+    );
+    assert!(
+        vertical_rich_channels.iter().all(|count| *count > 20),
+        "VerticalRl rich inline image must advance on y and retain sampled texture: channels={vertical_rich_channels:?}, frame={vertical_checker_frame:?}"
+    );
     let vertical_bounds = changed_pixel_bounds_in_frame(
         &capture.rgba,
         &background_capture.rgba,
         capture.width,
         capture.height,
-        samples[9].frame,
+        samples[11].frame,
         10,
     )
     .expect("VerticalRl SDF row must contain real glyph pixels");
@@ -222,6 +376,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         "runtime multilingual product framebuffer={}",
         output.display()
     );
+    let _ = std::fs::remove_dir_all(fixture_root);
 }
 
 fn assert_color_emoji_backend_raster_contract() {
@@ -310,91 +465,14 @@ fn assert_arabic_mark_cluster_backend_face_contract() {
     );
 }
 
-fn proof_background(viewport_size: UVec2) -> UiRenderCommand {
-    UiRenderCommand {
-        node_id: UiNodeId::new(100),
-        kind: UiRenderCommandKind::Quad,
-        frame: UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32),
-        clip_frame: None,
-        z_index: 0,
-        style: UiResolvedStyle {
-            background_color: Some("#0b1220".to_string()),
-            ..UiResolvedStyle::default()
-        },
-        text_layout: None,
-        text: None,
-        image: None,
-        opacity: 1.0,
-    }
-}
-
-fn proof_text(
-    node_id: u64,
-    frame: UiFrame,
-    text: &str,
-    direction: UiTextDirection,
-    language: Option<&str>,
-    render_mode: UiTextRenderMode,
-) -> UiRenderCommand {
-    UiRenderCommand {
-        node_id: UiNodeId::new(node_id),
-        kind: UiRenderCommandKind::Text,
-        frame,
-        clip_frame: None,
-        z_index: 1,
-        style: UiResolvedStyle {
-            foreground_color: Some("#edf6ff".to_string()),
-            font: Some("res://fonts/default.font.toml".to_string()),
-            language: language.map(str::to_string),
-            font_size: if matches!(render_mode, UiTextRenderMode::Sdf) {
-                24.0
-            } else {
-                30.0
-            },
-            line_height: 40.0,
-            text_align: if matches!(direction, UiTextDirection::RightToLeft) {
-                UiTextAlign::Right
-            } else {
-                UiTextAlign::Left
-            },
-            text_direction: direction,
-            wrap: UiTextWrap::None,
-            text_render_mode: render_mode,
-            ..UiResolvedStyle::default()
-        },
-        text_layout: None,
-        text: Some(text.to_string()),
-        image: None,
-        opacity: 1.0,
-    }
-}
-
-fn proof_vertical_text(node_id: u64, frame: UiFrame, text: &str) -> UiRenderCommand {
-    let mut command = proof_text(
-        node_id,
-        frame,
-        text,
-        UiTextDirection::LeftToRight,
-        Some("zh-Hans"),
-        UiTextRenderMode::Sdf,
-    );
-    command.style.text_writing_mode = UiTextWritingMode::VerticalRl;
-    command.style.font_family = Some("Microsoft YaHei UI".to_string());
-    command.style.font_size = 30.0;
-    command.style.line_height = 38.0;
-    command.style.wrap = UiTextWrap::Word;
-    command.text_layout = Some(layout_text(text, &command.style, frame, None));
-    command
-}
-
 fn render_ui_extract_frame(
     ui: UiRenderExtract,
     viewport_size: UVec2,
+    asset_manager: Arc<ProjectAssetManager>,
 ) -> (
     zircon_runtime::core::framework::render::CapturedFrame,
     zircon_runtime::core::framework::render::RenderStats,
 ) {
-    let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).expect("headless WGPU renderer");
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -435,6 +513,131 @@ fn render_ui_extract_frame(
         .expect("capture multilingual text frame")
         .expect("submitted frame must be capturable");
     (capture, stats)
+}
+
+fn rich_inline_fixture_asset_manager() -> (Arc<ProjectAssetManager>, PathBuf) {
+    let root = std::env::temp_dir().join(format!(
+        "zircon-runtime-rich-inline-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock after unix epoch")
+            .as_nanos()
+    ));
+    let paths = ProjectPaths::from_root(&root).expect("rich inline fixture project paths");
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .expect("rich inline fixture layout");
+    let texture_uri =
+        AssetUri::parse("res://ui/rich-inline-checker.png").expect("rich inline texture locator");
+    ProjectManifest::new("RuntimeRichInlineProof", texture_uri.clone(), 1)
+        .save(paths.manifest_path())
+        .expect("rich inline fixture manifest");
+    let texture_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("ui")
+        .join("rich-inline-checker.png");
+    std::fs::create_dir_all(texture_path.parent().expect("texture parent"))
+        .expect("rich inline texture directory");
+    let image = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_fn(8, 8, |x, y| {
+        match (x >= 4, y >= 4) {
+            (false, false) => image::Rgba([255, 28, 28, 255]),
+            (true, false) => image::Rgba([28, 255, 28, 255]),
+            (false, true) => image::Rgba([28, 28, 255, 255]),
+            (true, true) => image::Rgba([255, 220, 28, 255]),
+        }
+    });
+    image
+        .save(&texture_path)
+        .expect("write rich inline checker texture");
+
+    let manager = Arc::new(ProjectAssetManager::default());
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .expect("open rich inline fixture project");
+    let texture_id = manager
+        .resolve_asset_id(&texture_uri)
+        .expect("imported rich inline texture id");
+    manager
+        .load_texture_asset(texture_id)
+        .expect("load imported rich inline texture");
+    (manager, root)
+}
+
+fn dominant_checker_channel_counts(
+    rgba: &[u8],
+    width: u32,
+    height: u32,
+    frame: UiFrame,
+) -> [usize; 3] {
+    let mut counts = [0usize; 3];
+    let left = frame.x.max(0.0).floor() as u32;
+    let top = frame.y.max(0.0).floor() as u32;
+    let right = frame.right().max(0.0).ceil().min(width as f32) as u32;
+    let bottom = frame.bottom().max(0.0).ceil().min(height as f32) as u32;
+    for y in top..bottom {
+        for x in left..right {
+            let index = ((y * width + x) * 4) as usize;
+            let pixel = &rgba[index..index + 4];
+            if pixel[0] > 180
+                && pixel[0] > pixel[1].saturating_add(60)
+                && pixel[0] > pixel[2].saturating_add(60)
+            {
+                counts[0] += 1;
+            }
+            if pixel[1] > 180
+                && pixel[1] > pixel[0].saturating_add(60)
+                && pixel[1] > pixel[2].saturating_add(60)
+            {
+                counts[1] += 1;
+            }
+            if pixel[2] > 180
+                && pixel[2] > pixel[0].saturating_add(60)
+                && pixel[2] > pixel[1].saturating_add(60)
+            {
+                counts[2] += 1;
+            }
+        }
+    }
+    counts
+}
+
+fn checker_frame_from_layout(command: &UiRenderCommand) -> UiFrame {
+    let layout = command
+        .text_layout
+        .as_ref()
+        .expect("checker proof must carry resolved layout");
+    let line = layout
+        .lines
+        .iter()
+        .find(|line| line.text.contains('\u{fffc}'))
+        .expect("checker proof must retain an inline placeholder");
+    let inline_index = line
+        .text
+        .graphemes(true)
+        .position(|grapheme| grapheme == "\u{fffc}")
+        .expect("inline placeholder grapheme index");
+    let main_offset = line
+        .glyph_advances
+        .iter()
+        .take(inline_index)
+        .copied()
+        .sum::<f32>();
+    if matches!(layout.writing_mode, UiTextWritingMode::VerticalRl) {
+        UiFrame::new(
+            line.frame.x - 4.0,
+            line.frame.y + main_offset - 2.0,
+            line.frame.width + 8.0,
+            44.0,
+        )
+    } else {
+        UiFrame::new(
+            line.frame.x + main_offset - 2.0,
+            line.frame.y - 4.0,
+            40.0,
+            44.0,
+        )
+    }
 }
 
 fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
@@ -593,5 +796,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_multilingual_product_framebuffer_20260710.png")
+        .join("runtime_text_multilingual_sdf_msdf_product_framebuffer_20260713.png")
 }

@@ -1,6 +1,33 @@
 use super::*;
 
 #[test]
+fn unresolved_scene_reference_returns_typed_dangling_error() {
+    let root = unique_temp_project_root("scene_dangling_reference");
+    let project = create_test_project(&root);
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let ImportedAsset::Scene(mut scene) = project.load_artifact(&scene_uri).unwrap() else {
+        panic!("fixture should import a scene");
+    };
+    let missing_uuid = AssetUuid::new();
+    let missing_uri = AssetUri::parse("res://models/missing.obj").unwrap();
+    scene
+        .entities
+        .iter_mut()
+        .find_map(|entity| entity.mesh.as_mut())
+        .expect("fixture scene mesh")
+        .model = AssetReference::new(missing_uuid, missing_uri.clone());
+
+    let error = World::from_scene_asset(&project, &scene).unwrap_err();
+
+    assert!(matches!(
+        error,
+        SceneProjectError::DanglingAssetReference { uuid, locator }
+            if uuid == missing_uuid && locator == missing_uri
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn scene_assets_instantiate_world_with_asset_bound_meshes() {
     let root = unique_temp_project_root("scene_asset");
     let project = create_test_project(&root);

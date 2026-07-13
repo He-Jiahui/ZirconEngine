@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
 };
 use bytemuck::{Pod, Zeroable};
 
-use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
 #[derive(Clone)]
 pub(super) enum PendingMeshGeometry {
@@ -85,8 +85,8 @@ pub(super) struct PendingMeshDraw {
     pub(super) draw_tint: Vec4,
     pub(super) skinned: bool,
     pub(super) skinned_palette_signature: Option<u64>,
-    pub(super) skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
-    pub(super) previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    pub(super) skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    pub(super) previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
     // Holds the original prepared mesh for the guarded shader-skinning path.
     // CPU-skinned dynamic fallback draws leave this empty to avoid double skinning.
     pub(super) skinned_gpu_source: Option<PendingSkinnedGpuSource>,

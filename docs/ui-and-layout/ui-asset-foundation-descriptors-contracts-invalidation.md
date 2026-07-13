@@ -57,7 +57,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/resource_ref/resolve.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
   - zircon_runtime/src/ui/template/asset/invalidation/mod.rs
@@ -161,7 +161,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/resource_ref/collect.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs

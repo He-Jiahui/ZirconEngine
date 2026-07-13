@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessGraphResourceNames, RenderFrameExtract,
-    RenderPluginRendererOutputs,
+    RenderPluginRendererOutputs, ShaderQualityTier,
 };
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::RenderPassStage;
@@ -39,6 +39,7 @@ use super::RgResourceResolver;
 mod deferred;
 mod hzb_occlusion;
 mod mesh_command_lists;
+mod oit;
 mod particle;
 mod post_process;
 mod reports;
@@ -48,6 +49,7 @@ mod surface;
 pub(in crate::graphics::scene::scene_renderer) use mesh_command_lists::RenderPassMeshCommandLists;
 pub use particle::ParticleGpuTransparentDrawContext;
 pub(in crate::graphics::scene::scene_renderer) use post_process::RenderPassPostProcessStackContext;
+use surface::record_depth_clear_pass;
 
 pub struct RenderPassGpuExecutionContext<'a> {
     pub device: &'a wgpu::Device,
@@ -189,6 +191,16 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn viewport_size(&self) -> UVec2 {
         self.frame.viewport_size
+    }
+
+    pub fn shader_quality(&self) -> ShaderQualityTier {
+        self.frame.shader_quality()
+    }
+
+    pub fn previous_motion_vector_camera(
+        &self,
+    ) -> Option<&crate::core::framework::render::ViewportCameraSnapshot> {
+        self.frame.previous_motion_vector_camera()
     }
 
     pub fn history_available(&self) -> bool {
@@ -588,6 +600,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let integrated_volumetric_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            crate::core::framework::render::PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let replay_stats = if mixes_transparent_sprites {
             let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
                 format!(
@@ -611,6 +629,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 light_grid_params_buffer,
                 light_zbins_buffer,
                 light_tile_masks_buffer,
+                integrated_volumetric_view,
                 mesh_stage_attachment_ops(stage, attachment_ops),
                 mesh_stage_attachment_ops(stage, depth_attachment_ops),
             )
@@ -631,6 +650,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 light_grid_params_buffer,
                 light_zbins_buffer,
                 light_tile_masks_buffer,
+                integrated_volumetric_view,
                 mesh_stage_attachment_ops(stage, attachment_ops),
                 mesh_stage_attachment_ops(stage, depth_attachment_ops),
             )
@@ -765,26 +785,6 @@ fn mesh_stage_attachment_ops(
         };
     }
     attachment_ops
-}
-
-fn record_depth_clear_pass(
-    encoder: &mut wgpu::CommandEncoder,
-    pass_name: &str,
-    depth_view: &wgpu::TextureView,
-    attachment_ops: RenderGraphAttachmentOps,
-) {
-    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some(pass_name),
-        color_attachments: &[],
-        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-            view: depth_view,
-            depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
-            stencil_ops: None,
-        }),
-        timestamp_writes: None,
-        occlusion_query_set: None,
-        multiview_mask: None,
-    });
 }
 
 #[cfg(test)]

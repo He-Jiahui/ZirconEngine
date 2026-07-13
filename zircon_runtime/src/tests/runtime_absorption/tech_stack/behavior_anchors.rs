@@ -11,6 +11,8 @@ pub(super) fn assert_runtime_01_behavior_anchors() {
         "text_shaper_stack_uses_shared_text_service_for_font_backends",
         "empty_jolt_feature_slot_reports_unavailable_not_ready",
         "unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick",
+        "linked_jolt_backend_reports_ready",
+        "linked_jolt_backend_ticks_scene_without_builtin_fallback",
     ] {
         assert!(
             text_shaper_tests.contains(behavior_test_anchor)

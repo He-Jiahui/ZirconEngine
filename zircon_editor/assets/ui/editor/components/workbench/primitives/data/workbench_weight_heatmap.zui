@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_weight_heatmap.zui"
+version = 2
+display_name = "Workbench Weight Heatmap"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchWeightHeatmap]
+root = "root"
+default_classes = ["workbench-weight-heatmap", "workbench-primitive"]
+
+[nodes.root]
+component = "Canvas"
+control_id = "WorkbenchWeightHeatmapRoot"
+classes = ["workbench-weight-heatmap"]
+props = { component_variant = "weight-heatmap", heatmap_columns = 12, heatmap_rows = 8, low_label = "0.0", high_label = "1.0", heat_sources = [], input_interactive = false, input_clickable = false, input_focusable = false }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

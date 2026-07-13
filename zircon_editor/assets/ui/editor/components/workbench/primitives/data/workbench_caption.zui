@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui"
+version = 2
+display_name = "Workbench Caption"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchCaption]
+root = "root"
+default_classes = ["workbench-caption", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchCaptionRoot"
+classes = ["workbench-caption"]
+props = { text = "Caption", font_size = 10.666667, font_weight = 600, text_tone = "secondary", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 20.0, max = 22.0, stretch = "Fixed" } }

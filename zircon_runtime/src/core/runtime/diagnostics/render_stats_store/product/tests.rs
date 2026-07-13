@@ -2,6 +2,7 @@ use crate::core::diagnostics::DiagnosticStore;
 
 mod camera_targets;
 mod mesh_gpu_scene;
+mod ui;
 mod visibility_hzb_light;
 
 fn assert_series(store: &DiagnosticStore, path: &str, value: f64, unit: &str) {

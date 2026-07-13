@@ -608,21 +608,12 @@ class CoordinatorApplication:
             )
             return {"result": result.to_dict()}
         if name == "finalize.milestone":
-            if bool(arguments.get("maintenance")):
-                raise CoordinatorError(
-                    "milestone_maintenance_forbidden",
-                    "Milestone commits require ordinary Session ownership",
-                )
-            result = self.finalize.commit_milestone(
-                str(arguments["session_id"]),
-                paths=tuple(str(path) for path in arguments.get("paths") or ()),
-                message=str(arguments["message"]),
-                validation_commands=tuple(
-                    tuple(str(part) for part in command)
-                    for command in arguments.get("validation_commands") or ()
-                ),
+            raise CoordinatorError(
+                "legacy_milestone_finalize_forbidden",
+                "Use 'milestone prepare', 'milestone validate', 'milestone review', "
+                "and 'milestone commit'; legacy finalize --milestone cannot record "
+                "workflow evidence or send WeCom notification.",
             )
-            return {"result": result.to_dict()}
         if name == "validation_copy.plan":
             record = self._require_workspace_copy().plan(
                 str(arguments["session_id"]),
@@ -753,8 +744,10 @@ class CoordinatorApplication:
         return self.workspace_copy
 
     def _maintenance_tick(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        with self._mutation_lock:
-            return self._maintenance_tick_serialized(arguments)
+        # Maintenance has its own non-blocking lock and service-level
+        # reservations. It must never occupy the foreground command mutex while
+        # doing filesystem or retention work.
+        return self._maintenance_tick_serialized(arguments)
 
     def _maintenance_tick_serialized(self, arguments: dict[str, Any]) -> dict[str, Any]:
         if not self._maintenance_lock.acquire(blocking=False):
@@ -898,10 +891,9 @@ class CoordinatorApplication:
 class _CoordinatorHttpServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, handler, *, application: CoordinatorApplication, token: str):
+    def __init__(self, address, handler, *, application: CoordinatorApplication):
         super().__init__(address, handler)
         self.application = application
-        self.token = token
         router = ControlPlaneRouter(
             instance_id=application.instance_id,
             auth=application.web_auth,
@@ -917,7 +909,6 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
         self.control_http = ControlPlaneHttp(
             router,
             application.control_events,
-            runtime_token=token,
             assets=StaticAssetService(application.config.control_web_dist_root),
             artifact_downloads=ArtifactDownloadService(
                 application.database, application.config.workflow_artifact_root
@@ -996,10 +987,9 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         return
 
     def _authorized(self) -> bool:
-        if self.headers.get("Authorization") == f"Bearer {self.server.token}":
-            return True
-        self._write_error(HTTPStatus.UNAUTHORIZED, "unauthorized", "Invalid coordinator token")
-        return False
+        # The service only binds to the exact IPv4 loopback address. Local users
+        # intentionally access the coordinator without a browser or CLI token.
+        return True
 
     def _write_error(self, status: HTTPStatus, code: str, message: str) -> None:
         self._write_json(status, {"error": {"code": code, "message": message, "details": {}}})
@@ -1035,7 +1025,6 @@ class RunningCoordinator:
             )
         config.state_root.mkdir(parents=True, exist_ok=True)
         cls._acquire_lock(config)
-        token = secrets.token_urlsafe(32)
         instance_id = uuid.uuid4().hex
         started_at = utc_text()
         try:
@@ -1049,7 +1038,6 @@ class RunningCoordinator:
                 (config.host, config.port),
                 CoordinatorRequestHandler,
                 application=application,
-                token=token,
             )
             application.lifecycle.set_shutdown(lambda _kind: httpd.shutdown())
             thread = threading.Thread(target=httpd.serve_forever, name="zircon-session-coordinator", daemon=True)
@@ -1071,7 +1059,7 @@ class RunningCoordinator:
             descriptor = RuntimeDescriptor(
                 host=str(host),
                 port=int(port),
-                token=token,
+                token="",
                 repo_root=config.repo_root,
                 repository=application.repository_identity,
                 instance_id=instance_id,
@@ -1096,7 +1084,7 @@ class RunningCoordinator:
                 thread=thread,
                 maintenance_thread=maintenance_thread,
                 maintenance_stop=maintenance_stop,
-                token=token,
+                token="",
                 instance_id=instance_id,
                 started_at=started_at,
             )
@@ -1172,8 +1160,7 @@ class RunningCoordinator:
         while not stop_event.wait(watch_interval):
             try:
                 observation = application.watcher.prepare_scan()
-                with application._mutation_lock:
-                    application.watcher.apply_scan(observation)
+                application.watcher.apply_scan(observation)
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
                 with application.database.transaction() as connection:
                     connection.execute(
@@ -1185,8 +1172,7 @@ class RunningCoordinator:
                     )
             if application.cargo_jobs is not None:
                 try:
-                    with application._mutation_lock:
-                        orphaned = application.cargo_jobs.reconcile_orphans()
+                    orphaned = application.cargo_jobs.reconcile_orphans()
                     if orphaned:
                         with application.database.transaction() as connection:
                             connection.execute(
@@ -1212,10 +1198,9 @@ class RunningCoordinator:
                         )
             if application.workspace_copy is not None:
                 try:
-                    with application._mutation_lock:
-                        recovered_running, recovered_cleanup = (
-                            application.workspace_copy.recover_interrupted_jobs(startup=False)
-                        )
+                    recovered_running, recovered_cleanup = (
+                        application.workspace_copy.recover_interrupted_jobs(startup=False)
+                    )
                     if recovered_running or recovered_cleanup:
                         with application.database.transaction() as connection:
                             connection.execute(

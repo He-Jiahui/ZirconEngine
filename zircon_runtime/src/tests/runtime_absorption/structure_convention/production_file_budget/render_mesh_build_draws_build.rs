@@ -14,7 +14,8 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
     );
 
     let plan_02 = read_repo("docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let mesh_pass_doc =
@@ -36,7 +37,8 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
         &root,
         &[
             "pub(crate) fn build_mesh_draws(",
-            "sync_gpu_scene_pending_draws(device, queue, gpu_scene, &mut pending_draws)",
+            "let (gpu_scene_upload_report, gpu_scene_entries) = sync_gpu_scene_pending_draws(",
+            "frame.environment().baked_lighting(),",
             "prepared_mesh_queue_stats_for_pending_draws(",
             "mesh_visibility_states(",
             "submission_detail_from_draw_ref(",
@@ -64,6 +66,7 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
         &[
             "pub(super) struct SyncedGpuSceneEntry",
             "pub(super) fn sync_gpu_scene_pending_draws(",
+            "lightmaps: Option<&LightmapConsumeContract>",
             "fn primitive_data_for_pending_draw(",
             "fn instance_data_for_pending_draw(",
             "fn previous_model_matrix_for_gpu_scene_entry(",

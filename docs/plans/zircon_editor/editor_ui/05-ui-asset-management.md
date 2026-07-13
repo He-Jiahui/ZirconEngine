@@ -245,7 +245,11 @@ impl UiCompiledArtifactStore {
 
 ## 14. 状态与产出记录
 
-- 已修复回传 Plugins 06 AI 的共享编译交接：[fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md](../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md)
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 当前失败交接（`open / 待修复`）：[`05/failure-2026-07-11-ui-asset-v2-projection-drift.md`](05/failure-2026-07-11-ui-asset-v2-projection-drift.md)
+- 已修复回传 Plugins 06 AI 的共享编译交接：[`../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md`](../../zircon_plugins/06/fixed-2026-07-13-runtime-interface-ui-resource-ref-hard-cutover.md)
+
 | 日期 | 范围 | 状态 | 完成项目 | 验证 |
 | --- | --- | --- | --- | --- |
 | 2026-06-28 | Plan 11 M5 UI asset management `.zui` scope guard | editor_ui_11_m5_ui_asset_management_plan_zui_scope_guard_passed | §1 当前目标已从 `.zui` 单组件 + `.v2.ui.toml` 页面模板改为 `.zui` UI 文档统一入口，并明确 component / view / style / theme_tokens 由 `asset.kind` profile 承载；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前页面模板或布局描述入口。 | 新增 `test_ui_asset_management_plan_uses_zui_for_current_asset_scope`；RED 先失败列出旧 `.v2.ui.toml` 页面模板口径，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |

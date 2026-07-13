@@ -1,4 +1,4 @@
-use crate::plugin::ProjectPluginFeatureSelection;
+use crate::core::framework::project::ProjectPluginFeatureSelection;
 
 use super::key::feature_definition_key;
 use super::{FeatureDefinition, FeatureDefinitionMap};
@@ -14,32 +14,43 @@ impl FeatureDefinitionMap {
             .as_deref()
             .unwrap_or(owner_plugin_id);
         let preferred_key = feature_definition_key(&feature.id, requested_provider);
-        if let Some(definition) = self.definitions.get(&preferred_key) {
-            return Some(definition);
-        }
-        if feature.provider_package_id.is_some() {
-            return None;
-        }
-        self.definitions
-            .values()
-            .filter(|definition| definition.manifest.id == feature.id)
-            .single()
+        self.definitions.get(&preferred_key)
     }
 }
 
-trait SingleDefinition<'a> {
-    fn single(self) -> Option<&'a FeatureDefinition>;
-}
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
 
-impl<'a, I> SingleDefinition<'a> for I
-where
-    I: Iterator<Item = &'a FeatureDefinition>,
-{
-    fn single(mut self) -> Option<&'a FeatureDefinition> {
-        let value = self.next()?;
-        if self.next().is_some() {
-            return None;
-        }
-        Some(value)
+    use crate::core::framework::project::ProjectPluginFeatureSelection;
+    use crate::plugin::PluginFeatureBundleManifest;
+
+    use super::super::{FeatureDefinition, FeatureDefinitionMap};
+
+    #[test]
+    fn selection_without_provider_does_not_fallback_to_unique_external_definition() {
+        let definition = FeatureDefinition::new(
+            PluginFeatureBundleManifest::new(
+                "sound.timeline_animation_track",
+                "Timeline Animation Track",
+                "sound",
+            ),
+            "sound_timeline_animation_track".to_string(),
+        );
+        let definitions = FeatureDefinitionMap {
+            definitions: HashMap::from([(definition.key.clone(), definition)]),
+            diagnostics: Vec::new(),
+            definition_order: Vec::new(),
+        };
+
+        let resolved = definitions.definition_for_selection(
+            "sound",
+            &ProjectPluginFeatureSelection::new("sound.timeline_animation_track"),
+        );
+
+        assert!(
+            resolved.is_none(),
+            "external providers require an explicit provider identity"
+        );
     }
 }

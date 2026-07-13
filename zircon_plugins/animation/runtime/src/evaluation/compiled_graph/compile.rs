@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use zircon_runtime::asset::{AnimationGraphAsset, AnimationGraphNodeAsset};
 use zircon_runtime::core::framework::animation::AnimationTargetId;
+use zircon_runtime::core::framework::animation::{AnimationGraphAsset, AnimationGraphNodeAsset};
 use zircon_runtime::core::framework::scene::EntityPath;
 
 use crate::{AnimationClipCompileError, SkeletonTargetTable};

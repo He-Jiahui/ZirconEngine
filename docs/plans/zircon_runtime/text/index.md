@@ -43,12 +43,12 @@ related_code:
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
-  - zircon_runtime/src/ui/tests/text_pipeline.rs
+  - zircon_runtime/src/ui/tests/text_pipeline
   - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/graphics/text/raster/mod.rs
   - zircon_runtime/src/graphics/text/raster/policy.rs
-  - zircon_runtime/src/graphics/text/raster/swash.rs
+  - zircon_runtime/src/graphics/text/raster/swash/mod.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/dispatch/input_manager/ime_host_requests.rs
@@ -140,7 +140,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - docs/zircon_runtime/graphics/text.md
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
@@ -169,7 +169,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/metrics.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
@@ -208,7 +208,7 @@ related_code:
   - zircon_runtime/src/graphics/text/font/default_families.rs
   - zircon_runtime/src/graphics/text/font/asset_registration.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_params.rs
+- zircon_runtime/src/graphics/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/Cargo.toml
@@ -282,11 +282,11 @@ status: in_progress
 | glyphon bitmap atlas 绘制后端 | 真实 runtime WGPU 产品帧缓冲已验证 CJK、RTL 与彩色 Emoji；后端实际 color face→`SwashContent::Color`→RGBA 字节合同已直证，完整 atlas 硬切仍由 Text 04 跟踪。 |
 | fontsdf SDF 烘焙 + 图集 + 渲染 | 真实 runtime WGPU 产品帧已验证横排 SDF 与两列 VerticalRl CJK 标点；系统 face 经共享 `FontDatabase` 物化后，实际 shaped glyph id/face id 直接进入 atlas key 与 indexed fontsdf bake，backend vertical origin/advance/rotation 由生产 quad 消费。MSDF/MTSDF、horizontal shaped-SDF 全链与 native/SDF parity 仍由 Text 05 跟踪。 |
 | 启发式布局/换行/对齐/省略 | 已有基础能力，后续实现与验证记录见对应子计划。 |
-| Unicode BIDI / 竖排 shaping | UAX#9 paragraph/line owner、TTB/BTT vertical backend、Vertical_Orientation、`vert`/`vrt2`、native `vmtx` 与 vertical origin 已落地；horizontal cosmic per-run `locl`、变量轴与更完整黄金 corpus 仍由 Text 02 跟踪。 |
+| Unicode BIDI / 竖排 shaping | UAX#9 paragraph/line owner、TTB/BTT vertical backend、Vertical_Orientation、`vert`/`vrt2`、native `vmtx` 与 vertical origin 已落地；horizontal RustyBuzz leaf 已接入 per-run `locl` 与变量轴，真实 Windows exact 待运行，更完整黄金 corpus 仍由 Text 02 跟踪。 |
 | grapheme 边界/导航 | 已有基础能力，后续实现与验证记录见对应子计划。 |
 | 命中测试 | 已有基础能力，后续实现与验证记录见对应子计划。 |
 | 度量缓存 | 已有基础能力，后续实现与验证记录见对应子计划。 |
-| 字体回退链 | 后端实际 face-ID 与 shared/native CompositeFont span 已硬切；bounded 缺字诊断/partial cluster 已进入帧外报告，真实 CJK/Arabic/Hebrew/彩色 Emoji、zh-Hans/ja 同码点产品帧与 Arabic mark complex-cluster 单实际 face 均已验收；per-run `locl` 仍由 Text 02/06 跟踪。 |
+| 字体回退链 | 后端实际 face-ID 与 shared/native CompositeFont span 已硬切；bounded 缺字诊断/partial cluster 已进入帧外报告，真实 CJK/Arabic/Hebrew/彩色 Emoji、zh-Hans/ja 同码点产品帧与 Arabic mark complex-cluster 单实际 face 均已验收；per-run `locl` 实现已由 Text 02 horizontal RustyBuzz leaf 承接，focused exact 待运行。 |
 | 富文本最小集 | 已有基础能力，后续实现与验证记录见对应子计划。 |
 | 字体资产/导入 | 已有基础能力，后续实现与验证记录见对应子计划。 |
 | IME 上下文/编辑链 | 已有基础能力，后续实现与验证记录见对应子计划。 |
@@ -400,7 +400,7 @@ Text 总索引中 2026-07 的 editor retained-host、runtime text cache、native
 | 富文本(HTML/BBCode) | 07 | BBCode 全集 + HTML 受控子集 + 装饰器 + 内联对象 |
 | 多平台 IME 输入法接口 | 08 | TSF/IMM32(Win)、NSTextInputClient(mac)、IBus/fcitx(Linux)、Web |
 | letter/word-spacing 与 OT features(2026-07-02 评审收口) | 02、03、07 | `TextShapeRequest.features`(tnum/smcp/liga 等)进 features_hash;spacing 在布局层应用 |
-| language/locale 与 Han 消歧(2026-07-02 评审收口；2026-07-10 数据面完成) | 02、06 | `UiResolvedStyle.language` 段落/run 级 BCP 47 字段已进入 layout/shaped/SDF cache 与 native/SDF fallback；`locl` 因 cosmic-text `Attrs` 能力仍待后端支持 |
+| language/locale 与 Han 消歧(2026-07-02 评审收口；2026-07-13 horizontal 实现落地) | 02、06 | `UiResolvedStyle.language` 段落/run 级 BCP 47 字段已进入 layout/shaped/SDF cache 与 native/SDF fallback；folder-backed horizontal RustyBuzz leaf 绕过 cosmic-text `Attrs` 限制并设置 per-run language，真实 `Calibri` 俄语/塞尔维亚语 `locl` exact 已落代码、尚待执行 |
 | 混 face 行度量与 baseline(2026-07-02 评审收口) | 03 | 行 ascent/descent 取行内各 run face 度量 max;baseline 统一 alphabetic(D7) |
 | 字体失效级联(2026-07-02 评审收口) | 01、09 | face 失效 → 缓存/图集/SDF bake 级联剔除;09 缓存契约表持"失效来源"列 |
 | 文本选择/caret affinity/双击选词(2026-07-02 评审收口) | 03、08 | `CaretAffinity` 模型、软换行行尾归属、grapheme/word 边界导航 |

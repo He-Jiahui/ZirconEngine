@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
-  - zircon_runtime/src/ui/layout/taffy_bridge.rs
+  - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
   - zircon_runtime_interface/src/ui/layout/style.rs
   - zircon_runtime_interface/src/ui/layout/debug.rs
@@ -13,7 +13,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
-  - zircon_runtime/src/ui/layout/taffy_bridge.rs
+  - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime_interface/src/ui/layout/style.rs
   - zircon_runtime_interface/src/ui/layout/debug.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs

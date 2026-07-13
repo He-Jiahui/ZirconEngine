@@ -19,6 +19,7 @@ fn history_copy_report_counts_copied_slots_from_slot_flags() {
         true,
         true,
         true,
+        false,
     );
 
     assert!(report.history_target_present);
@@ -31,6 +32,7 @@ fn history_copy_report_counts_copied_slots_from_slot_flags() {
         false,
         UVec2::new(960, 540),
         1,
+        false,
         false,
         false,
         false,

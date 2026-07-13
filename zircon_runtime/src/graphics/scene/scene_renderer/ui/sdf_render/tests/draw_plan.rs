@@ -34,6 +34,8 @@ fn sdf_draw_plan_snaps_text_origin_but_preserves_glyph_subpixel_phase() {
     let text = text_batch("A", UiFrame::new(8.375, 12.51, 64.0, 20.0));
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
     let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    // Measurements used for placement must be the same baked metrics that the
+    // draw plan consumes, including distance-field padding.
     let a = font_bake.measure_glyph(
         'A',
         text.font.as_deref(),
@@ -65,27 +67,43 @@ fn sdf_draw_plan_snaps_text_origin_but_preserves_glyph_subpixel_phase() {
     );
     assert_eq!(placement.requested_x, requested_x);
     assert_eq!(placement.subpixel_bin, 0);
-    let expected_glyph_x = placement.snapped_x;
-    assert!((placement.snapped_x - requested_x).abs() < 0.0001);
     assert_eq!(vertices.len(), 6);
-    assert!((vertices[0].position[0] - pixel_to_ndc_x(expected_glyph_x, 128.0)).abs() < 0.0001);
+    let baked_metrics = scale_sdf_metrics_for_display(
+        atlas_bake.glyphs[0].metrics,
+        text.font_size,
+        plan.slots[0].key.bake_params,
+    );
+    assert_eq!(a, baked_metrics);
     let baseline = positioned_frame.y
         + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
-        + a.ascent;
+        + baked_metrics.ascent.max(text.font_size.max(1.0));
     let first_frame = horizontal_sdf_glyph_frame(
         positioned_frame.x,
         baseline,
         &RunGlyph {
             slot_index: Some(0),
-            metrics: a,
-            atlas_bitmap_width: a.bitmap_width,
-            atlas_bitmap_height: a.bitmap_height,
+            metrics: baked_metrics,
+            atlas_bitmap_width: atlas_bake.glyphs[0].metrics.bitmap_width,
+            atlas_bitmap_height: atlas_bake.glyphs[0].metrics.bitmap_height,
             visible: true,
             screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
+            atlas_px_range: SdfBakeParams::default().spread_px_f32(),
         },
     );
-    assert!((first_frame.x - expected_glyph_x).abs() < 0.0001);
-    assert!((vertices[0].position[1] - pixel_to_ndc_y(first_frame.y, 64.0)).abs() < 0.0001);
+    assert!((first_frame.x - placement.snapped_x).abs() < 0.0001);
+    let viewport = UiFrame::new(0.0, 0.0, 128.0, 64.0);
+    let clip = text
+        .frame
+        .intersection(viewport)
+        .expect("text frame should overlap the viewport");
+    let clipped_first_frame = first_frame
+        .intersection(clip)
+        .and_then(|frame| frame.intersection(viewport))
+        .expect("baked glyph frame should remain visible after production clipping");
+    assert!(
+        (vertices[0].position[0] - pixel_to_ndc_x(clipped_first_frame.x, 128.0)).abs() < 0.0001
+    );
+    assert!((vertices[0].position[1] - pixel_to_ndc_y(clipped_first_frame.y, 64.0)).abs() < 0.0001);
 }
 
 #[test]
@@ -104,6 +122,7 @@ fn sdf_glyph_frames_preserve_fractional_bitmap_origins_without_changing_size() {
         atlas_bitmap_height: 17,
         visible: true,
         screen_px_range: 4.0,
+        atlas_px_range: 8.0,
     };
 
     let frame = horizontal_sdf_glyph_frame(20.0, 30.0, &glyph);

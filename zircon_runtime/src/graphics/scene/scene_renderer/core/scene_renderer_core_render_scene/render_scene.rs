@@ -1,4 +1,4 @@
-use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::core::framework::render::{PostProcessGraphResourceNames, SkyboxMode};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -16,10 +16,37 @@ impl SceneRendererCore {
         final_color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
     ) -> Result<(), GraphicsError> {
-        self.write_scene_uniform(device, queue, streamer, frame, true);
+        let realtime_ibl_prepared = matches!(
+            frame.environment().skybox.mode,
+            SkyboxMode::ProceduralGradient
+        )
+        .then_some(frame.environment().skybox.procedural)
+        .filter(|sky| sky.intensity > 0.0)
+        .map(|sky| self.realtime_ibl.prepare_frame(sky));
+        self.write_scene_uniform(
+            device,
+            queue,
+            streamer,
+            frame,
+            realtime_ibl_prepared.as_ref(),
+            true,
+        )?;
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-scene-encoder"),
         });
+        let realtime_ibl_submission = realtime_ibl_prepared
+            .as_ref()
+            .map(|prepared| {
+                self.realtime_ibl.record_prepared_frame(
+                    device,
+                    &mut encoder,
+                    prepared,
+                    &mut self.ibl_bake_pipeline_cache,
+                )
+            })
+            .transpose()
+            .map_err(GraphicsError::Asset)?
+            .flatten();
         let shadow_frame_plan =
             crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
                 &mut self.shadow_atlas_allocator,
@@ -95,8 +122,15 @@ impl SceneRendererCore {
             final_color_view,
             frame,
             RenderGraphAttachmentOps::load_store(),
+            Some(streamer),
         );
         queue.submit([encoder.finish()]);
+        if let Some(submission) = realtime_ibl_submission {
+            self.realtime_ibl
+                .complete_submission(device, queue, submission, true);
+        } else {
+            self.realtime_ibl.poll_gpu_timestamps(device);
+        }
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
         let _prev_skinned_palette_roll_report =
             self.gpu_scene.roll_prev_skinned_palettes_after_success();

@@ -28,9 +28,9 @@ fn command_palette_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.panel_padding_x, 13.0);
     assert_eq!(metrics.search_top, 12.0);
     assert_eq!(metrics.search_height, 35.0);
-    assert_eq!(metrics.search_icon_size, 18.0);
+    assert_eq!(metrics.search_icon_size, 14.0);
     assert_eq!(metrics.search_icon_x, 10.0);
-    assert_eq!(metrics.search_text_x, 33.0);
+    assert_eq!(metrics.search_text_x, 29.0);
     assert_eq!(metrics.search_text_y, 9.0);
     assert_eq!(metrics.list_top, 56.0);
     assert_eq!(metrics.row_inset_x, 9.0);

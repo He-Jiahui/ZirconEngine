@@ -19,7 +19,7 @@ TECH_STACK_DOC_ANCHORS = (
     "## External ZrVM Path Dependency",
     "## Export Archive Decision",
     "## Text Stack Boundary",
-    "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+    "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
     "winit 0.31.0-beta.2",
     "notify 9.0.0-rc.3",
     "../../zr_vm",
@@ -73,5 +73,5 @@ CARGO_GATE_ANCHORS = (
     "cargo test -p zircon_runtime --lib extensions --locked",
     "cargo test -p zircon_runtime --lib text_shaper --locked -- --nocapture",
     "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked",
-    "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+    "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
 )

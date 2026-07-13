@@ -250,3 +250,4 @@ winit EventLoop（editor UiHostWindow / runtime preview window）
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`01/2026-07-09-slate-input-dispatch-core-output-records.md`](01/2026-07-09-slate-input-dispatch-core-output-records.md)
+- open 待修复：[plan-output-archive-notice](01/failure-2026-07-13-plan-output-archive-notice.md)

@@ -10,6 +10,6 @@ pub use runtime_modules::{
     runtime_modules_for_runtime_profile_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
-    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
+    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadDiagnostic,
+    RuntimeModuleLoadReport, RuntimePluginId,
 };

@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/ui/binding/router.rs
   - zircon_runtime/src/ui/binding/update_report.rs
   - zircon_editor/src/core/editor_message/view_dirty_set.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
 design_references:
   - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 plan_sources:

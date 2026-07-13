@@ -3,9 +3,9 @@ use std::sync::Arc;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ModuleDescriptor, StartupMode};
 use zircon_runtime::engine_module::{dependency_on, plugin_factory, qualified_name};
-use zircon_runtime::script::{SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME};
-
-use crate::register_zr_vm_backend;
+use zircon_runtime::script::{
+    VmPluginManager, ZrVmBackendFamily, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
+};
 
 pub const ZR_VM_LANGUAGE_MODULE_NAME: &str = "zr_vm_language.runtime";
 pub const ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME: &str =
@@ -14,6 +14,10 @@ pub const ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME: &str =
 #[derive(Debug)]
 pub struct ZrVmLanguageBackendRegistration {
     pub selector: String,
+}
+
+pub fn register_zr_vm_backend(manager: &VmPluginManager) -> String {
+    manager.register_family(Arc::new(ZrVmBackendFamily))
 }
 
 pub fn module_descriptor() -> ModuleDescriptor {

@@ -35,7 +35,7 @@ related_code:
   - zircon_runtime/src/graphics/visibility/occlusion/mod.rs
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visibility_static_index.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
@@ -82,16 +82,16 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/hzb.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/hzb_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_fallback_texture_views/hzb_source_texture_view.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/ssao.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/hzb_params_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/hzb_source_texture_view.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_frame_visibility.rs
@@ -149,7 +149,7 @@ implementation_files:
   - zircon_runtime/src/graphics/visibility/occlusion/mod.rs
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visibility_static_index.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
@@ -192,23 +192,22 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/hzb.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/hzb_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_fallback_texture_views/hzb_source_texture_view.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/ssao.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/hzb_params_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/hzb_source_texture_view.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_frame_visibility.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
   - zircon_runtime/src/graphics/types/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
@@ -278,7 +277,7 @@ tests:
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_builder_keeps_one_pixel_viewports_valid
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_builder_reduce_passes_cover_tail_mips
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs::tests::hzb_build_plan_reports_each_mip_extent
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs::tests::hzb_shader_declares_reduce_entry_and_storage_target
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs::tests::hzb_shader_declares_reduce_entry_and_storage_target
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_as_half_power_of_two_mip_chain
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs::hzb_occlusion_culler_shader_declares_expected_bindings

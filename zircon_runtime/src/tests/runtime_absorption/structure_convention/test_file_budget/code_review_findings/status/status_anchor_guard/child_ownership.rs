@@ -15,8 +15,7 @@ mod status_mirrors;
 
 const STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_SPLIT_NAME: &str =
     "Runtime 15 M3 code review findings status-doc status-anchor child-ownership child split";
-const STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_SPLIT_ID: &str =
-    "runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_child_split_static_passed_cargo_deferred";
+const STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_SPLIT_ID: &str = "runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_child_split_static_passed_cargo_deferred";
 const STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_SPLIT_DATE: &str = "2026-07-05";
 const STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_SPLIT_GUARD: &str =
     "runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_is_child_backed";

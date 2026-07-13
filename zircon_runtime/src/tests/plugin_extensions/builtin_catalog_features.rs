@@ -1,8 +1,8 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::plugin::{
-    PluginModuleKind, ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
-    RuntimePluginCatalog, RuntimePluginDescriptor,
+use crate::core::framework::project::{
+    ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };
+use crate::plugin::{PluginModuleKind, RuntimePluginCatalog, RuntimePluginDescriptor};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn builtin_net_content_download_dependency_report_blocks_without_http_feature() {

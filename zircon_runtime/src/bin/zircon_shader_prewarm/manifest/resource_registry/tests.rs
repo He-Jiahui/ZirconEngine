@@ -292,12 +292,12 @@ fn write_shader_with_meta(asset_root: &Path) {
     fs::write(asset_root.join("shaders/shared.wgsl"), "fn shared() {}\n").unwrap();
     fs::write(
         asset_root.join("shaders/shared.wgsl.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000048"
 url = "res://shaders/shared"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "source-hash-shared-registry-export"
+source_digest = "source-hash-shared-registry-export"
 "#,
     )
     .unwrap();
@@ -321,12 +321,12 @@ fn write_named_shader_with_meta(
             .join("shaders")
             .join(format!("{name}.wgsl.zmeta")),
         format!(
-            r#"format_version = 6
+            r#"format_version = 7
 uuid = "{id}"
 url = "{locator}"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "{source_hash}"
+source_digest = "{source_hash}"
 "#
         ),
     )

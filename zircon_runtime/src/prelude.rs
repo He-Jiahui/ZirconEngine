@@ -15,6 +15,7 @@ pub use crate::core::diagnostics::{
     ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSnapshot,
     ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
 };
+pub use crate::core::framework::project::RuntimeProfileId;
 pub use crate::core::framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
@@ -89,11 +90,6 @@ pub use crate::platform::{
     TouchEventBackend, WindowBackend, WindowEventBackend, WindowLifecycleBackend,
     WindowMetricsBackend, PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME, PLATFORM_MANAGER_NAME,
     PLATFORM_MODULE_NAME,
-};
-pub use crate::plugin::{
-    EditorCoreProfile, PluginMaturity, RuntimeCoreProfile, RuntimePluginAvailabilityEntry,
-    RuntimePluginAvailabilityReport, RuntimeProfileDescriptor, RuntimeProfileId,
-    RuntimeProfilePluginSelection,
 };
 pub use crate::scene::prelude::*;
 #[cfg(feature = "ui")]

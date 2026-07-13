@@ -4,6 +4,9 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ZR_VM_PROJECT_BACKEND_SELECTOR;
+use zircon_runtime::script::{VmStateBlob, VM_STATE_SCHEMA_VERSION_V2};
+
+const FIXTURE_STATE_TYPE_HASH: u32 = 0x5A56_0002;
 
 pub(super) fn build_real_backend_host(
     manager: &Arc<zircon_runtime::script::VmPluginManager>,
@@ -32,7 +35,9 @@ pub(super) fn build_real_backend_host(
         package_source: source,
         host_registry: manager.host_registry(),
         host_exports: manager.host_exports(),
+        host_interfaces: manager.host_interfaces(),
         slot_lifecycle: Arc::new(NoopSlotLifecycle),
+        vm_owner: None,
     }
 }
 
@@ -91,6 +96,14 @@ pub(super) struct DocumentedZrVmExampleFixture {
 
 impl ZrVmProjectFixture {
     pub(super) fn new(name: &str, version: &str) -> Self {
+        Self::new_with_host_interfaces(name, version, false)
+    }
+
+    pub(super) fn new_with_extension_channels(name: &str, version: &str) -> Self {
+        Self::new_with_host_interfaces(name, version, true)
+    }
+
+    fn new_with_host_interfaces(name: &str, version: &str, extension_channels: bool) -> Self {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -116,7 +129,21 @@ impl ZrVmProjectFixture {
             ),
         )
         .unwrap();
-        fs::write(source_root.join("main.zr"), zr_vm_source()).unwrap();
+        fs::write(
+            source_root.join("main.zr"),
+            zr_vm_source(extension_channels),
+        )
+        .unwrap();
+        let extension_capabilities = if extension_channels {
+            concat!(
+                ", \"runtime.script.extension.system\"",
+                ", \"runtime.script.extension.bt_node\"",
+                ", \"runtime.script.extension.rpc_handler\"",
+                ", \"runtime.script.extension.editor_operation\"",
+            )
+        } else {
+            ""
+        };
         fs::write(
             package_root.join("plugin.toml"),
             format!(
@@ -127,7 +154,7 @@ impl ZrVmProjectFixture {
                     "backend = \"zr_vm:project\"\n",
                     "\n",
                     "[capabilities]\n",
-                    "capabilities = [\"foundation.time\", \"foundation.log\"]\n",
+                    "capabilities = [\"foundation.time\", \"foundation.log\"{extension_capabilities}]\n",
                     "\n",
                     "[zr_vm]\n",
                     "project = \"script/plugin.zrp\"\n",
@@ -136,6 +163,7 @@ impl ZrVmProjectFixture {
                 ),
                 name = name,
                 version = version,
+                extension_capabilities = extension_capabilities,
             ),
         )
         .unwrap();
@@ -176,17 +204,53 @@ impl Drop for DocumentedZrVmExampleFixture {
     }
 }
 
-fn zr_vm_source() -> &'static str {
-    concat!(
+fn zr_vm_source(extension_channels: bool) -> String {
+    let extension_import = if extension_channels {
+        "var extensions = %import(\"zr.zircon.extensions\");\n"
+    } else {
+        ""
+    };
+    let extension_registration = if extension_channels {
+        concat!(
+            "    extensions.register_system(\"game.script.update\", \"update\", \"main\", \"systemTick\");\n",
+            "    extensions.register_bt_node(\"game.script.task\", \"Game Script Task\", \"main\", \"behaviorTick\");\n",
+            "    extensions.register_rpc_handler(\"game.script.rpc\", \"game.script.rpc.v1\", \"main\", \"rpcHandle\");\n",
+            "    extensions.register_editor_operation(\"Game.Script.Open\", \"main\", \"editorOpen\");\n",
+        )
+    } else {
+        ""
+    };
+    let mut source = String::from(concat!(
         "var math = %import(\"zr.zircon.math\");\n",
         "var foundation = %import(\"zr.zircon.foundation\");\n",
-        "var savedState = \"created\";\n",
-        "\n",
+    ));
+    source.push_str(extension_import);
+    source.push_str("var savedState = ");
+    source.push_str(&zr_vm_string_literal(&fixture_state_json("created")));
+    source.push_str(concat!(
+        ";\n\n",
         "pub activate(): void {\n",
         "    var now = foundation.time_unix_millis();\n",
         "    var dot = math.vec3_dot(1.0, 2.0, 3.0, 4.0, 5.0, 6.0);\n",
         "    foundation.log_info(\"activated\");\n",
-        "    savedState = \"activated\";\n",
+    ));
+    source.push_str(extension_registration);
+    source.push_str("    savedState = ");
+    source.push_str(&zr_vm_string_literal(&fixture_state_json("activated")));
+    source.push_str(concat!(
+        ";\n",
+        "}\n",
+        "\n",
+        "pub systemTick(deltaSeconds: float): void {\n",
+        "}\n",
+        "\n",
+        "pub behaviorTick(): void {\n",
+        "}\n",
+        "\n",
+        "pub rpcHandle(payload: string): void {\n",
+        "}\n",
+        "\n",
+        "pub editorOpen(): void {\n",
         "}\n",
         "\n",
         "pub deactivate(): void {\n",
@@ -197,12 +261,51 @@ fn zr_vm_source() -> &'static str {
         "    return savedState;\n",
         "}\n",
         "\n",
+        "pub stateSchema(): string {\n",
+        "    return ",
+    ));
+    source.push_str(&zr_vm_string_literal(&fixture_schema_json()));
+    source.push_str(concat!(
+        ";\n",
+        "}\n",
+        "\n",
         "pub restoreState(state: string): void {\n",
-        "    savedState = state + \":restored\";\n",
+        "    savedState = state;\n",
         "}\n",
         "\n",
         "return 0;\n",
+    ));
+    source
+}
+
+pub(super) fn fixture_state_blob(value: &str) -> VmStateBlob {
+    VmStateBlob::from_json(&fixture_state_json(value))
+        .expect("fixture state should satisfy its reflected type table")
+}
+
+fn fixture_state_json(value: &str) -> String {
+    let payload = format!(
+        "[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"fields\":[{{\"field_name\":\"value\",\"value\":{{\"kind\":\"String\",\"value\":\"{value}\"}}}}]}}]"
+    );
+    let payload_bytes = payload
+        .as_bytes()
+        .iter()
+        .map(u8::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "{{\"schema_version\":{VM_STATE_SCHEMA_VERSION_V2},\"types\":[{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"type_hash\":{FIXTURE_STATE_TYPE_HASH}}}],\"payload\":[{payload_bytes}]}}"
     )
+}
+
+fn fixture_schema_json() -> String {
+    format!(
+        "{{\"schema_version\":{VM_STATE_SCHEMA_VERSION_V2},\"types\":[{{\"registration\":{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"display_name\":\"Fixture State\",\"type_info\":{{\"kind\":\"Struct\",\"fields\":[{{\"name\":\"value\",\"display_name\":\"value\",\"value_type_path\":\"String\",\"editable\":true,\"serializable\":true,\"editor_visible\":true,\"editor_hint\":\"String\"}}]}},\"serialization\":\"Value\",\"is_component\":false,\"is_resource\":false,\"plugin_owned\":false,\"serializable\":true,\"editor_visible\":true,\"remote_visible\":false}},\"type_hash\":{FIXTURE_STATE_TYPE_HASH},\"renames\":[]}}]}}"
+    )
+}
+
+fn zr_vm_string_literal(value: &str) -> String {
+    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 fn remove_dir_all_if_exists(path: &Path) {

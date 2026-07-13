@@ -33,14 +33,12 @@ pub(super) fn icon_button_glyph_metrics() -> WorkbenchIconButtonMetrics {
 }
 
 fn icon_button_glyph_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchIconButtonMetrics {
+    // Slate icon classes are density slots: changing typography must not resize
+    // glyphs independently from the 28 px row that owns their hit targets.
     WorkbenchIconButtonMetrics {
-        toolbar_glyph_size: glyph_size(
-            metrics.font_large + metrics.button_icon_gap - metrics.border_width,
-        ),
-        panel_glyph_size: glyph_size(metrics.font_large + metrics.border_width * 2.0),
-        rail_glyph_size: glyph_size(
-            metrics.font_large + metrics.button_icon_gap + metrics.border_width * 3.0,
-        ),
+        toolbar_glyph_size: glyph_size(metrics.row_height - metrics.gap_m),
+        panel_glyph_size: glyph_size(metrics.row_height - metrics.gap_l),
+        rail_glyph_size: glyph_size(metrics.row_height - metrics.gap_s),
         min_glyph_inset: (metrics.button_icon_gap - metrics.border_width).max(0.0),
     }
 }

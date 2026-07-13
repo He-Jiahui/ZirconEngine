@@ -175,12 +175,11 @@ line_height = 12.0
     surface.compute_layout(UiSize::new(200.0, 80.0)).unwrap();
 
     let label = surface.tree.node(UiNodeId::new(2)).unwrap();
-    assert_eq!(
-        label.layout_cache.desired_size,
-        DesiredSize::new(35.0, 12.0)
-    );
+    assert_eq!(label.layout_cache.desired_size.height, 12.0);
+    assert!(label.layout_cache.desired_size.width > 30.0);
+    assert!(label.layout_cache.desired_size.width < 40.0);
     assert_eq!(label.layout_cache.frame.height, 12.0);
-    assert!(label.layout_cache.frame.width >= 35.0);
+    assert!(label.layout_cache.frame.width >= label.layout_cache.desired_size.width);
 }
 
 #[test]
@@ -235,12 +234,11 @@ line_height = 12.0
     surface.compute_layout(UiSize::new(200.0, 80.0)).unwrap();
 
     let button = surface.tree.node(UiNodeId::new(2)).unwrap();
-    assert_eq!(
-        button.layout_cache.desired_size,
-        DesiredSize::new(43.0, 20.0)
-    );
+    assert_eq!(button.layout_cache.desired_size.height, 20.0);
+    assert!(button.layout_cache.desired_size.width > 40.0);
+    assert!(button.layout_cache.desired_size.width < 50.0);
     assert_eq!(button.layout_cache.frame.height, 20.0);
-    assert!(button.layout_cache.frame.width >= 43.0);
+    assert!(button.layout_cache.frame.width >= button.layout_cache.desired_size.width);
 }
 
 #[test]

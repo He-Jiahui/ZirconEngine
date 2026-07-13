@@ -86,8 +86,9 @@ fn runtime_plugin_catalog_reports_duplicate_manager_contributions() {
     let report = catalog.runtime_extensions();
 
     assert!(!report.is_success());
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("manager WeatherPlugin.Manager.WeatherManager already registered")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("manager WeatherPlugin.Manager.WeatherManager already registered")
+    }));
     assert_eq!(report.registry.managers().len(), 1);
 }
 

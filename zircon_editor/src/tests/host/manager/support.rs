@@ -6,13 +6,16 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+use zircon_runtime::scene::DefaultLevelManager;
 pub(super) use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 
+use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
     MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
 };
+use crate::ui::workbench::project::EditorProjectDocument;
 
 pub(super) fn unique_temp_path(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -32,6 +35,31 @@ pub(super) fn unique_temp_dir(prefix: &str) -> PathBuf {
 
 pub(super) fn write_ui_asset(path: impl AsRef<Path>, source: &str) {
     crate::tests::support::write_test_ui_asset(path, source).unwrap();
+}
+
+pub(super) fn create_project_with_default_world(project_root: &Path) {
+    let project_name = project_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("test project root must have a UTF-8 final component");
+    let location = project_root
+        .parent()
+        .expect("test project root must have a parent");
+    let draft = NewProjectDraft {
+        project_name: project_name.to_string(),
+        location: location.to_string_lossy().into_owned(),
+        template: NewProjectTemplate::RenderableEmpty,
+    };
+    let created = ProjectAuthority::default()
+        .create_project(&draft)
+        .expect("ProjectAuthority should create the manager test project");
+    assert_eq!(created.root, project_root);
+
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(project_root, &world, None)
+        .expect("existing manager test project should save");
 }
 
 pub(super) const SIMPLE_UI_LAYOUT_ASSET: &str = r#"

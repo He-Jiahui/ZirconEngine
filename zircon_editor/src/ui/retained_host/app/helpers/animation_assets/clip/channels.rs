@@ -1,4 +1,4 @@
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset,
 };

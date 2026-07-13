@@ -198,13 +198,13 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
     }
 
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");
     let mesh_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
     for (label, source) in [
         ("Plan 08", plan_08.as_str()),
         ("render index", render_index.as_str()),
@@ -212,7 +212,6 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         ("mesh cache doc", mesh_cache_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

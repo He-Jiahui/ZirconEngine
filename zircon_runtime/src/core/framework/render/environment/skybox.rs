@@ -41,6 +41,10 @@ pub struct ProceduralSkyParams {
     pub horizon_color: Vec4,
     pub zenith_color: Vec4,
     pub ground_color: Vec4,
+    pub sun_direction: Vec4,
+    pub sun_color: Vec4,
+    pub sun_intensity: Real,
+    pub sun_angular_radius_radians: Real,
     pub intensity: Real,
     pub rotation_radians: Real,
     pub source_revision: u64,
@@ -52,6 +56,10 @@ impl ProceduralSkyParams {
             horizon_color: Vec4::new(0.16, 0.19, 0.24, 1.0),
             zenith_color: Vec4::new(0.36, 0.46, 0.63, 1.0),
             ground_color: Vec4::new(0.09, 0.11, 0.14, 1.0),
+            sun_direction: Vec4::new(0.0, 1.0, 0.0, 0.0),
+            sun_color: Vec4::ONE,
+            sun_intensity: 0.0,
+            sun_angular_radius_radians: 0.004_65,
             intensity: 1.0,
             rotation_radians: 0.0,
             source_revision: PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
@@ -157,8 +165,8 @@ impl SourceCubemapEnvironment {
     ) -> IblBakeArtifactRequest {
         IblBakeArtifactRequest::new(
             self.ibl_bake_key(),
-            self.mip_chain.face_size(),
-            self.mip_chain.mip_count(),
+            self.mip_chain.source_face_size(),
+            self.mip_chain.source_mip_count(),
         )
         .with_required_contents(required_contents)
     }
@@ -358,8 +366,8 @@ mod tests {
         let request = environment.ibl_bake_artifact_request(IblBakeArtifactContents::SH9);
 
         assert_eq!(request.bake_key(), environment.ibl_bake_key());
-        assert_eq!(request.face_size(), 4);
-        assert_eq!(request.mip_count(), 3);
+        assert_eq!(request.source_face_size(), 4);
+        assert_eq!(request.source_mip_count(), 3);
         assert_eq!(request.required_contents(), IblBakeArtifactContents::SH9);
     }
 }

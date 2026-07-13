@@ -1,22 +1,20 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_virtual_geometry_product_draw_source_cargo_wrapper_wgpu_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_virtual_geometry_product_draw_source_cargo_wrapper_wgpu_passed_renderdoc_deferred";
 const READBACK_STATUS: &str =
     "render_plan08_virtual_geometry_product_draw_source_readback_passed_targeted_cargo";
-const DEFAULT_FEATURE_STATUS: &str =
-    "render_plan08_virtual_geometry_product_draw_source_default_features_wgpu_passed_renderdoc_deferred";
+const DEFAULT_FEATURE_STATUS: &str = "render_plan08_virtual_geometry_product_draw_source_default_features_wgpu_passed_renderdoc_deferred";
 const PAGE_CLUSTER_PRODUCT_STATUS: &str =
     "render_plan08_virtual_geometry_page_cluster_product_execution_wgpu_passed_renderdoc_deferred";
-const PAGE_CLUSTER_PRODUCT_DEFAULT_FEATURE_STATUS: &str =
-    "render_plan08_virtual_geometry_page_cluster_product_default_features_wgpu_passed_renderdoc_deferred";
+const PAGE_CLUSTER_PRODUCT_DEFAULT_FEATURE_STATUS: &str = "render_plan08_virtual_geometry_page_cluster_product_default_features_wgpu_passed_renderdoc_deferred";
 const PAGE_CLUSTER_PRODUCT_PNG_STATUS: &str =
     "render_plan08_virtual_geometry_page_cluster_product_readback_png_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
-    let context_builder =
-        read_runtime_src("graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs");
+    let context_builder = read_runtime_src(
+        "graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
+    );
     let provider_contract =
         read_runtime_src("graphics/virtual_geometry_runtime_provider/provider.rs");
     let product_fixture = read_runtime_src("graphics/tests/plugin_render_feature_fixtures.rs");
@@ -25,13 +23,15 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
     );
     let product_test =
         read_runtime_src("graphics/tests/render_product_mesh_cache/virtual_geometry.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "submit context chooses automatic VG only after authored extract is absent",
@@ -125,7 +125,6 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -145,7 +144,6 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
         ("render product doc", render_product_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -165,7 +163,6 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
         ("render product doc", render_product_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -184,7 +181,6 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -206,7 +202,6 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

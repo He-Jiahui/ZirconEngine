@@ -5,7 +5,7 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
-use super::super::build_post_process_params::build_post_process_params;
+use super::super::build_post_process_params::build_post_process_params_with_hybrid_gi_policy;
 use super::super::create_bind_group::create_bind_group;
 use super::super::create_post_process_params_buffer;
 use super::super::write_hybrid_gi_buffers::write_hybrid_gi_buffers;
@@ -71,7 +71,12 @@ impl ScenePostProcessResources {
             select_effect_lut_texture_views(self, streamer, frame, baked_color_lut_view);
         let render_region = frame.render_region();
         let local_viewport_size = frame.extract.view.effective_render_size();
-        let mut params = build_post_process_params(
+        let hybrid_gi_composite_policy = frame
+            .prepared_runtime_sidebands()
+            .hybrid_gi_prepared_frame()
+            .map(|prepared| prepared.composite_policy)
+            .unwrap_or_default();
+        let mut params = build_post_process_params_with_hybrid_gi_policy(
             local_viewport_size,
             cluster_dimensions,
             render_region,
@@ -83,6 +88,7 @@ impl ScenePostProcessResources {
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
             current_hybrid_gi_lighting_view.is_some(),
+            hybrid_gi_composite_policy,
         );
         if skip_depth_of_field {
             params.effect_blur_dof[1] = 0.0;

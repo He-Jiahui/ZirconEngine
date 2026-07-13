@@ -1,12 +1,17 @@
+use std::fs;
+use std::path::PathBuf;
 use std::sync::mpsc;
 
+use image::{ImageBuffer, ImageFormat, Rgba};
 use wgpu::util::DeviceExt;
 
 use super::*;
 
-const TRACE_WORD_COUNT: usize = 512;
+mod spatial_filter;
+
+const TRACE_WORD_COUNT: usize = 576;
 const TRACE_TILE_WORD_OFFSET: usize = 64;
-const TRACE_TILE_WORD_COUNT: usize = 7;
+const TRACE_TILE_WORD_COUNT: usize = 8;
 const TRACE_TILE_COUNT: usize = 64;
 const TRACE_SCHEDULE_MAGIC: u32 = 0x4847_4954;
 const HZB_TRACE_MAGIC: u32 = 0x4847_5a42;
@@ -15,6 +20,12 @@ const RADIANCE_VALID_FLAG: u32 = 1 << 12;
 const CURRENT_RADIANCE: [u8; 4] = [64, 128, 192, 255];
 const TEST_SIZE: u32 = 4;
 const READBACK_BYTES_PER_ROW: u32 = 256;
+const DEFAULT_NORMAL_CODE: u32 = 36;
+const OPPOSITE_NORMAL_CODE: u32 = 63;
+const NORMAL_REJECTION_PRODUCT_PNG: &str =
+    "plan18_hybrid_gi_normal_aware_temporal_rejection_wgpu_20260711.png";
+const NORMAL_REJECTION_PRODUCT_REPORT: &str =
+    "plan18_hybrid_gi_normal_aware_temporal_rejection_wgpu_20260711.txt";
 
 #[test]
 fn resolve_shader_consumes_trace_depth_source_packet() {
@@ -31,6 +42,8 @@ fn resolve_shader_consumes_trace_depth_source_packet() {
     assert!(source.contains("previous_temporal_metadata_tex"));
     assert!(source.contains("temporal_history_weight"));
     assert!(source.contains("normalized_support_signature"));
+    assert!(source.contains("temporal_normal_matches"));
+    assert!(source.contains("pack_temporal_source_and_normal"));
     assert!(source.contains("HybridGiTemporalResolveOutput"));
 }
 
@@ -42,13 +55,9 @@ fn resolve_temporal_history_reuses_static_scene_and_accumulates_confidence() {
     let baseline = run_temporal_resolve(
         &device,
         &queue,
-        TemporalCase::new(false, [0.0, 0.0], 0.0, 1.0),
+        TemporalCase::new(false, [0.0, 0.0], 0.0, 1),
     );
-    let reused = run_temporal_resolve(
-        &device,
-        &queue,
-        TemporalCase::new(true, [0.0, 0.0], 0.0, 1.0),
-    );
+    let reused = run_temporal_resolve(&device, &queue, TemporalCase::new(true, [0.0, 0.0], 0.0, 1));
 
     assert_color_matches_current(baseline.lighting);
     assert!(
@@ -73,13 +82,9 @@ fn resolve_temporal_history_rejects_reprojected_motion() {
     let baseline = run_temporal_resolve(
         &device,
         &queue,
-        TemporalCase::new(false, [0.0, 0.0], 0.0, 1.0),
+        TemporalCase::new(false, [0.0, 0.0], 0.0, 1),
     );
-    let moving = run_temporal_resolve(
-        &device,
-        &queue,
-        TemporalCase::new(true, [2.0, 0.0], 0.0, 1.0),
-    );
+    let moving = run_temporal_resolve(&device, &queue, TemporalCase::new(true, [2.0, 0.0], 0.0, 1));
 
     assert_vec4_near(moving.lighting, baseline.lighting, 0.01);
     assert!(
@@ -96,23 +101,117 @@ fn resolve_temporal_history_rejects_scene_signature_or_trace_source_change() {
     let baseline = run_temporal_resolve(
         &device,
         &queue,
-        TemporalCase::new(false, [0.0, 0.0], 0.0, 1.0),
+        TemporalCase::new(false, [0.0, 0.0], 0.0, 1),
     );
-    let changed_scene = run_temporal_resolve(
-        &device,
-        &queue,
-        TemporalCase::new(true, [0.0, 0.0], 1.0, 1.0),
-    );
-    let changed_source = run_temporal_resolve(
-        &device,
-        &queue,
-        TemporalCase::new(true, [0.0, 0.0], 0.0, 2.0),
-    );
+    let changed_scene =
+        run_temporal_resolve(&device, &queue, TemporalCase::new(true, [0.0, 0.0], 1.0, 1));
+    let changed_source =
+        run_temporal_resolve(&device, &queue, TemporalCase::new(true, [0.0, 0.0], 0.0, 2));
 
     assert_vec4_near(changed_scene.lighting, baseline.lighting, 0.01);
     assert_vec4_near(changed_source.lighting, baseline.lighting, 0.01);
     assert!(changed_scene.metadata[3] <= 0.3);
     assert!(changed_source.metadata[3] <= 0.3);
+}
+
+#[test]
+fn resolve_temporal_history_rejects_disoccluded_normal() {
+    let Some((device, queue)) = test_device() else {
+        return;
+    };
+    let baseline = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(false, [0.0, 0.0], 0.0, 1),
+    );
+    let changed_normal = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_current_normal_codes([OPPOSITE_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize]),
+    );
+
+    assert_vec4_near(changed_normal.lighting, baseline.lighting, 0.01);
+    assert!(
+        changed_normal.metadata[3] <= 0.3,
+        "normal rejection should reset temporal confidence"
+    );
+}
+
+#[test]
+#[ignore]
+fn export_normal_aware_temporal_rejection_wgpu_png() {
+    let Some((device, queue)) = test_device() else {
+        eprintln!("skipping normal-aware temporal Wgpu product because no adapter is available");
+        return;
+    };
+    let accepted =
+        run_temporal_resolve_pixels(&device, &queue, TemporalCase::new(true, [0.0, 0.0], 0.0, 1));
+    let mut checker_normals = [DEFAULT_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize];
+    for y in 0..TEST_SIZE as usize {
+        for x in 0..TEST_SIZE as usize {
+            if (x + y) % 2 == 0 {
+                checker_normals[y * TEST_SIZE as usize + x] = OPPOSITE_NORMAL_CODE;
+            }
+        }
+    }
+    let checker = run_temporal_resolve_pixels(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1).with_current_normal_codes(checker_normals),
+    );
+
+    let mut normal_rejected_pixels = 0_usize;
+    let mut normal_retained_pixels = 0_usize;
+    let mut reprojection_border_pixels = 0_usize;
+    for pixel_index in 0..accepted.len() {
+        let x = pixel_index as u32 % TEST_SIZE;
+        let y = pixel_index as u32 / TEST_SIZE;
+        if x + 1 == TEST_SIZE || y + 1 == TEST_SIZE {
+            assert_vec4_near(
+                checker[pixel_index].lighting,
+                accepted[pixel_index].lighting,
+                0.01,
+            );
+            reprojection_border_pixels += 1;
+            continue;
+        }
+        if checker[pixel_index].metadata[3] <= 0.3 {
+            assert!(checker[pixel_index].lighting[0] + 0.04 < accepted[pixel_index].lighting[0]);
+            normal_rejected_pixels += 1;
+        } else {
+            assert!(checker[pixel_index].metadata[3] > 0.75);
+            assert_vec4_near(
+                checker[pixel_index].lighting,
+                accepted[pixel_index].lighting,
+                0.01,
+            );
+            normal_retained_pixels += 1;
+        }
+    }
+    assert!(normal_rejected_pixels >= 4);
+    assert!(normal_retained_pixels >= 4);
+    assert_eq!(normal_rejected_pixels + normal_retained_pixels, 9);
+    assert_eq!(reprojection_border_pixels, 7);
+
+    let output_dir = render_test_output_dir();
+    fs::create_dir_all(&output_dir).unwrap();
+    write_temporal_normal_matrix_png(
+        output_dir.join(NORMAL_REJECTION_PRODUCT_PNG),
+        &accepted,
+        &checker,
+    );
+    fs::write(
+        output_dir.join(NORMAL_REJECTION_PRODUCT_REPORT),
+        format!(
+            "png={}\nleft=matching_normals_with_reprojection_border\nright=checkerboard_opposite_normals\nwidth=257\nheight=128\ngpu_output_grid=4x4_temporal_resolve_pixels\nnormal_rejected_interior_pixels={}\nnormal_retained_interior_pixels={}\nreprojection_border_pixels={}\nnormal_encoding=6bit_octahedral\ntemporal_metadata_y=source_times_64_plus_normal_code_exact_r16f_integer\nnormal_dot_threshold=0.75\ntrace_tile_words=8\ntrace_buffer_minimum_bytes=2304\nvalidated_scene_normal_inputs=single_sample_plus_msaa_surface_sample\nvalidated_temporal_behavior=depth_source_support_normal_motion_luma_rejection_plus_confidence\n",
+            NORMAL_REJECTION_PRODUCT_PNG,
+            normal_rejected_pixels,
+            normal_retained_pixels,
+            reprojection_border_pixels,
+        ),
+    )
+    .unwrap();
 }
 
 #[test]
@@ -123,7 +222,7 @@ fn resolve_temporal_history_reuses_unchanged_support_and_rejects_changed_neighbo
     let baseline = run_temporal_resolve_pixels(
         &device,
         &queue,
-        TemporalCase::new(false, [0.0, 0.0], 0.0, 1.0),
+        TemporalCase::new(false, [0.0, 0.0], 0.0, 1),
     );
     let unchanged_signature = 128_u32;
     let changed_signature = 768_u32;
@@ -134,7 +233,7 @@ fn resolve_temporal_history_reuses_unchanged_support_and_rejects_changed_neighbo
     let localized = run_temporal_resolve_pixels(
         &device,
         &queue,
-        TemporalCase::new(true, [0.0, 0.0], previous_signature, 1.0)
+        TemporalCase::new(true, [0.0, 0.0], previous_signature, 1)
             .with_current_support_signatures(current_signatures),
     );
 
@@ -163,8 +262,10 @@ struct TemporalCase {
     history_available: bool,
     velocity: [f32; 2],
     previous_signature: f32,
-    previous_source: f32,
+    previous_source: u32,
+    previous_normal_code: u32,
     current_support_signatures: [u32; (TEST_SIZE * TEST_SIZE) as usize],
+    current_normal_codes: [u32; (TEST_SIZE * TEST_SIZE) as usize],
 }
 
 impl TemporalCase {
@@ -172,15 +273,25 @@ impl TemporalCase {
         history_available: bool,
         velocity: [f32; 2],
         previous_signature: f32,
-        previous_source: f32,
+        previous_source: u32,
     ) -> Self {
         Self {
             history_available,
             velocity,
             previous_signature,
             previous_source,
+            previous_normal_code: DEFAULT_NORMAL_CODE,
             current_support_signatures: [0; (TEST_SIZE * TEST_SIZE) as usize],
+            current_normal_codes: [DEFAULT_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize],
         }
+    }
+
+    const fn with_current_normal_codes(
+        mut self,
+        normal_codes: [u32; (TEST_SIZE * TEST_SIZE) as usize],
+    ) -> Self {
+        self.current_normal_codes = normal_codes;
+        self
     }
 
     const fn with_current_support_signatures(
@@ -211,7 +322,16 @@ fn run_temporal_resolve_pixels(
     queue: &wgpu::Queue,
     case: TemporalCase,
 ) -> Vec<TemporalResult> {
-    let trace_words = test_trace_words(case.current_support_signatures);
+    let trace_words = test_trace_words(case.current_support_signatures, case.current_normal_codes);
+    run_temporal_resolve_pixels_with_trace_words(device, queue, case, trace_words)
+}
+
+fn run_temporal_resolve_pixels_with_trace_words(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    case: TemporalCase,
+    trace_words: [u32; TRACE_WORD_COUNT],
+) -> Vec<TemporalResult> {
     let trace = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("hybrid-gi-temporal-test-trace"),
         contents: bytemuck::cast_slice(&trace_words),
@@ -233,7 +353,12 @@ fn run_temporal_resolve_pixels(
         device,
         queue,
         "hybrid-gi-temporal-test-metadata-history",
-        [0.5, case.previous_source, case.previous_signature, 1.0],
+        [
+            0.5,
+            packed_source_and_normal(case.previous_source, case.previous_normal_code),
+            case.previous_signature,
+            1.0,
+        ],
     );
     let (lighting, lighting_view) = render_target(device, "hybrid-gi-temporal-test-lighting");
     let (metadata, metadata_view) = render_target(device, "hybrid-gi-temporal-test-metadata");
@@ -296,6 +421,7 @@ fn run_temporal_resolve_pixels(
 
 fn test_trace_words(
     current_support_signatures: [u32; (TEST_SIZE * TEST_SIZE) as usize],
+    current_normal_codes: [u32; (TEST_SIZE * TEST_SIZE) as usize],
 ) -> [u32; TRACE_WORD_COUNT] {
     let mut words = [0_u32; TRACE_WORD_COUNT];
     words[0] = TRACE_SCHEDULE_MAGIC;
@@ -312,6 +438,7 @@ fn test_trace_words(
         words[offset] = pack_rgba8(CURRENT_RADIANCE);
         words[offset + 1] = quantize_depth_q24(0.5);
         words[offset + 3] = SURFACE_CACHE_FLAG | RADIANCE_VALID_FLAG;
+        words[offset + 7] = DEFAULT_NORMAL_CODE;
     }
     for (pixel_index, signature) in current_support_signatures.into_iter().enumerate() {
         let pixel_x = pixel_index as u32 % TEST_SIZE;
@@ -322,7 +449,71 @@ fn test_trace_words(
         let offset = TRACE_TILE_WORD_OFFSET + tile_index * TRACE_TILE_WORD_COUNT;
         words[offset + 6] = signature;
     }
+    for (pixel_index, normal_code) in current_normal_codes.into_iter().enumerate() {
+        let pixel_x = pixel_index as u32 % TEST_SIZE;
+        let pixel_y = pixel_index as u32 / TEST_SIZE;
+        let tile_x = ((pixel_x * 2 + 1) * 8) / (TEST_SIZE * 2);
+        let tile_y = ((pixel_y * 2 + 1) * 8) / (TEST_SIZE * 2);
+        let tile_index = (tile_y * 8 + tile_x) as usize;
+        let offset = TRACE_TILE_WORD_OFFSET + tile_index * TRACE_TILE_WORD_COUNT;
+        words[offset + 7] = normal_code;
+    }
     words
+}
+
+fn packed_source_and_normal(source: u32, normal_code: u32) -> f32 {
+    (source * 64 + (normal_code & 63)) as f32
+}
+
+fn write_temporal_normal_matrix_png(
+    path: PathBuf,
+    accepted: &[TemporalResult],
+    checker: &[TemporalResult],
+) {
+    const CELL_SIDE: u32 = 32;
+    const PANEL_SIDE: u32 = TEST_SIZE * CELL_SIDE;
+    let mut image = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(PANEL_SIDE * 2 + 1, PANEL_SIDE);
+    for (panel_index, pixels) in [accepted, checker].into_iter().enumerate() {
+        let panel_x = panel_index as u32 * (PANEL_SIDE + 1);
+        for (pixel_index, result) in pixels.iter().enumerate() {
+            let cell_x = pixel_index as u32 % TEST_SIZE;
+            let cell_y = pixel_index as u32 / TEST_SIZE;
+            let color = result.lighting.map(float_channel_to_u8);
+            for y in 0..CELL_SIDE {
+                for x in 0..CELL_SIDE {
+                    let rgba = if x == 0 || y == 0 {
+                        Rgba([6, 8, 10, 255])
+                    } else {
+                        Rgba(color)
+                    };
+                    image.put_pixel(
+                        panel_x + cell_x * CELL_SIDE + x,
+                        cell_y * CELL_SIDE + y,
+                        rgba,
+                    );
+                }
+            }
+        }
+    }
+    for y in 0..PANEL_SIDE {
+        image.put_pixel(PANEL_SIDE, y, Rgba([255, 255, 255, 255]));
+    }
+    image.save_with_format(path, ImageFormat::Png).unwrap();
+}
+
+fn float_channel_to_u8(channel: f32) -> u8 {
+    (channel.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
+}
+
+fn render_test_output_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("..")
+        .join("docs")
+        .join("tests")
+        .join("runtime")
+        .join("render")
 }
 
 fn sampled_rg32_texture(

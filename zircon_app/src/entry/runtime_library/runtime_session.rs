@@ -18,10 +18,7 @@ pub(crate) struct RuntimeSession {
 }
 
 impl RuntimeSession {
-    pub(crate) fn create(runtime: LoadedRuntime) -> Result<Self, RuntimeLibraryError> {
-        Self::create_with_profile(runtime, b"runtime")
-    }
-
+    #[cfg(feature = "target-editor-host")]
     pub(crate) fn create_with_profile(
         runtime: LoadedRuntime,
         profile: &'static [u8],

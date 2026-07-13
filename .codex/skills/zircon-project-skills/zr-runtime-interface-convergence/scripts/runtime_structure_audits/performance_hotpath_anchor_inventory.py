@@ -45,6 +45,8 @@ QUERY_COUNTER_ANCHORS = (
     "pub(crate) fn record_ecs_query_cache_stats(&mut self, stats: QueryStateCacheStats)",
     "pub(crate) fn record_ecs_change_detection_stats(&mut self, stats: ChangeDetectionScanStats)",
     "level.with_world_mut(|world| world.reset_ecs_frame_performance_diagnostics());",
+    "pub fn publish(&self, core: &CoreHandle, frame_index: u64)",
+    ".publish(core, core.real_time().frame_index());",
 )
 CHANGE_COUNTER_ANCHORS = (
     '"ecs.change_detection.scanned_marks"',
@@ -144,13 +146,13 @@ HOTSPOT_GUARD_ANCHORS = (
     "AnimationSceneFrameDiagnostics",
     "animation.scene.scanned_entities",
     "animation_scene_frame_diagnostics_static_passed_cargo_deferred",
-    "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
+    "runtime_07_performance_hotpath_records_completed_authoritative_validation",
     "profiling_build_tooling_static_passed_cargo_deferred_active_lanes",
     "python tools/zircon_build.py --targets runtime --out E:\\builds\\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy",
     "./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride \"target-client profiling profiling-tracy\"",
     "No Runtime 07 M2 optimization slice may start from an unmeasured suspicion",
     "Authoritative Top List",
-    "Pending authoritative runtime sample",
+    "authoritative_inventory_completed",
     "Candidate Evidence Matrix",
     "Render-Plan Diversions",
     "Runtime 07 M2 is not allowed to fix render submission",
@@ -197,6 +199,7 @@ RUNTIME_07_TEST_ANCHORS = (
     "CounterHotspotReport",
     "counter_hotspots.json",
     "ProfileControlResponse.counter_hotspot_report",
+    "headless_session_tick_publishes_ecs_frame_diagnostics",
 )
 RUNTIME_07_DOC_ANCHORS = (
     "performance_hotpath_boundary",
@@ -207,7 +210,7 @@ RUNTIME_07_DOC_ANCHORS = (
     "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
     "runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit",
     MIRROR_DOCS_GUARD,
-    "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
+    "runtime_07_performance_hotpath_records_completed_authoritative_validation",
     "runtime_frame_schedule_stage.<SystemStage>",
     "extract/ecs_query/performance profiling/FPS gates",
     "profiling_build_tooling_static_passed_cargo_deferred_active_lanes",
@@ -215,7 +218,7 @@ RUNTIME_07_DOC_ANCHORS = (
     "tools/dev-fast-build.ps1 -CargoProfile profiling",
     "No Runtime 07 M2 optimization slice may start from an unmeasured suspicion",
     "large production files remain above the owner budget",
-    "Pending authoritative runtime sample",
+    "authoritative_inventory_completed",
     "Candidate Evidence Matrix",
     "Runtime Frame Extract Cache",
     "RuntimeFrameExtractCache",
@@ -240,5 +243,5 @@ CARGO_GATE_ANCHORS = (
     "cargo check -p zircon_runtime --lib --locked",
     "cargo test -p zircon_runtime --lib extract --locked -- --nocapture",
     "cargo test -p zircon_runtime --lib ecs_query --locked -- --nocapture",
-    "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
+    "runtime_07_performance_hotpath_records_completed_authoritative_validation",
 )

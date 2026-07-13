@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/resource_ref/resolve.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
   - zircon_runtime/src/ui/template/asset/style.rs
@@ -73,7 +73,6 @@ related_code:
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
   - zircon_runtime/src/ui/template/asset/loader.rs
   - zircon_runtime/src/ui/template/asset/schema/mod.rs
-  - zircon_runtime/src/ui/template/asset/schema/policy.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
@@ -91,8 +90,8 @@ related_code:
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
@@ -123,7 +122,6 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
-  - zircon_editor/src/ui/asset_editor/palette/mod.rs
   - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
@@ -157,7 +155,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/resource_ref/collect.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/dependency.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/diagnostic.rs
   - zircon_runtime/src/ui/template/asset/style.rs
@@ -209,7 +207,6 @@ implementation_files:
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/template/asset/loader.rs
   - zircon_runtime/src/ui/template/asset/schema/mod.rs
-  - zircon_runtime/src/ui/template/asset/schema/policy.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
@@ -220,11 +217,11 @@ implementation_files:
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs

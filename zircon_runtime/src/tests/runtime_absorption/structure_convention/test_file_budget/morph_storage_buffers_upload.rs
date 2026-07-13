@@ -14,13 +14,15 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
     let morphed_wgsl = read_runtime_src("graphics/shader/wgsl/zr_geometry_morphed.wgsl");
     let skinned_morphed_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let gpu_scene_doc = read_repo("docs/zircon_runtime/graphics/scene/gpu_scene/mod.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
     let gpu_scene_sources =
         format!("{gpu_scene_layout}{gpu_scene_binding}{gpu_scene_runtime}{gpu_scene_mod}");
 
@@ -83,7 +85,10 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
     );
 
     for (path, source) in [
-        ("graphics/scene/gpu_scene/layout.rs", gpu_scene_layout.as_str()),
+        (
+            "graphics/scene/gpu_scene/layout.rs",
+            gpu_scene_layout.as_str(),
+        ),
         (
             "graphics/scene/gpu_scene/binding.rs",
             gpu_scene_binding.as_str(),
@@ -92,7 +97,10 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
             "graphics/scene/gpu_scene/gpu_scene.rs",
             gpu_scene_runtime.as_str(),
         ),
-        ("graphics/scene/gpu_scene/morph.rs", gpu_scene_morph.as_str()),
+        (
+            "graphics/scene/gpu_scene/morph.rs",
+            gpu_scene_morph.as_str(),
+        ),
         (
             "tests/runtime_absorption/structure_convention/test_file_budget/morph_storage_buffers_upload.rs",
             include_str!("morph_storage_buffers_upload.rs"),
@@ -112,7 +120,6 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
         ("GPUScene doc", gpu_scene_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

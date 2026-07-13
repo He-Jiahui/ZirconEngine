@@ -383,3 +383,10 @@ WGSL include 只暴露函数与 struct(index §8.3):`zr_volumetric_apply(color, 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`18/2026-07-09-advanced-lighting-features-output-records.md`](18/2026-07-09-advanced-lighting-features-output-records.md)
+- fixed 已修复：[oit-buffer-plan-export](../../zircon_editor/editor/01/fixed-2026-07-12-oit-buffer-plan-export.md)
+- fixed 已修复：[planar-reflection-export-boundary](../../zircon_editor/editor_layout/15/fixed-2026-07-12-planar-reflection-export-boundary.md)
+- fixed 已修复：[subsurface-profile-mask-test-inference](../../zircon_editor/editor/15/fixed-2026-07-13-subsurface-profile-mask-test-inference.md)
+- fixed 已修复：[planar-filter-test-surface-export](../frameworks/03/fixed-2026-07-13-planar-filter-test-surface-export.md)
+- fixed 已修复：[hybrid-gi-project-fixture-api-drift](18/fixed-2026-07-13-hybrid-gi-project-fixture-api-drift.md)
+- fixed 已修复：[navigation-runtime-driver-manager-layering](18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
+- fixed 已修复：[derived-reflection-visibility-compilation](18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)

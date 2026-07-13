@@ -14,7 +14,6 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             .map(|pass| pass.name.as_str())
             .collect::<Vec<_>>(),
         vec![
-            "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
             "velocity-object",
@@ -25,6 +24,7 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
+            "preview-sky",
             "transparent-mesh",
             "bloom-extract",
             "reflection-probe-composite",
@@ -145,7 +145,6 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             .map(|pass| pass.name.as_str())
             .collect::<Vec<_>>(),
         vec![
-            "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
             "velocity-object",
@@ -156,6 +155,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "ssao-evaluate",
             "light-grid-build",
             "deferred-lighting",
+            "preview-sky",
             "transparent-mesh",
             "bloom-extract",
             "reflection-probe-composite",

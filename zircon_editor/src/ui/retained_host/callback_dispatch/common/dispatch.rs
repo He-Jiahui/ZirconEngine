@@ -7,8 +7,8 @@ use crate::core::editor_event::{EditorEventEnvelope, EditorEventSource};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
+use crate::ui::workbench::event::operation_path_for_menu_action;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
-use crate::ui::workbench::model::operation_path_for_menu_action;
 use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

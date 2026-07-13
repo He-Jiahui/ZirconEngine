@@ -33,17 +33,13 @@ impl SceneUniform {
                 .map(|environment| {
                     [
                         skybox.mode as u32 as f32,
-                        environment.mip_chain.face_size() as f32,
-                        environment.mip_chain.face_size() as f32,
-                        environment.mip_chain.mip_count() as f32,
+                        environment.mip_chain.source_face_size() as f32,
+                        environment.mip_chain.pmrem_face_size() as f32,
+                        environment.mip_chain.pmrem_mip_count() as f32,
                     ]
                 })
                 .unwrap_or([skybox.mode as u32 as f32, 0.0, 0.0, 0.0]),
         };
-        let environment_sh9 = source_cubemap_environment
-            .map(|environment| environment.irradiance_sh9)
-            .unwrap_or([[0.0; 4]; 9]);
-
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
             view_proj_unjittered: render_mat4_or(view_proj_unjittered, RenderMat4::IDENTITY)
@@ -73,6 +69,23 @@ impl SceneUniform {
                 crate::core::math::Vec4::ZERO,
             )
             .to_array(),
+            sky_sun_direction: [
+                sky_params.sun_direction.x,
+                sky_params.sun_direction.y,
+                sky_params.sun_direction.z,
+                if sky_params.sun_intensity > 0.0 {
+                    1.0
+                } else {
+                    0.0
+                },
+            ],
+            sky_sun_color_radius: [
+                sky_params.sun_color.x,
+                sky_params.sun_color.y,
+                sky_params.sun_color.z,
+                sky_params.sun_angular_radius_radians,
+            ],
+            sky_sun_params: [sky_params.sun_intensity.max(0.0), 0.0, 0.0, 0.0],
             environment_params: [
                 if skybox.is_enabled() { 1.0 } else { 0.0 },
                 skybox.intensity().max(0.0),
@@ -84,7 +97,6 @@ impl SceneUniform {
                 },
             ],
             environment_sample_params,
-            environment_sh9,
         }
     }
 }
@@ -172,6 +184,7 @@ mod tests {
         TemporalJitterSample, ViewProjectionMatrixPair, ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
+    use crate::graphics::scene::scene_renderer::primitives::SceneEnvironmentSh9;
     use crate::graphics::types::ViewportRenderFrame;
 
     #[test]
@@ -351,7 +364,22 @@ mod tests {
         assert_eq!(uniform.sky_ground_color, [0.09, 0.11, 0.14, 1.0]);
         assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
         assert_eq!(uniform.environment_sample_params, [1.0, 0.0, 0.0, 0.0]);
-        assert_eq!(uniform.environment_sh9, [[0.0; 4]; 9]);
+    }
+
+    #[test]
+    fn scene_uniform_realtime_ibl_override_selects_cube_pmrem_sampling() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.environment = EnvironmentExtract::procedural_default();
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let mut uniform = SceneUniform::from_frame(&frame);
+        uniform.use_realtime_ibl(128, 128, 8);
+
+        assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
+        assert_eq!(uniform.environment_sample_params, [4.0, 128.0, 128.0, 8.0]);
     }
 
     #[test]
@@ -373,11 +401,12 @@ mod tests {
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);
+        let environment_sh9 = SceneEnvironmentSh9::from_frame(&frame);
 
         assert_eq!(uniform.environment_params, [1.0, 1.75, 0.5, 1.0]);
-        assert_eq!(uniform.environment_sample_params, [3.0, 4.0, 4.0, 3.0]);
+        assert_eq!(uniform.environment_sample_params, [3.0, 4.0, 128.0, 8.0]);
         assert!(
-            uniform.environment_sh9[0][0] > 0.0,
+            environment_sh9.coefficients()[0][0] > 0.0,
             "source cubemap should publish nonzero SH9 diffuse coefficients"
         );
     }

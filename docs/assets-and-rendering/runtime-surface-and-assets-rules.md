@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/v2/surface_tree
-  - zircon_runtime/assets/ui/runtime/fixtures/*.zui
+  - zircon_runtime/assets/ui/runtime/fixtures
 implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs

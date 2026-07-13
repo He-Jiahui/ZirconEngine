@@ -56,19 +56,14 @@ pub enum UiStyleColor {
     Transparent,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StyleDimension {
+    #[default]
     Auto,
     Fixed(f32),
     Fill,
     Style(String),
-}
-
-impl Default for StyleDimension {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 pub type ButtonDimension = StyleDimension;
@@ -433,11 +428,12 @@ impl ButtonVariant {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ButtonColor {
     Default,
     Inherit,
+    #[default]
     Primary,
     Secondary,
     Success,
@@ -446,12 +442,6 @@ pub enum ButtonColor {
     Warning,
     Style(String),
     Custom(UiRgbaColor),
-}
-
-impl Default for ButtonColor {
-    fn default() -> Self {
-        Self::Primary
-    }
 }
 
 impl ButtonColor {
@@ -467,22 +457,17 @@ impl ButtonColor {
     ];
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ButtonSize {
     Small,
+    #[default]
     Medium,
     Large,
     Custom {
         width: ButtonDimension,
         height: ButtonDimension,
     },
-}
-
-impl Default for ButtonSize {
-    fn default() -> Self {
-        Self::Medium
-    }
 }
 
 impl ButtonSize {

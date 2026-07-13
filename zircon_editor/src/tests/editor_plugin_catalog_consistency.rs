@@ -3,8 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::{
-    builtin::RuntimeTargetMode, plugin::PluginModuleKind, plugin::PluginPackageManifest,
-    plugin::RuntimePluginCatalog,
+    core::framework::platform::RuntimeTargetMode, plugin::PluginModuleKind,
+    plugin::PluginPackageManifest, plugin::RuntimePluginCatalog,
 };
 use zircon_runtime_interface::RegistrationDiagnosticSeverity;
 

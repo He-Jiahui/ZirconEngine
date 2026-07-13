@@ -4,10 +4,10 @@ related_code:
   - zircon_runtime/assets/fonts/FiraMono-subset.ttf
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
@@ -37,6 +37,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
@@ -55,19 +56,21 @@ related_code:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - zircon_runtime/src/graphics/types/mod.rs
   - tools/tests/test_runtime_sdf_fallback_glyph_index_type.py
   - tools/tests/test_plugin_docs_current_status_runtime_sdf_fallback_glyph_index_type.py
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
@@ -76,6 +79,9 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/ui.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
@@ -107,15 +113,15 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
   - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/tests/ui_boundary/mod.rs
   - zircon_runtime/tests/font_asset_manifest_contract.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -124,7 +130,7 @@ implementation_files:
   - zircon_runtime/assets/fonts/FiraMono-subset.ttf
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/asset/project/manager/asset_kind.rs
@@ -136,6 +142,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
@@ -154,18 +161,21 @@ implementation_files:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - zircon_runtime/src/graphics/types/mod.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
@@ -201,15 +211,15 @@ implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
   - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/tests/ui_boundary/mod.rs
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
@@ -281,6 +291,8 @@ tests:
   - cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked
   - cargo test -p zircon_runtime runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked
   - cargo test -p zircon_editor --lib runtime_ui_golden --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - tools/check-runtime-domain-features.ps1 -Toolchain nightly -TargetDir F:\cargo-targets\zircon-frameworks03-domain-matrix-0711 -Jobs 1 -Offline
+  - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary -v
   - cargo test -p zircon_runtime --lib runtime_ui_manager --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib runtime_ui_window_event_routes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-runtime-event-0611 --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib ui_boundary::assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
@@ -485,6 +497,8 @@ The cache stores successful image pixels for the editor process. SVG cache keys 
 
 ## Typography Contract
 
+2026-07-11 的 Frameworks 03 独立 feature 矩阵把 typography 的编译所有权也固定为单向依赖。字体资产默认值与样式请求的 `UiTextRenderMode` 合并规则现在由 `zircon_runtime_interface::ui::surface::resolve_ui_text_render_mode(...)` 持有；Runtime UI shaper 与 Graphics 字体 owner 都消费这一中性合同，不再由 Graphics 反向调用 `crate::ui::text`。Graphics renderer 的 rich inline frame 直接复用 `graphics::text::rich` parser 与 `graphics::text::layout`，SDF bidi fallback 直接复用 Graphics shaping owner；只有把 `PublicRuntimeFrame` 转为 viewport frame 的实现文件在 `graphics/types/mod.rs` 声明处受 `ui` feature 门控制。旧 UI shaper bridge 已删除，没有保留 re-export、alias 或通过扩大 `graphics` feature 隐式启用 UI。fresh nightly locked/offline `core-min,graphics` 通过（2m39s），完整十二域 runner 12/12 通过（25m02.4s），静态分层守卫 20/20 通过（26.433s）。
+
 `zircon_runtime::ui::surface::render::UiResolvedStyle` 现在不再只有背景和边框字段，它已经补齐 runtime 文本底座要用到的最小 typography 合同：
 
 - `font`
@@ -537,7 +551,7 @@ M6 文本收敛切片进一步把 `UiTextPaint` 的 editable decoration 事实�
 
 同一 M6 链路现在也让 rich runs 成为 shared paint fact。`UiTextPaint.runs` 会把 `UiShapedTextCluster` 转成 `UiTextPaintRun`，保留 run text、source/visual range、frame、font/color 继承和 `UiTextRunPaintStyle`。runtime screen-space planner 优先按这些 runs 生成 text batches；glyphon native backend 把 Strong/Emphasis/Code 映射为 bold、italic、monospace attrs；editor native painter 也按同一 run DTO 进行软件 fallback 样式绘制。没有 `text_layout` 的手写 overlay 才继续使用旧整段 text fallback。
 
-新增回归 [`text_layout.rs`](../../zircon_runtime/src/ui/tests/text_layout.rs) 锁住两类行为：
+新增回归 [`text_layout.rs`](../../zircon_runtime/src/ui/tests/text_layout) 锁住两类行为：
 
 - `render_extract_outputs_aligned_wrapped_text_layout` 证明 word wrap 和 center align 会在 `UiRenderExtract` 中产出稳定行 frame
 - `render_extract_clips_text_layout_to_clip_frame` 证明 `clip_frame` 会裁掉不可见文本行并设置 `overflow_clipped`
@@ -581,7 +595,7 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 - `UiTextRenderMode::Sdf` 直接进入 renderer-local SDF atlas / GPU renderer
 - native backend 维护 glyphon text atlas / renderer，SDF backend 维护自己的 SDF atlas texture / bind group / shader pipeline
 
-这让 runtime/editor overlay 现在既能显式声明“这段文本属于 native 还是 sdf”，也能把默认策略下沉到字体资产，而不需要继续把两类策略混在同一条占位路径里。`sdf` backend 现在不再复用 glyphon 可见输出，而是由 [`sdf_atlas.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs) 生成 atlas slot/run plan，再由 [`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 上传 SDF atlas texture 并通过 [`sdf_text.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl) 绘制 screen-space glyph quads。
+这让 runtime/editor overlay 现在既能显式声明“这段文本属于 native 还是 sdf”，也能把默认策略下沉到字体资产，而不需要继续把两类策略混在同一条占位路径里。`sdf` backend 现在不再复用 glyphon 可见输出，而是由 [`sdf_atlas.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs) 生成 atlas slot/run plan，再由 [`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 上传 SDF atlas texture 并通过 [`zr_text_sdf.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl) 绘制 screen-space glyph quads。
 
 兼容普通文本渲染的边界也已经显式化：[`text.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs) 会先把输入批次收进 `ResolvedScreenSpaceUiTextBatches`，再分别交给 native glyphon backend、SDF atlas owner 和 GPU SDF renderer。`sdf_atlas_texts()` 只返回 resolved SDF 批次，因此显式 `Native` 文本和解析为 `Native` 的 `Auto` 文本不会进入 SDF atlas/cache；它们继续走原有 normal glyphon backend。显式 `Sdf` 文本和解析为 `Sdf` 的 `Auto` 文本才会进入 SDF atlas planning 与 GPU SDF draw submission。
 
@@ -605,6 +619,8 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 同日的 M7 text prepare report slice 把 atlas/cache/bake 事实向上汇聚到 runtime text system，而不是让 debug 面板或后续 renderer 统计从底层对象反推。`ScreenSpaceUiSdfRenderer` 在 `prepare(...)` 后保存 `ScreenSpaceUiSdfPrepareReport`，记录 SDF text batch 数、atlas slot 数、atlas size、atlas resize、bake report、当前 atlas upload byte 数、是否全量 texture upload，以及最终 SDF vertex 数；`ScreenSpaceUiTextSystem` 再保存 `ScreenSpaceUiTextPrepareReport`，记录输入 auto/native/sdf batch 数、解析后的 native/sdf batch 数，以及对应的 `SdfAtlasCacheReport` 与 `ScreenSpaceUiSdfPrepareReport`。2026-05-24 的 upload-report slice 进一步把 upload 计算抽到 [`sdf_upload.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs)，并把 `ScreenSpaceUiSdfPrepareReport.atlas_upload` 固定为内部 DTO：当前 GPU path 仍以 `FullTexture` 写入保证正确性，但 report 会同步给出 dirty slot count/dirty byte count；未 resize 且全部 stable retained 时 dirty 为 0，新增或 relocated slot 会计入 dirty，为后续把 full texture upload 收束成局部 texture writes 提供可验证边界。`ScreenSpaceUiRenderer` 会在每次 `record(...)` 后缓存最新 text prepare report，并在没有可提交 UI 时清空这份 report；后续 render stats 或 debug reflector 可以从 screen-space renderer 边界读取这份快照，不需要直接穿透进 glyphon/SDF backend。该层仍然是 `scene_renderer::ui` 内部的 renderer-local 可观测层，不把 GPU atlas 或 glyphon 类型泄漏到 shared `UiRenderExtract`、editor widget 合同或 runtime interface。
 
 2026-07-10 的 native raster/upload report slice 把同一可观测边界扩展到 native bitmap atlas path。`ScreenSpaceUiTextPrepareReport.raster_upload` 从 `NativeBitmapAtlasPrepareReport` 聚合 visible/source/missing/approx glyph、source-cache hit/miss/worker-request、submission upload command/copy/byte counters,再合并 `GlyphAtlasBitmapRendererPrepareReport` 的 upload request/byte/requeue/failure/ready 状态。这个字段只服务 renderer-local diagnostics、perf tests 和后续 debug 面板;它不把 atlas internals 加进 shared UI DTO,也不改变 glyphon/native/SDF routing。
+
+2026-07-11 的 Editor M1 字体故障收口把其中最小可诊断集合提升到公共 `RenderStats` 与 `DiagnosticStore`，但不泄漏 atlas 实现对象。`last_ui_text_glyph_count`、`last_ui_text_unmapped_glyph_count`、visible raster glyph、source image、worker pending 与 worker failed 六项统计由 renderer 的 `ScreenSpaceUiTextPrepareReport` 单向汇总到 framework stats，再记录为 `render.ui.text.*` / `render.ui.text.raster.*` 序列。`render_product_diagnostics_record_ui_text_raster_stats` 锁定字段、路径、frame index 与 count unit；Editor HUD capture 的 fully qualified exact 同时以 1/1、49.46s 证明 Discover -> glyph raster -> framebuffer 产品链产生真实像素，而不是测试注入或 Editor 专用字体旁路。修复后重新生成的 7469-test Runtime binary 直接执行诊断存储 exact 与 `text_prepare_report_exposes_raster_upload_scroll_counters` 均为 1/1、0.01s。
 
 这一轮还补了一条 capture 级回归：[runtime_ui_text_render_contract.rs](/E:/Git/ZirconEngine/zircon_runtime/tests/runtime_ui_text_render_contract.rs)。它不再只看 planner/batch 统计，而是直接通过 `RenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)` 证明：
 

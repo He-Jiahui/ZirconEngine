@@ -33,7 +33,7 @@ struct BakePreparation {
     surface: NavMeshSurfaceDescriptor,
     surface_entity: Option<u64>,
     agent_type: String,
-    settings: zircon_runtime::asset::NavigationSettingsAsset,
+    settings: zircon_runtime::core::framework::navigation::NavigationSettingsAsset,
     geometry: geometry::BakeGeometry,
     diagnostics: Vec<zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic>,
     output_asset: Option<String>,
@@ -139,7 +139,7 @@ fn prepare_bake(
 fn finish_bake(
     world: &World,
     mut preparation: BakePreparation,
-    asset: &mut zircon_runtime::asset::NavMeshAsset,
+    asset: &mut zircon_runtime::core::framework::navigation::NavMeshAsset,
 ) -> NavMeshBakeReport {
     stamp_asset_settings(asset, &preparation.surface, &preparation.settings);
     embed_off_mesh_links(
@@ -173,7 +173,7 @@ fn bake_runtime_counts(world: &World) -> (usize, usize, usize) {
 }
 
 fn validate_agent_type(
-    settings: &zircon_runtime::asset::NavigationSettingsAsset,
+    settings: &zircon_runtime::core::framework::navigation::NavigationSettingsAsset,
     agent_type: &str,
 ) -> Result<(), NavigationError> {
     if settings.agents.iter().any(|agent| agent.id == agent_type) {

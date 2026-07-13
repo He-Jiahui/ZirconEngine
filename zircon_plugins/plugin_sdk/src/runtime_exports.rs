@@ -11,7 +11,8 @@ macro_rules! runtime_plugin_exports {
             zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
         }
 
-        pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+        pub fn runtime_selection(
+        ) -> zircon_runtime::core::framework::project::ProjectPluginSelection {
             zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
         }
 
@@ -28,7 +29,8 @@ macro_rules! runtime_plugin_exports {
             zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
         }
 
-        pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+        pub fn runtime_selection(
+        ) -> zircon_runtime::core::framework::project::ProjectPluginSelection {
             zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
         }
 
@@ -63,7 +65,9 @@ mod tests {
                 .with_module_dependency(zircon_runtime::core::ModuleDependencySpec::named(
                     "animation.runtime",
                 ))
-                .with_target_modes([zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime])
+                .with_target_modes([
+                    zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+                ])
                 .with_capability("runtime.plugin.sdk_runtime_export")
                 .build(),
             }

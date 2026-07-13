@@ -15,7 +15,7 @@ impl RetainedEditorHost {
         let targets = targets::build_export_targets(self, chrome, &mut diagnostics);
         let wizard_view_model = targets.first().and_then(|target| {
             self.desktop_export_wizard_sessions
-                .view_model(target.profile_name.as_str())
+                .view_model(target.preset_name.as_str())
                 .cloned()
         });
 

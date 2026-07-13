@@ -200,17 +200,25 @@ fn read_runtime_src_with_children(parent: &str, child_dir: &str) -> String {
     let mut source = read_runtime_src(parent);
     let child_dir = runtime_src_path(child_dir);
     let mut child_paths = std::fs::read_dir(&child_dir)
-        .unwrap_or_else(|error| panic!("failed to read runtime source directory {}: {error}", child_dir.display()))
-        .map(|entry| entry.expect("runtime status-row child entry should be readable").path())
+        .unwrap_or_else(|error| {
+            panic!(
+                "failed to read runtime source directory {}: {error}",
+                child_dir.display()
+            )
+        })
+        .map(|entry| {
+            entry
+                .expect("runtime status-row child entry should be readable")
+                .path()
+        })
         .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("rs"))
         .collect::<Vec<_>>();
     child_paths.sort();
     for path in child_paths {
         source.push('\n');
-        source.push_str(
-            &std::fs::read_to_string(&path)
-                .unwrap_or_else(|error| panic!("failed to read runtime source {}: {error}", path.display())),
-        );
+        source.push_str(&std::fs::read_to_string(&path).unwrap_or_else(|error| {
+            panic!("failed to read runtime source {}: {error}", path.display())
+        }));
     }
     normalize_line_endings(source)
 }
@@ -226,6 +234,14 @@ fn read_repo(relative: &str) -> String {
     normalize_line_endings(
         std::fs::read_to_string(repo_path(relative))
             .unwrap_or_else(|error| panic!("failed to read repository file `{relative}`: {error}")),
+    )
+}
+
+fn read_zircon_build_sources() -> String {
+    format!(
+        "{}\n{}",
+        read_repo("tools/zircon_build.py"),
+        read_repo("tools/zircon_build_config.py")
     )
 }
 

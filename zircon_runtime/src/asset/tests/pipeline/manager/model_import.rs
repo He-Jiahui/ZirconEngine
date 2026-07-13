@@ -12,7 +12,9 @@ use crate::asset::{
 fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
     let root = unique_temp_project_root("asset_manager_model_toml");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -21,15 +23,40 @@ fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
-    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+    write_valid_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("pbr.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
+    write_default_material(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("materials")
+            .join("grid.zmaterial"),
+    );
+    write_default_scene(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
+    );
 
     let authored_model = sample_virtual_geometry_model_asset();
     let model_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("models")
         .join("nanite_teapot.model.toml");
     fs::write(&model_path, authored_model.to_toml_string().unwrap()).unwrap();

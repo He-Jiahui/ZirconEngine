@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_project_plugin_registry_product_staged_cache_static_passed_cargo_timeout_no_result";
+const STATUS: &str = "render_plan08_project_plugin_registry_product_staged_cache_static_passed_cargo_timeout_no_result";
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wired() {
@@ -9,12 +8,14 @@ fn runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wir
         "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_staged_cache.rs",
     );
     let parent_mod = read_repo("zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "project/plugin registry product staged-cache test is wired",
@@ -69,7 +70,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wir
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

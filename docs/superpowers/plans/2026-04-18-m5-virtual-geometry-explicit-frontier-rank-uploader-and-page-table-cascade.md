@@ -1,37 +1,37 @@
 ---
 related_code:
-  - zircon_graphics/src/types/virtual_geometry_prepare/request.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/pending_page_requests.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/pending_requests.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/request.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/pending_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_graphics/src/types/virtual_geometry_prepare/request.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/pending_page_requests.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/pending_requests.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/request.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/pending_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 plan_sources:
   - user: 2026-04-18 下一步是更深的 unified-indirect / residency-manager cascade，把同一套 frontier truth 继续推进到真实 GPU uploader / page-table / split-merge frontier policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-frontier-rank-gpu-submission-and-cluster-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_gpu -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_unified_indirect -- --nocapture

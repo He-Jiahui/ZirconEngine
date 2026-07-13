@@ -1,13 +1,16 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
+use std::sync::atomic::AtomicUsize;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::core::{CoreRuntime, PluginContext};
 use crate::script::{
-    CapabilitySet, HostExportRegistry, HostRegistry, VmBackend, VmPluginHostContext,
-    VmPluginManifest, VmPluginPackage, VmPluginPackageSource, VmPluginSlotLifecycle,
+    CapabilitySet, HostExportRegistry, HostRegistry, VmBackend, VmGcBudget, VmGcStepOutcome,
+    VmHostInterfaceRegistry, VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy,
+    VmPluginHostContext, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
+    VmPluginSlotLifecycle,
 };
 
 use super::*;
@@ -15,6 +18,165 @@ use super::*;
 #[derive(Debug)]
 struct PolicyRecordingBackend {
     events: Arc<Mutex<Vec<&'static str>>>,
+}
+
+#[derive(Debug)]
+struct GcRecordingBackend {
+    calls: Arc<Mutex<Vec<(PluginSlotId, u64)>>>,
+}
+
+impl VmBackend for GcRecordingBackend {
+    fn backend_name(&self) -> &str {
+        "gc-recording"
+    }
+
+    fn load_package(
+        &self,
+        package: &VmPluginPackage,
+        host: &VmPluginHostContext,
+    ) -> Result<Box<dyn VmPluginInstance>, VmError> {
+        let (slot, _) = host
+            .vm_owner()
+            .ok_or_else(|| VmError::Operation("GC test instance has no slot owner".to_string()))?;
+        let pause_micros = package
+            .manifest
+            .version
+            .parse::<u64>()
+            .map_err(|error| VmError::Operation(error.to_string()))?;
+        Ok(Box::new(GcRecordingInstance {
+            manifest: package.manifest.clone(),
+            slot,
+            pause_micros,
+            calls: Arc::clone(&self.calls),
+            panic_once: package.manifest.name == "panic-once",
+        }))
+    }
+}
+
+#[derive(Debug)]
+struct GcRecordingInstance {
+    manifest: VmPluginManifest,
+    slot: PluginSlotId,
+    pause_micros: u64,
+    calls: Arc<Mutex<Vec<(PluginSlotId, u64)>>>,
+    panic_once: bool,
+}
+
+#[derive(Debug)]
+struct BlockingGcBackend {
+    entered: mpsc::SyncSender<()>,
+    release: Arc<Mutex<mpsc::Receiver<()>>>,
+    calls: Arc<AtomicUsize>,
+}
+
+impl VmBackend for BlockingGcBackend {
+    fn backend_name(&self) -> &str {
+        "blocking-gc"
+    }
+
+    fn load_package(
+        &self,
+        package: &VmPluginPackage,
+        _host: &VmPluginHostContext,
+    ) -> Result<Box<dyn VmPluginInstance>, VmError> {
+        Ok(Box::new(BlockingGcInstance {
+            manifest: package.manifest.clone(),
+            entered: self.entered.clone(),
+            release: Arc::clone(&self.release),
+            calls: Arc::clone(&self.calls),
+        }))
+    }
+}
+
+#[derive(Debug)]
+struct BlockingGcInstance {
+    manifest: VmPluginManifest,
+    entered: mpsc::SyncSender<()>,
+    release: Arc<Mutex<mpsc::Receiver<()>>>,
+    calls: Arc<AtomicUsize>,
+}
+
+impl VmPluginInstance for BlockingGcInstance {
+    fn manifest(&self) -> &VmPluginManifest {
+        &self.manifest
+    }
+
+    fn gc_step(&mut self, _budget: VmGcBudget) -> Result<VmGcStepOutcome, VmError> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.entered
+            .send(())
+            .map_err(|error| VmError::Operation(error.to_string()))?;
+        self.release
+            .lock()
+            .unwrap()
+            .recv()
+            .map_err(|error| VmError::Operation(error.to_string()))?;
+        Ok(VmGcStepOutcome {
+            pause_micros: 1,
+            root_count: 1,
+            cross_boundary_reference_count: 0,
+        })
+    }
+}
+
+impl VmPluginInstance for GcRecordingInstance {
+    fn manifest(&self) -> &VmPluginManifest {
+        &self.manifest
+    }
+
+    fn gc_step(&mut self, budget: VmGcBudget) -> Result<VmGcStepOutcome, VmError> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push((self.slot, budget.max_micros_per_frame));
+        if self.panic_once {
+            self.panic_once = false;
+            panic!("intentional GC backend panic");
+        }
+        Ok(VmGcStepOutcome {
+            pause_micros: self.pause_micros,
+            root_count: self.slot.get(),
+            cross_boundary_reference_count: self.slot.get() + 10,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct RegistrationRetryBackend {
+    load_count: AtomicUsize,
+    events: Arc<Mutex<Vec<&'static str>>>,
+}
+
+impl VmBackend for RegistrationRetryBackend {
+    fn backend_name(&self) -> &str {
+        "registration-retry"
+    }
+
+    fn load_package(
+        &self,
+        package: &VmPluginPackage,
+        host: &VmPluginHostContext,
+    ) -> Result<Box<dyn VmPluginInstance>, VmError> {
+        let load_count = self
+            .load_count
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            + 1;
+        let caller = host
+            .interface_caller()
+            .map_err(|error| VmError::Operation(error.to_string()))?;
+        host.host_interfaces
+            .register_behavior_node(&caller, "script.retry", "Script Retry", "main", "tick")
+            .map_err(|error| VmError::Operation(error.to_string()))?;
+        if load_count == 2 {
+            return Err(VmError::Operation(
+                "intentional hot reload load failure".to_string(),
+            ));
+        }
+        Ok(Box::new(PolicyRecordingInstance {
+            manifest: package.manifest.clone(),
+            events: Arc::clone(&self.events),
+        }))
+    }
 }
 
 impl VmBackend for PolicyRecordingBackend {
@@ -58,9 +220,7 @@ impl VmPluginInstance for PolicyRecordingInstance {
 
     fn save_state(&mut self) -> Result<crate::script::VmStateBlob, VmError> {
         self.events.lock().unwrap().push("save_state");
-        Ok(crate::script::VmStateBlob {
-            bytes: b"saved".to_vec(),
-        })
+        Ok(crate::script::VmStateBlob::from_payload(b"saved".to_vec()))
     }
 
     fn restore_state(&mut self, _state: &crate::script::VmStateBlob) -> Result<(), VmError> {
@@ -322,6 +482,55 @@ fn disabled_hot_reload_policy_rejects_reload_without_deactivating_slot() {
 }
 
 #[test]
+fn failed_hot_reload_load_discards_generation_registrations_before_retry() {
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let backend = RegistrationRetryBackend {
+        load_count: AtomicUsize::new(0),
+        events,
+    };
+    let coordinator = HotReloadCoordinator::new();
+    let mut host = test_host_context();
+    host.capabilities = CapabilitySet::default().with(crate::script::VM_BT_NODE_CAPABILITY);
+
+    let slot = coordinator
+        .load_package("registration-retry", &backend, test_package("0.1.0"), &host)
+        .unwrap();
+    assert!(coordinator
+        .hot_reload(
+            slot,
+            "registration-retry",
+            &backend,
+            test_package("0.2.0"),
+            &host,
+        )
+        .is_err());
+    let rolled_back = coordinator.slot(slot).unwrap();
+    assert_eq!(rolled_back.state, VmPluginSlotState::Active);
+    assert_eq!(rolled_back.generation, 1);
+    let registrations = host
+        .host_interfaces
+        .behavior_nodes(&coordinator.list_slots());
+    assert_eq!(registrations.len(), 1);
+    assert_eq!(registrations[0].callback.generation, 1);
+
+    coordinator
+        .hot_reload(
+            slot,
+            "registration-retry",
+            &backend,
+            test_package("0.2.0"),
+            &host,
+        )
+        .expect("retry should re-register the discarded generation");
+
+    let registrations = host
+        .host_interfaces
+        .behavior_nodes(&coordinator.list_slots());
+    assert_eq!(registrations.len(), 1);
+    assert_eq!(registrations[0].callback.generation, 2);
+}
+
+#[test]
 fn hot_reload_hooks_can_query_slot_lifecycle_without_deadlocking() {
     let events = Arc::new(Mutex::new(Vec::new()));
     let backend = Arc::new(LifecycleQueryBackend {
@@ -406,6 +615,9 @@ fn hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock() {
     assert!(coordinator.list_slots().is_empty());
 }
 
+mod gc;
+mod state_migration;
+
 fn test_package(version: &str) -> VmPluginPackage {
     VmPluginPackage {
         manifest: VmPluginManifest {
@@ -418,6 +630,21 @@ fn test_package(version: &str) -> VmPluginPackage {
         zr_vm_project: None,
         bytecode: vec![1, 2, 3],
     }
+}
+
+fn gc_test_package(
+    name: &str,
+    pause_micros: u64,
+    mode: VmPluginGarbageCollectionMode,
+    interval_frames: Option<u64>,
+) -> VmPluginPackage {
+    let mut package = test_package(&pause_micros.to_string());
+    package.manifest.name = name.to_string();
+    package.manifest.management.garbage_collection = VmPluginGarbageCollectionPolicy {
+        mode,
+        interval_frames,
+    };
+    package
 }
 
 trait TestPackagePolicyExt {
@@ -458,6 +685,8 @@ fn test_host_context_with_lifecycle(
         },
         host_registry: HostRegistry::default(),
         host_exports: HostExportRegistry::default(),
+        host_interfaces: VmHostInterfaceRegistry::default(),
         slot_lifecycle,
+        vm_owner: None,
     }
 }

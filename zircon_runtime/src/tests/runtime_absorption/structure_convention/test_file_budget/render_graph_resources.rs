@@ -4,13 +4,15 @@ use super::*;
 fn runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner() {
     let parent = read_runtime_src("render_graph/tests/resources.rs");
     let transient_aliasing = read_runtime_src("render_graph/tests/resources/transient_aliasing.rs");
-    let plan_01 = read_repo("docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_01 = read_repo(
+        "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let builder_doc = read_repo("docs/zircon_runtime/render_graph/builder.md");
     let architecture_doc = read_repo("docs/assets-and-rendering/render-framework-architecture.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "render graph resources parent keeps shared imports and child mount",
@@ -72,7 +74,6 @@ fn runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner() 
             "render framework architecture doc",
             architecture_doc.as_str(),
         ),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

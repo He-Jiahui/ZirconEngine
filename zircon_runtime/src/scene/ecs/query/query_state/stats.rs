@@ -24,6 +24,31 @@ pub struct QueryStateCacheStats {
 }
 
 impl QueryStateCacheStats {
+    pub(crate) fn diagnostic_values(&self) -> [(&'static str, f64); 5] {
+        [
+            (
+                ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+                self.cache_hits as f64,
+            ),
+            (
+                ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
+                self.cache_misses as f64,
+            ),
+            (
+                ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+                self.cache_rebuilds as f64,
+            ),
+            (
+                ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
+                self.candidate_entity_count as f64,
+            ),
+            (
+                ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+                self.matched_entity_count as f64,
+            ),
+        ]
+    }
+
     pub fn saturating_delta_since(self, baseline: Self) -> Self {
         let cache_hits = self.cache_hits.saturating_sub(baseline.cache_hits);
         let cache_misses = self.cache_misses.saturating_sub(baseline.cache_misses);
@@ -58,47 +83,14 @@ impl QueryStateCacheStats {
     }
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        record_count(
-            store,
-            ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
-            frame_index,
-            self.cache_hits,
-        );
-        record_count(
-            store,
-            ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
-            frame_index,
-            self.cache_misses,
-        );
-        record_count(
-            store,
-            ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
-            frame_index,
-            self.cache_rebuilds,
-        );
-        record_count(
-            store,
-            ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
-            frame_index,
-            self.candidate_entity_count as u64,
-        );
-        record_count(
-            store,
-            ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
-            frame_index,
-            self.matched_entity_count as u64,
-        );
+        for (path, value) in self.diagnostic_values() {
+            record_count(store, path, frame_index, value);
+        }
     }
 }
 
-fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: u64) {
-    store.record(
-        path,
-        frame_index,
-        value as f64,
-        Some("count"),
-        ["ecs", "query"],
-    );
+fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: f64) {
+    store.record(path, frame_index, value, Some("count"), ["ecs", "query"]);
 }
 
 impl<D, F> QueryState<D, F> {

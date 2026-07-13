@@ -36,8 +36,10 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
     let submit = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs"
     );
-    let review_findings =
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
     let runtime_07 = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"

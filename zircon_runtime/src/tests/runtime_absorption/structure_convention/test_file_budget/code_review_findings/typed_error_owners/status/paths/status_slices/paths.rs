@@ -25,8 +25,7 @@ pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_ROOT_PATHS_FOLDER_BACK
     "runtime_15_typed_error_status_doc_root_paths_folder_backed_guard_is_folder_backed";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_NAME: &str =
     "Runtime 15 M3 typed-error status-doc paths status-current child split";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_ID: &str =
-    "runtime_15_typed_error_status_doc_paths_status_current_child_split_static_passed_cargo_deferred";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_ID: &str = "runtime_15_typed_error_status_doc_paths_status_current_child_split_static_passed_cargo_deferred";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_DATE: &str =
     "2026-07-05";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_GUARD: &str =
@@ -50,8 +49,8 @@ pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_S
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_NAME:
     &str =
     "Runtime 15 M3 typed-error status-doc paths status-current split-layout folder-backed split";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_ID: &str =
-    "runtime_15_typed_error_status_doc_paths_status_current_split_layout_folder_backed_static_passed_cargo_deferred";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_ID:
+    &str = "runtime_15_typed_error_status_doc_paths_status_current_split_layout_folder_backed_static_passed_cargo_deferred";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_DATE:
     &str = "2026-07-05";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_GUARD:
@@ -75,16 +74,15 @@ pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_S
     &str = "runtime_15_typed_error_status_doc_paths_status_current_split_layout_status_mirrors_guard_is_folder_backed";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_NAME: &str =
     "Runtime 15 M3 typed-error status-doc paths child inventory child split";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_ID: &str =
-    "runtime_15_typed_error_status_doc_paths_child_inventory_child_split_static_passed_cargo_deferred";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_ID: &str = "runtime_15_typed_error_status_doc_paths_child_inventory_child_split_static_passed_cargo_deferred";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_DATE: &str =
     "2026-07-05";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_GUARD: &str =
     "runtime_15_typed_error_status_doc_paths_child_inventory_is_child_backed";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_NAME: &str =
     "Runtime 15 M3 typed-error status-doc paths child inventory split-layout folder-backed split";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_ID: &str =
-    "runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_folder_backed_static_passed_cargo_deferred";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_ID:
+    &str = "runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_folder_backed_static_passed_cargo_deferred";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_DATE:
     &str = "2026-07-05";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_GUARD:

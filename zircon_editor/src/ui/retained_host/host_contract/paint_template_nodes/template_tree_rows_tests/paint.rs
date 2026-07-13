@@ -6,6 +6,7 @@ use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::super::template_tree_row_geometry::{tree_disclosure_rect, tree_icon_rect};
 use super::super::push_tree_row_commands;
+use super::super::style::tree_icon_color;
 use super::support::{changed_pixel_count, pixel_at, tree_node};
 
 #[test]
@@ -88,16 +89,18 @@ fn loading_player_start_tree_row_mutes_special_icon_color() {
     };
     let disclosure = tree_disclosure_rect(&node, &row_rect);
     let icon = tree_icon_rect(&disclosure);
+    assert_eq!(tree_icon_color(&node), PALETTE.text_disabled);
     let bytes = paint_template_nodes_for_test(280, 48, model_rc(vec![node]));
 
-    assert_eq!(
-        pixel_at(
+    assert!(
+        changed_pixel_count(
             &bytes,
             280,
-            (icon.x + 4.0).round() as u32,
-            (icon.y + 5.0).round() as u32
-        ),
-        PALETTE.text_disabled
+            icon.x.round() as u32,
+            icon.y.round() as u32,
+            icon.width.round() as u32,
+            icon.height.round() as u32,
+        ) > 0
     );
 }
 

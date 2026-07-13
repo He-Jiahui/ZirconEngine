@@ -1,18 +1,14 @@
 pub(super) const ROWS_SLICE: &str =
     "Runtime 15 M3 status-support M3/M4 expected-slice maps folder-backed split";
-pub(super) const ROWS_STATUS: &str =
-    "runtime_15_status_support_m3_m4_expected_slice_maps_folder_backed_static_passed_cargo_deferred";
-pub(super) const ROWS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_status_support_m3_m4_expected_slice_maps_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROWS_STATUS: &str = "runtime_15_status_support_m3_m4_expected_slice_maps_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROWS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_status_support_m3_m4_expected_slice_maps_folder_backed_static_passed_cargo_deferred";
 pub(super) const ROWS_GUARD: &str =
     "runtime_15_status_support_m3_m4_expected_slice_maps_are_folder_backed";
 
 pub(super) const GUARD_SLICE: &str =
     "Runtime 15 M3 status-support M3/M4 expected-slice maps guard folder-backed split";
-pub(super) const GUARD_STATUS: &str =
-    "runtime_15_status_support_m3_m4_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
-pub(super) const GUARD_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_status_support_m3_m4_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const GUARD_STATUS: &str = "runtime_15_status_support_m3_m4_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const GUARD_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_status_support_m3_m4_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
 pub(super) const GUARD_GUARD: &str =
     "runtime_15_status_support_m3_m4_expected_slice_maps_guard_is_folder_backed";
 

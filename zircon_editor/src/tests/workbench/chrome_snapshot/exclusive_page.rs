@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;
 
+use crate::core::commands::DocumentKind;
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::ui::workbench::snapshot::ViewContentKind;
@@ -43,7 +44,9 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         ViewKind::ActivityWindow,
         "Asset Browser",
     )
-    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.asset"))
+    .with_activity_window_template(ActivityWindowTemplateSpec::new(
+        "res://ui/editor/windows/asset_window.zui",
+    ))
     .with_preferred_host(PreferredHost::ExclusiveMainPage)];
 
     let chrome = EditorChromeSnapshot::build(
@@ -70,6 +73,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         &layout,
         vec![asset_browser.clone()],
         descriptors,
+        None,
     );
 
     assert_eq!(
@@ -84,7 +88,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         view.activity_window_template
             .as_ref()
             .map(|template| template.document_id.as_str()),
-        Some("editor.window.asset")
+        Some("res://ui/editor/windows/asset_window.zui")
     );
     assert!(!view.placeholder);
 }
@@ -124,6 +128,7 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
         &layout,
         vec![material_lab.clone()],
         descriptors,
+        None,
     );
 
     let MainPageSnapshot::Exclusive { view, .. } = &chrome.workbench.main_pages[0] else {
@@ -132,6 +137,51 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
     assert_eq!(view.instance_id, material_lab.instance_id);
     assert_eq!(view.content_kind, ViewContentKind::UiComponentShowcase);
     assert!(!view.placeholder);
+}
+
+#[test]
+fn chrome_builder_projects_document_kind_from_the_focused_typed_descriptor() {
+    let focused_view = ViewInstanceId::new("editor.animation_sequence#1");
+    let descriptor = ViewDescriptor::new(
+        ViewDescriptorId::new("editor.animation_sequence"),
+        ViewKind::ActivityWindow,
+        "Animation Sequence",
+    )
+    .with_document_kind(
+        DocumentKind::parse("animation_sequence").expect("valid test document kind"),
+    );
+    let instance = ViewInstance {
+        instance_id: focused_view.clone(),
+        descriptor_id: descriptor.descriptor_id.clone(),
+        title: "Walk".to_string(),
+        serializable_payload: serde_json::Value::Null,
+        dirty: false,
+        host: ViewHost::Document(MainPageId::workbench(), vec![]),
+    };
+
+    let chrome = EditorChromeSnapshot::build(
+        empty_editor_data(),
+        &WorkbenchLayout::default(),
+        vec![instance],
+        vec![descriptor],
+        Some(&focused_view),
+    );
+
+    assert_eq!(
+        chrome
+            .focused_document_kind
+            .as_ref()
+            .map(DocumentKind::as_str),
+        Some("animation_sequence")
+    );
+    let context = crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome(
+        &chrome,
+        std::iter::empty::<String>(),
+    );
+    assert_eq!(
+        context.focused_document_kind().map(DocumentKind::as_str),
+        Some("animation_sequence")
+    );
 }
 
 fn empty_editor_data() -> EditorDataSnapshot {

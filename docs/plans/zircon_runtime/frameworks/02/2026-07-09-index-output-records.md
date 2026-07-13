@@ -37,7 +37,7 @@ Frameworks 02 最新镜像：`Runtime 15 M3 shader prewarm manifest current-chil
 
 ## 2026-07-08 Frameworks 02 Runtime 15 UI text pipeline test owner split 镜像
 
-Frameworks 02 最新镜像：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已同步为 `frameworks_02_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred`。本切片删除旧 `zircon_runtime/src/ui/tests/text_pipeline.rs` flat owner，把测试硬切到 `zircon_runtime/src/ui/tests/text_pipeline/` folder-backed tree：`mod.rs` 挂载 route，`fixtures.rs` 承接共享 fixture，`font_registry.rs`、`layout_request.rs`、`measure_cache.rs`、`surface_cache.rs`、`render_extract_prewarm.rs` 分别承接现有断言。
+Frameworks 02 最新镜像：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已同步为 `frameworks_02_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred`。本切片删除旧 `zircon_runtime/src/ui/tests/text_pipeline` flat owner，把测试硬切到 `zircon_runtime/src/ui/tests/text_pipeline/` folder-backed tree：`mod.rs` 挂载 route，`fixtures.rs` 承接共享 fixture，`font_registry.rs`、`layout_request.rs`、`measure_cache.rs`、`surface_cache.rs`、`render_extract_prewarm.rs` 分别承接现有断言。
 
 验证镜像：scoped rustfmt passed；focused `text_pipeline` cargo test 15/15 passed；direct `runtime_15_no_oversized_test_files` 1/1 passed；当前全量 structure filter 为 1226/1303 passed、77 failed remaining，剩余失败不来自 `text_pipeline` 或 oversized-test-file budget。Package/workspace Cargo remains deferred。
 

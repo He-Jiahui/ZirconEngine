@@ -144,7 +144,7 @@ plan_sources:
 |----|------|------|------|
 | WF-1 | MUST | 实质性工作先计划后代码：落在对应权威计划集（frameworks/runtime/render/...），里程碑分"实现切片 + 测试阶段"，测试阶段声明命令/验收证据/待更新文档 | 流程 |
 | WF-2 | MUST | 架构级改动先写架构注记（owner 边界/所需契约/参考引擎先例/深度理由/验证层），过架构深度测试再实现（zr-architecture-first-engineering） | 评审 |
-| WF-3 | MUST | 构建纪律：优先 package-scoped 命令 + `--locked`；共享 CARGO_TARGET_DIR；磁盘 ≤50GB 先清理；不并行跑重型构建 | 流程 |
+| WF-3 | MUST | 构建纪律：所有 Cargo 构建只允许写入 D/E/F 盘根目录下的 `cargo-targets`、`targets`、`ZirconBuilds`（共九个根及其 WSL 挂载等价路径）；必须由协调器按仓库、Windows/WSL、工具链、目标架构、工作区、构建配置组成兼容键并独占单一主池；无完整键或显式临时产物释放后立即删除；磁盘 ≤50GB 按 LRU 清理空闲池；禁止在其他位置构建或为忙碌兼容键另建目录 | 流程 |
 | WF-4 | MUST | 提交面完整：一个里程碑的提交含代码 + 测试 + docs 镜像 + 计划状态回写；禁止"代码先行文档后补"跨里程碑欠账 | 评审 |
 | WF-5 | SHOULD | 本地合入前跑 `tools/check-conventions`（守卫聚合脚本，计划 06 M1）；CI 是兜底不是首道门 | 流程 |
 

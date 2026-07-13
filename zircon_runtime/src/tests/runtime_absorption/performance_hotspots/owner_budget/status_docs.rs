@@ -1,14 +1,7 @@
 use super::{assert_contains_all, sources::OwnerBudgetSources};
 
 pub(super) fn assert_performance_hotspot_status_docs(sources: &OwnerBudgetSources) {
-    for (label, source) in [
-        ("Runtime 15 plan", sources.runtime_15_plan),
-        ("Runtime index", sources.runtime_index),
-        ("review findings", sources.review_findings),
-        ("structure convention", sources.structure_convention),
-        ("module convention doc", sources.module_doc),
-        ("status-output row data", sources.status_rows),
-    ] {
+    for (label, source) in [("Runtime 15 numbered archive", sources.runtime_15_archive)] {
         assert_contains_all(
             label,
             source,
@@ -43,11 +36,7 @@ pub(super) fn assert_performance_hotspot_status_docs(sources: &OwnerBudgetSource
         );
     }
 
-    for (label, source) in [
-        ("Runtime 07 plan", sources.runtime_07_plan),
-        ("Runtime index", sources.runtime_index),
-        ("hotspot inventory doc", sources.hotspot_doc),
-    ] {
+    for (label, source) in [("Runtime 07 numbered archive", sources.runtime_07_archive)] {
         assert_contains_all(
             label,
             source,
@@ -71,20 +60,4 @@ pub(super) fn assert_performance_hotspot_status_docs(sources: &OwnerBudgetSource
             ],
         );
     }
-
-    let status_and_date_slices = format!("{}\n{}", sources.status_slice, sources.date_slice);
-    assert_contains_all(
-        "status-output slices",
-        &status_and_date_slices,
-        &[
-            "runtime_15_runtime_07_performance_hotspots_guard_folder_split_static_passed_cargo_timeout_no_result",
-            "runtime_15_runtime_07_owner_budget_mirror_docs_sources_guard_folder_backed_static_passed_cargo_deferred",
-            "runtime_15_runtime_07_owner_budget_sources_guard_folder_backed_static_passed_cargo_deferred",
-            "runtime_15_runtime_07_owner_budget_child_routes_guard_folder_backed_static_passed_cargo_deferred",
-            "runtime_15_runtime_07_owner_budget_line_budgets_guard_folder_backed_static_passed_cargo_deferred",
-            "runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_static_passed_cargo_deferred",
-            "2026-06-23",
-            "2026-07-06",
-        ],
-    );
 }

@@ -2,6 +2,7 @@ use super::super::sources::HotspotInventorySources;
 
 pub(super) fn assert_extract_evidence(sources: &HotspotInventorySources) {
     for required_extract_anchor in [
+        "headless_session_tick_publishes_ecs_frame_diagnostics",
         "headless_session_capture_records_frame_extract_diagnostics",
         "frame_extract_rebuild_skips_unchanged_entities",
         "EXTRACT_REBUILD_CLONES_DIAGNOSTIC",

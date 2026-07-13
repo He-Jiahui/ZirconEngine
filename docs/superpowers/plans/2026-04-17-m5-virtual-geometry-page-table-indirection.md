@@ -1,30 +1,30 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/bind_group_layout.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/uploader_pipeline.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/params_buffer.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/node_and_cluster_cull_instance_work_item_pipeline.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 milestones without waiting for confirmation
   - user: 2026-04-17 Virtual Geometry should continue from refine and uploader baseline into cluster streaming or indirect raster consumption
@@ -32,8 +32,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-slot-assignment-ownership.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-indirect-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_page_table_snapshot --locked
   - cargo test -p zircon_graphics virtual_geometry_prepare_resident_slot_changes_fallback_raster_output --locked
   - cargo test -p zircon_graphics virtual_geometry_gpu --locked

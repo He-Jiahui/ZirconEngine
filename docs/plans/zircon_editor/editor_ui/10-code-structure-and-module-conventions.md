@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/activity.rs
-  - zircon_editor/src/ui/control.rs
+  - zircon_editor/src/ui/activity/mod.rs
+  - zircon_editor/src/ui/control/service.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
@@ -69,7 +69,7 @@ related_code:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/template_runtime/mod.rs
   - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
@@ -166,3 +166,5 @@ workbench_projection.rs(3619)  →  workbench_projection/
 
 - 迁入记录：[`10/2026-07-09-code-structure-and-module-conventions-output-records.md`](10/2026-07-09-code-structure-and-module-conventions-output-records.md)
 - 当前结构审计：`audit_editor_structure.py --json` 的 `module_convention_gate` 已纳入 `editor_ui_10_visual_style_owner_tree_is_hard_cut_over`，用于锁定 visual-style 旧单文件 owner 删除与 folder-backed owner 树完整性。
+- open 待修复：[editor-ui-plan-output-notices](10/failure-2026-07-13-editor-ui-plan-output-notices.md)
+- open 待修复：[ui-root-owner-boundary-migration-debt](10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)

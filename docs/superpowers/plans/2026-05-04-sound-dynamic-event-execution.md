@@ -17,7 +17,7 @@
 - Modify `zircon_runtime/src/core/framework/sound/mod.rs`: export new DTOs.
 - Modify `zircon_plugins/sound/runtime/src/dynamic_events/dispatch.rs`: add helper for deterministic deliveries without duplicating ordering logic if needed.
 - Modify `zircon_plugins/sound/runtime/src/engine/state.rs`: store executor callbacks.
-- Modify `zircon_plugins/sound/runtime/src/service_types.rs`: implement executor registration/unregistration and `SoundManager::execute_dynamic_events`.
+- Modify `zircon_plugins/sound/runtime/src/service_types/mod.rs`: implement executor registration/unregistration and `SoundManager::execute_dynamic_events`.
 - Modify `zircon_plugins/sound/runtime/src/tests/dynamic_events.rs`: add execution tests.
 - Update `docs/engine-architecture/runtime-sound-extension.md` and `.codex/sessions/20260503-0228-sound-mixer-graph-continuation.md`.
 

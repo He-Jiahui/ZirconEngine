@@ -15,6 +15,9 @@ related_code:
   - zircon_runtime/src/graphics/text/shaping/bidi.rs
   - zircon_runtime/src/graphics/text/shaping/cosmic.rs
   - zircon_runtime/src/graphics/text/shaping/cosmic/font_system_cache.rs
+  - zircon_runtime/src/graphics/text/shaping/horizontal/backend.rs
+  - zircon_runtime/src/graphics/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/graphics/text/shaping/horizontal/tests.rs
   - zircon_runtime/src/graphics/text/shaping/vertical.rs
   - zircon_runtime/src/graphics/text/shaping/vertical/backend.rs
   - zircon_runtime/src/graphics/text/shaping/vertical/orientation.rs
@@ -67,8 +70,8 @@ status: in_progress
 - `graphics/text/shaping/bidi.rs` 已用 `unicode-bidi` 落地段落基方向、isolate 与逻辑序 glyph 的 `bidi_level`，并提供断行后 L1/L2 visual index mapping。Text 03 已把旧 `layout_engine/visual_order.rs` 的脚本范围/neutral span/mirror table 硬切到共享 owner，并以完整段落+绝对行 range 保留 wrapped isolate context；hit-test/caret 仍需直接消费 visual index/source cluster，避免长期物化 visual line text。
 - grapheme/ZWJ/VS 已进入 cluster/source range 与 script-tag 数据面；V1 NFC 按计划默认关闭，`normalize.rs::ShapingTextView` 已显式承接 identity shaping view 与 shaping→原文 source byte range 投影，cosmic/fallback 都经该 owner。未来启用 NFC 时仍需把 identity 投影升级为完整 pre↔post 双向映射。
 - script segment tag 已落地，但 actual per-script shaping/fallback face reconciliation 仍由 Text 02/06 后续完成。
-- `TextShapeRequest` 已携 language 与排序去重的 OpenType features，二者进入 shaped cache key；features 已传入 cosmic backend。language 已从可序列化 `UiResolvedStyle.language` 经模板解析、layout/shaped cache、direct/parallel request、native batch 与 SDF atlas/bake fallback 贯通；独立 `cosmic/font_system_cache.rs` 规范化并选择最多四个 locale-specific `FontSystem`。cosmic-text 0.18.2 的 `Attrs` 不暴露 language，因此 per-run HarfRust `locl` 仍明确待完成。
-- SH-M3 V1 已推进：`vertical.rs` 投影 cluster-head y advance/列中线，`vertical/orientation.rs` 按 Unicode Vertical_Orientation 实现 Mixed/Upright/Sideways，cosmic 请求显式启用 `vert`/`vrt2`，且 UI VerticalRl 的测量/换行 provider 已硬切到 vertical request/cache key。2026-07-10 又修复生产 SDF consumer 并用真实 `竖排布局` CJK 帧验收；随后 `font/vertical_metrics.rs` 从实际 backend face/glyph 读取 `vmtx`，upright 优先原生 advance、sideways 保持横排 advance、缺表回退 em。TTB/BTT backend direction、VORG/side-bearing、per-run `locl`、CJK 标点完整黄金图仍待后续。
+- `TextShapeRequest` 已携 language 与排序去重的 OpenType features，二者进入 shaped cache key；features 已传入 cosmic backend。language 已从可序列化 `UiResolvedStyle.language` 经模板解析、layout/shaped cache、direct/parallel request、native batch 与 SDF atlas/bake fallback 贯通；独立 `cosmic/font_system_cache.rs` 规范化并选择最多四个 locale-specific `FontSystem`。cosmic-text 0.18.2 的 `Attrs` 不暴露 language，因此 folder-backed `shaping/horizontal/` leaf 现按 cosmic 实际 face/cluster 分段交给 RustyBuzz，并在 language 存在时设置 per-run language 触发默认 `locl`；真实 Windows `Calibri` 俄语/塞尔维亚语 glyph 差异 exact 已落代码但尚未执行，不计完成。
+- SH-M3 V1 已推进：`vertical.rs` 投影 cluster-head y advance/列中线，`vertical/orientation.rs` 按 Unicode Vertical_Orientation 实现 Mixed/Upright/Sideways，cosmic 请求显式启用 `vert`/`vrt2`，且 UI VerticalRl 的测量/换行 provider 已硬切到 vertical request/cache key。2026-07-10 又修复生产 SDF consumer 并用真实 `竖排布局` CJK 帧验收；随后 `font/vertical_metrics.rs` 从实际 backend face/glyph 读取 `vmtx`，upright 优先原生 advance、sideways 保持横排 advance、缺表回退 em。TTB/BTT backend direction、VORG/side-bearing 已落地；CJK 标点完整黄金图仍待后续。horizontal language leaf 显式拒绝 vertical request，竖排 language 继续由 TTB/BTT backend 直接设置。
 
 ## 3. 参考代码
 
@@ -152,7 +155,8 @@ TextShapeRequest { text, style, base_direction, orientation, language, features 
 // ShapedGlyph 扩展(在 render/14 既定字段上加;2026-07-02 评审收口按 D1/D2/D3/D4 修订)
 pub struct ShapedGlyph {
     pub glyph_id: u16,
-    pub font_id: FontFaceId,        // D4:整形后端实际选择的 face(携带变量轴时经 InstancedFaceId);见下"font_id 权威通路"
+    pub font_id: FontFaceId,        // D4:整形后端实际选择的 base face；见下"font_id 权威通路"
+    pub font_instance_id: Option<InstancedFaceId>, // 2026-07-13:有效变量轴实例 identity；不得替代 base face
     pub source_range: (u32, u32),   // cluster→源字节区间(单调,覆盖完整;恒指规范化前原文)
     pub offset: Vec2,
     pub advance: f32,               // 横排=x 进格;竖排=y 进格
@@ -186,7 +190,7 @@ pub enum VerticalMode { Upright, Mixed, Sideways } // 竖排时 latin 处理
 
 **atlas 解耦规则(D3,2026-07-02 评审收口)**:atlas 槽位在 render extract/quad 生成阶段按 `GlyphRasterKey` 现查(04 提供查询入口);`GlyphAtlasRef` 只允许帧内短生命周期持有,禁止进入 `ShapedGlyph` 契约或任何跨帧缓存值。
 
-**font_id 权威通路(D4,2026-07-02 评审收口；2026-07-10 已硬切)**:`ShapedGlyph.font_id` 类型统一为 `FontFaceId`(携带变量轴时经 `InstancedFaceId`);其值**提取自整形后端(cosmic)实际选择的 face**，经 `font/backend.rs` 的 fontdb ID↔`FontFaceId` 映射换算。`shaping/fallback_spans.rs` 只在 shape 前投影 CompositeFont family，禁止 post-shape 重算；旧 `shaping/font_id.rs` 已删除(见 06)。
+**font_id 权威通路(D4,2026-07-02 评审收口；2026-07-10 已硬切；2026-07-13 实例拆分)**:`ShapedGlyph.font_id` 类型统一为 base `FontFaceId`，其值**提取自整形后端(cosmic)实际选择的 face**，经 `font/backend.rs` 的 fontdb ID↔`FontFaceId` 映射换算；`font_instance_id: Option<InstancedFaceId>` 独立标识该 base face 的有效变量坐标。atlas/raster/offline identity 同时消费两者，禁止用 opaque instance ID 替代可取 bytes/face index 的 base face。`shaping/fallback_spans.rs` 只在 shape 前投影 CompositeFont family，禁止 post-shape 重算；旧 `shaping/font_id.rs` 已删除(见 06)。
 
 ### BIDI 算法落点(`bidi.rs`)
 
@@ -241,12 +245,13 @@ V2(本计划不实现,留接口):双向竖排混排、`text-combine-upright`(纵
 - cosmic-text bidi 隔离符支持不足 → 切 `unicode-bidi` 独立跑,接口不变。
 - 竖排是长尾:V1 只保证 CJK 正字 + 拉丁旋转 + 标点居中,旋转字形依赖 face GSUB,缺失则合成,对拍 godot。
 
-## 8. 状态与产出记录
+## 产出记录与时间
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-11）：SH-M3 已从“横排 shaping 后投影”硬切出 folder-backed rustybuzz vertical backend：LTR/RTL 分别映射 TTB/BTT，真实 `vert`/`vrt2`、language/features、backend glyph id/face id、source range、signed y advance、vertical origin offset 与 rotation 进入同一 shaped glyph 数据面。生产 SDF atlas 以实际 glyph id + face id 建 key/烘焙，不再按 Unicode scalar 重查竖排替代字形；SDF quad 消费 backend vertical origin/VORG-side-bearing offset。当前源 `text_vertical_` 17/17、SDF vertical 5/5、atlas 23/23、font bake 10/10 全绿；真实 WGPU 产品帧显示两列右到左 CJK `竖排「标点」。第二列，验证。`，逐列像素断言通过。cosmic-text 横排 `Attrs` 仍无 per-run language 字段，变量字体轴注入与 horizontal cosmic `locl` 继续保持明确 capability gap，不由本切片虚报完成。
+当前概述（2026-07-13）：SH-M3 已从“横排 shaping 后投影”硬切出 folder-backed rustybuzz vertical backend：LTR/RTL 分别映射 TTB/BTT，真实 `vert`/`vrt2`、language/features、backend glyph id/face id/instance id、source range、signed y advance、vertical origin offset 与 rotation 进入同一 shaped glyph 数据面。生产 SDF atlas 以实际 glyph id + face/instance id 建 key/烘焙，不再按 Unicode scalar 重查竖排替代字形；SDF quad 消费 backend vertical origin/VORG-side-bearing offset。当前源既有 `text_vertical_` 17/17、SDF vertical 5/5、atlas 23/23、font bake 10/10 与真实 WGPU 两列 CJK 产品帧已通过。新增 horizontal RustyBuzz leaf 现承接 cosmic-text `Attrs` 缺失的 per-run language 与变量轴应用；当前源 `text_horizontal_` 5/5，通过真实 `Bahnschrift` width-axis、真实 `Calibri` 俄语/塞尔维亚语 `locl`、空语言/竖排边界与 screen-space face/instance identity。来源 Editor07 original exact 尚待其非文本门禁复验，因此 Text02 仍为 `in_progress`，不把局部 focused green 扩大为来源计划完成。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-shaping-unicode-and-bidi-output-records.md`](02/2026-07-09-shaping-unicode-and-bidi-output-records.md)
+- open 待修复（variable shaping helper 可见性阻断共享 Runtime 编译）：[variable-shaping-visibility-compilation](02/failure-2026-07-14-variable-shaping-visibility-compilation.md)

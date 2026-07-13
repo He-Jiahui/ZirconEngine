@@ -129,6 +129,15 @@ pub(super) fn update_base_stats(
     state.stats.last_graph_compute_unexpected_dispatch_count = state
         .renderer
         .last_render_graph_compute_unexpected_dispatch_count();
+    state.stats.last_volumetric_fog_compute_dispatch_count = state
+        .renderer
+        .last_render_graph_compute_dispatch_count_for_executor_prefix("volumetric.");
+    state.stats.last_volumetric_fog_compute_dispatch_group_count = state
+        .renderer
+        .last_render_graph_compute_dispatch_group_count_for_executor_prefix("volumetric.");
+    state.stats.last_volumetric_fog_uploaded_bytes = state
+        .renderer
+        .last_render_graph_compute_uploaded_bytes_for_executor_prefix("volumetric.");
     state.stats.last_graph_execution_resource_report =
         state.renderer.last_render_graph_execution_resource_report();
     state.stats.last_graph_materialization_report =

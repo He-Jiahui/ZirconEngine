@@ -38,11 +38,10 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs
   - zircon_runtime/src/asset/assets/font.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
   - docs/zircon_runtime/asset/assets/font.md
   - docs/zircon_runtime/asset/assets/ui.md
@@ -136,7 +135,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review_guard_maps.rs
 plan_sources:
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -151,7 +150,7 @@ Runtime 12 current child-owner sync (2026-07-10): input, action mapping, recordi
 
 2026-07-10 Runtime 11 当前 guard-owner 同步：`job_system_boundary` 报告 `expected_module_count = 9`、`expected_guard_file_count = 2`、`missing_guard_files = []`、`direct_rayon_paths = 2`、`schedule_parallel_executor_direct_rayon = []`、`diagnostic_anchor_count = 4`、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true` 与 `risks = []`。2 个 guard owner 为 route parent `job_system.rs` 与真实 folder-backed owner `job_system/mirror_docs.rs`；`runtime_11_job_system_mirror_docs_match_structure_audit_counts` 保持计划、runtime index、JobSystem 模块文档、M0 review 与 interface convergence 一致。JobSystem 生产行为不变；named `tasks/ecs_schedule/worker_pool/rayon` filters 保留历史通过证据，broader full-lib 最终闸门仍 pending。
 
-2026-07-10 Runtime 05 plan-status 当前归档归属：`runtime_plan_status_boundary` 报告 support owners 84/84、subplans 15/15、index rows 15/15、problem rows 17/17、known backlog 7/7、所有 gap/anchor/date 违规为空与 `risks = []`；standalone Rust index guards 18/18、full plan-status 48/48。父计划和本索引只保存当前概述/路由，具体五列产出与历史锚点由编号归档拥有；Runtime 05 full `scene::` Cargo gate 仍 pending。
+2026-07-13 Runtime 05 closeout 已完成：`runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete` 在同一 fresh Windows lib-test 程序通过 full `scene::` 1642/1642（5 ignored）、`structure_convention` 1304/1304、`code_review_findings` 298/298 与 PMREM parity 1/1；父计划和本索引只保存当前概述/路由，具体五列产出、命令与历史锚点由 Runtime 05 编号归档拥有。
 
 ## 产出记录迁移说明
 
@@ -192,7 +191,7 @@ rayon（ECS/资产并行）、tokio + hyper + reqwest + tokio-tungstenite（net 
 1. `winit 0.31.0-beta.2`:beta 跟踪策略未定稿（锁定/升级 gate）。
 2. `notify 9.0.0-rc.3`:RC 版本。
 3. `zr_vm_rust_binding` 路径依赖逃逸出仓库根，影响 clone 即建的可复现性（optional 缓解，仍需文档化或 vendor 决策）。
-4. `backend-jolt` + physics backend：Runtime 01 M3 的历史 unavailable slot 已由 Plugins 03 M1-T3 推进为 plugin-owned optional `joltc-sys` native backend；feature-on Ready/native step，feature-off typed Unavailable，均不静默降级 builtin；Rapier 仍不进主路径。
+4. `backend-jolt` + physics backend：Runtime 01 M3 的历史 unavailable slot 已由 Plugins 03 M1-T3 推进为 plugin-owned optional `joltc-sys` native backend；feature-on Ready/native step，feature-off typed Unavailable，均不静默降级 builtin；当前守卫为 `physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned`，Rapier 仍不进主路径。
 
 ## 2. 架构评审结论
 
@@ -202,7 +201,7 @@ rayon（ECS/资产并行）、tokio + hyper + reqwest + tokio-tungstenite（net 
 
 旧计划假设中的 root surface、插件扇出、服务注册、序列化守卫与渲染分层等已收敛为当前架构基线；切片级状态锚、守卫计数与验证补记已迁入 Runtime 15 产出目录。
 
-Runtime 03 当前静态镜像：`schedule_frame_loop_boundary` 报告 source files 19/19、guard/test files 11/11、`SystemStage` count and variants 9/9、fixed-loop stages 3/3、dynamic-session `.tick_time(...)` calls 1/1、Runtime 03 guard anchors 14/14、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`doc_anchors = 10/10`、frame schedule module-doc anchors 3/3、`mirror_docs_guard_present = true`、no `WorldDriver` second `advance_time_by(...)` references、no dynamic-session raw-delta level tick references 与 `risks = []`；`runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 保持这些数字跨计划/模块文档同步。`ecs_schedule/tests::time::/session/schedule_parallel Cargo gates` 仍 pending，不据静态清零提升计划状态。
+Runtime 03 已完成：`schedule_frame_loop_boundary` 报告 source files 19/19、guard/test files 11/11、`SystemStage` count and variants 9/9、fixed-loop stages 3/3、dynamic-session `.tick_time(...)` calls 1/1、Runtime 03 guard anchors 14/14、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`doc_anchors = 10/10`、frame schedule module-doc anchors 3/3、`mirror_docs_guard_present = true`、no `WorldDriver` second `advance_time_by(...)` references、no dynamic-session raw-delta level tick references 与 `risks = []`；`runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 保持这些数字跨计划/模块文档同步。当前 Runtime 过滤门 `ecs_schedule` 77/77、`tests::time::` 4/4、`session` 165 passed / 0 failed / 10 ignored、`schedule_parallel` 15/15 与 `zircon_app` 主测试 135 passed / 0 failed / 1 ignored、PBR viewer 15/15 均通过；完成守卫为 `runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation`。
 
 Runtime 04 当前静态镜像：`asset_pipeline_boundary` 报告 `expected_source_file_count = 22`、`expected_guard_file_count = 17`、`worker_diagnostic_count = 7`、`expected_worker_diagnostic_count = 7`、`artifact_store_roundtrip_count = 4`、`expected_artifact_store_roundtrip_count = 4`、`watcher_acceptance_reference_count = 1`、`expected_watcher_acceptance_count = 7`、`artifact_acceptance_reference_count = 3`、`test_anchor_count = 24`、`behavior_test_anchor_count = 20`、`missing_behavior_test_anchors = []`、`missing_doc_anchors = []`、`missing_cargo_gate_anchors = []`、`retired_worker_new_references = []`、`retired_worker_request_sender_references = []`、`old_watch_debounce_references = []`、`mirror_docs_guard_present = true` 与 `risks = []`；`runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` 保持这些数字跨计划、模块文档与架构评审同步。17 个 guard/test owner 包含当前 folder-backed facade-query、artifact-scene、worker-policy、mirror-doc 与 Cargo-gate children；broader `asset::` / `worker_pool` Cargo filters 仍 pending，Runtime 04 保持 `in_progress`。
 
@@ -220,13 +219,13 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 |------|----------|----------|-------|
 | P1 | runtime root graphics alias 已硬切换 | 保持旧 root re-export 为零并等待 Cargo gate | 02 |
 | P2 | `core/{runtime,framework,manager,math,resource}` spine 已落地 | 继续收窄 root surface 与 generated leaf 边界 | 02 |
-| P3 | schedule/time/frame-loop 单一权威已静态收口 | 等待 schedule/time Cargo gate | 03 |
+| P3 | schedule/time/frame-loop 单一权威已收口 | 当前 Runtime 四组过滤门与 `zircon_app` 全包门槛已闭合 | 03 |
 | P4 | plugin native surface 与 lifecycle 已具备 owner | 等待 plugin validation lane | 06 |
-| P5 | 性能热路径已有预算与诊断面 | 等待性能 Cargo/基准窗口 | 07 |
-| P6 | scene/editor authoring 边界已静态收口 | 等待 full `scene::` Cargo gate | 05 |
+| P5 | 性能热路径、权威 FPS、trace 与 ECS/extract 诊断已完成 | 共享工作区全包编译由活动 owner 后续总体验证 | 07 |
+| P6 | scene/editor authoring 边界已静态收口 | full `scene::` 1642/1642 已闭环 | 05 |
 | P7 | asset pipeline owner 与 artifact 路径已对齐 | 等待 asset/worker Cargo gate | 04 |
 | P8 | generated 仅保留 leaf binding/DTO/table | 等待 workspace 级生成物验证 | 02 |
-| P9 | 非网络 `server` 与旧命名持续清零 | 等待命名与 scene Cargo gate | 05 |
+| P9 | 非网络 `server` 与旧命名持续清零 | 命名守卫与 scene Cargo gate 已闭环 | 05 |
 | P10 | 物理、导出与编辑器依赖已归属插件/editor | 等待依赖治理 Cargo gate | 01 |
 | P11 | ECS kernel/data owner 与行为锚已对齐 | 等待 ECS Cargo gate | 08 |
 | P12 | UI 子系统 owner 已分层 | 等待 UI active lane 与 Cargo gate | 09 |
@@ -267,13 +266,13 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 
 | 计划 | 文档 | 执行依赖 | 当前状态 / 剩余 gate |
 |------|------|----------|----------------------|
-| 01 | `01-tech-stack-and-dependency-governance.md` | 无（基础治理） | in_progress：dependency Cargo gate pending |
+| 01 | `01-tech-stack-and-dependency-governance.md` | 无（基础治理） | completed：五项 dependency/runtime/plugin Cargo gate 已闭合 |
 | 02 | `02-core-spine-and-root-surface.md` | Runtime 01 | in_progress：core/root Cargo gate pending |
-| 03 | `03-schedule-and-frame-loop-alignment.md` | Runtime 02 | in_progress：schedule/time Cargo gate pending |
+| 03 | `03-schedule-and-frame-loop-alignment.md` | Runtime 02 | completed：Runtime filters 77/77、4/4、165/0/10 ignored、15/15；`zircon_app` 135/0/1 ignored + PBR viewer 15/15 |
 | 04 | `04-asset-pipeline-alignment.md` | Runtime 02、Runtime 03 | in_progress：asset/worker Cargo gate pending |
-| 05 | `05-scene-editor-boundary-closeout.md` | Runtime 02、Runtime 04 | in_progress：full `scene::` Cargo gate pending |
+| 05 | `05-scene-editor-boundary-closeout.md` | Runtime 02、Runtime 04 | completed：scene 1642/1642、structure 1304/1304、review 298/298 |
 | 06 | `06-plugin-surface-and-lifecycle.md` | Runtime 02 | in_progress：plugin validation active lane |
-| 07 | `07-runtime-performance-hotpath.md` | Runtime 03、Runtime 08、Runtime 11 | in_progress：performance Cargo/benchmark window pending |
+| 07 | `07-runtime-performance-hotpath.md` | Runtime 03、Runtime 08、Runtime 11 | completed：双次 Vampire FPS、trace、ECS/extract 计数与权威热点清单完成；共享工作区全包编译 blocker 已归活动 owner |
 | 08 | `08-ecs-kernel-data-alignment.md` | Runtime 02 | in_progress：ECS Cargo gate pending |
 | 09 | `09-ui-subsystem-architecture.md` | Runtime 02、Runtime 03 | in_progress：UI owner active lane 与 Cargo gate pending |
 | 10 | `10-dynamic-api-and-interface-convergence.md` | Runtime 02、Runtime 05、Runtime 09 | in_progress：Runtime 09 owner handoff 与 Cargo gate pending |

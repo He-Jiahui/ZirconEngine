@@ -9,6 +9,7 @@ fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
         wgpu::Features::empty(),
         wgpu::Limits::default(),
         true,
+        true,
     );
 
     assert!(caps.supports_queue(RenderQueueClass::Graphics));
@@ -18,6 +19,11 @@ fn wgpu_caps_fall_back_to_graphics_and_copy_without_rt() {
         caps.max_storage_buffers_per_shader_stage,
         wgpu::Limits::default().max_storage_buffers_per_shader_stage
     );
+    assert_eq!(
+        caps.max_storage_buffer_binding_size,
+        u64::from(wgpu::Limits::default().max_storage_buffer_binding_size)
+    );
+    assert!(caps.supports_fragment_writable_storage);
     assert!(!caps.acceleration_structures.supported);
     assert!(!caps.supports_neural_compute);
     assert!(!caps.supports_sparse_texture);

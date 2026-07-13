@@ -1,4 +1,4 @@
-use crate::asset::{AnimationChannelKeyAsset, AnimationChannelValueAsset};
+use crate::core::framework::animation::{AnimationChannelKeyAsset, AnimationChannelValueAsset};
 use crate::core::math::{Quat, Real};
 
 pub(super) fn sample_hermite(

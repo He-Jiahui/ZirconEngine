@@ -1,11 +1,13 @@
 use super::super::build_export_actions;
 use super::surface_actions::{build_export_wizard_surface_action, BuildExportWizardSurfaceAction};
 use super::*;
+use crate::core::jobs::test_job_system;
 use crate::ui::host::{
-    ExportWizardCommandExecution, ExportWizardCommandRunner, ExportWizardJobStatus,
-    ExportWizardPipelineStageCommand, DESKTOP_EXPORT_START_BUTTON,
+    EditorExportBuildError, ExportWizardCommandExecution, ExportWizardCommandRunner,
+    ExportWizardJobStatus, ExportWizardPipelineStageCommand, DESKTOP_EXPORT_START_BUTTON,
 };
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime_interface::export::ExportStage;
 
 #[derive(Clone, Copy, Debug, Default)]
 struct ImmediateSuccessRunner;
@@ -14,7 +16,7 @@ impl ExportWizardCommandRunner for ImmediateSuccessRunner {
     fn run(
         &mut self,
         _command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         Ok(ExportWizardCommandExecution {
             exit_code: Some(0),
             stdout_lines: Vec::new(),
@@ -66,7 +68,7 @@ fn build_export_wizard_surface_action_maps_panel_buttons_to_session_actions() {
 
 #[test]
 fn desktop_export_wizard_sessions_project_view_model_after_generate_plan() {
-    let mut sessions = DesktopExportWizardSessions::default();
+    let mut sessions = DesktopExportWizardSessions::new(test_job_system());
     let update = sessions
         .dispatch_profile_action(
             "desktop_windows",
@@ -89,7 +91,7 @@ fn desktop_export_wizard_sessions_project_view_model_after_generate_plan() {
 
 #[test]
 fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
-    let mut sessions = DesktopExportWizardSessions::default();
+    let mut sessions = DesktopExportWizardSessions::new(test_job_system());
     let first_options = ready_options_with_out("desktop_windows", "D:\\zircon-export-old");
     let second_options = ready_options_with_out("desktop_windows", "D:\\zircon-export-new");
 
@@ -128,14 +130,14 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
     assert_eq!(session.plan().out, second_options.out);
     assert!(session
         .plan()
-        .command(ExportPipelineStage::CookAssets)
+        .command(ExportStage::CookAssets)
         .expect("cook assets stage should exist")
         .consumed_artifacts
         .iter()
         .any(|artifact| artifact.path == "D:\\zircon-export-new\\assets\\assets.json"));
     assert!(session
         .plan()
-        .command(ExportPipelineStage::PlatformBundle)
+        .command(ExportStage::PlatformBundle)
         .expect("platform bundle stage should exist")
         .consumed_artifacts
         .iter()
@@ -152,7 +154,7 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
 
 #[test]
 fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
-    let mut sessions = DesktopExportWizardSessions::default();
+    let mut sessions = DesktopExportWizardSessions::new(test_job_system());
     let update = sessions
         .dispatch_profile_action(
             "browser_webgpu",
@@ -171,15 +173,12 @@ fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
         .expect("browser profile session should exist");
     assert!(session
         .plan()
-        .command(ExportPipelineStage::SourceTemplate)
+        .command(ExportStage::SourceTemplate)
         .is_some());
+    assert!(session.plan().command(ExportStage::NativeDynamic).is_none());
     assert!(session
         .plan()
-        .command(ExportPipelineStage::NativeDynamic)
-        .is_none());
-    assert!(session
-        .plan()
-        .command(ExportPipelineStage::PlatformBundle)
+        .command(ExportStage::PlatformBundle)
         .is_some());
 }
 
@@ -226,8 +225,9 @@ fn ready_options_with_out(profile_name: &str, out: &str) -> ExportWizardPipeline
                 ExportPackagingStrategy::NativeDynamic,
             ]
         });
-    let mut options = ExportWizardPipelineOptions::new(profile_name, "zircon-project.toml", out)
-        .with_strategies(strategies);
+    let mut options =
+        ExportWizardPipelineOptions::for_test_profile(profile_name, "zircon-project.toml", out)
+            .with_strategies(strategies);
     options.source_asset_manifest = Some(format!("{out}\\assets\\assets.json"));
     options.host_executable = Some(format!("{out}\\host\\zircon_game.exe"));
     options

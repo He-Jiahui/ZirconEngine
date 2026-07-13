@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "50304968-7825-43c2-ab33-15e6c15c4f5f"
 url = "res://animation/vampire_idle.graph.zranim"
 asset_kind = "AnimationGraph"
@@ -8,7 +8,7 @@ artifact_locator = "lib://animation/graphs/6a787933-ac1b-a7b3-9152-0debdbac0a39.
 importer_id = "zircon.builtin.animation.zranim.graph"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781063478869
-source_hash = "d0f2c63d85c6c0d8"
+source_digest = "d0f2c63d85c6c0d8"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

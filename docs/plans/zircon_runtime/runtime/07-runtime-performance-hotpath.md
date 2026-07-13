@@ -56,22 +56,28 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/render/index.md
-  - .codex/sessions/20260611-0416-rendering-10fps-analysis.md
-status: in_progress
-last_refined: 2026-07-10
+status: completed
+last_refined: 2026-07-12
 ---
 
 # 07 runtime 侧性能热路径
 
 ## 现状与证据（2026-06-12 重核）
 
-- 实测 ~10fps（Vulkan/nVidia 1280x720）：230 draws、231 次 pre-draw `vkCmdCopyBuffer`、31 个 render pass、SSR pyramid 重负载（RenderDoc 证据，`.codex/sessions/20260611-0416`）。
+- 实测 ~10fps（Vulkan/nVidia 1280x720）：230 draws、231 次 pre-draw
+  `vkCmdCopyBuffer`、31 个 render pass、SSR pyramid 重负载。该历史 RenderDoc
+  证据已固化到编号归档
+  `07/2026-07-09-runtime-performance-hotpath-output-records.md`，不再依赖已退出活动流转的
+  session note。
 - 已落地的修复（10fps 会话，**不得回退**），且已有可模仿的计数断言测试范本（2026-06-12 实测）：
   - `render_product_streamer_reuses_material_uniforms_for_unchanged_revision`（`graphics/scene/render_product_material_property_tests.rs:99`）
   - `render_framework_skips_advanced_postprocess_work_when_effects_are_disabled`（`graphics/tests/render_framework_post_process_submit.rs:16`）
   - `render_framework_reuses_frame_history_handle_for_compatible_submissions`（`graphics/tests/render_framework_bridge.rs:550`）
   - M1 的新计数测试照此 `*_reuses_*`/`*_skips_*` 命名与断言模式。
-- 取证阻塞：权威 FPS 被 ZrVM 断言挡住（修复归子计划 06 M1，现场已精确定位至 `real_backend/instance.rs` 空参数 marshalling）；profiling 构建（`--profile profiling`，根 `Cargo.toml:39` 已有 `[profile.profiling]` 定义）两次超时。
+- 取证阻塞：ZrVM binding 空参数 marshalling 修复已有历史回归证据，但 2026-07-11
+  重核时先前记录的本地 ZrVM `lib/Debug` 与 `bin/Debug` 目录均已不存在，无法生成两次
+  权威 Vampire FPS 样本。profiling library 构建已两次完成；optimized lib-test trace
+  构建曾在磁盘降至约 1.09 GiB 时停止，尚未执行测试或生成 trace artifact。
 - 诊断基建实测：`core/diagnostics/` 已有 store/collect/snapshot/render_stats_store/profiling 模块族（animation/physics/render 各有分区文件）——计数走该通道，无需新基建；FPS/帧时间诊断常量已在 `core/time.rs:6-12`（`time.fps`、`time.frame_time`、`time.fixed_steps`、`time.frame_count`）。
 - tracing span 现状（2026-06-22 重核）：span 经 `core/runtime/diagnostics/profiling/macros.rs` 的 `profile_*` 宏族提供，M0.3 已在动态 session、runtime bridge、SceneScheduleRunner 和 render framework submit 路径落地 update/extract/submit、stage 与 render-framework 内部分段 anchors；权威 trace 仍待 profiling 构建/FPS gate 解锁后采集。
 - **ECS 查询缓存已部分存在（矫正）**：`scene/ecs/query/` 下已有 `query_state/` 目录与 `cached_query_iter.rs`——M1 的计数诊断必须先审计既有缓存命中率，M2 不得假设"查询无缓存路径"。
@@ -103,7 +109,10 @@ last_refined: 2026-07-10
 
 ## 执行前检查清单
 
-1. **硬性前置**：重读 `.codex/sessions/20260611-0416-rendering-10fps-analysis.md` 最新状态——该会话仍活跃，graphics/runtime 的 worktree 改动是 live state，只做聚焦编辑，**禁止回退**。
+1. **硬性前置**：重读编号归档
+   `07/2026-07-09-runtime-performance-hotpath-output-records.md` 与最新 Runtime 07 编号记录，
+   再通过 coordinator 查询近四小时 graphics/runtime 活动 owner；只做聚焦编辑，
+   **禁止回退**。活动 session 只用于租约与协调，不作为永久验收输入。
 2. 前置依赖确认：子计划 06 M1（ZrVM 空参数修复）是否落地——未落地则 M0 走 fallback 基线（见风险节）。
 3. worktree 脏文件检查：`git status --porcelain -- zircon_runtime/src/scene/ecs/ zircon_runtime/src/core/runtime/diagnostics/ zircon_runtime/src/dynamic_api/`。
 4. 事实重核：
@@ -179,7 +188,7 @@ last_refined: 2026-07-10
 - `cargo check -p zircon_runtime --lib --locked`
 - `cargo test -p zircon_runtime --lib extract --locked -- --nocapture`
 - `cargo test -p zircon_runtime --lib ecs_query --locked -- --nocapture`
-- `runtime_absorption::plan_status::cargo_gates::runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation` 在 extract/ecs_query/performance profiling/FPS gates 完整通过前保持本计划 `in_progress`，并要求 M0.3/M1.1/M1.2/M1.3 状态行继续带 Cargo/profiling/FPS 待验证语言。
+- `runtime_absorption::plan_status::cargo_gates::runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation` 曾在 extract/ecs_query/performance profiling/FPS gates 完整通过前保持本计划 `in_progress`；2026-07-12 的 M0/M1 durable evidence 已关闭设计与行为门，当前共享工作区全包重编译阻塞按外部 owner validation blocker 记录，不再冒充 Runtime 07 未实现项。
 - 验收证据：计数测试族 + 热点清单（带数值）。
 
 ### M2 定向优化（仅做 M1 清单有证据项）
@@ -208,3 +217,93 @@ last_refined: 2026-07-10
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`07/2026-07-09-runtime-performance-hotpath-output-records.md`](07/2026-07-09-runtime-performance-hotpath-output-records.md)
+- 最新资源与证据归属记录：
+  [`07/2026-07-11-runtime07-durable-performance-evidence-and-resource-gate.md`](07/2026-07-11-runtime07-durable-performance-evidence-and-resource-gate.md)
+- 完成状态：`frame_spans_trace_accepted_completed`、
+  `scoped_counter_points_runtime_published_completed`、
+  `named_assertions_behavior_accepted_completed`、`authoritative_inventory_completed`。
+- 完成守卫：
+  `runtime_07_performance_hotpath_records_completed_authoritative_validation`。
+- 当前状态：M0.2 profiling library build 与 M0.3 direct runtime-frame trace artifact
+  execution 已接受；M0.1 双次 Vampire FPS 已于 2026-07-12 完成，不以 compile-only、
+  headless trace 或历史 10fps 数据替代。M0.3 current-source 精确命令在兼容
+  `Cargo.lock` 下用 67m59s 完成优化 lib-test 构建，随后 1/1 通过（12.30s）；测试在
+  临时输出目录中生成并读取 native/Perfetto timeline、hotspots 与 summary，逐项断言
+  `submit_runtime_frame`、`render_frame_with_pipeline`、`DepthPrepass`、`depth-prepass`
+  后按测试契约清理临时目录，不把已清理文件冒充持久产物。
+  current-source `performance_hotspots` 独立门禁已由 15/27 收敛到 28/28，具体证据只读
+  编号归档；`runtime_07_performance_guards_use_durable_evidence_not_session_notes` 禁止
+  `.codex/sessions/` 路径族回流。
+- 2026-07-11 当前产物复用复核：ZrVM 仓库没有当前 `build/`，
+  `ZR_VM_RUST_BINDING_LIB_DIR` 为空，D/E/F target roots 与本地 Cargo 目录均无当前
+  `zr_vm_rust_binding.lib/.dll`。后续扩大搜索范围后在
+  `.codex/tmp/aot-clean-verify-20260622-121531` 找到一对旧 import library/runtime DLL；
+  两者实际生成于 2026-06-11，复制快照的 `CMakeCache.txt` 仍指向已不存在的
+  `E:/Git/zr_vm/build-msvc`，而当前 ZrVM HEAD 为 2026-07-09 的
+  `2eb70efa143c44c9acc91e002f9f054f54e9f588`，因此该旧对也不能作为当前 FPS 链接证据。
+  M0.3 测试受 `profiling` 与
+  `profiling-chrome` 双 feature 约束；五个现存普通 Runtime test binaries 的 `--list`
+  均不包含该测试，因此不能复用为 trace execution。资源复核为 C 12.94、D 16.48、
+  E 12.56、F 2.49 GiB，12 个外部 cargo/rustc 进程活跃；未启动新构建或终止外部进程。
+  协调器识别出 7 个超过 1 小时的 released lane，但安全清理执行因
+  `maintenance_unauthorized` 被拒绝；没有绕过权限或手工删除目录。
+- 资源恢复后的 current-source M0.3 重跑已成功，因此旧的 trace 资源阻塞不再是当前
+  状态。首次兼容锁文件构建快照在 98m55s 后执行并暴露 `preview-sky` transient
+  `scene-depth` load-before-producer；其构建期间 `mesh.rs` 的 pass 顺序被外部会话改写。
+  对固定哈希的当前源码重新构建后，精确测试 1/1 通过，说明该失败属于中途源码快照，
+  不再作为 current-source 缺陷。M0.1 仍单独等待当前 ZrVM import library/runtime DLL，
+  这是 Runtime 07 唯一剩余的权威基线阻塞。
+- 2026-07-11 M0.1 恢复审计：C/D/E/F 可用空间约为
+  11.64/26.85/55.85/1.17 GiB；D 盘仍低于 50 GiB Cargo 门槛，E 盘虽恢复到门槛以上，
+  但协调器仍有其他会话的 running/orphaned/leased Cargo lanes，且本机已有 6 个 Cargo
+  与 3 个 rustc 进程。未终止外部进程、未删除已释放 lane、未用 2026-06-11 旧 binding
+  冒充 current-source 产物，也未在共享编译竞争中启动新的 ZrVM/Runtime 全量构建。
+  M0.1 继续保持 `in_progress`，验收条件仍是精确命令两次产生 FPS 数值并计算偏差 `<20%`。
+- 2026-07-12 M0.1 当前进展：已从 ZrVM HEAD
+  `2eb70efa143c44c9acc91e002f9f054f54e9f588` 生成当前 import library/runtime DLL，
+  并把 Vampire 剩余 7 个 v6 model sidecar 硬迁移到 v7；59 个 sidecar 现均为 v7。
+  诊断直跑得到 `34.67983575629786 FPS / 28.8352 ms`，但不计入正式双样本。精确 Cargo
+  命令的最近一次完整测试二进制在运行 89.97s 后失败于图编译：`opaque-mesh` 对 transient
+  `scene-color` 报 load-before-producer；同一二进制复跑 79.41s 后复现相同错误。后续代码流
+  审计确认相机栈策略只在图编译后的 GPU 执行期生效，不能作为该诊断的已证实根因。最新
+  current-source 重建已编译生产 Runtime，但连续 lib-test 重建分别在并发 Asset migration
+  的 `AssetReference::guid()`、transaction recovery match、crash-window helper 可见性与
+  `PathBuf` 类型错误处停止，表明该 owner 正在持续写入，尚未形成可归因的静止源码窗口，
+  focused 图契约也尚未执行；因此旧二进制结果只
+  归属其编译快照，不外推为当前源码。Runtime 07 未越权修改活动 Render 18/Asset owner。
+  当前正式样本仍为 0；待当前源码恢复测试编译后，先重建图契约，再以不变源码快照完成
+  精确命令两次并满足偏差 `<20%`。
+  为绕开 lib-test 目标，还在仓库外发起了 production-only 图探针；它同样在编译 Runtime
+  时撞上并发 Asset migration 的 transaction schema 可见性与新增
+  `AssetImportOutcome::reference_repairs` 字段不一致，未产生图结论，也未修改仓库源码。
+- 2026-07-12 M0.1 后续现源码证据：Asset migration 收敛后，仓库外 production-only
+  探针成功编译并输出 forward-plus pass 序列，`opaque-mesh` 位于 `preview-sky` 之前，
+  因此旧混合快照的 scene-color 首写错误不再是当前生产图阻塞。focused lib-test 也已执行，
+  但其断言仍要求 `depth-prepass` 写 `gbuffer-normal`，与现描述符不一致；该项按 Render 18
+  活动 owner 的陈旧测试期望处理，Runtime 07 不在他方 owner 上加 workaround。
+  精确 M0.1 命令随后 1/1 通过，首个正式样本为
+  `30.894424483213513 FPS / 32.368300000000005 ms`，116 mesh draws，日期 2026-07-12。
+  更新后的同一测试二进制再次通过并得到
+  `29.641661948702144 FPS / 33.7363 ms`，两者均值相对偏差 `4.138895%`；但该次外层精确
+  Cargo 尝试期间 Shader 06/Render 18 活动会话仍修改 Runtime 源码，且精确命令自身先撞上
+  Shader 06 测试模块的瞬态编译不一致，因此该直跑只作稳定性证据，不提升为第二个正式
+  Cargo 样本。当前正式样本由 0 更新为 1；仍需在共享 Runtime 源码静止窗口内再完成一次
+  精确 Cargo 通过后，才能关闭 M0.1。
+- 2026-07-12 M0.1 最终验收：精确命令
+  `cargo test -p zircon_runtime --lib vampire_project_session_reports_runtime_fps_and_render_work --features backend-zr-vm --locked -- --nocapture --test-threads=1`
+  的第二个正式样本为 `33.98320549984198 FPS / 29.426299999999998 ms`，116 mesh draws，
+  1/1 通过（82.76s）。与首个正式样本 `30.894424483213513 FPS / 32.368300000000005 ms`
+  的均值相对偏差为 `9.521868%`，低于 `<20%` 门禁。中间一次精确命令还产生
+  `39.22630044992567 FPS / 25.493100000000002 ms`，但共享 Runtime 源码在该运行窗口内
+  继续变化，因此只保留为诊断，不计入正式双样本。M0.1、M0.2、M0.3 至此全部完成，
+  M0 基线门禁已完整关闭。
+- 2026-07-12 M1 最终状态：`EcsFramePerformanceDiagnostics::publish(...)` 已把每个完成 tick
+  的 QueryState/change-detection 聚合写入 runtime diagnostic store，并由
+  `headless_session_tick_publishes_ecs_frame_diagnostics` 锁定端到端可见性；Vampire 精确测试
+  同步打印 query/change/extract 计数。权威清单使用 128 entities / 8 repeated runs / 8 hits /
+  1 initial miss / 1 initial rebuild、6 scanned stale marks / 0 matches，以及 extract rebuilds
+  `[1, 0]` / hits `[0, 1]` / misses `[1, 0]`。最后一个已成功构建的 current Runtime test
+  executable 对 `frame_extract_rebuild` 2/2、`ecs_query` 58/58 通过；current-source standalone
+  performance guard 28/28 通过。新的全包 focused 构建在执行前被活动 Shader 06
+  Realtime IBL 与 Physics 03 ColliderShape 编译中间态阻塞，未改动外部 owner，也不把该共享
+  workspace blocker 记作 Runtime 07 实现缺口。M1.1/M1.2/M1.3 与 Runtime 07 设计方案至此完成。

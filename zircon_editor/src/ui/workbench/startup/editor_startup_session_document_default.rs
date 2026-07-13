@@ -1,6 +1,6 @@
 use super::editor_session_mode::EditorSessionMode;
 use super::editor_startup_session_document::EditorStartupSessionDocument;
-use super::new_project_draft::NewProjectDraft;
+use crate::core::project::NewProjectDraft;
 
 impl Default for EditorStartupSessionDocument {
     fn default() -> Self {

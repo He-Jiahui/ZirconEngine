@@ -18,27 +18,9 @@ const D8_RUNTIME_REGISTRATION_CRATES: &[(&str, &str, &str)] = &[
 
 #[test]
 fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let plugin_skeleton_doc =
-        include_str!("../../../../../../docs/zircon_plugins/plugin-crate-skeleton.md");
-    let physics_doc = include_str!("../../../../../../docs/zircon_plugins/physics/runtime.md");
-    let net_doc = include_str!("../../../../../../docs/zircon_plugins/net/runtime.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let module_convention =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_registration =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/registration.rs");
@@ -126,8 +108,8 @@ fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builde
         "review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
     ] {
         assert!(
-            d8_row.contains(required),
-            "D8 row should record runtime registration builder convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D8 numbered review evidence should record runtime registration builder convergence anchor `{required}`"
         );
     }
     assert!(
@@ -135,29 +117,11 @@ fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builde
         "D8 row should not keep the stale open-problem wording"
     );
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("plugin skeleton doc", plugin_skeleton_doc),
-        ("physics plugin doc", physics_doc),
-        ("net plugin doc", net_doc),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("module convention", module_convention),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D8 runtime registration builder original evidence paths",
-            "d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred",
-            "review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
-            "RuntimePluginRegistrationBuilder",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D8 runtime registration builder convergence anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D8 runtime registration builder original evidence paths")
+            && review_findings.contains(
+                "review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
+            ),
+        "D8 numbered output should own the concrete registration-builder evidence"
+    );
 }

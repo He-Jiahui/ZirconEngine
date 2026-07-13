@@ -24,8 +24,7 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_STATUS_GUARD: &str =
     "runtime_15_typed_error_native_plugin_loader_routes_child_split_status_is_current";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_SOURCE_HELPER_SLICE: &str =
     "Runtime 15 M3 typed-error native plugin loader routes source helper child split";
-pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_SOURCE_HELPER_STATUS: &str =
-    "runtime_15_typed_error_native_plugin_loader_routes_source_helper_child_split_static_passed_cargo_deferred";
+pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_SOURCE_HELPER_STATUS: &str = "runtime_15_typed_error_native_plugin_loader_routes_source_helper_child_split_static_passed_cargo_deferred";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_SOURCE_HELPER_DATE: &str = "2026-07-05";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_SOURCE_HELPER_OWNERSHIP_GUARD: &str =
     "runtime_15_typed_error_native_plugin_loader_routes_source_helpers_are_child_backed";

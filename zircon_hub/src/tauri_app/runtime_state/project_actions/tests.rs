@@ -125,7 +125,7 @@ fn create_project_non_empty_target_recovery_points_to_import() {
     fs::create_dir_all(&source).unwrap();
     let target = temp.join("projects").join("Game");
     fs::create_dir_all(&target).unwrap();
-    fs::write(target.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+    write_valid_project_manifest(&target, "Game");
     let mut session = session_with_source(&temp, &source);
     let engine_id = source_engine_id(&source);
 
@@ -220,7 +220,7 @@ fn import_project_action_validates_manifest_and_records_recent_project() {
     fs::create_dir_all(&source).unwrap();
     let project = temp.join("Imported");
     fs::create_dir_all(&project).unwrap();
-    fs::write(project.join("zircon-project.toml"), "name = \"Imported\"\n").unwrap();
+    write_valid_project_manifest(&project, "Imported");
     let mut session = session_with_source(&temp, &source);
 
     session
@@ -235,7 +235,7 @@ fn import_project_action_validates_manifest_and_records_recent_project() {
         session.selected_project_path.as_deref(),
         Some(project.as_path())
     );
-    assert_eq!(session.config.recent_projects[0].display_name, "Imported");
+    assert_eq!(session.config.recent_projects[0].summary.name, "Imported");
     assert_eq!(
         session.config.action_history[0].action,
         HubActionKind::ImportProject
@@ -313,9 +313,9 @@ fn import_project_duplicate_path_selects_existing_entry_without_new_row() {
     fs::create_dir_all(&source).unwrap();
     let project = temp.join("Imported");
     fs::create_dir_all(&project).unwrap();
-    fs::write(project.join("zircon-project.toml"), "name = \"Imported\"\n").unwrap();
+    write_valid_project_manifest(&project, "Imported");
     let mut session = session_with_source(&temp, &source);
-    session.config.recent_projects = vec![RecentProject::new("Existing Imported", &project, 1)];
+    session.config.recent_projects = vec![RecentProject::fixture("Existing Imported", &project, 1)];
 
     session
         .apply_action(HubActionRequest {
@@ -327,7 +327,7 @@ fn import_project_duplicate_path_selects_existing_entry_without_new_row() {
 
     assert_eq!(session.config.recent_projects.len(), 1);
     assert_eq!(
-        session.config.recent_projects[0].display_name,
+        session.config.recent_projects[0].summary.name,
         "Existing Imported"
     );
     assert_eq!(
@@ -445,9 +445,10 @@ fn pin_remove_and_delete_request_update_project_metadata_and_selection() {
     fs::create_dir_all(&source).unwrap();
     let project = temp.join("Game");
     fs::create_dir_all(&project).unwrap();
-    fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+    write_valid_project_manifest(&project, "Game");
     let mut session = session_with_source(&temp, &source);
-    session.config.recent_projects = vec![crate::projects::RecentProject::new("Game", &project, 1)];
+    session.config.recent_projects =
+        vec![crate::projects::RecentProject::fixture("Game", &project, 1)];
     session.selected_project_path = Some(project.clone());
 
     session
@@ -503,16 +504,12 @@ fn project_management_actions_resolve_typed_project_path_before_archived_target(
     let target = temp.join("Target");
     fs::create_dir_all(&fallback).unwrap();
     fs::create_dir_all(&target).unwrap();
-    fs::write(
-        fallback.join("zircon-project.toml"),
-        "name = \"Fallback\"\n",
-    )
-    .unwrap();
-    fs::write(target.join("zircon-project.toml"), "name = \"Target\"\n").unwrap();
+    write_valid_project_manifest(&fallback, "Fallback");
+    write_valid_project_manifest(&target, "Target");
     let mut session = session_with_source(&temp, &source);
     session.config.recent_projects = vec![
-        crate::projects::RecentProject::new("Fallback", &fallback, 1),
-        crate::projects::RecentProject::new("Target", &target, 2),
+        crate::projects::RecentProject::fixture("Fallback", &fallback, 1),
+        crate::projects::RecentProject::fixture("Target", &target, 2),
     ];
     session.selected_project_path = Some(fallback.clone());
 
@@ -546,16 +543,12 @@ fn cancel_delete_project_target_must_match_pending_project() {
     let target = temp.join("Target");
     fs::create_dir_all(&fallback).unwrap();
     fs::create_dir_all(&target).unwrap();
-    fs::write(
-        fallback.join("zircon-project.toml"),
-        "name = \"Fallback\"\n",
-    )
-    .unwrap();
-    fs::write(target.join("zircon-project.toml"), "name = \"Target\"\n").unwrap();
+    write_valid_project_manifest(&fallback, "Fallback");
+    write_valid_project_manifest(&target, "Target");
     let mut session = session_with_source(&temp, &source);
     session.config.recent_projects = vec![
-        crate::projects::RecentProject::new("Fallback", &fallback, 1),
-        crate::projects::RecentProject::new("Target", &target, 2),
+        crate::projects::RecentProject::fixture("Fallback", &fallback, 1),
+        crate::projects::RecentProject::fixture("Target", &target, 2),
     ];
     session.selected_project_path = Some(fallback.clone());
     session.pending_delete_project_path = Some(target.clone());
@@ -601,9 +594,9 @@ fn confirm_delete_failure_keeps_pending_state_with_recovery() {
     fs::create_dir_all(&source).unwrap();
     let project = temp.join("Game");
     fs::create_dir_all(&project).unwrap();
-    fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+    write_valid_project_manifest(&project, "Game");
     let mut session = session_with_source(&temp, &source);
-    session.config.recent_projects = vec![RecentProject::new("Game", &project, 1)];
+    session.config.recent_projects = vec![RecentProject::fixture("Game", &project, 1)];
     session.selected_project_path = Some(project.clone());
     session.recycle_delete = |_| {
         Err(HubError::message(
@@ -648,9 +641,9 @@ fn confirm_delete_success_with_injected_recycler_drops_project_only_from_hub() {
     fs::create_dir_all(&source).unwrap();
     let project = temp.join("Game");
     fs::create_dir_all(&project).unwrap();
-    fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+    write_valid_project_manifest(&project, "Game");
     let mut session = session_with_source(&temp, &source);
-    session.config.recent_projects = vec![RecentProject::new("Game", &project, 1)];
+    session.config.recent_projects = vec![RecentProject::fixture("Game", &project, 1)];
     session.selected_project_path = Some(project.clone());
     session.recycle_delete = |_| Ok(());
 
@@ -705,6 +698,15 @@ fn session_with_source(temp: &std::path::Path, source: &std::path::Path) -> HubR
     )
     .unwrap();
     HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+}
+
+fn write_valid_project_manifest(root: &std::path::Path, name: &str) {
+    let document = format!(
+        "name = {name:?}\nformat_version = 2\ndefault_scene = \"res://scenes/main.scene.toml\"\nasset_roots = [\"assets\"]\nlibrary_version = 1\n"
+    );
+    zircon_runtime_interface::project::ProjectManifestSummary::parse_toml_str(&document)
+        .expect("test project manifest must satisfy the shared summary contract");
+    fs::write(root.join("zircon-project.toml"), document).unwrap();
 }
 
 fn temp_test_dir(prefix: &str) -> PathBuf {

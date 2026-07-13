@@ -664,9 +664,9 @@ mod tests {
             line_height: 12.0,
             ..UiResolvedStyle::default()
         };
-        let source = "editor base.zui";
+        let source = "sample base.zui";
         let line_text = "base.zui";
-        let line_start = "editor ".len();
+        let line_start = "sample ".len();
         let caret_offset = line_start + "base".len();
         let mut layout = layout_with_advances(line_text, vec![1.0; line_text.len()]);
         {

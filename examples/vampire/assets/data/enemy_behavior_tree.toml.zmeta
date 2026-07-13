@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "2f7f0e40-bc1b-4ee0-9a8b-5a1590ed5f31"
 url = "res://data/enemy_behavior_tree.toml"
 asset_kind = "Data"
@@ -8,7 +8,7 @@ artifact_locator = "lib://data/066c4726-2e1b-f1a7-1954-ed709298f462.zasset"
 importer_id = "zircon.builtin.data.toml"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781011701085
-source_hash = "7f63a3d20dfab0ed"
+source_digest = "7f63a3d20dfab0ed"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

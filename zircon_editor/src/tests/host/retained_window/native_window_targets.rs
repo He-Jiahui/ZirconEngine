@@ -16,7 +16,10 @@ fn native_floating_window_targets_fall_back_to_shared_projection_when_host_bound
     let window_id = MainPageId::new("window:native-preview");
     let fixture = floating_preview_fixture(&window_id);
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let source_bridge = BuiltinFloatingWindowSourceTemplateBridge::new(UiSize::new(1440.0, 900.0))
         .expect("floating-window source template should build");
     let shared_source =

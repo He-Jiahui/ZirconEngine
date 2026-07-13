@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::asset::{AnimationChannelAsset, AnimationClipBoneTrackAsset};
+use zircon_runtime::core::framework::animation::{
+    AnimationChannelAsset, AnimationClipBoneTrackAsset,
+};
 
 use super::super::skeleton::DerivedSkeletonAsset;
 use super::channels::{constant_quaternion_channel, constant_vec3_channel};

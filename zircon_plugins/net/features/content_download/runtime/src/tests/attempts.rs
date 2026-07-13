@@ -4,6 +4,8 @@ use zircon_runtime::core::framework::net::{
 
 use crate::net_content_download_runtime_manager;
 
+use super::support::zrpack_hash;
+
 #[test]
 fn content_download_manager_builds_range_resume_attempts_and_fails_over_mirrors() {
     let manager = net_content_download_runtime_manager();
@@ -15,7 +17,7 @@ fn content_download_manager_builds_range_resume_attempts_and_fails_over_mirrors(
                 "https://cdn.example/chunk-resume",
                 256,
                 1024,
-                "hash-resume",
+                zrpack_hash(b"hash-resume"),
             )
             .with_resume_from_byte(512),
         )

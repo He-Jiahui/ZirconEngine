@@ -7,9 +7,9 @@ use crate::ui::template_runtime::{
 };
 use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
-const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
+const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
 const UI_ASSET_EDITOR_SHELL_DOCUMENT_ID: &str = "editor.ui_asset_editor";
-const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
+const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/workbench_window.zui";
 
 #[test]
 fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_documents() {

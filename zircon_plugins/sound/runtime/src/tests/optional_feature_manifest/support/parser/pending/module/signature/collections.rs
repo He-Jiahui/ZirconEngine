@@ -1,6 +1,6 @@
 pub(super) fn take_target_modes(
-    target_modes: &mut Vec<zircon_runtime::builtin::RuntimeTargetMode>,
-) -> Vec<zircon_runtime::builtin::RuntimeTargetMode> {
+    target_modes: &mut Vec<zircon_runtime::core::framework::platform::RuntimeTargetMode>,
+) -> Vec<zircon_runtime::core::framework::platform::RuntimeTargetMode> {
     std::mem::take(target_modes)
 }
 

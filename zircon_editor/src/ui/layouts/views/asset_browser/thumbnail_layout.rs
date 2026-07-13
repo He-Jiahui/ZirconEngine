@@ -1,15 +1,11 @@
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
+use crate::ui::workbench::asset_content_layout::{
+    AssetThumbnailGridMetrics, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+};
 
 use super::thumbnail_nodes::thumbnail_control_id;
 
-const THUMBNAIL_GRID_PADDING: f32 = 8.0;
-const THUMBNAIL_GRID_GAP: f32 = 8.0;
-const THUMBNAIL_CARD_MIN_WIDTH: f32 = 104.0;
-const THUMBNAIL_CARD_MAX_WIDTH: f32 = 132.0;
-const THUMBNAIL_CARD_HEIGHT_RATIO: f32 = 1.14;
-const THUMBNAIL_CARD_MIN_HEIGHT: f32 = 146.0;
-const THUMBNAIL_CARD_MAX_HEIGHT: f32 = 150.0;
 const THUMBNAIL_VISUAL_MIN_HEIGHT: f32 = 72.0;
 const THUMBNAIL_VISUAL_MAX_HEIGHT: f32 = 88.0;
 const THUMBNAIL_CARD_INSET: f32 = 8.0;
@@ -31,11 +27,9 @@ const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.5;
 const THUMBNAIL_TYPE_BADGE_PADDING_X: f32 = 6.0;
 const THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.55;
 const THUMBNAIL_META_ROW_GAP: f32 = 5.0;
-const THUMBNAIL_MAX_VISIBLE_ITEMS: usize = 8;
-const THUMBNAIL_MAX_COLUMNS: usize = 6;
 
 pub(super) fn has_thumbnail_grid(nodes: &[ViewTemplateNodeData]) -> bool {
-    node_frame(nodes, "AssetBrowserThumbGridPanel").is_some()
+    node_frame(nodes, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID).is_some()
 }
 
 pub(super) fn apply_compact_thumbnail_grid_layout(
@@ -47,48 +41,51 @@ pub(super) fn apply_compact_thumbnail_grid_layout(
 ) {
     let count = thumbnail_card_count(nodes);
     if count == 0 {
-        set_node_frame(nodes, "AssetBrowserThumbGridPanel", x, y, width, 0.0);
+        set_node_frame(
+            nodes,
+            BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+            x,
+            y,
+            width,
+            0.0,
+        );
         return;
     }
 
-    set_node_frame(nodes, "AssetBrowserThumbGridPanel", x, y, width, height);
-    let columns = thumbnail_grid_columns(width, count);
-    let rows = count.div_ceil(columns);
-    let inner_width = (width - THUMBNAIL_GRID_PADDING * 2.0).max(0.0);
-    let inner_height = (height - THUMBNAIL_GRID_PADDING * 2.0).max(0.0);
-    let card_width = ((inner_width - THUMBNAIL_GRID_GAP * (columns - 1) as f32) / columns as f32)
-        .clamp(THUMBNAIL_CARD_MIN_WIDTH, THUMBNAIL_CARD_MAX_WIDTH);
-    let row_height = ((inner_height - THUMBNAIL_GRID_GAP * (rows - 1) as f32) / rows as f32)
-        .clamp(THUMBNAIL_CARD_MIN_HEIGHT, THUMBNAIL_CARD_MAX_HEIGHT);
-    let card_height = thumbnail_card_height_for_width(card_width).min(row_height);
+    let metrics = AssetThumbnailGridMetrics::new(width, count);
+    set_node_frame(
+        nodes,
+        BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+        x,
+        y,
+        width,
+        height,
+    );
+    set_node_value_number(
+        nodes,
+        BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+        metrics.content_extent(),
+    );
 
     for index in 0..count {
-        let column = index % columns;
-        let row = index / columns;
-        let card_x = x + THUMBNAIL_GRID_PADDING + column as f32 * (card_width + THUMBNAIL_GRID_GAP);
-        let card_y = y + THUMBNAIL_GRID_PADDING + row as f32 * (card_height + THUMBNAIL_GRID_GAP);
-        layout_thumbnail_card(nodes, index, card_x, card_y, card_width, card_height);
+        let frame = metrics
+            .item_frame(index)
+            .expect("thumbnail index is in range");
+        layout_thumbnail_card(
+            nodes,
+            index,
+            x + frame.x,
+            y + frame.y,
+            frame.width,
+            frame.height,
+        );
     }
 }
 
 fn thumbnail_card_count(nodes: &[ViewTemplateNodeData]) -> usize {
-    (0..THUMBNAIL_MAX_VISIBLE_ITEMS)
+    (0..nodes.len())
         .take_while(|index| node_frame(nodes, &thumbnail_control_id("Card", *index)).is_some())
         .count()
-}
-
-fn thumbnail_grid_columns(width: f32, count: usize) -> usize {
-    let inner_width = (width - THUMBNAIL_GRID_PADDING * 2.0).max(0.0);
-    let columns = ((inner_width + THUMBNAIL_GRID_GAP)
-        / (THUMBNAIL_CARD_MIN_WIDTH + THUMBNAIL_GRID_GAP))
-        .floor()
-        .max(1.0) as usize;
-    columns.min(count).min(THUMBNAIL_MAX_COLUMNS).max(1)
-}
-
-fn thumbnail_card_height_for_width(width: f32) -> f32 {
-    (width * THUMBNAIL_CARD_HEIGHT_RATIO)
-        .clamp(THUMBNAIL_CARD_MIN_HEIGHT, THUMBNAIL_CARD_MAX_HEIGHT)
 }
 
 fn layout_thumbnail_card(
@@ -300,5 +297,14 @@ fn set_node_frame(
         node.frame.y = y;
         node.frame.width = width;
         node.frame.height = height;
+    }
+}
+
+fn set_node_value_number(nodes: &mut [ViewTemplateNodeData], control_id: &str, value: f32) {
+    if let Some(node) = nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_str() == control_id)
+    {
+        node.value_number = value;
     }
 }

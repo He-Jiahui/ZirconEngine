@@ -1,5 +1,6 @@
 pub(super) struct HotspotInventorySources {
     pub(super) runtime_07_plan: &'static str,
+    pub(super) runtime_07_archive: &'static str,
     pub(super) runtime_index: &'static str,
     pub(super) render_index: &'static str,
     pub(super) hotspot_doc: &'static str,
@@ -55,6 +56,9 @@ impl HotspotInventorySources {
         Self {
             runtime_07_plan: include_str!(
                 "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+            ),
+            runtime_07_archive: include_str!(
+                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
             ),
             runtime_index: include_str!(
                 "../../../../../../docs/plans/zircon_runtime/runtime/index.md"

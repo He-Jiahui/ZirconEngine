@@ -396,6 +396,7 @@ fn spot_shadow_pcf_capture_extract(
                     range: 4.6,
                     inner_angle_radians: 0.42,
                     outer_angle_radians: 0.72,
+                    mobility: crate::core::framework::scene::Mobility::Dynamic,
                     shadow: Some(shadow_settings),
                 }],
                 ambient_lights: Vec::new(),
@@ -429,6 +430,7 @@ fn multi_spot_shadow_capture_light(index: usize, x: f32) -> RenderSpotLightSnaps
         range: 5.0,
         inner_angle_radians: 0.48,
         outer_angle_radians: 0.78,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: Some(multi_spot_shadow_capture_settings()),
     }
 }

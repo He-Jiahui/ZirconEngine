@@ -7,6 +7,41 @@ use super::shader_source::{
 
 mod runtime_pipeline;
 
+#[test]
+fn deferred_lighting_shader_applies_integrated_volumetric_lighting() {
+    for expected in [
+        "@group(1) @binding(25) var<uniform> zr_volumetric_apply_params",
+        "@group(1) @binding(26) var zr_volumetric_integrated: texture_3d<f32>;",
+        "@group(1) @binding(27) var zr_volumetric_sampler: sampler;",
+        "fn zr_volumetric_apply(",
+        "zr_volumetric_apply(shaded.rgb, position.xy, depth)",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should use volumetric contract `{expected}`"
+        );
+    }
+}
+
+#[test]
+fn deferred_lighting_shader_accepts_baked_indirect_from_gbuffer_emissive() {
+    for expected in [
+        "@group(1) @binding(23)",
+        "@group(1) @binding(24)",
+        "@group(1) @binding(28)",
+        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;",
+        "add_deferred_emissive(",
+    ] {
+        assert!(DEFERRED_LIGHTING_SHADER.contains(expected));
+    }
+}
+
+#[test]
+fn deferred_lighting_preserves_frame_clear_for_sky_composition() {
+    assert!(DEFERRED_LIGHTING_SHADER.contains("if (albedo.a <= 0.001) {\n        discard;"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("background_tex"));
+}
+
 const CUSTOM_TOON_DEFERRED_INCLUDE: &str = r#"
 fn shade_deferred_toon(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
     let band = clamp(normal.z * 0.5 + 0.5 + material.r * 0.0 + f32(coord.x) * 0.0 + position.x * 0.0, 0.0, 1.0);
@@ -48,7 +83,6 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
     let sky_ground_color = scene_uniform.find("sky_ground_color").unwrap();
     let environment_params = scene_uniform.find("environment_params").unwrap();
     let environment_sample_params = scene_uniform.find("environment_sample_params").unwrap();
-    let environment_sh9 = scene_uniform.find("environment_sh9").unwrap();
 
     assert!(
         view_proj < view_proj_unjittered
@@ -63,8 +97,7 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
             && sky_horizon_color < sky_zenith_color
             && sky_zenith_color < sky_ground_color
             && sky_ground_color < environment_params
-            && environment_params < environment_sample_params
-            && environment_sample_params < environment_sh9,
+            && environment_params < environment_sample_params,
         "deferred lighting shader must match the Rust SceneUniform matrix, camera, motion, jitter, and environment layout"
     );
     assert!(!scene_uniform.contains("previous_view_proj:"));
@@ -105,8 +138,9 @@ fn deferred_lighting_shader_restores_hdr_gbuffer_emissive_for_every_shading_mode
         "@group(1) @binding(5) var gbuffer_emissive_tex: texture_2d<f32>;",
         "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;",
         "fn add_deferred_emissive(shaded: vec4<f32>, emissive: vec3<f32>)",
-        "return add_deferred_emissive(shade_deferred_unlit(albedo), emissive);",
-        "return add_deferred_emissive(\n        shade_deferred_standard_pbr",
+        "add_deferred_emissive(shade_deferred_unlit(albedo), emissive)",
+        "add_deferred_emissive(\n            shade_deferred_standard_pbr",
+        "return apply_deferred_volumetric(",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
@@ -120,18 +154,21 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
     for expected in [
         "// include: zr_environment.wgsl",
         "fn zr_environment_pbr_indirect",
+        "fn zr_environment_is_realtime_ibl",
+        "fn zr_environment_procedural_sky_color",
         "scene.sky_horizon_color.rgb",
         "scene.sky_zenith_color.rgb",
         "scene.sky_ground_color.rgb",
         "scene.environment_params.w > 0.5",
         "scene.environment_sample_params.x",
-        "scene.environment_sh9[0].rgb",
+        "zr_environment_sh9.coefficients[0].rgb",
         "override ZR_ENV_DIFFUSE_IEM: bool = false;",
         "@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;",
         "@group(0) @binding(2) var zr_environment_sampler: sampler;",
         "@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;",
         "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;",
         "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;",
+        "@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;",
         "@group(1) @binding(16) var<storage, read> zr_env_probes",
         "@group(1) @binding(17) var<uniform> zr_env_probe_header",
         "@group(1) @binding(18) var zr_env_probe_cubemaps: texture_cube_array<f32>;",
@@ -148,8 +185,8 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
         "fn zr_environment_env_brdf_lut",
         "fn zr_environment_env_brdf_approx",
         "fn zr_environment_fix_cube_lookup",
-        "return clamp(roughness, 0.0, 1.0) * max(max_mip, 0.0);",
-        "zr_environment_fix_cube_lookup(rotated, clamped_lod)",
+        "return clamp(max_mip - 2.0 + 1.2 * log2(clamped_roughness), 0.0, max_mip);",
+        "zr_environment_fix_pmrem_cube_lookup(rotated, clamped_lod)",
         "camera_world_position: vec4<f32>",
         "camera_view_direction: vec4<f32>",
         "let view_dir = scene_view_dir_ws(world_position);",
@@ -246,9 +283,12 @@ fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_g
         "fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u32) -> vec3<f32>",
         "fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32)",
         "let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);",
-        "return shade_deferred_unlit(albedo);",
-        "return shade_deferred_blinn_phong(position, coord, albedo, material, normal);",
-        "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);",
+        "if (shading_model_id == ZR_SHADING_MODEL_UNLIT_ID)",
+        "if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID)",
+        "shade_deferred_unlit(albedo)",
+        "shade_deferred_blinn_phong(position, coord, albedo, material, normal)",
+        "shade_deferred_standard_pbr(position, coord, albedo, material, normal)",
+        "return apply_deferred_volumetric(",
         "return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_STANDARD_PBR_ID);",
         "return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_BLINN_PHONG_ID);",
     ] {
@@ -294,10 +334,10 @@ fn deferred_lighting_shader_uses_custom_shading_model_deferred_include_source() 
     assert!(source.contains("fn shade_deferred_toon"));
     assert!(source.contains("if (shading_model_id == 16u)"));
     assert!(source.contains(
-        "return add_deferred_emissive(shade_deferred_toon(position, coord, albedo, material, normal), emissive);"
+        "return apply_deferred_volumetric(add_deferred_emissive(shade_deferred_toon(position, coord, albedo, material, normal), emissive), position, depth);"
     ));
     assert!(source.contains(
-        "return add_deferred_emissive(\n        shade_deferred_standard_pbr(position, coord, albedo, material, normal),"
+        "add_deferred_emissive(\n            shade_deferred_standard_pbr(position, coord, albedo, material, normal),"
     ));
 
     let module = naga::front::wgsl::parse_str(&source)

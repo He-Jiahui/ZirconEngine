@@ -7,6 +7,8 @@ use crate::core::framework::render::{ProbeInfluenceShape, ReflectionProbeData};
 pub(super) const REFLECTION_PROBE_STORAGE_BINDING: u32 = 16;
 pub(super) const REFLECTION_PROBE_HEADER_BINDING: u32 = 17;
 pub(super) const REFLECTION_PROBE_CUBEMAP_BINDING: u32 = 18;
+pub(super) const PLANAR_REFLECTION_TEXTURE_BINDING: u32 = 29;
+pub(super) const PLANAR_REFLECTION_PARAMS_BINDING: u32 = 30;
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
@@ -71,6 +73,23 @@ pub(super) struct GpuReflectionProbeHeader {
     _padding: [u32; 3],
 }
 
+#[repr(C, align(16))]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+pub(super) struct GpuPlanarReflection {
+    pub(super) clip_from_world: [[f32; 4]; 4],
+    pub(super) local_from_world: [[f32; 4]; 4],
+    pub(super) bounds_min: [f32; 4],
+    pub(super) bounds_max: [f32; 4],
+    /// xy = populated fraction of the fixed texture, z = mip count, w = enabled.
+    pub(super) sample_params: [f32; 4],
+}
+
+impl Default for GpuPlanarReflection {
+    fn default() -> Self {
+        Self::zeroed()
+    }
+}
+
 impl GpuReflectionProbeHeader {
     pub(super) const fn with_probe_count(probe_count: u32) -> Self {
         Self {
@@ -85,6 +104,8 @@ pub(in crate::graphics::scene::scene_renderer) struct ReflectionProbeGpuBindings
     probe_buffer: Arc<wgpu::Buffer>,
     header_buffer: Arc<wgpu::Buffer>,
     cubemap_array_view: Arc<wgpu::TextureView>,
+    planar_params_buffer: Arc<wgpu::Buffer>,
+    planar_texture_view: Arc<wgpu::TextureView>,
 }
 
 impl ReflectionProbeGpuBindings {
@@ -92,17 +113,21 @@ impl ReflectionProbeGpuBindings {
         probe_buffer: Arc<wgpu::Buffer>,
         header_buffer: Arc<wgpu::Buffer>,
         cubemap_array_view: Arc<wgpu::TextureView>,
+        planar_params_buffer: Arc<wgpu::Buffer>,
+        planar_texture_view: Arc<wgpu::TextureView>,
     ) -> Self {
         Self {
             probe_buffer,
             header_buffer,
             cubemap_array_view,
+            planar_params_buffer,
+            planar_texture_view,
         }
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn bind_group_entries(
         &self,
-    ) -> [wgpu::BindGroupEntry<'_>; 3] {
+    ) -> [wgpu::BindGroupEntry<'_>; 5] {
         [
             wgpu::BindGroupEntry {
                 binding: REFLECTION_PROBE_STORAGE_BINDING,
@@ -116,12 +141,20 @@ impl ReflectionProbeGpuBindings {
                 binding: REFLECTION_PROBE_CUBEMAP_BINDING,
                 resource: wgpu::BindingResource::TextureView(&self.cubemap_array_view),
             },
+            wgpu::BindGroupEntry {
+                binding: PLANAR_REFLECTION_TEXTURE_BINDING,
+                resource: wgpu::BindingResource::TextureView(&self.planar_texture_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: PLANAR_REFLECTION_PARAMS_BINDING,
+                resource: self.planar_params_buffer.as_entire_binding(),
+            },
         ]
     }
 }
 
 pub(in crate::graphics::scene::scene_renderer) fn reflection_probe_bind_group_layout_entries(
-) -> [wgpu::BindGroupLayoutEntry; 3] {
+) -> [wgpu::BindGroupLayoutEntry; 5] {
     [
         wgpu::BindGroupLayoutEntry {
             binding: REFLECTION_PROBE_STORAGE_BINDING,
@@ -152,6 +185,28 @@ pub(in crate::graphics::scene::scene_renderer) fn reflection_probe_bind_group_la
                 multisampled: false,
                 view_dimension: wgpu::TextureViewDimension::CubeArray,
                 sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            },
+            count: None,
+        },
+        wgpu::BindGroupLayoutEntry {
+            binding: PLANAR_REFLECTION_TEXTURE_BINDING,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                multisampled: false,
+                view_dimension: wgpu::TextureViewDimension::D2,
+                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            },
+            count: None,
+        },
+        wgpu::BindGroupLayoutEntry {
+            binding: PLANAR_REFLECTION_PARAMS_BINDING,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: wgpu::BufferSize::new(
+                    std::mem::size_of::<GpuPlanarReflection>() as u64
+                ),
             },
             count: None,
         },

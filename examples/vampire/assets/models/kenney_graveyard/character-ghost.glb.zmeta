@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "6a01f6a4-11ee-4d16-8b1d-043905bcd7cb"
 url = "res://models/kenney_graveyard/character-ghost.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/abe53a22-692a-4ff3-37c0-5c03e3da2cbc.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670020000
-source_hash = "9d704b8e676d32bd"
+source_digest = "9d704b8e676d32bd"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -93,6 +93,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Animation31",
     "res://models/kenney_graveyard/character-ghost.glb#Animation31/Skeleton",
 ]
+tags = []
 
 [import_settings]
 
@@ -182,6 +183,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Animation31",
     "res://models/kenney_graveyard/character-ghost.glb#Animation31/Skeleton",
 ]
+tags = []
 
 [[entries]]
 uuid = "d5e55b77-3507-4daf-8d2c-04f19c9a263e"
@@ -189,6 +191,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/bf180b40-e31c-9181-5bc9-e4c505b31068.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "7f4c6fcd-51a5-4a9e-bfa5-0f0efcf8e456"
@@ -196,6 +199,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/0c446e60-ab13-23e9-6bcb-d7b57a411749.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "2297e3a1-02af-4168-8b38-da12cf55e3eb"
@@ -206,6 +210,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/character-ghost.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "d5c7212c-d249-426c-bca2-1b24e7d352d7"
@@ -216,6 +221,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/character-ghost.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "dbb44b1b-21c3-4d11-baeb-e2ea8cc5b963"
@@ -223,6 +229,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/1eec2f00-43ec-f074-7c77-d5b469ac330b.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "7c9f10b9-9f41-4355-9b4b-fc1fc4147b1f"
@@ -233,6 +240,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh1/Primitive0",
     "res://models/kenney_graveyard/character-ghost.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "b619c2b2-16bd-49e1-aeee-5f5db3edc98c"
@@ -240,6 +248,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Mesh1/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/03732bcc-7466-7d24-5178-52879393ea41.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "f95ebc02-2a1b-4a0a-b975-b2b5c5582ecb"
@@ -250,6 +259,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
     "res://models/kenney_graveyard/character-ghost.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "5c69d4a2-0ead-4b71-90b7-638c614fd60e"
@@ -257,6 +267,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/3a0c8b2d-b060-2c12-b153-2138b93f20d3.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "44a1c8a4-1ff9-4508-b8f7-412cfd077fbe"
@@ -277,6 +288,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2",
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
 ]
+tags = []
 
 [[entries]]
 uuid = "0ee6de1b-12fb-4e2e-8f66-ac00b7243a70"
@@ -296,6 +308,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2",
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
 ]
+tags = []
 
 [[entries]]
 uuid = "c85539d6-c16f-480d-8983-e9513506287e"
@@ -314,6 +327,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2",
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
 ]
+tags = []
 
 [[entries]]
 uuid = "1c46f0e2-1626-437a-ae62-df95a27f5525"
@@ -326,6 +340,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh1/Primitive0",
     "res://models/kenney_graveyard/character-ghost.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "74878b78-7aa2-4544-9412-e1f7408acd9b"
@@ -338,6 +353,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
     "res://models/kenney_graveyard/character-ghost.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "d0f4d086-b39c-479d-a8ef-04a5454c64b9"
@@ -358,6 +374,7 @@ dependencies = [
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2",
     "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0",
 ]
+tags = []
 
 [[entries]]
 uuid = "903605ff-921a-4660-a1b8-b154ce25854c"
@@ -365,6 +382,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation0"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/a67906c4-5d82-c188-f136-deba0a570529.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation0/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "9dd51f49-beee-4c7b-94bb-4a11248a85ce"
@@ -372,6 +390,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation0/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/f06f74d3-1351-802f-13e5-6857dc8b08d9.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "6062a6df-5143-4573-b1fb-2e5d29089acf"
@@ -379,6 +398,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation1"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/2efa0cfb-1efe-1ff5-f2dc-cb2caa2636d2.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation1/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "373d88d1-2ab8-426b-bfeb-30a49504e81f"
@@ -386,6 +406,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation1/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/2b039157-cc08-dc11-3de9-748e020582a7.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "b5a3ad43-46e9-49cc-bada-76131a587c92"
@@ -393,6 +414,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation2"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/0a30c473-6eb3-ef45-2e7b-927754b02f04.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation2/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "41500463-24fa-45b0-ba95-81f595e920c6"
@@ -400,6 +422,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation2/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/2387d777-ef3a-bd60-2487-d8765d3c48be.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "c319903b-2c34-415d-845f-b6735a432800"
@@ -407,6 +430,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation3"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/3e7c5110-c81a-ba09-7f4f-d0200c9146af.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation3/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "91e0e9af-ca3b-4aed-9090-1c19c83c363e"
@@ -414,6 +438,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation3/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/7395d7a5-e5d8-bbee-2f24-38841c7fe1db.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "3f9f3315-a2c6-4401-821c-090faa1ec142"
@@ -421,6 +446,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation4"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/8ff5be17-4461-8c7a-466c-a44b33671988.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation4/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "58d3dc28-1abf-46ae-ac85-aa73b658ee20"
@@ -428,6 +454,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation4/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/16b3fb6a-c18d-3ce2-856e-6419098de2d7.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "d700d07e-1731-4098-8dbe-47e91b7fa407"
@@ -435,6 +462,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation5"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/3ef578b3-9940-de76-1ccc-3f76212c343d.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation5/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "3484af8e-b009-4947-b0e6-6d521373d6d8"
@@ -442,6 +470,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation5/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/8c5ef97a-36d1-c534-e80e-bfe2fd0ab74d.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "63de46a0-d324-4640-82c5-33779b03f7c3"
@@ -449,6 +478,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation6"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/47c54b6d-af3d-b9ea-4f5a-a5de998772ae.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation6/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "53bb1cdf-2ca2-43f4-87b7-d13f6ec97a50"
@@ -456,6 +486,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation6/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/8b3ff082-f51a-d213-dab8-752cbaf21ff2.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "8da739e0-f33b-4630-ad6e-ac2303618bdf"
@@ -463,6 +494,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation7"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/ff3439f5-bcc2-5bbe-a5a8-896fc6ebe70c.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation7/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "d613294b-6720-4da7-9bf7-2235c1436ac8"
@@ -470,6 +502,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation7/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/3a2b4214-3142-dcda-8624-9a3cf95b94a1.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "93666b78-8495-4366-8626-3e4faeecfc39"
@@ -477,6 +510,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation8"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/af715cf6-1b84-c134-4ed6-8c975ecbf186.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation8/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "92db1e24-4b1d-44ac-955d-471acd71793a"
@@ -484,6 +518,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation8/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/566481da-1dd6-1c6d-a2cf-3ba79967b6cd.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "3836e207-feb8-45ac-8219-cced00eb36ea"
@@ -491,6 +526,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation9"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/dbf4dbd9-91a0-8e0d-7e0a-8bbab8d82ebd.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation9/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "7d0f4c20-1a6b-4f5a-8bed-1a71e8af86bf"
@@ -498,6 +534,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation9/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/05e55703-c178-8d85-5ad6-95e5c057ef19.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "2c7afdc5-3665-415e-b1c2-8d9bc50cfebb"
@@ -505,6 +542,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation10"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/d6a93513-102d-311e-5d56-046adc80df32.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation10/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "33d7384f-b712-4885-835c-d3ed9eed60f7"
@@ -512,6 +550,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation10/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/2b2cae74-b020-f4b2-9833-0bf53d00863d.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "0f6bea12-6dad-4c2e-bb31-e11f1b3d21b3"
@@ -519,6 +558,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation11"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/be8c8b31-efd0-59d0-868a-9e662246c04d.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation11/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "487fb2fd-9422-493b-a49d-9366c01b8ee7"
@@ -526,6 +566,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation11/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/a5b4e50b-295c-74bc-17e9-2c88c28e0997.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "71bef553-4d7b-465c-b1d8-b128db9cb124"
@@ -533,6 +574,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation12"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/729ab7fa-94c2-d147-36ea-e73cc2d07581.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation12/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "c5d54a0e-1043-47e5-94d1-81bfe43e5e27"
@@ -540,6 +582,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation12/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/942735ed-0803-0fa5-1422-3242dd05a723.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "9f8af297-613a-41ad-8412-356882952689"
@@ -547,6 +590,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation13"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/0d0c29a2-f421-8209-9de6-a7393e4e416d.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation13/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "849af1bf-02a2-431b-88f4-b421efab109a"
@@ -554,6 +598,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation13/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/bbfbeea2-4beb-a63e-71d9-51d27502599a.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "911e53bb-95d5-4a8b-b1a5-2d60ea7179d0"
@@ -561,6 +606,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation14"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/464a8ce6-4b38-ffff-0e6b-c876e24f149c.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation14/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "a83fc04d-15f9-47ee-bbf7-ddbc64c27f7c"
@@ -568,6 +614,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation14/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/39bdbe2f-dbfe-2aac-bfab-befae7ef7ae5.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "b315746f-b828-49a8-a430-dd0f22d60f95"
@@ -575,6 +622,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation15"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/a0467c03-954d-dbf9-58a9-a2129c360aa3.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation15/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "d58e3c8b-55c4-4c00-99f0-2bf1f46fc10a"
@@ -582,6 +630,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation15/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/c5e0a268-0ab7-ec3f-2997-574d586cf54e.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "326bdc65-1fbd-4311-a7da-6cf31661f10c"
@@ -589,6 +638,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation16"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/dfad1d95-2d9c-ce13-6cd1-169ea2a8f204.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation16/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "4694ef58-c845-4691-a267-981ff9c91b7f"
@@ -596,6 +646,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation16/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/796210e2-5757-0756-a595-8b78a5c06e31.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "5d8d0fb2-42eb-4f87-87cc-fd1492424fe5"
@@ -603,6 +654,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation17"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/b5a206d3-c2ed-cecc-d6de-bfe64ec99e3a.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation17/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "20af2915-570b-4f91-8a80-12950df0b073"
@@ -610,6 +662,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation17/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/ba224aac-d38a-292b-616c-5700d70e0922.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "9f3d9368-f745-4cb0-8ff2-30d056d763af"
@@ -617,6 +670,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation18"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/56131255-704c-21fd-d48e-cc262514cc5e.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation18/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "3441af76-7e58-45f6-92e2-b63580c7ebf3"
@@ -624,6 +678,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation18/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/6e470243-9d94-340c-9615-f5e018730c4e.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "4366ae47-6292-41ec-ae9b-dd5d63fbbf1e"
@@ -631,6 +686,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation19"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/90f6d5fb-c736-9405-b64b-21428a51b402.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation19/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "1cb7bc99-8a8e-49f0-bed0-1b190f02f6b0"
@@ -638,6 +694,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation19/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/c1085c77-a37a-3b29-31b2-c5380879da0b.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "5f55af54-9979-4252-b1ea-a0fac4e545cf"
@@ -645,6 +702,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation20"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/0297a313-7579-ac8a-48c1-18276e9cea18.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation20/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "9f44ab76-ac28-4eb6-a318-75573ac4a33b"
@@ -652,6 +710,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation20/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/d1b5b78b-d834-76bb-1604-6099aba57aa6.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "0305caaa-56bf-426f-ac86-ecafdb5bf718"
@@ -659,6 +718,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation21"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/4dafef1d-6028-1b8a-1adc-0d8b6de77527.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation21/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "29423feb-a6a4-49e0-a2bc-1d4e7857002e"
@@ -666,6 +726,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation21/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/d896ca11-e781-710d-fb38-0d735e93cf1a.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "c9a4c392-e1ab-48dc-a110-effbcf5ebe7f"
@@ -673,6 +734,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation22"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/055147d4-59c5-6a17-0f60-c8401192f89c.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation22/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "2885f238-5004-41cd-9214-734f153898f1"
@@ -680,6 +742,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation22/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/801c01b0-0129-81ff-0f94-2925080b84ef.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "3c428068-5e86-4e80-9851-a9857c455b7c"
@@ -687,6 +750,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation23"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/c45d611a-5e2b-80b9-3c93-abb3895ce634.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation23/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "b46bdcee-6f59-4d78-a7af-0aa6278b9e12"
@@ -694,6 +758,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation23/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/4adb630a-1d10-7a7c-ef2d-072a9a044534.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "404704db-6684-4251-85e8-65adad9bba35"
@@ -701,6 +766,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation24"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/dd6c15be-81a8-70d2-917e-11f578c527df.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation24/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "1f715589-929d-455a-9526-59401e988d4c"
@@ -708,6 +774,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation24/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/e2e8ea0a-0001-9318-72b5-439fe92dc4ee.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "f119a9ce-b787-4d55-9cca-06854da64d15"
@@ -715,6 +782,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation25"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/0ad29e3a-7b1b-fff6-5c14-4a02fd3f77e4.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation25/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "51c77cab-dacb-496a-9dc8-54c941587857"
@@ -722,6 +790,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation25/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/f69af00a-078e-2484-b7cb-9b18743adef2.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "27c9eeac-d4d7-4a14-9bc9-d3a9a10de246"
@@ -729,6 +798,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation26"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/a0f839c4-d813-162e-6654-f9854ed9fb9f.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation26/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "8433baa9-ba42-4b22-9e04-29531c4ca7e3"
@@ -736,6 +806,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation26/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/14b588fd-b750-ab83-7b27-35a3f79d4519.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "675ef362-46b4-4f50-a88e-755393af29a7"
@@ -743,6 +814,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation27"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/34207660-3639-2d56-4a56-f87ffbe9e10a.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation27/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "e47477fb-eb49-464d-9ef1-fb78ee1f25e8"
@@ -750,6 +822,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation27/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/ed7445de-7314-9da8-02bd-b914d3549b76.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "fcc80cb7-3cbc-4c27-8931-ad4ddf496fcb"
@@ -757,6 +830,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation28"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/ebd1a9a7-5010-4c5c-f285-6c7ca1aa8117.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation28/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "07f85ec1-84d3-445b-b3d6-279450f546aa"
@@ -764,6 +838,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation28/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/99acb3c2-7f16-f6a3-1e1b-e21586c4c90d.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "4a27aa91-6400-415b-be17-45ae10ed880f"
@@ -771,6 +846,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation29"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/7ff54a59-5cf4-f31a-9f12-3cf226f1c9a1.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation29/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "72bda3f0-6944-492c-a0e3-f7c7896179c5"
@@ -778,6 +854,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation29/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/69f02373-833c-4fe2-9c31-a3aa4b3d6a4f.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "e954ebfd-7bb7-4980-b066-48261b93505d"
@@ -785,6 +862,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation30"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/5cf7222f-8cb4-0f74-0556-b621323ed0d8.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation30/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "cc1a7dbc-7877-4344-908f-45feccc23851"
@@ -792,6 +870,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation30/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/5f3ac6ab-7138-f67e-a16c-0963bb87df6f.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "c927625b-668f-4853-952d-401df6bd4474"
@@ -799,6 +878,7 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation31"
 asset_kind = "AnimationClip"
 artifact_locator = "lib://animation/clips/76708ebc-641e-da0b-418e-c58ff6b0c1c6.zasset"
 dependencies = ["res://models/kenney_graveyard/character-ghost.glb#Animation31/Skeleton"]
+tags = []
 
 [[entries]]
 uuid = "467f28cb-edd8-49e4-a8de-95da8f03e238"
@@ -806,3 +886,4 @@ url = "res://models/kenney_graveyard/character-ghost.glb#Animation31/Skeleton"
 asset_kind = "AnimationSkeleton"
 artifact_locator = "lib://animation/skeletons/4ec87015-9cd7-9db4-7267-52cf7c548bb6.zasset"
 dependencies = []
+tags = []

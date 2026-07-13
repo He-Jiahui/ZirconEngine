@@ -1,4 +1,4 @@
-use zircon_runtime::asset::AnimationGraphAsset;
+use zircon_runtime::core::framework::animation::AnimationGraphAsset;
 use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
 use zircon_runtime::core::math::Real;
 

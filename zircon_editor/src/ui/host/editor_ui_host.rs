@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, MutexGuard};
 
-use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 
 use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
@@ -20,7 +20,8 @@ use super::minimal_host_contract::{editor_host_minimal_contract, EditorHostMinim
 use super::window_host_manager::WindowHostManager;
 
 pub(super) struct EditorUiHost {
-    pub(super) core: CoreHandle,
+    // EditorManager is registry-owned; the host must upgrade only at operation boundaries.
+    core: CoreWeak,
     pub(super) view_registry: Mutex<ViewRegistry>,
     pub(super) layout_manager: LayoutManager,
     pub(super) window_host_manager: Mutex<WindowHostManager>,
@@ -85,16 +86,22 @@ impl EditorUiHost {
         Self::recover_lock(&self.capability_snapshot)
     }
 
-    pub(super) fn new(core: CoreHandle) -> Self {
+    pub(super) fn runtime_core(&self) -> Result<CoreHandle, EditorError> {
+        self.core
+            .upgrade()
+            .ok_or_else(|| CoreError::RuntimeUnavailable.into())
+    }
+
+    pub(super) fn new(core: &CoreHandle) -> Self {
         let minimal_report = editor_host_minimal_contract().self_check();
-        let subsystem_report = editor_subsystem_report_from_core(&core);
+        let subsystem_report = editor_subsystem_report_from_core(core);
         let capability_snapshot =
             EditorCapabilitySnapshot::from_reports(&minimal_report, &subsystem_report);
-        let runtime_sandbox_enabled = editor_runtime_sandbox_enabled(&core);
-        let vm_bridge_report = register_vm_host_capabilities(&core, runtime_sandbox_enabled);
+        let runtime_sandbox_enabled = editor_runtime_sandbox_enabled(core);
+        let vm_bridge_report = register_vm_host_capabilities(core, runtime_sandbox_enabled);
 
         Self {
-            core,
+            core: core.downgrade(),
             view_registry: Mutex::new(ViewRegistry::default()),
             layout_manager: LayoutManager,
             window_host_manager: Mutex::new(WindowHostManager::default()),
@@ -110,7 +117,7 @@ impl EditorUiHost {
         }
     }
 
-    pub(super) fn bootstrap(core: CoreHandle) -> Result<Self, EditorError> {
+    pub(super) fn bootstrap(core: &CoreHandle) -> Result<Self, EditorError> {
         let host = Self::new(core);
         host.register_builtin_views()?;
         host.bootstrap_default_layout()?;
@@ -118,7 +125,8 @@ impl EditorUiHost {
     }
 
     pub(super) fn refresh_capabilities(&self) -> Result<EditorCapabilitySnapshot, EditorError> {
-        let subsystem_report = editor_subsystem_report_from_core(&self.core);
+        let core = self.runtime_core()?;
+        let subsystem_report = editor_subsystem_report_from_core(&core);
         let snapshot =
             EditorCapabilitySnapshot::from_reports(&self.minimal_report, &subsystem_report);
         *self.lock_subsystem_report() = subsystem_report;

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::asset::{AssetUri, FontAsset, ProjectAssetManager};
+use crate::asset::{AssetMetaDocument, AssetUri, AssetUuid, FontAsset, ProjectAssetManager};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -10,6 +10,7 @@ pub(crate) struct LoadedUiFontManifest {
     pub(crate) family: Option<String>,
     pub(crate) render_mode: Option<UiTextRenderMode>,
     pub(crate) face_index: u32,
+    pub(crate) asset_uuid: Option<AssetUuid>,
 }
 
 #[cfg(test)]
@@ -36,12 +37,14 @@ pub(crate) fn load_ui_font_manifest_with_asset_manager(
         let render_mode = effective_ui_font_render_mode(&manifest);
         let family = manifest.family.clone();
         let face_index = manifest.face_index;
+        let asset_uuid = font_manifest_asset_uuid(&manifest_path);
         return Some(LoadedUiFontManifest {
             source_path,
             asset: Some(manifest),
             family,
             render_mode,
             face_index,
+            asset_uuid,
         });
     }
 
@@ -52,6 +55,7 @@ pub(crate) fn load_ui_font_manifest_with_asset_manager(
         family: None,
         render_mode: None,
         face_index: 0,
+        asset_uuid: None,
     })
 }
 
@@ -67,22 +71,36 @@ fn load_project_ui_font_manifest(
     let project = asset_manager.current_project_manager()?;
     let manifest_id = asset_manager.resolve_asset_id(&uri)?;
     let manifest = asset_manager.load_font_asset(manifest_id).ok()?;
-    let manifest_path = project.paths().assets_root().join(uri.path());
+    let manifest_path = project.source_path_for_uri(&uri).ok()?;
+    let asset_root = project
+        .project_asset_roots()
+        .iter()
+        .find(|root| manifest_path.starts_with(root))?;
     let source_path = resolve_manifest_source_path_with_allowed_root(
         &manifest_path,
         manifest.source.as_str(),
-        project.paths().assets_root(),
+        asset_root,
     )?;
     let render_mode = effective_ui_font_render_mode(&manifest);
     let family = manifest.family.clone();
     let face_index = manifest.face_index;
+    let asset_uuid = font_manifest_asset_uuid(&manifest_path);
     Some(LoadedUiFontManifest {
         source_path,
         asset: Some(manifest),
         family,
         render_mode,
         face_index,
+        asset_uuid,
     })
+}
+
+fn font_manifest_asset_uuid(manifest_path: &Path) -> Option<AssetUuid> {
+    let file_name = manifest_path.file_name()?.to_str()?;
+    let meta_path = manifest_path.with_file_name(format!("{file_name}.zmeta"));
+    AssetMetaDocument::load(meta_path)
+        .ok()
+        .map(|meta| meta.uuid)
 }
 
 fn effective_ui_font_render_mode(manifest: &FontAsset) -> Option<UiTextRenderMode> {

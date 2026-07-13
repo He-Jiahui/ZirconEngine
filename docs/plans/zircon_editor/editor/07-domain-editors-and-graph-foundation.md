@@ -24,6 +24,10 @@ status: planned
 
 # 07 图编辑基座与领域编辑器（动画 / Montage / 状态机 / 行为树 / 预览）
 
+- 来自 Editor08 的失败交接（`open / focused document kind 权威投影`）：[`07/failure-2026-07-12-command-eval-focused-document-projection.md`](07/failure-2026-07-12-command-eval-focused-document-projection.md)
+- Editor07 结构复验发现的跨计划失败（`open / UI root owner 边界债务`）：[`../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md`](../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)
+- Editor07 current-source 上行门发现的文本 fixture 失败（并入既有 `open / retained text`）：[`../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md`](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md)
+
 ## 参照证据（dev/）
 
 **Fyrox 动画编辑器**（`plugins/animation/mod.rs:121-132`）——轨道式编辑器最小完备件：`window / animation_player: ErasedHandle / animation: ErasedHandle / track_list: TrackList / curve_editor / toolbar / content / ruler: Ruler / thumb: Thumb`（播放头）。
@@ -185,3 +189,14 @@ impl PreviewScene {
 - 预览副 session 与 PIE 并存的图形资源预算：预览默认 30fps 上限纾解；04 设备共享风险同源，证据记状态节。
 - montage/absm **求值器**是 runtime 侧计划外工作量——执行前与 `zircon_plugins/animation` owner 会签排期；编辑器按资产模型先行，预览联动降级 clip 级直至求值器落地。
 - 附着子项经 palette category 约定承载是轻量方案；若 BT 实装时表达力不足（附着需独立端口/参数 schema），再提 `GraphNodeDescriptor` 扩字段的描述符演进案（11 迁移链配套），不预先扩。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-07-12 | Editor08 M1.2 失败移交：focused document kind 权威投影 | 待修复（open） | Editor08 已落地 `FocusedDocumentKind(DocumentKind)` when 谓词并禁止由 project-open 猜测 scene focus；当前宿主尚无本计划领域 toolkit/document owner 向共享 `CommandEvalCtx` 投影真实焦点文档类型。修复要求与静态复现证据见 [failure 交接](07/failure-2026-07-12-command-eval-focused-document-projection.md)。本行仅登记待修复，不声明本计划完成。 |
+| 2026-07-13 | Editor09 M1 失败移交：动画资产打开测试夹具索引权威硬切 | 待修复（open） | animation/runtime/reflection 共 18 项失败已收敛到测试仍以未索引临时绝对路径派发 `OpenAsset`；当前入口正确要求 indexed `AssetTypeId`。修复要求见 [failure 交接](07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md)，禁止恢复 suffix toolkit 分派。 |
+| 2026-07-14 | Text02 variable shaping 可见性编译失败移交 | 待修复（open） | current-source Editor07 exact 在进入 Editor 前被 Runtime Text02 的 E0364/E0603 挡住；已写入 [Text02 failure 交接](../../zircon_runtime/text/02/failure-2026-07-14-variable-shaping-visibility-compilation.md)。本计划不扩大 helper 可见性或绕过变量字体整形。 |
+| 2026-07-14 | Editor08 M1.2 回传修复：focused document kind 权威投影 | 实现完成 / current Cargo 复验排队 | `ViewDescriptor.document_kind` 成为 typed 领域 owner；session/workspace 无兼容字段地从 `active_center_tab` 硬切为跨主页面与浮动窗口统一的 `focused_view`，Chrome 只按 `focused_view -> instance -> descriptor` 投影 `CommandEvalCtx`。新增浮动动画激活、焦点关闭回退及静态 hard-cut guard；为遵守结构门，新责任从 907 行 `core/editor_extension.rs` 提取为 folder-backed `core/editor_extension/view_descriptor.rs`，root 收敛到 860 行，模块边界 RED→GREEN 1/1。首次 current-source exact 在进入 Editor 前被 31 项下层错误截断，已分别归属 [Plugins08 reflection（已回传 fixed）](../../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)、[Text02 shaping](../../zircon_runtime/text/02/failure-2026-07-14-variable-shaping-visibility-compilation.md) 与 [Runtime04 reference resolver](../../zircon_runtime/runtime/04/failure-2026-07-13-stale-subasset-reference-repair.md)；对应代码随后已有 owner 修正，第二轮 exact 正等待同一受管 Cargo pool，详见 [Editor07 focused-document 交接](07/failure-2026-07-12-command-eval-focused-document-projection.md)，暂不回传 fixed。 |
+| 2026-07-14 | `engine-code-structure-convention` current structure audit | 失败已归属 EditorUI10 | 当前审计为 `migration-debt-present`：超大生产文件与 production `dead_code` 均为 0，但 `ui/component_registry.rs`、`ui/preferences.rs` 仍是 2 项 root owner 边界债务。已写入 [EditorUI10 failure 交接](../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)，由结构 owner 联合组件/设置功能 owner 后续硬切；本计划不以移动跨功能文件绕过自身回归。 |
+| 2026-07-14 | Editor07 两项失败 current-source 第二轮上行门 | 未进入测试体 / 文本 owner 阻断 | 受管 Windows job `9cc782db74224c43887dfe73b46a4680` 在 focused-document exact 编译期产生 E0432 + E0063；本计划自有的 `EDITOR_MANAGER_NAME` 测试 import 已按唯一 `ui::host::module` owner 修正，不恢复 host-root re-export。剩余 E0063 是 retained paint-text fixture 构造 `ShapedGlyph` 时缺少已定稿 `font_instance_id`，已追加到 [EditorUI03 retained-text failure](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md)，日志 `.codex/tmp/editor07-focused-document-current-exact-r2-20260714.log`。Editor07 两个既有 failure 继续保持 open，禁止用未执行测试冒充通过。 |

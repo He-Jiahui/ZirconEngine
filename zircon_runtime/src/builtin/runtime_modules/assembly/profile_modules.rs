@@ -1,6 +1,7 @@
+use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::plugin::{
-    ProjectPluginManifest, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
-    RuntimeProfileDescriptor, RuntimeProfileId,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimeProfileDescriptor,
 };
 
 use super::super::availability::{

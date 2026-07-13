@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::ui::material_editor::MaterialEditorProjection;
 use zircon_runtime::asset::assets::generate_material_artifact;
 use zircon_runtime::asset::{
-    AssetUri, MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset,
+    AssetReference, AssetUri, MaterialAsset, MaterialTextureSlotValue, ShaderAsset,
+    ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
     MaterialPropertyKind, RenderMaterialDiagnosticSource, ShaderAssetKind,
@@ -164,17 +164,11 @@ fn material_editor_projection_preserves_material_and_generic_shader_diagnostics(
 
 #[test]
 fn material_editor_projection_maps_missing_required_shader_property() {
-    let material = MaterialAsset::from_toml_str(
-        r#"
-version = 2
-name = "Incomplete Material"
-
-[shader]
-uuid = "00000000-0000-0000-0000-000000000001"
-url = "res://shaders/pbr.zshader"
-"#,
-    )
-    .unwrap();
+    let material = material_from_document(
+        Some("Incomplete Material"),
+        BTreeMap::new(),
+        BTreeMap::new(),
+    );
     let shader = shader_asset();
 
     let projection = MaterialEditorProjection::from_material(&material, Some(&shader));
@@ -188,28 +182,57 @@ url = "res://shaders/pbr.zshader"
 }
 
 fn material_asset() -> MaterialAsset {
-    MaterialAsset::from_toml_str(
-        r#"
-version = 2
-name = "Preview Material"
+    let overrides = BTreeMap::from([
+        (
+            "base_color".to_string(),
+            toml::Value::Array(vec![
+                toml::Value::Float(0.8),
+                toml::Value::Float(0.7),
+                toml::Value::Float(0.6),
+                toml::Value::Float(1.0),
+            ]),
+        ),
+        ("unknown_scalar".to_string(), toml::Value::Float(3.0)),
+    ]);
+    let textures = BTreeMap::from([
+        (
+            "albedo".to_string(),
+            MaterialTextureSlotValue {
+                reference: None,
+                fallback: Some("white".to_string()),
+                transform: None,
+                uv_channel: 0,
+            },
+        ),
+        (
+            "unknown_slot".to_string(),
+            MaterialTextureSlotValue::new(material_reference("res://textures/extra.png")),
+        ),
+    ]);
+    material_from_document(Some("Preview Material"), overrides, textures)
+}
 
-[shader]
-uuid = "00000000-0000-0000-0000-000000000001"
-url = "res://shaders/pbr.zshader"
+fn material_from_document(
+    name: Option<&str>,
+    overrides: BTreeMap<String, toml::Value>,
+    textures: BTreeMap<String, MaterialTextureSlotValue>,
+) -> MaterialAsset {
+    MaterialAsset::from_zmaterial_document(ZMaterialDocument {
+        version: 2,
+        name: name.map(str::to_string),
+        shader: material_reference("res://shaders/pbr.zshader"),
+        parent: None,
+        options: BTreeMap::new(),
+        overrides,
+        textures,
+        queue: None,
+        editor: toml::Table::new(),
+        validation_diagnostics: Vec::new(),
+    })
+}
 
-[overrides]
-base_color = [0.8, 0.7, 0.6, 1.0]
-unknown_scalar = 3.0
-
-[textures.albedo]
-fallback = "white"
-
-[textures.unknown_slot]
-uuid = "00000000-0000-0000-0000-000000000002"
-url = "res://textures/extra.png"
-"#,
-    )
-    .unwrap()
+fn material_reference(uri: &str) -> AssetReference {
+    AssetReference::from_locator(AssetUri::parse(uri).unwrap())
 }
 
 fn shader_asset() -> ShaderAsset {
@@ -303,18 +326,20 @@ fn editor_hints(group: &str, label: &str) -> BTreeMap<String, String> {
 
 #[test]
 fn material_editor_projection_maps_runtime_validation_errors_to_rows() {
-    let material = MaterialAsset::from_toml_str(
-        r#"
-version = 2
-[shader]
-uuid = "00000000-0000-0000-0000-000000000001"
-url = "res://shaders/pbr.zshader"
-[overrides]
-alpha_mode = { mode = "mask", cutoff = 2.0 }
-lighting_model = "toon"
-"#,
-    )
-    .unwrap();
+    let mut alpha_mode = toml::Table::new();
+    alpha_mode.insert("mode".to_string(), toml::Value::String("mask".to_string()));
+    alpha_mode.insert("cutoff".to_string(), toml::Value::Float(2.0));
+    let material = material_from_document(
+        None,
+        BTreeMap::from([
+            ("alpha_mode".to_string(), toml::Value::Table(alpha_mode)),
+            (
+                "lighting_model".to_string(),
+                toml::Value::String("toon".to_string()),
+            ),
+        ]),
+        BTreeMap::new(),
+    );
     let projection = MaterialEditorProjection::from_material(&material, None);
 
     assert!(projection.diagnostics.iter().any(|row| {

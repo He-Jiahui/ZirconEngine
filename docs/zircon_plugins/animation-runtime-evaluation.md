@@ -21,8 +21,8 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_clip_evaluator.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_validation.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
-  - zircon_plugins/animation/runtime/src/scene_hook/pose.rs
-  - zircon_plugins/animation/runtime/src/scene_hook/graph.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/clip_sample.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
   - zircon_runtime/src/core/resource/snapshot.rs
 implementation_files:
   - zircon_runtime/src/core/framework/animation/target_id.rs
@@ -43,8 +43,8 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_clip_evaluator.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_validation.rs
-  - zircon_plugins/animation/runtime/src/scene_hook/pose.rs
-  - zircon_plugins/animation/runtime/src/scene_hook/graph.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/clip_sample.rs
+  - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
   - zircon_runtime/src/core/resource/snapshot.rs
 plan_sources:
   - docs/plans/zircon_plugins/04-animation.md

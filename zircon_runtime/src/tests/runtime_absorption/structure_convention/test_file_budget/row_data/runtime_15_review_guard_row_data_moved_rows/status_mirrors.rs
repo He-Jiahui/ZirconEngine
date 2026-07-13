@@ -9,16 +9,11 @@ mod moved_row_status;
 #[path = "mirrors/scope_budgets.rs"]
 mod scope_budgets;
 
-const STATUS_MIRRORS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/child_split_status.rs";
-const MOVED_ROW_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/moved_row_status.rs";
-const FOLDER_BACKED_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/folder_backed_status.rs";
-const SCOPE_BUDGETS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/scope_budgets.rs";
+const STATUS_MIRRORS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/child_split_status.rs";
+const MOVED_ROW_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/moved_row_status.rs";
+const FOLDER_BACKED_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/folder_backed_status.rs";
+const SCOPE_BUDGETS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/mirrors/scope_budgets.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_NAME: &str =
     "Runtime 15 M3 review-guard moved-row status-mirror child split";

@@ -1,7 +1,6 @@
 use super::*;
 
-const TOP_LEVEL_SUPPORT_LAYOUT_PARENT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout.rs";
+const TOP_LEVEL_SUPPORT_LAYOUT_PARENT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout.rs";
 const TOP_LEVEL_SUPPORT_LAYOUT_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout/parent_mounts.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout/assertion_helpers.rs",

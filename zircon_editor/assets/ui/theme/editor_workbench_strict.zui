@@ -761,9 +761,13 @@ radius = 4.0
 [[stylesheets.rules]]
 selector = ".workbench-section-title"
 [stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
 foreground_color = "$workbench_text"
-font_size = 13.0
-font_weight = 700
+border_color = "$workbench_border_soft"
+border_width = 1.0
+radius = 0.0
+font_size = 13.333333
+font_weight = 600
 
 [[stylesheets.rules]]
 selector = ".workbench-property-section"

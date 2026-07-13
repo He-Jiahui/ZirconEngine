@@ -124,17 +124,17 @@ function Get-RustCompatibilityIdentity {
         throw "Could not determine the active Rust toolchain."
     }
     $release = [string](($versionText | Where-Object { $_ -match '^release:\s*' }) -replace '^release:\s*', '')
-    $host = [string](($versionText | Where-Object { $_ -match '^host:\s*' }) -replace '^host:\s*', '')
-    if ([string]::IsNullOrWhiteSpace($release) -or [string]::IsNullOrWhiteSpace($host)) {
+    $rustHost = [string](($versionText | Where-Object { $_ -match '^host:\s*' }) -replace '^host:\s*', '')
+    if ([string]::IsNullOrWhiteSpace($release) -or [string]::IsNullOrWhiteSpace($rustHost)) {
         throw "rustc -vV did not report both release and host identities."
     }
     $target = if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_TARGET)) {
-        $host
+        $rustHost
     } else {
         $env:CARGO_BUILD_TARGET
     }
     return [pscustomobject]@{
-        Toolchain         = "$release@$host"
+        Toolchain         = "$release@$rustHost"
         TargetArchitecture = $target
     }
 }

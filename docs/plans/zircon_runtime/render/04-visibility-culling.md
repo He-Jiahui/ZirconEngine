@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/graphics/visibility/culling/mod.rs
   - zircon_runtime/src/graphics/visibility/planning/mod.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visibility_static_index.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
@@ -56,10 +56,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/hzb_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/hzb.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/ssao.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_fallback_texture_views/hzb_source_texture_view.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/ssao.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/hzb_source_texture_view.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs
@@ -277,10 +277,10 @@ plan_sources:
 | `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs` | `BuiltinRenderFeature::Hzb` 的 descriptor(pass 声明经 01 graph) | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/mod.rs` | HZB build compute executor 的 post-process resource 扩展入口 | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs` | `ScenePostProcessResources::execute_hzb_build_mip(...)` per-mip dispatch 封装 | graphics 实现 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/hzb.rs` | HZB build 的 depth/source/params/storage target bind group layout | graphics 实现 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/hzb_params_buffer.rs` | HZB build uniform 参数 buffer | graphics 实现 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/hzb_pipeline.rs` | `zircon-hzb-build-pipeline` compute pipeline 创建与 shader source 覆盖测试 | graphics 实现 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_fallback_texture_views/hzb_source_texture_view.rs` | mip0 无 HZB source 时的 1x1 fallback texture view | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs` | HZB build 的 depth/source/params/storage target bind group layout | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/hzb_params_buffer.rs` | HZB build uniform 参数 buffer | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs` | `zircon-hzb-build-pipeline` compute pipeline 创建与 shader source 覆盖测试 | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/hzb_source_texture_view.rs` | mip0 无 HZB source 时的 1x1 fallback texture view | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/hzb_params.rs` | `HzbParams` uniform ABI | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/hzb_build.wgsl` | 深度金字塔 reduce compute | shader |
 | `zircon_runtime/src/graphics/scene/scene_renderer/hzb/mod.rs` | HZB runtime renderer 子模块导出 | graphics 实现 |
@@ -548,7 +548,7 @@ V1 测试流程:每个 thread 处理一个 indirect args 记录;从 `first_insta
 
 ## 状态与产出记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

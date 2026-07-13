@@ -3,18 +3,21 @@ use super::*;
 #[test]
 fn animation_graph_ignores_duplicate_output_node_requests() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_duplicate_output");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_graph_duplicate_output")
-        .join("hero.graph.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_graph_asset(&asset_path);
+    let mut harness =
+        EventRuntimeHarness::new("zircon_editor_event_animation_graph_duplicate_output");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_duplicate_output_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -24,7 +27,7 @@ fn animation_graph_ignores_duplicate_output_node_requests() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::AddGraphNode {
-                    graph_path: asset_path.to_string_lossy().into_owned(),
+                    graph_locator: asset_locator.clone(),
                     node_id: "output_2".to_string(),
                     node_kind: "output".to_string(),
                 },
@@ -67,18 +70,20 @@ fn animation_graph_ignores_duplicate_output_node_requests() {
 #[test]
 fn animation_graph_removes_output_node_when_requested() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_remove_output");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_graph_remove_output")
-        .join("hero.graph.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_graph_asset(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_remove_output");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_remove_output_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -88,7 +93,7 @@ fn animation_graph_removes_output_node_when_requested() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::RemoveGraphNode {
-                    graph_path: asset_path.to_string_lossy().into_owned(),
+                    graph_locator: asset_locator.clone(),
                     node_id: "output".to_string(),
                 },
             ),
@@ -121,28 +126,28 @@ fn animation_graph_removes_output_node_when_requested() {
     );
     assert_eq!(
         harness.runtime.editor_snapshot().status_line,
-        format!(
-            "Removed animation graph node output from {}",
-            asset_path.to_string_lossy()
-        )
+        format!("Removed animation graph node output from {}", asset_locator)
     );
 }
 
 #[test]
 fn animation_graph_ignores_connections_from_missing_source_nodes() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_missing_source");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_graph_missing_source")
-        .join("hero.graph.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_graph_asset(&asset_path);
+    let mut harness =
+        EventRuntimeHarness::new("zircon_editor_event_animation_graph_missing_source");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_missing_source_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -152,7 +157,7 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::ConnectGraphNodes {
-                    graph_path: asset_path.to_string_lossy().into_owned(),
+                    graph_locator: asset_locator.clone(),
                     from_node_id: "ghost".to_string(),
                     to_node_id: "locomotion".to_string(),
                 },
@@ -197,18 +202,20 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
 #[test]
 fn animation_graph_ignores_self_referential_connections() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_self_cycle");
-    let asset_path =
-        unique_temp_dir("zircon_editor_event_animation_graph_self_cycle").join("hero.graph.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_graph_asset(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_self_cycle");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_self_cycle_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -218,7 +225,7 @@ fn animation_graph_ignores_self_referential_connections() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::ConnectGraphNodes {
-                    graph_path: asset_path.to_string_lossy().into_owned(),
+                    graph_locator: asset_locator.clone(),
                     from_node_id: "locomotion".to_string(),
                     to_node_id: "locomotion".to_string(),
                 },
@@ -259,18 +266,20 @@ fn animation_graph_ignores_self_referential_connections() {
 #[test]
 fn animation_graph_ignores_unknown_node_kinds() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_unknown_kind");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_graph_unknown_kind")
-        .join("hero.graph.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_graph_asset(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_graph_unknown_kind");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_graph_unknown_kind_project",
+        "res://animation/hero.graph.zranim",
+        write_graph_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -280,7 +289,7 @@ fn animation_graph_ignores_unknown_node_kinds() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::AddGraphNode {
-                    graph_path: asset_path.to_string_lossy().into_owned(),
+                    graph_locator: asset_locator.clone(),
                     node_id: "run".to_string(),
                     node_kind: "clip".to_string(),
                 },

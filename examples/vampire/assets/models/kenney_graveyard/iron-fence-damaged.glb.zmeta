@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "bad47140-9047-408f-8824-159fc4620ed7"
 url = "res://models/kenney_graveyard/iron-fence-damaged.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/6ec35202-f367-413f-770f-91316dc10999.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "cabba96f0c2508db"
+source_digest = "cabba96f0c2508db"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Node0",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Node0",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "eed67eb2-5f98-47bd-a405-4fe9c22890ab"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/25b261af-737b-d722-66d5-1525637e9f6b.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "f43319fb-0304-464a-a260-d0873e4c7e27"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/iron-fence-damaged.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/20c9d1b4-6acb-f087-aff9-41ea18819ad3.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "ae21279d-429d-483a-b260-cb8d9ded2890"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "9b429863-b7ba-43c3-920c-03700bcc922d"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "693661c1-291b-488a-b88c-22774a1bf86d"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/44d71ef9-09c6-f90a-6d1c-98832b7437c8.zasset"
 dependencies = ["res://models/kenney_graveyard/iron-fence-damaged.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "76228ea6-f6ab-4b6d-b683-f0415ee71b78"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "0e089a1d-6e27-49f6-aa4a-e241aca64b17"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0",
 ]
+tags = []

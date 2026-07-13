@@ -11,7 +11,9 @@ use zircon_runtime::asset::{
 fn project_shader_source_only_imports_become_reload_dependencies() {
     let root = unique_temp_project_root("shader_import_dependency_contract");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Hot Reload Sandbox",
         AssetUri::parse("res://shaders/surface").unwrap(),
@@ -72,7 +74,7 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
 fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &str) -> AssetUri {
     let shader_uri = AssetUri::parse(&format!("res://shaders/{name}")).unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join(format!("{name}.zmeta"));
     let mut shader_meta =
@@ -81,7 +83,10 @@ fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join(name);
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join(name);
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join(format!("{name}.zshader")),
@@ -117,7 +122,7 @@ fn write_surface_shader_package(
 ) -> AssetUri {
     let shader_uri = AssetUri::parse(&format!("res://shaders/{name}")).unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join(format!("{name}.zmeta"));
     let mut shader_meta =
@@ -126,7 +131,10 @@ fn write_surface_shader_package(
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join(name);
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join(name);
     fs::create_dir_all(&shader_dir).unwrap();
     let import_block = import_source
         .map(|source| {

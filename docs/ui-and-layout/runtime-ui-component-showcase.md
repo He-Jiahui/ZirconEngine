@@ -25,7 +25,7 @@ related_code:
   - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -38,9 +38,8 @@ related_code:
   - zircon_runtime/src/ui/tests/component_catalog/component_state/value_validation.rs
   - zircon_runtime/src/ui/tests/component_catalog/complex_components.rs
   - zircon_runtime/src/ui/tests/component_catalog/data_binding.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/showcase_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
@@ -69,7 +68,7 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/component_showcase.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields/array.rs
@@ -147,10 +146,10 @@ related_code:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-showcase-state-matrix.mjs
   - zircon_editor/assets/ui/theme/editor_unreal_dark.zui
-  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
-  - zircon_editor/assets/ui/editor/component_widgets.ui.toml
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/editor/components/showcase
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
   - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
@@ -165,7 +164,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.zui
 implementation_files:
   - zircon_runtime/src/ui/component/mod.rs
   - zircon_runtime/src/ui/component/catalog/mod.rs
@@ -192,7 +191,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -204,9 +203,8 @@ implementation_files:
   - zircon_runtime/src/ui/tests/component_catalog/component_state/selection.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/value_validation.rs
   - zircon_runtime/src/ui/tests/component_catalog/complex_components.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/showcase_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
@@ -231,7 +229,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/component_showcase.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields/array.rs
@@ -301,14 +299,14 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
-  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
-  - zircon_editor/assets/ui/editor/component_widgets.ui.toml
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/editor/console.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.ui.toml
-  - zircon_editor/assets/ui/editor/host/console_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.zui
+  - zircon_editor/assets/ui/editor/components/showcase
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/welcome.zui
+  - zircon_editor/assets/ui/editor/host/console_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
   - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
@@ -323,7 +321,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.zui
 plan_sources:
   - user: 2026-04-27 Runtime UI 组件库与 Slint Material Showcase Cutover
   - user: 2026-04-28 继续修复 Component Showcase Slint host retained row state 验证阻断
@@ -475,8 +473,7 @@ tests:
   - cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1
   - rustfmt --check zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - rustfmt --check zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - rustfmt --check zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - rustfmt --check zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
+  - rustfmt --check zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - cargo test -p zircon_runtime ui::tests::component_catalog --lib
   - cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog
   - cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog --target-dir D:\cargo-targets\zircon-runtime-ui-catalog-props
@@ -869,8 +866,8 @@ Validation note for this guard: `rustfmt --check zircon_runtime/src/ui/component
 
 The follow-up on 2026-04-28 cleared that graphics compile drift for the focused Runtime UI catalog path by moving the affected Hybrid GI tests to the public snapshot accessors and converting accessor slices into owned helper vectors only at the test-helper boundary. Fresh Windows checks passed:
 
-- `rustfmt --check zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
-- `rustfmt --check zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs`
+- `rustfmt --check zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
+- `rustfmt --check zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs`
 - `cargo test -p zircon_runtime ui::tests::component_catalog --lib` passed: 16 tests passed, 0 failed.
 
 The focused editor guard was retried without the custom target directory through `cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog`, but local validation could not reach the test because concurrent Cargo work from other sessions held the shared package-cache lock. Those unrelated Cargo processes were left untouched. This pending state was superseded by the 2026-05-02 Milestone 0 editor closeout rerun in the isolated closeout target: `cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never` passed after the authored `VirtualList` / `PagedList` nodes were aligned to runtime catalog `items`.
@@ -1323,9 +1320,9 @@ Known non-blocking output:
 ## 2026-05-05 Material meta component slice
 
 Related code:
-- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
-- `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
-- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
+- `zircon_editor/assets/ui/editor/material_components`
+- `zircon_editor/assets/ui/editor/component_showcase.zui`
+- `zircon_editor/assets/ui/theme/editor_material.zui`
 - `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs`
 - `zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs`
 - `zircon_runtime/src/ui/tests/asset.rs`
@@ -1339,9 +1336,9 @@ The shared asset compiler now copies bindings authored on a component instance t
 ## 2026-05-06 Material Export Coverage
 
 Related code:
-- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
-- `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
-- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
+- `zircon_editor/assets/ui/editor/material_components`
+- `zircon_editor/assets/ui/editor/component_showcase.zui`
+- `zircon_editor/assets/ui/theme/editor_material.zui`
 - `zircon_editor/src/ui/retained_host/host_contract/window.rs`
 - `zircon_editor/src/ui/retained_host/mod.rs`
 - `zircon_editor/src/ui/retained_host/ui.rs`
@@ -1390,8 +1387,8 @@ Follow-up validation on 2026-05-06 for the projected Material native-hit route:
 ## 2026-05-06 Inspector Material surface controls
 
 Related code:
-- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
-- `zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml`
+- `zircon_editor/assets/ui/editor/material_components`
+- `zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui`
 - `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
 
 This slice moves the Inspector surface control body from placeholder native `IconButton` rows to imported Material meta components. `NameField` and `ParentField` now expand through `MaterialLineEdit`, the transform X/Y/Z fields expand through `MaterialSpinBox`, and `ApplyBatchButton` / `DeleteSelected` expand through `MaterialButton`. The existing `.ui.toml` binding ids and routes stay on the authored reference nodes, then flow onto each expanded root control through the shared component-instance binding contract.
@@ -1410,9 +1407,9 @@ Validation evidence:
 ## 2026-05-07 Global Material theme and runtime surfaces
 
 Related code:
-- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
-- `zircon_editor/assets/ui/theme/editor_base.ui.toml`
-- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
+- `zircon_editor/assets/ui/theme/editor_material.zui`
+- `zircon_editor/assets/ui/theme/editor_base.zui`
+- `zircon_editor/assets/ui/editor/material_components`
 - `zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui`
 - `zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui`
 - `zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui`

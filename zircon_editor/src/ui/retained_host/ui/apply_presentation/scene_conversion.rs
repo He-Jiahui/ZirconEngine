@@ -7,7 +7,7 @@ pub(super) fn to_host_contract_project_overview(
         project_name: overview.project_name.clone(),
         project_root: overview.project_root.clone(),
         assets_root: overview.assets_root.clone(),
-        library_root: overview.library_root.clone(),
+        cache_root: overview.cache_root.clone(),
         default_scene_uri: overview.default_scene_uri.clone(),
         catalog_revision: overview.catalog_revision.clone(),
         folder_count: overview.folder_count.clone(),

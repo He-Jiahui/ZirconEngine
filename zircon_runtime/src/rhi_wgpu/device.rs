@@ -169,6 +169,7 @@ impl WgpuRenderDevice {
                 wgpu::Features::empty(),
                 wgpu::Limits::default(),
                 false,
+                true,
             ),
             state: Arc::new(Mutex::new(WgpuRenderDeviceState {
                 next_handle: 1,
@@ -184,6 +185,7 @@ impl WgpuRenderDevice {
                 "wgpu",
                 wgpu::Features::empty(),
                 wgpu::Limits::default(),
+                true,
                 true,
             ),
             state: Arc::new(Mutex::new(WgpuRenderDeviceState {

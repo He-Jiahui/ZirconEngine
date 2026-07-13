@@ -6,10 +6,15 @@ fn runtime_15_project_render_quality_tests_are_child_owner() {
     let project_scenes = read_runtime_src("graphics/tests/project_render/project_scenes.rs");
     let quality = read_runtime_src("graphics/tests/project_render/render_quality.rs");
 
-    let plan_04 = read_repo("docs/plans/zircon_runtime/render/04/2026-07-09-visibility-culling-output-records.md");
-    let plan_05 = read_repo("docs/plans/zircon_runtime/render/05/2026-07-09-lighting-shadows-output-records.md");
+    let plan_04 = read_repo(
+        "docs/plans/zircon_runtime/render/04/2026-07-09-visibility-culling-output-records.md",
+    );
+    let plan_05 = read_repo(
+        "docs/plans/zircon_runtime/render/05/2026-07-09-lighting-shadows-output-records.md",
+    );
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");

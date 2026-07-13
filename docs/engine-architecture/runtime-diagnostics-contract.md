@@ -1,11 +1,11 @@
 ---
 related_code:
-  - zircon_runtime/src/core/diagnostics/mod.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/snapshot.rs
-  - zircon_runtime/src/core/diagnostics/render.rs
-  - zircon_runtime/src/core/diagnostics/physics.rs
-  - zircon_runtime/src/core/diagnostics/animation.rs
+  - zircon_runtime/src/core/runtime/diagnostics/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/physics.rs
+  - zircon_runtime/src/core/runtime/diagnostics/animation.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/physics/manager.rs
@@ -15,20 +15,20 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 implementation_files:
-  - zircon_runtime/src/core/diagnostics/mod.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/snapshot.rs
-  - zircon_runtime/src/core/diagnostics/render.rs
-  - zircon_runtime/src/core/diagnostics/physics.rs
-  - zircon_runtime/src/core/diagnostics/animation.rs
+  - zircon_runtime/src/core/runtime/diagnostics/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/physics.rs
+  - zircon_runtime/src/core/runtime/diagnostics/animation.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 plan_sources:
   - user: 2026-04-25 开始执行 runtime diagnostics contract and editor diagnostics pane cut
   - assistant design: runtime inspection surface + editor debug pane recommendation
@@ -50,7 +50,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::diagnostics` is the read-only inspection contract for editor and tooling code. It collects runtime health from the existing manager contracts instead of giving editor panes direct ownership of renderer, physics, or animation internals.
+`zircon_runtime::core::runtime::diagnostics` is the read-only inspection contract for editor and tooling code. It collects runtime health from the existing manager contracts instead of giving editor panes direct ownership of renderer, physics, or animation internals.
 
 The first cut covers three runtime systems:
 
@@ -72,7 +72,7 @@ The diagnostics snapshot intentionally stores copied data only. It does not expo
 
 ## Editor Pane Boundary
 
-`EditorManager::runtime_diagnostics()` exposes the runtime snapshot to editor host code. The built-in `editor.runtime_diagnostics` activity pane is registered as a bottom-right drawer view and uses the same `.ui.toml` pane-template path as console, inspector, hierarchy, and animation panes:
+`EditorManager::runtime_diagnostics()` exposes the runtime snapshot to editor host code. The built-in `editor.runtime_diagnostics` activity pane is registered as a bottom-right drawer view and uses the same `.zui` pane-template path as console, inspector, hierarchy, and animation panes:
 
 - descriptor id: `editor.runtime_diagnostics`
 - body document id: `pane.runtime.diagnostics.body`

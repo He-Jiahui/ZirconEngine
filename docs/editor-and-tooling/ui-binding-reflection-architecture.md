@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_ui/src/lib.rs
-  - zircon_ui/src/binding/model/mod.rs
-  - zircon_ui/src/event_ui/manager/mod.rs
-  - zircon_ui/src/layout/constraints.rs
-  - zircon_ui/src/layout/geometry.rs
-  - zircon_ui/src/layout/pass/mod.rs
-  - zircon_ui/src/layout/scroll.rs
-  - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch/mod.rs
-  - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface/mod.rs
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
+  - zircon_runtime/src/ui/event_ui/manager/mod.rs
+  - zircon_runtime/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime/src/ui/layout/pass/mod.rs
+  - zircon_runtime/src/ui/layout/scroll.rs
+  - zircon_runtime/src/ui/layout/virtualization.rs
+  - zircon_runtime/src/ui/dispatch/mod.rs
+  - zircon_runtime/src/ui/tree/node/mod.rs
+  - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/core/payload.rs
   - zircon_editor/src/ui/binding/core/editor_ui_binding_conversion.rs
@@ -43,8 +43,7 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime.rs
+  - zircon_editor/src/core/editor_event/service/editor_event_service.rs
   - zircon_editor/src/core/editor_event/listener.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
@@ -55,7 +54,7 @@ related_code:
   - zircon_editor/src/core/editor_event/workbench/mod.rs
   - zircon_editor/src/core/editor_event/workbench/layout_command.rs
   - zircon_editor/src/core/editor_event/workbench/menu_action.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
@@ -63,7 +62,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/viewport.rs
   - zircon_editor/src/ui/retained_host/app/tests/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/viewport/poll_image.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_captured_frame_from_render_framework.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
@@ -83,7 +82,7 @@ related_code:
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/host/editor_event_listener_control.rs
+  - zircon_editor/src/core/editor_event/service/listener_control.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
@@ -93,7 +92,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/layout_hosts/mod.rs
   - zircon_editor/src/ui/host/builtin_views/mod.rs
-  - zircon_ui/src/template/document.rs
+  - zircon_runtime_interface/src/ui/template/document.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/source/source_sync.rs
@@ -121,7 +120,7 @@ related_code:
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
@@ -140,17 +139,17 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 implementation_files:
-  - zircon_ui/src/binding/model/mod.rs
-  - zircon_ui/src/event_ui/manager/mod.rs
-  - zircon_ui/src/layout/constraints.rs
-  - zircon_ui/src/layout/geometry.rs
-  - zircon_ui/src/layout/pass/mod.rs
-  - zircon_ui/src/layout/scroll.rs
-  - zircon_ui/src/layout/virtualization.rs
-  - zircon_ui/src/dispatch/mod.rs
-  - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
+  - zircon_runtime/src/ui/event_ui/manager/mod.rs
+  - zircon_runtime/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime/src/ui/layout/pass/mod.rs
+  - zircon_runtime/src/ui/layout/scroll.rs
+  - zircon_runtime/src/ui/layout/virtualization.rs
+  - zircon_runtime/src/ui/dispatch/mod.rs
+  - zircon_runtime/src/ui/tree/node/mod.rs
+  - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/surface/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding/core/payload.rs
   - zircon_editor/src/ui/binding/core/editor_ui_binding_conversion.rs
@@ -169,7 +168,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/core/editor_event/listener.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
@@ -180,7 +179,7 @@ implementation_files:
   - zircon_editor/src/core/editor_event/workbench/mod.rs
   - zircon_editor/src/core/editor_event/workbench/layout_command.rs
   - zircon_editor/src/core/editor_event/workbench/menu_action.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
@@ -198,7 +197,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/host/editor_event_listener_control.rs
+  - zircon_editor/src/core/editor_event/service/listener_control.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
@@ -234,7 +233,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/workbench/model/menu/default_menu_bar.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
@@ -397,13 +396,13 @@ tests:
   - cargo test -p zircon_app editor_cli_operation_parser_accepts_list_operations --features target-editor-host --no-default-features --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_app editor_cli_operation_ --features target-editor-host --no-default-features --locked --jobs 1 -- --nocapture
   - cargo test -p zircon_app --lib editor_cli_operation --features target-editor-host --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-app-editor-cli-source-20260427-0710 -- --test-threads=1
-  - cargo run -p zircon_app --bin zircon_editor --features target-editor-host --no-default-features --locked -- --operation-stack --headless
+  - cargo run -p zircon_app --bin zircon_editor --features target-editor-host --no-default-features --locked -- --operation-history --headless
   - cargo test -p zircon_editor retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event --lib --locked --target-dir target\codex-editor-operation-check
   - cargo test -p zircon_editor editor_runtime_accepts_plugin_extension_operations_for_later_invocation --lib --locked --target-dir target\codex-editor-operation-check
   - cargo test -p zircon_editor workbench_view_model_projects_menu_strip_drawers_and_status --lib --locked --target-dir target\codex-editor-operation-check
   - cargo check -p zircon_app --features target-editor-host --no-default-features --locked --target-dir target\codex-app-operation-check --message-format short
   - cargo test -p zircon_app editor_cli_operation_parser --features target-editor-host --no-default-features --locked --target-dir target\codex-app-operation-check
-  - zircon_ui/src/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_editor/tests/workbench_autolayout.rs
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/ui/binding/asset_selection.rs
@@ -424,7 +423,7 @@ tests:
   - zircon_editor/src/tests/host/retained_window/callback_source_window.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
 - zircon_editor/src/tests/host/retained_tab_drag/
-  - zircon_editor/tests/workbench_drag_targets.rs
+  - zircon_editor/tests/integration_contracts/host_drag_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
   - zircon_editor/src/tests/editor_event/runtime.rs
@@ -642,7 +641,7 @@ No-preview asset icons are centralized in retained host visual asset loading and
 
 同一轮里，transient pane surface action 也进入了 template/runtime authority：
 
-- [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml) 定义 builtin `PaneSurface/TriggerAction`
+- [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.zui) 定义 builtin `PaneSurface/TriggerAction`
 - [`callback_dispatch/pane/surface_control.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/pane/surface_control.rs) 用 `BuiltinPaneSurfaceTemplateBridge` 把 `control_id + action_id` 重组回 canonical `MenuAction`
 - retained host shell 不再暴露 root `menu_action(action_id)` callback；Scene/Game empty-state 和 Project overview 的 `Open Assets` 现在只上传 generic `pane_surface_control_clicked(control_id, action_id)`
 
@@ -672,9 +671,9 @@ No-preview asset icons are centralized in retained host visual asset loading and
 - `runtime.rs`
   - `EditorEventRuntime` / `EditorEventDispatcher`
   - 统一拦截 `InvokeBinding`、`InvokeRoute`、`CallAction`
-- `runtime/editor_event_runtime_state.rs`
-  - `EditorEventRuntime` 的私有 state container owner
-  - 持有 `EditorState`、`EditorManager`、transient projection、journal 和 control service
+- `service/state.rs`
+  - `EditorEventService` 的私有 journal、listener、sequence 与 revision state owner
+  - editor shell、manager 和 transient projection 已拆回各自的 headless/UI owner，不再集中到 event runtime aggregate
 - `journal.rs`
   - session-local event record 存储
 - `replay.rs`
@@ -682,7 +681,7 @@ No-preview asset icons are centralized in retained host visual asset loading and
 
 transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient_ui_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs)，而 retained workbench 菜单/动态 preset 的字符串归一化则由 [`callback_dispatch/workbench/menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs) 持有，再通过 [`core_event_conversion.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/core_event_conversion.rs) 把 UI 内部 layout model 显式转换成 canonical `core::editor_event::workbench::*` DTO。
 
-`EditorEventRuntimeState` 的声明 owner 已从 `ui/host` 收回到 [`core/editor_event/runtime/editor_event_runtime_state.rs`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs)。`ui/host` 现在只保留 bootstrap、dispatch、execution、reflection 这些行为模块，直接消费 core runtime state，而不是继续拥有 runtime state declaration 本身。`EditorEventRuntime::lock_inner()` 是这些 host 行为模块的统一锁入口；如果先前 editor callback 已经 panic 并 poison 了 mutex，后续 snapshot、reflection 和 descriptor 查询会显式取回 state，而不是在每个访问点继续 `unwrap()` 并把 editor shell 永久卡死在连锁 panic 上。
+旧 `EditorEventRuntime` / `EditorEventRuntimeState` 聚合体已经硬切删除。当前 [`EditorEventServiceState`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/service/state.rs) 只保存事件 journal、listener、sequence 与 revision；[`EditorEventService`](/E:/Git/ZirconEngine/zircon_editor/src/core/editor_event/service/editor_event_service.rs) 通过 `lock_state()` 统一恢复 poisoned mutex。`ui/host` 的 dispatch、execution 与 reflection 行为改为消费 `EditorHostEventController` 和 headless `EditorEventService`，不再反向拥有 core event state。
 
 当前 canonical log record 固定保存：
 
@@ -848,7 +847,7 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 
 Workbench 菜单模型现在也带 operation metadata：
 
-- [`MenuItemModel`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/model/menu_item_model.rs) 保留旧 `MenuAction` 和 typed binding，同时通过 `operation_path_for_menu_action(...)` 给已注册 builtin operation 填入 `operation_path`
+- [`MenuItemModel`](/E:/Git/ZirconEngine/zircon_editor/src/core/commands/menu_model.rs) 保留旧 `MenuAction` 和 typed binding，同时通过 `operation_path_for_menu_action(...)` 给已注册 builtin operation 填入 `operation_path`
 - [`build_workbench_reflection_model(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/model_build.rs) 会把该路径和可选 shortcut 投影进 `EditorMenuItemReflectionModel`
 - [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection/adapter.rs) 会在 menu item node 上暴露 `operation_path` 和可选 `shortcut` 属性
 
@@ -862,11 +861,11 @@ Workbench 菜单模型现在也带 operation metadata：
 
 - 进程内调用 `EditorEventRuntime::handle_operation_control_request(EditorOperationControlRequest::InvokeOperation(...))`
 - 进程内也可以调用 `EditorOperationControlRequest::ListOperations`，返回 `operations[]`，其中包含 `operation_id`、`display_name`、`menu_path`、`callable_from_remote`、`undoable` 和可选 `undo_display_name`
-- 进程内可以调用 `EditorOperationControlRequest::QueryOperationStack`，返回 `undo_stack[]` 和 `redo_stack[]`，每条记录包含 operation path、展示名、source 和 sequence，用于远控面板或 Photoshop 风格历史面板先展示命名栈
+- 进程内查询统一使用 `EditorOperationControlRequest::QueryOperationHistory`；在 Editor 03 安装 edit-command factory 前，该请求返回 `OperationHistoryPendingFactory` 结构化错误，不伪造 undo/redo 栈
 - `zircon_editor` 命令行使用 `--operation <id> --args <json> --operation-group <id> --headless`，由 app 层构造 headless editor runtime 后走同一 operation control request，并输出结构化 JSON response；该入口会以 `EditorOperationSource::Cli` 派发，journal source 记录为 `EditorEventSource::Cli`，便于远程、脚本和 UI 触发在同一 journal 中区分来源
-- CLI 入口现在通过 `EditorOperationInvocation::new(...).with_arguments(...)` 构造请求，并在提供 `--operation-group` 时调用 `with_operation_group(...)`；默认 `operation_group = None`，需要合并连续操作的调用方必须显式提供 group，避免命令行触发因为结构字段新增而绕过默认语义。`--args` 和 `--operation-group` 都必须和 `--operation` 同时出现，即使 `--args null` 也会按“已提供参数”处理；`--operation`、`--args`、`--operation-group`、`--list-operations`、`--operation-stack`、`--headless` 重复出现都会被拒绝，避免外部脚本的歧义输入被后者覆盖。`--operation`、`--list-operations`、`--operation-stack` 三种控制模式互斥；任何控制模式都必须显式携带 `--headless`，反过来单独的 `--headless` 也会被拒绝，避免外部脚本把控制参数传给普通 GUI 启动路径后被静默忽略、被另一个控制模式静默覆盖，或把非 headless 启动意图误变成一次 JSON command
+- CLI 入口现在通过 `EditorOperationInvocation::new(...).with_arguments(...)` 构造请求，并在提供 `--operation-group` 时调用 `with_operation_group(...)`；默认 `operation_group = None`，需要合并连续操作的调用方必须显式提供 group，避免命令行触发因为结构字段新增而绕过默认语义。`--args` 和 `--operation-group` 都必须和 `--operation` 同时出现，即使 `--args null` 也会按“已提供参数”处理；`--operation`、`--args`、`--operation-group`、`--list-operations`、`--operation-history`、`--headless` 重复出现都会被拒绝，避免外部脚本的歧义输入被后者覆盖。`--operation`、`--list-operations`、`--operation-history` 三种控制模式互斥；任何控制模式都必须显式携带 `--headless`，反过来单独的 `--headless` 也会被拒绝，避免外部脚本把控制参数传给普通 GUI 启动路径后被静默忽略、被另一个控制模式静默覆盖，或把非 headless 启动意图误变成一次 JSON command
 - `zircon_editor --list-operations --headless` 走同一个 `ListOperations` 请求，供外部工具或脚本先发现可调用路径，再选择触发哪个 operation
-- `zircon_editor --operation-stack --headless` 走同一个 `QueryOperationStack` 请求，供外部历史面板或自动化脚本读取当前命名 undo/redo 栈
+- `zircon_editor --operation-history --headless` 走同一个 `QueryOperationHistory` 请求；当前在 history factory 就绪前返回明确的 pending 错误，外部面板或自动化脚本不得把它解释为一份空历史
 
 ### Menu
 

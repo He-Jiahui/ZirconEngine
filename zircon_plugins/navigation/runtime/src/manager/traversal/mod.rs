@@ -7,11 +7,11 @@ mod tests;
 
 use std::borrow::Cow;
 
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset};
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavLinkTraversalMode, NavMeshAgentDescriptor, NavMeshHandle, NavPathResult,
     OffMeshTraverseEvent,
 };
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavMeshLinkAsset};
 use zircon_runtime::core::math::{Real, Vec3};
 
 use super::DefaultNavigationManager;

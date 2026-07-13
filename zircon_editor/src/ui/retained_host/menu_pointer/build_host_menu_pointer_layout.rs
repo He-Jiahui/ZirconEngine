@@ -2,16 +2,17 @@ use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
+use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::views::build_view_template_nodes;
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
 use crate::ui::retained_host::menu_popup_contract::content_measured_menu_popup_width;
 use crate::ui::retained_host::{measure_runtime_text_width, menu_popup_text_width};
+use crate::ui::workbench::event::menu_item_binding;
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
 };
-use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::constants::WINDOW_MENU_INDEX;
@@ -215,7 +216,7 @@ fn pointer_menu_item_tree(items: &[MenuItemModel]) -> Vec<MenuItemSpec> {
 }
 
 fn menu_item_action_id(item: &MenuItemModel) -> Option<String> {
-    match item.binding.payload() {
+    match menu_item_binding(item).payload() {
         EditorUiBindingPayload::MenuAction { action_id } => Some(action_id.clone()),
         EditorUiBindingPayload::EditorCommand { command_id } => Some(command_id.clone()),
         EditorUiBindingPayload::EditorOperation { operation_id, .. } => Some(operation_id.clone()),

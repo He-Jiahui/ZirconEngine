@@ -1,6 +1,6 @@
 # 05 · Navigation 插件完善计划（Surface / Bakery / Agent / Obstacle / Modifier / OffMeshLink）
 
-> 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
+> 状态：工程化细化版 v2 · M1 代码与隔离 Windows 验证完成，待共享检出 closeout · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
 > 关联计划：`.codex/plans/ZirconEngine 导航寻路插件补齐计划.md` · 现状文档：`docs/zircon_plugins/navigation/{runtime,editor,native}.md`
 > 参考实现：Unity NavMesh 组件体验（Surface/Modifier/Agent/Obstacle/Link 五组件）、Unreal NavigationSystem（tile-based 异步重建）、Godot NavigationServer3D（map/region/agent/obstacle/link RID API）、upstream Recast/Detour/DetourCrowd
 
@@ -182,3 +182,22 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 | tiled 异步重建编排 | `dev/UnrealEngine/Engine/Source/Runtime/NavigationSystem/`、`Navmesh/` | dirty area 聚合、tile 重建任务切分与收割时序、NavModifier 区域语义 |
 | Server 形态（map/region/agent/obstacle/link） | `dev/godot/servers/navigation_3d/`、`dev/godot/modules/navigation_3d/` | RID API 面、agent 回调模型、off-mesh link 双向语义 |
 
+## 9. 状态与产出记录
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- M1 SimpleBake：`完成`；产出记录：[2026-07-12 Navigation M1 SimpleBake](05/2026-07-12-navigation-m1-output-records.md)。
+- M2 TiledBake：`完成`；产出记录：[2026-07-12 Navigation M2 TiledBake](05/2026-07-12-navigation-m2-output-records.md)。
+- M3 Crowd Agents：`完成`；产出记录：[2026-07-12 Navigation M3 Crowd Agents](05/2026-07-12-navigation-m3-output-records.md)。
+- M4 Obstacle / Modifier：`完成`；产出记录：[2026-07-12 Navigation M4 Obstacle / Modifier](05/2026-07-12-navigation-m4-output-records.md)。
+- M4 跨计划编译回传：`已修复`；[NavQueryFilter 固定数组 serde 编译失败回传](../zircon_editor/editor/15/fixed-2026-07-12-navigation-query-filter-serde-array.md)。
+- M5 Off-mesh Link / Bridge：`完成`；产出记录：[2026-07-12 Navigation M5](05/2026-07-12-navigation-m5-output-records.md)。
+- M6 Editor：`实现整改中，跨计划 gate 未关闭；注册层硬切代码与非 Cargo 门禁完成，当前源包复验排队`；产出记录：[2026-07-13 Navigation M6](05/2026-07-13-navigation-m6-output-records.md)、[2026-07-13 Navigation registration hard cut](05/2026-07-13-navigation-registration-hard-cut-output-records.md)。
+- M6-T1 operation factory：`待修复（open）`；[Editor 03 failure](../zircon_editor/editor/03/failure-2026-07-13-plugin-operation-factory-runtime-wiring.md)。
+- M6-T2 viewport provider host：`待修复（open）`；[Editor 05 failure](../zircon_editor/editor/05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。
+- fixed 已修复：[navigation-runtime-driver-manager-layering](../zircon_runtime/render/18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
+- M6-T3 mirror consumer SDK：`待修复（open）`；[Plugins 12 failure](12/failure-2026-07-13-plugin-editor-runtime-mirror-consumer-wiring.md)。
+
+## 10. 治理失败交接
+
+- 产出记录超过十条归档上限：`待修复（open）`；[failure 交接](05/failure-2026-07-13-navigation-plan-output-record-archive-limit.md)。

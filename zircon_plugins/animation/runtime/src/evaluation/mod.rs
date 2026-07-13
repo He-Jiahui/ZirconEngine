@@ -10,6 +10,7 @@ mod pose_buffer;
 mod pose_buffer_error;
 mod pose_pool;
 mod skeleton_target_table;
+mod state_machine_layer_diagnostic;
 mod target_slot;
 mod target_table;
 mod target_table_error;
@@ -29,10 +30,13 @@ pub use compiled_graph::{
 pub(crate) use pipeline::tick_animation_world;
 pub use pipeline::AnimationEvaluationPipeline;
 pub use pose_blend_error::PoseBlendError;
-pub use pose_buffer::PoseBuffer;
+pub use pose_buffer::{PoseBuffer, PoseLayer, PoseLayerBlendMode};
 pub use pose_buffer_error::PoseBufferError;
 pub use pose_pool::PosePool;
 pub use skeleton_target_table::SkeletonTargetTable;
+pub use state_machine_layer_diagnostic::{
+    AnimationStateMachineLayerDiagnostic, AnimationStateMachineLayerError,
+};
 pub(crate) use target_slot::TargetSlot;
 pub(crate) use target_table::TargetTable;
 pub(crate) use target_table_error::TargetTableError;

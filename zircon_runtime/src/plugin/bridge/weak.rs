@@ -2,9 +2,8 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{BridgeError, InterfaceSlot, PluginInterface};
 
-use super::interface_id::InterfaceSlot;
 use super::table::FrozenBridgeTable;
 
 pub struct WeakBridge<T: ?Sized> {

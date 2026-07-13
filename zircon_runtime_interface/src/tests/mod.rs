@@ -23,3 +23,4 @@ mod ui_v2_contracts;
 mod window_input_contracts;
 mod window_runtime_event_adapter_contracts;
 mod window_transient_contracts;
+mod world_sync_contracts;

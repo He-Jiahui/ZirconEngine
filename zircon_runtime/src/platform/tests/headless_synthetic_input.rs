@@ -14,7 +14,7 @@ fn headless_target_with_input_features_reports_synthetic_input_only() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Headless,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert_eq!(
@@ -77,7 +77,7 @@ fn server_runtime_with_input_features_keeps_headless_window_and_synthetic_input(
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
     );
 
     assert_eq!(
@@ -134,7 +134,7 @@ fn server_runtime_with_input_features_keeps_headless_window_and_synthetic_input(
 fn headless_fixture_disables_synthetic_input_sources() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::headless()).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
     );
 
     assert_eq!(

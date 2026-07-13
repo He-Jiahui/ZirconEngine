@@ -1,17 +1,18 @@
 use crate::asset::AssetImporterDescriptor;
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::framework::render::{
     GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
     GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
     RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::plugin::{
-    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginEventManifest, PluginOptionManifest,
-    PluginPackageManifest, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
-    RuntimePluginDescriptor, RuntimePluginRegistrationReport, UiComponentDescriptor,
+    PluginEventCatalogManifest, PluginEventManifest, PluginOptionManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport, UiComponentDescriptor,
 };
 use crate::scene::ecs::{Resource, SystemStage};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions() {

@@ -42,7 +42,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-14
 ---
 
 # 02 core spine 与 root surface 收束
@@ -282,3 +282,10 @@ last_refined: 2026-07-10
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-core-spine-and-root-surface-output-records.md`](02/2026-07-09-core-spine-and-root-surface-output-records.md)
+- 当前状态：`in_progress`。2026-07-14 已关闭并回传 service registry `CoreHandle` retention cycle；Runtime02 父计划仍等待当前源码静态门与其余计划内 Cargo/下游门完整收口，不以本切片完成冒充整份子计划完成。
+- fixed 已修复：[service-corehandle-retention-cycle](../../zircon_editor/editor/14/fixed-2026-07-14-service-corehandle-retention-cycle.md)
+- fixed 已修复：[editor-manager-weak-runtime-caller-lifetime](../../zircon_editor/editor/09/fixed-2026-07-13-editor-manager-weak-runtime-caller-lifetime.md)
+- fixed 已修复：[project-authority-test-fixture-cutover](02/fixed-2026-07-13-project-authority-test-fixture-cutover.md)
+- fixed 已修复：[font-sdf-build-tool-root-surface-drift](02/fixed-2026-07-14-font-sdf-build-tool-root-surface-drift.md)
+- fixed 已修复：[dynamic-scene-version-validation](02/fixed-2026-07-12-dynamic-scene-version-validation.md)
+- fixed 已修复：[core-filter-runtime-fixture-contracts](02/fixed-2026-07-12-core-filter-runtime-fixture-contracts.md)

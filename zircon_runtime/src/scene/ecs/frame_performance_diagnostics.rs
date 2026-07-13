@@ -1,4 +1,5 @@
 use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
+use crate::core::CoreHandle;
 
 use super::{ChangeDetectionScanStats, QueryStateCacheStats};
 
@@ -49,6 +50,21 @@ impl EcsFramePerformanceDiagnostics {
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         self.query.record_diagnostics(store, frame_index);
         self.change_detection.record_diagnostics(store, frame_index);
+    }
+
+    pub fn publish(&self, core: &CoreHandle, frame_index: u64) {
+        for (path, value) in self.query.diagnostic_values() {
+            core.record_diagnostic(path, frame_index, value, Some("count"), ["ecs", "query"]);
+        }
+        for (path, value) in self.change_detection.diagnostic_values() {
+            core.record_diagnostic(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "change_detection"],
+            );
+        }
     }
 }
 

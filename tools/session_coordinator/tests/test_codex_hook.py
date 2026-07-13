@@ -66,7 +66,7 @@ class CodexHookTests(unittest.TestCase):
         descriptor = RuntimeDescriptor(
             "127.0.0.1",
             port,
-            "fixture-runtime-token",
+            "unused",
             self.repo,
             repository_identity(self.repo),
             "fixture-instance",
@@ -172,7 +172,7 @@ class CodexHookTests(unittest.TestCase):
 
         self.assertEqual([1], observed)
 
-    def test_authenticated_online_signal_uses_only_repository_identity(self) -> None:
+    def test_online_signal_uses_only_repository_identity_without_authorization(self) -> None:
         observed: dict[str, object] = {}
 
         class Handler(BaseHTTPRequestHandler):
@@ -198,7 +198,7 @@ class CodexHookTests(unittest.TestCase):
 
         self.assertTrue(signaled)
         self.assertEqual("/control/v1/codex-sync/wake", observed["path"])
-        self.assertEqual("Bearer fixture-runtime-token", observed["authorization"])
+        self.assertIsNone(observed["authorization"])
         self.assertEqual(
             {"repositoryKey": repository_identity(self.repo).key, "schemaVersion": 1},
             observed["body"],

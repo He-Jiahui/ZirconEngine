@@ -1,16 +1,16 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
 plan_sources:
   - user: 2026-04-17 continue the next M5 slice without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-traced-radiance-source-uplift.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
   - cargo test -p zircon_graphics hybrid_gi_gpu_completion_readback_normalizes_multi_region_radiance_instead_of_additive_saturation --locked
   - cargo test -p zircon_graphics hybrid_gi_gpu --locked
   - cargo test -p zircon_graphics hybrid_gi --locked

@@ -1,7 +1,12 @@
 use crate::core::math::{Real, Vec2, Vec3};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::AmbientLight",
+    script_visibility = "public"
+)]
 pub struct AmbientLight {
     pub color: Vec3,
     pub intensity: Real,
@@ -18,7 +23,12 @@ impl Default for AmbientLight {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::DirectionalLight",
+    script_visibility = "public"
+)]
 pub struct DirectionalLight {
     pub direction: Vec3,
     pub color: Vec3,
@@ -35,7 +45,12 @@ impl Default for DirectionalLight {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::PointLight",
+    script_visibility = "public"
+)]
 pub struct PointLight {
     pub color: Vec3,
     pub intensity: Real,
@@ -52,7 +67,12 @@ impl Default for PointLight {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::RectLight",
+    script_visibility = "public"
+)]
 pub struct RectLight {
     pub color: Vec3,
     pub intensity: Real,
@@ -71,7 +91,12 @@ impl Default for RectLight {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::SpotLight",
+    script_visibility = "public"
+)]
 pub struct SpotLight {
     pub direction: Vec3,
     pub color: Vec3,

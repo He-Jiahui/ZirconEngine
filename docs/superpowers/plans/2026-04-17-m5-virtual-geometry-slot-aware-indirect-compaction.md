@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 milestones without waiting for confirmation
   - user: 2026-04-17 continue next task
@@ -14,7 +14,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-page-table-indirection.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-indirect-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics virtual_geometry_prepare_compacts_resident_segments_sharing_page_slot_into_fewer_indirect_draws --locked
   - cargo test -p zircon_graphics virtual_geometry_prepare_render --locked
   - cargo test -p zircon_graphics virtual_geometry --locked

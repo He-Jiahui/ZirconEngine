@@ -153,6 +153,19 @@ impl SceneRenderer {
             pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
         let exposure_history_enabled =
             pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::EXPOSURE_CURRENT);
+        let volumetric_history_quality = pipeline_writes_resource(
+            pipeline,
+            PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING,
+        )
+        .then(|| {
+            crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_history_quality(
+                &frame.extract,
+                frame.shader_quality(),
+            )
+        })
+        .transpose()
+        .map_err(GraphicsError::Asset)?
+        .flatten();
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -167,6 +180,7 @@ impl SceneRenderer {
                 screen_space_reflection_history_enabled,
                 hzb_history_enabled,
                 exposure_history_enabled,
+                volumetric_history_quality,
             );
             let target = self.target.as_mut().expect("offscreen target");
             self.core.render_compiled_scene(
@@ -336,6 +350,30 @@ impl SceneRenderer {
     pub(crate) fn last_render_graph_compute_dispatch_group_count(&self) -> usize {
         self.last_render_graph_execution
             .compute_dispatch_group_volume_total()
+    }
+
+    pub(crate) fn last_render_graph_compute_dispatch_count_for_executor_prefix(
+        &self,
+        executor_prefix: &str,
+    ) -> usize {
+        self.last_render_graph_execution
+            .compute_dispatch_count_for_executor_prefix(executor_prefix)
+    }
+
+    pub(crate) fn last_render_graph_compute_dispatch_group_count_for_executor_prefix(
+        &self,
+        executor_prefix: &str,
+    ) -> usize {
+        self.last_render_graph_execution
+            .compute_dispatch_group_volume_total_for_executor_prefix(executor_prefix)
+    }
+
+    pub(crate) fn last_render_graph_compute_uploaded_bytes_for_executor_prefix(
+        &self,
+        executor_prefix: &str,
+    ) -> u64 {
+        self.last_render_graph_execution
+            .compute_uploaded_bytes_total_for_executor_prefix(executor_prefix)
     }
 
     pub(crate) fn last_render_graph_compute_storage_write_resource_count(&self) -> usize {

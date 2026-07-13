@@ -3,6 +3,8 @@ mod modal;
 mod page_overflow;
 mod root_template;
 
+#[cfg(test)]
+pub(crate) use self::componentized::paint_componentized_extension_workspace_for_test;
 pub(in crate::ui::retained_host::host_contract) use self::componentized::{
     draw_componentized_workbench_window, draws_componentized_workbench_window,
 };

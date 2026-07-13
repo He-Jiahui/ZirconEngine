@@ -202,14 +202,14 @@ mod tests {
     fn package_manifest_declares_obj_importer_dist_contract() {
         let manifest = package_manifest();
 
-        assert!(manifest
-            .default_packaging
-            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert!(manifest.default_packaging.contains(
+            &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+        ));
         let distribution = manifest.distribution.as_ref().expect("dist metadata");
         assert_eq!(distribution.forms, vec!["dist"]);
         assert_eq!(
             distribution.default_packaging,
-            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+            vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
         );
         assert_eq!(distribution.abi_version, Some(3));
         assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
@@ -226,12 +226,12 @@ mod tests {
             .find(|module| module.name == "obj_importer.dist")
             .expect("obj importer dist module");
         assert_eq!(dist_module.crate_name, OBJ_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module.target_modes.contains(
+            &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
+        ));
         assert!(dist_module
             .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
-        assert!(dist_module
-            .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
         assert!(dist_module
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));

@@ -12,7 +12,6 @@ const SELECTED: &str = "selected";
 const QUERY: &str = "query";
 const COMMANDS: &str = "commands";
 const FILTERED_COMMANDS: &str = "filtered_commands";
-const DISABLED_COMMANDS: &str = "disabled_commands";
 const SELECTED_COMMAND_ID: &str = "selected_command_id";
 const FOCUSED_INDEX: &str = "focused_index";
 const COMMAND_SOURCE: &str = "command_source";
@@ -21,7 +20,6 @@ const COMMAND_SOURCE: &str = "command_source";
 pub(crate) struct WorkbenchCommandPaletteOpenState {
     pub commands: UiValue,
     pub filtered_commands: UiValue,
-    pub disabled_commands: UiValue,
     pub selected_command_id: String,
     pub focused_index: i64,
 }
@@ -75,11 +73,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
             FILTERED_COMMANDS,
             state.filtered_commands,
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
-            DISABLED_COMMANDS,
-            state.disabled_commands,
         )?;
         self.mutate_control_property(
             WORKBENCH_COMMAND_PALETTE_CONTROL_ID,

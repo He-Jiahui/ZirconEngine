@@ -13,9 +13,8 @@ from pathlib import Path
 
 from tools.zircon_export.cli import run_pipeline
 from tools.zircon_export.tests.export_test_support import (
-    _compile_host_plan,
-    _compile_host_link_plan,
     _pack_binary_bytes,
+    _write_compile_host_report as _write_staged_compile_host_report,
     _write_validate_report_with_strategies,
 )
 from tools.zircon_export.tests.pack_test_support import (
@@ -229,26 +228,7 @@ def _write_cook_assets_report(out: Path) -> None:
 
 
 def _write_compile_host_report(out: Path, host_executable: Path) -> None:
-    report_dir = out / "stages" / "compile_host"
-    report_dir.mkdir(parents=True, exist_ok=True)
-    report_dir.joinpath("report.json").write_text(
-        json.dumps(
-            {
-                "stage": "CompileHost",
-                "profile": "windows-release",
-                "fatal": False,
-                "diagnostics": [],
-                "command": list(_compile_host_plan()["command"]),
-                "exit_code": 0,
-                "host_executable": str(host_executable),
-                "link_plan": _compile_host_link_plan(),
-                "stdout_lines": [],
-                "stderr_lines": [],
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    _write_staged_compile_host_report(out, host_executable)
 
 
 def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:

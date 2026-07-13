@@ -129,7 +129,7 @@ impl ZrRuntimeBindViewportSurfaceRequestV1 {
 
 - [x] Update `zircon_runtime_interface/src/lib.rs` re-exports for new constants, structs, and function types.
 - [x] Update `zircon_runtime_interface/src/tests/contracts.rs` to assert ABI default fields are `None`, constructors preserve handles, and `size_of::<ZrRuntimeApiV1>()` contract expectations account for appended function pointers.
-- [x] Add `zircon_app/src/entry/runtime_entry_app/window_surface.rs` with one responsibility: convert a `winit::window::Window` into `Option<ZrRuntimeNativeSurfaceTargetV1>`.
+- [x] Add `zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs` with one responsibility: convert a `winit::window::Window` into `Option<ZrRuntimeNativeSurfaceTargetV1>`.
 
 ```rust
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle};
@@ -542,7 +542,7 @@ cargo run -p zircon_app --bin zircon_runtime --locked
 - `zircon_runtime_interface` must remain C-safe. Do not expose Rust enums, `raw_window_handle` types, references, `Arc`, or trait objects across the dynamic API.
 - Surface present must not remove `capture_frame()`. Tests, headless runs, unsupported platforms, and editor viewport still need readback fallback.
 - If wgpu surface lifetimes require owning handles differently than the ABI descriptor allows, stop and redesign the surface ownership boundary rather than storing borrowed window references in runtime.
-- Do not expand `zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs` or other large editor hotspots for this milestone.
+- Do not expand `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs` or other large editor hotspots for this milestone.
 
 ## Plan Self-Review
 

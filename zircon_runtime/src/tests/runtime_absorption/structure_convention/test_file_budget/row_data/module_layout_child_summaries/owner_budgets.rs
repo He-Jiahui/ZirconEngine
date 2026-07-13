@@ -9,16 +9,11 @@ mod status_mirrors;
 #[path = "owner_budgets/surrounding_owners.rs"]
 mod surrounding_owners;
 
-const OWNER_BUDGET_PARENT_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets.rs";
-const OWNER_BUDGET_ROUTE_CHILDREN_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/route_children.rs";
-const OWNER_BUDGET_NESTED_CHILDREN_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/nested_children.rs";
-const OWNER_BUDGET_SURROUNDING_OWNERS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/surrounding_owners.rs";
-const OWNER_BUDGET_STATUS_MIRRORS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/status_mirrors.rs";
+const OWNER_BUDGET_PARENT_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets.rs";
+const OWNER_BUDGET_ROUTE_CHILDREN_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/route_children.rs";
+const OWNER_BUDGET_NESTED_CHILDREN_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/nested_children.rs";
+const OWNER_BUDGET_SURROUNDING_OWNERS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/surrounding_owners.rs";
+const OWNER_BUDGET_STATUS_MIRRORS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/status_mirrors.rs";
 
 const OWNER_BUDGET_CHILDREN: &[(&str, &str, &str)] = &[
     (

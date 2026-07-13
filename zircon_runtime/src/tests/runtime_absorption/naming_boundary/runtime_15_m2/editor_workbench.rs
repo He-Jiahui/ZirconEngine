@@ -40,8 +40,6 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
         manifest_root,
         "docs/engine-architecture/non-network-server-naming-m1.md",
     );
-    let editor_commands_doc =
-        read_repo_text(manifest_root, "docs/zircon_editor/ui/host/commands.md");
     let status_rows = read_runtime_15_naming_status_rows(manifest_root);
     let status_slice = read_runtime_15_naming_status_map(manifest_root);
     let date_slice = read_runtime_15_naming_date_map(manifest_root);
@@ -70,7 +68,6 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("non-network server naming doc", non_network_doc),
-        ("editor commands doc", editor_commands_doc),
         ("status row data", status_rows),
         ("status slice", status_slice),
         ("date slice", date_slice),

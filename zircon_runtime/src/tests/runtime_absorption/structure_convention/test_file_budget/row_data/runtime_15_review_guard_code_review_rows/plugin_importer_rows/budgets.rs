@@ -4,12 +4,30 @@ use super::*;
 fn runtime_15_plugin_importer_rows_status_output_guard_children_line_budgets_are_current() {
     for (path, budget) in [
         (PLUGIN_IMPORTER_STATUS_OUTPUT_GUARD_PATH, 90),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/budgets.rs", 50),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/child_split_status.rs", 80),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/delegation.rs", 30),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_children.rs", 90),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_data_status.rs", 40),
-        ("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/status_mirrors.rs", 80),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/budgets.rs",
+            50,
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/child_split_status.rs",
+            80,
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/delegation.rs",
+            30,
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_children.rs",
+            90,
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_data_status.rs",
+            40,
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/status_mirrors.rs",
+            80,
+        ),
     ] {
         let line_count = read_runtime_src(path).lines().count();
         assert!(

@@ -1,3 +1,4 @@
+use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
     WORKBENCH_TOAST_ACTION, WORKBENCH_TOAST_BORDER, WORKBENCH_TOAST_SURFACE,
 };
@@ -23,8 +24,8 @@ fn workbench_toast_paints_status_mark_action_and_close() {
     );
 
     let surface_pixel = blend_over(WORKBENCH_TOAST_SURFACE, [0, 0, 0, 255]);
-    assert_eq!(WORKBENCH_TOAST_SURFACE, [21, 48, 53, 247]);
-    assert_eq!(WORKBENCH_TOAST_BORDER, [53, 199, 208, 20]);
+    assert_eq!(WORKBENCH_TOAST_SURFACE, PALETTE.accent_soft);
+    assert_eq!(WORKBENCH_TOAST_BORDER, PALETTE.border);
     assert_eq!(pixel_at(&bytes, 320, 160, 12), surface_pixel);
     assert_eq!(
         pixel_at(&bytes, 320, 160, 8),

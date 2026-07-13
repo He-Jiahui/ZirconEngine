@@ -7,12 +7,12 @@ fn runtime_15_project_render_scene_products_tests_are_child_owner() {
     let render_quality = read_runtime_src("graphics/tests/project_render/render_quality.rs");
 
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_product_submit_doc =
         read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "project render parent keeps shared fixtures and child mounts",
@@ -92,7 +92,6 @@ fn runtime_15_project_render_scene_products_tests_are_child_owner() {
             "render product submit doc",
             render_product_submit_doc.as_str(),
         ),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

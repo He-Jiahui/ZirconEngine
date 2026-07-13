@@ -154,6 +154,7 @@ fn text_vertical_backend_shapes_ttb_and_btt_with_signed_y_advances() {
         style.language.as_deref(),
         &[],
         true,
+        style.font_weight,
         style.font_size,
     )
     .expect("TTB rustybuzz shaping");
@@ -165,6 +166,7 @@ fn text_vertical_backend_shapes_ttb_and_btt_with_signed_y_advances() {
         style.language.as_deref(),
         &[],
         true,
+        style.font_weight,
         style.font_size,
     )
     .expect("BTT rustybuzz shaping");
@@ -212,6 +214,7 @@ fn text_vertical_shape_path_consumes_ttb_backend_glyphs() {
         style.language.as_deref(),
         &[],
         true,
+        style.font_weight,
         style.font_size,
     )
     .expect("TTB rustybuzz shaping");
@@ -333,6 +336,7 @@ fn vertical_fixture(
             let glyph = ShapedGlyph {
                 glyph_id: index as u32 + 1,
                 font_id: None,
+                font_instance_id: None,
                 source_range: UiTextRange {
                     start: source_range.start + local_start,
                     end: source_range.start + end,

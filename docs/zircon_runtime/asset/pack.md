@@ -55,6 +55,7 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
+  - zrpack_content_hash_matches_blake3_empty_input_vector
   - pack_round_trip
   - pack_manifest_chunk_plan_round_trips_from_asset_owner
   - duplicate_content_stored_once
@@ -98,6 +99,7 @@ tests:
   - delta_installer_rejects_invalid_staged_pack_without_replacing_installed
   - delta_installer_writes_install_receipt_from_staging_and_promotion
   - delta_installer_receipt_records_copy_fallback_promotion_method
+  - corrupt_chunk_refetched
   - delta_installer_rejects_receipt_for_mismatched_reports
   - native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload
   - native_runtime_hot_update_uses_export_load_manifest_package_set
@@ -135,6 +137,18 @@ manifest:
 - `path`: package-local asset path.
 - `chunk_hash`: the content-addressed chunk id.
 - `size`: original asset byte size.
+
+`ZrChunkEntry.hash` and `ZrPackAssetEntry.chunk_hash` are the raw 32-byte BLAKE3 digest of the
+chunk payload. `zrpack_content_hash` is the only algorithm owner used by writer, reader, delta,
+deduplication, and Content Download verification. The empty-input official vector is locked by
+`zrpack_content_hash_matches_blake3_empty_input_vector`; the retired four-seed FNV concatenation and
+plugin-local SHA-256 string path are not supported compatibility formats.
+
+Content Download keeps transport metadata in `NetDownloadChunk`, but its `content_hash: [u8; 32]`
+is copied directly from the corresponding `ZrChunkEntry.hash`. The download plugin computes the
+received payload through `zrpack_content_hash` and compares the bytes without hex encoding,
+algorithm guessing, or fallback. `corrupt_chunk_refetched` builds that value from a
+`ZrPackManifest`, rejects a corrupt primary response, and completes from the mirror response.
 
 The writer first validates each input asset path as a package-local safe relative asset path in
 normalized forward-slash form. Empty paths, absolute paths, drive-letter paths, `.`, `..`, empty
@@ -254,10 +268,9 @@ builds therefore have one source of truth for the serialized format.
 `ZrPackWriteReport` returns `deduplicated_assets` so export reporting can state which asset paths
 were collapsed onto an existing chunk instead of silently hiding the optimization.
 
-The 09 plan names blake3 as the final chunk id algorithm. M2-T2 deliberately does not add a new
-dependency or change lockfiles; `zrpack_content_hash` currently uses a stable 32-byte FNV-derived
-content hash as the no-lockfile placeholder. Replacing the hash implementation with blake3 later
-should not change the writer/reader ownership shape.
+The chunk-id algorithm is BLAKE3 and is part of the versioned ZrPack format contract. The writer,
+reader, delta path, dedup table, and Content Download verifier all call the shared
+`zrpack_content_hash`; no lower layer may substitute FNV, SHA-256, or a string-encoded digest.
 
 ## Dependency Closure Trim
 

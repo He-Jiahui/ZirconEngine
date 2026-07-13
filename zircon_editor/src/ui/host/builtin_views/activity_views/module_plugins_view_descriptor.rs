@@ -17,7 +17,7 @@ pub(super) fn module_plugins_view_descriptor() -> ViewDescriptor {
         ViewContentKind::ModulePlugins,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.module_plugins.body",
+        "res://ui/editor/host/module_plugins_body.zui",
         PanePayloadKind::ModulePluginsV1,
         PaneRouteNamespace::Dock,
         PaneInteractionMode::HybridNativeSlot,

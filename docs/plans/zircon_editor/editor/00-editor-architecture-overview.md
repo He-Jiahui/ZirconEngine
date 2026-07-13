@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/core/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/core/editor_event/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime_interface/src/runtime_api.rs
 reference_sources:

@@ -59,7 +59,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
-  - zircon_editor/src/ui/asset_editor/shell_layout.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
@@ -98,20 +98,20 @@ related_code:
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs
+  - zircon_editor/src/ui/layouts/views/animation_editor.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
-  - zircon_editor/src/ui/layouts/views/console_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/hierarchy_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/inspector_shell_layout.rs
+  - zircon_editor/src/ui/layouts/views/console.rs
+  - zircon_editor/src/ui/layouts/views/hierarchy.rs
+  - zircon_editor/src/ui/layouts/views/inspector.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
-  - zircon_editor/src/ui/layouts/views/welcome_shell_layout.rs
+  - zircon_editor/src/ui/layouts/views/welcome.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
@@ -132,7 +132,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
   - zircon_editor/src/tests/ui/boundary/mod.rs
@@ -222,7 +222,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
-  - zircon_editor/src/ui/asset_editor/shell_layout.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
@@ -260,20 +260,20 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/assets_activity_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/console_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/hierarchy_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/inspector_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/project_overview_shell_layout.rs
-  - zircon_editor/src/ui/layouts/views/welcome_shell_layout.rs
+  - zircon_editor/src/ui/layouts/views/animation_editor.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/assets_activity.rs
+  - zircon_editor/src/ui/layouts/views/console.rs
+  - zircon_editor/src/ui/layouts/views/hierarchy.rs
+  - zircon_editor/src/ui/layouts/views/inspector.rs
+  - zircon_editor/src/ui/layouts/views/project_overview.rs
+  - zircon_editor/src/ui/layouts/views/welcome.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
@@ -331,7 +331,7 @@ tests:
   - cargo test -p zircon_editor --lib workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset --jobs 1 --target-dir target\codex-ui-v2-guard
   - cargo test -p zircon_editor --lib editor_manager_refreshes_clean_v2_ui_asset_session_from_external_file_change --jobs 1 --target-dir target\codex-ui-v2-guard
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-visual-fix-0624 --message-format short --color never (2026-06-24: passed with existing warning noise after host session typed-error cleanup and ThemeTokens style routing)
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
@@ -470,7 +470,7 @@ doc_type: module-detail
 - 编辑状态机、intent、history 和 editor-event runtime
 - 非 UI 的 editor 资产状态与 command/runtime contract
 
-本轮明确删除了旧的 [`zircon_editor/src/core/host/manager.rs`](../../zircon_editor/src/core/host/manager.rs) owner 角色，而且 `core::host` 整个子树都已经退场。`core` 里不再存在兼容性的 host façade 或模块 owner。
+本轮明确删除了旧 `zircon_editor/src/core/host/manager.rs` owner 角色，而且 `core::host` 整个子树都已经退场。当前 [`ui/host/editor_manager.rs`](../../zircon_editor/src/ui/host/editor_manager.rs) 是 UI host 协调 owner；`core` 里不再存在兼容性的 host façade 或模块 owner。
 
 ### `ui::host` 现在拥有什么
 
@@ -699,12 +699,12 @@ This keeps `workbench_host_window` from importing retained host DTO declarations
 
 All pane shell topology now comes from `.zui` assets and shared runtime UI projection. The retained host can render or route the resulting frames, but it does not invent page-level panel geometry.
 
-- [`ui_asset_editor.zui`](../../zircon_editor/assets/ui/editor/ui_asset_editor.zui) is now both the retained host projection authority and the UI Asset Editor bootstrap authoring fixture. Header rows, left/center/right columns, palette, hierarchy, designer, action bar, source, inspector, stylesheet, emergency, and render-stack regions are authored as flat v2 nodes with Material classes and fixed `control_id` values. The older `ui_asset_editor.ui.toml` bootstrap asset has been deleted; session tests now open the v2 document through `UiAssetEditorSession::from_v2_source(...)`, and schema-aware serialization keeps edited/canonical source on v2 instead of downgrading to recursive legacy TOML. [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) extracts the projected regions into `UiAssetEditorShellLayout`; scene projection injects the layout back into `UiAssetEditorPanePresentation`; retained pane conversion publishes it through host-contract `UiAssetEditorShellLayoutData`.
-- [`asset_browser.zui`](../../zircon_editor/assets/ui/editor/asset_browser.zui) owns the Asset Browser toolbar/import/main/utility/reference shell on the production path. The authoring fixture now lives as `zircon_editor/src/tests/fixtures/ui_zui/editor/asset_browser.zui` for UI Asset Editor authoring/migration tests. [`asset_browser_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs) extracts `AssetBrowserShellLayout`; host projection and retained conversion keep it as pane data instead of local coordinate formulas.
-- [`animation_editor.zui`](../../zircon_editor/assets/ui/editor/animation_editor.zui) owns animation header/body and sequence/graph/state-machine mode regions. [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs) extracts `AnimationEditorShellLayout`; `retained_host/ui/pane_data_conversion/mod.rs` carries it into `AnimationEditorPaneData`.
+- [`ui_asset_editor.zui`](../../zircon_editor/assets/ui/editor/ui_asset_editor.zui) is now both the retained host projection authority and the UI Asset Editor bootstrap authoring fixture. Header rows, left/center/right columns, palette, hierarchy, designer, action bar, source, inspector, stylesheet, emergency, and render-stack regions are authored as flat v2 nodes with Material classes and fixed `control_id` values. The older `ui_asset_editor.ui.toml` bootstrap asset and `ui/asset_editor/shell_layout.rs` adapter have been deleted; session tests open the v2 document through `UiAssetEditorSession::from_v2_source(...)`, while [`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) applies the host-owned pane shell frames directly without restoring the retired `UiAssetEditorShellLayout` DTO.
+- [`asset_browser.zui`](../../zircon_editor/assets/ui/editor/asset_browser.zui) owns the Asset Browser toolbar/import/main/utility/reference shell on the production path. The authoring fixture now lives as `zircon_editor/src/tests/fixtures/ui_zui/editor/asset_browser.zui` for UI Asset Editor authoring/migration tests. [`asset_browser_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/asset_browser.rs) extracts `AssetBrowserShellLayout`; host projection and retained conversion keep it as pane data instead of local coordinate formulas.
+- [`animation_editor.zui`](../../zircon_editor/assets/ui/editor/animation_editor.zui) owns animation header/body and sequence/graph/state-machine mode regions. [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor.rs) extracts `AnimationEditorShellLayout`; `retained_host/ui/pane_data_conversion/mod.rs` carries it into `AnimationEditorPaneData`.
 - [`assets_activity.zui`](../../zircon_editor/assets/ui/editor/assets_activity.zui) and [`assets_activity.rs`](../../zircon_editor/src/ui/layouts/views/assets_activity.rs) use neutral `ViewTemplateNodeData` mount nodes rather than a bespoke shell-layout DTO. Scene projection injects current frames during host projection.
 - [`project_overview.zui`](../../zircon_editor/assets/ui/editor/project_overview.zui) and [`project_overview.rs`](../../zircon_editor/src/ui/layouts/views/project_overview.rs) route Project Overview through generic template nodes with snapshot text overrides.
-- [`welcome.zui`](../../zircon_editor/assets/ui/editor/welcome.zui), [`welcome_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/welcome_shell_layout.rs), and [`welcome_presentation.rs`](../../zircon_editor/src/ui/layouts/views/welcome_presentation.rs) keep Welcome page shell bands in assets and pass visible-surface sizing through retained presentation apply.
+- [`welcome.zui`](../../zircon_editor/assets/ui/editor/welcome.zui), [`welcome_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/welcome.rs), and [`welcome_presentation.rs`](../../zircon_editor/src/ui/layouts/views/welcome_presentation.rs) keep Welcome page shell bands in assets and pass visible-surface sizing through retained presentation apply.
 - [`hierarchy.zui`](../../zircon_editor/assets/ui/editor/hierarchy.zui), [`inspector.zui`](../../zircon_editor/assets/ui/editor/inspector.zui), and [`console.zui`](../../zircon_editor/assets/ui/editor/console.zui) own the remaining tool-pane shell frames, extracted by the corresponding `*_shell_layout.rs` modules and carried as Rust-owned pane data.
 
 The current source guards lock this authority split instead of preserving old generated names:
@@ -850,7 +850,7 @@ The accepted focused gates for this boundary are the pane bootstrap tests, `test
   - 追加验证 219 个 UI Asset Editor authoring/session 回归，确认 runtime-report projection 没有破坏 source/preview/tree/style/binding/replay/emergency/designer 语义
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never`
   - 证明 `runtime_report_state.rs`、`diagnostics/localization.rs`、pane presentation、retained/native DTO conversion 和 editor template-service façade 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warnings
-- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
   - 追加验证 M15 editor dependency view 相关 session/presentation/DTO/test 文件格式，通过且无输出
 - `cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1`
   - 追加验证 4 个 M15 editor dependency-view 回归，覆盖 `UiAssetEditorSession` typed resource dependency/diagnostic accessors、source edit 刷新和资源编译失败后清空

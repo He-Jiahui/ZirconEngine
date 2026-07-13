@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_execution_order.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_execution_order.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
 plan_sources:
   - user: 2026-04-19 把 virtual_geometry_cluster_draws authority 继续下沉到更真实的 visibility-owned / GPU-generated args source 和 deeper cluster-raster execution
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-virtual-geometry-fallback-unified-indirect-downshift.md
   - docs/superpowers/plans/2026-04-19-m5-virtual-geometry-mesh-build-authority-convergence.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_execution_order.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_execution_order.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_missing_explicit_segments_do_not_resurrect_cpu_full_mesh_fallback_draws -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_args_source_authority -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_submission_execution_order -- --nocapture

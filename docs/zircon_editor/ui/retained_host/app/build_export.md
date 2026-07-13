@@ -3,6 +3,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/action_ids.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/error.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/constructors.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/status.rs
@@ -12,7 +13,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/cancellation.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/enqueue.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/status_task.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/output.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/cancellation.rs
@@ -21,7 +21,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/progress.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status_task.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/target.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
@@ -50,8 +49,25 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/cargo_build.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/error.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support/output_capture.rs
+  - zircon_editor/src/ui/host/export_process_support/error.rs
+  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/ui/host/export_process_support/child_guard.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
@@ -61,10 +77,13 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/action_ids.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/error.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/constructors.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/status.rs
@@ -74,7 +93,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/cancellation.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/enqueue.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/status_task.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/output.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/cancellation.rs
@@ -83,7 +101,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/progress.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status_task.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/target.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
@@ -112,8 +129,25 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/cargo_build.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/error.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support/output_capture.rs
+  - zircon_editor/src/ui/host/export_process_support/error.rs
+  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/ui/host/export_process_support/child_guard.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/cleanup.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
+  - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
@@ -122,6 +156,8 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_plugins/09-export-publishing.md
@@ -129,6 +165,9 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
+  - user: 2026-07-11 Plan 14 M2.1 export wizard job-system hard cutover
+  - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
+  - user: 2026-07-11 Plan 14 M2.2 export worker and pipe-reader hard cutover
 tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
@@ -138,6 +177,10 @@ tests:
   - app build-export job-queue worker ownership scan
   - app build-export job-queue subowner ownership scan
   - app build-export job-queue state/enqueue/query ownership scan
+  - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - app build-export action/profile ownership scan
   - app build-export execution-summary ownership scan
   - app build-export execution-summary subowner ownership scan
@@ -180,7 +223,21 @@ doc_type: module-detail
 
 `app/build_export_actions/job_queue.rs` is the structural asynchronous desktop export job-queue entry. It re-exports only the app-facing queue and snapshot helpers, while child owners hold state, enqueue behavior, query/projection assembly, cancellation, update polling, startup, worker execution, and snapshot formatting.
 
-`app/build_export_actions/job_queue/state.rs` owns `DesktopExportJobQueue`, pending/active job structs, the queue channels, and default initialization. `job_queue/enqueue.rs` owns queued job creation and initial queued snapshots. `job_queue/queries.rs` owns busy-profile checks and active/pending queue snapshots. `app/build_export_actions/job_queue/cancellation.rs` owns pending cancellation, active cancellation requests, and `DesktopExportCancellation` results. `app/build_export_actions/job_queue/updates.rs` owns backend message polling and result-summary collection. `app/build_export_actions/job_queue/start.rs` owns active-job startup and worker spawning. `app/build_export_actions/job_queue/snapshot.rs` is the structural snapshot entry and owns only `DesktopExportJobSnapshot` plus `DesktopExportProgressSnapshot`. Its children own progress conversion (`snapshot/progress.rs`), pane/status formatting (`snapshot/status.rs`), target-row overlay application (`snapshot/target.rs`), and status-task projection (`snapshot/status_task.rs`). `app/build_export_actions/job_queue/worker.rs` owns worker-thread execution, export progress message creation, finished-job result DTOs, and result-to-summary conversion. The parent action module re-exports only the queue types and pane/status projection helpers needed by `RetainedEditorHost` and `build_export_projection.rs`.
+`app/build_export_actions/job_queue/state.rs` owns the explicitly injected `EditorJobSystem`, pending/active job structs, progress-only channel, and queued immediate summaries. Pending entries hold a `CancellationToken`; the active entry holds `JobTicket<DesktopExportJobResult>`, the same token, and current UI progress. There is no production `Default`: retained startup constructs the queue from `EditorManager.context().jobs().clone()` and reuses that service for the wizard sessions.
+
+`job_queue/enqueue.rs` owns queued job creation and initial snapshots. `job_queue/queries.rs` owns busy-profile checks and active/pending projections. `job_queue/cancellation.rs` removes and token-cancels pending entries; active cancellation calls both `token.cancel()` and `jobs.cancel(ticket.id())`. `job_queue/start.rs` submits `DesktopExportEditorJob` as `JobCategory::Export`. `job_queue/worker.rs` owns the `EditorJob` adapter, export progress DTO, typed success DTO, and success result-to-summary conversion; it does not create a thread and does not send a finished message. Cancellation and business failure return `JobError::Cancelled`/`JobError::Failed`, keeping generic Job bus terminal events aligned with the retained projection. `job_queue/updates.rs` drains progress first, then calls `ticket.try_take()` and is the sole terminal projection owner for success, failure, panic/channel errors, queued cancellation and active cancellation. `snapshot.rs` and its children continue to own progress conversion, pane/status formatting, target overlay, and status-task projection.
+
+## Structured process concurrency and cancellation
+
+Both export execution paths reuse the same jobs service. `ProcessCommandRunner::new(jobs)` is injected by the wizard panel session, while retained queue workers reach the service through the same `EditorManager.context()`. Each child redirects stdout/stderr to unique temporary files. Every monitor iteration uses nested `EditorJobSystem::join` for two regular-file reads capped at 64 KiB each plus one non-blocking child poll; it then sleeps only after all branches return. This shape stays live with a one-thread Runtime pool, does not submit nested Export tickets, and cannot be backpressured by OS pipe buffers. Wizard incrementally decodes complete lines for streaming UI events and flushes a final partial line after exit; Cargo preserves raw bytes until it constructs the invocation. Final drain loops until both files return EOF. The child guard kills/waits the process tree on unwind; normal completion explicitly disarms it after final drain, then the child handle closes before the output-capture guard removes both temporary files.
+
+The full retained/native/Cargo chain uses `CancellationToken`. Native package loops check between packages and after Cargo, export materialization checks at cleanup boundaries, and process pollers terminate active child trees when the token changes. Native staging is protected by an ownership guard: an early typed failure removes staging/build roots, and a cleanup failure is attached to the primary `NativeDynamicPreparationError`. Wizard and Cargo share the process-tree helper, including Unix process groups, Windows tree termination, and direct-child fallback; failed termination attempts retain command-spawn or fallback-kill `io::Error` sources in addition to display diagnostics. The worker decides `Completed`/`Cancelled`/`Failed` exactly once when it returns. Only a source-free `EditorExportBuildError::Cancelled` becomes `JobError::Cancelled`; cleanup, IO, or termination failures remain typed `JobError::Failed` even when the cancellation token is set. The old `AtomicBool` references, detached worker, pipe-reader threads, and finished-message terminal owner were removed as a hard cutover.
+
+## Typed export error contract
+
+The export pipeline has one typed error chain from Runtime plan selection to the retained job ticket. `zircon_runtime::plugin::ExportBuildPlanError` owns plan-construction failures such as a missing profile. `EditorExportBuildError` owns the editor boundary and preserves plan, materialization IO, Cargo, general child-process, native preparation, source-free cancellation, cancellation-with-cleanup-failure, and wizard business-outcome failures as distinct variants. `NativeDynamicPreparationError` preserves structured paths, staging/build/cleanup IO sources, nested process errors, and preparation-plus-cleanup dual failures. `ExportProcessError` preserves structured stream/path context, spawn/read/poll/wait/cleanup context, typed termination attempts, and the original `std::io::Error`; cleanup failure wraps the primary process failure instead of replacing it.
+
+`manager.rs`, generated Cargo invocation, native preparation, output-folder host actions, and the production wizard command runner return typed errors. A failed wizard stage stores its original error as `JobFailure` beside the cloned display snapshot; the controller returns that same failure to the ticket instead of rebuilding an error from diagnostics. The retained export worker likewise passes the concrete `EditorExportBuildError` directly to `JobError::failed`, so callers can downcast from a completed ticket back to the export-domain error and continue traversing `Error::source()`. `DesktopExportActionError` keeps project-root, manifest, picker/reveal spawn, exit status, unsupported-host, and filesystem failures typed until the status-line projection. `to_string()` is confined to diagnostics/status projection after the typed result has been retained. The former cross-module `Result<_, String>`, `From<String>`, and string-compatible overload paths are not retained.
 
 ## Action Ids
 
@@ -192,7 +249,7 @@ The parent action module re-exports the parser and enum for sibling modules such
 
 `app/build_export_actions/host_actions.rs` owns retained-host action dispatch. It parses `BuildExportAction` values, applies plan refresh and direct output override mutations, and delegates longer side effects to job/output child owners.
 
-`app/build_export_actions/host_actions/jobs.rs` is the structural desktop export queue side-effect entry. `host_actions/jobs/polling.rs` owns poll/update handling, completed-summary publication, start-next dispatch, and dirty layout marking. `host_actions/jobs/enqueue.rs` owns busy-profile rejection, active-project/profile/manifest/output-root snapshotting, queued-job creation, and immediate poll kick. `host_actions/jobs/cancellation.rs` owns pending/active cancellation result handling and status text. `host_actions/jobs/status_task.rs` owns queue-to-status-task synchronization.
+`app/build_export_actions/host_actions/jobs.rs` is the structural desktop export queue side-effect entry. `host_actions/jobs/polling.rs` owns poll/update handling, completed-summary publication, start-next dispatch, queue-to-status-task synchronization, and dirty layout marking. `host_actions/jobs/enqueue.rs` owns busy-profile rejection, active-project/profile/manifest/output-root snapshotting, queued-job creation, and immediate poll kick. `host_actions/jobs/cancellation.rs` owns pending/active cancellation result handling and status text.
 
 `app/build_export_actions/host_actions/output.rs` owns native output-folder side effects and effective output-root lookup.
 
@@ -248,6 +305,10 @@ Keeping wizard option construction outside the session owner separates active-pr
 
 `ui/host/editor_manager_plugins_export/export_build/wizard/session.rs` owns the shared desktop export wizard panel registration used by retained-host Build/Export sessions. It now registers the v2 panel template together with the `editor_base.zui` import source through `EditorUiHostRuntime::register_v2_template_document_files(...)`, so retained projection can resolve declared v2 imports from a single registered document group.
 
+`wizard/controller.rs` owns the job-system-facing controller declaration, while `wizard/controller/job.rs` is the narrow `EditorJob` execution owner, `wizard/controller/poll.rs` declares event-bearing pending/completed/typed-error ticket polling state, and `wizard/controller/completion.rs` owns direct-finish aggregation. The controller submits `JobCategory::Export` work through the injected `EditorJobSystem`, retains the export-domain event receiver and job-system clone, and maps cancellation to both the shared `CancellationToken` and `EditorJobSystem::cancel(ticket.id())`. Queued work is removed atomically; typed cancellation event/ticket is sent synchronously before its completed handle becomes visible to dependents, without worker submission or waiting for export quota. Scheduled/running work keeps cooperative token semantics. The owner maps business `Finished/Cancelled/Failed` snapshots to matching generic completed/cancelled/failed outcomes, with business diagnostics carried by typed failure. Session polling performs its normal business drain and then calls `JobTicket::try_take`; once ready, controller immediately drains the receiver again and returns those terminal events with the typed result. Session applies the event batch before final/error mapping, preserving final `StageFinished/Cancelled/Failed` stage/output/diagnostics across the two channels. Direct finish returns one `ExportWizardJobCompletion` containing all remaining business events plus the typed result and uses the same ordering. `ExportWizardPanelSession` and `DesktopExportWizardSessions` both require explicit job-system injection; startup assembly supplies `EditorManager.context().jobs().clone()`, while tests construct isolated fixtures.
+
+`app/host_lifecycle/tick.rs` is the retained main-thread pump owner. Each frame pumps `EditorManager.context().jobs()` before polling export jobs and wizard sessions, so the same Context-owned service injected at construction publishes generic worker events to the editor message bus without a second pool/bus or worker-thread subscriber execution. Its static test scans production source only and proves the single retained tick owner plus ordering; it does not claim to establish OS thread identity.
+
 `wizard/execution.rs` and `wizard/run.rs` own pipeline execution and job event sequencing. Cancellation is classified by the point where the cancel signal is observed: during command execution remains an in-stage cancellation, while a signal observed after stage completion is reported as phase-boundary cancellation by the job runner.
 
 The export wizard test owner tree lives in `wizard/tests/{support,pipeline_plan,pipeline_execution,job,panel_session,view_model}.rs` with `mod.rs` as the local test entry. The former oversized root test file was deleted. 2026-06-22 validation passed `cargo fmt -p zircon_editor --check`, the editor structure audit with `oversized_production_file_count = 8`, old-file existence checks, line-count sampling, and scoped `git diff --check`; focused `export_wizard` Cargo testing previously stopped before editor tests on the active runtime `GpuMeshResource::indirect_order_signature` visibility error, and a later rerun timed out after 304 seconds without diagnostics. Matching cargo/rustc leftovers were stopped, so that historical slice did not claim a pass.
@@ -261,7 +322,7 @@ The export wizard test owner tree lives in `wizard/tests/{support,pipeline_plan,
 - Keep desktop export poll/update handling, completed-summary publication, start-next dispatch, and changed-layout marking in `app/build_export_actions/host_actions/jobs/polling.rs`.
 - Keep desktop export enqueue preparation, active-project/profile/manifest/output-root snapshotting, queued-job creation, and immediate poll kick in `app/build_export_actions/host_actions/jobs/enqueue.rs`.
 - Keep desktop export pending/active cancellation result handling and cancellation status text in `app/build_export_actions/host_actions/jobs/cancellation.rs`.
-- Keep desktop export queue-to-status-task synchronization in `app/build_export_actions/host_actions/jobs/status_task.rs`.
+- Keep desktop export queue-to-status-task synchronization in `app/build_export_actions/host_actions/jobs/polling.rs`.
 - Keep output-folder picker/reveal side effects and effective output-root lookup in `app/build_export_actions/host_actions/output.rs`.
 - Keep Build/Export action-id grammar and parser behavior in `app/build_export_actions/action_ids.rs`.
 - Keep completed export summary DTOs in `app/build_export_actions/execution_summary.rs`.
@@ -270,18 +331,18 @@ The export wizard test owner tree lives in `wizard/tests/{support,pipeline_plan,
 - Keep completed summary target-row application in `app/build_export_actions/execution_summary/target.rs`.
 - Keep export profile catalog, platform labels, profile lookup, and default output-root convention in `app/build_export_actions/profiles.rs`.
 - Keep `app/build_export_actions/job_queue.rs` as the structural job-queue entry.
-- Keep pending/active internal job state and queue channels in `app/build_export_actions/job_queue/state.rs`.
+- Keep injected jobs ownership, pending/active typed state, progress channel, and immediate terminal summaries in `app/build_export_actions/job_queue/state.rs`.
 - Keep queued job creation in `app/build_export_actions/job_queue/enqueue.rs`.
 - Keep busy checks and active/pending queue snapshots in `app/build_export_actions/job_queue/queries.rs`.
 - Keep pending/active cancellation state and `DesktopExportCancellation` results in `app/build_export_actions/job_queue/cancellation.rs`.
-- Keep backend message polling and result-summary collection in `app/build_export_actions/job_queue/updates.rs`.
-- Keep start-next active-job transition and worker spawning in `app/build_export_actions/job_queue/start.rs`.
+- Keep progress draining, ticket polling, and unified result-summary collection in `app/build_export_actions/job_queue/updates.rs`.
+- Keep start-next active-job transition and `JobCategory::Export` submission in `app/build_export_actions/job_queue/start.rs`.
 - Keep job snapshot DTOs and progress snapshot DTOs in `app/build_export_actions/job_queue/snapshot.rs`.
 - Keep job progress-report conversion in `app/build_export_actions/job_queue/snapshot/progress.rs`.
 - Keep queued/running/cancelled pane and status-task text formatting in `app/build_export_actions/job_queue/snapshot/status.rs`.
 - Keep job snapshot target-row overlay application in `app/build_export_actions/job_queue/snapshot/target.rs`.
-- Keep desktop export status-task projection in `app/build_export_actions/job_queue/snapshot/status_task.rs`.
-- Keep desktop export worker-thread spawning, worker progress/result messages, and result-to-summary conversion in `app/build_export_actions/job_queue/worker.rs`.
+- Keep desktop export status-task projection with the current status owner in `app/build_export_actions/job_queue/snapshot/status.rs`.
+- Keep the desktop export `EditorJob` adapter, progress DTO, typed result DTO, and business result-to-summary conversion in `app/build_export_actions/job_queue/worker.rs`.
 - Keep output-folder picker/reveal platform integration in `app/build_export_actions/output_folder.rs` and its `output_folder/` children.
 - Keep output-folder picker process execution and failure handling in `app/build_export_actions/output_folder/picker.rs`.
 - Keep output-folder picker platform command construction in `app/build_export_actions/output_folder/picker/commands.rs`.
@@ -305,11 +366,13 @@ The export wizard test owner tree lives in `wizard/tests/{support,pipeline_plan,
 
 ## Validation Notes
 
+The 2026-07-12 typed export-error hard cutover adds actual ticket-level regression coverage for both export adapters. Wizard tests submit the real controller and prove that ordinary process IO failure plus a process failure observed after an in-flight cancellation request remain downcastable `EditorExportBuildError` values. The retained queue test submits `DesktopExportEditorJob` through `EditorJobSystem` and recovers the same typed error from `JobTicket`. Native preparation owns staging cleanup for its full lifetime, attempts both temporary roots, and retains materialization-plus-cleanup or process-plus-termination dual failures as structured values. Windows validation passed `cargo check -p zircon_editor --lib --locked --jobs 1` and the focused wizard 3/3 plus retained worker 1/1 tests; string conversion remains confined to UI diagnostics after typed retention.
+
 The 2026-06-18 job-queue split reduced `build_export_actions.rs` from 896 lines to 498 lines. `build_export_actions/job_queue.rs` is 413 lines and owns the desktop export queue, progress snapshots, cancellation result, status task projection, pane job overlay helper, worker thread execution, and result-to-summary conversion. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export job-queue ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
 The 2026-06-19 job-queue snapshot split reduced `build_export_actions/job_queue.rs` from 413 lines to 285 lines. `build_export_actions/job_queue/snapshot.rs` is 106 lines and owns job/progress snapshot DTOs, pane diagnostics, Build/Export target overlay application, and status task projection. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export job-queue snapshot ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 142 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-19 job-queue operation subowner split reduced `build_export_actions/job_queue.rs` from 225 lines to 118 lines. `job_queue/cancellation.rs` is 49 lines and owns pending/active cancellation behavior plus `DesktopExportCancellation`. `job_queue/updates.rs` is 37 lines and owns worker message polling plus summary collection. `job_queue/start.rs` is 40 lines and owns start-next active state transition plus worker spawn.
+The 2026-06-19 job-queue operation subowner split reduced `build_export_actions/job_queue.rs` from 225 lines to 118 lines. At that historical point `updates.rs` polled worker messages and `start.rs` spawned a worker; Plan 14 M2.2 later replaced those mechanics with progress draining plus typed ticket polling and `EditorJobSystem` submission while retaining the same subowner boundaries.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export job-queue subowner ownership scan, and scoped `git diff --check`, all of which passed except for existing CRLF conversion warnings in the dirty worktree. Focused `cargo check` was not rerun for this slice because independent `zircon_runtime` Cargo test/check processes were still active; full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
@@ -335,7 +398,7 @@ The 2026-06-19 host-action job/output split reduced `build_export_actions/host_a
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, and an app build-export host-action job/output ownership scan. A fresh `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never` was attempted but failed before reaching editor code on current `zircon_runtime` worktree errors in `graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs`: missing `ViewportCameraStackAttachmentPolicy` export and a borrow after moving `submission.frame`. A narrower no-default editor check was attempted and timed out, so this slice does not claim a fresh compile pass. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-19 host-action job subowner split reduced `build_export_actions/host_actions/jobs.rs` from 98 lines to a 4-line structural entry. `host_actions/jobs/polling.rs` is 28 lines and owns poll/update handling, completed-summary publication, start-next dispatch, and dirty layout marking; `host_actions/jobs/enqueue.rs` is 50 lines and owns busy-profile rejection, active-project/profile/manifest/output-root snapshotting, queued-job creation, and immediate poll kick; `host_actions/jobs/cancellation.rs` is 32 lines and owns pending/active cancellation result handling and status text; `host_actions/jobs/status_task.rs` is 11 lines and owns queue-to-status-task synchronization.
+The 2026-06-19 host-action job subowner split originally created a dedicated `status_task.rs`; the later job hard cutover removed that file and folded queue-to-status-task synchronization into current `host_actions/jobs/polling.rs`. `host_actions/jobs/enqueue.rs` continues to own busy-profile rejection, active-project/profile/manifest/output-root snapshotting, queued-job creation, and immediate poll kick; `host_actions/jobs/cancellation.rs` owns pending/active cancellation result handling and status text.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export host-action job subowner ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
@@ -345,7 +408,7 @@ The 2026-06-19 projection-target subowner split reduced `build_export_projection
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export projection-target subowner ownership scan, and scoped `git diff --check` (only the existing CRLF conversion warning appeared). A fresh `cargo check` was deferred for this slice because separate runtime Cargo checks are currently active in this workspace; full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-19 owner-split compile correction adjusted `build_export_actions/job_queue/worker.rs` so the worker imports `DesktopExportExecutionSummary` from the Build/Export action parent module instead of from the job-queue child module. This keeps completed export summary construction owned by `execution_summary.rs` while allowing the worker child to convert finished job results into summaries for `job_queue/updates.rs`. After formatting, `build_export_actions/job_queue.rs` is 127 lines, `job_queue/worker.rs` is 84 lines, and the operation child owners remain `cancellation.rs` (54 lines), `updates.rs` (38 lines), and `start.rs` (43 lines).
+The 2026-06-19 owner-split compile correction established that `build_export_actions/job_queue/worker.rs` imports `DesktopExportExecutionSummary` from the Build/Export action parent rather than the job-queue child. Plan 14 M2.2 preserves that summary ownership but now feeds it from a typed `DesktopExportJobResult` consumed by `updates.rs`, not a finished worker message. The operation child boundaries remain `cancellation.rs`, `updates.rs`, and `start.rs`; current line counts are intentionally not frozen in this document.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export job-queue ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
@@ -361,7 +424,7 @@ Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --chec
 
 The 2026-06-19 retained-host owner visibility compile-boundary correction widened `output_folder/picker/commands.rs::folder_picker_commands(...)` and `output_folder/picker/selection.rs::parse_selected_folder(...)` only to `pub(in crate::ui::retained_host::app::build_export_actions::output_folder)`. This preserves the `picker.rs` re-export and `output_folder/tests.rs` coverage after the picker subowner split without exposing OS command construction outside the output-folder integration family. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app retained-host owner visibility compile-boundary scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
-The 2026-06-19 job snapshot projection subowner split reduced `build_export_actions/job_queue/snapshot.rs` from 106 lines to a 31-line structural entry. `snapshot/progress.rs` is 12 lines and owns progress-report conversion, `snapshot/status.rs` is 44 lines and owns queued/running/cancelled status text plus pane diagnostics, `snapshot/target.rs` is 10 lines and owns Build/Export target-row overlay application, and `snapshot/status_task.rs` is 30 lines and owns status-task projection.
+The 2026-06-19 job snapshot projection subowner split originally created a dedicated `snapshot/status_task.rs`; the later job hard cutover removed that file and folded status-task projection into current `snapshot/status.rs`, alongside queued/running/cancelled status text and pane diagnostics. `snapshot/progress.rs` retains progress-report conversion and `snapshot/target.rs` retains Build/Export target-row overlay application.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app build-export job-queue snapshot subowner ownership scan, and scoped `git diff --check`. Focused `cargo check` was not rerun for this slice because independent Cargo/rustc processes were active; full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 

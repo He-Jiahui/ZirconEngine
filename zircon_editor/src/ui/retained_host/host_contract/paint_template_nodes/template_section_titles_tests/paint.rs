@@ -1,5 +1,6 @@
 use crate::ui::layouts::common::model_rc;
 
+use super::super::super::super::paint_theme::current_host_palette;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::support::{changed_pixel_count, pixel_at, title_node};
 
@@ -12,7 +13,10 @@ fn component_drawer_section_title_paints_bold_label() {
     );
 
     assert!(changed_pixel_count(&bytes, 180, 18, 14, 72, 20) > 0);
-    assert_eq!(pixel_at(&bytes, 180, 12, 8), [0, 0, 0, 255]);
+    let palette = current_host_palette();
+    assert_eq!(pixel_at(&bytes, 180, 12, 10), palette.surface_pressed);
+    assert_eq!(pixel_at(&bytes, 180, 12, 37), palette.border);
+    assert_eq!(pixel_at(&bytes, 180, 8, 8), [0, 0, 0, 255]);
 }
 
 #[test]

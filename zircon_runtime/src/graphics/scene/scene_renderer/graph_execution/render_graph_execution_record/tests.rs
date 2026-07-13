@@ -35,6 +35,7 @@ fn execution_record_preserves_history_copy_report() {
         false,
         false,
         false,
+        false,
     );
 
     record.set_history_copy_report(report);

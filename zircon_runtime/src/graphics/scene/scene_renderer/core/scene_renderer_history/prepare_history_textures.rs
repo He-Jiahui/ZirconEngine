@@ -1,4 +1,4 @@
-use crate::core::framework::render::FrameHistoryHandle;
+use crate::core::framework::render::{FrameHistoryHandle, FroxelGridQuality};
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
     TemporalHistoryKey, TAA_SCENE_COLOR_HISTORY_FORMAT,
@@ -23,6 +23,7 @@ pub(crate) fn prepare_history_textures<'a>(
     screen_space_reflection_history_enabled: bool,
     hzb_history_enabled: bool,
     exposure_history_enabled: bool,
+    volumetric_history_quality: Option<FroxelGridQuality>,
 ) -> (Option<&'a mut SceneFrameHistoryTextures>, bool) {
     let mut history_available = false;
     let mut history_textures = None;
@@ -33,11 +34,18 @@ pub(crate) fn prepare_history_textures<'a>(
         || screen_space_reflection_history_enabled
         || hzb_history_enabled
         || exposure_history_enabled
+        || volumetric_history_quality.is_some()
     {
         if let Some(handle) = history_handle {
             let hzb_plan = HzbBuilder::new(render_size).build_plan();
             let history = history_targets.entry(handle).or_insert_with(|| {
-                SceneFrameHistoryTextures::new(device, queue, size, render_size)
+                SceneFrameHistoryTextures::new_with_volumetric_history(
+                    device,
+                    queue,
+                    size,
+                    render_size,
+                    volumetric_history_quality,
+                )
             });
             let history_matches_target = history.size == size
                 && history.hzb_furthest_size == hzb_plan.hzb_size
@@ -45,14 +53,22 @@ pub(crate) fn prepare_history_textures<'a>(
                 && history.taa_scene_color_history_matches(TemporalHistoryKey::new(
                     size,
                     TAA_SCENE_COLOR_HISTORY_FORMAT,
-                ));
+                ))
+                && history.volumetric_history_quality() == volumetric_history_quality;
             history_available = previous_history_available && history_matches_target;
             if !history_matches_target {
-                *history = SceneFrameHistoryTextures::new(device, queue, size, render_size);
+                *history = SceneFrameHistoryTextures::new_with_volumetric_history(
+                    device,
+                    queue,
+                    size,
+                    render_size,
+                    volumetric_history_quality,
+                );
                 history_available = false;
             }
             if !history_available {
                 history.invalidate_taa_scene_color_history();
+                history.set_volumetric_history_valid(false);
                 if exposure_history_enabled {
                     history.invalidate_exposure_history(queue);
                 }

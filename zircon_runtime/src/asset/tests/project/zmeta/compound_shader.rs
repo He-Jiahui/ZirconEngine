@@ -4,7 +4,9 @@ use super::*;
 fn project_manager_imports_compound_zshader_package_with_subassets() {
     let root = unique_temp_project_root("project_manager_compound_zshader");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "ShaderPackageSandbox",
         AssetUri::parse("res://shaders/unlit_shader").unwrap(),
@@ -15,7 +17,7 @@ fn project_manager_imports_compound_zshader_package_with_subassets() {
 
     let shader_uri = AssetUri::parse("res://shaders/unlit_shader").unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("unlit_shader.zmeta");
     let mut shader_meta =
@@ -23,7 +25,10 @@ fn project_manager_imports_compound_zshader_package_with_subassets() {
     shader_meta.unit = AssetSourceUnit::Compound;
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("unlit_shader");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("unlit_shader");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("unlit.zshader"),
@@ -215,7 +220,9 @@ fn fs_main() -> @location(0) vec4f {
 fn project_manager_derives_include_shader_import_path_from_project_and_package_path() {
     let root = unique_temp_project_root("project_manager_shader_import_path_derivation");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Package Sandbox",
         AssetUri::parse("res://shaders/noise").unwrap(),
@@ -225,14 +232,20 @@ fn project_manager_derives_include_shader_import_path_from_project_and_package_p
     .unwrap();
 
     let shader_uri = AssetUri::parse("res://shaders/noise").unwrap();
-    let shader_meta_path = paths.assets_root().join("shaders").join("noise.zmeta");
+    let shader_meta_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("noise.zmeta");
     let mut shader_meta =
         AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
     shader_meta.unit = AssetSourceUnit::Compound;
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("noise");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("noise");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("noise.zshader"),
@@ -275,7 +288,9 @@ fn shader_noise_value() -> f32 {
 fn project_manager_reports_redundant_explicit_shader_import_path() {
     let root = unique_temp_project_root("project_manager_shader_import_path_redundant");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Warning Sandbox",
         AssetUri::parse("res://shaders/cloth/common").unwrap(),
@@ -286,7 +301,7 @@ fn project_manager_reports_redundant_explicit_shader_import_path() {
 
     let shader_uri = AssetUri::parse("res://shaders/cloth/common").unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("cloth")
         .join("common.zmeta");
@@ -297,7 +312,7 @@ fn project_manager_reports_redundant_explicit_shader_import_path() {
     shader_meta.save(&shader_meta_path).unwrap();
 
     let shader_dir = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("cloth")
         .join("common");
@@ -352,7 +367,9 @@ fn shader_common_value() -> f32 {
 fn project_manager_reports_duplicate_shader_import_path_conflicts() {
     let root = unique_temp_project_root("project_manager_shader_import_path_conflict");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Conflict Sandbox",
         AssetUri::parse("res://shaders/a").unwrap(),
@@ -389,7 +406,7 @@ fn project_manager_reports_duplicate_shader_import_path_conflicts() {
 fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &str) -> AssetUri {
     let shader_uri = AssetUri::parse(&format!("res://shaders/{name}")).unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join(format!("{name}.zmeta"));
     let mut shader_meta =
@@ -398,7 +415,10 @@ fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join(name);
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join(name);
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join(format!("{name}.zshader")),

@@ -241,7 +241,8 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
 #[test]
 fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let driver_source = include_str!("../module/world_driver.rs");
-    assert!(driver_source.contains("let hooks = core.scene_runtime_hook_stage_plan_snapshot();"));
+    assert!(driver_source.contains("hooks: Mutex<SceneRuntimeHookSet>"));
+    assert!(driver_source.contains("let hooks = self.scene_runtime_hook_stage_plan_snapshot();"));
     assert!(driver_source
         .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());"));
     assert!(driver_source.contains("schedule.internal_systems_for_stage(stage)"));
@@ -252,11 +253,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!driver_source.contains("scene_runtime_hooks_for_stage(stage)"));
 
     let runtime_extensions_source = include_str!("../../core/runtime/handle/runtime_extensions.rs");
-    assert!(runtime_extensions_source.contains("scene_runtime_hook_stage_plan_snapshot"));
-    assert!(runtime_extensions_source.contains(") -> Arc<SceneRuntimeHookStagePlan>"));
-    assert!(!runtime_extensions_source.contains("fn scene_runtime_hooks_snapshot("));
+    assert!(!runtime_extensions_source.contains("SceneRuntimeHook"));
+    assert!(!runtime_extensions_source.contains("scene_runtime_hook_stage_plan_snapshot"));
 
-    let hook_state_source = include_str!("../../core/runtime/state/scene_runtime_hooks.rs");
+    let hook_state_source = include_str!("../runtime_hook/set.rs");
     assert!(hook_state_source.contains("stage_plan: Arc<SceneRuntimeHookStagePlan>"));
     assert!(hook_state_source.contains("Arc::new(SceneRuntimeHookStagePlan::from_ordered"));
     assert!(hook_state_source.contains("Arc::clone(&self.stage_plan)"));

@@ -4,10 +4,11 @@ use crate::asset::tests::support::{
     sample_animation_clip_asset, sample_animation_graph_asset, sample_animation_sequence_asset,
     sample_animation_skeleton_asset, sample_animation_state_machine_asset,
 };
-use crate::asset::{
+use crate::core::framework::animation::{
     AnimationAssetError, AnimationChannelAsset, AnimationClipAsset, AnimationEventTrackAsset,
     AnimationGraphAsset, AnimationGraphNodeAsset, AnimationSequenceAsset,
-    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
+    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationStateKindAsset,
+    AnimationStateMachineAsset,
 };
 
 #[test]
@@ -165,6 +166,32 @@ fn animation_assets_decode_legacy_stream_bytes_with_old_payload_shapes() {
             | AnimationGraphNodeAsset::Blend { .. }
             | AnimationGraphNodeAsset::Output { .. }
     )));
+
+    let state_machine_bytes = legacy_stream_bytes(
+        LegacyAnimationAssetKind::StateMachine,
+        &legacy_state_machine_from_sample(sample_animation_state_machine_asset()),
+    );
+    let state_machine = AnimationStateMachineAsset::from_bytes(&state_machine_bytes).unwrap();
+    assert!(state_machine
+        .transitions
+        .iter()
+        .all(|transition| transition.exit_time.is_none()));
+    assert!(state_machine.transitions.iter().all(|transition| matches!(
+        transition.interruption,
+        crate::core::framework::animation::AnimationTransitionInterruptionPolicyAsset::None
+    )));
+
+    let previous_state_kind_bytes = legacy_stream_bytes(
+        LegacyAnimationAssetKind::StateMachine,
+        &previous_state_kind_machine_from_sample(sample_animation_state_machine_asset()),
+    );
+    let previous_state_kind =
+        AnimationStateMachineAsset::from_bytes(&previous_state_kind_bytes).unwrap();
+    assert!(previous_state_kind.layers.is_empty());
+    assert!(matches!(
+        previous_state_kind.states[0].kind,
+        AnimationStateKindAsset::GraphRef { .. }
+    ));
 }
 
 fn reference_locators(references: Vec<crate::asset::AssetReference>) -> Vec<String> {
@@ -230,8 +257,77 @@ struct LegacyAnimationSequenceBindingAsset {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 struct LegacyAnimationGraphAsset {
     name: Option<String>,
-    parameters: Vec<crate::asset::AnimationGraphParameterAsset>,
+    parameters: Vec<crate::core::framework::animation::AnimationGraphParameterAsset>,
     nodes: Vec<LegacyAnimationGraphNodeBinary>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct LegacyAnimationStateMachineAsset {
+    name: Option<String>,
+    entry_state: String,
+    states: Vec<LegacyAnimationStateAsset>,
+    transitions: Vec<LegacyAnimationStateTransitionAsset>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct PreviousStateKindMachineAsset {
+    name: Option<String>,
+    entry_state: String,
+    states: Vec<PreviousStateKindAsset>,
+    transitions: Vec<crate::core::framework::animation::AnimationStateTransitionAsset>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct PreviousStateKindAsset {
+    name: String,
+    kind: PreviousStateKindBinaryAsset,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+enum PreviousStateKindBinaryAsset {
+    Clip {
+        clip: LegacyAnimationAssetReferenceBinary,
+    },
+    BlendSpace1D {
+        parameter: String,
+        samples: Vec<PreviousBlendSpace1DSample>,
+    },
+    BlendSpace2D {
+        parameter: String,
+        samples: Vec<PreviousBlendSpace2DSample>,
+    },
+    SubMachine {
+        state_machine: LegacyAnimationAssetReferenceBinary,
+    },
+    GraphRef {
+        graph: LegacyAnimationAssetReferenceBinary,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct PreviousBlendSpace1DSample {
+    position: f32,
+    graph: LegacyAnimationAssetReferenceBinary,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct PreviousBlendSpace2DSample {
+    position: crate::core::math::Vec2,
+    graph: LegacyAnimationAssetReferenceBinary,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct LegacyAnimationStateAsset {
+    name: String,
+    graph: LegacyAnimationAssetReferenceBinary,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct LegacyAnimationStateTransitionAsset {
+    from_state: String,
+    to_state: String,
+    duration_seconds: f32,
+    conditions: Vec<crate::core::framework::animation::AnimationTransitionConditionAsset>,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -348,6 +444,61 @@ fn legacy_graph_from_sample(graph: AnimationGraphAsset) -> LegacyAnimationGraphA
                 }
             })
             .collect(),
+    }
+}
+
+fn legacy_state_machine_from_sample(
+    state_machine: AnimationStateMachineAsset,
+) -> LegacyAnimationStateMachineAsset {
+    LegacyAnimationStateMachineAsset {
+        name: state_machine.name,
+        entry_state: state_machine.entry_state,
+        states: state_machine
+            .states
+            .into_iter()
+            .map(|state| LegacyAnimationStateAsset {
+                name: state.name,
+                graph: match state.kind {
+                    AnimationStateKindAsset::GraphRef { graph } => legacy_reference(&graph),
+                    kind => panic!("v1 fixture requires a graph-ref state, found {kind:?}"),
+                },
+            })
+            .collect(),
+        transitions: state_machine
+            .transitions
+            .into_iter()
+            .map(|transition| LegacyAnimationStateTransitionAsset {
+                from_state: transition.from_state,
+                to_state: transition.to_state,
+                duration_seconds: transition.duration_seconds,
+                conditions: transition.conditions,
+            })
+            .collect(),
+    }
+}
+
+fn previous_state_kind_machine_from_sample(
+    state_machine: AnimationStateMachineAsset,
+) -> PreviousStateKindMachineAsset {
+    PreviousStateKindMachineAsset {
+        name: state_machine.name,
+        entry_state: state_machine.entry_state,
+        states: state_machine
+            .states
+            .into_iter()
+            .map(|state| PreviousStateKindAsset {
+                name: state.name,
+                kind: match state.kind {
+                    AnimationStateKindAsset::GraphRef { graph } => {
+                        PreviousStateKindBinaryAsset::GraphRef {
+                            graph: legacy_reference(&graph),
+                        }
+                    }
+                    kind => panic!("v3 fixture requires a graph-ref state, found {kind:?}"),
+                },
+            })
+            .collect(),
+        transitions: state_machine.transitions,
     }
 }
 

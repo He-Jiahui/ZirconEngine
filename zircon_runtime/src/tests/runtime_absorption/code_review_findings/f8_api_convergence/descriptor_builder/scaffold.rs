@@ -9,8 +9,10 @@ fn review_f8_runtime_plugin_descriptor_exposes_builder_scaffold() {
     let plugin_mod = include_str!("../../../../../plugin/mod.rs");
     let plugin_descriptor_tests =
         include_str!("../../../../../tests/plugin_extensions/runtime_plugin_descriptor.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_06_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
     );

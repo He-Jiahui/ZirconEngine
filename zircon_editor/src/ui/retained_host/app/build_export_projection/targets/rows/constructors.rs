@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
-use zircon_runtime::plugin::{ExportBuildPlan, ExportProfile};
+use zircon_runtime::core::framework::project::ExportProfile;
+use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::super::super::super::{build_export_actions, RetainedEditorHost};
 use super::super::diagnostics::prepend_desktop_export_output_diagnostic;
@@ -24,6 +25,7 @@ pub(super) fn target_from_export_plan(
     let diagnostics = prepend_desktop_export_output_diagnostic(output_root.as_path(), diagnostics);
 
     BuildExportTargetViewData {
+        preset_name: profile_name.clone().into(),
         profile_name: profile_name.into(),
         platform: build_export_actions::export_platform_label(plan.profile.target_platform).into(),
         target_mode: format!("{:?}", plan.profile.target_mode).into(),

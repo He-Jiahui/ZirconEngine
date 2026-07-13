@@ -2,11 +2,11 @@
 related_code:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/Physics + Full Animation Support 新计划.md
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor_builder.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
@@ -14,20 +14,15 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/slint_adapter.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/host_context.slint
-  - zircon_editor/ui/workbench/host_scaffold.slint
-  - zircon_editor/ui/workbench/host_scene.slint
-  - zircon_editor/ui/workbench/host_surface.slint
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
-  - zircon_editor/src/ui/slint_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
+  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor_builder.rs
@@ -39,14 +34,9 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/host_context.slint
-  - zircon_editor/ui/workbench/host_scaffold.slint
-  - zircon_editor/ui/workbench/host_scene.slint
-  - zircon_editor/ui/workbench/host_surface.slint
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
 plan_sources:
   - user: ui.toml描述代替slint布局做窗口
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -69,6 +59,8 @@ doc_type: milestone-detail
 ---
 # UI TOML Pane Template Design
 
+> 2026-07 hard-cut note: `zircon_editor/ui/**/*.slint` 已整体退役；当前唯一实现入口是 front matter 中列出的 `.zui` 文档、template runtime、retained host projection 与 retained window 测试。下文出现的 Slint 文件名和 `.ui.toml` suffix 只用于解释当时迁移过程，不是可恢复的现行 owner 或兼容入口。
+
 ## 背景
 
 当前 `zircon_editor` 已经具备 `.ui.toml -> template runtime -> host projection -> Slint` 的主链；2026-04-24 cutover 后，首批 pane body 的内容定义权已经从 Rust/Slint 手工拼装层迁到 `PanePresentation` 和 `.ui.toml` 模板层，剩余 Slint DTO 只作为宿主兼容壳存在。
@@ -84,8 +76,8 @@ doc_type: milestone-detail
 
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
-- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
-- `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs`
+- `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs`
+- `zircon_editor/src/ui/retained_host/ui/apply_presentation.rs`
 
 这导致 pane body 的结构、字段、模板选择和 Slint 专用 DTO 仍然强耦合在宿主层，`.ui.toml` 只能描述一层薄壳，而不能成为 pane body 的权威来源。
 

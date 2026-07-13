@@ -21,26 +21,54 @@ fn runtime_15_module_layout_child_summary_m3_child_groups_are_child_owned() {
     let runtime_15_m3_child_group_moved_rows = format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         runtime_15_m3_child_group_moved_rows_parent,
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/delegation.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/lock_poison_rows.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/module_convention_rows.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/review_top_rows.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/status_mirrors.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/budgets.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_statuses.rs")
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/delegation.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/lock_poison_rows.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/module_convention_rows.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/review_top_rows.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/status_mirrors.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/budgets.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_statuses.rs"
+        )
     );
     let runtime_15_m3_child_group_status_docs = format!(
         "{}\n{}\n{}\n{}",
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_docs.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_statuses.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/status_mirrors.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/mirrors/historical_status.rs")
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_docs.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_statuses.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/status_mirrors.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/mirrors/historical_status.rs"
+        )
     );
     let runtime_15_m3_child_group_status_row_docs = format!(
         "{}\n{}\n{}",
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_statuses.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/row_sources.rs")
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_statuses.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/row_sources.rs"
+        )
     );
 
     assert_contains_all(

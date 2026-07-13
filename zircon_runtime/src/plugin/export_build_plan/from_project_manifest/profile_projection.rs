@@ -1,4 +1,4 @@
-use crate::plugin::{
+use crate::core::framework::project::{
     ExportProfile, ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };
 

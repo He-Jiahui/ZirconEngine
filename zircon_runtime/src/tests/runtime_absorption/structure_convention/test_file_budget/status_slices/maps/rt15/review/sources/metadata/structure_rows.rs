@@ -1,5 +1,4 @@
-pub(in super::super::super) const REVIEW_GUARD_STRUCTURE_ROWS: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure.rs";
+pub(in super::super::super) const REVIEW_GUARD_STRUCTURE_ROWS: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure.rs";
 pub(in super::super::super) const REVIEW_GUARD_STRUCTURE_ROW_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/structure_guard_rows.rs",
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/typed_error_rows.rs",

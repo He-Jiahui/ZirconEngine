@@ -7,7 +7,7 @@ use zircon_runtime::asset::artifact::{
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
     build_source_cubemap_from_captured_faces_with_quality, source_cubemap_capture_hash,
-    RenderOverlayExtract, RenderSceneSnapshot,
+    RenderGraphTransientPoolReport, RenderOverlayExtract, RenderSceneSnapshot,
 };
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::{GraphicsError, SceneRenderer};
@@ -21,13 +21,14 @@ use super::{
 pub struct ReflectionProbeCaptureReport {
     pub captured_face_count: usize,
     pub source_hash: [u32; 4],
+    pub transient_pool: RenderGraphTransientPoolReport,
     pub staged_bundle: IblSourceCubemapStagedBundleReport,
 }
 
 pub fn capture_and_persist_reflection_probe(
     renderer: &mut SceneRenderer,
     scene: &RenderSceneSnapshot,
-    library_root: impl AsRef<Path>,
+    cache_root: impl AsRef<Path>,
     request: &ReflectionProbeCaptureRequest,
 ) -> Result<ReflectionProbeCaptureReport, ReflectionProbeCaptureError> {
     request.validate()?;
@@ -57,13 +58,14 @@ pub fn capture_and_persist_reflection_probe(
     let bake_request = request.ibl_bake_request(source_hash);
     let output_uri = AssetUri::parse(&request.output_uri)
         .map_err(|error| ReflectionProbeCaptureError::OutputUri(error.to_string()))?;
-    let staged_bundle = IblSourceCubemapStagingStore::new(library_root.as_ref())
+    let staged_bundle = IblSourceCubemapStagingStore::new(cache_root.as_ref())
         .write_source_cubemap_staged_bundle(&bake_request, output_uri, &cubemap, None)
         .map_err(|error| ReflectionProbeCaptureError::Persist(error.to_string()))?;
 
     Ok(ReflectionProbeCaptureReport {
         captured_face_count: REFLECTION_PROBE_CAPTURE_FACE_VIEWS.len(),
         source_hash,
+        transient_pool: renderer.last_transient_resource_pool_report(),
         staged_bundle,
     })
 }
@@ -93,7 +95,10 @@ mod tests {
     use zircon_runtime::core::math::Vec4;
 
     use super::*;
-    use crate::capture::ReflectionProbeCaptureQuality;
+    use crate::capture::{
+        register_captured_reflection_probe, CapturedReflectionProbePlacement,
+        ReflectionProbeCaptureQuality,
+    };
 
     #[test]
     #[ignore = "manual WGPU six-face reflection-probe capture product acceptance"]
@@ -134,8 +139,9 @@ mod tests {
         )
         .with_face_size(64)
         .with_quality(ReflectionProbeCaptureQuality::Fast);
-        let mut renderer = SceneRenderer::new(Arc::new(ProjectAssetManager::default()))
-            .expect("create WGPU scene renderer");
+        let asset_manager = Arc::new(ProjectAssetManager::default());
+        let mut renderer =
+            SceneRenderer::new(Arc::clone(&asset_manager)).expect("create WGPU scene renderer");
 
         let report =
             capture_and_persist_reflection_probe(&mut renderer, &scene, &output_root, &request)
@@ -143,14 +149,35 @@ mod tests {
 
         assert_eq!(report.captured_face_count, 6);
         assert_ne!(report.source_hash, [0; 4]);
+        assert_eq!(report.transient_pool.texture_created_count, 0);
+        assert_eq!(report.transient_pool.texture_reused_count, 3);
+        assert_eq!(report.transient_pool.texture_pool_entry_count, 3);
         assert!(report.staged_bundle.source_zcube().path().is_file());
         assert!(report.staged_bundle.source_zcube().payload_len() > 0);
         assert!(report.staged_bundle.asset_derived().path().is_file());
         assert!(report.staged_bundle.asset_derived().payload_len() > 0);
+        let placement = CapturedReflectionProbePlacement::box_probe(
+            71,
+            "lib://reflection-probes/product-acceptance.pmrem",
+            [8.0, 8.0, 8.0],
+            2.0,
+        );
+        let captured = register_captured_reflection_probe(
+            asset_manager.as_ref(),
+            &request,
+            &report,
+            &placement,
+        )
+        .expect("register captured PMREM and build ReflectionProbeData");
+        assert_eq!(captured.probe.probe_id(), 71);
+        assert_eq!(captured.probe.baked_cubemap(), Some(captured.texture_id));
+        assert_eq!(captured.probe.position().to_array(), request.position);
         println!(
-            "reflection-probe capture product: faces={}, source_hash={:08x?}, zcube={}, zribl={}",
+            "reflection-probe capture product: faces={}, source_hash={:08x?}, transient_created={}, transient_reused={}, zcube={}, zribl={}",
             report.captured_face_count,
             report.source_hash,
+            report.transient_pool.texture_created_count,
+            report.transient_pool.texture_reused_count,
             report.staged_bundle.source_zcube().path().display(),
             report.staged_bundle.asset_derived().path().display(),
         );

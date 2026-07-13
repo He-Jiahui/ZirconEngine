@@ -71,8 +71,8 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/mod.rs
   - zircon_runtime/src/core/framework/navigation/manager.rs
   - zircon_runtime/src/core/framework/navigation/query.rs
-  - zircon_runtime/src/asset/assets/navigation.rs
-  - zircon_runtime/src/asset/assets/navigation/v1.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
+  - zircon_runtime/src/core/framework/navigation/asset/v1.rs
   - zircon_runtime/src/core/framework/navigation/manager.rs
   - zircon_runtime/src/core/framework/navigation/query.rs
   - zircon_runtime/src/asset/artifact/store.rs
@@ -133,7 +133,7 @@ implementation_files:
   - zircon_plugins/navigation/native/native/recast_bake.cpp
   - zircon_plugins/navigation/native/native/detour_query.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache.cpp
-  - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime/src/asset/artifact/store.rs
 plan_sources:
   - user: 2026-05-02 ZirconEngine navigation/pathfinding plugin completion plan

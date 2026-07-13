@@ -145,7 +145,10 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let shell_size = ShellSizePx::new(2400.0, 1200.0);
     let baseline = compute_workbench_shell_geometry(
@@ -464,7 +467,10 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let shell_size = ShellSizePx::new(2400.0, 1200.0);
     let baseline = compute_workbench_shell_geometry(
@@ -614,7 +620,10 @@ fn compact_region_limits_follow_breakpoint_density_defaults() {
 fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let narrow = compute_workbench_shell_geometry(
         &model,
@@ -654,7 +663,10 @@ fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
 fn regular_workbench_geometry_reserves_token_backed_document_width() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let shell_size = ShellSizePx::new(900.0, 620.0);
     let geometry = compute_workbench_shell_geometry(
@@ -682,7 +694,10 @@ fn regular_workbench_geometry_reserves_token_backed_document_width() {
 fn scaled_workbench_geometry_uses_logical_width_for_right_drawer_collapse() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let scaled_narrow = compute_workbench_shell_geometry(
         &model,
@@ -716,7 +731,10 @@ fn scaled_workbench_geometry_uses_logical_width_for_right_drawer_collapse() {
 fn workbench_window_minimums_allow_reference_capture_sizes() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let narrow = compute_workbench_shell_geometry(
         &model,

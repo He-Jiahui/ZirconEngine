@@ -1,24 +1,24 @@
 ---
 related_code:
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submission_record_update.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
 implementation_files:
-  - zircon_render_server/src/types.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submission_record_update.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/virtual_geometry_stats.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
 plan_sources:
   - user: 2026-04-18 列出后续所有 tasks，把它们作为 todo，然后继续深入
   - user: 2026-04-18 Virtual Geometry 的 unified indirect ownership 下沉 / residency-manager cascade 继续推进
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - cargo test -p zircon_render_server --offline --locked stable_render_handles_and_frame_types_are_constructible
   - cargo test -p zircon_graphics --offline --locked headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities
 doc_type: milestone-detail

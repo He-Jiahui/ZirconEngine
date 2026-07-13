@@ -19,7 +19,7 @@ fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {
     let root = unique_temp_root("default_authoring_fields");
     let paths = ProjectPaths::from_root(&root).expect("temporary project path should resolve");
     paths
-        .ensure_layout()
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
         .expect("temporary project layout should be created");
 
     let font = FontAsset {
@@ -110,7 +110,7 @@ fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {
     let artifact_uri = store
         .write(&paths, &record, &ImportedAsset::Font(font.clone()))
         .expect("font artifact cache should write");
-    let payload = fs::read(paths.library_root().join(artifact_uri.path()))
+    let payload = fs::read(paths.asset_artifact_root().join(artifact_uri.path()))
         .expect("font artifact cache payload should exist");
     let loaded = store
         .read(&paths, &artifact_uri)

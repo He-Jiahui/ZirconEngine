@@ -87,7 +87,8 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/render/index.md
-  - .codex/sessions/20260611-0416-rendering-10fps-analysis.md
+  - docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md
+  - docs/plans/zircon_runtime/runtime/07/2026-07-11-runtime07-durable-performance-evidence-and-resource-gate.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - tests/acceptance/runtime-performance-filters-current-result.md
@@ -107,21 +108,84 @@ doc_type: module-detail
 
 # Runtime 07 Hotspot Inventory
 
+## 2026-07-11 Current artifact-reuse boundary
+
+The remaining FPS and trace gates cannot reuse artifacts already present on
+the machine. ZrVM has no current `build/` tree, its Rust binding link-directory
+environment variable is unset, and managed Cargo target roots contain no
+`zr_vm_rust_binding` import-library/runtime-DLL pair. The source tree's old
+language-server extension DLL has no import library and is not a current
+runtime link product. The Perfetto trace test is compiled only under both
+`profiling` and `profiling-chrome`; `--list` inspection of five existing
+ordinary Runtime lib-test binaries found no matching test. Current resource
+evidence is C/D/E/F 12.94/16.48/12.56/2.49 GiB free with 12 external
+Cargo/rustc processes active. Runtime 07 therefore remains in progress without
+substituting stale or feature-incompatible artifacts for M0.1/M0.3 evidence.
+The coordinator could identify seven old released lanes, but its cleanup apply
+operation returned `maintenance_unauthorized`; no manual target deletion was
+used, so the low-space gate remains authoritative.
+
+The third consecutive resource check further reduced C/D/E/F free space to
+12.71/5.97/13.49/0.08 GiB, with 13 Cargo/rustc processes and four
+coordinator-managed active or leased lanes. ZrVM still has no current link
+product. Runtime 07 cannot enter M0.1/M0.3 execution without an external-state
+change or explicit maintenance authority.
+
 Current executable reconciliation 2026-07-10: the available binary passed all 56 selected `ecs_query` behavior tests; its two naming failures pass 2/2 in current source. `extract` passed 281/311; seven Runtime 07/15-owned source/status guards now pass as performance-hotspots 5/5, structure 2/2, naming 1/1, plus a 50-file production-only snapshot scan with zero offenders. The remaining 23 failures stay assigned to active render/HGI/UI/Text owners, and both full filters remain pending until a fresh binary rerun. Evidence: `tests/acceptance/runtime-performance-filters-current-result.md`.
 
 ## Evidence Gate
 
 No Runtime 07 M2 optimization slice may start from an unmeasured suspicion. A candidate is eligible only when it has a named diagnostic path, a named test or capture source, and an owner verdict that says whether the work belongs to Runtime 07 or to a render/plugin/editor plan.
 
-The authoritative top list is still blocked by runtime sampling. The real vampire performance run now has a local ZR VM library path (`E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug`) and runtime DLL path (`E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug`) identified, and the lib-test support compile blockers found during the 2026-06-17 M0.1 attempt have been repaired. The follow-up command timed out after 904 seconds without test output or a `vampire_runtime_perf` sample, so the current list is a guarded scaffold rather than the final sorted M1.3 result.
+The authoritative top list is still blocked by runtime sampling. The previously
+identified local ZR VM library path
+(`E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug`) and runtime DLL path
+(`E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug`) were both absent in the
+2026-07-11 current-state check. The lib-test support compile blockers found
+during the 2026-06-17 M0.1 attempt have been repaired, but the follow-up command
+timed out after 904 seconds without test output or a `vampire_runtime_perf`
+sample, so the current list is a guarded scaffold rather than the final sorted
+M1.3 result.
 
 The Dynamic Session event-split guard resolves historical hotspot counts from Runtime 07's numbered output archive and index-migration evidence from its numbered runtime-index archive. Parent plans remain current routing/overview owners and are not required to duplicate concrete counts. The current standalone guard passes 1/1; this routing repair does not promote the still-pending Runtime 07 extract, query, profiling, or FPS behavior gates.
 
+The same owner rule now covers the complete performance-hotspots guard tree.
+Six live-session inputs were removed, stale parent/status-mirror assertions were
+routed to Runtime 07/15 numbered archives, and
+`runtime_07_performance_guards_use_durable_evidence_not_session_notes` rejects
+the whole `.codex/sessions/` path family. The current-source standalone suite
+passes 28/28; this is structural evidence only and does not close the pending
+FPS or trace-execution gates.
+
 ## Authoritative Top List
 
-Pending authoritative runtime sample. The `vampire_project_session_reports_runtime_fps_and_render_work` path is still the authority for FPS and frame-work evidence, but no current run has produced the required two comparable `vampire_runtime_perf` samples. The latest M0.1 attempt reached the Runtime lib-test compile after setting `ZR_VM_RUST_BINDING_LIB_DIR`, then repaired the asset UI schema-version import path and `RenderBloomSettings` test initializer drift; the follow-up run timed out after 904 seconds with no test result, and its residual cargo/rustc processes were stopped.
+The 2026-07-12 current ZrVM run closed the sampling gate with two exact-command
+passes: `30.894424483213513 FPS / 32.368300000000005 ms` and
+`33.98320549984198 FPS / 29.426299999999998 ms`, both with 116 mesh draws. The
+mean-relative FPS deviation is `9.521868%`, below the required 20%. The current
+ZrVM binding came from HEAD `2eb70efa143c44c9acc91e002f9f054f54e9f588`;
+the import-library and runtime-DLL SHA-256 values are recorded in Runtime 07's
+durable evidence record. A `39.22630044992567 FPS` run remains diagnostic only
+because shared Runtime source changed during that command.
 
-Until that sample exists, Runtime 07 M2 may only prepare work against the counted baselines below. It must not claim a top-three ordering, FPS improvement, or final M1.3 completion from static source evidence alone.
+The authoritative current counter ordering is intentionally ownership-aware:
+
+1. Render submission is the dominant observed work item at 116 mesh draws per
+   accepted capture. Optimization ownership stays with Render 02/18; Runtime 07
+   does not add a draw-path workaround.
+2. Query reuse is healthy in the fixed 128-entity baseline: 8 repeated runs
+   produce 8 hits, 1 initial miss and 1 initial rebuild, so QueryState is not a
+   Runtime 07 optimization target.
+3. Extract reuse is healthy in the fixed headless baseline: unchanged captures
+   record rebuilds `[1, 0]`, hits `[0, 1]`, misses `[1, 0]`, and stable non-zero
+   output bytes. Change detection records 6 scanned stale marks with 0 matches;
+   neither path is promoted without a future scene-level cost regression.
+
+`EcsFramePerformanceDiagnostics::publish(...)` now makes the query and
+change-detection frame aggregate visible in the runtime diagnostic store after
+every completed `WorldDriver` tick. This closes the previous gap where the
+counts existed only in the World-local aggregate and therefore could not be
+read by the Vampire diagnostic path.
 
 `counter_hotspots.json` is now part of the profiling export evidence path. It ranks finite positive `ProfileCounterSnapshot` values through `CounterHotspotReport` / `CounterHotspotEntry`, but it is still an input to the evidence gate rather than the authoritative top list. A counter-only row can identify where to inspect adjacent spans or owner diagnostics; it cannot by itself promote an M2 optimization or replace the pending vampire FPS/profile sample.
 
@@ -137,7 +201,7 @@ This means extract, ECS, asset, UI, render, and editor candidates must stay in t
 
 | Candidate | Current Evidence | Runtime 07 Verdict | Next Gate |
 |---|---|---|---|
-| Extract full rebuild on unchanged headless captures | `RuntimeFrameExtractCache` now keys the dynamic-session extract by `change_tick`, `query_cache_revision`, active camera, and viewport size. `frame_extract_rebuild_skips_unchanged_entities` records unchanged headless captures as `extract.rebuild_clones = [1, 0]`, while `frame_extract_rebuilds_after_scene_change` records `[1, 1]` after a camera transform mutation; `extract.output_bytes` remains non-zero and stable on the reuse path. | Runtime 07 M2 extract rebuild cache is statically implemented as `extract_rebuild_cache_static_passed_cargo_deferred`; broader runtime ranking still waits for authoritative FPS/profiling samples. | Re-run `extract` filters and vampire FPS/profiling gates in a clean Cargo window; then compare cached/rebuilt counts against real scene captures. |
+| Extract full rebuild on unchanged headless captures | `RuntimeFrameExtractCache` now keys the dynamic-session extract by `change_tick`, `query_cache_revision`, active camera, and viewport size. `frame_extract_rebuild_skips_unchanged_entities` records unchanged headless captures as `extract.rebuild_clones = [1, 0]`, while `frame_extract_rebuilds_after_scene_change` records `[1, 1]` after a camera transform mutation; `extract.output_bytes` remains non-zero and stable on the reuse path. | Accepted. The current cache removes the unchanged-frame rebuild and the exact Vampire FPS gate is closed. | Keep the fixed regression thresholds; reopen only if a scene-level capture regresses. |
 | ECS QueryState cache reuse | `query_state_reuses_archetype_matches_across_unchanged_frames` uses 128 entities and 8 repeated runs; the unchanged path records 8 cache hits, 1 miss, and no additional rebuild. | Not currently an optimization target. The local evidence says the cache is reusing unchanged archetype matches. | Only promote if the vampire runtime sample shows low hit rate, excessive candidate counts, or repeated structural invalidation. |
 | Change detection mark scanning | `change_detection_scan_skips_unmarked_archetypes` scans three stale marks twice and records 6 scanned marks with 0 added and 0 changed matches. | Not currently an optimization target. The local evidence is a baseline that proves the diagnostic path, not a measured runtime hotspot. | Promote only with scene-level scan counts showing frame cost or excessive mark volume. |
 | Asset worker per-frame cost | `AssetWorkerPoolDiagnostics` exposes in-flight/completed/failed/queue peak plus `asset.worker.budgeted_threads`; `AssetWorkerPoolFrameSampler` now converts cumulative completions/failures into per-frame `asset.worker.frame_completed` and `asset.worker.frame_failed` deltas. | Not eligible for Runtime 07 M2 yet. Runtime 04/11 own the worker architecture; the new frame sampler is an evidence entry point, not a measured runtime hotspot. | Re-run worker-pool/runtime profiling gates and compare frame deltas against authoritative scene captures before creating any Runtime 07 optimization slice. |
@@ -253,6 +317,25 @@ The current diversion rule is:
 `runtime_07_profile_counter_hotspot_export_keeps_generic_counter_evidence_visible` protects the generic profiling counter evidence path. It requires `CounterHotspotReport`, `CounterHotspotEntry`, `PROFILE_COUNTER_HOTSPOTS_FILE`, `counter_hotspots.json`, `analyze_counter_hotspots`, and `ProfileControlResponse.counter_hotspot_report` to stay wired through the interface DTOs, runtime profiling export, Runtime 07 status rows, and this evidence gate. This guard keeps counter export visible without allowing a counter-only result to become an M2 optimization.
 
 `runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation` is the narrower closeout gate for extract/ecs_query/performance profiling/FPS gates. It keeps the Runtime 07 plan and runtime index in `in_progress` while `extract`, `ecs_query`, profiling-tracy build duration, and authoritative vampire FPS validation are still pending a clean render/runtime build lane. Direct runtime-frame native/Perfetto trace export is covered by `direct_runtime_frame_submit_exports_perfetto_trace_artifacts`, but it is not enough to close the full Runtime 07 performance gate.
+
+Current execution refresh 2026-07-11: the exact `profiling,profiling-chrome`
+direct runtime-frame trace test completed its current-source optimized build in
+67m59s and passed 1/1 in 12.30 seconds. It generated and validated both timeline
+formats, hotspots, and summary in a temporary tree, including the required
+`submit_runtime_frame`, `render_frame_with_pipeline`, `DepthPrepass`, and
+`depth-prepass` anchors, then cleaned that tree. The trace execution gate is
+accepted; this does not replace the still-open two-run Vampire FPS baseline.
+
+Current binding provenance refresh 2026-07-11: a broader recursive search found
+`zr_vm_rust_binding.lib` and `zr_vm_rust_binding.dll` under ZrVM's isolated
+`.codex/tmp/aot-clean-verify-20260622-121531` tree. Both were generated on
+2026-06-11, and the copied CMake cache points at the absent
+`E:/Git/zr_vm/build-msvc` directories; the current clean ZrVM checkout is the
+2026-07-09 commit `2eb70efa143c44c9acc91e002f9f054f54e9f588`. The pair is therefore
+stale, non-reproducible current-source evidence and is not used for M0.1. The
+resumed check saw D below the 50 GiB Cargo threshold and other sessions' active
+or leased compile lanes, so it did not start a competing full build or alter
+external processes. The authoritative two-run FPS/deviation gate remains open.
 
 The structural mirror for this boundary is `performance_hotpath_boundary`. Source/test lists, including `performance_hotspots/{submit_context,hotspot_inventory,scene_project_splits,artifact_render_diagnostics_splits}.rs`, and expected counts are split into `performance_hotpath_source_inventory.py`, domain and status anchors are split into `performance_hotpath_anchor_inventory.py`, Markdown rendering is split into `performance_hotpath_markdown.py`, and `performance_hotpath_boundary.py` remains the audit reader, missing-anchor calculator, large-file gate consumer, and risk aggregator. Current line ownership is source inventory 70 lines, anchor inventory 244 lines, boundary 353 lines, and Markdown renderer 139 lines. Its current static evidence is mirrored by `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` and reports `expected_source_file_count = 46`, `expected_test_file_count = 14`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. It also mirrors the `large_file_ownership_gate` owner-budget result, the QueryState cache owner split under `query_state/cache.rs`, the dynamic-session `extract.cache_hits` / `extract.cache_misses` counters, the asset-worker frame sampler counters `asset.worker.frame_completed` / `asset.worker.frame_failed`, the animation scene counters under `animation.scene.*`, the profiling counter hotspot export `counter_hotspots.json`, the render product diagnostic split `render_product_diagnostics_owner_split_static_passed_cargo_deferred`, and the virtual geometry debug snapshot owner split `virtual_geometry_debug_snapshot_owner_split_static_passed_cargo_deferred`. This is a structure-sync guard only; it does not replace the pending extract/ecs_query/profiling/FPS validation lane.
 

@@ -73,7 +73,7 @@ The current artifact header records:
 
 `asset::artifact::IblBakeArtifactAssetDerivedStore` owns the asset-derived filesystem entry for source 1. It writes and reads raw `.zribl` blobs under `render/ibl-derived/v{IBL_BAKE_ALGORITHM_VERSION}/...`, reports missing and rejected companion files without failing the fallback path, and exposes an asset-derived candidate only for current blobs. `write_source_cubemap_asset_derived_artifact(...)` is the current staged prebake helper for source-cubemap PMREM/SH9(+IEM) output until the TX-M3 `.zcube` importer is wired to the same store.
 
-`asset::artifact::IblBakeArtifactCacheStore` owns the runtime filesystem entry for source 2. It writes and reads raw `.zribl` blobs under `.zircon-cache/render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/...`, reports missing and rejected cache files without failing the fallback path, and exposes a runtime-cache candidate only for current blobs.
+`asset::artifact::IblBakeArtifactCacheStore` owns the runtime filesystem entry for source 2. It writes and reads raw `.zribl` blobs under `.zircon/cache/render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/...`, reports missing and rejected cache files without failing the fallback path, and exposes a runtime-cache candidate only for current blobs.
 
 `ibl_bake_artifact_readback.rs` owns the backend-free readback assembly contract. `IblBakeArtifactReadbackSections` accepts PMREM RGBA16F bytes, SH9 bytes, and optional IEM RGBA16F bytes as separate sections, validates each section against `IblBakeArtifactDescriptor` expected sizes, rejects missing/unexpected/wrong-length sections, and then delegates final payload validation to `IblBakeArtifactPayload::decode(...)`. The module deliberately contains no wgpu or filesystem code, so GPU readback, offline bake tools, and tests can all feed the same section DTO.
 
@@ -92,7 +92,7 @@ Artifact application also updates `SourceCubemapEnvironment::bake_artifact_hash`
 `select_ibl_bake_artifact(...)` applies the three-source priority:
 
 1. asset derived artifact,
-2. runtime `.zircon-cache` artifact,
+2. runtime `.zircon/cache` artifact,
 3. runtime compute fallback.
 
 Valid derived/cache hits return `environment_compute_dispatch_count() == 0`. A miss returns `RuntimeCompute` and reports one dispatch unit per required output family, so PMREM+SH9+IEM currently reports `3`.

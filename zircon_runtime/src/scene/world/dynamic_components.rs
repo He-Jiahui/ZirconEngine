@@ -2,8 +2,8 @@ use std::fmt::Write as _;
 
 use serde_json::{Map, Number, Value};
 
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
 use zircon_runtime_interface::reflect::ReflectError;
 

@@ -93,23 +93,9 @@ const D12_TRAIT_BACKED_RUNTIME_CRATES: &[(&str, &str, &str, &str)] = &[
 
 #[test]
 fn review_d12_runtime_helper_exports_use_sdk_macro() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let module_convention =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_exports =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/runtime_exports.rs");
@@ -156,7 +142,7 @@ fn review_d12_runtime_helper_exports_use_sdk_macro() {
         "macro_rules! runtime_plugin_exports",
         "pub fn runtime_plugin() -> $plugin_ty",
         "pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest",
-        "pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection",
+        "pub fn runtime_selection(\n        ) -> zircon_runtime::core::framework::project::ProjectPluginSelection",
         "pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport",
         "zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())",
         "zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())",
@@ -180,8 +166,8 @@ fn review_d12_runtime_helper_exports_use_sdk_macro() {
         "review_d12_runtime_helper_exports_use_sdk_macro",
     ] {
         assert!(
-            d12_row.contains(required),
-            "D12 row should record runtime helper export macro convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D12 numbered review evidence should record runtime helper export macro convergence anchor `{required}`"
         );
     }
     assert!(
@@ -189,26 +175,9 @@ fn review_d12_runtime_helper_exports_use_sdk_macro() {
         "D12 row should not keep the stale copied-helper problem as current state"
     );
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("module convention", module_convention),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D12 runtime helper export macro rollout",
-            "plugins_12_runtime_export_macro_rollout_check_passed",
-            "review_d12_runtime_helper_exports_use_sdk_macro",
-            "zircon_plugin_sdk::runtime_plugin_exports!",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D12 runtime export macro convergence anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D12 runtime helper export macro rollout")
+            && review_findings.contains("review_d12_runtime_helper_exports_use_sdk_macro"),
+        "D12 numbered output should own the concrete runtime export macro evidence"
+    );
 }

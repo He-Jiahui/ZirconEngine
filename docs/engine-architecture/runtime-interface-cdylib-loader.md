@@ -15,8 +15,8 @@ related_code:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/window_creation.rs
   - zircon_app/src/entry/runtime_library/mod.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -80,8 +80,8 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/window_creation.rs
   - zircon_app/src/entry/runtime_library/mod.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs

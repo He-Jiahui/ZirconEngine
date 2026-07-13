@@ -16,6 +16,10 @@ pub enum RenderingFeatureKind {
     PostProcess,
     Ssao,
     ContactShadow,
+    VolumetricFog,
+    Oit,
+    PlanarReflections,
+    SubsurfaceScattering,
     Decals,
     ReflectionProbes,
     BakedLighting,
@@ -28,6 +32,10 @@ pub const RENDERING_FEATURES: &[RenderingFeatureKind] = &[
     RenderingFeatureKind::PostProcess,
     RenderingFeatureKind::Ssao,
     RenderingFeatureKind::ContactShadow,
+    RenderingFeatureKind::VolumetricFog,
+    RenderingFeatureKind::Oit,
+    RenderingFeatureKind::PlanarReflections,
+    RenderingFeatureKind::SubsurfaceScattering,
     RenderingFeatureKind::Decals,
     RenderingFeatureKind::ReflectionProbes,
     RenderingFeatureKind::BakedLighting,
@@ -42,6 +50,10 @@ impl RenderingFeatureKind {
             Self::PostProcess => "post_process",
             Self::Ssao => "ssao",
             Self::ContactShadow => "contact_shadow",
+            Self::VolumetricFog => "volumetric_fog",
+            Self::Oit => "oit",
+            Self::PlanarReflections => "planar_reflections",
+            Self::SubsurfaceScattering => "subsurface_scattering",
             Self::Decals => "decals",
             Self::ReflectionProbes => "reflection_probes",
             Self::BakedLighting => "baked_lighting",
@@ -56,6 +68,10 @@ impl RenderingFeatureKind {
             Self::PostProcess => "Post Process",
             Self::Ssao => "SSAO",
             Self::ContactShadow => "Contact Shadow",
+            Self::VolumetricFog => "Volumetric Fog",
+            Self::Oit => "Order Independent Transparency",
+            Self::PlanarReflections => "Planar Reflections",
+            Self::SubsurfaceScattering => "Subsurface Scattering",
             Self::Decals => "Decals",
             Self::ReflectionProbes => "Reflection Probes",
             Self::BakedLighting => "Baked Lighting",
@@ -122,8 +138,8 @@ pub fn feature_manifest(
             feature.runtime_crate(),
         )
         .with_target_modes([
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities([capability]),
     )
@@ -156,7 +172,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rendering_descriptor_declares_nine_owner_features() {
+    fn rendering_descriptor_declares_thirteen_owner_features() {
         let descriptor = runtime_plugin_descriptor();
 
         assert_eq!(descriptor.category(), "rendering");
@@ -164,12 +180,29 @@ mod tests {
             descriptor.maturity(),
             zircon_runtime::plugin::PluginMaturity::Stable
         );
-        assert_eq!(descriptor.optional_features().len(), 9);
+        assert_eq!(descriptor.optional_features().len(), 13);
         assert!(
             descriptor
                 .optional_features()
                 .iter()
                 .any(|feature| feature.id == "rendering.contact_shadow"
+                    && !feature.enabled_by_default)
+        );
+        assert!(descriptor
+            .optional_features()
+            .iter()
+            .any(|feature| feature.id == "rendering.oit" && !feature.enabled_by_default));
+        assert!(descriptor.optional_features().iter().any(|feature| {
+            feature.id == "rendering.planar_reflections" && !feature.enabled_by_default
+        }));
+        assert!(descriptor.optional_features().iter().any(|feature| {
+            feature.id == "rendering.subsurface_scattering" && !feature.enabled_by_default
+        }));
+        assert!(
+            descriptor
+                .optional_features()
+                .iter()
+                .any(|feature| feature.id == "rendering.volumetric_fog"
                     && !feature.enabled_by_default)
         );
         assert_eq!(
@@ -225,9 +258,9 @@ mod tests {
     fn rendering_package_manifest_declares_dist_contract() {
         let manifest = package_manifest();
 
-        assert!(manifest
-            .default_packaging
-            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert!(manifest.default_packaging.contains(
+            &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+        ));
 
         let distribution = manifest
             .distribution
@@ -236,7 +269,7 @@ mod tests {
         assert_eq!(distribution.forms, vec!["dist".to_string()]);
         assert_eq!(
             distribution.default_packaging,
-            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+            vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
         );
         assert_eq!(distribution.abi_version, Some(3));
         assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
@@ -260,8 +293,8 @@ mod tests {
         assert_eq!(
             native_module.target_modes,
             vec![
-                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+                zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
             ]
         );
         for capability in RUNTIME_CAPABILITIES {

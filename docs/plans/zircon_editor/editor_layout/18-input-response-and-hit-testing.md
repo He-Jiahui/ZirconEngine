@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/ui/event_ui.rs
+  - zircon_runtime_interface/src/ui/event_ui/mod.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_editor/src/ui/retained_host/host_contract
-  - zircon_editor/src/ui/retained_host/native_input_translation.rs
+  - zircon_runtime/src/ui/platform_input/winit_translation.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
   - docs/plans/zircon_editor/editor_layout/12-widget-slot-componentization.md
@@ -122,7 +122,7 @@ pub struct UiPointerCaptureRequest { pub node: UiNodeId }
 | --- | --- | --- |
 | 新增(契约) | `docs/ui-and-layout/input-response-contract.md` | 命中单源 + 三相 + pointer-events + 捕获 + 拖拽 + cursor |
 | 运行时实现 | `editor_ui/01` 的 dispatch/route owner(不在本计划) | 把全链次序固化为单实现 + 命中单源,迁出 11 个 bridge 的命中 |
-| DTO | `zircon_runtime_interface/src/ui/event_ui.rs` | 增 `UiPointerEvents`/`UiCursor`/相位/Reply 契约 |
+| DTO | `zircon_runtime_interface/src/ui/event_ui/mod.rs` | 增 `UiPointerEvents`/`UiCursor`/相位/Reply 契约 |
 
 ## 6. 里程碑切片化
 

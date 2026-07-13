@@ -950,6 +950,8 @@ status: in_progress
 
 # 引擎代码审查补充发现（2026-06）
 
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](zircon_runtime/frameworks/development-conventions.md)；本文保留代码审查发现、专题论证与执行上下文，不再作为并列规则源。
+
 ## 产出记录迁移说明
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
@@ -958,7 +960,7 @@ status: in_progress
 
 当前 plan-status 审查同步（2026-07-10）：已修复“父计划/总索引重复持有历史具体产出”的结构漂移，并恢复 index 的允许聚合表面。具体证据由编号归档拥有，父文档只保留当前概述；archive reader 与 parent-routing guard 均为 folder-backed child owner。Python audit `risks = []`，standalone Rust plan-status 48/48；未新增大文件职责、兼容层或生产行为旁路。
 
-当前审查行状态同步（2026-07-10）：编号审查归档中的 30 个字面占位状态已清零，并由 `engine_review_findings_current_evidence_rows_reconciled_static_passed` 与 `review_numbered_output_uses_concrete_status_anchors_instead_of_placeholders` 锁定。该状态只表示审查行证据已对账，不提升各行仍待执行的 Cargo、FPS、RenderDoc、plugin、UI 或 workspace gate；具体证据见编号 Runtime15 产出记录。
+当前审查行概述：编号审查归档负责维护各发现的证据状态与验证结果；本总览不复制状态锚、数量或门禁结果。各项是否完成以及尚待执行的工程门统一以编号 Runtime 15 产出记录为准。
 
 当前文本计划同步(2026-07-10):按本文“受 guard 计划由 owner 吸收”的规则,runtime text 的 rich/vertical prewarm 状态已在 Text 09 关闭,native bitmap atlas 横向亚像素 stable cache key 已在 Text 04/09 登记；`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 新增 `ScreenSpaceUiTextPrepareReport.raster_upload` 聚合层,对应测试在 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs`。涉及 owner 为 `zircon_runtime/src/ui/surface/render/text_prewarm.rs`、`zircon_runtime/src/ui/text/measure_cache.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 与 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs`。详细验证仍归档在 `docs/plans/zircon_runtime/text/**` 与 `docs/tests/runtime/text`,不在本文复制长表。2026-07-10 追加 retained framebuffer proof 像素指标复查、live editor-window capture process gate 与 raster/upload report 静态验证;实时窗口 QA 和真实 scroll raster/upload 增量断言未关闭,仍由 Text 04/09 后续项跟踪。
 
@@ -1047,6 +1049,11 @@ P0 安全与崩溃类、渲染性能热点、插件 DX 单源化与结构门禁�
 ## Runtime 15 M3 Review-Guard Row-Data Routing
 
 Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有审查发现、优先级与当前现状概述。
+
+## 2026-07-13 M4 behavior postprocess tests owner split review sync
+
+- M4 behavior postprocess tests owner split 保持已收敛：`graphics/tests/m4_behavior_layers.rs` 只保留 shared fixture、offline-bake coverage 与 child mounts，post-process 产品测试由 `graphics/tests/m4_behavior_layers/postprocess.rs` 持有。
+- 结构守卫为 `runtime_15_m4_behavior_postprocess_tests_are_child_owner`；后续同域测试不得回流父文件。具体状态与验证证据只由 Plan09 / Render 编号归档持有，本总览不复制 machine status token。
 
 ## 2026-07-10 Runtime Text UAX#9 convergence follow-up
 

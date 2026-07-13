@@ -163,10 +163,6 @@ fn runtime_component_projection_projects_command_palette_commands_for_native_pai
                 ),
             ),
             (
-                "disabled_commands",
-                string_array(["build_assets"].into_iter().map(str::to_owned)),
-            ),
-            (
                 "selected_command_id",
                 Value::String("build_project".to_owned()),
             ),

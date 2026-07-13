@@ -31,7 +31,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
@@ -76,7 +76,7 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/resource_event.rs

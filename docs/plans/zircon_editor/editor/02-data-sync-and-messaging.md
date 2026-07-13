@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/world/world.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/reports.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime_interface/src/buffer.rs
 reference_sources:
@@ -210,3 +210,12 @@ for batch in batches {
 - `subtree_hash` 输入=子节点 id 序列 + display_name（不含 transform/组件值，避免每帧全树重 hash）；5k 节点重 hash 超帧预算时改父链向上传播脏位图，证据裁决。
 - `ComponentType` 打点假阳性（借 `&mut` 未必写）：接受（多刷新不错刷新），03 提交事件提供精确通道后收窄。
 - `fields` 拆分后 inspector 与 hierarchy 取数节奏不同步的撕裂窗口：同帧内两次 query 携带同一 `generation_hint`，世代不一致时丢弃重取（泵保证每帧 generation 单调）。
+
+## 产出记录与时间
+
+| 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
+| --- | --- | --- | --- | --- |
+| 2026-07-14 | M1 / 切片 1.1 | 实现完成；M1 测试阶段待执行 | 新增 `zircon_runtime_interface::world_sync::{query, watch, invalidation}` 四文件边界，完成 `WorldQuery`/`WorldQueryResult::NotModified`、typed `WatchKey`/`WatchToken`、`InvalidationBatch`/`WorldFact` DTO；新增 serde 往返、世代提示语义、旧字段拒绝及接口分层守卫测试；补充 `docs/zircon_runtime_interface/world_sync.md`。已通过 scoped `rustfmt --check`、禁用依赖源扫描与 `git diff --check`。 | 按 M1 计划先完成切片 1.2，再统一执行 `cargo test -p zircon_runtime_interface --locked` 与 `cargo test -p zircon_runtime --lib scene:: --locked`；本记录不宣称 Cargo 门禁已通过。 |
+| 2026-07-14 | M1 / 切片 1.2 | 实现完成；M1 测试阶段待执行 | 新增 runtime-only `WorldGeneration` 与 spawn/despawn/reparent/imported-record 成功变更打点，并将 typed 组件变更咽喉接入同一世代，避免改名后错误 `NotModified`；`WorldInspection` 增加 `generation` 头；新增 hierarchy-only/fields-only inspection 入口及递归稳定 `subtree_hash`；`WorldInspection::from_world` 改为组合调用；viewport/workbench 生产消费点迁移到拆分入口并把 hash 投影到编辑器行模型。新增世代单调性、组件替换/显式 no-op、非序列化边界、拆分等价、改名与重挂接 hash 传播测试；更新 `docs/zircon_runtime/scene/inspection.md`。scoped `rustfmt --check`、旧全量消费源扫描、边界扫描与 `git diff --check` 已通过。 | Shader04 的实际测试进程 exit 0 后，协调器 mutation queue 曾阻塞 finish/续租并把 job 回收为 `orphaned`；本切片未借该结果宣称通过。队列现已恢复，继续执行 M1 两项计划测试；工具故障归属 `zircon_tooling/session_coordinator/01`。 |
+
+- open 待修复（工具 owner，不阻断服务恢复后的本切片重试）：[`mutation-queue-finish-lease-stall`](../../zircon_tooling/session_coordinator/01/failure-2026-07-14-mutation-queue-finish-lease-stall.md)。

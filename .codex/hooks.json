@@ -14,6 +14,20 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_cargo_guard.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& { $root = (& git rev-parse --show-toplevel); & py -3 (Join-Path $root '.codex/hooks/pre_tool_use_cargo_guard.py') }\"",
+            "timeout": 3,
+            "statusMessage": "Checking managed Cargo usage"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

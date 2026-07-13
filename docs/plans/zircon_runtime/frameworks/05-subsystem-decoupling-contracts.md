@@ -24,17 +24,32 @@ reference_engines:
 
 把 runtime 内部所有**跨域直接引用**收敛为 `core/framework`（未来 `zr_contracts`）契约 + handle/registry 访问，使每个域满足："上层只见契约与句柄，不见邻域内部类型"。这是计划 01 Phase 3（graphics/ui/text 拆 crate）的硬前置：接缝不切干净，crate 拆分会在孤儿规则和循环依赖上撞墙。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-subsystem-decoupling-contracts",
+  "goal": "收敛 runtime 跨域依赖为中立契约、句柄与注册表边界",
+  "milestones": [
+    {"id": "M1", "title": "接缝普查与契约定稿", "depends_on": []},
+    {"id": "M2", "title": "AssetLoaderRegistry 与声明顺序解耦", "depends_on": ["M1"]},
+    {"id": "M3", "title": "共享文本服务契约", "depends_on": ["M2"]},
+    {"id": "M4", "title": "graphics-scene 与 manager 面收口", "depends_on": ["M3"]},
+    {"id": "M5", "title": "Core contracts 反向依赖移交修复", "depends_on": []}
+  ]
+}
+```
+
 ## 2. 现状接缝清单（证据）
 
 | # | 接缝 | 现状 | 目标契约 |
 |---|------|------|---------|
-| S1 | graphics ↔ ui 文本 | 当前 production 基线 graphics→ui 4、ui→graphics 19；graphics 调 UI shaper/render-mode，UI 反向调用 `graphics::text::{font,layout,shaping}` | 共享文本服务契约（shaping/字形图集/render mode）进 framework::text；实现下沉为 `zr_text`（勾稽 render/14 的"shaping/字形图集下沉共享"既定方向） |
+| S1 | graphics ↔ ui 文本 | 2026-07-13 production 基线 graphics→ui 已从 4 硬切为 0；ui→graphics 为 28，仍包含 UI 对 `graphics::text::{font,layout,shaping}` 的实现依赖 | 共享文本服务契约（shaping/字形图集/render mode）进 framework::text；实现下沉为 `zr_text`（勾稽 render/14 的"shaping/字形图集下沉共享"既定方向） |
 | S2 | asset → ui 模板 loader | M2 已从 3 清零；`.zui` backend/注册归 `ui_document_importer`，asset 仅保留 DTO wrapper、local codec/reference helper 与通用 `AssetImporterRegistry` | `AssetImporterRegistry` 是唯一 loader 扩展契约；UI 文档插件通过 runtime extension registry 注册 `.zui`，asset 域不再拥有/调用 UI loader 实现 |
-| S3 | graphics → scene | 当前 production direct-reference 基线 13；逐行证据见 M1 JSON（旧抽查的 35 包含已迁移/测试 owner） | 已有 extract packet 契约的扩面：graphics 只消费 framework::render 的 extract/snapshot DTO 与 scene 句柄，禁止触 ECS 内部类型；与 render 计划集"extract 即 proxy 快照"口径一致 |
-| S4 | 各域 → core/manager 具名服务 | resolver/handle 模式已存在，但域实现类型仍在部分调用点裸露 | 复核 manager 面：跨域访问一律 `*Handle` + resolver，句柄携带 index+version（godot RID 纪律），禁止跨域持有 `Arc<具体类型>` |
+| S3 | graphics → scene | production-only 审计已把 13 条收敛为 1 条真实接缝：graphics 模块描述符仍从 scene 域读取 `SCENE_MODULE_NAME`；其余 12 条均为内联测试或测试专用支持模块 | 已有 extract packet 契约的扩面：graphics 只消费 framework::render 的 extract/snapshot DTO 与 scene 句柄，禁止触 ECS 内部类型；模块依赖标识必须改由中立 runtime module contract 持有，不允许从邻域 root 借常量；与 render 计划集"extract 即 proxy 快照"口径一致 |
+| S4 | 各域 → core/manager 具名服务 | 已完成 current-source 分类：`core/manager` 的 14 个 holder 仍全部内持 `Arc<dyn Trait>`；跨域 `ProjectAssetManager` 有 34 条 production 引用（animation 6 / dynamic_api 2 / graphics 25 / plugin 1），graphics 内另有 27 处 `Arc<ProjectAssetManager>` 字段/签名传播与 3 个跨域 concrete `resolve_manager` 调用 | 复核 manager 面：跨域访问一律 `ManagerServiceHandle<T>{index,generation,service}` + use-point resolver，句柄携带 index+generation（godot RID 纪律），禁止跨域长期持有 `Arc<具体类型>` 或 `Arc<dyn Trait>` |
 | S5 | lib.rs 声明顺序耦合 | "ui must be declared before asset" 注释 | S2 完成后该顺序约束自然消失，删除注释并加守卫（声明顺序不再承载语义） |
 
-M1 全量扫描已落地；M2 更新后的 [`05/baselines/2026-07-10-runtime-domain-dependencies.json`](05/baselines/2026-07-10-runtime-domain-dependencies.json) 持有 2401 条生产逐行证据与 79-edge 矩阵，asset→ui 已从 3 降到 0；[`05/baselines/2026-07-10-contract-signatures.md`](05/baselines/2026-07-10-contract-signatures.md) 锁定 S1–S4 签名和计数验收规则。后续切片必须用同一脚本复测。
+M1 全量扫描已落地；M2 基线 [`05/baselines/2026-07-10-runtime-domain-dependencies.json`](05/baselines/2026-07-10-runtime-domain-dependencies.json) 持有 asset→ui 3→0 的历史证据。M3 基线 [`05/baselines/2026-07-13-runtime-domain-dependencies.json`](05/baselines/2026-07-13-runtime-domain-dependencies.json) 保留旧审计口径下 graphics→ui 1→0 的历史切片证据；当前 production-only 机器基线 [`05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json`](05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json) 排除内联 `cfg(test)` 项及测试入口递归挂载的支持文件，持有 2,290 条生产逐行证据与 72-edge 矩阵，asset→ui=0、graphics→ui=0、ui→graphics=28、graphics→scene=1，且本次 handoff 九组禁止方向全部为 0。初始 2,151 / 77 数值只保留在 M4 历史产出行中，不再冒充当前机器基线。另由 [`05/baselines/2026-07-10-contract-signatures.md`](05/baselines/2026-07-10-contract-signatures.md) 继续锁定 S1–S4 签名和计数验收规则。后续切片必须使用 production-only 口径复测。
 
 ## 3. 设计决策
 
@@ -86,5 +101,7 @@ M1 全量扫描已落地；M2 更新后的 [`05/baselines/2026-07-10-runtime-dom
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
+- fixed 已修复：[`core/contracts` 反向依赖上层域与 facade](01/fixed-2026-07-13-core-contract-reverse-dependencies.md)（Frameworks01 M0 发现；旧口径初始 reverse-layer 18 refs、facade-inbound 38 refs；current-source 禁止边清零，受管 Windows 编译与核心行为门已通过）
+- fixed 已修复：[runtime-profile-id-consumer-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-runtime-profile-id-consumer-cutover.md)
 - 产出记录：[`05/2026-07-10-subsystem-decoupling-contracts-output-records.md`](05/2026-07-10-subsystem-decoupling-contracts-output-records.md)
-- 当前状态：M1 已完成；M2 S2/S5 代码与静态门已完成，asset→ui 3→0、生产扫描为 2401 references / 79 domain edges，旧 builtin `.zui` owner 和声明顺序注释均已删除。focused Rust 首轮 16/18 后修复两个 fixture；2026-07-11 默认 feature lib-test binary 精确执行 `asset::tests::assets::ui` 为 18/18、0 failed、7433 filtered；完整 `cargo check -p zircon_runtime --lib --locked` 通过（5m24s，418 warnings）。后续 `asset::tests` 扩展回归暴露字体 artifact 直接复用 authoring skip 形状的 `UnexpectedEof`，现已硬切为独立完整字段 cache DTO；公开磁盘往返 contract 1/1 通过，`core-min` production lib check 4m59s 通过。当前默认 lib-test 被活动 rich-text 重构的 6 个外部编译错误阻断，修复后 asset 全组与计划规定的全量 Runtime lib-test 仍 pending，因此 M2 只标记 package check + UI/font focused validation passed；M3–M4 仍 pending，不声明计划 05 完成。
+- 当前状态：M1 已完成；M2 S2/S5 代码与静态门已完成，asset→ui 3→0，旧 builtin `.zui` owner 和声明顺序注释均已删除；历史 focused/package 验证由编号归档持有，完整 Runtime 门仍 pending。M3 已删除无 production 调用者的 graphics→`PublicRuntimeFrame` 转换 owner，不保留 UI 反向 shim，graphics→ui 由 1 收敛为 0。M4 已修复 dependency audit 把测试 owner 计入 production 及遗漏 `use crate::{...}` 分组导入的两类最低层误判，Frameworks 03 contract + audit 静态回归现为 41/41，graphics→scene 的真实接缝由统计值 13 收敛为已定位的 1 条；manager 面 current-source 分类也已完成并确认 14 个 Arc holder、34 条跨域 concrete manager 引用、graphics 27 处 Arc 传播仍待硬切。Frameworks01 layer audit 的旧口径 56 条移交已完成十八类最低层硬切，新增收尾五刀为：Core 只保存中性 `RuntimeModuleLifecycleObserver`、World extension 计划/存储归 `scene::WorldDriver`、plugin devtools catalog 改由 App 注入 data-only rows、Navigation/Physics concrete World execution 移到 Scene/插件 owner，以及 export/project-plugin/runtime-profile schema 统一迁到 `core/framework/project`。最终 current-source matrix 为 2,290 / 72，reverse-layer=0、facade-inbound=0，总违规 0；Frameworks05 完整 19/19（含两个全移交守卫）与 Frameworks03 + dependency audit 41/41 通过；受管 Windows Runtime core-min/default、App、Editor、Navigation/Physics Runtime 与 Plugin SDK 编译通过，core-min 模块停用行为 2/2 通过，移交已迁为 fixed 并回传 Frameworks01。默认功能 Runtime 定向 lib-test 仍被无关的 Graphics SDF 测试私有导入阻断。计划 05 的其他 M4/M5 范围（模块依赖名称中立 owner、versioned manager handle、ui→graphics 文本服务与全工作区验证）仍独立 pending，不能用本 failure 清零冒充整份计划完成。

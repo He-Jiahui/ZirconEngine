@@ -1,33 +1,29 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-
-use zircon_runtime::plugin::ExportPipelineStage;
+use crate::core::jobs::CancellationToken;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::*;
 
 struct SharedCancelSignal {
-    cancel_requested: Arc<AtomicBool>,
+    cancel: CancellationToken,
 }
 
 impl ExportWizardCancelSignal for SharedCancelSignal {
     fn is_cancel_requested(&self) -> bool {
-        self.cancel_requested.load(Ordering::SeqCst)
+        self.cancel.is_cancelled()
     }
 }
 
 struct InStageCancellingRunner {
-    cancel_requested: Arc<AtomicBool>,
-    seen_stages: Vec<ExportPipelineStage>,
+    cancel: CancellationToken,
+    seen_stages: Vec<ExportStage>,
     saw_cancel_before_stage_output: bool,
     saw_cancel_after_stage_output: bool,
 }
 
 impl InStageCancellingRunner {
-    fn new(cancel_requested: Arc<AtomicBool>) -> Self {
+    fn new(cancel: CancellationToken) -> Self {
         Self {
-            cancel_requested,
+            cancel,
             seen_stages: Vec::new(),
             saw_cancel_before_stage_output: false,
             saw_cancel_after_stage_output: false,
@@ -39,16 +35,16 @@ impl ExportWizardCommandRunner for InStageCancellingRunner {
     fn run(
         &mut self,
         _command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         panic!("in-stage cancellation runner should use run_with_output_and_cancel");
     }
 
     fn run_with_output_and_cancel(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-        should_cancel: &mut dyn FnMut() -> bool,
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+        should_cancel: &mut (dyn FnMut() -> bool + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.seen_stages.push(command.stage);
         self.saw_cancel_before_stage_output = should_cancel();
 
@@ -60,7 +56,7 @@ impl ExportWizardCommandRunner for InStageCancellingRunner {
             });
         }
 
-        self.cancel_requested.store(true, Ordering::SeqCst);
+        self.cancel.cancel();
         self.saw_cancel_after_stage_output = should_cancel();
 
         Ok(ExportWizardCommandExecution {
@@ -73,12 +69,12 @@ impl ExportWizardCommandRunner for InStageCancellingRunner {
 
 #[test]
 fn export_wizard_job_runner_cancels_during_active_stage_without_failing() {
-    let cancel_requested = Arc::new(AtomicBool::new(false));
+    let cancel = CancellationToken::default();
     let cancel_signal = SharedCancelSignal {
-        cancel_requested: Arc::clone(&cancel_requested),
+        cancel: cancel.clone(),
     };
     let plan = export_wizard_pipeline_plan(ready_export_options());
-    let mut runner = InStageCancellingRunner::new(Arc::clone(&cancel_requested));
+    let mut runner = InStageCancellingRunner::new(cancel);
     let mut events = Vec::new();
 
     let snapshot = run_export_wizard_job(
@@ -92,7 +88,7 @@ fn export_wizard_job_runner_cancels_during_active_stage_without_failing() {
     assert_eq!(snapshot.status, ExportWizardJobStatus::Cancelled);
     assert!(snapshot.cancel_requested);
     assert!(!snapshot.fatal);
-    assert_eq!(runner.seen_stages, vec![ExportPipelineStage::Validate]);
+    assert_eq!(runner.seen_stages, vec![ExportStage::Validate]);
     assert!(!runner.saw_cancel_before_stage_output);
     assert!(runner.saw_cancel_after_stage_output);
     assert!(!events
@@ -107,7 +103,7 @@ fn export_wizard_job_runner_cancels_during_active_stage_without_failing() {
         .stages
         .first()
         .expect("cancelled active stage should still be recorded");
-    assert_eq!(stage_execution.stage, ExportPipelineStage::Validate);
+    assert_eq!(stage_execution.stage, ExportStage::Validate);
     assert!(stage_execution.cancelled);
     assert!(!stage_execution.fatal);
     assert_eq!(stage_execution.exit_code, Some(9));
@@ -127,7 +123,7 @@ fn export_wizard_job_runner_cancels_during_active_stage_without_failing() {
     let validate_row = view_model
         .stage_rows()
         .into_iter()
-        .find(|row| row.stage == ExportPipelineStage::Validate)
+        .find(|row| row.stage == ExportStage::Validate)
         .expect("Validate row should be present after cancellation");
     assert_eq!(validate_row.progress_kind, ExportStageProgressKind::Running);
     assert!(validate_row
@@ -137,7 +133,7 @@ fn export_wizard_job_runner_cancels_during_active_stage_without_failing() {
 }
 
 fn ready_export_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

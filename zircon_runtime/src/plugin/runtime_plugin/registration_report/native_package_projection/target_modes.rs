@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{PluginModuleKind, PluginPackageManifest};
 
 pub(super) fn native_package_target_modes(

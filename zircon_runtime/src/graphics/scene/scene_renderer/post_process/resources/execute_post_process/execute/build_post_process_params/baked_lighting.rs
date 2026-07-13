@@ -7,7 +7,9 @@ pub(super) fn baked_lighting(
     features: SceneRuntimeFeatureFlags,
 ) -> RenderBakedLightingExtract {
     if features.baked_lighting_enabled {
-        extract.lighting.baked_lighting.unwrap_or_default()
+        // Lightmaps are sampled per surface; the legacy full-screen ambient term stays neutral.
+        let _baked_contract = extract.environment.baked_lighting();
+        RenderBakedLightingExtract::default()
     } else {
         RenderBakedLightingExtract::default()
     }

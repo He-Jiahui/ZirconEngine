@@ -3,16 +3,30 @@
 mod level_system;
 mod level_system_render_extract;
 mod module;
+mod navigation;
 pub mod prelude;
+mod runtime_extension;
+mod runtime_hook;
 mod runtime_level_traits;
 
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
 };
 pub use module::{
-    create_default_level, load_level_asset, module_descriptor, DefaultLevelManager, SceneModule,
-    WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, LEVEL_MANAGER_NAME, SCENE_MODULE_NAME,
+    create_default_level, install_scene_runtime_hooks, install_world_runtime_extension_plan,
+    load_level_asset, module_descriptor, scene_runtime_hooks_for_stage, DefaultLevelManager,
+    SceneModule, WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, LEVEL_MANAGER_NAME, SCENE_MODULE_NAME,
     WORLD_DRIVER_NAME,
+};
+pub use navigation::{
+    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+};
+pub use runtime_extension::{
+    WorldRuntimeExtensionError, WorldRuntimeExtensionPlan, WorldRuntimeExtensionRegistration,
+};
+pub use runtime_hook::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
 };
 pub use runtime_level_traits::{RuntimeObject, RuntimeSystem};
 
@@ -56,9 +70,11 @@ pub use dynamic_scene::{
 };
 pub use inspection::{WorldInspection, WorldInspectionField, WorldInspectionHierarchyRow};
 pub use reflect::{
+    derived_component_registration, derived_component_registration_with_adapter,
     json_from_reflected, reflected_from_json, reflected_from_scene_value,
-    scene_value_from_reflected, ReflectComponent, ReflectResource, RuntimeTypeRegistration,
-    TypeRegistry, WorldReflection,
+    scene_value_from_reflected, ReflectComponent, ReflectResource, ReflectedJsonError,
+    RuntimeTypeRegistration, TypeRegistry, VmTypeBacking, WorldReflection, ZrReflect,
+    ZrReflectValue,
 };
 pub use world::{ComponentTypeRegistry, DynamicComponentInstance, SceneError, SceneResult, World};
 

@@ -18,6 +18,7 @@ use crate::ui::workbench::snapshot::ActivityDrawerSnapshot;
 
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
+use super::responsive_layout::apply_workbench_responsive_layout;
 
 pub(super) const LEFT_DRAWER_SHELL_CONTROL_ID: &str = "LeftDrawerShellRoot";
 pub(super) const LEFT_DRAWER_HEADER_CONTROL_ID: &str = "LeftDrawerHeaderRoot";
@@ -109,6 +110,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             model,
             metrics,
             anchors,
+        )?;
+        apply_workbench_responsive_layout(
+            &mut self.template_surface.surface,
+            shell_size,
+            scale_factor,
         )?;
         self.template_surface
             .recompute_layout(self.runtime.as_ref(), shell_size)?;

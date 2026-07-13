@@ -19,9 +19,9 @@
 - During implementation slices, add production code, focused test code, comments, and docs without forcing per-slice build/test loops.
 - Run compile/unit-test commands only in each milestone testing stage unless a blocker requires earlier evidence.
 - Avoid the active Asset Browser/media task paths unless a shared lower-layer Material layout contract requires the same file:
-  - Avoid broad edits to `zircon_editor/assets/ui/editor/asset_browser.ui.toml`.
+  - Avoid broad edits to `zircon_editor/assets/ui/editor/asset_browser.zui`.
   - Avoid SVG/image painter changes unless this layout plan exposes a compile blocker in already-touched shared projection code.
-  - Coordinate before changing `zircon_editor/assets/ui/theme/editor_material.ui.toml` beyond layout tokens/selectors because `.codex/sessions/20260505-2334-asset-browser-material-svg-fps.md` owns Material/Asset Browser visual styling while active.
+  - Coordinate before changing `zircon_editor/assets/ui/theme/editor_material.zui` beyond layout tokens/selectors because `.codex/sessions/20260505-2334-asset-browser-material-svg-fps.md` owns Material/Asset Browser visual styling while active.
 - Avoid text/input-owned native painter behavior changes unless the layout contract exposes a lower-layer measurement issue. The active note is `.codex/sessions/20260505-1106-editor-native-text-input-regression.md`.
 
 ## Design Source
@@ -42,8 +42,8 @@
 
 ## Current Repository Baseline
 
-- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` already defines Material meta components and maps them to existing runtime roles such as `Button`, `IconButton`, `Checkbox`, `InputField`, `RangeField`, `ComboBox`, `ListRow`, `ContextActionMenu`, and `TextField`.
-- `zircon_editor/assets/ui/theme/editor_material.ui.toml` already owns visual Material-ish colors/selectors. This plan should only add layout-adjacent tokens/selectors when needed.
+- `zircon_editor/assets/ui/editor/material_components` already defines Material meta components and maps them to existing runtime roles such as `Button`, `IconButton`, `Checkbox`, `InputField`, `RangeField`, `ComboBox`, `ListRow`, `ContextActionMenu`, and `TextField`.
+- `zircon_editor/assets/ui/theme/editor_material.zui` already owns visual Material-ish colors/selectors. This plan should only add layout-adjacent tokens/selectors when needed.
 - `UiTemplateNodeMetadata` already carries `attributes`, `style_tokens`, `classes`, `style_overrides`, and `bindings` from `.ui.toml` into runtime layout/render.
 - `zircon_runtime/src/ui/layout/pass/measure.rs` currently hard-codes button padding as `18.0` horizontal and `8.0` vertical for `Button` and `IconButton` leaves.
 - `zircon_runtime/src/ui/surface/render/resolve.rs` already resolves numeric visual attributes such as `font_size`, `border_width`, and `corner_radius` from metadata.
@@ -62,7 +62,7 @@
 
 ### Material Meta Component Assets
 
-- Modify `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` for layout tokens and attributes on Material meta component roots.
+- Modify `zircon_editor/assets/ui/editor/material_components` for layout tokens and attributes on Material meta component roots.
 - Modify `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs` for projection/layout-attribute coverage of Material meta components.
 
 ### Editor Projection And Native Host Contract
@@ -246,7 +246,7 @@ $env:TMP="E:\tmp\cargo-tmp"; $env:TEMP="E:\tmp\cargo-tmp"; cargo check -p zircon
 
 ### Implementation Slices
 
-- [ ] Update `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` tokens. Use Slint Material metrics as the source for defaults:
+- [ ] Update `zircon_editor/assets/ui/editor/material_components` tokens. Use Slint Material metrics as the source for defaults:
 
 ```toml
 [tokens]
@@ -420,13 +420,13 @@ $env:TMP="E:\tmp\cargo-tmp"; $env:TEMP="E:\tmp\cargo-tmp"; cargo test -p zircon_
 Run stale/scope searches:
 
 ```powershell
-rg "MaterialButtonBase|layout_padding_left|layout_min_height|material_button_padding_x" zircon_editor/assets/ui/editor/material_meta_components.ui.toml zircon_runtime/src/ui zircon_editor/src/tests docs tests/acceptance
+rg "MaterialButtonBase|layout_padding_left|layout_min_height|material_button_padding_x" zircon_editor/assets/ui/editor/material_components zircon_runtime/src/ui zircon_editor/src/tests docs tests/acceptance
 ```
 
 Run whitespace checks for touched files:
 
 ```powershell
-git diff --check -- "zircon_runtime/src/ui/layout/pass/measure.rs" "zircon_runtime/src/ui/layout/pass/material.rs" "zircon_runtime/src/ui/layout/pass/mod.rs" "zircon_runtime/src/ui/tests/shared_core.rs" "zircon_runtime/src/ui/tests/material_layout.rs" "zircon_runtime/src/ui/tests/mod.rs" "zircon_editor/assets/ui/editor/material_meta_components.ui.toml" "zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs" "zircon_editor/src/tests/host/slint_window/native_host_contract.rs" "zircon_editor/src/tests/host/slint_window/native_material_layout.rs" "zircon_editor/src/tests/host/slint_window/mod.rs" "docs/ui-and-layout/runtime-ui-component-showcase.md" "docs/ui-and-layout/shared-ui-core-foundation.md" "tests/acceptance/material-layout-foundation.md"
+git diff --check -- "zircon_runtime/src/ui/layout/pass/measure.rs" "zircon_runtime/src/ui/layout/pass/material.rs" "zircon_runtime/src/ui/layout/pass/mod.rs" "zircon_runtime/src/ui/tests/shared_core.rs" "zircon_runtime/src/ui/tests/material_layout.rs" "zircon_runtime/src/ui/tests/mod.rs" "zircon_editor/assets/ui/editor/material_components" "zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs" "zircon_editor/src/tests/host/slint_window/native_host_contract.rs" "zircon_editor/src/tests/host/slint_window/native_material_layout.rs" "zircon_editor/src/tests/host/slint_window/mod.rs" "docs/ui-and-layout/runtime-ui-component-showcase.md" "docs/ui-and-layout/shared-ui-core-foundation.md" "tests/acceptance/material-layout-foundation.md"
 ```
 
 Run final scoped checks on the shared target:

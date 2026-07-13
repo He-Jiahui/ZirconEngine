@@ -4,7 +4,9 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
-use crate::ui::workbench::model::{MenuItemModel, MenuModel, WorkbenchViewModel};
+use crate::core::commands::{MenuItemModel, MenuModel};
+use crate::ui::workbench::event::menu_item_binding;
+use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::activity_collection::{
@@ -110,7 +112,7 @@ fn append_menu_reflection_item(
 
     reflected.push(EditorMenuItemReflectionModel {
         menu_id: menu_id.to_string(),
-        control_id: item.binding.path().control_id.clone(),
+        control_id: menu_item_binding(item).path().control_id.clone(),
         label: item.label.clone(),
         enabled: item.enabled,
         operation_path: item
@@ -118,7 +120,7 @@ fn append_menu_reflection_item(
             .as_ref()
             .map(|path| path.as_str().to_string()),
         shortcut: item.shortcut.clone(),
-        binding: item.binding.clone(),
+        binding: menu_item_binding(item),
         route_id: None,
     });
 }

@@ -9,9 +9,9 @@ related_code:
   - zircon_editor/src/ui/binding_dispatch/animation/animation_host_event.rs
   - zircon_editor/src/ui/binding_dispatch/animation/dispatch.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime/binding_normalization.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/animation_event.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/asset_event.rs
+  - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
+  - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
@@ -37,11 +37,11 @@ related_code:
   - zircon_editor/src/tests/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
-  - zircon_editor/src/tests/editor_event/animation_runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/manager/mod.rs
-  - zircon_editor/tests/workbench_animation_editor_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
 implementation_files:
   - zircon_editor/src/ui/binding/animation/mod.rs
   - zircon_editor/src/ui/binding/animation/command.rs
@@ -52,9 +52,9 @@ implementation_files:
   - zircon_editor/src/ui/binding_dispatch/animation/animation_host_event.rs
   - zircon_editor/src/ui/binding_dispatch/animation/dispatch.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime/binding_normalization.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/animation_event.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/asset_event.rs
+  - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
+  - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
@@ -85,12 +85,12 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
-  - zircon_editor/src/tests/editor_event/animation_runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
   - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/manager/mod.rs
-  - zircon_editor/tests/workbench_animation_editor_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
   - cargo test -p zircon_editor animation_command_bindings_roundtrip_for_timeline_graph_and_state_machine_authoring --lib
   - cargo test -p zircon_editor animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events --lib
   - cargo test -p zircon_editor animation_graph_and_state_machine_bindings_normalize_into_editor_events --lib

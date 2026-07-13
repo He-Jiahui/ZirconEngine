@@ -4,16 +4,17 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
     GeometrySourceId, GeometrySourceVertexAttribute, PostProcessGraphResourceNames,
-    RenderShaderDefinitionValue, SolariRuntimeStatus, GEOMETRY_SOURCE_PLUGIN_ID_START,
+    RenderHybridGiResolvedSettings, RenderShaderDefinitionValue, SolariRuntimeStatus,
+    GEOMETRY_SOURCE_PLUGIN_ID_START,
 };
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
     FrameHistoryBinding, FrameHistorySlot, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
     HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
-    HybridGiRuntimeState, HybridGiRuntimeUpdate, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
-    RenderPassExecutorRegistration, RenderPassStage, SolariRuntimeProvider,
-    SolariRuntimeProviderRegistration,
+    HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate,
+    RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+    RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
+    SolariRuntimeProvider, SolariRuntimeProviderRegistration,
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
@@ -281,7 +282,7 @@ struct TestHybridGiRuntimeProvider;
 
 impl HybridGiRuntimeProvider for TestHybridGiRuntimeProvider {
     fn create_state(&self) -> Box<dyn HybridGiRuntimeState> {
-        Box::new(TestHybridGiRuntimeState)
+        Box::<TestHybridGiRuntimeState>::default()
     }
 }
 
@@ -301,18 +302,31 @@ impl SolariRuntimeProvider for TestSolariRuntimeProvider {
     }
 }
 
-struct TestHybridGiRuntimeState;
+#[derive(Default)]
+struct TestHybridGiRuntimeState {
+    resolved_settings: Option<RenderHybridGiResolvedSettings>,
+}
 
 impl HybridGiRuntimeState for TestHybridGiRuntimeState {
     fn prepare_frame(
         &mut self,
-        _input: HybridGiRuntimePrepareInput<'_>,
+        input: HybridGiRuntimePrepareInput<'_>,
     ) -> HybridGiRuntimePrepareOutput {
+        self.resolved_settings = input
+            .extract()
+            .filter(|extract| extract.enabled)
+            .map(|extract| {
+                extract.resolved_settings(
+                    input.baked_lighting().is_some() || input.has_baked_probe_grid(),
+                )
+            });
         HybridGiRuntimePrepareOutput::default()
     }
 
     fn update_after_render(&mut self, _feedback: HybridGiRuntimeFeedback) -> HybridGiRuntimeUpdate {
-        HybridGiRuntimeUpdate::default()
+        HybridGiRuntimeUpdate::new(
+            HybridGiRuntimeStats::default().with_resolved_settings(self.resolved_settings),
+        )
     }
 }
 

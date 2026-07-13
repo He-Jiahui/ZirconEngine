@@ -1,4 +1,3 @@
-mod animation;
 mod authoring;
 mod data;
 mod font;
@@ -8,7 +7,6 @@ mod imported;
 mod material;
 mod mesh;
 mod model;
-mod navigation;
 mod physics_material;
 mod project_document;
 mod project_document_error;
@@ -19,19 +17,6 @@ mod sprite_atlas;
 mod texture;
 mod ui;
 
-pub use animation::{
-    AnimationAssetError, AnimationAssetResult, AnimationBlendSpace1DAsset,
-    AnimationBlendSpace1DSampleAsset, AnimationBlendSpace2DAsset, AnimationBlendSpace2DSampleAsset,
-    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
-    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
-    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
-    AnimationStateMachineAsset, AnimationStateMachineLayerAsset,
-    AnimationStateMachineLayerBlendModeAsset, AnimationStateTransitionAsset,
-    AnimationTransitionConditionAsset, AnimationTransitionInterruptionPolicyAsset,
-};
 pub use authoring::{
     AssetAuthoringError, AssetAuthoringResult, MaterialGraphAsset, MaterialGraphLinkAsset,
     MaterialGraphNodeAsset, MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, PrefabAsset,
@@ -76,11 +61,6 @@ pub use model::{
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
     VirtualGeometryHierarchyNodeAsset, VirtualGeometryPageDependencyAsset,
     VirtualGeometryRootClusterRangeAsset,
-};
-pub use navigation::{
-    NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset,
-    NavMeshLinkCapacity, NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
-    NavigationAssetResult, NavigationSettingsAsset,
 };
 pub use physics_material::PhysicsMaterialAsset;
 pub use project_document_error::ProjectDocumentError;
@@ -127,17 +107,18 @@ pub use texture::{
     external_source_cubemap_container_info, is_external_source_cubemap_container,
     is_ibl_pmrem_rgba16f_texture, is_zcube_source_cubemap_texture, texture_asset_from_array_layers,
     texture_asset_from_cube_lut, texture_asset_from_cubemap_faces,
-    texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_source_cubemap_zcube,
-    CubeLutParseError, CubemapAsset, CubemapAssetError, CubemapSourceLayout,
-    ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    texture_asset_from_ibl_bake_artifact_pmrem, texture_asset_from_lightmap_bake_output,
+    texture_asset_from_source_cubemap_zcube, CubeLutParseError, CubemapAsset, CubemapAssetError,
+    CubemapSourceLayout, ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
     ExternalSourceCubemapContainerKind, ExternalSourceCubemapDecodeError, IblPmremTextureError,
     Texture2DArrayAsset, Texture2DArrayAssetError, TextureArrayLayerSource, TextureArrayLayout,
     TextureAsset, TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,
     TexturePayload, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
     TextureUploadSupport, ZcubeSourceCubemap, ZcubeSourceCubemapError, CUBEMAP_FACE_COUNT,
     EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, IBL_PMREM_RGBA16F_FORMAT,
-    IBL_PMREM_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
-    ZCUBE_SOURCE_CUBEMAP_FORMAT, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
+    IBL_PMREM_RGBA16F_GPU_FORMAT, LIGHTMAP_RGBA16F_FORMAT, LIGHTMAP_RGBA16F_GPU_FORMAT,
+    RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, ZCUBE_SOURCE_CUBEMAP_FORMAT,
+    ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiAssetDocumentResult,

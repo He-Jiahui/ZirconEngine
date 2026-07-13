@@ -11,7 +11,6 @@ pub(super) fn assert_status_anchor_route_forwards_children(child: &str) {
             "mod map_anchors;",
             "pub(super) fn status_doc_child_anchors",
             "pub(super) const STATUS_DOC_MAP_ANCHORS",
-            "pub(super) fn status_doc_session_anchors",
             "status_doc_status_anchor_child_source_blob",
             status_anchors::STATUS_DOC_STATUS_ANCHORS_FOLDER_BACKED_SPLIT_NAME,
             status_anchors::STATUS_DOC_STATUS_ANCHORS_FOLDER_BACKED_SPLIT_ID,

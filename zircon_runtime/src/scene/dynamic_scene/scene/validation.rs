@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
-use crate::plugin::ComponentTypeDescriptor;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 
-use super::{DynamicScene, DYNAMIC_SCENE_FORMAT_VERSION};
+use super::DynamicScene;
 use crate::scene::dynamic_scene::DynamicSceneError;
+use zircon_runtime_interface::serialization::VersionedSchema;
 
 pub(super) fn ensure_scene_supported(scene: &DynamicScene) -> Result<(), DynamicSceneError> {
     validate_format_version(scene)?;
@@ -12,13 +13,19 @@ pub(super) fn ensure_scene_supported(scene: &DynamicScene) -> Result<(), Dynamic
 }
 
 fn validate_format_version(scene: &DynamicScene) -> Result<(), DynamicSceneError> {
-    if scene.format_version == DYNAMIC_SCENE_FORMAT_VERSION {
-        return Ok(());
+    if scene.payload_header.schema_id != DynamicScene::SCHEMA {
+        return Err(DynamicSceneError::UnsupportedSchema {
+            expected: DynamicScene::SCHEMA.as_str().to_string(),
+            actual: scene.payload_header.schema_id.as_str().to_string(),
+        });
     }
-    Err(DynamicSceneError::UnsupportedFormatVersion {
-        expected: DYNAMIC_SCENE_FORMAT_VERSION,
-        actual: scene.format_version,
-    })
+    if scene.payload_header.schema_version != DynamicScene::VERSION {
+        return Err(DynamicSceneError::UnsupportedFormatVersion {
+            expected: DynamicScene::VERSION,
+            actual: scene.payload_header.schema_version,
+        });
+    }
+    Ok(())
 }
 
 fn ensure_unique_sources(scene: &DynamicScene) -> Result<(), DynamicSceneError> {

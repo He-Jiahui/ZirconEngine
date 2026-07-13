@@ -6,8 +6,8 @@ use serde_json::Value;
 use zircon_hub::projects::{
     metadata_for_path, metadata_for_path_mut, project_metadata_key, project_paths_match,
     project_template_catalog, prune_empty_metadata, save_editor_recent_projects,
-    CreateProjectRequest, ProjectMetadata, ProjectMetadataMap, ProjectTemplate, RecentProject,
-    RecycleDeleteCommand,
+    CreateProjectRequest, CreateProjectRequestError, ProjectMetadata, ProjectMetadataMap,
+    ProjectTemplate, RecentProject, RecycleDeleteCommand,
 };
 use zircon_hub::settings::{HubConfig, HubSettings};
 use zircon_hub::state::{
@@ -15,6 +15,9 @@ use zircon_hub::state::{
     ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
 };
 use zircon_hub::team::TeamOverview;
+use zircon_runtime_interface::project::{
+    ProjectManifestSummary, ProjectNameError, PROJECT_MANIFEST_FORMAT_VERSION,
+};
 
 #[test]
 fn project_metadata_uses_normalized_project_paths() {
@@ -171,9 +174,9 @@ fn project_management_docs_record_tauri_react_contract_cutover() {
 fn hub_config_repair_normalizes_registries_before_projection() {
     let mut config = HubConfig::default();
     config.recent_projects = vec![
-        RecentProject::new("Older duplicate", "E:/Projects/Game", 10),
-        RecentProject::new("Newest duplicate", "E:/Projects/Game", 30),
-        RecentProject::new("Other", "E:/Projects/Other", 20),
+        recent_project("Older duplicate", "E:/Projects/Game", 10),
+        recent_project("Newest duplicate", "E:/Projects/Game", 30),
+        recent_project("Other", "E:/Projects/Other", 20),
     ];
     config.project_metadata.insert(
         project_metadata_key("E:/Projects/Game"),
@@ -211,7 +214,7 @@ fn hub_config_repair_normalizes_registries_before_projection() {
 
     assert!(report.repaired_anything());
     assert_eq!(config.recent_projects.len(), 2);
-    assert_eq!(config.recent_projects[0].display_name, "Newest duplicate");
+    assert_eq!(config.recent_projects[0].display_name(), "Newest duplicate");
     assert!(metadata_for_path(&config.project_metadata, "E:/Projects/Game").is_some());
     assert!(metadata_for_path(&config.project_metadata, "E:/Projects/Removed").is_none());
     assert_eq!(
@@ -226,8 +229,7 @@ fn editor_recent_writer_keeps_hub_metadata_out_of_editor_json() {
     let root = temp_test_dir("zircon_hub_recent_metadata_contract");
     let path = root.join("config.json");
 
-    save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
-        .unwrap();
+    save_editor_recent_projects(&path, &[recent_project("Game", "E:/Projects/Game", 42)]).unwrap();
 
     let text = fs::read_to_string(&path).unwrap();
     assert!(!text.contains("pinned"));
@@ -259,7 +261,7 @@ fn new_project_creation_only_accepts_enabled_templates() {
     assert_eq!(ProjectTemplate::from_enabled_id("3d-scene"), None);
 
     let request = CreateProjectRequest::new(
-        "  Demo  ",
+        "Demo",
         "E:/Projects",
         ProjectTemplate::from_enabled_id("renderable-empty").unwrap(),
     );
@@ -275,7 +277,11 @@ fn new_project_creation_only_accepts_enabled_templates() {
     let missing_name = CreateProjectRequest::new("   ", "E:/Projects", request.template);
     assert_eq!(
         missing_name.validate_launch_fields(),
-        Err("Project name is required")
+        Err(CreateProjectRequestError::ProjectName {
+            source: ProjectNameError::SurroundingWhitespace {
+                value: "   ".to_string()
+            }
+        })
     );
 }
 
@@ -310,9 +316,9 @@ fn recycle_delete_command_escapes_single_quotes() {
 #[test]
 fn filtered_recent_projects_applies_search_filter_and_sort_order() {
     let snapshot = test_snapshot(vec![
-        RecentProject::new("Zeta", "E:/Projects/Zeta", 30),
-        RecentProject::new("Alpha", "E:/Projects/Alpha", 10),
-        RecentProject::new("Arcade", "E:/Arcade/Game", 20),
+        recent_project("Zeta", "E:/Projects/Zeta", 30),
+        recent_project("Alpha", "E:/Projects/Alpha", 10),
+        recent_project("Arcade", "E:/Arcade/Game", 20),
     ])
     .with_sort(ProjectSortMode::Name)
     .with_query("project")
@@ -323,7 +329,7 @@ fn filtered_recent_projects_applies_search_filter_and_sort_order() {
     assert_eq!(
         projects
             .iter()
-            .map(|project| project.display_name.as_str())
+            .map(|project| project.display_name())
             .collect::<Vec<_>>(),
         vec!["Alpha", "Zeta"]
     );
@@ -337,8 +343,8 @@ fn filtered_recent_projects_respects_existing_missing_filter() {
     fs::create_dir_all(&existing).unwrap();
 
     let snapshot = test_snapshot(vec![
-        RecentProject::new("Missing", missing, 30),
-        RecentProject::new("Existing", existing, 10),
+        recent_project("Missing", missing, 30),
+        recent_project("Existing", existing, 10),
     ])
     .with_filter(ProjectFilterMode::Existing)
     .build();
@@ -346,7 +352,7 @@ fn filtered_recent_projects_respects_existing_missing_filter() {
     let projects = snapshot.filtered_recent_projects();
 
     assert_eq!(projects.len(), 1);
-    assert_eq!(projects[0].display_name, "Existing");
+    assert_eq!(projects[0].display_name(), "Existing");
 
     let _ = fs::remove_dir_all(root);
 }
@@ -406,6 +412,23 @@ fn test_snapshot(recent_projects: Vec<RecentProject>) -> SnapshotBuilder {
             settings_draft: HubSettings::default(),
         },
     }
+}
+
+fn recent_project(
+    name: impl Into<String>,
+    path: impl Into<PathBuf>,
+    last_opened_unix_ms: u64,
+) -> RecentProject {
+    RecentProject::from_summary(
+        ProjectManifestSummary {
+            name: name.into(),
+            engine_version_req: None,
+            default_scene: "res://scenes/main.scene.toml".to_string(),
+            format_version: PROJECT_MANIFEST_FORMAT_VERSION,
+        },
+        path,
+        last_opened_unix_ms,
+    )
 }
 
 fn temp_test_dir(prefix: &str) -> PathBuf {

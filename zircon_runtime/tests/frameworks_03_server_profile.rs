@@ -1,6 +1,8 @@
 #![cfg(feature = "script")]
 
-use zircon_runtime::builtin::{runtime_modules_for_target, RuntimeTargetMode};
+use zircon_runtime::{
+    builtin::runtime_modules_for_target, core::framework::platform::RuntimeTargetMode,
+};
 
 #[test]
 fn server_runtime_selection_excludes_script_from_a_client_compiled_binary() {

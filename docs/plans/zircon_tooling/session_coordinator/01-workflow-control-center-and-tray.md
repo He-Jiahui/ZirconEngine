@@ -482,6 +482,8 @@ At each accepted milestone:
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
 
+- open 待修复：mutation command queue 曾同时阻塞 Cargo finish、lease、heartbeat/register，并将实际 exit 0 的 job 回收为 orphaned；见 [`failure-2026-07-14-mutation-queue-finish-lease-stall.md`](01/failure-2026-07-14-mutation-queue-finish-lease-stall.md)。
+
 ## 7. Completion Audit
 
 The Goal is not complete merely because M1-M5 code exists. Before closeout, map every acceptance criterion in the approved design to current authoritative evidence and classify it as proven, contradicted, incomplete, weak, or missing. Completion requires all criteria proven, all required commands freshly passing, no open applicable Failure, no Critical/Important review item, a clean owned scope, daemon/browser/Hub/tray survival evidence, and the full 24-hour soak.

@@ -1,16 +1,12 @@
-use crate::asset::{
-    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset,
-};
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
-use crate::scene::World;
 
 use super::{
-    AnimationGpuSkinningReadiness, AnimationGraphEvaluation, AnimationParameterMap,
+    AnimationClipAsset, AnimationGpuSkinningReadiness, AnimationGraphAsset,
+    AnimationGraphEvaluation, AnimationIkCommand, AnimationIkCommandError, AnimationParameterMap,
     AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput, AnimationResult,
-    AnimationRuntimeStatus, AnimationSequenceApplyReport, AnimationStateMachineEvaluation,
-    AnimationTickReport, AnimationTickRequest, AnimationTimelineDescriptor, AnimationTrackPath,
+    AnimationRuntimeStatus, AnimationSkeletonAsset, AnimationStateMachineAsset,
+    AnimationStateMachineEvaluation, AnimationTickReport, AnimationTickRequest, AnimationTrackPath,
 };
 
 pub trait AnimationManager: Send + Sync {
@@ -55,28 +51,13 @@ pub trait AnimationManager: Send + Sync {
     fn gpu_skinning_readiness(&self) -> AnimationGpuSkinningReadiness {
         AnimationGpuSkinningReadiness::default()
     }
-    fn sequence_timeline_descriptor(
+    fn queue_ik_command(
         &self,
-        sequence: &AnimationSequenceAsset,
-    ) -> AnimationTimelineDescriptor {
-        AnimationTimelineDescriptor::from_sequence(sequence)
+        _command: AnimationIkCommand,
+    ) -> Result<(), AnimationIkCommandError> {
+        Err(AnimationIkCommandError::Unsupported)
     }
-    fn clip_timeline_descriptor(&self, clip: &AnimationClipAsset) -> AnimationTimelineDescriptor {
-        AnimationTimelineDescriptor::from_clip(clip)
-    }
-    fn sequence_track_paths(&self, sequence: &AnimationSequenceAsset) -> Vec<AnimationTrackPath> {
-        sequence.track_paths()
-    }
-    fn apply_sequence_to_world(
-        &self,
-        _world: &mut World,
-        sequence: &AnimationSequenceAsset,
-        _time_seconds: Real,
-        _looping: bool,
-    ) -> AnimationResult<AnimationSequenceApplyReport> {
-        Ok(AnimationSequenceApplyReport {
-            applied_tracks: Vec::new(),
-            missing_tracks: self.sequence_track_paths(sequence),
-        })
+    fn drain_ik_commands(&self, _world: WorldHandle) -> Vec<AnimationIkCommand> {
+        Vec::new()
     }
 }

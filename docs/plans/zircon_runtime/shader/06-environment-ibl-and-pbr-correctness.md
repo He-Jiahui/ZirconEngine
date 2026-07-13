@@ -80,7 +80,7 @@ related_code:
 | 消费端 | `lod = (1-gloss)·(mipCount-1)` 线性;`envSpec = fresnel(F0, NoV) · radiance`——**无 split-sum LUT**,是简化 IBL | `fs_mesh.shdr:194–225` |
 | 容器 | DDS face-major / KTX mip-major;RGBA16F/RGBA32F 全支持 | `image.cpp:1416–1432, 5236, 5243–5362` |
 
-**2026-07-07 运行时验证链取舍修订**:用户指出镜面/天空盒仍不对后,当前 CPU source-cubemap PMREM 与采样端先按 cmft/cmftStudio 消费模型对齐。方向/立体角/双线性公式与"末级 mip 平均"继续原样采纳;PMREM mip1..N 使用 `specularPowerFor(mip,mipCount,glossScale=10,glossBias=3)` + `BlinnBrdf(power/4+1)` 的 cosine-power radiance lobe,以 Hammersley 锥采样近似 cmft 的逐 texel solid-angle 积分;采样端 roughness→LOD 改为 cmftStudio 的线性 `roughness * (mipCount - 1)`,并在 skybox/specular/IEM/source cube lookup 前加入 `fixCubeLookup` 压非主轴分量。仍不照搬 cmft 的全 texel bbox 扫描和 bake-side Warp 扭曲;GPU/offline UE GGX FIS 仍作为后续生产级 artifact/compute 对拍目标,不能再把当前运行时验证链描述为 UE 对数 LOD。
+**2026-07-07 运行时验证链取舍修订（历史，已被 2026-07-11/13 UE GGX FIS 硬切取代）**:用户指出镜面/天空盒仍不对后,当时的 CPU source-cubemap PMREM 与采样端先按 cmft/cmftStudio 消费模型对齐。方向/立体角/双线性公式与"末级 mip 平均"继续原样采纳;PMREM mip1..N 使用 `specularPowerFor(mip,mipCount,glossScale=10,glossBias=3)` + `BlinnBrdf(power/4+1)` 的 cosine-power radiance lobe,以 Hammersley 锥采样近似 cmft 的逐 texel solid-angle 积分;采样端 roughness→LOD 改为 cmftStudio 的线性 `roughness * (mipCount - 1)`,并在 skybox/specular/IEM/source cube lookup 前加入 `fixCubeLookup` 压非主轴分量。该段只保留迁移历史,不得作为当前 PMREM 实现依据。
 
 ### 2.2 UE5:捕获管线、split-sum 与实时环境
 
@@ -90,7 +90,7 @@ related_code:
 | 分辨率/格式 | 128 或 256,`PF_FloatRGBA`(FP16);mip 数 = `CeilLogTwo(size)+1` | `ReflectionEnvironmentCapture.cpp:274` |
 | roughness↔mip | `LevelFrom1x1 = 1.0 - 1.2·log2(max(r, 0.001))`,`mip = maxMip - 1 - LevelFrom1x1`;逆映射 `r = exp2((1.0 - LevelFrom1x1)/1.2)`——mip↔roughness 与总 mip 数无关 | `ReflectionEnvironmentShared.ush:16–39` |
 | GGX 重要性采样 | Hammersley 序列,`E.y *= 0.995` 防掠射;`CosTheta = √((1-E.y)/(1+(a²-1)E.y))`,`a² = r⁴`(α=r² 的平方);`L = 2(H·V)H - V` | `MonteCarlo.ush:347–363`,`ReflectionEnvironmentShaders.usf:612–648` |
-| **filtered importance sampling** | 按样本 PDF 选源 mip:`PDF = D·NoH/4`,`Ω_s = 1/(N·PDF)`,`Ω_p = 4π/(6·size²)·2`,`srcMip = 0.5·log2(Ω_s/Ω_p)`;NoL 加权累加——这是 32/64 样本就能干净的关键 | `ReflectionEnvironmentShaders.usf:612–648` |
+| **filtered importance sampling** | 当 `V=N` 时按样本 PDF 选源 mip:`PDF_L = D·NoH/(4·VoH) = D/4`,`Ω_s = 1/(N·PDF_L)`,`Ω_p = 4π/(6·size²)·2`,`srcMip = 0.5·log2(Ω_s/Ω_p)`;NoL 加权累加——这是 32/64 样本就能干净的关键 | `ReflectionEnvironmentShaders.usf:612–648` |
 | 样本数 | 桌面 `r<0.1 ? 32 : 64`;参考路径 1024 | `ReflectionEnvironmentShaders.usf:561–580` |
 | split-sum LUT | `PreIntegratedGF` 128×128,UV=(NoV, roughness),RG 双通道;`GF = F0·A + saturate(50·F0.g)·B`(F90 项) | `BRDF.ush:559–573` |
 | 无 LUT 近似 | Lazarov 多项式 `EnvBRDFApprox`(常数 c0/c1 见出处),移动端用 | `BRDF.ush:583–604` |
@@ -101,13 +101,13 @@ related_code:
 | SSR/RT/Lumen 组合 | 高频源(SSR/Lumen/RT)先写,`Color.a = 1 - hit.a`,探针吃剩余 alpha,skylight 兜底,最后统一乘 `EnvBRDF` | `ReflectionEnvironmentPixelShader.usf:113–281` |
 | 实时天空捕获 | 时间切片:每帧渲染 N 面(云默认 2 面/帧)→ `FDownsampleCubeFaceCS`(8×8)→ `FConvolveSpecularFaceCS` 分帧卷积 → SH 一次性 64 线程 | `ReflectionEnvironmentRealTimeCapture.cpp:340, 84–153` |
 
-**取舍**:mip 映射常数(1.0/1.2)、GGX 采样式、FIS、样本数、LUT 尺寸/公式、SH9 归约与重建、SSR→探针→天空的 alpha under 组合契约全部原样采纳;探针混合沿用计划 11 已定稿的 top-2 截断(URP 量级)而非 UE 的 grid 全列表;light grid 剔除、Lumen 本体不在本计划范围。
+**取舍**:mip 映射常数(1.0/1.2)、GGX 采样式、FIS、样本数、LUT 尺寸/公式、SH9 归约与重建、SSR→探针→天空的 alpha under 组合契约全部原样采纳;探针混合沿用计划 11 已定稿的 top-2 截断(URP 量级)而非 UE 的 grid 全列表;light grid 剔除、Lumen 本体不在本计划范围。filtered 分支的 source LOD 只由上述 PDF 公式和 source 最大 mip 约束,不得再以 destination texel footprint 作下限;destination footprint 只用于 mip0 直接缩放/普通 source mip 构建。
 
 ### 2.3 2026-07-06 cubemap/PMREM 设计修订
 
 - **source 与 PMREM 分离**:source cubemap mip0 是天空盒显示源;specular PMREM 是反射卷积结果。任何把 PMREM 粗 mip 用作天空背景的实现都会把反射模糊直接变成背景马赛克。
 - **分辨率规则**:按 cmft 的 equirect height 规则,`polyhaven_lakes_1k.hdr`(1024x512)的 source face 是 256,`polyhaven_lakes_2k.hdr`(2048x1024)的 source face 是 512。文档和测试不得再写"1K 默认 512 face"。
-- **PMREM mip 生成**:2026-07-07 起当前运行时验证链采用 cmft/cmftStudio radiance filter 口径:cmft face axes/lat-long/source sampling,`pow(dot, specularPower)` lobe,Blinn BRDF power 修正、末级六面平均与 cmftStudio 线性 roughness/gloss LOD。UE GGX FIS 仍保留为后续 GPU/offline bake 的生产级对拍目标,但不得再把当前 CPU bridge 的可视截图按 UE 对数 roughness mip 解释。
+- **PMREM mip 生成**:当前 CPU `pmrem.rs` 与 GPU `ibl_prefilter.wgsl` 均采用 UE ReflectionEnvironment GGX filtered importance sampling:Hammersley GGX/cosine sampling、`V=N` 下 `PDF_L=D/4`、PDF 选择 source mip、UE roughness↔mip 映射和末级六面平均。cmft/cmftStudio 继续提供 face order、投影、跨面采样、edge/final-average 与 source/PMREM 角色边界参考,不再作为生产 PMREM 的 cosine-power/线性 LOD 算法。
 - **mip 模糊纪律**:source mip chain 只是 FIS 的输入 pyramid,不能当 PMREM 结果。`roughness >= 0.99` 的高粗糙度尾部按 UE `FilterPS` 的 cosine hemisphere branch 从 source cubemap 金字塔卷积采样,不能从上一层 PMREM 普通降采样;末级 1x1 六面平均;验收要覆盖高频方差下降、cube seam 下降和截图级 roughness 单调。
 - **cmft/cmftStudio 保留价值**:face order、lat-long、exact solid angle、邻面 edge 处理、final mip averaging 与 IEM/PMREM 双贴图消费分工继续作为实现纪律;Warp fixup 仅作旧 GL/调试参考,wgpu 原生 cube seamless filtering 下不作为默认算法。
 
@@ -250,6 +250,7 @@ roughness 定义统一:材质 smoothness → `perceptual_roughness = 1 - smoothn
 - 持久化格式:face-major RGBA16F 全 mip(cmft DDS 布局纪律,`image.cpp:1416` 同序)+ SH9 144B + 可选 IEM 32³;头部携带 `IblBakeKey` 与**算法版本号**——mip 映射常数(1.0/1.2)、FIS、样本档位、SH 权重公式全部入版本,算法升级旧产物自动失效重烘,不会静默混用两代产物。
 - 当前 payload 合同:`IblBakeArtifactPayload` 固定按 PMREM RGBA16F 全 mip → SH9(9×vec4 f32 little-endian,144B)→ 可选 IEM 32×32×6 RGBA16F(alpha=1.0) 写入;`expected_payload_size_bytes()` 与三段 byte-range helper 是 importer/cache/file container 的共同 offset 来源。
 - 当前 blob 合同:`IblBakeArtifactBlob` 固定 header + payload 完整字节容器,`decode_current_for_request(...)` 同时验证 header 魔数/格式、payload 长度和 request/key/layout/content/algorithm-version 当前性。
+- 2026-07-13 source-identity 复核后,`.zribl` format v2 header 同时持久化 source face/mip 与 derived PMREM face/mip;cache hash、asset-derived path、WGPU command plan 和 runtime writeback 必须从同一 `IblBakeArtifactRequest` 构造 descriptor。相同 key/PMREM 但 source layout 不同必须拒绝命中;旧 format v1 直接失效,不保留升级 shim。
 - 当前 runtime cache 合同:`IblBakeArtifactCacheStore` 在 `.zircon-cache/render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/{request_hash}/face_####_mips_##.zribl` 读写 raw blob;missing/rejected 非 fatal,只有 current blob 会转成 `IblBakeArtifactCandidate::runtime_cache(...)`。
 - 当前 runtime readback writeback 合同:`IblBakeArtifactReadbackSections` 以 descriptor 为真理接收 PMREM RGBA16F、SH9 与 optional IEM RGBA16F 分段字节,拒绝缺失/多余/长度错误分段;`write_ibl_bake_artifact_runtime_readback(...)` 对 stale descriptor 不写文件,current descriptor 则组装 payload/blob 并写入 `IblBakeArtifactCacheStore`。WGPU section acquisition 由 `IblBakeArtifactWgpuReadbackResources` 与 `read_ibl_bake_artifact_wgpu_sections(...)` 装配已有 PMREM texture、SH9 buffer 与 optional IEM texture,实际 render graph/async scheduling 仍由后续 runtime/GPU 切片拥有。
 - 当前 WGPU RGBA16F readback helper:`read_texture_rgba16float_region(...)` 可按 mip/origin/extent 读取 `Rgba16Float` texture region 并剥离 row padding;`read_texture_rgba16float_cube_mip_chain(...)` 输出 face-major、face 内 mip 顺序的 cubemap bytes,与 PMREM artifact section layout 对齐;`SceneEnvironmentCubemap` 的 source/specular/IEM cube texture 已具备 `COPY_SRC` usage。SH9 buffer readback helper 与 IBL artifact section acquisition helper 已存在;IBL compute 生产和调度仍待后续切片。
@@ -324,7 +325,7 @@ cmftStudio 的 diffuse 消费端是 32³ irradiance cubemap 直采(`fs_mesh.shdr
 | `render_env_brdf_lut_corner_values` | (NoV→1, r→0) A→1,B→0;(任意, r→1) A+B < 1(能量守恒上界) | `env_brdf_lut.rs` |
 | `render_env_mip_from_roughness_roundtrip` | 已在计划 11 清单,常数 1.0/1.2 双端一致 | 计划 11 |
 | `render_env_seam_luminance_below_threshold` | §6 判据 6 | `render_product_environment.rs` |
-| `render_product_environment_pbr_matrix_quantitative` | §6 判据 1–5 | `render_product_environment.rs` |
+| `render_product_environment_pbr_matrix_quantitative` | §6 判据 1–5 | `zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs` + `pbr_matrix_quantitative.rs` |
 | `render_env_derived_cache_second_launch_zero_dispatch` | bake key 命中来源 1/2 时环境 compute dispatch 计数 = 0;算法版本号变更后失效重烘 | `gpu_environment_map.rs` |
 | `render_env_pmrem_artifact_roundtrip` | PMREM+SH9(+IEM) 持久化 → 重载逐字节等值;`IblBakeKey`/版本号不匹配拒绝命中 | `gpu_environment_map.rs` |
 | `render_env_external_prefiltered_container_is_source_only` | 含 mip DDS/KTX 导入后 PMREM 仍由引擎生成(源 mip 只作降采样链) | 计划 13 importer 用例 |
@@ -345,3 +346,8 @@ cmftStudio 的 diffuse 消费端是 32³ irradiance cubemap 直采(`fs_mesh.shdr
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`06/2026-07-09-environment-ibl-and-pbr-correctness-output-records.md`](06/2026-07-09-environment-ibl-and-pbr-correctness-output-records.md)
+- fixed 已修复：[rich-inline-provider-export-name](06/fixed-2026-07-11-rich-inline-provider-export-name.md)
+- fixed 已修复：[editor10-runtime-layout-method-name](06/fixed-2026-07-11-editor10-runtime-layout-method-name.md)
+- fixed 已修复：[realtime-ibl-graph-recorder-type-errors](../../zircon_editor/editor_layout/15/fixed-2026-07-12-realtime-ibl-graph-recorder-type-errors.md)
+- fixed 已修复：[realtime-ibl-option-then-type-errors](../../zircon_editor/editor/08/fixed-2026-07-12-realtime-ibl-option-then-type-errors.md)
+- fixed 已修复：[core-filter-runtime-fixture-contracts](../runtime/02/fixed-2026-07-12-core-filter-runtime-fixture-contracts.md)

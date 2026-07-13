@@ -63,7 +63,10 @@ fn editor_ui_host_runtime_registers_only_generic_host_window_document_id() {
 fn editor_ui_host_runtime_projects_asset_document_source_into_retained_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime
-        .register_document_source("ui.host_window.asset", ASSET_HOST_WINDOW_DOCUMENT_TOML)
+        .register_document_source(
+            "test://ui/host-window-asset",
+            ASSET_HOST_WINDOW_DOCUMENT_TOML,
+        )
         .unwrap();
     runtime
         .register_binding(
@@ -88,9 +91,11 @@ fn editor_ui_host_runtime_projects_asset_document_source_into_retained_projectio
         )
         .unwrap();
 
-    let projection = runtime.project_document("ui.host_window.asset").unwrap();
+    let projection = runtime
+        .project_document("test://ui/host-window-asset")
+        .unwrap();
 
-    assert_eq!(projection.document_id, "ui.host_window.asset");
+    assert_eq!(projection.document_id, "test://ui/host-window-asset");
     assert_eq!(projection.root.component, "UiHostWindow");
     assert_eq!(
         projection

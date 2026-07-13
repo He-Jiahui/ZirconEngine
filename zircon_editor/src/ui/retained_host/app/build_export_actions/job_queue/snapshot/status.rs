@@ -32,17 +32,3 @@ pub(super) fn progress_pane_diagnostic(progress: &DesktopExportProgressSnapshot)
         progress.percent, progress.stage, progress.message
     )
 }
-
-pub(super) fn job_status_task_detail(snapshot: &DesktopExportJobSnapshot) -> String {
-    snapshot
-        .progress
-        .as_ref()
-        .map(|progress| format!("{} - {}", progress.stage, progress.message))
-        .unwrap_or_else(|| {
-            format!(
-                "{} -> {}",
-                job_status_label(snapshot),
-                snapshot.output_root.display()
-            )
-        })
-}

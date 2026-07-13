@@ -49,7 +49,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/messages/store.rs
   - zircon_runtime/src/scene/ecs/resource/mod.rs
   - zircon_runtime/src/scene/ecs/resource/id.rs
-  - zircon_runtime/src/scene/ecs/resource/marker.rs
+  - zircon_runtime/src/core/framework/scene/resource.rs
   - zircon_runtime/src/scene/ecs/resource/registry.rs
   - zircon_runtime/src/scene/ecs/resource_store/mod.rs
   - zircon_runtime/src/scene/ecs/resource_store/stored_resource.rs
@@ -81,7 +81,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-12
 ---
 
 # 08 ECS 内核数据面对齐

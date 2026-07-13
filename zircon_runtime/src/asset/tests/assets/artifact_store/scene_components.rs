@@ -4,7 +4,9 @@ use super::*;
 fn artifact_store_roundtrips_scene_assets_with_mesh_references() {
     let root = unique_temp_project_root("artifact_store_scene_mesh_references");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {
@@ -77,7 +79,9 @@ fn artifact_store_roundtrips_scene_assets_with_mesh_references() {
 fn artifact_store_roundtrips_scene_assets_with_camera_targets() {
     let root = unique_temp_project_root("artifact_store_scene_camera_targets");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {
@@ -137,7 +141,9 @@ fn artifact_store_roundtrips_scene_assets_with_camera_targets() {
 fn artifact_store_roundtrips_scene_assets_with_physics_components() {
     let root = unique_temp_project_root("artifact_store_scene_physics_components");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {
@@ -156,7 +162,20 @@ fn artifact_store_roundtrips_scene_assets_with_physics_components() {
             rect_light: None,
             spot_light: None,
             post_process_volume: None,
-            rigid_body: None,
+            rigid_body: Some(SceneRigidBodyAsset {
+                body_type: SceneRigidBodyTypeAsset::Dynamic,
+                mass: 4.5,
+                mass_properties: PhysicsMassProperties::AutoFromShape { density: 2.25 },
+                linear_velocity: [0.5, 0.0, 0.0],
+                angular_velocity: [0.0, 0.25, 0.0],
+                linear_damping: 0.1,
+                angular_damping: 0.2,
+                gravity_scale: 1.0,
+                ccd_mode: Default::default(),
+                sleep_policy: Default::default(),
+                lock_translation: [false, false, false],
+                lock_rotation: [false, true, false],
+            }),
             collider: Some(SceneColliderAsset {
                 shape: SceneColliderShapeAsset::Capsule {
                     radius: 0.35,

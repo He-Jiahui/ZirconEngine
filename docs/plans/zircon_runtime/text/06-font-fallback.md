@@ -57,7 +57,7 @@ status: in_progress
 - 2026-07-10 D4 硬切后，`FontDatabase` 持有权威 `fontdb::Database` lineage 与双向 ID map；shared locale shaping cache 和 native renderer 通过 generation snapshot 消费同一 lineage，`ShapedGlyph.font_id`/native report 均来自实际 `LayoutGlyph.font_id`。旧 `shaping/font_id.rs` post-shape 重算桥已删除且无 shim。
 - 2026-07-10 locale 数据面已贯通：可序列化的 `UiResolvedStyle.language` 从模板 `[font].language` 进入 layout/shaped cache key、direct/parallel `TextShapeRequest`、native rich spans 与 SDF atlas/bake fallback；`zh-Hans`/`ja` 等同码点不会跨 locale 复用缓存或 SDF 槽。
 - 2026-07-10 真实 WGPU 产品 framebuffer 已覆盖 Latin/CJK/Arabic/Hebrew/emoji/mixed BiDi/native/SDF、zh-Hans/ja 同码点与 VerticalRl SDF 十项；逐项 background delta、地区字体相对像素差与人工原图检查通过，证据只写入 `docs/tests/runtime/text`。
-- 后端直证已锁定实际选中的 `Segoe UI Emoji` face 产生 `SwashContent::Color` 且字节数严格等于 `width * height * 4` RGBA；同一窄层可执行验收还证明 `نَ` 的 base+fatha 形成两个实际 glyph 且都保留同一 `Segoe UI` backend face。生产映射继续由 `GlyphAtlasFormat::Color` / `Rgba8Unorm` 合同 owner 持有；本里程碑剩余能力缺口收窄为 per-run OpenType `locl`，竖排像素等由对应后续计划继续承接。
+- 后端直证已锁定实际选中的 `Segoe UI Emoji` face 产生 `SwashContent::Color` 且字节数严格等于 `width * height * 4` RGBA；同一窄层可执行验收还证明 `نَ` 的 base+fatha 形成两个实际 glyph 且都保留同一 `Segoe UI` backend face。生产映射继续由 `GlyphAtlasFormat::Color` / `Rgba8Unorm` 合同 owner 持有；per-run OpenType `locl` 已由 Text 02 horizontal RustyBuzz leaf 实现并等待真实语言 exact，竖排像素等由对应后续计划继续承接。
 
 ## 3. 参考代码
 
@@ -85,7 +85,7 @@ cluster(script from 02, codepoints) →
 
 回退发生在 `02` 整形阶段(per-run);cosmic-text 内部已做大部分,本计划提供回退源配置 + 覆盖 + 诊断。
 
-(2026-07-02 评审收口,D4；2026-07-10 已硬切)**font_id 权威通路**:`ShapedGlyph.font_id` = `FontFaceId`(变量轴场景经 `InstancedFaceId`),且必须**提取自整形后端实际选择的 face**。当前 `graphics/text/font/backend.rs` 隔离 fontdb ID↔`FontFaceId`，`cosmic.rs` 直接投影 `LayoutGlyph.font_id`，native report 直接遍历实际 `Buffer.layout_runs()`；禁止 post-shape 按 script/codepoint 重算，旧 bridge 已物理删除。
+(2026-07-02 评审收口,D4；2026-07-10 已硬切；2026-07-13 实例拆分)**font_id 权威通路**:`ShapedGlyph.font_id` = backend 实际选择的 base `FontFaceId`，`font_instance_id` 独立承载该 face 的有效 `InstancedFaceId`；二者不得相互替代。当前 `graphics/text/font/backend.rs` 隔离 fontdb ID↔`FontFaceId`，`cosmic.rs` 直接投影 `LayoutGlyph.font_id` 并派生有效 instance，native report 直接遍历实际 `Buffer.layout_runs()`；禁止 post-shape 按 script/codepoint 重算，旧 bridge 已物理删除。
 
 ## 5. 里程碑
 

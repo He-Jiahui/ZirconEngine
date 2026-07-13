@@ -33,10 +33,6 @@ fn runtime_15_review_guard_moved_row_folder_backed_docs_are_current() {
             "module convention doc",
             "docs/zircon_runtime/structure/module-convention.md",
         ),
-        (
-            "runtime implementation session",
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-        ),
     ] {
         let source = read_repo(path);
         assert_contains_all(label, &source, &folder_backed_anchors);

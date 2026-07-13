@@ -10,8 +10,10 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
     let command_facade = include_str!("../../../../../scene/ecs/commands/commands/facade.rs");
     let entity_commands =
         include_str!("../../../../../scene/ecs/commands/commands/entity_commands.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_08_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
     );
@@ -140,8 +142,13 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
         .find(|line| line.starts_with("| F5 |"))
         .expect("F5 review findings top row");
     assert!(
-        f5_row.contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred")
-            && f5_row.ends_with("| Runtime 08 + Runtime 15 / review closed |"),
-        "F5 top row should record typed-error review closed status"
+        f5_row.contains("ECS 公共 mutation surface")
+            && f5_row.ends_with("| Runtime 08 + Runtime 15 |"),
+        "F5 overview row should keep only the finding and delegated owners"
+    );
+    assert!(
+        review_findings
+            .contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred"),
+        "F5 numbered output should record typed-error review closed status"
     );
 }

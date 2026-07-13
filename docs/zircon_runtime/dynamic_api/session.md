@@ -3,6 +3,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/diagnostics.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
@@ -12,7 +14,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/status.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/session/input_events.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
@@ -103,7 +105,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/status.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload.rs
+  - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/session/input_events.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
@@ -446,6 +448,7 @@ The dynamic session may:
 The dynamic session must not:
 
 - duplicate module assembly rules owned by `zircon_runtime::builtin::runtime_modules`;
+- retain module-load warning/error strings as runtime state; session creation consumes `RuntimeModuleLoadReport::fatal_messages()` only at the typed session-error boundary;
 - expose new public Rust API from the dynamic ABI internals;
 - encode editor authoring state as runtime session persistence;
 - bypass `core::framework` DTOs with ad hoc dynamic-only event models;

@@ -1,5 +1,5 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ProjectPluginManifest;
 
 use super::extension_report::{
     runtime_extension_report, runtime_extension_report_for_project, RuntimeExtensionCatalogReport,

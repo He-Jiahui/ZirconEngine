@@ -15,7 +15,10 @@ fn shared_drawer_header_pointer_layout_prefers_componentized_workbench_frames_fo
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("componentized workbench bridge should build");
@@ -96,7 +99,10 @@ fn shared_drawer_header_pointer_layout_prefers_componentized_workbench_layout_fr
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("componentized workbench bridge should build");

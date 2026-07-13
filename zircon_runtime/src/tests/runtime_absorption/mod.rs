@@ -22,7 +22,10 @@ mod root_surface;
 mod schedule_frame_loop;
 mod script_absorption;
 mod script_binding;
+#[cfg(feature = "script")]
 mod script_host_ledger;
+mod service_registry_lifecycle;
+mod service_registry_ownership;
 mod structure_convention;
 mod tech_stack;
 mod ui_architecture;

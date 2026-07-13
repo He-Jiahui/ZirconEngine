@@ -42,7 +42,7 @@ pub(crate) struct AssetSelectionData {
     pub locator: SharedString,
     pub kind: SharedString,
     pub meta_path: SharedString,
-    pub adapter_key: SharedString,
+    pub toolkit_view_id: SharedString,
     pub state: SharedString,
     pub revision: SharedString,
     pub diagnostics: SharedString,

@@ -7,8 +7,6 @@ fn runtime_15_review_guard_code_review_rows_status_mirrors_are_current() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let row_data_owner = read_runtime_src(ROW_DATA_OWNER_PATH);
     let review_status_map = review_guard_status_map_source_blob();
     let review_date_map = review_guard_date_map_source_blob();
@@ -27,7 +25,6 @@ fn runtime_15_review_guard_code_review_rows_status_mirrors_are_current() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("code-review row-data owner", row_data_owner.as_str()),
         (
             "Runtime 15 review-guard status map",

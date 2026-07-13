@@ -123,6 +123,8 @@ fn button_glyph_slots_project_from_host_control_metrics() {
     assert_eq!(button_icon_size_from_host(metrics), 16.0);
 
     metrics.font_large = 18.0;
+    metrics.row_height = 32.0;
+    metrics.gap_l = 12.0;
     metrics.button_icon_gap = 9.0;
     metrics.button_chevron_reserve = 24.0;
     metrics.button_pad_x = 11.0;

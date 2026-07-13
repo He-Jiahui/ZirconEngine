@@ -1,14 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
+    resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
+    RenderPhase,
 };
 use crate::render_graph::QueueLane;
 
 use crate::graphics::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceWriteMode,
+    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
     CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
@@ -46,7 +47,7 @@ impl RenderPipelineAsset {
             .collect::<Vec<_>>();
         validate_feature_descriptors(&self.renderer.stages, &asset_descriptors)?;
 
-        let enabled_features = self
+        let mut enabled_features = self
             .renderer
             .features
             .iter()
@@ -63,12 +64,48 @@ impl RenderPipelineAsset {
             .iter()
             .map(|feature| feature_descriptor_for_options(feature, options))
             .collect::<Vec<_>>();
+        let deferred_subsurface_supported = enabled_features.iter().any(|feature| {
+            feature.is_builtin(crate::graphics::feature::BuiltinRenderFeature::DeferredGeometry)
+        }) && enabled_features.iter().any(|feature| {
+            feature.is_builtin(crate::graphics::feature::BuiltinRenderFeature::DeferredLighting)
+        });
+        let subsurface_table = resolve_subsurface_profile_table(
+            &extract.lighting.advanced_lighting.subsurface_profiles,
+        );
+        let view_uses_active_subsurface_profile = extract
+            .lighting
+            .advanced_lighting
+            .subsurface_material_profile_indices
+            .iter()
+            .any(|profile_id| subsurface_table.profile_is_active(*profile_id));
+        let deferred_subsurface_single_sample =
+            options.graph_msaa_sample_count(extract.view.camera.msaa_samples) == 1;
+        let inactive_descriptor_names = enabled_descriptors
+            .iter()
+            .filter(|descriptor| {
+                (descriptor.requires_advanced_lighting_oit()
+                    && extract.lighting.advanced_lighting.oit.is_none())
+                    || (descriptor.requires_advanced_lighting_planar_capture()
+                        && !selected_camera_is_planar_capture(extract))
+                    || (descriptor.requires_advanced_lighting_subsurface()
+                        && (!view_uses_active_subsurface_profile
+                            || !deferred_subsurface_supported
+                            || !deferred_subsurface_single_sample))
+            })
+            .map(|descriptor| descriptor.name.clone())
+            .collect::<BTreeSet<_>>();
+        enabled_descriptors
+            .retain(|descriptor| !inactive_descriptor_names.contains(&descriptor.name));
+        enabled_features
+            .retain(|feature| !inactive_descriptor_names.contains(feature.feature_name().as_str()));
         maybe_insert_core_scene_particle_descriptor(
             extract,
             options,
             &self.renderer.stages,
             &mut enabled_descriptors,
         );
+        apply_pass_resource_extensions(&self.renderer.stages, &mut enabled_descriptors)?;
+        apply_pass_replacements(&mut enabled_descriptors)?;
 
         let mut required_extract_sections = BTreeSet::new();
         let mut capability_requirements = Vec::new();
@@ -122,6 +159,150 @@ impl RenderPipelineAsset {
             environment_ibl_bake_request: options.environment_ibl_bake_request,
             graph: authored_graph.graph,
         })
+    }
+}
+
+fn selected_camera_is_planar_capture(extract: &RenderFrameExtract) -> bool {
+    let crate::core::framework::render::RenderCameraTarget::Texture(selected_target) =
+        extract.view.selected_camera_target()
+    else {
+        return false;
+    };
+    extract
+        .lighting
+        .advanced_lighting
+        .planar_probes
+        .iter()
+        .any(|probe| probe.capture_target() == Some(*selected_target))
+}
+
+fn apply_pass_replacements(descriptors: &mut [RenderFeatureDescriptor]) -> Result<(), String> {
+    let replacements = descriptors
+        .iter()
+        .flat_map(|descriptor| {
+            descriptor
+                .replaced_passes()
+                .map(move |pass_name| (pass_name.to_string(), descriptor.name.clone()))
+        })
+        .collect::<Vec<_>>();
+
+    let mut owners = BTreeMap::<String, String>::new();
+    for (pass_name, owner) in &replacements {
+        if let Some(existing_owner) = owners.insert(pass_name.clone(), owner.clone()) {
+            return Err(format!(
+                "render pass `{pass_name}` has competing replacement owners `{existing_owner}` and `{owner}`"
+            ));
+        }
+        let target_count = descriptors
+            .iter()
+            .filter(|descriptor| descriptor.name != *owner)
+            .flat_map(|descriptor| descriptor.stage_passes.iter())
+            .filter(|pass| pass.pass_name == *pass_name)
+            .count();
+        if target_count != 1 {
+            return Err(format!(
+                "feature descriptor `{owner}` replaces pass `{pass_name}`, but the enabled graph contains {target_count} eligible targets"
+            ));
+        }
+    }
+
+    for descriptor in descriptors {
+        descriptor.stage_passes.retain(|pass| {
+            !owners
+                .get(&pass.pass_name)
+                .is_some_and(|owner| owner != &descriptor.name)
+        });
+    }
+    Ok(())
+}
+
+fn apply_pass_resource_extensions(
+    stages: &[RenderPassStage],
+    descriptors: &mut [RenderFeatureDescriptor],
+) -> Result<(), String> {
+    let extensions = descriptors
+        .iter()
+        .flat_map(|descriptor| {
+            descriptor
+                .resource_extensions()
+                .cloned()
+                .map(move |extension| (descriptor.name.clone(), extension))
+        })
+        .collect::<Vec<_>>();
+
+    for (owner, extension) in extensions {
+        if extension.target_pass_name.trim().is_empty() {
+            return Err(format!(
+                "feature descriptor `{owner}` pass resource extension target must not be empty"
+            ));
+        }
+        if extension.resource.name.trim().is_empty() {
+            return Err(format!(
+                "feature descriptor `{owner}` pass resource extension for `{}` must name a resource",
+                extension.target_pass_name
+            ));
+        }
+        let producer_stage =
+            unique_producer_stage_for_read_extension(descriptors, &extension.resource);
+        let Some(target) = descriptors
+            .iter_mut()
+            .flat_map(|descriptor| descriptor.stage_passes.iter_mut())
+            .find(|pass| pass.pass_name == extension.target_pass_name)
+        else {
+            continue;
+        };
+        if !target.resources.iter().any(|resource| {
+            resource.name == extension.resource.name
+                && resource.kind == extension.resource.kind
+                && resource.access == extension.resource.access
+        }) {
+            target.resources.push(extension.resource);
+        }
+        if let Some(producer_stage) = producer_stage {
+            promote_pass_to_producer_stage(stages, target, producer_stage);
+        }
+    }
+
+    Ok(())
+}
+
+fn unique_producer_stage_for_read_extension(
+    descriptors: &[RenderFeatureDescriptor],
+    resource_extension: &RenderFeatureResourceDescriptor,
+) -> Option<RenderPassStage> {
+    if resource_extension.access != RenderFeatureResourceAccess::Read {
+        return None;
+    }
+    let mut producers = descriptors
+        .iter()
+        .flat_map(|descriptor| descriptor.stage_passes.iter())
+        .filter(|pass| {
+            pass.resources.iter().any(|resource| {
+                resource.name == resource_extension.name
+                    && resource.kind == resource_extension.kind
+                    && resource.access == RenderFeatureResourceAccess::Write
+            })
+        });
+    let producer = producers.next()?;
+    if producers.next().is_some() {
+        return None;
+    }
+    Some(producer.stage)
+}
+
+fn promote_pass_to_producer_stage(
+    stages: &[RenderPassStage],
+    target: &mut RenderFeaturePassDescriptor,
+    producer_stage: RenderPassStage,
+) {
+    let Some(target_index) = stages.iter().position(|stage| *stage == target.stage) else {
+        return;
+    };
+    let Some(producer_index) = stages.iter().position(|stage| *stage == producer_stage) else {
+        return;
+    };
+    if producer_index > target_index {
+        target.stage = producer_stage;
     }
 }
 
@@ -277,6 +458,21 @@ fn validate_descriptor_names(descriptors: &[RenderFeatureDescriptor]) -> Result<
                 return Err(format!(
                     "feature descriptor `{}` declares duplicate history binding for slot `{:?}`",
                     descriptor.name, binding.slot
+                ));
+            }
+        }
+        let mut replaced_passes = BTreeSet::new();
+        for pass_name in descriptor.replaced_passes() {
+            if pass_name.trim().is_empty() {
+                return Err(format!(
+                    "feature descriptor `{}` replacement pass name must not be empty",
+                    descriptor.name
+                ));
+            }
+            if !replaced_passes.insert(pass_name) {
+                return Err(format!(
+                    "feature descriptor `{}` declares duplicate replacement for pass `{pass_name}`",
+                    descriptor.name
                 ));
             }
         }

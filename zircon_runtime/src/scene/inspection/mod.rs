@@ -4,6 +4,9 @@ mod field;
 mod hierarchy;
 mod snapshot;
 
+#[cfg(test)]
+mod tests;
+
 pub use field::WorldInspectionField;
 pub use hierarchy::WorldInspectionHierarchyRow;
 pub use snapshot::WorldInspection;

@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，然后完善 Hybrid GI，不要中途确认
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-cache-entry-residency-cascade.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime_state_ignores_duplicate_gpu_cache_entries_after_first_unique_probe -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

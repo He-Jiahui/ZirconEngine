@@ -16,7 +16,7 @@ pub use plugin::{
     editor_plugin_descriptor, package_manifest, plugin_registration, AnimationGraphEditorPlugin,
     ANIMATION_GRAPH_DIST_CRATE_NAME, ANIMATION_GRAPH_DIST_EDITOR_ENTRY,
 };
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationConditionOperatorAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
     AnimationStateMachineAsset,
 };

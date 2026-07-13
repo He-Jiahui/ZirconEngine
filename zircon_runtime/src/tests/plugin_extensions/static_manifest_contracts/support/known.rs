@@ -11,7 +11,10 @@ pub(in crate::tests::plugin_extensions::static_manifest_contracts) fn assert_kno
         non_empty_string_array_values(table, relative_path, context, "default_packaging")
     {
         assert!(
-            matches!(packaging, "source_template" | "library_embed" | "native_dynamic"),
+            matches!(
+                packaging,
+                "source_template" | "library_embed" | "native_dynamic"
+            ),
             "plugin manifest {relative_path:?} {context} default packaging strategy `{packaging}` should be source_template, library_embed, or native_dynamic"
         );
     }

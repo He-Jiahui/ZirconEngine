@@ -4,8 +4,8 @@ mod policy;
 mod swash;
 
 pub(crate) use policy::{
-    raster_path_for, raster_path_for_request, GlyphRasterEffects, GlyphRasterPath,
-    GlyphRasterPolicy, GlyphRasterPolicyRequest,
+    distance_field_mode_for_request, raster_path_for, raster_path_for_request, GlyphRasterEffects,
+    GlyphRasterPath, GlyphRasterPolicy, GlyphRasterPolicyRequest,
 };
 pub(crate) use swash::{
     color_glyph_raster_plan, glyph_atlas_bitmap_source_from_glyph_bitmap,

@@ -23,7 +23,7 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
@@ -64,7 +64,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
@@ -190,7 +190,7 @@ These DTOs do not attempt to instantiate ECS entities, resolve handles, or valid
 
 ## Runtime Bridge
 
-`World::from_scene_asset(...)` maps optional direct mesh references into `MeshRenderer.mesh`, primitive mesh/material pairs into `MeshRenderer.primitives`, conventional LOD levels into `MeshRenderer.lods`, authored mesh sort overrides into `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, and `MeshRenderer.depth_bias`, and authored morph weights into `MeshRenderer.morph_weights`. `World::to_scene_asset(...)` writes those forms back when persistent locators, non-empty LODs, non-zero sort overrides, or non-empty weights exist. `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, and `MeshRenderer.depth_bias` are exposed as editable property paths for render ordering; `MeshRenderer.morph_weights.N` is exposed as an animatable scalar component property path, with writes growing the vector with zeroes so animation tracks can target sparse morph indices. Fixed reflection exposes the sort overrides as editable integer/scalar fields and keeps the morph vector and LOD list as read-only inspection data, while property access exposes `MeshRenderer.lod_level_count` as a read-only count.
+`World::from_scene_asset(...)` maps optional direct mesh references into `MeshRenderer.mesh`, primitive mesh/material pairs into `MeshRenderer.primitives`, conventional LOD levels into `MeshRenderer.lods`, authored mesh sort overrides into `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, and `MeshRenderer.depth_bias`, and authored morph weights into `MeshRenderer.morph_weights`. `World::to_scene_asset(...)` writes those forms back when persistent locators, non-empty LODs, non-zero sort overrides, or non-empty weights exist. `MeshRenderer.render_queue`, `MeshRenderer.material_queue`, `MeshRenderer.order_in_layer`, and `MeshRenderer.depth_bias` are exposed as editable property paths for render ordering; `MeshRenderer.morph_weights.N` is exposed as an animatable scalar component property path, with writes growing the vector with zeroes so animation tracks can target sparse morph indices. Unified derived reflection exposes the sort overrides as editable integer/scalar fields and keeps the morph vector and LOD list as read-only inspection data, while property access exposes `MeshRenderer.lod_level_count` as a read-only count.
 
 When `script_bindings` are present, `World::from_scene_asset(...)` stores them as the dynamic component `script.bindings`. The ZrVM language runtime scene hooks read that component and dispatch `onStart`, `onFixedUpdate`, and `onUpdate` exports for each enabled binding whose stage flag allows the current phase. `World::to_scene_asset(...)` decodes the same dynamic component back into authoring data, so script-bound entities round-trip with the rest of the scene.
 

@@ -2,11 +2,13 @@ mod metrics;
 mod segmented;
 mod tabs;
 
-#[cfg(test)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::workbench_segmented_control_metrics_from_host;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
     segment_font_size, segment_group_label_font_size, segment_group_label_line_height,
     segment_line_height, segment_radius, tab_font_size, tab_line_height,
+};
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
+    workbench_segmented_control_metrics, workbench_segmented_control_metrics_from_host,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use segmented::{
     segment_divider_rect, segment_label_rect, segment_rect, segmented_body_rect,

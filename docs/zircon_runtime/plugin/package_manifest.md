@@ -46,7 +46,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - tools/plugin_structure_audits/manifest_schema.py
   - tools/plugin_structure_audits/manifest_schema_modules.py
@@ -325,7 +325,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/presence.rs

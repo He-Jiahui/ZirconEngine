@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use zircon_runtime_interface::ZrByteSlice;
 
 use crate::asset::project::{ProjectManager, ProjectScriptManifest};
-use crate::asset::NavMeshAsset;
 use crate::asset::{ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
+use crate::core::framework::navigation::NavMeshAsset;
 use crate::core::manager::resolve_navigation_manager;
 use crate::core::CoreHandle;
 use crate::diagnostic_log::write_log;

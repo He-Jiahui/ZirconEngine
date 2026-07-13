@@ -1,10 +1,8 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 plan_sources:
   - user: 2026-04-17 continue M5
   - user: 2026-04-17 Hybrid GI still needs scene-driven radiance cache / probe gather / RT hybrid lighting
@@ -12,7 +10,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-scene-driven-probe-gather.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-cache-entry-residency-cascade.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_holds_newly_resident_hybrid_gi_probe_out_of_evictable_list_for_one_frame
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_visibility
   - cargo test -p zircon_graphics --offline --locked hybrid_gi

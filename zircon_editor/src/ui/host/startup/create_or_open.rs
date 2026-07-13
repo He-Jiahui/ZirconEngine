@@ -1,7 +1,6 @@
+use crate::core::project::{NewProjectDraft, ProjectAuthority};
 use crate::ui::workbench::project::EditorProjectDocument;
-use crate::ui::workbench::startup::{
-    EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft,
-};
+use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
@@ -13,7 +12,7 @@ impl EditorUiHost {
     ) -> Result<EditorStartupSessionDocument, EditorError> {
         let document = self.open_project(&path)?;
         let status_message = project_open_status_message(&document);
-        self.update_recent_project(&document.root_path, document.manifest.name.as_str())?;
+        self.update_recent_project(&document.root_path)?;
         self.dismiss_welcome_page()?;
 
         Ok(EditorStartupSessionDocument {
@@ -30,9 +29,8 @@ impl EditorUiHost {
         &self,
         draft: NewProjectDraft,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
-        let root = EditorProjectDocument::create_renderable_template(&draft)
-            .map_err(|error| EditorError::Project(error.to_string()))?;
-        self.open_project_and_remember(root)
+        let created = ProjectAuthority::default().create_project(&draft)?;
+        self.open_project_and_remember(created.root)
     }
 }
 

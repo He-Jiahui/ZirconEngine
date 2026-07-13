@@ -189,6 +189,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 4.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         },
         RenderDirectionalLightSnapshot {
@@ -198,6 +199,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
             direction: Vec3::new(1.0, -1.0, 0.0),
             color: Vec3::new(0.6, 0.7, 1.0),
             intensity: 2.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         },
     ]);
@@ -212,6 +214,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
             color: Vec3::new(0.9, 0.8, 1.0),
             intensity: 6.0,
             range: 8.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         });
     extract.lighting.spot_lights.push(RenderSpotLightSnapshot {
@@ -225,6 +228,7 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         range: 10.0,
         inner_angle_radians: 0.35,
         outer_angle_radians: 0.75,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     });
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {

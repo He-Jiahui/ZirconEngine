@@ -197,10 +197,6 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
                 ]),
             )
             .with_value(
-                "disabled_commands",
-                UiValue::Array(vec![UiValue::String("build_assets".to_string())]),
-            )
-            .with_value(
                 "selected_command_id",
                 UiValue::String("build_project".to_string()),
             )

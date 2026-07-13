@@ -11,52 +11,29 @@ node = "root"
 component = "VerticalGroup"
 control_id = "RuntimeDiagnosticsPaneBodyRoot"
 classes = ["editor-pane", "diagnostics-pane"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "summary" }, { node = "reflector_summary" }, { node = "reflector_export" }, { node = "reflector_detail" }, { node = "reflector_nodes" }, { node = "body_section" }]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "reflector_nodes" }]
 
 [nodes.header]
 component = "HorizontalGroup"
 control_id = "RuntimeDiagnosticsHeader"
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-children = [{ node = "focus" }]
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "summary" }, { node = "focus" }]
 
 [nodes.focus]
 component = "IconButton"
 control_id = "FocusDiagnostics"
 props = { label = "Focus Diagnostics", icon = "editor_pages/console_profiler/diagnostics/watch.svg" }
-layout = { width = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "workbench.dock.focus_view" }]
 
 [nodes.summary]
 component = "Text"
 control_id = "RuntimeDiagnosticsSummary"
 props = { text = "Runtime diagnostics" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }
-
-[nodes.reflector_summary]
-component = "Text"
-control_id = "UiDebugReflectorSummary"
-props = { text = "UI Debug Reflector" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }
-
-[nodes.reflector_export]
-component = "Text"
-control_id = "UiDebugReflectorExportStatus"
-props = { text = "JSON export unavailable" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }
-
-[nodes.reflector_detail]
-component = "Text"
-control_id = "UiDebugReflectorDetail"
-props = { text = "Waiting for shared UI surface snapshot" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 42.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.reflector_nodes]
 component = "Container"
 control_id = "UiDebugReflectorNodeList"
 layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
-
-[nodes.body_section]
-component = "Container"
-control_id = "RuntimeDiagnosticsBodySection"
-layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }

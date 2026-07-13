@@ -2,11 +2,41 @@ use std::path::PathBuf;
 
 use libloading::Library;
 
+use crate::asset::{
+    NativeAssetImportCommandHost, NativeAssetImportCommandReport, NativeAssetImportCommandStatus,
+};
+
 use super::{
     NativePluginBehaviorCallReport, NativePluginBehaviorHealth,
     NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
 };
+
+impl NativeAssetImportCommandHost for LoadedNativePlugin {
+    fn command_host_id(&self) -> &str {
+        &self.plugin_id
+    }
+
+    fn invoke_asset_import_command(
+        &self,
+        command: &str,
+        payload: &[u8],
+    ) -> NativeAssetImportCommandReport {
+        let report = LoadedNativePlugin::invoke_runtime_command(self, command, payload);
+        let status = match report.status_code {
+            super::ZIRCON_NATIVE_PLUGIN_STATUS_OK => NativeAssetImportCommandStatus::Ok,
+            super::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR => NativeAssetImportCommandStatus::Error,
+            super::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED => NativeAssetImportCommandStatus::Denied,
+            super::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC => NativeAssetImportCommandStatus::Panic,
+            status => NativeAssetImportCommandStatus::Unknown(status),
+        };
+        NativeAssetImportCommandReport {
+            status,
+            diagnostics: report.diagnostics,
+            payload: report.payload,
+        }
+    }
+}
 
 pub struct LoadedNativePlugin {
     pub plugin_id: String,

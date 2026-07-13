@@ -5,6 +5,7 @@ use glyphon::cosmic_text::SubpixelBin;
 use glyphon::{CacheKey, FontSystem, SwashContent};
 
 use crate::graphics::text::atlas::GlyphAtlasFormat;
+use crate::graphics::text::font::FontDatabase;
 use crate::graphics::text::parallel::raster_pool::{
     TextRasterCompletionDrain, TextRasterWorkId, TextRasterWorkItem, TextRasterWorkResult,
     TextRasterWorkTarget, TextRasterWorkerPool,
@@ -204,6 +205,7 @@ impl NativeBitmapAtlasSourceCache {
     pub(super) fn request_worker_image(
         &mut self,
         font_system: &mut FontSystem,
+        font_database: &FontDatabase,
         worker_pool: Option<&TextRasterWorkerPool>,
         target: TextRasterWorkTarget,
         cache_key: CacheKey,
@@ -249,6 +251,15 @@ impl NativeBitmapAtlasSourceCache {
 
         let work_id = self.next_worker_id();
         let request = SwashRasterRequest::glyphon_cache_key(face_index, cache_key);
+        let request = font_database
+            .font_face_id(cache_key.font_id)
+            .and_then(|face| {
+                font_database
+                    .effective_variations(face, cache_key.font_weight.0)
+                    .ok()
+            })
+            .map(|variations| request.clone().with_variations(variations))
+            .unwrap_or(request);
         let work =
             TextRasterWorkItem::new(work_id, target, Arc::<[u8]>::from(font.data()), request);
 

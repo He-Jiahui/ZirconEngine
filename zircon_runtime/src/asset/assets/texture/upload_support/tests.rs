@@ -1,7 +1,8 @@
 use super::ktx::{KTX2_IDENTIFIER, KTX2_LEVEL_INDEX_OFFSET};
 use super::TextureUploadSupport;
 use crate::asset::{
-    AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    AssetUri, TextureAsset, TextureAssetDescriptor, LIGHTMAP_RGBA16F_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{RenderImageColorSpace, RenderImageDimension};
 
@@ -245,6 +246,55 @@ fn rgba8_upload_readiness_rejects_descriptor_formats_that_need_conversion() {
             .upload_readiness(TextureUploadSupport::uncompressed_only())
             .unsupported_reason(),
         Some("rgba8 texture descriptor format rgba16float requires conversion before upload")
+    );
+}
+
+#[test]
+fn lightmap_rgba16f_upload_readiness_accepts_exact_array_payload() {
+    let mut descriptor = TextureAssetDescriptor::container(LIGHTMAP_RGBA16F_GPU_FORMAT, 1, 2);
+    descriptor.color_space = RenderImageColorSpace::Linear;
+    let texture = TextureAsset::new_container(
+        AssetUri::parse("res://lighting/test.lightmap-array").unwrap(),
+        2,
+        2,
+        LIGHTMAP_RGBA16F_FORMAT,
+        vec![0; 2 * 2 * 2 * 8],
+        1,
+        2,
+    )
+    .with_descriptor(descriptor);
+
+    let super::TextureUploadReadiness::Ready { plan } =
+        texture.upload_readiness(TextureUploadSupport::uncompressed_only())
+    else {
+        panic!("valid lightmap rgba16f array should be upload-ready");
+    };
+
+    assert_eq!(plan.format, LIGHTMAP_RGBA16F_GPU_FORMAT);
+    assert_eq!(plan.bytes_per_block, 8);
+    assert_eq!(plan.data_length, Some(64));
+}
+
+#[test]
+fn lightmap_rgba16f_upload_readiness_rejects_truncated_payload() {
+    let mut descriptor = TextureAssetDescriptor::container(LIGHTMAP_RGBA16F_GPU_FORMAT, 1, 2);
+    descriptor.color_space = RenderImageColorSpace::Linear;
+    let texture = TextureAsset::new_container(
+        AssetUri::parse("res://lighting/truncated.lightmap-array").unwrap(),
+        2,
+        2,
+        LIGHTMAP_RGBA16F_FORMAT,
+        vec![0; 32],
+        1,
+        2,
+    )
+    .with_descriptor(descriptor);
+
+    assert_eq!(
+        texture
+            .upload_readiness(TextureUploadSupport::uncompressed_only())
+            .unsupported_reason(),
+        Some("lightmap rgba16f payload length 32 does not match expected 64")
     );
 }
 

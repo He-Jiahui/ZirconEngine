@@ -8,11 +8,13 @@ use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{
+    AssetId, FontAsset, MaterialAsset, MeshAsset, ModelAsset, PhysicsMaterialAsset, SceneAsset,
+    ShaderAsset, SoundAsset, TextureAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset, UiThemeAsset,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+};
+use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, MeshAsset, ModelAsset,
-    PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiIconAsset,
-    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
-    UiWidgetAsset,
+    AnimationStateMachineAsset,
 };
 
 impl ProjectAssetManager {

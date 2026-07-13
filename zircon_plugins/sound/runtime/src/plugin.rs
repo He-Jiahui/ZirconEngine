@@ -4,10 +4,10 @@ use crate::package::attach::attach_sound_manifest_contributions;
 use crate::package::events::sound_event_catalogs;
 use crate::package::options::sound_options;
 use crate::runtime_plugin::descriptor::runtime_plugin_descriptor;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
-    PluginPackageManifest,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };
 
 pub const SOUND_DIST_CRATE_NAME: &str = "zircon_plugin_sound_dist";
@@ -87,7 +87,7 @@ pub fn sound_dist_module_manifest() -> PluginModuleManifest {
         .with_capabilities(RUNTIME_CAPABILITIES.iter().copied())
 }
 
-pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection {
+pub fn runtime_selection() -> zircon_runtime::core::framework::project::ProjectPluginSelection {
     zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())
 }
 

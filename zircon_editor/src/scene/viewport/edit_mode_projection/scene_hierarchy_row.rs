@@ -7,6 +7,7 @@ pub(crate) struct SceneHierarchyRow {
     pub(crate) depth: u32,
     pub(crate) display_name: String,
     pub(crate) kind: String,
+    pub(crate) subtree_hash: u64,
     pub(crate) selected: bool,
     pub(crate) active_in_hierarchy: bool,
     pub(crate) has_children: bool,

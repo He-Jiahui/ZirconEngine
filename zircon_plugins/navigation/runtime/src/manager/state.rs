@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use zircon_plugin_navigation_recast::RecastTiledBakePlan;
-use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic;
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
     NavMeshHandle, NavMeshSurfaceDescriptor, NavigationRuntimeStats,
 };

@@ -8,7 +8,7 @@ mod image;
 mod keys;
 mod uv;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use discovery::ATLAS_LIBRARY_DIR;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use discovery::ATLAS_CACHE_DIR;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve_editor_sprite_atlas_image(
     source_key: &str,

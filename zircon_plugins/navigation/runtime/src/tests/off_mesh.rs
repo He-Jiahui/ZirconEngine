@@ -1,8 +1,8 @@
-use zircon_runtime::asset::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavAvoidanceQuality, NavLinkMotion, NavMeshAgentDescriptor, NavigationManager,
     OffMeshTraverseEvent, OffMeshTraverseEventKind, AREA_JUMP, NAV_MESH_AGENT_COMPONENT_TYPE,
 };
+use zircon_runtime::core::framework::navigation::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::World;
@@ -113,7 +113,7 @@ fn assert_cancelled_waiter_releases_capacity(cancel: impl FnOnce(&mut NavMeshAge
     assert!(!completed.contains(&waiter));
 }
 
-fn capacity_one_bridge_asset() -> zircon_runtime::asset::NavMeshAsset {
+fn capacity_one_bridge_asset() -> zircon_runtime::core::framework::navigation::NavMeshAsset {
     let mut asset = two_island_navmesh(false);
     asset.off_mesh_links.push(NavMeshLinkAsset {
         id: 1,

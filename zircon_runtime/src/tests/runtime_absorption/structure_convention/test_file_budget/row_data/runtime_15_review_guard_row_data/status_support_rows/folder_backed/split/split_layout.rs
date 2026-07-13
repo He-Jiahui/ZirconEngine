@@ -108,10 +108,6 @@ fn runtime_15_review_guard_status_support_folder_backed_split_layout_guard_is_fo
             "module convention doc",
             "docs/zircon_runtime/structure/module-convention.md",
         ),
-        (
-            "runtime implementation session",
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-        ),
     ] {
         let source = read_repo(path);
         assert_contains_all(label, &source, &status_anchors);

@@ -5,10 +5,10 @@ use crate::{
     hybrid_gi_runtime_provider_registration, module_descriptor, render_feature_descriptor,
     render_pass_executor_registrations, runtime_prepare_collector_registration, PLUGIN_ID,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
-    PluginPackageManifest,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };
 
 #[derive(Clone, Debug)]
@@ -91,8 +91,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     .with_module_descriptor(module_descriptor())
     .with_category("rendering")
     .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
     ])
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_capability(HYBRID_GI_RUNTIME_CAPABILITY)

@@ -15,7 +15,7 @@ pub(crate) fn project_overview_data(snapshot: &ProjectOverviewSnapshot) -> Proje
         project_name: snapshot.project_name.clone().into(),
         project_root: snapshot.project_root.clone().into(),
         assets_root: snapshot.assets_root.clone().into(),
-        library_root: snapshot.library_root.clone().into(),
+        cache_root: snapshot.cache_root.clone().into(),
         default_scene_uri: snapshot.default_scene_uri.clone().into(),
         catalog_revision: snapshot.catalog_revision.to_string().into(),
         folder_count: snapshot.folder_count.to_string().into(),
@@ -52,7 +52,7 @@ pub(crate) fn project_overview_pane_data(
         "ProjectOverviewLibraryValue".to_string(),
         format!(
             "Library {} • rev {}",
-            snapshot.library_root, snapshot.catalog_revision
+            snapshot.cache_root, snapshot.catalog_revision
         ),
     );
     let _ = text_overrides.insert(

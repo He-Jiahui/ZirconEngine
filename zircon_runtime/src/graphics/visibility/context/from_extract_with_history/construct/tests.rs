@@ -147,6 +147,7 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
                 direction: Vec3::new(0.0, -1.0, -1.0),
                 color: Vec3::ONE,
                 intensity: 1.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             }],
             ..LightingExtract::default()
@@ -212,6 +213,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
                 direction: Vec3::new(0.0, -1.0, -1.0),
                 color: Vec3::ONE,
                 intensity: 1.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: Some(shadow_settings()),
             }],
             point_lights: vec![RenderPointLightSnapshot {
@@ -222,6 +224,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
                 color: Vec3::ONE,
                 intensity: 1.0,
                 range: 8.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: Some(shadow_settings()),
             }],
             spot_lights: vec![RenderSpotLightSnapshot {
@@ -235,6 +238,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
                 range: 8.0,
                 inner_angle_radians: 0.25,
                 outer_angle_radians: 0.5,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: Some(shadow_settings()),
             }],
             ..LightingExtract::default()

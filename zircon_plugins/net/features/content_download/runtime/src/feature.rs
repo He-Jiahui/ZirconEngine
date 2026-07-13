@@ -88,7 +88,9 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
             "net.content_download.runtime",
             "zircon_plugin_net_content_download_runtime",
         )
-        .with_target_modes([zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime])
+        .with_target_modes([
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+        ])
         .with_capabilities([NET_CONTENT_DOWNLOAD_FEATURE_CAPABILITY.to_string()]),
     )
 }

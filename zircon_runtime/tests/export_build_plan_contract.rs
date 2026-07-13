@@ -3,10 +3,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use zircon_runtime::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
 };
 
 #[test]
@@ -204,7 +206,7 @@ fn materialize_report_carries_planner_diagnostics_even_without_generated_files()
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
-    .with_runtime_profile_id(zircon_runtime::plugin::RuntimeProfileId::Minimal)
+    .with_runtime_profile_id(zircon_runtime::core::framework::project::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "native-only").unwrap();

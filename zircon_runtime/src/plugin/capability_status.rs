@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 /// Implementation state for a plugin-owned capability or optional feature.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

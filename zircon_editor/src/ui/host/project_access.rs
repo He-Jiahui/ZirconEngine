@@ -2,12 +2,15 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::{resolve_asset_manager, AssetManager};
+use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::{AssetImportError, AssetUri};
 use zircon_runtime::core::framework::foundation::ConfigManager;
 use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, DEFAULT_LEVEL_MANAGER_NAME};
 
+use crate::core::project::ProjectAuthority;
 use crate::ui::host::editor_asset_manager::{resolve_editor_asset_manager, EditorAssetManager};
-use crate::ui::workbench::project::{project_root_path, EditorProjectDocument};
+use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::editor_error::EditorError;
 use super::editor_ui_host::EditorUiHost;
@@ -17,17 +20,13 @@ impl EditorUiHost {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<EditorProjectDocument, EditorError> {
-        let root =
-            project_root_path(&path).map_err(|error| EditorError::Project(error.to_string()))?;
+        let root = ProjectAuthority::default().open_project(&path)?.root;
         self.asset_manager()?
-            .open_project(root.to_string_lossy().as_ref())
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+            .open_project(root.to_string_lossy().as_ref())?;
         self.editor_asset_manager()?
-            .refresh_from_runtime_project()
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+            .refresh_from_runtime_project()?;
         self.restart_ui_asset_workspace_watcher()?;
-        EditorProjectDocument::load_from_path(&path)
-            .map_err(|error| EditorError::Project(error.to_string()))
+        Ok(EditorProjectDocument::load_from_path(&path)?)
     }
 
     pub(super) fn save_project(
@@ -36,17 +35,13 @@ impl EditorUiHost {
         world: &zircon_runtime::scene::Scene,
     ) -> Result<(), EditorError> {
         let workspace = self.project_workspace();
-        let root =
-            project_root_path(&path).map_err(|error| EditorError::Project(error.to_string()))?;
-        EditorProjectDocument::save_to_path(&path, world, Some(&workspace))
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+        let root = ProjectAuthority::default().open_project(&path)?.root;
+        EditorProjectDocument::save_to_path(&path, world, Some(&workspace))?;
         self.asset_manager()?
             .open_project(root.to_string_lossy().as_ref())
-            .map(|_| ())
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+            .map(|_| ())?;
         self.editor_asset_manager()?
-            .refresh_from_runtime_project()
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+            .refresh_from_runtime_project()?;
         self.restart_ui_asset_workspace_watcher()
     }
 
@@ -54,28 +49,21 @@ impl EditorUiHost {
         &self,
         scene: zircon_runtime::scene::Scene,
     ) -> Result<zircon_runtime::scene::LevelSystem, EditorError> {
-        let manager = self
-            .core
-            .resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)
-            .map_err(|error| EditorError::Project(error.to_string()))?;
+        let core = self.runtime_core()?;
+        let manager = core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)?;
         Ok(manager.create_level(scene, LevelMetadata::default()))
     }
 
     pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
-        ManagerResolver::new(self.core.clone())
-            .config()
-            .map_err(|error| EditorError::Project(error.to_string()))
+        Ok(ManagerResolver::new(self.runtime_core()?).config()?)
     }
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
-        resolve_asset_manager(&self.core)
-            .map(|manager| manager.shared())
-            .map_err(|error| EditorError::Project(error.to_string()))
+        Ok(resolve_asset_manager(&self.runtime_core()?)?.shared())
     }
 
     pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
-        resolve_editor_asset_manager(&self.core)
-            .map_err(|error| EditorError::Project(error.to_string()))
+        Ok(resolve_editor_asset_manager(&self.runtime_core()?)?)
     }
 
     pub(super) fn current_project_root(&self) -> Result<Option<PathBuf>, EditorError> {
@@ -94,9 +82,56 @@ impl EditorUiHost {
             let project_root = self.current_project_root()?.ok_or_else(|| {
                 EditorError::UiAsset(format!("cannot resolve {asset_id} without an open project"))
             })?;
-            return Ok(project_root.join("assets").join(relative));
+            let project = open_project_manager_for_paths(&project_root)?;
+            return resolve_existing_project_asset_path(&project, &format!("res://{relative}"));
         }
         Ok(PathBuf::from(asset_id))
+    }
+
+    pub(super) fn resolve_asset_locator_path(
+        &self,
+        asset_locator: &AssetUri,
+    ) -> Result<PathBuf, EditorError> {
+        let project_root = self.current_project_root()?.ok_or_else(|| {
+            EditorError::UiAsset(format!(
+                "cannot resolve {asset_locator} without an open project"
+            ))
+        })?;
+        let project = open_project_manager_for_paths(&project_root)?;
+        Ok(project.source_path_for_uri(asset_locator)?)
+    }
+}
+
+pub(crate) fn open_project_manager_for_paths(
+    project_root: &Path,
+) -> Result<ProjectManager, EditorError> {
+    Ok(ProjectManager::open(project_root)?)
+}
+
+pub(crate) fn resolve_existing_project_asset_path(
+    project: &ProjectManager,
+    asset_id: &str,
+) -> Result<PathBuf, EditorError> {
+    let uri = AssetUri::parse(asset_id)?;
+    Ok(project.source_path_for_uri(&uri)?)
+}
+
+pub(crate) fn resolve_project_asset_write_path(
+    project: &ProjectManager,
+    asset_id: &str,
+) -> Result<PathBuf, EditorError> {
+    let uri = AssetUri::parse(asset_id)?;
+    Ok(project.existing_or_primary_project_source_path_for_uri(&uri)?)
+}
+
+pub(crate) fn project_asset_id_for_source_path(
+    project: &ProjectManager,
+    source_path: &Path,
+) -> Result<Option<String>, EditorError> {
+    match project.project_uri_for_source_path(source_path) {
+        Ok(uri) => Ok(Some(uri.to_string())),
+        Err(AssetImportError::SourceOutsideProjectAssetRoots { .. }) => Ok(None),
+        Err(error) => Err(error.into()),
     }
 }
 

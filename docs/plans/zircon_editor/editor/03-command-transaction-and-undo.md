@@ -14,7 +14,7 @@ reference_sources:
 plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
-status: planned
+status: in_progress
 ---
 
 # 03 命令 / 事务 / 撤销统一框架
@@ -230,3 +230,14 @@ impl TransactionScope<'_> {
 - `set_reflected_scene_field` 整值快照内存成本：M2 保持现状；差量化留待 runtime 反射迁移能力落地评估（触发条件：单值 >64KB 或历史内存超阈，记状态节）。
 - UI 资产 commit 钩子失败时 revert 依赖 `inverse_tree_edit` 完备性——迁移时逐类 tree_edit 补逆操作完备性测试。
 - `ContainsPieObjects` 等价：PIE session 实体禁入编辑事务——routing 第 2 步按文档归属天然拒绝（PIE 视口非文档），另补显式守卫测试（04 会签）。
+
+## 产出记录与时间
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
+|---|---|---|---|---|
+| M1 | 1.1 统一事务内核 | `实现完成-规格质量复审通过-静态门通过-Cargo行为门待M1测试阶段` | 2026-07-12 | 新增 folder-backed `zircon_editor/src/core/editing/engine/`，以薄 root 发布 `EditCommand`、typed `EditCommandError`、`CommandExecutionError + CommandEffect::{Unchanged,Applied}`、`HistoryStore`、`EditorTransactionEngine`、`TransactionScope`、`MergeMode`、routing 与五态内部事件；`HistoryContextId` 硬切为 `Global | Document(DocumentId)`，旧 editor_message 数字 owner、`new/value` API 与 re-export 已删除且无兼容层。历史使用 `VecDeque`+游标，redo 截断/容量淘汰均确定 finalize，`saved_top` 含保存基线被淘汰后的可达语义；记录持有 participants、selection before/after、significant 与 frame。scope 支持 push 即 apply、逆序 cancel/drop、同 context 嵌套折叠、跨 context typed error，并让父 `Ends/All` 合并规则跨嵌套边界生效。质量整改将上下文/active/history 两阶段移出单 mutex 后再执行外部回调，以 `EngineBusy`/`EngineFaulted`、Condvar 终结等待和 active-scope inspection 禁入消除锁反转、回调重入、跨线程 Busy 遗留与同线程自等待；undo/redo selection 恢复、apply/revert 突变前后失败和 rollback 失败均按显式 effect 原子恢复或保留可恢复故障态，不会错误 finalize。专属测试树覆盖游标/finalize、容量/saved_top、RAII、乱序三层 scope、嵌套合并、并发 cancel/commit/drop、回调重入、selection 两侧失败、CommandEffect 前后突变、routing 与事件顺序。TDD 源码顺序为测试 owner 先落、生产 owner 后落；规格复审整改 3 项后 `SPEC APPROVED`，质量复审多轮 P0/P1 整改后 `QUALITY APPROVED`。全量相关 Rust `rustfmt --check`、scoped `git diff --check`、旧 API/旧文档路径及 production `unwrap/expect/panic/todo/unimplemented/unreachable/String error` 扫描通过；最大生产 owner `transaction.rs` 低于 800 行。共享 Cargo 高压下未运行 `cargo test -p zircon_editor --lib --locked`，故 M1 测试阶段和 M1.2 仍未关闭。模块文档：`docs/zircon_editor/core/editing.md`、`docs/zircon_editor/core/editor_message.md`。 |
+| M1 | 1.2 Context 接线与空心操作栈硬删除 | `实现完成-规格质量复审通过-静态门通过-Cargo行为门待M1测试阶段` | 2026-07-12 | 新增 headless `CoreEditContext`，`EditorContextBuilder` 构造唯一 `EditorTransactionEngine`，`EditorContext::transactions()` 始终返回同一服务实例；新增 Context 同实例与空事务不入 history 的专属测试。生产 `EditorOperationStack`、`EditorOperationStackEntry`、`operation_state.stack`、runtime accessor、事件派发空心 record、Undo/Redo 旧栈移动全部物理删除，全仓 Rust 旧符号零命中且无 wrapper/re-export/shim。`UndoableEditorOperation` 描述元数据保留给 M3 command factory，不伪装成可撤销命令；远程合同硬切 `QueryOperationHistory`，在 M3 factory 接线前返回 typed `OperationHistoryPendingFactory`，不返回兼容栈或虚假成功。只锁旧栈身份/来源/merge 的测试已删除或改为 event journal、typed pending-factory 与新 Context 合同；未提前实现 M2 场景命令或 M3 operation factory。规格复审 `SPEC APPROVED`，质量复审 `QUALITY APPROVED`；17 个相关 Rust owner `rustfmt --check`、scoped `git diff --check` 与 `EditorOperationStack|EditorOperationStackEntry|QueryOperationStack|operation_stack(` 全树扫描通过。共享 Cargo 高压下未执行 `cargo test -p zircon_editor --lib --locked`，因此 M1 测试阶段仍保持 open，不能声明 M1 关闭。模块文档同步 `docs/zircon_editor/core/editing.md`、`docs/zircon_editor/core/context.md`。 |
+| M1 | 统一行为门首次进入完整 test binary | `本计划用例通过-全量门被外部功能失败与资源停滞阻断` | 2026-07-12 | Windows 受管 job `520d85713df249afae31661a7697ad07` 以原命令完成 test binary 编译，transaction engine 的 history/locking/events/recovery/routing/scope 组在同一运行中全部通过；随后全量门暴露 Editor10 project/reference、Editor12 plugin validation、Editor UI 03/05/06/08 与 Editor14 thread/resource 失败并停滞。外部失败已写入各自功能计划；因全量未自然结束，Editor03 M1 测试阶段仍不关闭，也不以聚焦通过替代完整门。 |
+
+- Navigation M6 插件 operation factory/runtime wiring：`待修复（open）`；[failure 交接](03/failure-2026-07-13-plugin-operation-factory-runtime-wiring.md)。
+- fixed 已修复：[editing-operation-owner-structure-guard-drift](09/fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md)

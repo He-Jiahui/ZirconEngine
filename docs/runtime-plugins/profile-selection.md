@@ -1,19 +1,23 @@
 ---
 related_code:
+  - zircon_runtime/runtime-feature-presets.toml
+  - zircon_runtime/build.rs
+  - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
+  - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/core/state/mod.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/modules/diagnostics.rs
-  - zircon_runtime/src/core/modules/frame_count.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/modules/tasks.rs
-  - zircon_runtime/src/core/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
@@ -27,6 +31,10 @@ related_code:
   - zircon_app/src/plugins/groups.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - tools/tests/test_frameworks_03_domain_feature_matrix.py
+  - tools/tests/test_frameworks_03_profile_feature_presets.py
+  - tools/runtime-profile-feature-presets.py
+  - tools/dev-fast-build.ps1
+  - tools/check-runtime-profile-features.ps1
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
@@ -34,14 +42,13 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_app/src/prelude.rs
   - zircon_app/src/plugins/builder.rs
-  - zircon_app/src/plugins/groups.rs
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_app/src/entry/builtin_modules.rs
@@ -50,6 +57,7 @@ related_code:
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_app/src/entry/entry_runner/mod.rs
   - tools/check-runtime-domain-features.ps1
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
@@ -69,20 +77,26 @@ related_code:
   - .codex/skills/zircon-dev/reporting.md
   - docs/runtime-plugins/bevy-parity-matrix.md
 implementation_files:
+  - zircon_runtime/runtime-feature-presets.toml
+  - zircon_runtime/build.rs
+  - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
+  - tools/runtime-profile-feature-presets.py
+  - tools/dev-fast-build.ps1
+  - tools/check-runtime-profile-features.ps1
   - tools/check-runtime-domain-features.ps1
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/core/state/mod.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/modules/diagnostics.rs
-  - zircon_runtime/src/core/modules/frame_count.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/modules/tasks.rs
-  - zircon_runtime/src/core/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
@@ -96,7 +110,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_app/src/prelude.rs
@@ -110,6 +124,7 @@ implementation_files:
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_app/src/entry/entry_runner/mod.rs
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/sound/plugin.toml
@@ -136,6 +151,8 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
 tests:
   - tools/tests/test_frameworks_03_domain_feature_matrix.py
+  - tools/tests/test_frameworks_03_profile_feature_presets.py
+  - zircon_runtime/tests/frameworks_03_profile_feature_presets.rs
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_runtime/src/tests/prelude.rs
@@ -150,6 +167,8 @@ tests:
   - zircon_app/src/entry/tests/source_assertions.rs
   - cargo metadata --manifest-path zircon_plugins/Cargo.toml --format-version 1 --no-deps --locked
   - cargo metadata --format-version 1 --no-deps --locked
+  - python -m unittest tools.tests.test_frameworks_03_profile_feature_presets -v
+  - cargo +nightly test -p zircon_runtime --test frameworks_03_profile_feature_presets --no-default-features --features target-server --locked --offline
   - cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture
   - cargo test -p zircon_app --locked profile_bootstrap
   - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1
@@ -199,18 +218,22 @@ Each descriptor carries target mode, default plugins, optional plugins, required
 
 ## Compile Feature Presets
 
-M1 uses the following compile preset mapping. Runtime profile selection still decides the narrower module/plugin membership inside a compiled preset, so `Client2d` and `Client3d` intentionally share `target-client`, while `Editor` and `Dev` share `target-editor-host`.
+M2 makes `zircon_runtime/runtime-feature-presets.toml` the machine-readable owner of all six logical profile compile presets. `zircon_runtime/build.rs` validates its schema and stable profile order, then generates `RuntimeProfileFeaturePreset` constants into `OUT_DIR`; no generated source is checked into the repository. Runtime profile selection still decides narrower module/plugin membership inside a compiled preset, so `Client2d` and `Client3d` intentionally share `target-client`, while `Editor` and `Dev` share `target-editor-host`.
 
 | Runtime profile | Cargo preset | Compile boundary |
 | --- | --- | --- |
 | `Minimal` | `core-min` | Always-on runtime foundation only; no optional domain contract is implied. |
-| `Client2d` | `target-client` | Client platform plus AI, Net, Sound, animation, diagnostics, graphics, navigation, script, text, and UI domains. |
+| `Client2d` | `target-client` | Client platform plus AI, Net, Physics, Sound, animation, diagnostics, graphics, navigation, script, text, and UI domains. |
 | `Client3d` | `target-client` | Same compiled client domains as `Client2d`; runtime profile data selects the 3D module/plugin set. |
-| `Editor` | `target-editor-host` | Client domains plus the editor-host target contract. |
-| `Dev` | `target-editor-host` | Same compiled editor-host domains as `Editor`; runtime profile data selects development diagnostics and plugins. |
+| `Editor` | `target-editor-host` | Client domains plus the editor-host target contract and the first-party advanced-render provider catalog required by the editor's default HGI render profile. Runtime selection still links HGI only; it does not implicitly activate Virtual Geometry or Solari. |
+| `Dev` | `target-editor-host` | Same compiled editor-host domains and provider catalog as `Editor`; runtime profile data selects development diagnostics and plugins. |
 | `Server` | `target-server` | `core-min`, `diagnostic-log`, and headless platform only; no graphics, UI, animation, navigation, script, AI, Net, or Sound domain is implied. |
 
-`tools/check-runtime-domain-features.ps1` separately checks every optional domain as `core-min + one domain` with default features disabled. The list includes `physics-contracts`; until that hard cutover lands, the full runner must fail rather than omit it. M2 replaces this documented mapping with a Rust-owned preset table plus Cargo/doc/tool drift assertions; this M1 table is not claimed as the final single source.
+`tools/runtime-profile-feature-presets.py` is the language-neutral reader used by `tools/dev-fast-build.ps1`, `tools/check-runtime-profile-features.ps1`, and the GitHub Actions matrix planner. The developer tool accepts the logical names `minimal`, `client2d`, `client3d`, `editor`, `dev`, and `server`; it no longer carries a private client/server/editor switch. The local matrix runner and CI both derive their six-entry profile matrix from the same TOML source and check `zircon_app` with default features disabled and the selected aggregate Cargo preset. A separate twelve-entry CI additive-domain matrix checks `core-min + one domain`, including each `*-contracts` purity combination. `tools/tests/test_frameworks_03_profile_feature_presets.py` compares every TOML member list against both Cargo manifests, rejects drift between logical profiles that share an aggregate preset, and locks the Rust/tool/CI consumption points. The plan's actual local-matrix/CI-green and portable `--all-features` acceptance evidence remains a testing-stage gate, not a property inferred from workflow source.
+
+`tools/check-runtime-domain-features.ps1` remains the orthogonal additive-domain gate: it checks every optional domain as `core-min + one domain` with default features disabled. Profile presets prove supported product combinations; the domain runner proves that a domain does not acquire an undeclared peer dependency. Neither gate is a compatibility fallback for the other.
+
+The App entry runner mounts diagnostic-log startup argument parsing only when the `diagnostic-log` feature is compiled. Client, Editor, Dev, and Server presets request that domain explicitly; Minimal remains a true `core-min` library check and does not acquire diagnostics through an unconditional App import.
 
 ## Bevy Reference Map
 
@@ -252,7 +275,7 @@ Frameworks 02 M3 applies the same rule to RuntimePlugin catalog and production r
 
 RuntimePlugin lifecycle is now the kernel lifecycle, not a parallel plugin state machine. A descriptor's embedded `ModuleDescriptor::init_level` defaults to `Post`, dependency ordering comes from `ModuleDependencySpec`, and build/ready/finish/cleanup run through `CoreRuntime`. `RuntimePlugin` retains its extension `register(...)` hook and exposes the embedded `ModuleLifecycle`; the former plugin-only ready/finish/activate/deactivate hooks and contexts were deleted. SDK providers can opt into a lifecycle-bearing descriptor through `RuntimePluginDeclaration::with_module_descriptor(...)`. Native ABI v3 reports preserve init-level/dependency ordering but use the descriptor's no-op Rust lifecycle, while `NativePluginLiveHost` remains responsible for dynamic ABI load/unload/reload.
 
-One G1 decision remains open: Bevy preserves disabled plugin entries as ordering anchors, while Zircon's current builder treats insertion relative to a disabled anchor as a `DisabledAnchor` error. That stricter behavior is acceptable while profile composition is still stabilizing, but it must either become the documented Zircon contract or be aligned to Bevy before broadening default profile membership.
+Zircon deliberately does not preserve disabled module entries as ordering anchors. `PluginGroupBuilder::add_before(...)` and `add_after(...)` require an enabled anchor and return the typed `PluginGroupError::DisabledAnchor` otherwise. A disabled entry contributes neither membership nor ordering authority; callers must enable the anchor or declare ordering through the participating modules' `ModuleDescriptor` dependencies. This is the final Zircon contract, not a temporary divergence or compatibility behavior, and is guarded by `plugin_group_builder_reports_disabled_anchor_reordering`.
 
 ## Stable Prelude Policy
 
@@ -389,6 +412,7 @@ M10 makes profile selection maintainable. Bevy's matching practice is to treat f
 | Sync area | Bevy-derived behavior | Zircon source of truth | M10 gate |
 | --- | --- | --- | --- |
 | Profile vocabulary | Bevy exposes public feature/profile collections in `Cargo.toml` and checks generated feature docs for missing updates. | `RuntimeProfileId`, `RuntimeProfileDescriptor`, `core_profiles`, and this document's Built-In Profiles section. | Every profile id, target mode, required capability, optional plugin, and minimum maturity must appear here before a profile is promoted. |
+| Compile feature presets | Bevy keeps named feature collections machine-checkable instead of relying on prose-only combinations. | `zircon_runtime/runtime-feature-presets.toml`, generated `RuntimeProfileFeaturePreset` constants, Cargo target features, and `tools/runtime-profile-feature-presets.py`. | All six logical profiles must exist in stable order; shared aggregate presets must have identical member sets; Runtime/App Cargo members, developer tooling, and CI matrix entries must match the canonical source. |
 | Catalog and plugin manifests | Bevy feature documentation is synchronized with actual Cargo features rather than manually trusted. | `RuntimePluginDescriptor::builtin_catalog()`, `RuntimePluginId`, and `zircon_plugins/*/plugin.toml` maturity/capability rows. | Catalog additions, new first-party plugin TOML files, or changed capability statuses must update this document or the parity matrix in the same change. |
 | Availability categories | Bevy default plugin presence is concrete; missing/duplicate plugin edits fail at the API or CI boundary. | `RuntimePluginAvailabilityReport` buckets, `RuntimeModuleLoadReport` fatal diagnostics, and `ExportBuildPlan.runtime_plugin_availability`. | Stable/default profiles must keep required `Externalized`, `Stub`, below-minimum maturity, blocked-by-target, and missing-provider entries out of `missing_required`; optional failures must remain structured warnings. |
 | Provider feature gates | Bevy optional feature collections do not imply unrelated default plugins. | `zircon_first_party_runtime_catalog` feature groups, `zircon_app` provider feature forwarding, generated export providers, and profile bootstrap tests. | New linked/native providers must be selected by explicit profile/feature/export data. App features may provide implementations through catalog groups, but they must not silently widen `Client2d`, `Client3d`, `Editor`, `Dev`, or `Server` defaults. |

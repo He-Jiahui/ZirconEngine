@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_execution_order.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_execution_order.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
 plan_sources:
   - user: 2026-04-20 M5 继续回到更深的 unified indirect / cluster-raster / GPU-generated args authority
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md

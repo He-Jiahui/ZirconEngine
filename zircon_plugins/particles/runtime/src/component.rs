@@ -1,6 +1,6 @@
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Real, Transform};
-use zircon_runtime::plugin::ComponentTypeDescriptor;
 
 use crate::{ParticleSimulationBackend, ParticleSystemAsset, PLUGIN_ID};
 

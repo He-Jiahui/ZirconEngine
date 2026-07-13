@@ -23,7 +23,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels.rs
@@ -36,7 +36,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown.rs
@@ -78,11 +78,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/property_edit.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/surface.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/tab_drag/bridge.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
@@ -149,7 +149,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels.rs
@@ -162,7 +162,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown.rs
@@ -203,8 +203,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/property_edit.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/layout.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/surface.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
@@ -262,8 +262,8 @@ tests:
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_creates_and_resizes_render_framework_viewports.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs

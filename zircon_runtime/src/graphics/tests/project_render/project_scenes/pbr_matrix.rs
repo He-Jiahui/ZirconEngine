@@ -47,7 +47,9 @@ pub(super) fn render_pbr_matrix_frame_with_environment(
 ) -> ViewportFrame {
     let root = unique_temp_project_root(temp_label);
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     write_pbr_matrix_project(&paths, project_name);
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
@@ -78,7 +80,7 @@ pub(super) fn write_pbr_matrix_project(paths: &ProjectPaths, project_name: &str)
 
     write_uv_sphere_obj(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("pbr_matrix_sphere.obj"),
         24,
@@ -90,7 +92,7 @@ pub(super) fn write_pbr_matrix_project(paths: &ProjectPaths, project_name: &str)
             let smoothness = pbr_matrix_axis_value(row);
             write_pbr_matrix_material(
                 paths
-                    .assets_root()
+                    .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
                     .join("materials")
                     .join(format!("pbr_matrix_r{row}_c{column}.zmaterial")),
                 metallic,
@@ -100,7 +102,7 @@ pub(super) fn write_pbr_matrix_project(paths: &ProjectPaths, project_name: &str)
     }
     write_pbr_matrix_scene(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("scenes")
             .join("pbr_matrix.scene.toml"),
     );

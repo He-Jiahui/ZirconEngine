@@ -1,13 +1,13 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::Path;
 
+use crate::core::asset::AssetToolkitOpenRoute;
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventSource};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::view::ViewDescriptorId;
-use zircon_runtime::asset::assets::{
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
     AnimationSequenceTrackAsset,
@@ -17,14 +17,6 @@ use zircon_runtime_interface::ui::{
     binding::UiBindingValue, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiNodePath,
 };
-
-fn unique_temp_path(prefix: &str, extension: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("{prefix}_{unique}{extension}"))
-}
 
 fn scalar_channel(value: f32) -> AnimationChannelAsset {
     AnimationChannelAsset {
@@ -221,19 +213,28 @@ fn workbench_reflection_call_action_dispatches_asset_import_action() {
 #[test]
 fn workbench_reflection_call_action_dispatches_animation_track_creation_from_inspector() {
     let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_workbench_reflection_animation_track_runtime");
-    let asset_path = unique_temp_path(
-        "zircon_workbench_reflection_animation_track",
-        ".sequence.zranim",
+    let mut runtime =
+        EventRuntimeHarness::new("zircon_workbench_reflection_animation_track_runtime");
+    runtime.register_animation_asset_toolkits();
+    let asset_locator = "res://animation/reflection.sequence.zranim";
+    let catalog = runtime.open_project_with_assets(
+        "zircon_workbench_reflection_animation_track_project",
+        |project| write_sequence_asset(&project.source_path(asset_locator)),
     );
-    write_sequence_asset(&asset_path);
+    assert!(
+        catalog
+            .assets
+            .iter()
+            .any(|asset| asset.locator == asset_locator),
+        "reflection fixture sequence should be indexed by the project catalog"
+    );
 
     runtime
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.to_string(),
             }),
         )
         .expect("open animation sequence asset");
@@ -263,6 +264,13 @@ fn workbench_reflection_call_action_dispatches_animation_track_creation_from_ins
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
         })
         .expect("animation sequence view should remain open");
+    let route: AssetToolkitOpenRoute =
+        serde_json::from_value(instance.serializable_payload.clone()).unwrap();
+    assert_eq!(route.asset_locator().to_string(), asset_locator);
+    assert_eq!(
+        route.open_operation().as_str(),
+        "timeline_sequence.authoring.open"
+    );
     let pane = manager
         .animation_editor_pane_presentation(&instance.instance_id)
         .expect("sequence session should be queryable after inspector action");
@@ -274,6 +282,4 @@ fn workbench_reflection_call_action_dispatches_animation_track_creation_from_ins
         runtime.runtime.editor_snapshot().status_line,
         "Created animation track Root/Hero:AnimationPlayer.weight"
     );
-
-    let _ = fs::remove_file(asset_path);
 }

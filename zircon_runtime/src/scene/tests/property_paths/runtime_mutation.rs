@@ -41,6 +41,11 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     let entity_path = EntityPath::parse("Root/Hero").unwrap();
     let translation_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
     let mass_path = ComponentPropertyPath::parse("RigidBody.mass").unwrap();
+    let mass_mode_path = ComponentPropertyPath::parse("RigidBody.mass_properties.mode").unwrap();
+    let mass_density_path =
+        ComponentPropertyPath::parse("RigidBody.mass_properties.density").unwrap();
+    let ccd_mode_path = ComponentPropertyPath::parse("RigidBody.ccd_mode").unwrap();
+    let sleep_policy_path = ComponentPropertyPath::parse("RigidBody.sleep_policy").unwrap();
     let weight_path = ComponentPropertyPath::parse("AnimationPlayer.weight").unwrap();
     let render_queue_path = ComponentPropertyPath::parse("MeshRenderer.render_queue").unwrap();
     let material_queue_path = ComponentPropertyPath::parse("MeshRenderer.material_queue").unwrap();
@@ -57,6 +62,10 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     assert_eq!(
         world.property(hero, &mass_path).unwrap(),
         ScenePropertyValue::Scalar(2.5)
+    );
+    assert_eq!(
+        world.property(hero, &mass_mode_path).unwrap(),
+        ScenePropertyValue::Enum("explicit".to_string())
     );
     assert_eq!(
         world.property(hero, &weight_path).unwrap(),
@@ -90,6 +99,23 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
         .set_property(hero, &mass_path, ScenePropertyValue::Scalar(5.5))
         .unwrap());
     assert!(world
+        .set_property(hero, &mass_density_path, ScenePropertyValue::Scalar(3.25),)
+        .unwrap());
+    assert!(world
+        .set_property(
+            hero,
+            &ccd_mode_path,
+            ScenePropertyValue::Enum("linear_cast".to_string()),
+        )
+        .unwrap());
+    assert!(world
+        .set_property(
+            hero,
+            &sleep_policy_path,
+            ScenePropertyValue::Enum("never".to_string()),
+        )
+        .unwrap());
+    assert!(world
         .set_property(hero, &weight_path, ScenePropertyValue::Scalar(0.75))
         .unwrap());
     assert!(!world
@@ -120,6 +146,20 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     let node = world.find_node(hero).unwrap();
     assert_eq!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));
     assert_eq!(world.rigid_body(hero).unwrap().mass, 5.5);
+    assert_eq!(
+        world.rigid_body(hero).unwrap().mass_properties,
+        crate::core::framework::scene::physics::PhysicsMassProperties::AutoFromShape {
+            density: 3.25,
+        }
+    );
+    assert_eq!(
+        world.rigid_body(hero).unwrap().ccd_mode,
+        crate::core::framework::scene::physics::PhysicsCcdMode::LinearCast
+    );
+    assert_eq!(
+        world.rigid_body(hero).unwrap().sleep_policy,
+        crate::core::framework::scene::physics::PhysicsSleepPolicy::Never
+    );
     assert_eq!(world.animation_player(hero).unwrap().weight, 0.75);
     let mesh = world.get::<MeshRenderer>(hero).unwrap();
     assert_eq!(mesh.render_queue, 2_450);
@@ -134,6 +174,22 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
     assert_eq!(
         world.property(hero, &mass_path).unwrap(),
         ScenePropertyValue::Scalar(5.5)
+    );
+    assert_eq!(
+        world.property(hero, &mass_mode_path).unwrap(),
+        ScenePropertyValue::Enum("auto_from_shape".to_string())
+    );
+    assert_eq!(
+        world.property(hero, &mass_density_path).unwrap(),
+        ScenePropertyValue::Scalar(3.25)
+    );
+    assert_eq!(
+        world.property(hero, &ccd_mode_path).unwrap(),
+        ScenePropertyValue::Enum("linear_cast".to_string())
+    );
+    assert_eq!(
+        world.property(hero, &sleep_policy_path).unwrap(),
+        ScenePropertyValue::Enum("never".to_string())
     );
     assert_eq!(
         world.property(hero, &weight_path).unwrap(),

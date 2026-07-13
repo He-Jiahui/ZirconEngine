@@ -18,14 +18,12 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn open_existing_project_from_welcome(&mut self) {
-        let result = self
-            .startup_session
-            .draft
-            .validate_for_open_existing()
+        let result = crate::core::project::ProjectAuthority::default()
+            .probe_draft(&self.startup_session.draft)
             .map_err(|error| error.to_string())
-            .and_then(|root| {
+            .and_then(|opened| {
                 self.editor_manager
-                    .open_project_and_remember(root)
+                    .open_project_and_remember(opened.root)
                     .map_err(|error| error.to_string())
             })
             .and_then(|session| self.apply_startup_session(session));

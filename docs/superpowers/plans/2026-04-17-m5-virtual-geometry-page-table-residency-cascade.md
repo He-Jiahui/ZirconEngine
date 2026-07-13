@@ -1,20 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management/evict_page.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/residency_management/evict_page.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management/evict_page.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/residency_management/evict_page.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 route without waiting for confirmation
   - user: 2026-04-17 Virtual Geometry still needs visibility-owned unified indirect / deeper cluster raster / residency-manager cascade
@@ -22,7 +20,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-gpu-uploader-readback.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - zircon_graphics/src/tests/virtual_geometry_gpu.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_applies_gpu_page_table_snapshot_as_residency_truth

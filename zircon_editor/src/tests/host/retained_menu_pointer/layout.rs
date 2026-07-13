@@ -4,7 +4,10 @@ use super::support::*;
 fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale_legacy_frames() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_root_projection");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let layout = build_host_menu_pointer_layout(
         &model.menu_bar,
         &chrome,
@@ -36,7 +39,10 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 ) {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_shell_projection");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let layout = build_host_menu_pointer_layout(
         &model.menu_bar,
         &chrome,
@@ -68,12 +74,6 @@ fn shared_menu_pointer_layout_keeps_editor_operation_actions_for_extension_leave
                 vec![MenuItemModel::leaf(
                     "Refresh Clouds",
                     None,
-                    EditorUiBinding::new(
-                        "WorkbenchMenuBar",
-                        operation_path.as_str(),
-                        EditorUiEventKind::Click,
-                        EditorUiBindingPayload::editor_operation(operation_path.as_str()),
-                    ),
                     Some(operation_path.clone()),
                     None,
                     true,
@@ -136,7 +136,10 @@ fn shared_menu_pointer_layout_uses_chrome_menu_overflow_preference() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_overflow_preference");
     let mut chrome = harness.runtime.chrome_snapshot();
     chrome.menu_overflow_mode = MenuOverflowMode::MultiColumn;
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let layout = build_host_menu_pointer_layout(
         &model.menu_bar,
         &chrome,
@@ -208,12 +211,6 @@ fn shared_menu_pointer_layout_content_measures_root_popup_widths() {
             items: vec![MenuItemModel::leaf(
                 "Open UI Component Showcase With Extended Context",
                 None,
-                EditorUiBinding::new(
-                    "WorkbenchMenuBar",
-                    "tools.showcase.open",
-                    EditorUiEventKind::Click,
-                    EditorUiBindingPayload::menu_action("tools.showcase.open"),
-                ),
                 None,
                 Some("Ctrl+Shift+Alt+U".to_string()),
                 true,

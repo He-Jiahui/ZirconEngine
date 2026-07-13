@@ -45,7 +45,6 @@ impl DefaultEditorAssetManager {
             asset: record_to_view(record, &state),
             direct_references,
             referenced_by,
-            editor_adapter: record.editor_meta.editor_adapter.clone(),
             package_id: record.locator.package_id().map(str::to_string),
             unit: record.meta.unit,
             included_files: record

@@ -21,6 +21,14 @@ const STRUCTURE_CONVENTION_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+#[rustfmt::skip]
+const NUMBERED_STATUS_RECORDS: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+);
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const SESSION_NOTE: &str = include_str!(
@@ -190,12 +198,15 @@ fn assert_docs_and_status_mirror_split() {
         assert!(
             source.contains(
                 "runtime_15_dynamic_scene_route_owner_split_static_passed_cargo_deferred"
+            ) || NUMBERED_STATUS_RECORDS.contains(
+                "runtime_15_dynamic_scene_route_owner_split_static_passed_cargo_deferred"
             ),
             "{label} should mirror the dynamic_scene route-owner split status"
         );
     }
     assert!(
-        DATE_MAP.contains("Runtime 15 M3 dynamic-scene route-owner split"),
+        DATE_MAP.contains("Runtime 15 M3 dynamic-scene route-owner split")
+            || NUMBERED_STATUS_RECORDS.contains("Runtime 15 M3 dynamic-scene route-owner split"),
         "date map should mirror the dynamic_scene route-owner split slice"
     );
     assert_contains_all(
@@ -208,8 +219,8 @@ fn assert_docs_and_status_mirror_split() {
         ],
     );
     assert_contains_all(
-        "Frameworks 02 plan",
-        FRAMEWORKS_02_PLAN,
+        "Frameworks 02 status",
+        NUMBERED_STATUS_RECORDS,
         &[
             "frameworks_02_m3_dynamic_scene_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 dynamic-scene route-owner split",

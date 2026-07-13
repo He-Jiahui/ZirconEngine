@@ -70,80 +70,49 @@ fn runtime_session_archive_rejects_duplicate_slots() {
 }
 
 #[test]
-fn runtime_session_archive_rejects_unsupported_embedded_scene_versions() {
+fn runtime_session_archive_normalizes_noncanonical_inner_scene_versions() {
     let source = World::empty();
     let mut slot = RuntimeSessionSlot::from_world("slot", &source)
         .expect("runtime session slot should capture");
     slot.scene.format_version = 999;
 
-    let error = RuntimeSessionArchive::from_slots(vec![slot.clone()])
-        .expect_err("unsupported embedded scene version should be rejected");
-    assert!(matches!(
-        error,
-        RuntimeSessionArchiveError::DynamicScene(
-            crate::scene::DynamicSceneError::UnsupportedFormatVersion {
-                expected: 1,
-                actual: 999,
-            }
-        )
-    ));
+    let archive = RuntimeSessionArchive::from_slots(vec![slot])
+        .expect("the typed scene envelope should remain the version authority");
+    let json = archive
+        .to_versioned_json_pretty()
+        .expect("archive write should canonicalize the temporary inner version");
 
-    let json = serde_json::to_string(&RuntimeSessionArchive {
-        format_version: 1,
-        slots: vec![slot],
-    })
-    .expect("bad archive fixture should serialize");
-    let error = RuntimeSessionArchive::from_versioned_json(&json)
-        .expect_err("unsupported embedded scene version should fail during load");
-    assert!(matches!(
-        error,
-        RuntimeSessionArchiveError::DynamicScene(
-            crate::scene::DynamicSceneError::UnsupportedFormatVersion {
-                expected: 1,
-                actual: 999,
-            }
-        )
-    ));
+    assert!(json.contains("\"format_version\": 1"));
+    assert!(!json.contains("\"format_version\": 999"));
+    let decoded = RuntimeSessionArchive::from_versioned_json(&json)
+        .expect("canonicalized archive should reload");
+    assert_eq!(decoded.slot("slot").unwrap().scene.format_version, 1);
 }
 
 #[test]
-fn runtime_session_archive_rejects_unsupported_slots_on_push_and_upsert() {
+fn runtime_session_archive_normalizes_noncanonical_inner_versions_on_push_and_upsert() {
     let source = World::empty();
     let mut push_archive = RuntimeSessionArchive::empty();
     let mut push_slot =
         RuntimeSessionSlot::from_world("slot", &source).expect("push slot should capture");
     push_slot.scene.format_version = 999;
 
-    let push_error = push_archive
+    push_archive
         .push_slot(push_slot)
-        .expect_err("push_slot should validate embedded dynamic scene");
-    assert!(matches!(
-        push_error,
-        RuntimeSessionArchiveError::DynamicScene(
-            crate::scene::DynamicSceneError::UnsupportedFormatVersion {
-                expected: 1,
-                actual: 999
-            }
-        )
-    ));
+        .expect("push_slot should accept a current typed scene envelope");
+    let push_json = push_archive.to_versioned_json_pretty().unwrap();
+    assert!(!push_json.contains("\"format_version\": 999"));
 
     let mut upsert_archive = RuntimeSessionArchive::empty();
     let mut upsert_slot =
         RuntimeSessionSlot::from_world("slot", &source).expect("upsert slot should capture");
     upsert_slot.scene.format_version = 999;
 
-    let upsert_error = upsert_archive
+    upsert_archive
         .upsert_slot(upsert_slot)
-        .expect_err("upsert_slot should validate embedded dynamic scene");
-    assert!(matches!(
-        upsert_error,
-        RuntimeSessionArchiveError::DynamicScene(
-            crate::scene::DynamicSceneError::UnsupportedFormatVersion {
-                expected: 1,
-                actual: 999
-            }
-        )
-    ));
+        .expect("upsert_slot should accept a current typed scene envelope");
+    let upsert_json = upsert_archive.to_versioned_json_pretty().unwrap();
+    assert!(!upsert_json.contains("\"format_version\": 999"));
 }
 
 #[test]

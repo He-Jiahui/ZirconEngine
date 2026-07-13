@@ -29,7 +29,7 @@ impl Default for ProjectAssetManager {
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
-            watcher: Arc::new(Mutex::new(None)),
+            watchers: Arc::new(Mutex::new(Vec::new())),
         }
     }
 }
@@ -44,7 +44,7 @@ impl ProjectAssetManager {
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
-            watcher: Arc::new(Mutex::new(None)),
+            watchers: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -155,7 +155,7 @@ impl ProjectAssetManager {
         let project = self.project_read();
         project
             .as_ref()
-            .map(|project| IblBakeArtifactCacheStore::new(project.paths().runtime_cache_root()))
+            .map(|project| IblBakeArtifactCacheStore::new(project.paths().cache_root()))
     }
 
     pub fn runtime_ref_count(&self, id: AssetId) -> Option<usize> {

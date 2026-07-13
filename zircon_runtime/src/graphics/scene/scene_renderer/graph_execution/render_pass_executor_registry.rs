@@ -28,9 +28,7 @@ use super::builtin_scene_executors::{
     overlay_gizmo_executor, particle_billboard_executor, screen_space_ui_executor,
     shadow_atlas_executor, sprite_executor,
 };
-use super::preview_sky_executor::{
-    preview_sky_final_color_executor, preview_sky_scene_color_executor,
-};
+use super::preview_sky_executor::preview_sky_scene_color_executor;
 use super::render_pass_executor_registration::{render_pass_executor_from_fn, RenderPassExecutor};
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
@@ -82,10 +80,6 @@ impl RenderPassExecutorRegistry {
         registry.register(
             "sky.preview-scene-color".into(),
             preview_sky_scene_color_executor,
-        );
-        registry.register(
-            "sky.preview-final-color".into(),
-            preview_sky_final_color_executor,
         );
         registry.register("ao.ssao-evaluate".into(), ssao_executor);
         registry.register("lighting.light-grid".into(), clustered_lighting_executor);

@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginPackageManifest;
 
 pub(super) fn validate_runtime_plugin_package_feature_target_coverage(

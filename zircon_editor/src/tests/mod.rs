@@ -1,4 +1,6 @@
+mod commands;
 mod editing;
+mod editor_asset_type_registry;
 mod editor_authoring_extension_descriptors;
 mod editor_event;
 mod editor_message;

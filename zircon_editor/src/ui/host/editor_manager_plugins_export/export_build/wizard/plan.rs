@@ -1,9 +1,15 @@
 use std::path::PathBuf;
 
-use zircon_runtime::plugin::{ExportPipelineStage, ExportProfile, LibraryEmbedCompileHostPlan};
+use zircon_runtime::core::framework::project::ExportProfile;
+use zircon_runtime::plugin::LibraryEmbedCompileHostPlan;
+use zircon_runtime_interface::export::ExportStage;
+
+use crate::core::export::{
+    CompileHostStage, ExportPipelinePlan, ExportStageNode, PlatformBundleLayout,
+};
 
 use super::{
-    export_pipeline_stage_cli_id, export_pipeline_stages, export_pipeline_stages_for_strategies,
+    export_pipeline_stages_for_strategies, ExportWizardCoreStageProjection,
     ExportWizardPipelineOptions, ExportWizardPipelineStageCommand, ExportWizardStageArtifactPath,
 };
 
@@ -11,6 +17,7 @@ const ZIRCON_EXPORT_MODULE: &str = "tools.zircon_export";
 const STAGES_DIR: &str = "stages";
 const COMPILE_HOST_STAGE_DIR: &str = "compile_host";
 const COMPILE_HOST_TARGET_DIR: &str = "target";
+const COMPILE_HOST_STAGED_DIR: &str = "staged";
 const BUNDLE_DIR: &str = "bundle";
 const REPORT_FILE_NAME: &str = "report.json";
 const COOKED_ASSET_MANIFEST_NAME: &str = "assets.json";
@@ -28,10 +35,11 @@ pub struct ExportWizardPipelinePlan {
     pub out: String,
     pub stages: Vec<ExportWizardPipelineStageCommand>,
     pub diagnostics: Vec<String>,
+    core_plan: ExportPipelinePlan,
 }
 
 impl ExportWizardPipelinePlan {
-    pub fn command(&self, stage: ExportPipelineStage) -> Option<&ExportWizardPipelineStageCommand> {
+    pub fn command(&self, stage: ExportStage) -> Option<&ExportWizardPipelineStageCommand> {
         self.stages.iter().find(|command| command.stage == stage)
     }
 
@@ -42,23 +50,51 @@ impl ExportWizardPipelinePlan {
                 .iter()
                 .all(|command| command.missing_inputs.is_empty())
     }
+
+    pub fn ordered_commands(&self) -> impl Iterator<Item = &ExportWizardPipelineStageCommand> {
+        self.core_plan
+            .ordered_nodes()
+            .iter()
+            .filter_map(|node| self.command(node.stage))
+    }
+
+    pub fn unavailable(
+        profile: impl Into<String>,
+        out: impl Into<String>,
+        diagnostic: impl Into<String>,
+    ) -> Self {
+        Self {
+            profile: profile.into(),
+            out: out.into(),
+            stages: Vec::new(),
+            diagnostics: vec![diagnostic.into()],
+            core_plan: ExportPipelinePlan::new([])
+                .expect("the unavailable export presentation has an empty valid graph"),
+        }
+    }
 }
 
 pub fn export_wizard_pipeline_plan(
     options: ExportWizardPipelineOptions,
 ) -> ExportWizardPipelinePlan {
     let diagnostics = pipeline_diagnostics(&options);
-    let planned_stages = planned_pipeline_stages(&options);
-    let stages = planned_stages
+    let core_plan = planned_pipeline(&options);
+    let planned_stages = core_plan
+        .ordered_nodes()
         .iter()
-        .copied()
-        .map(|stage| stage_command(&options, stage, &planned_stages))
+        .map(|node| node.stage)
+        .collect::<Vec<_>>();
+    let stages = core_plan
+        .ordered_nodes()
+        .iter()
+        .map(|node| stage_command(&options, node.stage, &planned_stages))
         .collect();
     ExportWizardPipelinePlan {
-        profile: options.profile,
+        profile: options.preset.profile_ref.clone(),
         out: options.out,
         stages,
         diagnostics,
+        core_plan,
     }
 }
 
@@ -87,20 +123,26 @@ pub fn export_wizard_compile_host_executable_path(
 
 fn stage_command(
     options: &ExportWizardPipelineOptions,
-    stage: ExportPipelineStage,
-    planned_stages: &[ExportPipelineStage],
+    stage: ExportStage,
+    planned_stages: &[ExportStage],
 ) -> ExportWizardPipelineStageCommand {
     let mut args = base_args(options, stage);
     let mut consumed_artifacts = Vec::new();
     let mut produced_artifacts = vec![artifact("report", stage_report_path(&options.out, stage))];
     let mut expected_stdout_keys = vec!["report"];
     let mut missing_inputs = Vec::new();
+    let mut program = options.python.clone();
+    let mut working_dir = options.repo_root.clone();
+    let mut core_projection = None;
+    let mut native_program = None;
+    let mut native_args = None;
+    let mut native_working_dir = None;
 
     match stage {
-        ExportPipelineStage::Validate => {
+        ExportStage::Validate => {
             push_option(&mut args, "--validator", options.validator.as_deref());
         }
-        ExportPipelineStage::SourceTemplate => {
+        ExportStage::SourceTemplate => {
             let validate_report = validate_report_path(&options.out);
             push_required_option(&mut args, "--validate-report", &validate_report);
             if options.source_template_build {
@@ -111,16 +153,12 @@ fn stage_command(
                 "project",
                 join_path(
                     &options.out,
-                    &[
-                        STAGES_DIR,
-                        export_pipeline_stage_cli_id(stage),
-                        SOURCE_TEMPLATE_PROJECT_DIR,
-                    ],
+                    &[STAGES_DIR, stage.cli_id(), SOURCE_TEMPLATE_PROJECT_DIR],
                 ),
             ));
             expected_stdout_keys.extend(["validate_report", "project"]);
         }
-        ExportPipelineStage::NativeDynamic => {
+        ExportStage::NativeDynamic => {
             let validate_report = validate_report_path(&options.out);
             push_required_option(&mut args, "--validate-report", &validate_report);
             consumed_artifacts.push(artifact("validate_report", validate_report));
@@ -139,13 +177,52 @@ fn stage_command(
                 "loader_manifest",
             ]);
         }
-        ExportPipelineStage::CompileHost => {
-            let validate_report = validate_report_path(&options.out);
-            push_required_option(&mut args, "--validate-report", &validate_report);
-            consumed_artifacts.push(artifact("validate_report", validate_report));
-            expected_stdout_keys.extend(["validate_report", "host"]);
+        ExportStage::CompileHost => {
+            let repo_root = options.repo_root.clone().unwrap_or_else(|| ".".to_string());
+            let build_output_root = compile_host_build_output_root(&options.out);
+            let mut compile_host = CompileHostStage::new(&repo_root, &build_output_root)
+                .with_python(&options.python)
+                .with_cargo(options.cargo.as_deref().unwrap_or("cargo"));
+            if options.no_locked {
+                compile_host = compile_host.without_lock();
+            }
+            if options.dry_run {
+                compile_host = compile_host.with_dry_run();
+            }
+            let command = compile_host.command(&options.preset);
+            program = command.program.to_string_lossy().into_owned();
+            working_dir = Some(command.working_directory.display().to_string());
+            native_program = Some(command.program.clone());
+            native_args = Some(command.args.clone());
+            native_working_dir = Some(command.working_directory.clone());
+            args = command
+                .args
+                .into_iter()
+                .map(|value| value.to_string_lossy().into_owned())
+                .collect();
+            let layout =
+                PlatformBundleLayout::expected(&build_output_root, options.preset.target_mode);
+            let report_path = stage_report_path(&options.out, stage);
+            produced_artifacts.push(artifact(
+                "staged_engine_root",
+                layout.engine_root.display().to_string(),
+            ));
+            produced_artifacts.push(artifact("host", layout.launcher.display().to_string()));
+            expected_stdout_keys.push("host");
+            core_projection = Some(ExportWizardCoreStageProjection::CompileHost {
+                report_path,
+                profile: options.preset.profile_ref.clone(),
+                host_path: layout.launcher.display().to_string(),
+                preset: options.preset.clone(),
+                repo_root,
+                build_output_root,
+                python: options.python.clone(),
+                cargo: options.cargo.clone().unwrap_or_else(|| "cargo".to_string()),
+                locked: !options.no_locked,
+                dry_run: options.dry_run,
+            });
         }
-        ExportPipelineStage::CookAssets => {
+        ExportStage::CookAssets => {
             if let Some(source_asset_manifest) = &options.source_asset_manifest {
                 push_required_option(&mut args, "--asset-manifest", source_asset_manifest);
                 consumed_artifacts.push(artifact(
@@ -161,7 +238,7 @@ fn stage_command(
             ));
             expected_stdout_keys.extend(["source_asset_manifest", "cooked_asset_manifest"]);
         }
-        ExportPipelineStage::Pack => {
+        ExportStage::Pack => {
             let cooked_asset_manifest = cooked_asset_manifest_path(&options.out);
             let pack_file = pack_file_path(options);
             push_option(&mut args, "--packer", options.packer.as_deref());
@@ -186,7 +263,7 @@ fn stage_command(
             }
             expected_stdout_keys.extend(["asset_manifest", "pack", "previous_pack", "delta_pack"]);
         }
-        ExportPipelineStage::PlatformBundle => {
+        ExportStage::PlatformBundle => {
             let pack_file = pack_file_path(options);
             push_required_option(&mut args, "--pack-file", &pack_file);
             push_option(
@@ -217,15 +294,26 @@ fn stage_command(
             }
             produced_artifacts.push(artifact(
                 "bundle",
-                join_path(&options.out, &[BUNDLE_DIR, &options.profile]),
+                join_path(&options.out, &[BUNDLE_DIR, &options.preset.profile_ref]),
             ));
             expected_stdout_keys.extend(["bundle", "host", "native_plugins", "pack", "template"]);
+            core_projection = Some(ExportWizardCoreStageProjection::PlatformBundle {
+                build_output_root: compile_host_build_output_root(&options.out),
+                target_mode: options.preset.target_mode,
+                dry_run: options.dry_run,
+                preset: options.preset.clone(),
+                repo_root: options.repo_root.clone().unwrap_or_else(|| ".".to_string()),
+                python: options.python.clone(),
+                cargo: options.cargo.clone().unwrap_or_else(|| "cargo".to_string()),
+                locked: !options.no_locked,
+                report_path: stage_report_path(&options.out, ExportStage::CompileHost),
+            });
         }
-        ExportPipelineStage::Report => {
+        ExportStage::Report => {
             for dependency in planned_stages
                 .iter()
                 .copied()
-                .filter(|dependency| *dependency != ExportPipelineStage::Report)
+                .filter(|dependency| *dependency != ExportStage::Report)
             {
                 consumed_artifacts.push(artifact(
                     "report",
@@ -240,9 +328,11 @@ fn stage_command(
         }
     }
 
-    append_common_options(&mut args, options);
+    if stage != ExportStage::CompileHost {
+        append_common_options(&mut args, options);
+    }
 
-    if stage == ExportPipelineStage::Pack
+    if stage == ExportStage::Pack
         && (options.previous_pack.is_some() ^ options.delta_pack.is_some())
     {
         missing_inputs.push(DELTA_PACK_PAIR_INPUT);
@@ -250,36 +340,60 @@ fn stage_command(
 
     ExportWizardPipelineStageCommand {
         stage,
-        program: options.python.clone(),
-        working_dir: options.repo_root.clone(),
+        program,
+        working_dir,
         args,
         consumed_artifacts,
         produced_artifacts,
         expected_stdout_keys,
         missing_inputs,
+        core_projection,
+        native_program,
+        native_args,
+        native_working_dir,
     }
 }
 
-fn planned_pipeline_stages(options: &ExportWizardPipelineOptions) -> Vec<ExportPipelineStage> {
+fn planned_pipeline(options: &ExportWizardPipelineOptions) -> ExportPipelinePlan {
+    let stages = planned_pipeline_stages(options);
+    let nodes = stages.iter().enumerate().map(|(index, stage)| {
+        ExportStageNode::new(
+            *stage,
+            index.checked_sub(1).map(|previous| stages[previous]),
+        )
+    });
+    ExportPipelinePlan::new(nodes).expect("wizard stage selection preserves an acyclic order")
+}
+
+fn planned_pipeline_stages(options: &ExportWizardPipelineOptions) -> Vec<ExportStage> {
     match options.strategies.as_deref() {
         Some(strategies) => export_pipeline_stages_for_strategies(strategies),
-        None => export_pipeline_stages().to_vec(),
+        None => ExportStage::ALL.to_vec(),
     }
 }
 
-fn base_args(options: &ExportWizardPipelineOptions, stage: ExportPipelineStage) -> Vec<String> {
+fn base_args(options: &ExportWizardPipelineOptions, stage: ExportStage) -> Vec<String> {
     vec![
         "-m".to_string(),
         ZIRCON_EXPORT_MODULE.to_string(),
         "--profile".to_string(),
-        options.profile.clone(),
+        options.preset.profile_ref.clone(),
+        "--preset".to_string(),
+        options.preset_path.clone(),
         "--project".to_string(),
         options.project.clone(),
         "--out".to_string(),
         options.out.clone(),
         "--stage".to_string(),
-        export_pipeline_stage_cli_id(stage).to_string(),
+        stage.cli_id().to_string(),
     ]
+}
+
+fn compile_host_build_output_root(out: &str) -> String {
+    join_path(
+        out,
+        &[STAGES_DIR, COMPILE_HOST_STAGE_DIR, COMPILE_HOST_STAGED_DIR],
+    )
 }
 
 fn append_common_options(args: &mut Vec<String>, options: &ExportWizardPipelineOptions) {
@@ -329,18 +443,11 @@ fn artifact(key: impl Into<String>, path: impl Into<String>) -> ExportWizardStag
 }
 
 fn validate_report_path(out: &str) -> String {
-    stage_report_path(out, ExportPipelineStage::Validate)
+    stage_report_path(out, ExportStage::Validate)
 }
 
-fn stage_report_path(out: &str, stage: ExportPipelineStage) -> String {
-    join_path(
-        out,
-        &[
-            STAGES_DIR,
-            export_pipeline_stage_cli_id(stage),
-            REPORT_FILE_NAME,
-        ],
-    )
+fn stage_report_path(out: &str, stage: ExportStage) -> String {
+    join_path(out, &[STAGES_DIR, stage.cli_id(), REPORT_FILE_NAME])
 }
 
 fn cooked_asset_manifest_path(out: &str) -> String {
@@ -355,7 +462,7 @@ fn native_dynamic_plugins_dir_path(out: &str) -> String {
         out,
         &[
             STAGES_DIR,
-            export_pipeline_stage_cli_id(ExportPipelineStage::NativeDynamic),
+            ExportStage::NativeDynamic.cli_id(),
             NATIVE_DYNAMIC_PLUGINS_DIR,
         ],
     )
@@ -366,7 +473,7 @@ fn native_dynamic_loader_manifest_path(out: &str) -> String {
         out,
         &[
             STAGES_DIR,
-            export_pipeline_stage_cli_id(ExportPipelineStage::NativeDynamic),
+            ExportStage::NativeDynamic.cli_id(),
             NATIVE_DYNAMIC_PLUGINS_DIR,
             NATIVE_DYNAMIC_LOADER_MANIFEST_NAME,
         ],

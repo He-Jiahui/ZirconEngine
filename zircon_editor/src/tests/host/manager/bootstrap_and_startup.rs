@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-use zircon_runtime::core::manager::resolve_config_manager;
-use zircon_runtime::scene::DefaultLevelManager;
-
+use crate::core::project::{NewProjectDraft, NewProjectTemplate, RecentProjectValidation};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::{
@@ -11,11 +9,10 @@ use crate::ui::workbench::layout::{
     ActivityWindowId, ActivityWindowLayout, DocumentNode, LayoutCommand, MainHostPageLayout,
     MainPageId, TabStackLayout, WorkbenchLayout,
 };
-use crate::ui::workbench::project::{EditorProjectDocument, ProjectEditorWorkspace};
-use crate::ui::workbench::startup::{
-    EditorSessionMode, NewProjectDraft, NewProjectTemplate, RecentProjectValidation,
-};
+use crate::ui::workbench::project::ProjectEditorWorkspace;
+use crate::ui::workbench::startup::EditorSessionMode;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
+use zircon_runtime::core::manager::resolve_config_manager;
 
 use super::support::*;
 
@@ -181,10 +178,7 @@ fn save_and_load_preset_roundtrip_through_project_asset_files() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
     manager.open_project(&project_root).unwrap();
 
     manager
@@ -382,7 +376,7 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
             view_overrides: BTreeMap::new(),
         },
         open_view_instances: vec![restored_instance.clone()],
-        active_center_tab: None,
+        focused_view: None,
         active_drawers: vec![ActivityDrawerSlot::LeftTop],
     };
 
@@ -501,7 +495,7 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
                 host: ViewHost::Document(MainPageId::workbench(), vec![]),
             },
         ],
-        active_center_tab: Some(ViewInstanceId::new("editor.scene#1")),
+        focused_view: Some(ViewInstanceId::new("editor.scene#1")),
         active_drawers: Vec::new(),
     };
 
@@ -683,7 +677,7 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
     assert!(opened.project.is_some());
     assert!(opened.open_builtin_view.is_none());
     assert_eq!(recent.len(), 1);
-    assert_eq!(recent[0].display_name, "RecentProject");
+    assert_eq!(recent[0].summary.name, "RecentProject");
     assert_eq!(recent[0].validation, RecentProjectValidation::Valid);
     assert_eq!(default_startup.mode, EditorSessionMode::Project);
     assert!(default_startup.project.is_some());
@@ -711,10 +705,7 @@ fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let opened = manager.open_project_and_remember(&project_root).unwrap();
 
@@ -742,10 +733,7 @@ fn startup_session_falls_back_to_welcome_when_last_project_is_missing() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
     manager.open_project_and_remember(&project_root).unwrap();
     fs::remove_dir_all(&project_root).unwrap();
 
@@ -790,10 +778,7 @@ fn project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnost
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
     let workspace_path = project_root.join(".zircon").join("editor-workspace.json");
     fs::create_dir_all(workspace_path.parent().unwrap()).unwrap();
     fs::write(&workspace_path, "{ this is not valid workspace json").unwrap();

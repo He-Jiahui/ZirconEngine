@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use zircon_runtime::plugin::{ExportBuildPlan, ExportPlatformHostKind};
+use zircon_runtime::core::framework::project::ExportPlatformHostKind;
+use zircon_runtime::plugin::ExportBuildPlan;
 
 pub(super) fn should_invoke_cargo(plan: &ExportBuildPlan, generated_files: &[PathBuf]) -> bool {
     if !matches!(

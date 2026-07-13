@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use bytemuck::bytes_of;
+use wgpu::util::DeviceExt;
 
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{is_finite_mat4, Mat4};
@@ -19,27 +20,20 @@ use crate::render_graph::RenderGraphAttachmentOps;
 use super::plan::ShadowAtlasSlotPass;
 
 pub(crate) struct ShadowMapRenderer {
-    scene_uniform_buffer: wgpu::Buffer,
+    scene_layout: wgpu::BindGroupLayout,
     _environment_cube_texture: wgpu::Texture,
-    _environment_cube_view: wgpu::TextureView,
-    _environment_cube_sampler: wgpu::Sampler,
+    environment_cube_view: wgpu::TextureView,
+    environment_cube_sampler: wgpu::Sampler,
     _environment_brdf_lut_texture: wgpu::Texture,
-    _environment_brdf_lut_view: wgpu::TextureView,
+    environment_brdf_lut_view: wgpu::TextureView,
     _environment_specular_cube_texture: wgpu::Texture,
-    _environment_specular_cube_view: wgpu::TextureView,
+    environment_specular_cube_view: wgpu::TextureView,
     _environment_irradiance_cube_texture: wgpu::Texture,
-    _environment_irradiance_cube_view: wgpu::TextureView,
-    scene_bind_group: wgpu::BindGroup,
+    environment_irradiance_cube_view: wgpu::TextureView,
 }
 
 impl ShadowMapRenderer {
     pub(crate) fn new(device: &wgpu::Device, scene_layout: &wgpu::BindGroupLayout) -> Self {
-        let scene_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-shadow-map-scene-uniform"),
-            size: std::mem::size_of::<SceneUniform>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
         let (environment_cube_texture, environment_cube_view) = create_shadow_environment_cube(
             device,
             "zircon-shadow-map-scene-environment-cube",
@@ -60,56 +54,24 @@ impl ShadowMapRenderer {
                 "zircon-shadow-map-scene-environment-irradiance-cube",
                 "zircon-shadow-map-scene-environment-irradiance-cube-view",
             );
-        let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-shadow-map-scene-bind-group"),
-            layout: scene_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: scene_uniform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&environment_cube_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&environment_cube_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(&environment_brdf_lut_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(&environment_specular_cube_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: wgpu::BindingResource::TextureView(&environment_irradiance_cube_view),
-                },
-            ],
-        });
-
         Self {
-            scene_uniform_buffer,
+            scene_layout: scene_layout.clone(),
             _environment_cube_texture: environment_cube_texture,
-            _environment_cube_view: environment_cube_view,
-            _environment_cube_sampler: environment_cube_sampler,
+            environment_cube_view,
+            environment_cube_sampler,
             _environment_brdf_lut_texture: environment_brdf_lut_texture,
-            _environment_brdf_lut_view: environment_brdf_lut_view,
+            environment_brdf_lut_view,
             _environment_specular_cube_texture: environment_specular_cube_texture,
-            _environment_specular_cube_view: environment_specular_cube_view,
+            environment_specular_cube_view,
             _environment_irradiance_cube_texture: environment_irradiance_cube_texture,
-            _environment_irradiance_cube_view: environment_irradiance_cube_view,
-            scene_bind_group,
+            environment_irradiance_cube_view,
         }
     }
 
     pub(crate) fn record_atlas_commands_with_attachment_ops<'a>(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         pass_name: &str,
         atlas_view: &wgpu::TextureView,
@@ -135,7 +97,13 @@ impl ShadowMapRenderer {
                 continue;
             }
             let scene_uniform = scene_uniform_for_view_projection(slot_pass.view_proj);
-            queue.write_buffer(&self.scene_uniform_buffer, 0, bytes_of(&scene_uniform));
+            let scene_uniform_buffer =
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-shadow-map-slot-scene-uniform"),
+                    contents: bytes_of(&scene_uniform),
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
+            let scene_bind_group = self.create_slot_scene_bind_group(device, &scene_uniform_buffer);
 
             let atlas_attachment_ops = if wrote_first_slot {
                 RenderGraphAttachmentOps::load_store()
@@ -170,7 +138,7 @@ impl ShadowMapRenderer {
                 slot_pass.rect.width,
                 slot_pass.rect.height,
             );
-            pass.set_bind_group(0, &self.scene_bind_group, &[]);
+            pass.set_bind_group(0, &scene_bind_group, &[]);
             pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
             let visible_entities = slot_pass
                 .view_key
@@ -193,6 +161,47 @@ impl ShadowMapRenderer {
             record_depth_only_pass(encoder, pass_name, atlas_view, attachment_ops);
         }
         combined
+    }
+
+    fn create_slot_scene_bind_group(
+        &self,
+        device: &wgpu::Device,
+        scene_uniform_buffer: &wgpu::Buffer,
+    ) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("zircon-shadow-map-slot-scene-bind-group"),
+            layout: &self.scene_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: scene_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&self.environment_cube_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.environment_cube_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&self.environment_brdf_lut_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(
+                        &self.environment_specular_cube_view,
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(
+                        &self.environment_irradiance_cube_view,
+                    ),
+                },
+            ],
+        })
     }
 
     fn replay_shadow_command_stream<'pass>(
@@ -368,9 +377,11 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
         sky_horizon_color: [0.0, 0.0, 0.0, 1.0],
         sky_zenith_color: [0.0, 0.0, 0.0, 1.0],
         sky_ground_color: [0.0, 0.0, 0.0, 1.0],
+        sky_sun_direction: [0.0, 0.0, 0.0, 0.0],
+        sky_sun_color_radius: [0.0, 0.0, 0.0, 0.0],
+        sky_sun_params: [0.0, 0.0, 0.0, 0.0],
         environment_params: [0.0, 0.0, 0.0, 0.0],
         environment_sample_params: [0.0, 0.0, 0.0, 0.0],
-        environment_sh9: [[0.0; 4]; 9],
     }
 }
 
@@ -447,6 +458,18 @@ mod tests {
         assert!(source.contains("create_forward_shadow_receiver_bind_group"));
         assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
         assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
+    }
+
+    #[test]
+    fn shadow_atlas_allocates_immutable_scene_uniform_per_slot() {
+        let source = include_str!("shadow_map_renderer.rs")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("production source section should exist");
+
+        assert!(source.contains("create_buffer_init"));
+        assert!(source.contains("create_slot_scene_bind_group"));
+        assert!(!source.contains("queue.write_buffer(&self.scene_uniform_buffer"));
     }
 
     #[test]

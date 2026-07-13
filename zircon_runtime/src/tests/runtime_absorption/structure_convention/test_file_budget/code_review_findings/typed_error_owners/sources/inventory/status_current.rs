@@ -8,11 +8,8 @@ mod route_ownership;
 #[path = "current/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_CHILD_INVENTORY_STATUS_CURRENT_CHILDREN: &[(
-    &str,
-    &str,
-    &str,
-)] = &[
+pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_CHILD_INVENTORY_STATUS_CURRENT_CHILDREN:
+    &[(&str, &str, &str)] = &[
     (
         "budgets",
         TYPED_ERROR_SOURCE_INVENTORY_CHILD_INVENTORY_STATUS_CURRENT_BUDGETS_CHILD,

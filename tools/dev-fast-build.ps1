@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [ValidateSet("client", "server", "editor")]
-    [string]$Profile = "client",
+    [ValidateSet("minimal", "client2d", "client3d", "editor", "dev", "server")]
+    [string]$Profile = "client3d",
     [ValidateSet("check", "build", "test", "run")]
     [string]$Action = "check",
     [string]$Package = "zircon_app",
@@ -49,22 +49,46 @@ function Ensure-Sccache {
 }
 
 function Resolve-FeatureSet {
-    param([string]$Mode)
-    switch ($Mode) {
-        "client" { return "target-client" }
-        "server" { return "target-server" }
-        "editor" { return "target-editor-host" }
-        default { throw "Unknown profile: $Mode" }
+    param(
+        [string]$RepoRoot,
+        [string]$Mode
+    )
+
+    $presetTool = Join-Path $RepoRoot "tools\runtime-profile-feature-presets.py"
+    $feature = & python $presetTool feature $Mode
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($feature)) {
+        throw "Cannot resolve canonical Cargo feature preset for runtime profile $Mode."
     }
+    return $feature.Trim()
 }
 
 function Resolve-RunBin {
     param([string]$Mode)
     switch ($Mode) {
-        "client" { return "zircon_runtime" }
+        "client2d" { return "zircon_runtime" }
+        "client3d" { return "zircon_runtime" }
         "editor" { return "zircon_editor" }
+        "dev" { return "zircon_editor" }
         default { return $null }
     }
+}
+
+function Assert-AllowedCargoTargetPath {
+    param([string]$Path)
+
+    $candidate = [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    $allowedRoots = @(
+        [System.IO.Path]::GetFullPath('D:\cargo-targets').TrimEnd('\', '/'),
+        [System.IO.Path]::GetFullPath('E:\cargo-targets').TrimEnd('\', '/'),
+        [System.IO.Path]::GetFullPath('F:\cargo-targets').TrimEnd('\', '/')
+    )
+    foreach ($root in $allowedRoots) {
+        if ($candidate.StartsWith($root + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+            return
+        }
+    }
+
+    throw "Cargo build output must be below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets: $candidate"
 }
 
 $repoRoot = Resolve-RepoRoot -Start $PSScriptRoot
@@ -78,13 +102,15 @@ try {
         $drive = [System.IO.Path]::GetPathRoot($repoRoot).TrimEnd('\')
         $SharedTargetRoot = Join-Path $drive "cargo-targets\zircon-shared"
     }
+    Assert-AllowedCargoTargetPath -Path $SharedTargetRoot
 
     $feature = if ([string]::IsNullOrWhiteSpace($FeatureOverride)) {
-        Resolve-FeatureSet -Mode $Profile
+        Resolve-FeatureSet -RepoRoot $repoRoot -Mode $Profile
     } else {
         $FeatureOverride
     }
     $targetDir = Join-Path $SharedTargetRoot $Profile
+    Assert-AllowedCargoTargetPath -Path $targetDir
     New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 
     $env:CARGO_TARGET_DIR = $targetDir
@@ -110,7 +136,7 @@ try {
     if ($Action -eq "run") {
         $bin = Resolve-RunBin -Mode $Profile
         if ($null -eq $bin) {
-            throw "Server profile has no runnable bin. Use check/build/test."
+            throw "Runtime profile $Profile has no runnable bin. Use check/build/test."
         }
         $args.Add("--bin") | Out-Null
         $args.Add($bin) | Out-Null

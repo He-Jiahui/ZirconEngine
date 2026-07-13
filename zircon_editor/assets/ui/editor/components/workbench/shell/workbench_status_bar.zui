@@ -23,47 +23,42 @@ control_id = "WorkbenchWindowStatusBar"
 classes = ["workbench-status"]
 props = { status_right_offset_y = -0.5, status_right_label_color = "#7d8990" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
-children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_fill" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
+children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
 
 [nodes.status_ready]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusReady"
 classes = ["workbench-status-item"]
 props = { text = "Ready", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#8f9aa0", icon_fill = "#4eaa5f", icon_size = 8.0 }
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 160.0, preferred = 160.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.status_errors]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusErrors"
 classes = ["workbench-status-item"]
-props = { text = "No Errors", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#7b868d", icon_fill = "#58b866", icon_size = 8.0 }
+props = { text = "No Errors", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#7b868d", icon_fill = "#58b866", icon_size = 8.0, responsive_min_tier = "regular" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.status_warnings]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusWarnings"
 classes = ["workbench-status-item", "workbench-status-warning"]
-props = { text = "2 Warnings", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#879299", icon_fill = "#f2c356", icon_size = 8.0 }
+props = { text = "2 Warnings", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#879299", icon_fill = "#f2c356", icon_size = 8.0, responsive_min_tier = "regular" }
 layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.status_messages]
 component = "WorkbenchStatusItem"
 control_id = "WorkbenchStatusMessages"
 classes = ["workbench-status-item"]
-props = { text = "0 Messages", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#97a3a9", icon_fill = "#4c9ae8", icon_size = 8.0 }
+props = { text = "0 Messages", layout_offset_x = 0.0, layout_offset_y = 0.0, layout_gap = 8.0, text_color = "#97a3a9", icon_fill = "#4c9ae8", icon_size = 8.0, responsive_min_tier = "regular" }
 layout = { width = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-
-[nodes.status_fill]
-component = "Space"
-props = { surface_variant = "frame_only", background_color = "#00000000", border_width = 0.0, corner_radius = 0.0 }
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.status_task]
 component = "HorizontalGroup"
 control_id = "WorkbenchStatusTaskProgress"
 classes = ["workbench-status-task", "workbench-status-right-control"]
 props = { text = "", value_text = "", value = 0.0, min = 0.0, max = 100.0, variant = "linear", visibility = "collapsed", visible = false, text_tone = "info", track_fill_color = "#2099a2", value_color = "#2099a2" }
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { min = 224.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { min = 160.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 children = [{ node = "status_task_label" }, { node = "status_task_bar" }]
 
 [nodes.status_task_label]
@@ -71,53 +66,53 @@ component = "WorkbenchChip"
 control_id = "WorkbenchStatusTaskLabel"
 classes = ["workbench-chip", "workbench-status-task-label"]
 props = { text = "", value_text = "", text_tone = "info" }
-layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 100.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_task_bar]
 component = "WorkbenchProgressBar"
 control_id = "WorkbenchStatusTaskBar"
 classes = ["workbench-progress-bar", "workbench-status-task-bar"]
 props = { value = 0.0, value_percent = 0.0, min = 0.0, max = 100.0, variant = "linear", label_text = "", show_label = false, track_fill_color = "#2099a2", value_color = "#2099a2" }
-layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 20.0, stretch = "Fixed" } }
+layout = { width = { min = 52.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.status_grid]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusGrid"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "Grid: 10 cm" }
+props = { text = "Grid: 10 cm", responsive_min_tier = "wide" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_snap]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusSnap"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "Snap: On" }
+props = { text = "Snap: On", responsive_min_tier = "wide" }
 layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_snap_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusSnapToggle"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/magnet.svg", label = "Snap" }
+props = { icon = "zircon_editor_shell/viewport/magnet.svg", label = "Snap", responsive_min_tier = "wide" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_world_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusWorld"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World" }
+props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World", responsive_min_tier = "wide" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_target_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusTarget"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/crosshair.svg", label = "Target" }
+props = { icon = "zircon_editor_shell/viewport/crosshair.svg", label = "Target", responsive_min_tier = "wide" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.status_zoom]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusZoom"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "100%" }
+props = { text = "100%", responsive_min_tier = "wide" }
 layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

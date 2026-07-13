@@ -26,7 +26,9 @@ use super::{
 fn temporal_history_rotates_history_when_scene_material_changes() {
     let root = unique_temp_project_root("graphics_temporal_history");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsTemporalHistory",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -36,25 +38,41 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.02, 0.92, 0.1],
     );
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_black.wgsl"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_black.wgsl"),
         [0.0, 0.0, 0.0],
     );
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_quad_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("flat_black.zmaterial"),
         "res://shaders/flat_black.wgsl",
@@ -195,7 +213,9 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
 fn ssao_quality_profile_darkens_scene_when_enabled() {
     let root = unique_temp_project_root("graphics_ssao");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsSsao",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -205,14 +225,27 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_gray.wgsl"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_gray.wgsl"),
         [0.72, 0.72, 0.72],
     );
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_quad_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("flat_gray.zmaterial"),
         "res://shaders/flat_gray.wgsl",
@@ -378,7 +411,9 @@ fn assert_texture_alias_recorded(stats: &RenderStats, logical_name: &str) {
 fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint() {
     let root = unique_temp_project_root("graphics_clustered_lighting");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsClusteredLighting",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -388,14 +423,27 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_white.wgsl"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_white.wgsl"),
         [0.55, 0.55, 0.55],
     );
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_quad_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("flat_white.zmaterial"),
         "res://shaders/flat_white.wgsl",
@@ -419,6 +467,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
         direction: Vec3::new(-0.65, -0.35, -1.0).normalize_or_zero(),
         color: Vec3::new(1.0, 0.48, 0.2),
         intensity: 3.5,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     }];
     let snapshot = build_snapshot(
@@ -516,7 +565,9 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
 fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path() {
     let root = unique_temp_project_root("graphics_deferred_runtime");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsDeferredRuntime",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -526,17 +577,28 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.0, 1.0, 0.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material_with_base_color_and_texture(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("forward_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -544,7 +606,10 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         "res://textures/white.png",
     );
     write_scene(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/forward_green.zmaterial",
     );
 

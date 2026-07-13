@@ -11,7 +11,10 @@ pub(crate) fn dispatch_builtin_floating_window_focus(
     window_id: &MainPageId,
 ) -> Option<Result<UiHostEventEffects, String>> {
     let chrome = runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let context = runtime.project_command_eval_snapshot(&chrome);
+    let commands = runtime.commands().lock();
+    let model = WorkbenchViewModel::build_with_context(&commands, &chrome, &context);
+    drop(commands);
     let window = model
         .floating_windows
         .iter()

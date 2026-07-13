@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/Cargo.toml
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/ui/retained_host/app/presentation_cache.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
@@ -19,8 +19,8 @@ related_code:
   - zircon_editor/src/ui/host/startup/resolve_session.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
@@ -56,15 +56,15 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -72,8 +72,8 @@ related_code:
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
@@ -85,12 +85,12 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - tools/ui-profile-capture.ps1
 implementation_files:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/ui/retained_host/app/presentation_cache.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
   - zircon_editor/src/ui/retained_host/app/assets.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
@@ -106,8 +106,8 @@ implementation_files:
   - zircon_editor/src/ui/host/startup/resolve_session.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
@@ -143,15 +143,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -159,8 +159,8 @@ implementation_files:
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
@@ -187,9 +187,9 @@ plan_sources:
   - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
 tests:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -197,8 +197,8 @@ tests:
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
@@ -210,9 +210,9 @@ tests:
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; profiling artifact geometry ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after profiling artifact geometry responsibility split: passed with existing warning noise only; geometry extraction lives in `profiling_artifacts/geometry.rs`, `profiling_artifacts.rs` is 212 lines, and `profiling_artifacts/geometry.rs` is 651 lines)
   - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - cargo test -p zircon_editor --lib host_chrome_presenter --locked
   - cargo test -p zircon_editor --lib render_framework_boundary --locked
@@ -480,7 +480,7 @@ Template-node painting now applies the active region-damage clip before command 
 
 The presenter boundary lives under `host_contract/presenter/`. `HostChromePresenter` is the object-safe seam used by `window.rs`; `HostPresenterBackend::default_native()` returns `Gpu`, and `HostPresenterBackend::fallback()` is the explicit softbuffer path used only when GPU presenter creation fails. Window startup logs the selected backend and exits only if both GPU and softbuffer construction fail.
 
-`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded viewport images set it to `None`, while untinted retained template/image sources can resolve generated SpriteAtlas manifests under `library/editor-sprite-atlases` into one atlas texture `resource_key` plus per-entry UV metadata. Full-opacity atlas images record the shared atlas texture key; opacity-baked images keep the non-atlas content key so tinted/translucent pixels do not mutate shared atlas semantics. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
+`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded viewport images set it to `None`, while untinted retained template/image sources can resolve generated SpriteAtlas manifests under `.zircon/cache/editor-sprite-atlases` into one atlas texture `resource_key` plus per-entry UV metadata. Full-opacity atlas images record the shared atlas texture key; opacity-baked images keep the non-atlas content key so tinted/translucent pixels do not mutate shared atlas semantics. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
 
 The componentized Workbench status bar is a region-level hard cutover inside that command stream. When `workbench_window_nodes` exist, the Workbench template draws `WorkbenchStatusBar`; the root skeleton no longer records the legacy `STATUS_BAR` quad or `host_shell.status_secondary` marker for the same frame. The non-componentized retained path still keeps the old status bar fallback, but componentized Workbench frames now have one status-bar pixel source.
 
@@ -536,4 +536,4 @@ The 2026-05-17 screenshot parity blocker was in the runtime WGPU surface color-s
 
 The same rebuild closed the earlier scenario-attribution gap for the requested interaction evidence. `HostRedrawRequest::merge` now lets the later frame-update scenario own a coalesced redraw request, so resize and asset-refresh presents are no longer hidden under earlier click/startup labels. `20260517-190840-drawer_resize` used live splitter geometry, moved the left drawer by `80px`, refreshed geometry, kept `87 failed=0` hit samples, and recorded `653` visible draw items to `124` GPU draw calls. `20260517-190851-asset_refresh` recorded real asset-refresh presenter work with `266` visible draw items to `42` GPU draw calls and `114 failed=0` hit samples. These captures are evidence for geometry-derived interaction, GPU counter attribution, screenshot parity, and no normal-run software fallback; they still leave UI hotspot cleanup work open for `click/non_structural_interaction_rebuilt_presentation`, `drawer_resize/resize_triggered_slow_path_rebuild`, `idle_hover/region_request_repainted_full_frame`, and `startup/gpu_presenter_recorded_no_draw_calls`.
 
-The 2026-05-22 SpriteAtlas M5 retained-host slice made atlas-backed image commands concrete without changing dynamic viewport-image behavior. `painter/sprite_atlas.rs` resolves untinted `template-icon:`, `template-image:`, `icon:`, and `image:` keys from source paths under an `assets` tree to generated `library/editor-sprite-atlases/*.toml` manifests and matching atlas PNG bytes. `visual_assets.rs` attaches that metadata to retained image pixels; `render_commands.rs` records atlas metadata only for full-opacity image draws; `command_stream.rs` converts recorded atlas images to the atlas texture `resource_key`, atlas dimensions/RGBA bytes, and `ChromeImageUvRect`; and softbuffer replay samples the subimage from those atlas bytes. The M5 debug pass fixed a payload bug where recorded atlas images kept the source key/dimensions instead of the atlas key/dimensions, then split `presenter/command_stream/tests.rs` out of the 1010-line command-stream file so the production implementation returned to 621 lines. Focused validation in `D:\cargo-targets\zircon-shared\sprite-atlas-ui` passed `cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never` (`12` tests), `cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never` (`11` tests), `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` (`5` tests), and `cargo check -p zircon_editor --lib --locked --message-format short --color never` with deferred unused SpriteAtlas producer warnings. Live atlas-heavy profiling remains pending because no project-library `editor-sprite-atlases` artifacts currently exist in the workspace for an automated retained-host scenario.
+The 2026-05-22 SpriteAtlas M5 retained-host slice made atlas-backed image commands concrete without changing dynamic viewport-image behavior. `painter/sprite_atlas.rs` resolves untinted `template-icon:`, `template-image:`, `icon:`, and `image:` keys from source paths under an `assets` tree to generated `.zircon/cache/editor-sprite-atlases/*.toml` manifests and matching atlas PNG bytes. `visual_assets.rs` attaches that metadata to retained image pixels; `render_commands.rs` records atlas metadata only for full-opacity image draws; `command_stream.rs` converts recorded atlas images to the atlas texture `resource_key`, atlas dimensions/RGBA bytes, and `ChromeImageUvRect`; and softbuffer replay samples the subimage from those atlas bytes. The M5 debug pass fixed a payload bug where recorded atlas images kept the source key/dimensions instead of the atlas key/dimensions, then split `presenter/command_stream/tests.rs` out of the 1010-line command-stream file so the production implementation returned to 621 lines. Focused validation in `D:\cargo-targets\zircon-shared\sprite-atlas-ui` passed `cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never` (`12` tests), `cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never` (`11` tests), `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` (`5` tests), and `cargo check -p zircon_editor --lib --locked --message-format short --color never` with deferred unused SpriteAtlas producer warnings. Live atlas-heavy profiling remains pending because no `.zircon/cache/editor-sprite-atlases` artifacts currently exist in the workspace for an automated retained-host scenario.

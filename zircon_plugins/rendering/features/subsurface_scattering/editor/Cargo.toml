@@ -1,0 +1,10 @@
+[package]
+name = "zircon_plugin_rendering_subsurface_scattering_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+zircon_editor = { workspace = true }
+zircon_plugin_rendering_subsurface_scattering_runtime = { path = "../runtime" }
+zircon_runtime = { workspace = true }

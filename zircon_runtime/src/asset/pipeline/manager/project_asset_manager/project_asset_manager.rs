@@ -20,5 +20,5 @@ pub struct ProjectAssetManager {
         Arc<Mutex<Vec<ChannelSender<AssetChange>>>>,
     pub(in crate::asset::pipeline::manager) watch_error_subscribers:
         Arc<Mutex<Vec<ChannelSender<AssetWatchError>>>>,
-    pub(in crate::asset::pipeline::manager) watcher: Arc<Mutex<Option<AssetWatcher>>>,
+    pub(in crate::asset::pipeline::manager) watchers: Arc<Mutex<Vec<AssetWatcher>>>,
 }

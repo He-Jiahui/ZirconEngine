@@ -1,10 +1,12 @@
 use std::collections::BTreeSet;
 
 use zircon_runtime::{
-    builtin::RuntimeTargetMode, plugin::PluginModuleManifest, plugin::PluginPackageManifest,
+    core::framework::platform::RuntimeTargetMode, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
 };
 use zircon_runtime_interface::RegistrationDiagnostic;
 
+use crate::core::asset::AssetTypeRegistry;
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorExtensionRegistryError};
 use crate::core::editor_plugin_sdk::lifecycle::{
     EditorPluginLifecycleError, EditorPluginLifecycleEvent, EditorPluginLifecycleRecord,
@@ -306,6 +308,13 @@ impl EditorPluginCatalog {
     pub fn editor_extensions(&self) -> EditorExtensionCatalogReport {
         let mut registry = EditorExtensionRegistry::default();
         let mut diagnostics = Vec::new();
+        let mut asset_types = match AssetTypeRegistry::with_builtins() {
+            Ok(registry) => registry,
+            Err(error) => {
+                diagnostics.push(error.to_string());
+                AssetTypeRegistry::default()
+            }
+        };
         for registration in &self.registrations {
             for view in registration.extensions.views() {
                 push_editor_extension_result(
@@ -343,17 +352,13 @@ impl EditorPluginCatalog {
                     &mut diagnostics,
                 );
             }
-            for asset_editor in registration.extensions.asset_editors() {
-                push_editor_extension_result(
-                    registry.register_asset_editor((*asset_editor).clone()),
-                    &mut diagnostics,
-                );
-            }
-            for template in registration.extensions.asset_creation_templates() {
-                push_editor_extension_result(
-                    registry.register_asset_creation_template((*template).clone()),
-                    &mut diagnostics,
-                );
+            for contribution in registration.extensions.asset_type_contributions() {
+                if let Err(error) = asset_types.apply_contribution(
+                    registration.package_manifest.id.clone(),
+                    (*contribution).clone(),
+                ) {
+                    diagnostics.push(error.to_string());
+                }
             }
             for tool_mode in registration.extensions.viewport_tool_modes() {
                 push_editor_extension_result(
@@ -385,15 +390,16 @@ impl EditorPluginCatalog {
                     &mut diagnostics,
                 );
             }
-            for operation in registration.extensions.operations().descriptors().cloned() {
+            for operation in registration.extensions.pending_commands().cloned() {
                 push_editor_extension_result(
-                    registry.register_operation(operation),
+                    registry.register_command(operation),
                     &mut diagnostics,
                 );
             }
         }
         EditorExtensionCatalogReport {
             registry,
+            asset_types,
             diagnostics,
         }
     }
@@ -424,6 +430,7 @@ impl EditorCapabilityReport {
 #[derive(Clone, Debug)]
 pub struct EditorExtensionCatalogReport {
     pub registry: EditorExtensionRegistry,
+    pub asset_types: AssetTypeRegistry,
     pub diagnostics: Vec<String>,
 }
 

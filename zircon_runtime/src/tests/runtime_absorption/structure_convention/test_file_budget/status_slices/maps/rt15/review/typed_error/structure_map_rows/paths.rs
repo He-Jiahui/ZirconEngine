@@ -2,17 +2,14 @@ pub(super) const ROWS_SLICE: &str =
     "Runtime 15 M3 review-guard typed-error structure maps folder-backed split";
 pub(super) const ROWS_STATUS: &str =
     "runtime_15_review_guard_typed_error_structure_maps_folder_backed_static_passed_cargo_deferred";
-pub(super) const ROWS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_review_guard_typed_error_structure_maps_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROWS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_review_guard_typed_error_structure_maps_folder_backed_static_passed_cargo_deferred";
 pub(super) const ROWS_GUARD: &str =
     "runtime_15_review_guard_typed_error_structure_maps_are_folder_backed";
 
 pub(super) const GUARD_SLICE: &str =
     "Runtime 15 M3 review-guard typed-error structure maps guard folder-backed split";
-pub(super) const GUARD_STATUS: &str =
-    "runtime_15_review_guard_typed_error_structure_maps_guard_folder_backed_static_passed_cargo_deferred";
-pub(super) const GUARD_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_review_guard_typed_error_structure_maps_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const GUARD_STATUS: &str = "runtime_15_review_guard_typed_error_structure_maps_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const GUARD_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_review_guard_typed_error_structure_maps_guard_folder_backed_static_passed_cargo_deferred";
 pub(super) const GUARD_GUARD: &str =
     "runtime_15_review_guard_typed_error_structure_maps_guard_is_folder_backed";
 
@@ -36,8 +33,7 @@ pub(super) const ROWS_DATE_CHILDREN: &[&str] = &[
 ];
 
 pub(super) const STRUCTURE_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows.rs";
-pub(super) const GUARD_ROUTE_PATH: &str =
-    "structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows.rs";
+pub(super) const GUARD_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows.rs";
 pub(super) const GUARD_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/budgets.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/folder_backed.rs",

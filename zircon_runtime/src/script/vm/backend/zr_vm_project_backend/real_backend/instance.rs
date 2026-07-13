@@ -1,7 +1,7 @@
 use crate::core::framework::script::ScriptHostValue;
 use crate::diagnostic_log::write_log;
 use crate::script::{
-    VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmStateBlob,
+    VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmStateBlob, VmStateSchema,
 };
 use zr_vm_rust_binding as zrvm;
 
@@ -106,9 +106,10 @@ impl VmPluginInstance for ZrVmPluginInstance {
             None => return Ok(VmStateBlob::default()),
         };
         match value.kind() {
-            zrvm::ValueKind::String => Ok(VmStateBlob {
-                bytes: value.as_string().map_err(map_zr_error)?.into_bytes(),
-            }),
+            zrvm::ValueKind::String => {
+                let snapshot = value.as_string().map_err(map_zr_error)?;
+                VmStateBlob::from_json(&snapshot).map_err(Into::into)
+            }
             zrvm::ValueKind::Null => Ok(VmStateBlob::default()),
             other => Err(VmError::Operation(format!(
                 "zr_vm saveState returned unsupported value kind {other:?}"
@@ -118,12 +119,30 @@ impl VmPluginInstance for ZrVmPluginInstance {
 
     fn restore_state(&mut self, state: &VmStateBlob) -> Result<(), VmError> {
         let _guard = acquire_zr_vm_lock();
-        let state = String::from_utf8(state.bytes.clone()).map_err(|error| {
-            VmError::Operation(format!("zr_vm restoreState requires UTF-8 state: {error}"))
-        })?;
+        let state = state.to_json()?;
         let argument = zrvm::Value::new_string(&state).map_err(map_zr_error)?;
         self.call_entry_lifecycle_export("restoreState", &[argument])
             .map(|_| ())
+    }
+
+    fn state_schema(&mut self) -> Result<Option<VmStateSchema>, VmError> {
+        let _guard = acquire_zr_vm_lock();
+        let value = match self.call_entry_lifecycle_export("stateSchema", &[])? {
+            Some(value) => value,
+            None => return Ok(None),
+        };
+        match value.kind() {
+            zrvm::ValueKind::String => {
+                let schema = value.as_string().map_err(map_zr_error)?;
+                VmStateSchema::from_json(&schema)
+                    .map(Some)
+                    .map_err(Into::into)
+            }
+            zrvm::ValueKind::Null => Ok(None),
+            other => Err(VmError::Operation(format!(
+                "zr_vm stateSchema returned unsupported value kind {other:?}"
+            ))),
+        }
     }
 
     fn call_export(

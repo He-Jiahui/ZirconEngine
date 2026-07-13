@@ -39,10 +39,6 @@ fn runtime_15_module_layout_folder_backed_status_rows_are_current() {
             "module convention doc",
             "docs/zircon_runtime/structure/module-convention.md",
         ),
-        (
-            "session note",
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-        ),
     ] {
         let source = read_repo(path);
         assert_contains_all(label, &source, &folder_backed_anchors);

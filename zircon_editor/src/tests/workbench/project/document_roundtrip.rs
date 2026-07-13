@@ -64,7 +64,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             view_overrides: BTreeMap::new(),
         },
         open_view_instances: Vec::new(),
-        active_center_tab: Some(ViewInstanceId::new("scene#1")),
+        focused_view: Some(ViewInstanceId::new("scene#1")),
         active_drawers: vec![ActivityDrawerSlot::LeftTop],
     };
 
@@ -74,11 +74,15 @@ fn editor_project_document_roundtrips_world_and_workspace() {
 
     assert!(paths.manifest_path().exists());
     assert!(paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("materials")
         .join("default.zmaterial")
         .exists());
-    assert!(paths.assets_root().join("models").join("cube.obj").exists());
+    assert!(paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("models")
+        .join("cube.obj")
+        .exists());
 
     assert_eq!(loaded.world.nodes().len(), world.nodes().len());
     assert_eq!(
@@ -103,7 +107,7 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
         layout_version: 1,
         workbench: WorkbenchLayout::default(),
         open_view_instances: Vec::new(),
-        active_center_tab: None,
+        focused_view: None,
         active_drawers: Vec::new(),
     };
 

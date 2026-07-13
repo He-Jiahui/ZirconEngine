@@ -28,7 +28,7 @@ fn create_valid_source_checkout(source_path: &Path) {
 
 #[test]
 fn startup_selection_preserves_persisted_stale_project_path() {
-    let recent_projects = vec![RecentProject::new("Recent", "E:/Projects/Recent", 30)];
+    let recent_projects = vec![RecentProject::fixture("Recent", "E:/Projects/Recent", 30)];
 
     let selected = startup_selected_project_path(
         Some(Path::new("E:/Projects/Missing")),
@@ -50,7 +50,7 @@ fn load_from_paths_merges_repairs_registers_source_and_persists_runtime_state() 
     create_valid_source_checkout(&source_path);
 
     let mut config = HubConfig::default();
-    config.recent_projects = vec![RecentProject::new("Game", &project_path, 4)];
+    config.recent_projects = vec![RecentProject::fixture("Game", &project_path, 4)];
     config.project_metadata.insert(
         project_metadata_key(&project_path),
         crate::projects::ProjectMetadata {

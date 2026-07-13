@@ -19,7 +19,7 @@ impl DesktopExportWizardSessions {
             profile_name,
             action,
             options,
-            ProcessCommandRunner,
+            ProcessCommandRunner::new(self.jobs.clone()),
         )
     }
 
@@ -57,11 +57,12 @@ impl DesktopExportWizardSessions {
         options: ExportWizardPipelineOptions,
     ) -> Result<ExportWizardPanelUpdate, ExportWizardPanelSessionError> {
         let job_id = export_wizard_job_id(profile_name);
+        let jobs = self.jobs.clone();
         let session = self
             .sessions
             .entry(profile_name.to_string())
             .or_insert_with(|| {
-                ExportWizardPanelSession::from_options(job_id.clone(), options.clone())
+                ExportWizardPanelSession::from_options(jobs, job_id.clone(), options.clone())
             });
         session.handle_request(ExportWizardPanelRequest::generate_plan(job_id, options))
     }

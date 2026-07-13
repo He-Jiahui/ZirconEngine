@@ -9,6 +9,7 @@ pub struct WorldInspectionHierarchyRow {
     pub depth: u32,
     pub display_name: String,
     pub kind: String,
+    pub subtree_hash: u64,
     pub focused: bool,
     pub active_in_hierarchy: bool,
     pub has_children: bool,

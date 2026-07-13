@@ -15,7 +15,7 @@ use zircon_runtime::graphics::GRAPHICS_MODULE_NAME;
 use zircon_runtime::scene::SCENE_MODULE_NAME;
 use zircon_runtime::ui::UI_MODULE_NAME;
 
-use crate::ui::host::commands::{EditorCommandRegistry, EditorKeymap};
+use crate::core::commands::{EditorCommandRegistryHandle, EditorKeymap};
 use crate::ui::host::editor_asset_manager::{
     DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManagerHandle,
 };
@@ -59,7 +59,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "ConfigManager",
         )],
-        factory(|core| Ok(Arc::new(EditorManager::new(core.clone())) as ServiceObject)),
+        factory(|core| Ok(Arc::new(EditorManager::new(core)) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
@@ -89,8 +89,15 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "EditorCommandRegistry",
         ),
         StartupMode::Lazy,
-        Vec::new(),
-        factory(|_| Ok(Arc::new(EditorCommandRegistry::default_workbench()) as ServiceObject)),
+        vec![dependency_on(
+            EDITOR_MODULE_NAME,
+            ServiceKind::Manager,
+            "EditorManager",
+        )],
+        factory(|core| {
+            let manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
+            Ok(Arc::new(manager.context().commands().clone()) as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(EDITOR_MODULE_NAME, ServiceKind::Manager, "EditorKeymap"),

@@ -32,7 +32,10 @@ const EXPORT_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
         "status_mirrors",
         EXPORTS_STATUS_MIRRORS_PATH,
         EXPORTS_CHILD_SPLIT_GUARD_NAME,
-        &[EXPORTS_CHILD_SPLIT_STATUS_NAME, EXPORTS_CHILD_SPLIT_STATUS_ID],
+        &[
+            EXPORTS_CHILD_SPLIT_STATUS_NAME,
+            EXPORTS_CHILD_SPLIT_STATUS_ID,
+        ],
     ),
     (
         "top_level",

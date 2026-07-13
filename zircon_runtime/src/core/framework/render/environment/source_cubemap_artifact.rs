@@ -30,12 +30,13 @@ pub fn source_cubemap_mip_chain_with_bake_artifact(
     payload: &IblBakeArtifactPayload,
 ) -> Result<SourceCubemapMipChain, SourceCubemapBakeArtifactError> {
     let descriptor = payload.descriptor();
-    if descriptor.face_size() != source.face_size() || descriptor.mip_count() != source.mip_count()
+    if descriptor.face_size() != source.pmrem_face_size()
+        || descriptor.mip_count() != source.pmrem_mip_count()
     {
         return Err(SourceCubemapBakeArtifactError::LayoutMismatch {
-            expected_face_size: source.face_size(),
+            expected_face_size: source.pmrem_face_size(),
             actual_face_size: descriptor.face_size(),
-            expected_mip_count: source.mip_count(),
+            expected_mip_count: source.pmrem_mip_count(),
             actual_mip_count: descriptor.mip_count(),
         });
     }
@@ -53,7 +54,7 @@ pub fn source_cubemap_mip_chain_with_bake_artifact(
     let pmrem_texels = payload
         .decode_pmrem_texels()
         .ok_or(SourceCubemapBakeArtifactError::MissingPmrem)?;
-    let expected = source_cubemap_sample_count(source.face_size(), source.mip_count());
+    let expected = source_cubemap_sample_count(source.pmrem_face_size(), source.pmrem_mip_count());
     if pmrem_texels.len() != expected {
         return Err(SourceCubemapBakeArtifactError::InvalidPmremTexelCount {
             expected,
@@ -66,9 +67,11 @@ pub fn source_cubemap_mip_chain_with_bake_artifact(
 
     Ok(
         SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9(
-            source.face_size(),
-            source.mip_count(),
+            source.source_face_size(),
+            source.source_mip_count(),
             source.source_texels().to_vec(),
+            source.pmrem_face_size(),
+            source.pmrem_mip_count(),
             pmrem_texels,
             irradiance_sh9,
         ),

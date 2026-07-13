@@ -122,7 +122,7 @@ RUNTIME_03_DOC_ANCHORS = (
     "schedule_frame_loop_boundary",
     "behavior_test_anchor_count = 13",
     "missing_behavior_test_anchors = []",
-    "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
+    "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
     "ecs_schedule/time/session/schedule_parallel",
     "ScheduleParallelExecutionReport",
 )

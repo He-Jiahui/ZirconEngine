@@ -1,7 +1,7 @@
 pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_PRODUCTION_FILE_BUDGET_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/production_file_budget_rows.rs";
-pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_EVIDENCE_ANCHOR_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/evidence_anchor_rows.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_EVIDENCE_ANCHOR_ROWS_PATH:
+    &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/evidence_anchor_rows.rs";
 pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_CHILD_GROUP_ROW_DATA_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_row_data_rows.rs";
 pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_CHILD_GROUP_INVENTORY_ROWS_PATH: &str =

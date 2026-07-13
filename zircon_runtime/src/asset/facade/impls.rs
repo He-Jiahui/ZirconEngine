@@ -1,12 +1,15 @@
 use super::Asset;
 use crate::asset::{
-    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
-    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
-    SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset, UiThemeAsset,
-    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset, ModelAsset,
+    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
+    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
+use crate::core::framework::animation::{
+    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
+    AnimationStateMachineAsset,
+};
+use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,

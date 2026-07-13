@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 use super::{
-    UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
+    UiRichTextFormat, UiTextAlign, UiTextDecorations, UiTextDirection, UiTextDistanceFieldEffects,
+    UiTextOverflow, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,8 +28,10 @@ pub struct UiResolvedStyle {
     pub text_direction: UiTextDirection,
     pub text_writing_mode: UiTextWritingMode,
     pub text_overflow: UiTextOverflow,
-    pub rich_text: bool,
+    pub rich_text_format: UiRichTextFormat,
     pub text_render_mode: UiTextRenderMode,
+    pub text_effects: UiTextDistanceFieldEffects,
+    pub text_decorations: UiTextDecorations,
     pub painter_family: UiPainterFamily,
     pub painter_state: UiPainterResolvedState,
 }
@@ -86,8 +89,10 @@ impl Default for UiResolvedStyle {
             text_direction: UiTextDirection::default(),
             text_writing_mode: UiTextWritingMode::default(),
             text_overflow: UiTextOverflow::default(),
-            rich_text: false,
+            rich_text_format: UiRichTextFormat::Plain,
             text_render_mode: UiTextRenderMode::default(),
+            text_effects: UiTextDistanceFieldEffects::default(),
+            text_decorations: UiTextDecorations::default(),
             painter_family: UiPainterFamily::default(),
             painter_state: UiPainterResolvedState::default(),
         }

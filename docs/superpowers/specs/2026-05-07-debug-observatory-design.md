@@ -19,13 +19,13 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/surface/timeline.rs
@@ -46,13 +46,13 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
 plan_sources:
   - user: 2026-05-07 continue improving all Debug Reflector tooling areas
   - user: 2026-05-08 register the debug window tool in the Window/window surface
@@ -102,7 +102,7 @@ tests:
   - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
   - zircon_editor/src/tests/host/slint_window/ui_debug_reflector.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - tests/acceptance/ui-debug-observatory.md
 doc_type: design-spec
 ---

@@ -1,31 +1,31 @@
 ---
 related_code:
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/residency.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/residency.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 milestones without waiting for confirmation
   - user: 2026-04-17 Virtual Geometry should continue from the uploader/readback baseline into GPU-assigned slot ownership
@@ -33,9 +33,9 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-gpu-uploader-readback.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-size-aware-streaming-uploader.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_evictable_slots --locked
   - cargo test -p zircon_graphics virtual_geometry_runtime_state_applies_gpu_assigned_free_slots_before_evictable_recycling --locked
   - cargo test -p zircon_graphics virtual_geometry --locked

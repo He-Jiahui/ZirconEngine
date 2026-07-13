@@ -19,7 +19,7 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
         ("module convention doc", sources.module_doc),
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
-        ("session note", sources.session_note),
+        ("Runtime 07 numbered archive", sources.runtime_07_archive),
     ] {
         assert_contains_all(
             label,
@@ -65,7 +65,7 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
         ("module convention doc", sources.module_doc),
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
-        ("session note", sources.session_note),
+        ("Runtime 07 numbered archive", sources.runtime_07_archive),
     ] {
         assert_contains_all(
             label,

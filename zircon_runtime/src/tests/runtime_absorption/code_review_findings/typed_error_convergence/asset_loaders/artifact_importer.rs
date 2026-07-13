@@ -8,8 +8,10 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     let artifact_store = include_str!("../../../../../asset/artifact/store.rs");
     let importer_tests =
         include_str!("../../../../../asset/tests/assets/importer/registry_errors.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_04_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
     );
@@ -158,8 +160,12 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
         .find(|line| line.starts_with("| F7 |"))
         .expect("F7 review findings top row");
     assert!(
-        f7_row.contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred")
-            && f7_row.ends_with("| Runtime 04 / review closed |"),
-        "F7 top row should record typed-error review closed status"
+        f7_row.contains("asset artifact/importer") && f7_row.ends_with("| Runtime 04 |"),
+        "F7 overview row should keep only the finding and Runtime 04 owner"
+    );
+    assert!(
+        review_findings
+            .contains("f5_f6_f7_typed_error_top_row_closed_status_static_passed_cargo_deferred"),
+        "F7 numbered output should record typed-error review closed status"
     );
 }

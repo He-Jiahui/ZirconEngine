@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_pending_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_pending_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_pending_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_pending_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry 的 deeper unified indirect / cluster raster / residency-manager cascade，以及 Hybrid GI 的更完整 scene-driven screen-probe hierarchy / RT hybrid lighting continuation
   - user: 2026-04-18 剩余更值得继续推进的主链是更完整的 scene-driven screen-probe hierarchy / probe gather / RT hybrid lighting
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-multi-ancestor-completion-continuation.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_completion_readback_inherits_third_resident_ancestor_trace_rt_lighting
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_completion_readback_gathers_third_resident_ancestor_radiance
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_hierarchy

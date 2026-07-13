@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::*;
-use crate::core::framework::render::{FontFaceId, ShapedGlyphRotation};
+use crate::core::framework::render::{FontFaceId, InstancedFaceId, ShapedGlyphRotation};
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
@@ -10,6 +10,7 @@ use crate::graphics::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
     GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
+use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 use zircon_runtime_interface::ui::surface::{
@@ -42,6 +43,11 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         writing_mode: UiTextWritingMode::HorizontalTb,
         wrap: UiTextWrap::None,
         style: Default::default(),
+        distance_field_mode: SdfMode::Sdf,
+        text_effects: Default::default(),
+        text_decorations: Default::default(),
+        text_decoration_baseline: None,
+        clip_transform: None,
     }
 }
 
@@ -111,15 +117,20 @@ fn slot_on_page(glyph: char, page_index: u32, rect: SdfAtlasRect) -> SdfAtlasSlo
 }
 
 fn glyph_key(glyph: char) -> SdfAtlasGlyphKey {
+    glyph_key_for_mode(glyph, SdfMode::Sdf)
+}
+
+fn glyph_key_for_mode(glyph: char, mode: SdfMode) -> SdfAtlasGlyphKey {
     SdfAtlasGlyphKey {
         glyph,
         glyph_id: None,
         font_id: None,
+        font_instance_id: None,
         font: Some("res://fonts/default.font.toml".to_string()),
         font_family: Some("Zircon Sans".to_string()),
         language: None,
         font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
-        bake_params: SdfBakeParams::default(),
+        bake_params: SdfBakeParams::for_mode(mode),
     }
 }
 

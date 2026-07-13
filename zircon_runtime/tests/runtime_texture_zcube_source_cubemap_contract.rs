@@ -4,10 +4,9 @@ use zircon_runtime::asset::{
     ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 use zircon_runtime::core::framework::render::{
-    build_source_cubemap_from_equirect, source_cubemap_face_mip_offset,
-    source_cubemap_sample_count, CubemapFace, IblBakeArtifactBlob, IblBakeArtifactContents,
-    IblBakeArtifactRequest, ProceduralSkyParams, RenderImageColorSpace, RenderImageDimension,
-    RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
+    build_source_cubemap_from_equirect, source_cubemap_sample_count, IblBakeArtifactBlob,
+    IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams, RenderImageColorSpace,
+    RenderImageDimension, RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
 };
 use zircon_runtime::core::math::Real;
 
@@ -17,12 +16,12 @@ fn zcube_source_cubemap_texture_preserves_source_mips_only() {
     let texture = texture_asset_from_source_cubemap_zcube(test_uri(), &source);
     let descriptor = texture.texture_descriptor();
 
-    assert_eq!(texture.width, source.face_size());
-    assert_eq!(texture.height, source.face_size());
+    assert_eq!(texture.width, source.source_face_size());
+    assert_eq!(texture.height, source.source_face_size());
     assert_eq!(descriptor.format, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT);
     assert_eq!(descriptor.color_space, RenderImageColorSpace::Linear);
     assert_eq!(descriptor.dimension, RenderImageDimension::Cube);
-    assert_eq!(descriptor.mip_count, source.mip_count());
+    assert_eq!(descriptor.mip_count, source.source_mip_count());
     assert_eq!(
         descriptor.array_layer_count,
         SOURCE_CUBEMAP_FACE_COUNT as u32
@@ -38,31 +37,22 @@ fn zcube_source_cubemap_texture_preserves_source_mips_only() {
         panic!(".zcube texture must use a container payload");
     };
     assert_eq!(format, ZCUBE_SOURCE_CUBEMAP_FORMAT);
-    assert_eq!(*mip_count, source.mip_count());
+    assert_eq!(*mip_count, source.source_mip_count());
     assert_eq!(*array_layers, SOURCE_CUBEMAP_FACE_COUNT as u32);
     assert_eq!(
         bytes.len(),
         ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE
-            + source_cubemap_sample_count(source.face_size(), source.mip_count())
+            + source_cubemap_sample_count(source.source_face_size(), source.source_mip_count(),)
                 * RGBA16F_TEXEL_SIZE_BYTES
     );
 
     let decoded = decode_zcube_source_cubemap_texture(&texture).expect("valid zcube source");
-    assert_eq!(decoded.face_size(), source.face_size());
-    assert_eq!(decoded.mip_count(), source.mip_count());
+    assert_eq!(decoded.face_size(), source.source_face_size());
+    assert_eq!(decoded.mip_count(), source.source_mip_count());
     assert_rgba16f_close(decoded.texels(), source.source_texels());
 
-    let rough_source_pmrem_delta = mip_average_delta(
-        source.source_texels(),
-        source.texels(),
-        source.face_size(),
-        source.mip_count(),
-        source.mip_count().saturating_sub(2),
-    );
-    assert!(
-        rough_source_pmrem_delta > 0.005,
-        ".zcube should preserve the source mip pyramid, not the PMREM chain; delta={rough_source_pmrem_delta}"
-    );
+    assert_ne!(source.source_face_size(), source.pmrem_face_size());
+    assert_ne!(source.source_texels().len(), source.pmrem_texels().len());
 }
 
 #[test]
@@ -88,8 +78,8 @@ fn zcube_source_cubemap_is_not_a_direct_upload_or_zribl_artifact() {
     };
     let request = IblBakeArtifactRequest::new(
         ProceduralSkyParams::default_gradient().ibl_bake_key(),
-        source.face_size(),
-        source.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
     )
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9);
 
@@ -130,28 +120,4 @@ fn assert_rgba16f_close(actual: &[[Real; 4]], expected: &[[Real; 4]]) {
             );
         }
     }
-}
-
-fn mip_average_delta(
-    lhs: &[[Real; 4]],
-    rhs: &[[Real; 4]],
-    face_size: u32,
-    mip_count: u32,
-    mip_level: u32,
-) -> Real {
-    let mip_level = mip_level.min(mip_count.saturating_sub(1));
-    let mip_size = (face_size >> mip_level).max(1);
-    let mut sum = 0.0;
-    let mut count = 0_u32;
-    for face in CubemapFace::ALL {
-        let offset = source_cubemap_face_mip_offset(face_size, mip_count, face, mip_level);
-        let texel_count = mip_size as usize * mip_size as usize;
-        for index in offset..offset + texel_count {
-            sum += (lhs[index][0] - rhs[index][0]).abs();
-            sum += (lhs[index][1] - rhs[index][1]).abs();
-            sum += (lhs[index][2] - rhs[index][2]).abs();
-            count += 3;
-        }
-    }
-    sum / count.max(1) as Real
 }

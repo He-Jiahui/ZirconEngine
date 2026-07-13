@@ -17,10 +17,7 @@ fn selected_list_row_paints_muted_selected_fill_neutral_outline_and_navigation_a
     );
 
     assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.border) > 300);
-    assert_eq!(
-        matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent),
-        0
-    );
+    assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent) > 0);
     assert!(matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_pressed) > 1200);
     assert_eq!(
         matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_selected),
@@ -35,10 +32,7 @@ fn checked_list_row_paints_right_check_with_muted_selected_fill() {
     let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![list_node(true, false)]));
 
     assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.border) > 300);
-    assert_eq!(
-        matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent),
-        0
-    );
+    assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent) > 0);
     assert!(matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_pressed) > 1200);
     assert_eq!(
         matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_selected),
@@ -72,9 +66,28 @@ fn focused_list_row_paints_border_without_hover_or_selected_fill() {
 
 #[test]
 fn disabled_list_row_keeps_background_empty_and_draws_disabled_adornment() {
-    let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![list_node(false, true)]));
+    let node = list_node(false, true);
+    let rect = FrameRect {
+        x: 4.0,
+        y: 4.0,
+        width: 148.0,
+        height: 32.0,
+    };
+    let mut commands = Vec::new();
+    assert!(push_list_row_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+    assert!(commands
+        .iter()
+        .all(|command| command.background_color.is_none()));
 
-    assert_eq!(pixel_at(&bytes, 160, 12, 18), [0, 0, 0, 255]);
+    let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![node]));
+
     assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
 }
 

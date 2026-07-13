@@ -30,7 +30,7 @@ fn texture_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.texture.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.texture.authoring.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.texture.authoring.open"));
 }

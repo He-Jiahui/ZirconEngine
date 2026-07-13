@@ -52,90 +52,90 @@ impl AnimationCommand {
                 .with_argument(UiBindingValue::Bool(*looping))
                 .with_argument(UiBindingValue::Float(*speed as f64)),
             Self::AddGraphNode {
-                graph_path,
+                graph_locator,
                 node_id,
                 node_kind,
             } => UiBindingCall::new("AnimationCommand.AddGraphNode")
-                .with_argument(UiBindingValue::string(graph_path))
+                .with_argument(UiBindingValue::string(graph_locator))
                 .with_argument(UiBindingValue::string(node_id))
                 .with_argument(UiBindingValue::string(node_kind)),
             Self::RemoveGraphNode {
-                graph_path,
+                graph_locator,
                 node_id,
             } => UiBindingCall::new("AnimationCommand.RemoveGraphNode")
-                .with_argument(UiBindingValue::string(graph_path))
+                .with_argument(UiBindingValue::string(graph_locator))
                 .with_argument(UiBindingValue::string(node_id)),
             Self::ConnectGraphNodes {
-                graph_path,
+                graph_locator,
                 from_node_id,
                 to_node_id,
             } => UiBindingCall::new("AnimationCommand.ConnectGraphNodes")
-                .with_argument(UiBindingValue::string(graph_path))
+                .with_argument(UiBindingValue::string(graph_locator))
                 .with_argument(UiBindingValue::string(from_node_id))
                 .with_argument(UiBindingValue::string(to_node_id)),
             Self::DisconnectGraphNodes {
-                graph_path,
+                graph_locator,
                 from_node_id,
                 to_node_id,
             } => UiBindingCall::new("AnimationCommand.DisconnectGraphNodes")
-                .with_argument(UiBindingValue::string(graph_path))
+                .with_argument(UiBindingValue::string(graph_locator))
                 .with_argument(UiBindingValue::string(from_node_id))
                 .with_argument(UiBindingValue::string(to_node_id)),
             Self::SetGraphParameter {
-                graph_path,
+                graph_locator,
                 parameter_name,
                 value_literal,
             } => UiBindingCall::new("AnimationCommand.SetGraphParameter")
-                .with_argument(UiBindingValue::string(graph_path))
+                .with_argument(UiBindingValue::string(graph_locator))
                 .with_argument(UiBindingValue::string(parameter_name))
                 .with_argument(UiBindingValue::string(value_literal)),
             Self::CreateState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
-                graph_path,
+                graph_locator,
             } => UiBindingCall::new("AnimationCommand.CreateState")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(state_name))
-                .with_argument(UiBindingValue::string(graph_path)),
+                .with_argument(UiBindingValue::string(graph_locator)),
             Self::RemoveState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
             } => UiBindingCall::new("AnimationCommand.RemoveState")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(state_name)),
             Self::SetEntryState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
             } => UiBindingCall::new("AnimationCommand.SetEntryState")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(state_name)),
             Self::CreateTransition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
                 duration_frames,
             } => UiBindingCall::new("AnimationCommand.CreateTransition")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(from_state))
                 .with_argument(UiBindingValue::string(to_state))
                 .with_argument(UiBindingValue::unsigned(*duration_frames)),
             Self::RemoveTransition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
             } => UiBindingCall::new("AnimationCommand.RemoveTransition")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(from_state))
                 .with_argument(UiBindingValue::string(to_state)),
             Self::SetTransitionCondition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
                 parameter_name,
                 operator,
                 value_literal,
             } => UiBindingCall::new("AnimationCommand.SetTransitionCondition")
-                .with_argument(UiBindingValue::string(state_machine_path))
+                .with_argument(UiBindingValue::string(state_machine_locator))
                 .with_argument(UiBindingValue::string(from_state))
                 .with_argument(UiBindingValue::string(to_state))
                 .with_argument(UiBindingValue::string(parameter_name))
@@ -194,16 +194,20 @@ impl AnimationCommand {
                 speed: required_f32_argument(&call, 2, "AnimationCommand.SetPlayback")?,
             },
             "AnimationCommand.AddGraphNode" => Self::AddGraphNode {
-                graph_path: required_string_argument(&call, 0, "AnimationCommand.AddGraphNode")?,
+                graph_locator: required_string_argument(&call, 0, "AnimationCommand.AddGraphNode")?,
                 node_id: required_string_argument(&call, 1, "AnimationCommand.AddGraphNode")?,
                 node_kind: required_string_argument(&call, 2, "AnimationCommand.AddGraphNode")?,
             },
             "AnimationCommand.RemoveGraphNode" => Self::RemoveGraphNode {
-                graph_path: required_string_argument(&call, 0, "AnimationCommand.RemoveGraphNode")?,
+                graph_locator: required_string_argument(
+                    &call,
+                    0,
+                    "AnimationCommand.RemoveGraphNode",
+                )?,
                 node_id: required_string_argument(&call, 1, "AnimationCommand.RemoveGraphNode")?,
             },
             "AnimationCommand.ConnectGraphNodes" => Self::ConnectGraphNodes {
-                graph_path: required_string_argument(
+                graph_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.ConnectGraphNodes",
@@ -220,7 +224,7 @@ impl AnimationCommand {
                 )?,
             },
             "AnimationCommand.DisconnectGraphNodes" => Self::DisconnectGraphNodes {
-                graph_path: required_string_argument(
+                graph_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.DisconnectGraphNodes",
@@ -237,7 +241,7 @@ impl AnimationCommand {
                 )?,
             },
             "AnimationCommand.SetGraphParameter" => Self::SetGraphParameter {
-                graph_path: required_string_argument(
+                graph_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.SetGraphParameter",
@@ -254,16 +258,16 @@ impl AnimationCommand {
                 )?,
             },
             "AnimationCommand.CreateState" => Self::CreateState {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.CreateState",
                 )?,
                 state_name: required_string_argument(&call, 1, "AnimationCommand.CreateState")?,
-                graph_path: required_string_argument(&call, 2, "AnimationCommand.CreateState")?,
+                graph_locator: required_string_argument(&call, 2, "AnimationCommand.CreateState")?,
             },
             "AnimationCommand.RemoveState" => Self::RemoveState {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.RemoveState",
@@ -271,7 +275,7 @@ impl AnimationCommand {
                 state_name: required_string_argument(&call, 1, "AnimationCommand.RemoveState")?,
             },
             "AnimationCommand.SetEntryState" => Self::SetEntryState {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.SetEntryState",
@@ -279,7 +283,7 @@ impl AnimationCommand {
                 state_name: required_string_argument(&call, 1, "AnimationCommand.SetEntryState")?,
             },
             "AnimationCommand.CreateTransition" => Self::CreateTransition {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.CreateTransition",
@@ -297,7 +301,7 @@ impl AnimationCommand {
                 )?,
             },
             "AnimationCommand.RemoveTransition" => Self::RemoveTransition {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.RemoveTransition",
@@ -310,7 +314,7 @@ impl AnimationCommand {
                 to_state: required_string_argument(&call, 2, "AnimationCommand.RemoveTransition")?,
             },
             "AnimationCommand.SetTransitionCondition" => Self::SetTransitionCondition {
-                state_machine_path: required_string_argument(
+                state_machine_locator: required_string_argument(
                     &call,
                     0,
                     "AnimationCommand.SetTransitionCondition",

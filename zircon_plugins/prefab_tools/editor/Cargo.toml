@@ -10,6 +10,7 @@ zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
 zircon_plugin_prefab_tools_runtime = { path = "../runtime" }
 zircon_runtime = { workspace = true }
+zircon_runtime_interface = { workspace = true }
 
 [dev-dependencies]
 serde_json = "1.0.149"

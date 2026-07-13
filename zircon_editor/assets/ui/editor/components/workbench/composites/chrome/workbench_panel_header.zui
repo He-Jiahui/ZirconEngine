@@ -1,0 +1,31 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui"
+version = 2
+display_name = "Workbench Panel Header"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchPanelHeader]
+root = "root"
+default_classes = ["workbench-panel-header", "workbench-composite"]
+slots = { title = { multiple = false }, actions = { multiple = true } }
+
+[nodes.root]
+component = "HorizontalGroup"
+control_id = "WorkbenchPanelHeaderRoot"
+classes = ["workbench-panel-toolbar"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "title_slot" }, { node = "actions_slot" }]
+
+[nodes.title_slot]
+component = "Slot"
+props = { name = "title" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.actions_slot]
+component = "Slot"
+props = { name = "actions" }
+layout = { height = { stretch = "Stretch" } }

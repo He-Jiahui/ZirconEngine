@@ -151,6 +151,7 @@ impl World {
         self.validate_mobility_change(record.id, record.mobility)?;
         self.rebuild_fixed_component_presence_for_entity(record.id);
         self.mark_derived_state_dirty();
+        self.advance_world_generation();
         Ok(())
     }
 

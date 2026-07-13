@@ -10,8 +10,13 @@ fn host_function_registry_matches_documented_ledger() {
     let bridge_source = include_str!("../../../script/vm/host/bridge_host_module.rs");
     let ledger =
         include_str!("../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
-    let plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
+    let plan = concat!(
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
+        ),
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"
+        )
     );
 
     assert_eq!(

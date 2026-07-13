@@ -1,14 +1,17 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::{
+    ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, ProjectPluginManifest,
+    ProjectPluginSelection,
+};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, ExportProfile, ExportTargetPlatform, ProjectPluginManifest,
-    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePlugin,
-    RuntimePluginAvailabilityCategory, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
+    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use super::super::{
     bootstrap_export_runtime_with_native_plugins_from_export_root,
@@ -123,7 +126,7 @@ impl RuntimePlugin for LinkedSoundPlugin {
     }
 }
 
-fn write_virtual_geometry_native_package(export_root: &PathBuf) {
+fn write_virtual_geometry_native_package(export_root: &Path) {
     fs::create_dir_all(export_root.join("plugins/virtual_geometry")).unwrap();
     fs::write(
         export_root.join("plugins/native_plugins.toml"),

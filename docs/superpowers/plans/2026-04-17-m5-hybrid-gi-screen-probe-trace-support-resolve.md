@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/hybrid_gi_trace_region_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_trace_region_gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 route without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-radiance-cache-lighting-resolve.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-scene-light-radiance-seed.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
   - cargo test -p zircon_graphics hybrid_gi_resolve_prefers_screen_probe_irradiance_supported_by_scheduled_trace_regions --locked
   - cargo test -p zircon_graphics hybrid_gi_resolve_render --locked
   - cargo test -p zircon_graphics hybrid_gi --locked

@@ -18,15 +18,14 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
-  - zircon_editor/src/ui/workbench/model/menu/selection_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
-  - zircon_runtime/src/scene/editor_projection/projection.rs
-  - zircon_runtime/src/scene/editor_projection/inspector.rs
+  - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
   - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
   - zircon_runtime/src/scene/reflect/fixed/lights.rs
@@ -54,8 +53,8 @@ implementation_files:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
-  - zircon_editor/src/ui/workbench/model/menu/selection_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs

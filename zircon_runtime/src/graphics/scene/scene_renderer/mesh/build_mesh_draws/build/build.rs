@@ -161,8 +161,13 @@ pub(crate) fn build_mesh_draws(
             .apply_to_packed_lights(&frame.extract.lighting, &mut packed_lights.lights);
     }
     gpu_scene.write_lights(device, &packed_lights.lights);
-    let (gpu_scene_upload_report, gpu_scene_entries) =
-        sync_gpu_scene_pending_draws(device, queue, gpu_scene, &mut pending_draws);
+    let (gpu_scene_upload_report, gpu_scene_entries) = sync_gpu_scene_pending_draws(
+        device,
+        queue,
+        gpu_scene,
+        &mut pending_draws,
+        frame.environment().baked_lighting(),
+    );
     let gpu_scene_upload_report = gpu_scene_upload_report
         .with_additional_uploaded_bytes(virtual_geometry_upload_report.uploaded_bytes)
         .with_additional_uploaded_bytes(morph_upload_report.uploaded_bytes);
@@ -261,11 +266,12 @@ pub(crate) fn build_mesh_draws(
                     submission_detail,
                     pending_draw,
                 )| {
-                    let synced_gpu_scene_entry = gpu_scene_entries
-                        .get(&render_mesh_stable_instance_key(
-                            pending_draw.source_entity,
-                            pending_draw.source_draw_ordinal,
-                        ))
+                    let stable_instance_key = render_mesh_stable_instance_key(
+                        pending_draw.source_entity,
+                        pending_draw.source_draw_ordinal,
+                    );
+                    let synced_gpu_scene_entry = *gpu_scene_entries
+                        .get(&stable_instance_key)
                         .expect("pending mesh draw must have a synchronized GPUScene entry");
                     let gpu_scene_instance_span = (
                         synced_gpu_scene_entry.entry.first_instance_index,
@@ -306,10 +312,29 @@ pub(crate) fn build_mesh_draws(
                     } else {
                         None
                     };
+                    let has_compatible_previous_skinned_palette =
+                        skinned_gpu_skinning_enabled && previous_skinned_joint_palette.is_some();
+                    let (staged_joint_palette_buffer, staged_previous_joint_palette_buffer) =
+                        gpu_scene.stage_skinned_joint_palette_buffers(
+                            device,
+                            queue,
+                            stable_instance_key,
+                            pending_draw.skinned_joint_palette.as_ref(),
+                            has_compatible_previous_skinned_palette,
+                        );
+                    let (skinned_joint_palette_buffer, previous_skinned_joint_palette_buffer) =
+                        if skinned_gpu_skinning_enabled {
+                            (
+                                staged_joint_palette_buffer,
+                                staged_previous_joint_palette_buffer,
+                            )
+                        } else {
+                            (None, None)
+                        };
                     let has_previous_velocity_transform = synced_gpu_scene_entry
                         .has_previous_velocity_transform
                         && (!skinned_gpu_skinning_enabled
-                            || previous_skinned_joint_palette.is_some());
+                            || previous_skinned_joint_palette_buffer.is_some());
                     let material_uniform = if let Some(payload) =
                         pending_draw.material_uniform_override_payload.as_ref()
                     {
@@ -337,8 +362,8 @@ pub(crate) fn build_mesh_draws(
                         has_previous_velocity_transform,
                         pending_draw.mesh_lod,
                         pending_draw.skinned,
-                        pending_draw.skinned_joint_palette,
-                        previous_skinned_joint_palette,
+                        skinned_joint_palette_buffer,
+                        previous_skinned_joint_palette_buffer,
                         pending_draw.previous_skinned_gpu_source,
                         resolved_skinned_gpu_source,
                         skinned_gpu_source_uses_cpu_morphed_source,

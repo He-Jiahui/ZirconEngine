@@ -1,4 +1,4 @@
-use zircon_runtime::asset::AnimationSequenceAsset;
+use zircon_runtime::core::framework::animation::AnimationSequenceAsset;
 use zircon_runtime::core::framework::animation::{
     AnimationSequenceApplyReport, AnimationTrackPath,
 };

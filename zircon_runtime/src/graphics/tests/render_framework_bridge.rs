@@ -188,6 +188,8 @@ fn flagship_extract() -> RenderFrameExtract {
     });
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: Default::default(),
         trace_budget: 2,
         card_budget: 1,

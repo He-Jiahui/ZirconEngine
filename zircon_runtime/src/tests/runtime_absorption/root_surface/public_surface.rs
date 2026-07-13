@@ -77,19 +77,19 @@ fn runtime_crate_root_public_surface_stays_curated() {
             "crate root must not flatten subsystem namespace `{forbidden}`"
         );
     }
-    for builtin_symbol in [
+    for non_root_symbol in [
         "RuntimeModuleLoadReport",
+        "RuntimeModuleLoadDiagnostic",
         "RuntimePluginId",
-        "RuntimeRequiredPluginMissing",
         "RuntimeTargetMode",
     ] {
         assert!(
-            !LIB_RS.contains(builtin_symbol),
-            "Runtime 02 builtin facade cutover keeps `{builtin_symbol}` under `zircon_runtime::builtin`"
+            !LIB_RS.contains(non_root_symbol),
+            "Runtime 02 root-surface cutover keeps `{non_root_symbol}` under its domain owner"
         );
         assert!(
-            !PRELUDE_RS.contains(builtin_symbol),
-            "Runtime 02 builtin facade cutover must not re-expose `{builtin_symbol}` through the runtime prelude"
+            !PRELUDE_RS.contains(non_root_symbol),
+            "Runtime 02 root-surface cutover must not re-expose `{non_root_symbol}` through the runtime prelude"
         );
     }
 

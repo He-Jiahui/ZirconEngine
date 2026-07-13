@@ -511,7 +511,7 @@ mod tests {
         let mut config = HubConfig::default();
         config.settings.default_source_dir = source.to_path_buf();
         config.settings.default_build_output_dir = temp.join("out");
-        config.recent_projects = vec![RecentProject::new(name, project, 1)];
+        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.project_metadata.insert(
             project_metadata_key(project),
@@ -538,7 +538,7 @@ mod tests {
         let editor_config_path = temp.join("editor.json");
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("out");
-        config.recent_projects = vec![RecentProject::new(name, project, 1)];
+        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(

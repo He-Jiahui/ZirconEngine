@@ -31,8 +31,8 @@ fn view_model_projects_come_from_snapshot_filtering_and_state_ids() {
         task_status: TaskStatus::idle(),
         queued_background_actions: 0,
         recent_projects: vec![
-            RecentProject::new("Elysium Chronicles", "E:/Projects/Elysium", 30),
-            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
+            RecentProject::fixture("Elysium Chronicles", "E:/Projects/Elysium", 30),
+            RecentProject::fixture("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
         ],
         project_metadata: crate::projects::ProjectMetadataMap::new(),
         assets: Vec::new(),
@@ -79,7 +79,7 @@ fn quick_actions_use_selected_project_scope_and_engine_binding() {
     let selected = PathBuf::from("E:/Projects/Game");
     let mut snapshot = snapshot_with_projects(
         Some(PathBuf::from("E:\\Projects\\Game\\")),
-        vec![RecentProject::new("Game", selected.clone(), 10)],
+        vec![RecentProject::fixture("Game", selected.clone(), 10)],
     );
     bind_source_engine(&mut snapshot, &selected);
 
@@ -101,7 +101,7 @@ fn selected_project_template_label_localizes_stable_template_metadata() {
     let selected = PathBuf::from("E:/Projects/Game");
     let mut snapshot = snapshot_with_projects(
         Some(selected.clone()),
-        vec![RecentProject::new("Game", selected.clone(), 10)],
+        vec![RecentProject::fixture("Game", selected.clone(), 10)],
     );
     snapshot.settings.language = HubLanguage::Chinese;
     snapshot.project_metadata.insert(
@@ -127,7 +127,7 @@ fn quick_actions_disable_unbound_or_stale_project_targets() {
     let selected = PathBuf::from("E:/Projects/Game");
     let unbound = HubViewModel::from_snapshot(&snapshot_with_projects(
         Some(PathBuf::from("E:\\Projects\\Game\\")),
-        vec![RecentProject::new("Game", selected, 10)],
+        vec![RecentProject::fixture("Game", selected, 10)],
     ));
 
     assert!(!quick_action(&unbound, "build-project").enabled);
@@ -139,7 +139,7 @@ fn quick_actions_disable_unbound_or_stale_project_targets() {
 
     let stale = HubViewModel::from_snapshot(&snapshot_with_projects(
         Some(PathBuf::from("E:/Projects/Missing")),
-        vec![RecentProject::new("Latest", "E:/Projects/Latest", 20)],
+        vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)],
     ));
 
     assert!(!quick_action(&stale, "build-project").enabled);
@@ -160,8 +160,8 @@ fn quick_actions_use_latest_recent_only_when_no_project_is_selected() {
     let mut snapshot = snapshot_with_projects(
         None,
         vec![
-            RecentProject::new("Old", "E:/Projects/Old", 1),
-            RecentProject::new("Latest", latest.clone(), 20),
+            RecentProject::fixture("Old", "E:/Projects/Old", 1),
+            RecentProject::fixture("Latest", latest.clone(), 20),
         ],
     );
     bind_source_engine(&mut snapshot, &latest);

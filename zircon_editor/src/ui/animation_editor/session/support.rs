@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use zircon_runtime::asset::assets::{
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationSequenceTrackAsset, AnimationStateMachineAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
 use super::{
     AnimationEditorDocument, AnimationEditorSession, AnimationEditorSessionError,

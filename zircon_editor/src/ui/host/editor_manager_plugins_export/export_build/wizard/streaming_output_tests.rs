@@ -1,33 +1,33 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::*;
 
 #[derive(Default)]
 struct StreamingRunner {
-    seen_stages: Vec<ExportPipelineStage>,
+    seen_stages: Vec<ExportStage>,
 }
 
 impl ExportWizardCommandRunner for StreamingRunner {
     fn run(
         &mut self,
         _command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         panic!("streaming runner should be driven through run_with_output");
     }
 
     fn run_with_output(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.seen_stages.push(command.stage);
-        let stage_id = export_pipeline_stage_cli_id(command.stage);
+        let stage_id = command.stage.cli_id();
         let stdout_lines = vec![
             command.stdout_banner("windows-release"),
             format!("report=D:\\zircon-export\\stages\\{stage_id}\\report.json"),
             r#""fatal": false,"#.to_string(),
         ];
-        let stderr_lines = if command.stage == ExportPipelineStage::Pack {
+        let stderr_lines = if command.stage == ExportStage::Pack {
             vec!["pack streaming stderr".to_string()]
         } else {
             Vec::new()
@@ -69,20 +69,20 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
     );
 
     assert_eq!(snapshot.status, ExportWizardJobStatus::Finished);
-    assert_eq!(runner.seen_stages, export_pipeline_stages().to_vec());
+    assert_eq!(runner.seen_stages, ExportStage::ALL.to_vec());
 
     let validate_output_index = events
         .iter()
         .position(|event| {
             event.kind == ExportWizardJobEventKind::StageOutput
-                && event.snapshot.current_stage == Some(ExportPipelineStage::Validate)
+                && event.snapshot.current_stage == Some(ExportStage::Validate)
         })
         .expect("Validate should emit streamed output");
     let validate_finished_index = events
         .iter()
         .position(|event| {
             event.kind == ExportWizardJobEventKind::StageFinished
-                && event.snapshot.current_stage == Some(ExportPipelineStage::Validate)
+                && event.snapshot.current_stage == Some(ExportStage::Validate)
         })
         .expect("Validate should finish after output");
     assert!(
@@ -94,19 +94,18 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
     assert_eq!(
         validate_output
             .progress
-            .snapshot(ExportPipelineStage::Validate)
+            .snapshot(ExportStage::Validate)
             .expect("Validate progress should exist")
             .kind,
         ExportStageProgressKind::Running
     );
-    assert!(validate_output
-        .live_stage_outputs
-        .iter()
-        .any(|output| output.stage == ExportPipelineStage::Validate
+    assert!(validate_output.live_stage_outputs.iter().any(|output| {
+        output.stage == ExportStage::Validate
             && output
                 .stdout_lines
                 .iter()
-                .any(|line| line == "zircon_export stage=Validate profile=windows-release")));
+                .any(|line| line == "zircon_export stage=Validate profile=windows-release")
+    }));
 
     let mut view_model = ExportWizardPanelViewModel::from_plan("export-streaming-output", &plan);
     for event in events.iter().take(validate_output_index + 1).cloned() {
@@ -119,7 +118,7 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
     let validate_row = view_model
         .stage_rows()
         .into_iter()
-        .find(|row| row.stage == ExportPipelineStage::Validate)
+        .find(|row| row.stage == ExportStage::Validate)
         .expect("Validate row should exist while running");
     assert_eq!(validate_row.progress_kind, ExportStageProgressKind::Running);
     assert!(validate_row
@@ -138,7 +137,7 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
     let pack_row = view_model
         .stage_rows()
         .into_iter()
-        .find(|row| row.stage == ExportPipelineStage::Pack)
+        .find(|row| row.stage == ExportStage::Pack)
         .expect("Pack row should exist after finish");
     assert_eq!(
         pack_row.stderr_lines,
@@ -147,7 +146,7 @@ fn export_wizard_job_runner_streams_stage_output_before_stage_finished() {
 }
 
 fn ready_export_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

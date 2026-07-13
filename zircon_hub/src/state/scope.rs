@@ -213,7 +213,7 @@ fn source_engine_scope_engine(engine: &SourceEngineInstall) -> SourceEngineScope
 }
 
 fn project_display_name(project: &RecentProject) -> String {
-    if project.display_name.trim().is_empty() {
+    if project.summary.name.trim().is_empty() {
         return project
             .path
             .file_name()
@@ -221,7 +221,7 @@ fn project_display_name(project: &RecentProject) -> String {
             .unwrap_or("Zircon Project")
             .to_string();
     }
-    project.display_name.clone()
+    project.summary.name.clone()
 }
 
 #[cfg(test)]
@@ -243,8 +243,8 @@ mod tests {
     #[test]
     fn scope_prefers_selected_project_and_project_bound_engine() {
         let projects = vec![
-            RecentProject::new("Latest", "E:/Projects/Latest", 20),
-            RecentProject::new("Selected", "E:/Projects/Selected", 10),
+            RecentProject::fixture("Latest", "E:/Projects/Latest", 20),
+            RecentProject::fixture("Selected", "E:/Projects/Selected", 10),
         ];
         let engines = vec![engine("local")];
         let mut metadata = ProjectMetadataMap::new();
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn stale_selected_project_does_not_fallback_to_latest_recent() {
-        let projects = vec![RecentProject::new("Latest", "E:/Projects/Latest", 20)];
+        let projects = vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)];
         let scope = HubScope::resolve(
             Some(Path::new("E:/Projects/Missing")),
             &projects,
@@ -282,8 +282,8 @@ mod tests {
     #[test]
     fn no_selection_uses_latest_recent_and_active_engine_scope() {
         let projects = vec![
-            RecentProject::new("Old", "E:/Projects/Old", 1),
-            RecentProject::new("Latest", "E:/Projects/Latest", 20),
+            RecentProject::fixture("Old", "E:/Projects/Old", 1),
+            RecentProject::fixture("Latest", "E:/Projects/Latest", 20),
         ];
         let engines = vec![engine("first"), engine("active")];
 
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn selected_project_without_engine_binding_reports_project_unbound() {
-        let projects = vec![RecentProject::new("Game", "E:/Projects/Game", 20)];
+        let projects = vec![RecentProject::fixture("Game", "E:/Projects/Game", 20)];
 
         let scope = HubScope::resolve(
             Some(Path::new("E:/Projects/Game")),
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn selected_project_with_missing_engine_reports_unavailable_binding() {
-        let projects = vec![RecentProject::new("Game", "E:/Projects/Game", 20)];
+        let projects = vec![RecentProject::fixture("Game", "E:/Projects/Game", 20)];
         let mut metadata = ProjectMetadataMap::new();
         metadata_for_path_mut(&mut metadata, "E:/Projects/Game").engine_id =
             Some("missing".to_string());
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn active_engine_scope_falls_back_to_first_engine_then_none() {
-        let projects = vec![RecentProject::new("Latest", "E:/Projects/Latest", 20)];
+        let projects = vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)];
 
         let first_fallback = HubScope::resolve(
             None,

@@ -4,7 +4,9 @@ use super::*;
 fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
     let root = unique_temp_project_root("project_manager_multi_asset_labels");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "MultiAssetSandbox",
         AssetUri::parse("res://bundles/atlas.multi").unwrap(),
@@ -13,7 +15,10 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let source_path = paths.assets_root().join("bundles").join("atlas.multi");
+    let source_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("bundles")
+        .join("atlas.multi");
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(&source_path, "atlas").unwrap();
 
@@ -41,7 +46,7 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
         .expect("labeled texture record");
     let meta = AssetMetaDocument::load(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("bundles")
             .join("atlas.multi.zmeta"),
     )
@@ -103,7 +108,9 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
 fn project_manager_records_duplicate_imported_asset_label_as_failed_import() {
     let root = unique_temp_project_root("project_manager_duplicate_labels");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "DuplicateLabelSandbox",
         AssetUri::parse("res://bundles/duplicate.multi").unwrap(),
@@ -112,7 +119,10 @@ fn project_manager_records_duplicate_imported_asset_label_as_failed_import() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let source_path = paths.assets_root().join("bundles").join("duplicate.multi");
+    let source_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("bundles")
+        .join("duplicate.multi");
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(&source_path, "duplicate").unwrap();
 
@@ -151,7 +161,9 @@ fn project_manager_records_duplicate_imported_asset_label_as_failed_import() {
 fn project_manager_returns_structured_error_for_unknown_label_load() {
     let root = unique_temp_project_root("project_manager_unknown_label");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "UnknownLabelSandbox",
         AssetUri::parse("res://bundles/atlas.multi").unwrap(),
@@ -160,7 +172,10 @@ fn project_manager_returns_structured_error_for_unknown_label_load() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let source_path = paths.assets_root().join("bundles").join("atlas.multi");
+    let source_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("bundles")
+        .join("atlas.multi");
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(&source_path, "atlas").unwrap();
 

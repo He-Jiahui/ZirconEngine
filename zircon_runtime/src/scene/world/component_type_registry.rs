@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::plugin::ComponentTypeDescriptor;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 
 use super::error::{SceneError, SceneResult};
 

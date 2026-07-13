@@ -182,7 +182,7 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
         .expect("preview identity node");
     let preview_adapter = nodes
         .iter()
-        .find(|node| node.control_id == "AssetsActivityPreviewAdapterText")
+        .find(|node| node.control_id == "AssetsActivityPreviewToolkitText")
         .expect("preview adapter node");
     let reference_left_title = nodes
         .iter()
@@ -261,7 +261,7 @@ fn assets_activity_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(preview_locator.text.to_string(), "No project locator");
     assert_eq!(preview_kind.text.to_string(), "Unknown Type");
     assert_eq!(preview_identity.text.to_string(), "No UUID");
-    assert_eq!(preview_adapter.text.to_string(), "No adapter");
+    assert_eq!(preview_adapter.text.to_string(), "No toolkit");
     assert_eq!(reference_left_title.text.to_string(), "References");
     assert_eq!(reference_left_body.role.to_string(), "Panel");
     assert_eq!(
@@ -590,6 +590,9 @@ fn activity_asset(
             .unwrap_or_default()
             .to_string(),
         kind,
+        asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            kind,
+        ),
         preview_artifact_path: String::new(),
         dirty: false,
         diagnostics: Vec::new(),

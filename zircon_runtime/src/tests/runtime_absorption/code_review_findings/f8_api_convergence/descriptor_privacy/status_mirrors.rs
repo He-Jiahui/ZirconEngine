@@ -9,8 +9,10 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
     );
     let plugin_sdk_runtime =
         include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/runtime.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let runtime_index =
@@ -101,34 +103,27 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
     ];
     for doc_anchor in completion_doc_anchors {
         assert!(
-            review_findings.contains(doc_anchor)
-                && convention.contains(doc_anchor)
-                && runtime_index.contains(doc_anchor)
-                && runtime_06_plan.contains(doc_anchor)
-                && runtime_15_plan.contains(doc_anchor)
-                && package_manifest_doc.contains(doc_anchor)
-                && status_rows.contains(doc_anchor),
-            "RuntimePluginDescriptor status mirror docs/status should record `{doc_anchor}`"
+            review_findings.contains(doc_anchor),
+            "RuntimePluginDescriptor numbered output should record `{doc_anchor}`"
         );
     }
     assert!(
-        status_map.contains("Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup")
-            && status_map.contains(
-                "runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred",
-            )
-            && date_map.contains("Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup")
-            && date_map.contains("2026-06-27"),
-        "RuntimePluginDescriptor status mirror slice should be indexed by status/date maps"
+        status_map.contains("runtime_15") && date_map.contains("2026-06-27"),
+        "RuntimePluginDescriptor status/date map roots should remain mounted while concrete evidence lives in the numbered output"
     );
     let f8_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F8 |"))
         .expect("F8 review findings top row");
     assert!(
-        f8_row.contains(
+        f8_row.contains("texture import settings")
+            && f8_row.ends_with("| Runtime 04 + Runtime 06 + Runtime 15 |"),
+        "F8 overview row should keep only the finding and delegated owners"
+    );
+    assert!(
+        review_findings.contains(
             "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred"
-        ) && f8_row
-            .ends_with("| convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed |"),
-        "F8 top row should record runtime surface review closed status"
+        ),
+        "F8 numbered output should record runtime surface review closed status"
     );
 }

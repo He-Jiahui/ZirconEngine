@@ -50,6 +50,8 @@ status: planned
 
 # 07 本地化消息 schema 与"敬请期待"能力目录
 
+- 失败交接（`open / 待修复`）：[`07/failure-2026-07-11-hub-message-legacy-test-drift.md`](07/failure-2026-07-11-hub-message-legacy-test-drift.md)
+
 ## 现状与证据
 
 - `HubTextBundle`（`view_model/localized.rs`，818 行，2026-06-12 实仓终核；01-04 计划并行落地使其自早先 684 行/23 处持续增长）对静态标签用 `(language, label)` 匹配表（`status_label`，70-135 行）——可接受；但对动态 detail 用 37 处 `strip_prefix` 匹配英文原文前缀再重组中文（`status_detail`，142-273 行，如 `detail.strip_prefix("Project template is coming soon: ")`），外加约 92 条英文原文常量词条表（275-463 行）与 4 个后缀/组合解析 helper（`localize_file_count_suffix` / `localize_delivery_log_excerpt` / `localize_project_filter` / `localize_project_sort`，777-818 行）。消息产生点（`task_status` / `action_history` 写入处）与翻译点之间没有任何编译期或测试期同步：后端改一句英文措辞，中文界面静默回落英文（实例：`action_tasks.rs:336` 的 `"Background task panicked: {detail}"` 在词条表中无对应项，中文界面现状直接显示英文）。

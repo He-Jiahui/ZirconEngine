@@ -1,4 +1,4 @@
-use crate::asset::{
+use crate::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
     AnimationSequenceTrackAsset,

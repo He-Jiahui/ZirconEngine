@@ -4,7 +4,7 @@ use zircon_plugin_navigation_recast::{
     RecastNavigationObstacle, RecastNavigationObstacleShape, RecastTileCache,
     RecastTileCacheObstacleHandle,
 };
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     NavMeshHandle, NavMeshObstacleDescriptor, NavMeshObstacleShape, NavPathQuery, NavPathResult,
     NavigationError, NavigationErrorKind, NAV_MESH_OBSTACLE_COMPONENT_TYPE,

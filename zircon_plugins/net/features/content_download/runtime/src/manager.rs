@@ -1,6 +1,5 @@
 mod attempts;
 mod bitmap;
-mod hash;
 mod http_fetch;
 mod manifest;
 mod progress;

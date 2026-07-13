@@ -21,19 +21,19 @@ fn activity_content_starts_at_the_panel_origin_without_a_browser_header_gap() {
 }
 
 #[test]
-fn browser_content_keeps_the_existing_dense_header_and_row_geometry() {
+fn browser_list_geometry_matches_the_painted_table_header_and_rows() {
     let metrics = AssetContentLayoutMetrics::for_surface(
         AssetContentSurfaceProfile::Browser,
         AssetViewMode::List,
     );
     let viewport = metrics.viewport_frame(UiSize::new(420.0, 220.0));
 
-    assert_eq!(viewport.y, 53.0);
-    assert_eq!(viewport.height, 167.0);
-    assert_eq!(metrics.first_row_y(), 61.0);
-    assert_eq!(metrics.folder_height, 32.0);
-    assert_eq!(metrics.item_height, 38.0);
-    assert_eq!(metrics.row_gap, 8.0);
+    assert_eq!(viewport.y, 24.0);
+    assert_eq!(viewport.height, 196.0);
+    assert_eq!(metrics.first_row_y(), 24.0);
+    assert_eq!(metrics.folder_height, 28.0);
+    assert_eq!(metrics.item_height, 28.0);
+    assert_eq!(metrics.row_gap, 0.0);
 }
 
 #[test]

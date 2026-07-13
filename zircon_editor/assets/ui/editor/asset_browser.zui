@@ -422,7 +422,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 
 [nodes.details_preview_adapter_text]
 component = "Label"
-control_id = "AssetBrowserDetailsPreviewAdapterText"
+control_id = "AssetBrowserDetailsPreviewToolkitText"
 props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
@@ -522,8 +522,8 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 
 [nodes.details_metadata_adapter_value]
 component = "Label"
-control_id = "AssetBrowserDetailsMetadataAdapterValue"
-props = { text = "No adapter", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+control_id = "AssetBrowserDetailsMetadataToolkitValue"
+props = { text = "No toolkit", text_tone = "muted", font_size = 9.0, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 38.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.details_metadata_panel]
@@ -666,7 +666,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 
 [nodes.preview_adapter_text]
 component = "Label"
-control_id = "AssetBrowserPreviewAdapterText"
+control_id = "AssetBrowserPreviewToolkitText"
 props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 72.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
@@ -817,19 +817,19 @@ children = [{ node = "metadata_meta_path_label" }, { node = "metadata_meta_path_
 
 [nodes.metadata_adapter_label]
 component = "Label"
-control_id = "AssetBrowserAdapterLabel"
+control_id = "AssetBrowserToolkitLabel"
 props = { text = "Adapter", text_tone = "muted", font_size = 9.0 }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 7.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
 
 [nodes.metadata_adapter_value]
 component = "Label"
-control_id = "AssetBrowserAdapterValue"
+control_id = "AssetBrowserToolkitValue"
 props = { text = "", font_size = 10.0, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.metadata_adapter_panel]
 component = "Overlay"
-control_id = "AssetBrowserAdapterPanel"
+control_id = "AssetBrowserToolkitPanel"
 props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
 children = [{ node = "metadata_adapter_label" }, { node = "metadata_adapter_value" }]

@@ -82,13 +82,11 @@ mod tests {
         bind_environment_ibl_graph_resources(&graph, None, &mut resources);
 
         assert!(!resources.has_texture_view(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE));
-        let report = resources
+        let error = resources
             .validate_materialized_graph_resources(&graph)
-            .expect("missing required IBL source should be reported, not hidden");
-        assert_eq!(report.required_external_count, 1);
-        assert_eq!(report.bound_required_external_count, 0);
-        assert_eq!(report.missing_external_count(), 1);
-        assert!(!report.is_complete());
+            .expect_err("missing required IBL source must fail materialization validation");
+        assert!(error.contains("required external resource bindings"));
+        assert!(error.contains("external texture `environment.ibl.source_cubemap`"));
     }
 
     fn ibl_bake_graph() -> CompiledRenderGraph {

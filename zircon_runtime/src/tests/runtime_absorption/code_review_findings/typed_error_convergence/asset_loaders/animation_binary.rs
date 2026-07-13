@@ -1,15 +1,16 @@
 #[test]
 fn review_f5_animation_asset_binary_uses_typed_errors() {
-    let animation_mod = include_str!("../../../../../asset/assets/animation/mod.rs");
-    let animation_error = include_str!("../../../../../asset/assets/animation/error.rs");
-    let binary = include_str!("../../../../../asset/assets/animation/binary.rs");
-    let channel = include_str!("../../../../../asset/assets/animation/channel.rs");
-    let clip = include_str!("../../../../../asset/assets/animation/clip.rs");
-    let graph = include_str!("../../../../../asset/assets/animation/graph.rs");
-    let reference = include_str!("../../../../../asset/assets/animation/reference.rs");
-    let sequence = include_str!("../../../../../asset/assets/animation/sequence.rs");
-    let skeleton = include_str!("../../../../../asset/assets/animation/skeleton.rs");
-    let state_machine = include_str!("../../../../../asset/assets/animation/state_machine.rs");
+    let animation_mod = include_str!("../../../../../core/framework/animation/asset/mod.rs");
+    let animation_error = include_str!("../../../../../core/framework/animation/asset/error.rs");
+    let binary = include_str!("../../../../../core/framework/animation/asset/binary.rs");
+    let channel = include_str!("../../../../../core/framework/animation/asset/channel.rs");
+    let clip = include_str!("../../../../../core/framework/animation/asset/clip.rs");
+    let graph = include_str!("../../../../../core/framework/animation/asset/graph.rs");
+    let reference = include_str!("../../../../../core/framework/animation/asset/reference.rs");
+    let sequence = include_str!("../../../../../core/framework/animation/asset/sequence.rs");
+    let skeleton = include_str!("../../../../../core/framework/animation/asset/skeleton.rs");
+    let state_machine =
+        include_str!("../../../../../core/framework/animation/asset/state_machine.rs");
     let importer_error = include_str!("../../../../../asset/importer/error.rs");
     let import_animation_asset =
         include_str!("../../../../../asset/importer/ingest/import_animation_asset.rs");
@@ -27,7 +28,7 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
         "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let animation_doc =
-        include_str!("../../../../../../../docs/zircon_runtime/asset/assets/animation.md");
+        include_str!("../../../../../../../docs/zircon_runtime/core/framework/animation-assets.md");
 
     for required in [
         "pub type AnimationAssetResult<T> = std::result::Result<T, AnimationAssetError>;",
@@ -94,7 +95,7 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
         "runtime_15_animation_asset_binary_typed_errors_static_passed_cargo_deferred",
         "review_f5_animation_asset_binary_uses_typed_errors",
         "AnimationAssetError::KindMismatch",
-        "asset/assets/animation/error.rs",
+        "core/framework/animation/asset/error.rs",
     ] {
         assert!(
             review_findings.contains(doc_anchor)

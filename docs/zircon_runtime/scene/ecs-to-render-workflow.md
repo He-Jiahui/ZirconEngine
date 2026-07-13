@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
@@ -37,7 +37,7 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
@@ -145,7 +145,7 @@ The production scene module currently has a structural test guard that rejects `
 
 | Concern | Current owner path | Current M00 fact | Follow-on milestone pressure |
 | --- | --- | --- | --- |
-| Stage vocabulary | `zircon_runtime/src/scene/ecs/system_stage.rs` | `PostUpdate` and `RenderExtract` exist; `LateUpdate` absent. | M01 should audit convergence and tests rather than recreate these names. |
+| Stage vocabulary | `zircon_runtime/src/core/framework/scene/system_stage.rs` | `PostUpdate` and `RenderExtract` exist; `LateUpdate` absent. | M01 should audit convergence and tests rather than recreate these names. |
 | Stage ordering and registry | `zircon_runtime/src/scene/ecs/schedule.rs`, `scene_system_registry.rs` | Default order is Bevy-style with Zircon `RenderExtract`; built-ins are already registered. | M01 should verify native system, hook, deferred, and diagnostic behavior. |
 | Stage execution | `zircon_runtime/src/scene/module/world_driver.rs`, `scene/ecs/schedule_runner.rs` | Stage runner merges built-ins/native/hooks and flushes deferred commands. | M01 should decide whether the post-success built-in flush can double-run future side effects. |
 | Derived scene state | `zircon_runtime/src/scene/world/dirty_state.rs`, `derived_state.rs` | Active hierarchy, world transform, node cache, and render-extract freshness are dirty-state driven. | M02 should keep derived systems stable and verify parent reorder/inactive/static-dynamic cases. |

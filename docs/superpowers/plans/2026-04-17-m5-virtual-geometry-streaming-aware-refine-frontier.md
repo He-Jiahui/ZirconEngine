@@ -1,18 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
 - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/frontier/refine_visible_cluster_frontier.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
 - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/frontier/refine_visible_cluster_frontier.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - user: 2026-04-17 continue the remaining M5 route without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-cluster-refine.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_requesting_nonresident_children --locked
   - cargo test -p zircon_graphics visibility_context_keeps_resident_virtual_geometry_children_visible_while_requesting_nonresident_grandchildren --locked
   - cargo test -p zircon_graphics visibility --locked

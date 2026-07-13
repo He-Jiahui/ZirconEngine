@@ -4,7 +4,9 @@ use std::fs;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 use super::metadata::{string_metadata_offender, string_token_metadata_offender};
-use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
+use super::support::{
+    collect_zui_document_files, collect_zui_files, editor_asset_root, runtime_asset_root,
+};
 
 const CHILD_MOUNT_SLOT_KEYS: &[&str] = &["name", "slot_name", "layout"];
 
@@ -36,7 +38,7 @@ fn production_zui_child_mount_slot_metadata_uses_known_keys() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -76,7 +78,7 @@ fn production_zui_child_mount_slot_metadata_uses_known_keys() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         checked_child_slot_maps > 0 && checked_child_slot_keys > 0,
@@ -96,7 +98,7 @@ fn production_zui_slot_metadata_names_are_non_empty_and_trimmed() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -177,7 +179,7 @@ fn production_zui_slot_metadata_names_are_non_empty_and_trimmed() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         checked_slot_metadata > 0,
@@ -197,7 +199,7 @@ fn production_zui_slot_name_aliases_are_consistent() {
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
-        for path in collect_zui_files(&asset_root.join("ui")) {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
@@ -238,7 +240,7 @@ fn production_zui_slot_name_aliases_are_consistent() {
 
     assert!(
         checked_assets > 0,
-        "production asset roots should contain .zui component assets"
+        "production asset roots should contain .zui documents"
     );
     assert!(
         checked_slot_name_sources > 0,

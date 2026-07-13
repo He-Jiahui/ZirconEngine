@@ -7,8 +7,10 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let runtime = include_str!("../../../../core/runtime/runtime.rs");
     let runtime_handle = include_str!("../../../../core/runtime/handle/resolution.rs");
     let project_session = include_str!("../../../../dynamic_api/session/project.rs");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let runtime_10 = include_str!(
@@ -25,10 +27,13 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
         .expect("F18 review findings top row");
 
     assert!(
-        f18_row
-            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred")
-            && f18_row.ends_with("| Runtime 10 / review closed |"),
-        "F18 top row should record manager-resolution review closed status"
+        f18_row.contains("asset manager resolution") && f18_row.ends_with("| Runtime 10 |"),
+        "F18 overview row should keep only the finding and Runtime 10 owner"
+    );
+    assert!(
+        review_findings
+            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred"),
+        "F18 numbered output should record manager-resolution review closed status"
     );
 
     for generic_manager_anchor in [

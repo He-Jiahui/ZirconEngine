@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 use super::super::backends::{GamepadBackend, GamepadEventBackend, GamepadRumbleBackend};
 use super::super::status::CapabilityStatus;

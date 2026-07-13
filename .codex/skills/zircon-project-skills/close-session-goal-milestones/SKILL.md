@@ -24,11 +24,13 @@ Treat each accepted milestone as a normal Git commit boundary. Preserve foreign 
 5. Before the first write or deletion, heartbeat, claim the path, and attribute its base/current hash. Keep that lease live through commit; a deletion without its pre-delete lease base is not owned.
 6. Inventory every Session-owned dirty path, including new files omitted from the latest prompt. Classify `code`, `docs`, `tests`, `scripts`, and `untracked` in JSON. Every untracked path must also appear in one content category. Re-attribute current hashes after the final edit. Never absorb or unstage another Session's files.
 
-## Validate and commit
+## Validate, commit, and notify
 
 Build every automatic Git subject as a plain Conventional Commit, for example `feat(workflow): complete M5 milestone`. A subject beginning with `【{module}】` is invalid. Derive the module from the registered numbered plan's parent directory only after the commit, exclusively for the WeCom summary line; never insert it into Git history.
 
-Stage only the manifest paths. If a repository-owned skill path is intentionally covered by the blanket `.codex` ignore, use `git add -f -- <exact-path>` only for that attributed manifest entry. Then run:
+Do not use `finalize --milestone` for a business milestone. That legacy command creates a scoped Git commit but cannot identify the `M<n>` node, record the workflow attempt, or deliver the service-managed WeCom notification.
+
+Before the milestone action, stage no files manually. If a repository-owned skill path is intentionally covered by the blanket `.codex` ignore, it remains eligible only when it is already attributed and appears in the service-bound milestone manifest. Run the read-only closeout checker for the exact candidate scope:
 
 ```powershell
 & .\.codex\skills\zircon-project-skills\close-session-goal-milestones\scripts\check-closeout.ps1 `
@@ -38,18 +40,32 @@ Stage only the manifest paths. If a repository-owned skill path is intentionally
 
 Require `status: ok`. The checker reads Session/current-hash attribution from coordinator SQLite in read-only mode and completion evidence from the registered plan; manifest claims cannot replace either source. Resolve foreign staged scope through coordination—never unstage or overwrite it.
 
-Commit immediately through the coordinator so its Git mutex rechecks live leases, current-hash attribution, Failure state, and the exact index under one atomic boundary:
+Use this explicit service sequence. A Codex turn ending, `Stop` Hook, or idle Session is never milestone evidence and must not be substituted for any step.
 
 ```powershell
-$checkerCommand = "pwsh -NoProfile -File .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.ps1 -RepoRoot . -Mode $mode -SessionId $sessionId -CommitMessage `"$message`" -ManifestPath `"$manifestPath`""
-$arguments = @("finalize", "--commit", "--milestone", "--session-id", $sessionId, "--message", $message, "--validation-command", $checkerCommand)
-foreach ($path in $manifestPaths) { $arguments += @("--path", $path) }
-& .\tools\zircon-session.ps1 @arguments
+$prepared = & .\tools\zircon-session.ps1 -Json milestone prepare `
+  --session-id $sessionId --milestone $milestoneId | ConvertFrom-Json
+$runId = $prepared.runId
+
+$validation = & .\tools\zircon-session.ps1 -Json milestone validate `
+  --session-id $sessionId --run-id $runId --milestone $milestoneId `
+  --template coordinator-actions | ConvertFrom-Json
+# Wait until the managed validation copy reaches a terminal result in the coordinator snapshot.
+# Do not launch cargo directly while waiting.
+
+# A distinct reviewer Session submits the independent review after validation is recorded.
+& .\tools\zircon-session.ps1 milestone review `
+  --session-id $reviewerSessionId --executor-session-id $sessionId `
+  --run-id $runId --milestone $milestoneId `
+  --critical-count 0 --important-count 0 --summary "<review summary>"
+
+$committed = & .\tools\zircon-session.ps1 -Json milestone commit `
+  --session-id $sessionId --run-id $runId --milestone $milestoneId | ConvertFrom-Json
 ```
 
-Never run a plain business-Session `git commit`. Never use `[zircon-session:*]`, checkpoint wording, an empty commit, branch, worktree, stash, or hidden version commit. Verify paths and SHA from the service result.
+`milestone commit` rechecks live gates, Failure state, attribution, leases, and the exact manifest under the Git mutex. It records the accepted `M<n>` attempt and invokes `WeComNotificationService` exactly once after a real commit succeeds. Read the returned notification status; never manually invoke `wecom-push-message` for that same SHA.
 
-After each commit, invoke `wecom-push-message` once with four lines:
+The service message has exactly four lines:
 
 ```text
 核心内容摘要：【{module}】<中文核心摘要>
@@ -60,13 +76,16 @@ After each commit, invoke `wecom-push-message` once with four lines:
 
 The fourth line must contain the real unprefixed Conventional Commit subject. For example, a plan under `docs/plans/zircon_tooling/session_coordinator/` uses `【session_coordinator】` only on the first line, while the Git subject remains `feat(workflow): ...`.
 
-Never store the webhook URL in Git. If sending fails, report it; do not retry automatically and do not roll back the commit.
+Never store the webhook URL in Git. If sending fails, report the recorded notification failure; do not retry automatically and do not roll back the commit.
+
+All build-producing Cargo commands must use the managed validation action or `validate-matrix.ps1`. A repo Hook rejects ordinary `cargo build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean` invocations before they create an unleased target directory. `cargo metadata`, `tree`, and `fmt` remain read-only/non-target inspections.
 
 ## Finish by mode
 
 ### Milestone
 
 - Treat the committed child-plan evidence and commit SHA as the immutable milestone record; do not reopen the Markdown solely to append that SHA.
+- Confirm the service result contains the accepted milestone key, SHA, shortstat, and WeCom attempt status.
 - Release unneeded leases and process only safe delayed patches.
 - Restore/keep the Session `active`; keep the Goal active and continue the next milestone.
 
@@ -74,11 +93,11 @@ Never store the webhook URL in Git. If sending fails, report it; do not retry au
 
 - Reject incomplete plan items, applicable open Failures, or remaining Session-owned dirty paths.
 - Do not create an empty final commit when the last milestone already contains all closeout changes.
-- Confirm after the commit that the Session-owned scope has no unstaged difference, then process safely executable delayed patches.
-- Release all Session leases, set the Session `completed` with the final SHA and completion reason, then mark the active Goal complete.
+- Confirm after the final milestone that the Session-owned scope has no unstaged difference, then process safely executable delayed patches.
+- Close the Goal through `& .\tools\zircon-session.ps1 milestone close-goal --session-id $sessionId --run-id $runId`; the service validates complete milestone attempts, open Failures, pending patches, and live leases before setting the Session complete.
 - Report foreign diagnostics without editing them.
 - In one terminal report, include commit SHA/subject, verification evidence, foreign-Session diagnostics, and the WeCom result.
 
 ## Stop conditions
 
-Stop for incomplete tests/review, missing lease or current-hash attribution, foreign staged paths, checker errors, or unresolved lower-layer failure. Milestone completion authorizes only its scoped commit.
+Stop for incomplete tests/review, missing managed validation result, missing lease or current-hash attribution, foreign staged paths, checker errors, a non-terminal WeCom result, or unresolved lower-layer failure. Milestone completion authorizes only its scoped commit.

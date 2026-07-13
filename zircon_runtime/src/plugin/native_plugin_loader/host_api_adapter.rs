@@ -10,9 +10,10 @@ use zircon_runtime_interface::{
     ZrRuntimePluginHandle, ZrStatus, ZrStatusCode, ZrSystemRegistrationV1,
 };
 
+use crate::core::framework::bridge::{BridgeInterfaceStatus, InterfaceSlot};
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::plugin::{
-    BridgeInterfaceStatus, ComponentTypeDescriptor, FrozenBridgeTable, InterfaceSlot,
-    PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    FrozenBridgeTable, PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use crate::scene::ecs::{
     ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, SystemRef, SystemStage,

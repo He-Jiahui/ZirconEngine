@@ -1,12 +1,14 @@
-use std::collections::BTreeSet;
-
+use crate::core::asset::{AssetSourceAuthority, AssetTypeId, AssetWriteAccess};
+use crate::core::commands::{
+    AssetWriteTargetDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
+    EditorCommandRegistryError,
+};
 use crate::core::editor_event::{
     EditorEvent, EditorEventRecord, EditorEventSource, EditorOperationEvent,
 };
 use crate::core::editor_operation::{
-    EditorOperationControlRequest, EditorOperationControlResponse, EditorOperationDescriptor,
-    EditorOperationInvocation, EditorOperationPath, EditorOperationRegistryError,
-    EditorOperationSource,
+    EditorOperationControlErrorKind, EditorOperationControlRequest, EditorOperationControlResponse,
+    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::host::EditorHostEventController;
 use serde_json::json;
@@ -19,19 +21,49 @@ impl EditorHostEventController {
     ) -> Result<EditorEventRecord, String> {
         let event_source = editor_event_source(source.clone());
         let descriptor = {
-            let operations = self.operations().lock();
-            let descriptor = match operations
-                .registry
-                .descriptor(&invocation.operation_id)
+            self.commands()
+                .lock()
+                .command(invocation.operation_id.as_str())
                 .cloned()
-            {
-                Some(descriptor) => descriptor,
-                None => {
-                    let error = EditorOperationRegistryError::MissingOperation(
-                        invocation.operation_id.clone(),
-                    )
-                    .to_string();
-                    drop(operations);
+        };
+        let descriptor = match descriptor {
+            Some(descriptor) => descriptor,
+            None => {
+                let error =
+                    EditorCommandRegistryError::MissingCommand(invocation.operation_id.clone())
+                        .to_string();
+                return self.record_operation_control_failure(
+                    event_source,
+                    invocation.operation_id,
+                    error,
+                    invocation.arguments,
+                    invocation.operation_group,
+                );
+            }
+        };
+        if operation_source_requires_remote_callable(&source) && !descriptor.callable_from_remote()
+        {
+            let error = EditorCommandRegistryError::CommandNotCallableFromRemote(
+                invocation.operation_id.clone(),
+            )
+            .to_string();
+            return self.record_operation_control_failure(
+                event_source,
+                invocation.operation_id,
+                error,
+                invocation.arguments,
+                invocation.operation_group,
+            );
+        }
+        let mut context = self.command_eval_ctx_for_source(&source);
+        if let Some(target) = descriptor.asset_write_target() {
+            let (authority, locator) = match self.resolve_asset_write_target(
+                &invocation.operation_id,
+                target,
+                &invocation.arguments,
+            ) {
+                Ok(resolved) => resolved,
+                Err(error) => {
                     return self.record_operation_control_failure(
                         event_source,
                         invocation.operation_id,
@@ -41,14 +73,13 @@ impl EditorHostEventController {
                     );
                 }
             };
-            if operation_source_requires_remote_callable(&source)
-                && !descriptor.callable_from_remote()
-            {
-                let error = EditorOperationRegistryError::OperationNotCallableFromRemote(
-                    invocation.operation_id.clone(),
-                )
-                .to_string();
-                drop(operations);
+            context = context.with_asset_write_access(authority.write_access());
+            if authority.write_access() != AssetWriteAccess::Writable {
+                let error = format!(
+                    "asset operation {} cannot write to read-only {} source `{locator}`",
+                    invocation.operation_id,
+                    authority.kind().as_str(),
+                );
                 return self.record_operation_control_failure(
                     event_source,
                     invocation.operation_id,
@@ -57,31 +88,22 @@ impl EditorHostEventController {
                     invocation.operation_group,
                 );
             }
-            drop(operations);
-            let enabled_capabilities = self
-                .shell()
-                .lock()
-                .manager
-                .capability_snapshot()
-                .enabled_capabilities()
-                .to_vec();
-            if let Some(error) = operation_capability_error(&descriptor, &enabled_capabilities) {
-                return self.record_operation_control_failure(
-                    event_source,
-                    invocation.operation_id,
-                    error,
-                    invocation.arguments,
-                    invocation.operation_group,
-                );
-            }
-            descriptor
-        };
+        }
+        if let Err(error) = EditorCommandRegistry::ensure_enabled(&descriptor, &context) {
+            return self.record_operation_control_failure(
+                event_source,
+                invocation.operation_id,
+                error.to_string(),
+                invocation.arguments,
+                invocation.operation_group,
+            );
+        }
         let event = match descriptor.event().cloned() {
             Some(event) => event,
             None => {
-                let error = EditorOperationRegistryError::OperationHasNoHandler(
-                    invocation.operation_id.clone(),
-                )
+                let error = EditorCommandDispatchError::EditCommandFactoryPending {
+                    command_id: invocation.operation_id.clone(),
+                }
                 .to_string();
                 return self.record_operation_control_failure(
                     event_source,
@@ -99,11 +121,39 @@ impl EditorHostEventController {
             Some((
                 invocation.operation_id,
                 descriptor.display_name().to_string(),
-                descriptor.undoable().is_some(),
                 invocation.arguments,
                 invocation.operation_group,
             )),
         )
+    }
+
+    fn resolve_asset_write_target(
+        &self,
+        operation_id: &EditorOperationPath,
+        target: &AssetWriteTargetDescriptor,
+        arguments: &serde_json::Value,
+    ) -> Result<(AssetSourceAuthority, String), String> {
+        let asset_type_value =
+            string_argument(operation_id, arguments, target.asset_type_argument())?;
+        let asset_type = AssetTypeId::parse(asset_type_value).map_err(|error| {
+            format!(
+                "asset operation {operation_id} has invalid asset type argument `{asset_type_value}`: {error}"
+            )
+        })?;
+        let definition = self.asset_type_definition(&asset_type).ok_or_else(|| {
+            format!(
+                "asset operation {operation_id} references unregistered asset type `{asset_type}`"
+            )
+        })?;
+        let locator = string_argument(operation_id, arguments, target.locator_argument())?;
+        let authority =
+            AssetSourceAuthority::from_target_str(definition.source_write_policy(), locator)
+                .map_err(|error| {
+                    format!(
+                "asset operation {operation_id} has invalid source target `{locator}`: {error}"
+            )
+                })?;
+        Ok((authority, locator.to_owned()))
     }
 
     fn record_operation_control_failure(
@@ -123,7 +173,6 @@ impl EditorHostEventController {
             Some((
                 operation_id.clone(),
                 operation_id.to_string(),
-                false,
                 arguments,
                 operation_group,
             )),
@@ -154,23 +203,18 @@ impl EditorHostEventController {
             }
             EditorOperationControlRequest::ListOperations => {
                 let operations = {
-                    let enabled_capabilities = self
-                        .shell()
-                        .lock()
-                        .manager
-                        .capability_snapshot()
-                        .enabled_capabilities()
-                        .to_vec();
-                    let operation_state = self.operations().lock();
+                    let context = self.command_eval_ctx_for_source(&source);
+                    let operation_state = self.commands().lock();
                     operation_state
-                        .registry
-                        .descriptors()
+                        .commands()
                         .filter(|descriptor| {
-                            operation_capability_error(descriptor, &enabled_capabilities).is_none()
+                            !operation_source_requires_remote_callable(&source)
+                                || descriptor.callable_from_remote()
                         })
+                        .filter(|descriptor| descriptor.is_enabled(&context))
                         .map(|descriptor| {
                             json!({
-                                "operation_id": descriptor.path().as_str(),
+                                "operation_id": descriptor.id().as_str(),
                                 "display_name": descriptor.display_name(),
                                 "menu_path": descriptor.menu_path(),
                                 "callable_from_remote": descriptor.callable_from_remote(),
@@ -188,62 +232,29 @@ impl EditorHostEventController {
                     Some(json!({ "operations": operations })),
                 )
             }
-            EditorOperationControlRequest::QueryOperationStack => {
-                let stack = self.operation_stack();
-                EditorOperationControlResponse::success(
-                    "editor.operation.stack",
-                    Some(json!({
-                        "undo_stack": stack_entries(stack.undo_stack()),
-                        "redo_stack": stack_entries(stack.redo_stack()),
-                    })),
+            EditorOperationControlRequest::QueryOperationHistory => {
+                EditorOperationControlResponse::typed_failure(
+                    "editor.operation.history",
+                    EditorOperationControlErrorKind::OperationHistoryPendingFactory,
+                    "editor operation history is unavailable until the edit-command factory is installed",
                 )
             }
         }
     }
 }
 
-fn stack_entries(
-    entries: &[crate::core::editor_operation::EditorOperationStackEntry],
-) -> Vec<serde_json::Value> {
-    entries
-        .iter()
-        .map(|entry| {
-            json!({
-                "operation_id": entry.operation_id.as_str(),
-                "display_name": &entry.display_name,
-                "source": &entry.source,
-                "sequence": entry.sequence,
-                "operation_group": &entry.operation_group,
-            })
+fn string_argument<'a>(
+    operation_id: &EditorOperationPath,
+    arguments: &'a serde_json::Value,
+    name: &str,
+) -> Result<&'a str, String> {
+    arguments
+        .get(name)
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            format!("asset operation {operation_id} requires non-empty string argument `{name}`")
         })
-        .collect()
-}
-
-fn operation_capability_error<I, S>(
-    descriptor: &EditorOperationDescriptor,
-    enabled_capabilities: I,
-) -> Option<String>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
-{
-    let enabled = enabled_capabilities
-        .into_iter()
-        .map(|capability| capability.as_ref().to_string())
-        .collect::<BTreeSet<_>>();
-    let missing = descriptor
-        .required_capabilities()
-        .iter()
-        .filter(|capability| !enabled.contains(*capability))
-        .cloned()
-        .collect::<Vec<_>>();
-    (!missing.is_empty()).then(|| {
-        format!(
-            "editor operation {} requires disabled capabilities: {}",
-            descriptor.path(),
-            missing.join(", ")
-        )
-    })
 }
 
 fn editor_event_source(source: EditorOperationSource) -> EditorEventSource {

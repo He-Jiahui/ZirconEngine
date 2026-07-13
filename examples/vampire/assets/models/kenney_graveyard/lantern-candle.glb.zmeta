@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "bb90b1f3-800c-4798-92bd-71b02930dee6"
 url = "res://models/kenney_graveyard/lantern-candle.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/2632ff8d-8249-a913-d30f-e38a94a8f6df.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "a1c0c73cbb6c3c41"
+source_digest = "a1c0c73cbb6c3c41"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/lantern-candle.glb#Node0",
     "res://models/kenney_graveyard/lantern-candle.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/lantern-candle.glb#Node0",
     "res://models/kenney_graveyard/lantern-candle.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "5df39879-aeb1-4346-b50a-44b3ac25070a"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/lantern-candle.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/76a94141-60cf-1c75-048e-67b76304e40d.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "c5442cbb-fb1c-47c5-92a9-e24f1f7c2c54"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/lantern-candle.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/e666e82a-60be-4401-453e-7b454025f770.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "01381ab8-13a4-4b02-bdcb-51754e6f4574"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/lantern-candle.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "717b4dcb-eba0-41b4-9a65-3dbfdeccf07e"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/lantern-candle.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "36a47e42-de7a-412e-be43-bdf17cb2f94c"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/bb387ea7-00fc-f8aa-6d30-3d17ef521d9a.zasset"
 dependencies = ["res://models/kenney_graveyard/lantern-candle.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "b29a39fb-447b-4daf-8137-bff77e5c7f1c"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/lantern-candle.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "6ac1fd56-dc48-42d9-b973-daad6f09ee62"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/lantern-candle.glb#Material0",
 ]
+tags = []

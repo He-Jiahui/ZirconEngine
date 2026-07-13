@@ -6,10 +6,11 @@ use std::collections::{HashMap, HashSet};
 use zircon_plugin_navigation_recast::{
     RecastCrowd, RecastCrowdAgentHandle, RecastCrowdAgentState, RecastCrowdConfig,
 };
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavAgentTickReport, NavAgentWritebackMode, NavMeshAgentDescriptor, NavMeshHandle,
-    NavigationError, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NavAgentTickReport, NavAgentWritebackMode, NavMeshAgentDescriptor, NavMeshHandle, NavPathQuery,
+    NavigationAgentDebugState, NavigationDebugCapture, NavigationError, NavigationManager,
+    NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::scene::World;
@@ -171,8 +172,42 @@ pub(super) fn tick_world_agents(
         runtime_state.stats.active_agents = report.scanned_agents;
     }
 
-    for (entity, agent, state) in writebacks {
-        writeback::write_agent_state(world, entity, &agent, &state, dt_seconds, &mut report);
+    for (entity, agent, state) in &writebacks {
+        writeback::write_agent_state(world, *entity, agent, state, dt_seconds, &mut report);
+    }
+    if world
+        .get_resource::<NavigationDebugCapture>()
+        .is_some_and(|capture| capture.enabled)
+    {
+        for (entity, agent, state) in &writebacks {
+            let path = agent.destination.and_then(|destination| {
+                manager
+                    .find_path(NavPathQuery {
+                        nav_mesh: agent.nav_mesh,
+                        start: state.position,
+                        end: destination,
+                        agent_type: agent.agent_type.clone(),
+                        area_mask: agent.area_mask,
+                    })
+                    .ok()
+            });
+            report.debug_agents.push(NavigationAgentDebugState {
+                entity: *entity,
+                position: state.position,
+                destination: agent.destination,
+                desired_velocity: state.desired_velocity,
+                avoidance_velocity: state.avoidance_velocity,
+                path_status: path.as_ref().map(|path| path.status),
+                path: path
+                    .map(|path| {
+                        path.points
+                            .into_iter()
+                            .map(|point| point.position)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            });
+        }
     }
     if let Some(resource) = world.get_resource_mut::<NavRepathBudget>() {
         *resource = budget;

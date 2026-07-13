@@ -1,13 +1,15 @@
 use crate::ui::text::{
     layout_text, measure_text_size,
     shaper::{
-        resolve_text_render_mode, UiSharedTextShaper, UiTextBackendIntent, UiTextShapeRequest,
-        UiTextShaper, UiTextShaperSelection, UiTextShaperStack,
+        UiSharedTextShaper, UiTextBackendIntent, UiTextShapeRequest, UiTextShaper,
+        UiTextShaperSelection, UiTextShaperStack,
     },
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap},
+    surface::{
+        resolve_ui_text_render_mode, UiResolvedStyle, UiTextOverflow, UiTextRenderMode, UiTextWrap,
+    },
 };
 
 #[test]
@@ -87,19 +89,19 @@ fn text_shaper_stack_records_render_mode_backend_intent() {
 #[test]
 fn text_render_mode_resolver_matches_runtime_font_asset_policy() {
     assert_eq!(
-        resolve_text_render_mode(UiTextRenderMode::Auto, None),
+        resolve_ui_text_render_mode(UiTextRenderMode::Auto, None),
         UiTextRenderMode::Native
     );
     assert_eq!(
-        resolve_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Auto)),
+        resolve_ui_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Auto)),
         UiTextRenderMode::Native
     );
     assert_eq!(
-        resolve_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Sdf)),
+        resolve_ui_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Sdf)),
         UiTextRenderMode::Sdf
     );
     assert_eq!(
-        resolve_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
+        resolve_ui_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
         UiTextRenderMode::Native
     );
 }

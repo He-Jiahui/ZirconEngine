@@ -101,16 +101,16 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_runtime/src/asset/tests/assets/shader_readiness.rs
-  - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_defs_accept_legacy_flags_and_typed_values
-  - zircon_runtime/src/asset/tests/project/zmeta.rs::zshader_typed_shader_definition_rows_validate_kind_and_value
+  - zircon_runtime/src/asset/tests/assets/render_product.rs
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_editor/src/tests/ui/material_editor/projection.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
@@ -120,7 +120,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_new.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
@@ -157,7 +157,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
@@ -169,12 +168,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/build_scene_prepare_frame.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -265,15 +261,15 @@ implementation_files:
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_new.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
@@ -308,7 +304,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
@@ -634,7 +629,7 @@ tests:
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_preserve_copy_and_sampled_authoring_flags
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs::tests::compiled_scene_outputs_can_carry_output_target_graph_import_report
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target
   - cargo test -p zircon_runtime --lib linear_color_space_normalizes_default_rgba8_format_to_linear --locked --jobs 1 --target-dir D:\cargo-targets\zircon-rgba8-texture-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 RGBA8 descriptor/upload color-space slice: first two attempts timed out during compile before test execution and residual processes from those attempts were stopped after confirming command-line target; rerun after Cargo quiet passed, 1 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib rgba8_upload_readiness --locked --jobs 1 --target-dir D:\cargo-targets\zircon-rgba8-texture-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 RGBA8 descriptor/upload color-space slice: passed, 3 passed; existing zircon_runtime lib-test warnings only)
@@ -668,7 +663,6 @@ tests:
   - cargo test -p zircon_runtime --lib render_product_streamer_reports_compressed_mip_chain_texture_fallback_detail --locked --jobs 1 --target-dir D:\cargo-targets\zircon-texture-slot-0529 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-29 compressed material mip-chain fallback detail: passed, 1 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib texture_upload_readiness --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 M3 compressed texture broader filter: blocked before texture tests by unrelated `zircon_runtime/src/scene/tests/ecs_systems.rs` large tuple `assert_eq!` E0369/E0277)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never (2026-05-20 M3 compressed texture upload shape boundaries: passed; existing scene/world warnings only)
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key
   - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: attempted, Cargo failed before test execution while writing default target dep-info after concurrent target directory mutation)
   - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m5-renderer-slot-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: first independent-target attempt timed out during compile; matching residual Cargo child processes were stopped)
   - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m5-renderer-slot-0520 --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot readiness: passed, 1 passed)
@@ -1023,7 +1017,7 @@ Runtime 15 F12 retired the former id-only `ResourceStreamer::resolve_texture_id(
 
 The M6 project sample keeps this texture fallback path tied to project asset flow instead of only renderer-specific fixtures. Its authored `.zmaterial` points the `base_color` slot at `res://textures/hero_albedo_bc1.dds`, the project imports that DDS container as a `TextureAsset`, and the test verifies `TextureUploadSupport::uncompressed_only()` reports the BC compression fallback reason while the material still resolves its texture locator.
 
-The 2026-06-24 Runtime 15 M3 asset artifact store test folder split keeps artifact cache coverage under the test-file budget. `asset/tests/assets/artifact_store.rs` now owns only shared artifact payload/reference helpers and child mounts, while `asset/tests/assets/artifact_store/material_data.rs`, `asset/tests/assets/artifact_store/scene_script.rs`, `asset/tests/assets/artifact_store/scene_components.rs`, `asset/tests/assets/artifact_store/binary_payloads.rs`, and `asset/tests/assets/artifact_store/library_assets.rs` own material/data dynamic payloads, scene script/reference payloads, bincode/binary payloads, and library artifact roundtrip/rejection coverage. Guard `runtime_15_asset_artifact_store_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
+The 2026-06-24 Runtime 15 M3 asset artifact store test folder split keeps artifact-cache coverage under the test-file budget. `asset/tests/assets/artifact_store.rs` now owns only shared artifact payload/reference helpers and child mounts, while `asset/tests/assets/artifact_store/material_data.rs`, `asset/tests/assets/artifact_store/scene_script.rs`, `asset/tests/assets/artifact_store/scene_components.rs`, `asset/tests/assets/artifact_store/binary_payloads.rs`, and `asset/tests/assets/artifact_store/artifact_cache_assets.rs` own material/data dynamic payloads, scene script/reference payloads, bincode/binary payloads, and artifact-cache roundtrip/rejection coverage. Guard `runtime_15_asset_artifact_store_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
 
 The 2026-06-24 Runtime 15 M3 asset UI test folder split keeps UI asset coverage under the test-file budget. `asset/tests/assets/ui.rs` now owns only TOML/ZUI fixtures plus shared importer helpers and child mounts, while `asset/tests/assets/ui/wrappers.rs`, `asset/tests/assets/ui/references.rs`, `asset/tests/assets/ui/importer.rs`, `asset/tests/assets/ui/project_manager.rs`, and `asset/tests/assets/ui/fixture_validation.rs` own wrapper/facade labels, dependency collection, importer decoding, ProjectManager scan/restore, and legacy component-kind rejection coverage. Guard `runtime_15_asset_ui_tests_are_folder_backed` locks that boundary and the status anchor `runtime_15_asset_ui_tests_folder_split_static_passed_cargo_deferred`; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred under the Runtime 15 implementation-slice cadence.
 

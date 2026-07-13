@@ -68,23 +68,28 @@ impl LightGridViewInfo {
             ProjectionMode::Perspective => LightGridProjection::Perspective,
             ProjectionMode::Orthographic => LightGridProjection::Orthographic,
         };
-        let view_to_clip = match projection {
-            LightGridProjection::Perspective => {
-                Mat4::perspective_rh(camera.fov_y_radians, aspect_ratio.max(0.001), z_near, z_far)
-            }
-            LightGridProjection::Orthographic => {
-                let half_height = (camera.ortho_size * 0.5).max(0.001);
-                let half_width = half_height * aspect_ratio.max(0.001);
-                Mat4::orthographic_rh(
-                    -half_width,
-                    half_width,
-                    -half_height,
-                    half_height,
+        let view_to_clip = camera
+            .projection_override
+            .unwrap_or_else(|| match projection {
+                LightGridProjection::Perspective => Mat4::perspective_rh(
+                    camera.fov_y_radians,
+                    aspect_ratio.max(0.001),
                     z_near,
                     z_far,
-                )
-            }
-        };
+                ),
+                LightGridProjection::Orthographic => {
+                    let half_height = (camera.ortho_size * 0.5).max(0.001);
+                    let half_width = half_height * aspect_ratio.max(0.001);
+                    Mat4::orthographic_rh(
+                        -half_width,
+                        half_width,
+                        -half_height,
+                        half_height,
+                        z_near,
+                        z_far,
+                    )
+                }
+            });
 
         Self {
             viewport_size,
@@ -574,6 +579,7 @@ mod tests {
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
             dynamic_resolution: Default::default(),
             temporal_jitter: Default::default(),
+            projection_override: None,
         };
         LightGridViewInfo::from_camera(&camera, viewport_size)
     }

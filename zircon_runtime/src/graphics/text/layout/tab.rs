@@ -41,7 +41,7 @@ pub(crate) fn tab_aligned_width(
         .sum()
 }
 
-fn tab_interval_width(style: &UiResolvedStyle, space_width: f32) -> f32 {
+pub(crate) fn tab_interval_width(style: &UiResolvedStyle, space_width: f32) -> f32 {
     space_width.max(MIN_TAB_ADVANCE) * resolved_tab_size(style)
 }
 

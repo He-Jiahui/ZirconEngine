@@ -20,11 +20,12 @@ pub(in crate::graphics::runtime::render_framework) fn compile_options_for_profil
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
     use crate::core::framework::render::{
         AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
     };
     use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
-    use crate::graphics::RenderFeatureCapabilityRequirement;
+    use crate::graphics::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
 
     use super::compile_options_for_profile;
 
@@ -67,6 +68,25 @@ mod tests {
     }
 
     #[test]
+    fn hybrid_gi_keeps_the_scene_velocity_producer_without_enabling_taa() {
+        let profile = RenderQualityProfile::new("hybrid-gi-without-taa")
+            .with_temporal_history(false)
+            .with_hybrid_global_illumination(true);
+        let options = compile_options_for_profile(
+            Some(&profile),
+            &advanced_capabilities(),
+            &AdvancedProviderAvailability::new().with_hybrid_gi_provider("hgi"),
+        );
+
+        assert!(options
+            .enabled_features
+            .contains(&BuiltinRenderFeature::Temporal));
+        assert!(!options
+            .disabled_features
+            .contains(&BuiltinRenderFeature::Temporal));
+    }
+
+    #[test]
     fn compile_options_gate_hzb_occlusion_from_backend_capabilities() {
         let supported = compile_options_for_profile(
             None,
@@ -92,6 +112,33 @@ mod tests {
             &AdvancedProviderAvailability::new(),
         );
         assert!(!insufficient_storage_binding_capacity.enable_hzb_occlusion_culling);
+    }
+
+    #[test]
+    fn compile_options_disable_oit_when_fragment_storage_is_unavailable() {
+        let supported = compile_options_for_profile(
+            None,
+            &RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                supports_fragment_writable_storage: true,
+                max_storage_buffers_per_shader_stage: OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                ..RenderCapabilitySummary::default()
+            },
+            &AdvancedProviderAvailability::new(),
+        );
+        assert!(!supported.disabled_plugin_features.contains("oit"));
+
+        let unsupported = compile_options_for_profile(
+            None,
+            &RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                supports_fragment_writable_storage: false,
+                max_storage_buffers_per_shader_stage: OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                ..RenderCapabilitySummary::default()
+            },
+            &AdvancedProviderAvailability::new(),
+        );
+        assert!(unsupported.disabled_plugin_features.contains("oit"));
     }
 
     fn advanced_capabilities() -> RenderCapabilitySummary {

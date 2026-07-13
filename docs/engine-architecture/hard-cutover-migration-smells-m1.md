@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/ui/surface/input/navigation.rs
   - zircon_runtime/src/ui/surface/input/pointer.rs
   - zircon_runtime/src/ui/surface/input/pointer_reply.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/runtime_parent_chain.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
@@ -12,12 +11,12 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/asset/assets/animation/mod.rs
-  - zircon_runtime/src/asset/assets/animation/binary.rs
-  - zircon_runtime/src/asset/assets/animation/clip.rs
-  - zircon_runtime/src/asset/assets/animation/graph.rs
-  - zircon_runtime/src/asset/assets/animation/sequence.rs
-  - docs/zircon_runtime/asset/assets/animation.md
+  - zircon_runtime/src/core/framework/animation/asset/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/binary.rs
+  - zircon_runtime/src/core/framework/animation/asset/clip.rs
+  - zircon_runtime/src/core/framework/animation/asset/graph.rs
+  - zircon_runtime/src/core/framework/animation/asset/sequence.rs
+  - docs/zircon_runtime/core/framework/animation-assets.md
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_plugins/texture_importer/runtime/src/container/dds.rs
@@ -31,7 +30,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_table_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
   - zircon_runtime_interface/src/ui/pipeline/stage.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
@@ -71,7 +70,7 @@ implementation_files:
   - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
   - docs/zircon_runtime_interface/ui/pipeline.md
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
-  - docs/zircon_runtime/asset/assets/animation.md
+  - docs/zircon_runtime/core/framework/animation-assets.md
   - docs/engine-architecture/runtime-architecture-review-m0.md
   - docs/engine-architecture/runtime-interface-convergence.md
   - docs/engine-architecture/index.md
@@ -81,7 +80,6 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
-  - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -104,6 +102,8 @@ doc_type: milestone-detail
 ---
 
 # Hard-Cutover Migration Smells M1 Gate
+
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../plans/zircon_runtime/frameworks/development-conventions.md)；本文保留硬切迁移异味 gate 的细节论证与执行上下文，不再作为并列规则源。
 
 ## Purpose
 
@@ -179,7 +179,7 @@ The editor UI asset/session source-schema branch was hard-renamed from `UiAssetS
 
 The editor view-projection rejection path was narrowed on 2026-06-05. `ViewTemplateProjectionError::LegacyAssetPath` became `ViewTemplateProjectionError::NonV2AssetPath`, the corresponding source guards now look for the current non-v2 path contract, and the old `view.legacy.project_overview` fixture id was renamed to `view.archived.project_overview`. The remaining editor fixture debt is confined to retained-host/workbench fixture labels owned by active editor UI sessions.
 
-The animation asset binary migration path was narrowed on 2026-06-05 and then split on 2026-06-14. `zircon_runtime/src/asset/assets/animation/binary.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)`, while `clip.rs`, `sequence.rs`, and `graph.rs` own the `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
+The animation asset binary migration path was narrowed on 2026-06-05 and then split on 2026-06-14. `zircon_runtime/src/core/framework/animation/asset/binary.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)`, while `clip.rs`, `sequence.rs`, and `graph.rs` own the `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
 
 Runtime asset importer source-template suffix guards were cut over again on 2026-06-28. `AssetImporterRegistryError::DeprecatedUiDocumentSuffixImporter` now rejects both `.ui.toml` and `.v2.ui.toml` registration with a single `.zui`-only policy, and the old test fixture allowance helpers were removed with `import_ui_asset.rs` / `import_ui_v2_asset.rs`. The production runtime asset importer files no longer keep legacy UI document suffix importers alive.
 

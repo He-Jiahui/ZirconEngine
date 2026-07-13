@@ -1,38 +1,36 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/collect_pending_updates.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_pending_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_resident_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/runtime_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_pending_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_resident_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/collect_pending_updates.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_pending_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_resident_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/probe_quantization.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/runtime_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_pending_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_resident_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
 plan_sources:
   - user: 2026-04-18 Hybrid GI scene-driven screen-probe hierarchy gather / request / RT hybrid lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
   - cargo test -p zircon_graphics --offline hybrid_gi_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline hybrid_gi_gpu_hierarchy -- --nocapture
   - cargo test -p zircon_graphics --offline hybrid_gi_resolve_render -- --nocapture

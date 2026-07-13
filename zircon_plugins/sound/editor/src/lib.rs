@@ -5,7 +5,7 @@ mod live_output;
 mod plugin;
 
 pub use authoring_bindings::{
-    register_sound_authoring_bindings, sound_editor_operation_descriptors,
+    register_sound_authoring_bindings, sound_editor_command_descriptors,
     SOUND_AUDIO_LISTENER_OPERATION_PATHS, SOUND_AUDIO_SOURCE_OPERATION_PATHS,
     SOUND_AUDIO_VOLUME_OPERATION_PATHS, SOUND_MIXER_OPERATION_PATHS,
 };

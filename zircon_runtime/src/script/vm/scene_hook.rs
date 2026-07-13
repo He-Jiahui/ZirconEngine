@@ -8,11 +8,11 @@ use crate::core::framework::script::ScriptHostValue;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::diagnostic_log::write_log;
-use crate::plugin::{
+use crate::scene::{EntityId, LevelSystem, SystemStage};
+use crate::scene::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
 };
-use crate::scene::{EntityId, LevelSystem, SystemStage};
 use crate::script::{
     with_script_runtime_call_context, ScriptRuntimeCallContext, VmPluginManager,
     VM_PLUGIN_MANAGER_NAME,

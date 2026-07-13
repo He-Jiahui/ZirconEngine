@@ -1,5 +1,5 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::ExportPackagingStrategy;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
 pub(in crate::ui::retained_host::app::module_plugin_actions) fn next_packaging(
     packaging: ExportPackagingStrategy,

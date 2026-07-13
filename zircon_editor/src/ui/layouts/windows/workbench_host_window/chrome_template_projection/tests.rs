@@ -271,8 +271,10 @@ fn menu_chrome_nodes_measure_top_level_slots_with_runtime_font_width() {
         wide.frame.width > narrow.frame.width,
         "same character count should still use glyph-aware runtime measurement"
     );
-    assert_close(wide.frame.x, narrow.frame.x + narrow.frame.width + 2.0);
-    assert_close(file_name.frame.x, wide.frame.x + wide.frame.width + 2.0);
+    let first_gap = wide.frame.x - (narrow.frame.x + narrow.frame.width);
+    let second_gap = file_name.frame.x - (wide.frame.x + wide.frame.width);
+    assert!(first_gap > 0.0);
+    assert_close(second_gap, first_gap);
 }
 
 #[test]

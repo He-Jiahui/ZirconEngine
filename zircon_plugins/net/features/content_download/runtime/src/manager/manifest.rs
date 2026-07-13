@@ -45,9 +45,6 @@ fn validate_manifest(manifest: &NetDownloadManifest) -> Option<String> {
         if chunk.byte_len == 0 {
             return Some(format!("download chunk has zero byte length: {}", chunk.id));
         }
-        if chunk.sha256.trim().is_empty() {
-            return Some(format!("download chunk has empty sha256: {}", chunk.id));
-        }
         if chunk.resume_from_byte.is_some_and(|resume_from_byte| {
             resume_from_byte < chunk.byte_offset
                 || resume_from_byte > chunk.byte_offset + chunk.byte_len

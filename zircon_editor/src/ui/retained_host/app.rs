@@ -119,6 +119,7 @@ mod hierarchy_pointer;
 mod host_lifecycle;
 mod inspector;
 mod invalidation;
+mod job_progress;
 mod menu_pointer;
 mod module_plugin_actions;
 mod module_plugin_projection;

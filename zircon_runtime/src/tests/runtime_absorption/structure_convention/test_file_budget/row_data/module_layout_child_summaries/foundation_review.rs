@@ -7,19 +7,14 @@ mod review_guard_rows;
 #[path = "foundation_review/runtime_foundation_rows.rs"]
 mod runtime_foundation_rows;
 
-const FOUNDATION_REVIEW_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review.rs";
-const RUNTIME_FOUNDATION_ROWS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/runtime_foundation_rows.rs";
-const FOUNDATION_STATUS_DOCS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/foundation_status_docs.rs";
-const REVIEW_GUARD_ROWS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/review_guard_rows.rs";
+const FOUNDATION_REVIEW_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review.rs";
+const RUNTIME_FOUNDATION_ROWS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/runtime_foundation_rows.rs";
+const FOUNDATION_STATUS_DOCS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/foundation_status_docs.rs";
+const REVIEW_GUARD_ROWS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/foundation_review/review_guard_rows.rs";
 
 const FOUNDATION_REVIEW_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 module-layout child-summary foundation-review child split";
-const FOUNDATION_REVIEW_SPLIT_STATUS_ID: &str =
-    "runtime_15_module_layout_child_summary_foundation_review_child_split_static_passed_cargo_deferred";
+const FOUNDATION_REVIEW_SPLIT_STATUS_ID: &str = "runtime_15_module_layout_child_summary_foundation_review_child_split_static_passed_cargo_deferred";
 
 const FOUNDATION_REVIEW_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
     (

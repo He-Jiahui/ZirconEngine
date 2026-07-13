@@ -1,5 +1,5 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ProjectPluginManifest;
 
 use super::tokens::is_lowercase_project_runtime_crate;
 

@@ -1,4 +1,4 @@
-use crate::asset::AnimationGraphAsset;
+use crate::core::framework::animation::AnimationGraphAsset;
 use crate::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
 use crate::core::math::Real;
 

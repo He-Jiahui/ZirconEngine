@@ -1,8 +1,9 @@
 use zircon_runtime_interface::{ZrByteBufferRef, ZrStatusCode};
 
+use crate::core::framework::bridge::InterfaceSlot;
 use crate::plugin::native::NativeHostBridgeCallScope;
 use crate::plugin::{
-    InterfaceSlot, PluginModuleKind, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    PluginModuleKind, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
     RuntimePluginBridgeLifecycleState,
 };
 use crate::scene::ecs::{SystemRef, SystemStage};

@@ -10,11 +10,15 @@ use crate::core::framework::render::{
 const SURFACE_TYPES_INCLUDE_TOKEN: &str = "zr_surface_types.wgsl";
 const SCENE_RUNTIME_INCLUDE_TOKEN: &str = "zr_scene_runtime.wgsl";
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
+const LIGHTMAP_INCLUDE_TOKEN: &str = "zr_lightmap.wgsl";
 const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
+const VOLUMETRIC_INCLUDE_TOKEN: &str = "zr_volumetric.wgsl";
+const OIT_INCLUDE_TOKEN: &str = "zr_oit.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
 const STANDARD_PBR_SHADING_INCLUDE_TOKEN: &str = "zr_shading_standard_pbr.wgsl";
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_standard_pbr.wgsl";
+const SUBSURFACE_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_subsurface.wgsl";
 const VIRTUAL_GEOMETRY_INCLUDE_TOKEN: &str = "zr_geometry_virtual_geometry.wgsl";
 
 const STATIC_MESH_GEOMETRY_INCLUDE: &str = include_str!("../wgsl/zr_geometry_static.wgsl");
@@ -26,15 +30,20 @@ const VIRTUAL_GEOMETRY_INCLUDE: &str = include_str!("../wgsl/zr_geometry_virtual
 const SCENE_RUNTIME_INCLUDE: &str = include_str!("../wgsl/zr_scene_runtime.wgsl");
 const GPU_SCENE_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+const LIGHTMAP_INCLUDE: &str = include_str!("../wgsl/zr_lightmap.wgsl");
 const LIGHT_GRID_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl");
 const SHADOW_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl");
 const SURFACE_TYPES_INCLUDE: &str = include_str!("../wgsl/zr_surface_types.wgsl");
 const ENVIRONMENT_INCLUDE: &str = include_str!("../wgsl/zr_environment.wgsl");
+const VOLUMETRIC_INCLUDE: &str = include_str!("../wgsl/zr_volumetric.wgsl");
+const OIT_INCLUDE: &str = include_str!("../includes/zr_oit.wgsl");
 const STANDARD_PBR_SHADING_INCLUDE: &str = include_str!("../wgsl/zr_shading_standard_pbr.wgsl");
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE: &str =
     include_str!("../wgsl/zr_gbuffer_encode_standard_pbr.wgsl");
+const SUBSURFACE_GBUFFER_ENCODE_INCLUDE: &str =
+    include_str!("../wgsl/zr_gbuffer_encode_subsurface.wgsl");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderTemplateInclude {
@@ -190,7 +199,10 @@ fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
         surface_types_include(),
         scene_runtime_include(),
         gpu_scene_include(),
+        lightmap_include(),
         environment_include(),
+        volumetric_include(),
+        oit_include(),
         light_grid_include(),
         shadow_include(),
         standard_pbr_shading_include(),
@@ -231,8 +243,20 @@ pub(crate) fn gpu_scene_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(GPU_SCENE_INCLUDE_TOKEN, GPU_SCENE_INCLUDE)
 }
 
+pub(crate) fn lightmap_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(LIGHTMAP_INCLUDE_TOKEN, LIGHTMAP_INCLUDE)
+}
+
 pub(crate) fn environment_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_INCLUDE)
+}
+
+pub(crate) fn volumetric_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(VOLUMETRIC_INCLUDE_TOKEN, VOLUMETRIC_INCLUDE)
+}
+
+pub(crate) fn oit_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(OIT_INCLUDE_TOKEN, OIT_INCLUDE)
 }
 
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {
@@ -337,6 +361,10 @@ fn forward_shading_include_for_token(token: &str) -> Option<ShaderTemplateInclud
 fn gbuffer_encode_include_for_token(token: &str) -> Option<ShaderTemplateInclude> {
     match token {
         STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN => Some(standard_pbr_gbuffer_encode_include()),
+        SUBSURFACE_GBUFFER_ENCODE_INCLUDE_TOKEN => Some(ShaderTemplateInclude::new(
+            SUBSURFACE_GBUFFER_ENCODE_INCLUDE_TOKEN,
+            SUBSURFACE_GBUFFER_ENCODE_INCLUDE,
+        )),
         _ => None,
     }
 }

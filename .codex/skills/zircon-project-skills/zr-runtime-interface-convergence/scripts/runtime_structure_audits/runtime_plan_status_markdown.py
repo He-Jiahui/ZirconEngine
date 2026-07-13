@@ -36,6 +36,9 @@ def render_runtime_plan_status_boundary_markdown(
         "- plan-status core guard anchors: "
         f"{boundary['core_guard_count'] - len(boundary['missing_core_guard_anchors'])}/"
         f"{boundary['core_guard_count']}",
+        "- completed Cargo gate anchors: "
+        f"{boundary['completed_gate_count'] - len(boundary['missing_completed_gate_anchors'])}/"
+        f"{boundary['completed_gate_count']}",
         "- pending Cargo gate anchors: "
         f"{boundary['pending_gate_count'] - len(boundary['missing_pending_gate_anchors'])}/"
         f"{boundary['pending_gate_count']}",
@@ -134,6 +137,11 @@ def render_runtime_plan_status_boundary_markdown(
         lines.append(
             "- missing core guard anchors: "
             f"{', '.join(boundary['missing_core_guard_anchors'])}"
+        )
+    if boundary["missing_completed_gate_anchors"]:
+        lines.append(
+            "- missing completed Cargo gate anchors: "
+            f"{', '.join(boundary['missing_completed_gate_anchors'])}"
         )
     if boundary["missing_pending_gate_anchors"]:
         lines.append(

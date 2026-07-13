@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     nav_area_flag, NavPathQuery, NavPathStatus, NavQueryFilter, NavigationErrorKind, AREA_WALKABLE,
     DEFAULT_AREA_MASK,

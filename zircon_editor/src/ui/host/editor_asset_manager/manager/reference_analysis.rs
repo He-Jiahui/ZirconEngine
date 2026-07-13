@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use zircon_runtime::asset::assets::{AnimationGraphNodeAsset, ImportedAsset};
+use zircon_runtime::asset::assets::ImportedAsset;
 use zircon_runtime::asset::{AssetId, AssetReference};
+use zircon_runtime::core::framework::animation::AnimationGraphNodeAsset;
 
 pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference> {
     let mut references = Vec::new();
@@ -32,8 +33,8 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
                 | AnimationGraphNodeAsset::Output { .. } => None,
             }));
         }
-        ImportedAsset::AnimationStateMachine(asset) => {
-            references.extend(asset.states.iter().map(|state| state.graph.clone()));
+        ImportedAsset::AnimationStateMachine(_) => {
+            references.extend(imported.direct_references());
         }
         ImportedAsset::MaterialGraph(_)
         | ImportedAsset::Scene(_)

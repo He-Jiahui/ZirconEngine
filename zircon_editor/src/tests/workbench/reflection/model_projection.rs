@@ -1,9 +1,10 @@
+use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::{EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::workbench::event::editor_operation_binding;
 use crate::ui::workbench::fixture::default_preview_fixture;
-use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel, WorkbenchViewModel};
+use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
     activity_descriptors_from_views, build_workbench_reflection_model,
 };
@@ -14,7 +15,10 @@ use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse
 fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let view_model = WorkbenchViewModel::build(&chrome);
+    let view_model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let (views, windows) = activity_descriptors_from_views(&fixture.descriptors);
 
     assert!(views
@@ -91,7 +95,10 @@ fn workbench_reflection_model_projects_nested_menu_leaves() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
-    let mut view_model = WorkbenchViewModel::build(&chrome);
+    let mut view_model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     view_model.menu_bar = MenuBarModel {
         menus: vec![MenuModel {
             label: "Tools".to_string(),
@@ -100,7 +107,6 @@ fn workbench_reflection_model_projects_nested_menu_leaves() {
                 vec![MenuItemModel::leaf(
                     "Refresh Cloud Layers",
                     None,
-                    editor_operation_binding(&operation_path),
                     Some(operation_path.clone()),
                     Some("Ctrl+Alt+R".to_string()),
                     true,

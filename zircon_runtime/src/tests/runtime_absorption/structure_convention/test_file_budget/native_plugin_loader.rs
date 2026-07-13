@@ -13,8 +13,6 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
     let asset_importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
     );
@@ -86,7 +84,6 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
         ("module convention doc", module_doc.as_str()),
         ("plugin bridge doc", plugin_bridge_doc.as_str()),
         ("asset importer doc", asset_importer_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output scene/script row data", status_rows.as_str()),
     ] {
         assert_contains_all(

@@ -1,4 +1,4 @@
-use crate::plugin::ProjectPluginFeatureSelection;
+use crate::core::framework::project::ProjectPluginFeatureSelection;
 
 use super::super::feature_report::RuntimePluginFeatureBlock;
 use super::FeatureStatus;

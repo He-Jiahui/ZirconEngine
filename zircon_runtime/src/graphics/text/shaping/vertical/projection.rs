@@ -58,6 +58,9 @@ pub(super) fn apply_vertical_backend_shaping(
                         request.language,
                         request.features,
                         request.include_kerning,
+                        zircon_runtime_interface::ui::surface::UiResolvedStyle::normalized_font_weight(
+                            request.style.font_weight,
+                        ),
                         request.style.font_size,
                     )
                 })

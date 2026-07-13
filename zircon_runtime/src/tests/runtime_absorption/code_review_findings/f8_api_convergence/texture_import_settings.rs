@@ -7,8 +7,10 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let runtime_importer = include_str!("../../../../asset/importer/ingest/import_texture.rs");
     let plugin_importer =
         include_str!("../../../../../../zircon_plugins/texture_importer/runtime/src/importers.rs");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_04_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
     );

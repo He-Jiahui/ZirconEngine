@@ -22,7 +22,13 @@ pub fn hybrid_gi_voxel_clipmap_bounds_cell_ranges(
     bounds_center: Vec3,
     bounds_radius: f32,
 ) -> Option<[(usize, usize); 3]> {
-    if clipmap.half_extent <= 0.0 || bounds_radius <= 0.0 {
+    if !clipmap.center.is_finite()
+        || !clipmap.half_extent.is_finite()
+        || !bounds_center.is_finite()
+        || !bounds_radius.is_finite()
+        || clipmap.half_extent <= 0.0
+        || bounds_radius <= 0.0
+    {
         return None;
     }
 
@@ -65,7 +71,11 @@ fn mesh_axis_range(
     bounds_min: f32,
     bounds_max: f32,
 ) -> Option<(usize, usize)> {
-    if clipmap_extent <= 0.0
+    if !clipmap_min.is_finite()
+        || !clipmap_extent.is_finite()
+        || !bounds_min.is_finite()
+        || !bounds_max.is_finite()
+        || clipmap_extent <= 0.0
         || bounds_max < clipmap_min
         || bounds_min > clipmap_min + clipmap_extent
     {

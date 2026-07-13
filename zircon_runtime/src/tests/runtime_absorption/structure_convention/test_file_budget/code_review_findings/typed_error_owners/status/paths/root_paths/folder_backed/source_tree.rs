@@ -1,8 +1,7 @@
 use super::super::super::super::super::super::super::*;
 use super::super::path_children::TYPED_ERROR_STATUS_DOCS_PATHS_ROOT_PATHS_CHILD;
 
-pub(super) const TYPED_ERROR_STATUS_DOCS_ROOT_PATHS_FOLDER_BACKED_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/root_paths/folder_backed.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_ROOT_PATHS_FOLDER_BACKED_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/root_paths/folder_backed.rs";
 
 const TYPED_ERROR_STATUS_DOCS_ROOT_PATHS_FOLDER_BACKED_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/root_paths/folder_backed/source_tree.rs",

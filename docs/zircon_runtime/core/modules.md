@@ -7,8 +7,8 @@ related_code:
   - zircon_runtime/src/core/runtime/modules/frame_count.rs
   - zircon_runtime/src/core/runtime/modules/diagnostics.rs
   - zircon_runtime/src/core/runtime/time.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
   - zircon_app/src/plugins/groups.rs
 implementation_files:

@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "39250f25-3133-46c5-922f-d6d6e46141ad"
 url = "res://models/kenney_graveyard/rocks.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/def47729-acc9-b29f-dcec-9d809439ac0e.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "12707a308cc5cc03"
+source_digest = "12707a308cc5cc03"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/rocks.glb#Node0",
     "res://models/kenney_graveyard/rocks.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/rocks.glb#Node0",
     "res://models/kenney_graveyard/rocks.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "d3ec0b46-4daf-41ca-bbd5-f448952f3cc5"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/rocks.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/bbf9c2a4-d369-be56-7673-91e2e0ba496c.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "d742d229-9642-4d6e-bb6f-6e018e1b5c01"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/rocks.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/239c735b-3339-3999-04d7-e93e93317448.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "d2047b9b-5ae7-44d0-a0f7-2f8a6c61840f"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/rocks.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "c2247998-47b4-42a4-a3bc-b395402af4e3"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/rocks.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "4eddc1de-d0e6-4492-b6a5-f246402e2068"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/05e13339-9523-4827-ac77-b4463a54a0a7.zasset"
 dependencies = ["res://models/kenney_graveyard/rocks.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "dc49fe0d-d7a6-4476-b938-82d3d7483515"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/rocks.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "61398856-82e2-452b-8762-0543a9acfec6"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/rocks.glb#Material0",
 ]
+tags = []

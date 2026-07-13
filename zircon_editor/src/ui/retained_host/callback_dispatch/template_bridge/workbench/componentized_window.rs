@@ -31,6 +31,7 @@ use crate::ui::workbench::reference::{
 use super::super::popup_primitives::toml_value_string_list;
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
+use super::blend_space_transport::is_animation_transport_action;
 use super::drawer_layout::{
     BOTTOM_DRAWER_CONTENT_CONTROL_ID, BOTTOM_DRAWER_HEADER_CONTROL_ID,
     BOTTOM_DRAWER_SHELL_CONTROL_ID, LEFT_DRAWER_CONTENT_CONTROL_ID, LEFT_DRAWER_HEADER_CONTROL_ID,
@@ -443,6 +444,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     self.toggle_popup(source_control_id)?;
                 }
                 self.apply_workbench_module_command_feedback(action_id)?;
+            }
+            action_id if is_animation_transport_action(action_id) => {
+                self.apply_blend_space_transport_action(action_id)?;
             }
             action_id if is_workbench_extension_action(action_id) => {
                 if workbench_extension_workspace_control_id(action_id).is_some() {

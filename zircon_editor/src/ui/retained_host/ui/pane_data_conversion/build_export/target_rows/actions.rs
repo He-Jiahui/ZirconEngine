@@ -25,12 +25,12 @@ pub(super) fn build_export_row_actions(
     let (primary_label, primary_action_id) = if export_busy {
         (
             "Cancel",
-            format!("workbench.build_export.cancel.{}", target.profile_name),
+            format!("workbench.build_export.cancel.{}", target.preset_name),
         )
     } else {
         (
             "Export",
-            format!("workbench.build_export.execute.{}", target.profile_name),
+            format!("workbench.build_export.execute.{}", target.preset_name),
         )
     };
 
@@ -46,7 +46,7 @@ pub(super) fn build_export_row_actions(
             label: "Choose",
             action_id: format!(
                 "workbench.build_export.output.choose.{}",
-                target.profile_name
+                target.preset_name
             ),
             variant: "secondary",
             disabled: false,
@@ -56,7 +56,7 @@ pub(super) fn build_export_row_actions(
             label: "Open",
             action_id: format!(
                 "workbench.build_export.output.reveal.{}",
-                target.profile_name
+                target.preset_name
             ),
             variant: "secondary",
             disabled: false,
@@ -64,10 +64,7 @@ pub(super) fn build_export_row_actions(
         },
         BuildExportRowAction {
             label: "Default",
-            action_id: format!(
-                "workbench.build_export.output.clear.{}",
-                target.profile_name
-            ),
+            action_id: format!("workbench.build_export.output.clear.{}", target.preset_name),
             variant: "secondary",
             disabled: false,
             width: BUILD_EXPORT_SECONDARY_BUTTON_WIDTH,

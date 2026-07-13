@@ -1,3 +1,4 @@
+use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
@@ -10,12 +11,14 @@ use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{
+    AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset, ModelAsset,
+    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
+    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+};
+use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
-    MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
-    PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
-    TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset,
-    UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    AnimationStateMachineAsset,
 };
 
 impl ProjectAssetManager {

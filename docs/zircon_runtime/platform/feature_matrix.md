@@ -15,6 +15,8 @@ related_code:
   - zircon_runtime/src/platform/feature_selection.rs
   - zircon_runtime/src/platform/target.rs
   - zircon_runtime/src/platform/service_types.rs
+  - zircon_runtime/src/core/framework/platform/mod.rs
+  - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
   - zircon_runtime/src/core/framework/window/mod.rs
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
@@ -51,6 +53,8 @@ related_code:
   - zircon_runtime/Cargo.toml
   - zircon_app/Cargo.toml
 implementation_files:
+  - zircon_runtime/src/core/framework/platform/mod.rs
+  - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
   - zircon_runtime/src/platform/capability/mod.rs
   - zircon_runtime/src/platform/capability/status.rs
   - zircon_runtime/src/platform/capability/backends.rs
@@ -379,7 +383,7 @@ M82 scoped validation on 2026-05-25 passed `rustfmt --edition 2021 --check`, `ca
 
 Workspace acceptance still requires CI-parity commands from `.github/workflows/ci.yml`, including workspace build/test and export platform contract checks.
 
-M5 CI/export hardening now includes a `headless` export-platform contract lane beside `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, and `wasm`. `zircon_runtime::plugin::ExportTargetPlatform::Headless` is intentionally separate from `PlatformTarget::Headless`: the platform matrix continues to own runtime host capability diagnostics, while the export policy owns generated package shape. The built-in `server` export profile now resolves to the headless native export policy, emits a `target-server` source template with no mobile/browser `platform/*` shell files, and keeps CI from treating server acceptance as Linux desktop acceptance.
+M5 CI/export hardening includes a `headless` export-platform contract lane beside `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, and `wasm`. `zircon_runtime::core::framework::project::ExportTargetPlatform::Headless` is intentionally separate from `PlatformTarget::Headless`: the platform matrix owns runtime host capability diagnostics, while the neutral project/export policy owns generated package shape. The built-in `server` export profile resolves to the headless native export policy, emits a `target-server` source template with no mobile/browser `platform/*` shell files, and keeps CI from treating server acceptance as Linux desktop acceptance.
 
 M6 documentation/example acceptance adds the mixed input event log harness `input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad`. It is deliberately runtime-side and hardware-free: one frame enters `DefaultInputManager` as normal `InputEvent` values for window, keyboard, mouse, touch, and gamepad families, then the test emits a deterministic log from `InputFrameSnapshot` plus contiguous `InputEventRecord` sequences. The focused harness command passed on 2026-05-28 with `cargo test -p zircon_runtime --lib input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad --locked --target-dir F:\cargo-targets\zircon-platform-m5-workspace --message-format short --color never -- --test-threads=1`, running 1 test with 0 failed and 2102 filtered out.
 

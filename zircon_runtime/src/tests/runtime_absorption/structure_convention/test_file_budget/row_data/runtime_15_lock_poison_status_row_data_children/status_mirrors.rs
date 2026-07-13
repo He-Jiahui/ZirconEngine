@@ -7,20 +7,13 @@ mod folder_backed_status;
 #[path = "mirrors/historical_status.rs"]
 mod historical_status;
 
-const STATUS_MIRRORS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/child_split_status.rs";
-const HISTORICAL_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/historical_status.rs";
-const FOLDER_BACKED_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/folder_backed_status.rs";
-const M3_STRUCTURE_SUPPORT_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/row_data_owner_maps.rs";
-const M3_STRUCTURE_SUPPORT_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/row_data_owner_maps.rs";
-const PRODUCTION_GUARD_SUPPORT_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/runtime_row_data/lock_poison_scene_script_rows.rs";
+const STATUS_MIRRORS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/child_split_status.rs";
+const HISTORICAL_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/historical_status.rs";
+const FOLDER_BACKED_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/folder_backed_status.rs";
+const M3_STRUCTURE_SUPPORT_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/row_data_owner_maps.rs";
+const M3_STRUCTURE_SUPPORT_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/row_data_owner_maps.rs";
+const PRODUCTION_GUARD_SUPPORT_ROWS_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/runtime_row_data/lock_poison_scene_script_rows.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_NAME: &str =
     "Runtime 15 M3 lock-poison status row-data status-mirror child split";

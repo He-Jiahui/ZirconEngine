@@ -1,9 +1,9 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     PluginOptionManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_extension_registry_preserves_enum_option_value_sets() {
@@ -88,9 +88,10 @@ fn runtime_plugin_registration_report_validates_shadowed_manifest_plugin_options
 
     let report =
         RuntimePluginCatalog::from_registration_reports([registration], []).runtime_extensions();
-    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("runtime plugin sound diagnostic")
-        && diagnostic.contains("must declare enum_values")));
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("runtime plugin sound diagnostic")
+            && diagnostic.contains("must declare enum_values")
+    }));
 }
 
 #[test]
@@ -113,9 +114,9 @@ fn native_runtime_plugin_registration_report_diagnoses_duplicate_manifest_plugin
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("option key `sound.enabled`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("option key `sound.enabled`") && diagnostic.contains("unique")
+    }));
     assert_eq!(registration.extensions.plugin_options().len(), 1);
 }
 

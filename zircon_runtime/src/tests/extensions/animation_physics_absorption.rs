@@ -144,8 +144,9 @@ fn animation_domain_keeps_framework_contract_and_plugin_wrapper_boundary() {
         "runtime framework should keep neutral animation sequence apply DTOs"
     );
     assert!(
-        framework_animation_manager.contains("fn apply_sequence_to_world"),
-        "runtime framework should expose the neutral AnimationManager sequence apply contract"
+        !framework_animation_manager.contains("fn apply_sequence_to_world")
+            && !framework_animation_manager.contains("crate::scene"),
+        "runtime framework AnimationManager should not own concrete scene mutation"
     );
     assert!(
         animation_plugin_lib.contains("pub use zircon_runtime::animation")

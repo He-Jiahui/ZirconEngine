@@ -11,20 +11,11 @@ impl UiNavigationGroupId {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiTabIndex {
     pub order: i32,
     pub tabbable: bool,
-}
-
-impl Default for UiTabIndex {
-    fn default() -> Self {
-        Self {
-            order: 0,
-            tabbable: false,
-        }
-    }
 }
 
 impl UiTabIndex {

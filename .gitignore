@@ -93,7 +93,19 @@ __pycache__/
 /zircon_hub/web/dist/
 /zircon_hub/web/.vite/
 
+# Regenerable per-project state. Versioned project templates retain only their
+# explicit placeholder ignore files through the negations below.
+**/.zircon/cache/**
+**/.zircon/registry/**
+**/.zircon/autosave/**
+**/.zircon/play/**
+**/.zircon/thumbnails/**
 .zircon-cache/
+!templates/projects/**/.zircon/cache/.gitignore
+!templates/projects/**/.zircon/registry/.gitignore
+!templates/projects/**/.zircon/autosave/.gitignore
+!templates/projects/**/.zircon/play/.gitignore
+!templates/projects/**/.zircon/thumbnails/.gitignore
 
 # logs 
 *.log

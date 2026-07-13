@@ -12,6 +12,14 @@ use crate::graphics::shader::{
 };
 
 const MESH_SHADER_TEMPLATE_REVISION: &str = "mesh-template-v1";
+const OIT_SHADER_TEMPLATE_REVISION: &str = "oit-fragment-store-v1";
+const OIT_DRAW_SHADER_SOURCE: &str = include_str!("../../../../shader/includes/zr_oit.wgsl");
+const OIT_FRAGMENT_ENTRY_SOURCE: &str = r#"
+@fragment
+fn fs_oit(input: ZrVertexOutput) {
+    oit_draw(input.clip_position, zr_fs_main_impl(input));
+}
+"#;
 const SURFACE_SHADER_ENTRY_POINT: &str = "zr_material_surface";
 const DEFAULT_SURFACE_SHADER_MODULE_ID: &str = "self::surface";
 
@@ -44,6 +52,29 @@ impl MeshPipelineShaderSource {
             cache_content_hashes: vec![source_hash],
             template_revision: MESH_SHADER_TEMPLATE_REVISION.to_string(),
         }
+    }
+
+    pub(crate) fn into_oit_fragment_store_source(mut self) -> Option<Self> {
+        if self.wgsl_source.contains("fn fs_oit(") {
+            return Some(self);
+        }
+        if !self.wgsl_source.contains("fn zr_fs_main_impl(") {
+            return None;
+        }
+
+        self.wgsl_source = format!(
+            "{}\n{}\n{}",
+            self.wgsl_source, OIT_DRAW_SHADER_SOURCE, OIT_FRAGMENT_ENTRY_SOURCE
+        );
+        self.source_hash = mesh_pipeline_wgsl_hash(&self.wgsl_source);
+        self.cache_content_hashes
+            .push(mesh_pipeline_wgsl_hash(OIT_DRAW_SHADER_SOURCE));
+        self.cache_content_hashes.push(self.source_hash.clone());
+        self.template_revision = format!(
+            "{}+{}",
+            self.template_revision, OIT_SHADER_TEMPLATE_REVISION
+        );
+        Some(self)
     }
 }
 

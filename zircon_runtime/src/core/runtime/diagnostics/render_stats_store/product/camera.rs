@@ -12,6 +12,13 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_capture_report(store, frame_index, stats);
     record_count(
         store,
+        "render.camera.loop_submission_count",
+        frame_index,
+        stats.last_camera_loop_submission_count,
+        &["render", "camera", "execution"],
+    );
+    record_count(
+        store,
         "render.camera.scheduled_count",
         frame_index,
         stats.last_scene_camera_scheduled_count,

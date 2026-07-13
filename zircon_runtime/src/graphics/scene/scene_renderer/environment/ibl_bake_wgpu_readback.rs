@@ -210,8 +210,8 @@ mod tests {
     fn descriptor_for(request: &IblBakeArtifactRequest) -> IblBakeArtifactDescriptor {
         IblBakeArtifactDescriptor::current(
             request.bake_key(),
-            request.face_size(),
-            request.mip_count(),
+            request.pmrem_face_size(),
+            request.pmrem_mip_count(),
             request.required_contents(),
         )
     }

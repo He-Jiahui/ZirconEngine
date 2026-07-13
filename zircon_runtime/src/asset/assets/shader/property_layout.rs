@@ -444,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "graphics")]
     fn render_shader_generated_module_naga_accepts_full_type_surface_layout() {
         let properties = vec![
             property("base_color", MaterialPropertyKind::Color),

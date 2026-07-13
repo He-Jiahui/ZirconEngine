@@ -20,6 +20,7 @@ use crate::ui::workbench::view::{
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -61,7 +62,7 @@ fn console_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneDat
         ),
         build_pane_body_presentation(
             &PaneBodySpec::new(
-                "pane.console.body",
+                "res://ui/editor/host/console_body.zui",
                 PanePayloadKind::ConsoleV1,
                 PaneRouteNamespace::Dock,
                 PaneInteractionMode::TemplateOnly,

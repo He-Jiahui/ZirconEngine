@@ -1,4 +1,4 @@
-use zircon_runtime::asset::assets::{
+use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
 };
 

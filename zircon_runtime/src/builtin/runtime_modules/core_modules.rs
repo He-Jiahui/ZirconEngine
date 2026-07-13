@@ -22,7 +22,7 @@ use crate::graphics::{
 use crate::script;
 use crate::{asset, foundation, input, platform, scene};
 
-use super::ids::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub fn runtime_core_modules() -> Vec<Arc<dyn EngineModule>> {
     runtime_core_modules_for_target(RuntimeTargetMode::ClientRuntime)

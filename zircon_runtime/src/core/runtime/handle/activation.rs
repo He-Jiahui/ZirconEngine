@@ -40,8 +40,10 @@ impl CoreHandle {
             }
         };
 
+        let mut built = false;
         let result = (|| {
             self.build_module(module_name)?;
+            built = true;
 
             if !startup_services.is_empty() {
                 self.resolve_startup_services(startup_services.as_ref())?;
@@ -50,16 +52,24 @@ impl CoreHandle {
             self.wait_until_module_ready(module_name, ready_timeout)?;
             self.finish_module(module_name)?;
             self.finish_module_activation(module_name)?;
-            self.activate_plugin_bridge_provider_for_runtime_module(module_name);
+            self.notify_runtime_module_activated(module_name);
             Ok(())
         })();
 
-        if result.is_err() {
+        if let Err(activation_error) = result {
+            let rollback_error = built
+                .then(|| self.cleanup_module(module_name))
+                .transpose()
+                .err();
             self.reset_started_services(startup_services.as_ref());
             self.reset_initializing_module(module_name);
+            return Err(CoreError::module_activation_failed(
+                activation_error,
+                rollback_error,
+            ));
         }
 
-        result
+        Ok(())
     }
 
     pub fn deactivate_module(&self, module_name: &str) -> Result<(), CoreError> {
@@ -90,7 +100,7 @@ impl CoreHandle {
             }
 
             self.cleanup_module(module_name)?;
-            self.deactivate_plugin_bridge_provider_for_runtime_module(module_name)?;
+            self.notify_runtime_module_deactivating(module_name)?;
 
             if !unload_order.is_empty() {
                 let mut services = self.lock_services();

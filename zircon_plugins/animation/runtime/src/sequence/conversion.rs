@@ -1,4 +1,4 @@
-use zircon_runtime::asset::AnimationChannelValueAsset;
+use zircon_runtime::core::framework::animation::AnimationChannelValueAsset;
 use zircon_runtime::core::framework::scene::ScenePropertyValue;
 use zircon_runtime::core::math::Real;
 

@@ -3,7 +3,16 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let dynamic_scene_root = manifest_root.join("src/scene/dynamic_scene");
     let root_owner_children: &[(&str, &[&str])] = &[
-        ("document", &["legacy.rs", "read.rs", "write.rs"]),
+        (
+            "document",
+            &[
+                "migration/mod.rs",
+                "migration/project_world.rs",
+                "read.rs",
+                "schema.rs",
+                "write.rs",
+            ],
+        ),
         (
             "entity",
             &[

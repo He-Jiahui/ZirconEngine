@@ -2,26 +2,9 @@ use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 
 #[test]
 fn review_d13_importer_runtime_manifests_use_sdk_builder() {
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let importer_doc = include_str!(
-        "../../../../../../../docs/zircon_plugins/asset_importers/runtime-skeletons.md"
-    );
-    let runtime_15 = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_importer_manifest = include_str!(
         "../../../../../../../zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs"
@@ -94,8 +77,8 @@ fn review_d13_importer_runtime_manifests_use_sdk_builder() {
         "review_d13_importer_runtime_manifests_use_sdk_builder",
     ] {
         assert!(
-            d13_row.contains(required),
-            "D13 row should record importer runtime manifest builder convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D13 numbered review evidence should record importer runtime manifest builder convergence anchor `{required}`"
         );
     }
     assert!(
@@ -103,27 +86,9 @@ fn review_d13_importer_runtime_manifests_use_sdk_builder() {
         "D13 row should not keep stale importer manifest builder follow-up text"
     );
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("asset importer doc", importer_doc),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("module convention", module_convention),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D13 importer runtime manifest builder convergence",
-            "d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred",
-            "review_d13_importer_runtime_manifests_use_sdk_builder",
-            "ImporterRuntimeManifestBuilder",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D13 importer manifest builder convergence anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D13 importer runtime manifest builder convergence")
+            && review_findings.contains("review_d13_importer_runtime_manifests_use_sdk_builder"),
+        "D13 numbered output should own the concrete importer manifest evidence"
+    );
 }

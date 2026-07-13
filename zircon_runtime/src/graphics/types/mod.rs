@@ -6,7 +6,6 @@ mod viewport_frame;
 mod viewport_frame_texture_handle;
 mod viewport_render_frame;
 mod viewport_render_frame_from_extract;
-mod viewport_render_frame_from_public_runtime;
 mod viewport_render_frame_from_snapshot;
 mod viewport_render_frame_with_camera_stack_output_policy;
 mod viewport_render_frame_with_frame_visibility;

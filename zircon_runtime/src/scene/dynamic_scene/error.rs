@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
 use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
+use zircon_runtime_interface::serialization::{LoadError, WriteError};
 
 use crate::scene::{EntityId, SceneError};
 
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
+#[derive(Clone, Debug, Error)]
 pub enum DynamicSceneError {
+    #[error("unsupported dynamic scene schema {actual}; expected {expected}")]
+    UnsupportedSchema { expected: String, actual: String },
     #[error("unsupported dynamic scene format version {actual}; expected {expected}")]
     UnsupportedFormatVersion { expected: u32, actual: u32 },
     #[error("dynamic scene contains duplicate source entity {entity}")]
@@ -36,4 +41,29 @@ pub enum DynamicSceneError {
     },
     #[error(transparent)]
     Reflect(#[from] ReflectError),
+    #[error(transparent)]
+    SerializationLoad(Arc<LoadError>),
+    #[error(transparent)]
+    SerializationWrite(Arc<WriteError>),
 }
+
+impl From<LoadError> for DynamicSceneError {
+    fn from(error: LoadError) -> Self {
+        Self::SerializationLoad(Arc::new(error))
+    }
+}
+
+impl From<WriteError> for DynamicSceneError {
+    fn from(error: WriteError) -> Self {
+        Self::SerializationWrite(Arc::new(error))
+    }
+}
+
+impl PartialEq for DynamicSceneError {
+    fn eq(&self, other: &Self) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(other)
+            && self.to_string() == other.to_string()
+    }
+}
+
+impl Eq for DynamicSceneError {}

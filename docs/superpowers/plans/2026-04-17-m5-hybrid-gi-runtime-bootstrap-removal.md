@@ -1,14 +1,12 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/mod.rs
 plan_sources:
   - user: 2026-04-17 Hybrid GI should replace runtime default irradiance_rgb with real GPU radiance-cache output
   - user: 2026-04-17 continue the remaining M5 milestones without waiting for confirmation
@@ -16,7 +14,6 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-radiance-cache-lighting-resolve.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-temporal-radiance-cache-update.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - cargo test -p zircon_graphics hybrid_gi_runtime_state_builds_prepare_frame_without_host_bootstrap_irradiance --locked
   - cargo test -p zircon_graphics hybrid_gi --locked
   - cargo test -p zircon_graphics --lib --locked

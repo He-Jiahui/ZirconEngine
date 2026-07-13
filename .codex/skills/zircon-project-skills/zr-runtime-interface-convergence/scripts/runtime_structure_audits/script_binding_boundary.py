@@ -101,7 +101,7 @@ BRIDGE_ANCHORS = (
     "pub const BRIDGE_HOST_CAPABILITY: &str = \"bridge.call\";",
     "ScriptBridgeMethodDescriptor",
     "register_bridge_host_module",
-    "FrozenBridgeTable",
+    "BridgeInvocationTable",
 )
 GAMEPLAY_FACADE_ANCHORS = (
     "const GAMEPLAY_MODULE: &str = \"zr.zircon.gameplay\";",

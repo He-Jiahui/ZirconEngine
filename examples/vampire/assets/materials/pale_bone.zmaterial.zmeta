@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "e8228625-4333-492d-a15d-e733b134b674"
 url = "res://materials/pale_bone.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/fbfc4436-17ca-c084-15c1-53ee807126e8.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487926
-source_hash = "7db40062abdb6456"
+source_digest = "7db40062abdb6456"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

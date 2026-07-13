@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::engine_module::EngineModule;
-use crate::plugin::{
-    ProjectPluginManifest, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
-    RuntimeProfileId,
-};
+use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 mod extension_inputs;
 mod feature_reports;
@@ -13,8 +11,8 @@ mod registration_inputs;
 mod registration_reports;
 mod target_modules;
 
-use super::ids::RuntimeTargetMode;
 use super::load_report::RuntimeModuleLoadReport;
+use crate::core::framework::platform::RuntimeTargetMode;
 use profile_modules::{
     runtime_modules_for_runtime_profile as runtime_modules_for_runtime_profile_impl,
     runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports as runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports_impl,

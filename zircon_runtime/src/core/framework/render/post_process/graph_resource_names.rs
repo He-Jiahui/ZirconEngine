@@ -25,10 +25,23 @@ impl PostProcessGraphResourceNames {
     pub const HISTORY_PREVIOUS_HYBRID_GI: &'static str = "history-global-illumination";
     pub const HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA: &'static str =
         "history-global-illumination-temporal-metadata";
+    pub const SCENE_LIGHT_DATA: &'static str = "scene-light-data";
     pub const LIGHT_LIST: &'static str = "light-list";
     pub const LIGHT_GRID_PARAMS: &'static str = "light-grid-params";
     pub const LIGHT_ZBINS: &'static str = "light-zbins";
     pub const LIGHT_TILE_MASKS: &'static str = "light-tile-masks";
+    pub const VOLUMETRIC_MEDIA: &'static str = "volumetric.media";
+    pub const VOLUMETRIC_SCATTERING: &'static str = "volumetric.scattering";
+    pub const VOLUMETRIC_INTEGRATED: &'static str = "volumetric.integrated";
+    pub const OIT_LAYERS: &'static str = "oit.layers";
+    pub const OIT_COUNTS: &'static str = "oit.counts";
+    pub const SSS_DIFFUSE: &'static str = "sss.diffuse";
+    pub const SSS_SPECULAR: &'static str = "sss.specular";
+    pub const SSS_SCATTERED: &'static str = "sss.scattered";
+    pub const SSS_TILE_LIST: &'static str = "sss.tile-list";
+    pub const SSS_INDIRECT_ARGS: &'static str = "sss.indirect-args";
+    pub const HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING: &'static str =
+        "history.previous.volumetric.scattering";
     pub const HZB_FURTHEST: &'static str = "hzb-furthest";
     // Temporal resources use distinct names so a pass cannot silently read and overwrite the same history slot.
     pub const HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION: &'static str =

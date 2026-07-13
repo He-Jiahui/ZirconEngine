@@ -1,5 +1,5 @@
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::{components::NodeKind, SceneError, World};
 use serde_json::json;
 use zircon_runtime_interface::reflect::ReflectError;

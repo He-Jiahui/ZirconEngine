@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,12 +25,16 @@ impl ProjectManager {
         &self,
     ) -> Result<Vec<AssetImportSource>, AssetImportError> {
         let mut sources = Vec::new();
-        self.collect_import_sources_for_root(self.paths.assets_root(), None, &mut sources)?;
+        let project_roots = self.package_assets.project_roots().to_vec();
+        for root in &project_roots {
+            self.collect_import_sources_for_root(root, None, &mut sources)?;
+        }
 
         for (package_id, root) in self.package_assets.iter() {
             self.collect_import_sources_for_root(root, Some(package_id), &mut sources)?;
         }
 
+        reject_duplicate_project_uris(&sources)?;
         sources.sort_by(|left, right| left.uri.cmp(&right.uri));
         Ok(sources)
     }
@@ -119,9 +124,26 @@ impl ProjectManager {
         if let Some(package_id) = package_id {
             self.source_uri_for_package_path(package_id, root, path)
         } else {
-            self.source_uri_for_path(path)
+            self.source_uri_for_path(root, path)
         }
     }
+}
+
+fn reject_duplicate_project_uris(sources: &[AssetImportSource]) -> Result<(), AssetImportError> {
+    let mut paths_by_uri = BTreeMap::new();
+    for source in sources {
+        if source.uri.package_id().is_some() {
+            continue;
+        }
+        if let Some(previous) = paths_by_uri.insert(source.uri.clone(), source.path.clone()) {
+            return Err(AssetImportError::DuplicateProjectAssetUri {
+                uri: source.uri.clone(),
+                first: previous,
+                second: source.path.clone(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn collect_zmeta_files(root: &Path, files: &mut Vec<PathBuf>) -> Result<(), std::io::Error> {

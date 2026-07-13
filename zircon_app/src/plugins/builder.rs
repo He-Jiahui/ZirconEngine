@@ -72,12 +72,12 @@ impl PluginGroupBuilder {
     ) -> Result<Self, PluginGroupError> {
         let mut builder = Self::start(group_name);
         for module in modules {
-            builder = builder.add(module)?;
+            builder = builder.add_module(module)?;
         }
         Ok(builder)
     }
 
-    pub fn add(mut self, module: Arc<dyn EngineModule>) -> Result<Self, PluginGroupError> {
+    pub fn add_module(mut self, module: Arc<dyn EngineModule>) -> Result<Self, PluginGroupError> {
         let key = module.module_name().to_string();
         if self.entries.contains_key(&key) {
             return Err(self.duplicate_key(key));
@@ -96,7 +96,7 @@ impl PluginGroupBuilder {
     pub fn add_group(self, group: impl PluginGroup) -> Result<Self, PluginGroupError> {
         let mut builder = self;
         for module in group.build()?.finish().into_modules() {
-            builder = builder.add(module)?;
+            builder = builder.add_module(module)?;
         }
         Ok(builder)
     }

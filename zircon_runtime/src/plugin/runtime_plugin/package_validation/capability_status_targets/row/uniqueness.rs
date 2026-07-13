@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 use super::super::uniqueness::validate_runtime_plugin_package_capability_status_target_uniqueness;
 

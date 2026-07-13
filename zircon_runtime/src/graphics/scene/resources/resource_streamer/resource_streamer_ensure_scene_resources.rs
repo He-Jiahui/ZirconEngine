@@ -8,6 +8,7 @@ use crate::graphics::types::{
     ViewportTextureGraphImportStatus,
 };
 
+use super::super::{ui_texture_id_for_upload, ui_texture_ids};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -45,6 +46,9 @@ impl ResourceStreamer {
             self.ensure_material(device, queue, texture_layout, mesh.material)?;
             self.record_material_summary(mesh.material.id());
         }
+        if let Some(lightmaps) = frame.environment().baked_lighting() {
+            self.ensure_texture(device, queue, texture_layout, lightmaps.atlas)?;
+        }
         for sprite in frame.sprites() {
             self.last_sprite_count += 1;
             if self
@@ -54,6 +58,14 @@ impl ResourceStreamer {
                 self.last_sprite_ready_count += 1;
             } else {
                 self.last_sprite_texture_fallback_count += 1;
+            }
+        }
+        if let Some(ui) = frame.ui.as_ref() {
+            for texture_id in ui_texture_ids(ui) {
+                if let Some(texture_id) = ui_texture_id_for_upload(&self.asset_manager, texture_id)
+                {
+                    let _ = self.ensure_texture(device, queue, texture_layout, texture_id);
+                }
             }
         }
         if let Some(request) = effect_stack_lut_texture_request(frame) {

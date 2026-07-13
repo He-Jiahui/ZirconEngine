@@ -31,6 +31,7 @@ impl World {
         self.refresh_stable_entity_locations();
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.advance_world_generation();
         true
     }
 
@@ -468,6 +469,7 @@ impl World {
     where
         T: Component,
     {
+        self.advance_world_generation();
         let type_id = std::any::TypeId::of::<T>();
         if self.is_hierarchy_component_type(type_id) {
             self.mark_hierarchy_dirty();

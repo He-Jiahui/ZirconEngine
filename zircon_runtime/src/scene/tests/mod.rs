@@ -2,6 +2,7 @@ mod asset_scene;
 mod authoring_boundary;
 mod component_structure;
 mod derived_state;
+#[cfg(feature = "physics-contracts")]
 mod dynamic_scene;
 mod dynamic_scene_asset_reload;
 mod dynamic_scene_session;

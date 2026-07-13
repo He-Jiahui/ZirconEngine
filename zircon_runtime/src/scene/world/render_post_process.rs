@@ -131,7 +131,12 @@ fn volume_shape_extract_from_collider(
             *radius * max_component(scale),
             blend_distance,
         )),
-        ColliderShape::Capsule { .. } => None,
+        ColliderShape::Capsule { .. }
+        | ColliderShape::Cylinder { .. }
+        | ColliderShape::ConvexHull { .. }
+        | ColliderShape::TriangleMesh { .. }
+        | ColliderShape::HeightField { .. }
+        | ColliderShape::Compound { .. } => None,
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    AntiAliasMode, ProjectionMode, RenderFrameExtract, RenderPostProcessEffectStackSettings,
+    AntiAliasMode, ProjectionMode, RenderFrameExtract, RenderHybridGiCompositePolicy,
+    RenderPostProcessEffectStackSettings,
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::graphics::types::ViewportRenderRegion;
@@ -21,6 +22,37 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
     hybrid_gi_probe_count: u32,
     scheduled_trace_region_count: u32,
     current_hybrid_gi_lighting_available: bool,
+) -> PostProcessParams {
+    build_post_process_params_with_hybrid_gi_policy(
+        viewport_size,
+        cluster_dimensions,
+        render_region,
+        scene_color_origin,
+        extract,
+        features,
+        history_available,
+        reflection_probe_count,
+        hybrid_gi_probe_count,
+        scheduled_trace_region_count,
+        current_hybrid_gi_lighting_available,
+        RenderHybridGiCompositePolicy::default(),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build_post_process_params_with_hybrid_gi_policy(
+    viewport_size: UVec2,
+    cluster_dimensions: UVec2,
+    render_region: ViewportRenderRegion,
+    scene_color_origin: [u32; 2],
+    extract: &RenderFrameExtract,
+    features: SceneRuntimeFeatureFlags,
+    history_available: bool,
+    reflection_probe_count: u32,
+    hybrid_gi_probe_count: u32,
+    scheduled_trace_region_count: u32,
+    current_hybrid_gi_lighting_available: bool,
+    hybrid_gi_composite_policy: RenderHybridGiCompositePolicy,
 ) -> PostProcessParams {
     let color_grading = color_grading(extract, features);
     let baked_lighting = baked_lighting(extract, features);
@@ -54,6 +86,12 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
             u32::from(
                 features.hybrid_global_illumination_enabled && current_hybrid_gi_lighting_available,
             ),
+        ],
+        hybrid_gi_source_ledger: [
+            hybrid_gi_composite_policy.source_mask(),
+            u32::from(hybrid_gi_composite_policy.baked_baseline_weight_q8()),
+            u32::from(hybrid_gi_composite_policy.dynamic_weight_q8()),
+            u32::from(hybrid_gi_composite_policy.accepts_hybrid_gi_output()),
         ],
         anti_alias: [
             u32::from(

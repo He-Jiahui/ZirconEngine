@@ -2,7 +2,6 @@ mod args;
 mod error;
 mod manifest;
 mod pack;
-mod plugin;
 mod run;
 
 use std::process::ExitCode;

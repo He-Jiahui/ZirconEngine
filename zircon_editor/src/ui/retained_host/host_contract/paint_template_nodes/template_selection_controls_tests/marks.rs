@@ -126,13 +126,13 @@ fn selection_control_metrics_project_from_host_control_metrics() {
     let metrics = workbench_selection_control_metrics_from_host(host);
 
     assert_eq!(metrics.mark_inset_x, 14.0);
-    assert_eq!(metrics.mark_size, 20.0);
+    assert_eq!(metrics.mark_size, 16.0);
     assert_eq!(metrics.label_gap, 12.0);
     assert_eq!(metrics.text_inset_y, 7.0);
     assert_eq!(metrics.radio_dot_size, 7.0);
     assert_eq!(metrics.toggle_track_width, 42.0);
-    assert_eq!(metrics.toggle_track_height, 24.0);
-    assert_eq!(metrics.toggle_thumb_size, 15.0);
+    assert_eq!(metrics.toggle_track_height, 20.0);
+    assert_eq!(metrics.toggle_thumb_size, 11.0);
     assert_eq!(metrics.toggle_right_inset, 10.0);
     assert_eq!(metrics.toggle_thumb_inset, 4.0);
     assert_eq!(metrics.font_size, 11.5);

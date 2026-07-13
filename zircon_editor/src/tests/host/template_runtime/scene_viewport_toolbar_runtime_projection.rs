@@ -13,9 +13,14 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retain
         "ViewportToolbar"
     );
 
-    let projection = runtime.project_document("scene.viewport_toolbar").unwrap();
+    let projection = runtime
+        .project_document("res://ui/editor/host/scene_viewport_toolbar.zui")
+        .unwrap();
 
-    assert_eq!(projection.document_id, "scene.viewport_toolbar");
+    assert_eq!(
+        projection.document_id,
+        "res://ui/editor/host/scene_viewport_toolbar.zui"
+    );
     assert_eq!(projection.root.component, "SceneViewportToolbar");
     assert_eq!(
         projection
@@ -57,13 +62,15 @@ fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retain
 fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
-    let mut projection = runtime.project_document("scene.viewport_toolbar").unwrap();
+    let mut projection = runtime
+        .project_document("res://ui/editor/host/scene_viewport_toolbar.zui")
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface("scene.viewport_toolbar")
+        .build_shared_surface("res://ui/editor/host/scene_viewport_toolbar.zui")
         .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 28.0)).unwrap();
 

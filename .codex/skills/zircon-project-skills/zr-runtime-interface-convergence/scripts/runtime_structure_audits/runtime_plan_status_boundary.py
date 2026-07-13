@@ -4,6 +4,7 @@ from pathlib import Path
 
 from runtime_structure_audits.runtime_plan_status_anchor_inventory import (
     BACKLOG_GAPS,
+    COMPLETED_GATE_ANCHORS,
     CORE_GUARD_ANCHORS,
     DOC_ANCHORS,
     PENDING_GATE_ANCHORS,
@@ -52,7 +53,8 @@ EXPECTED_SUBPLAN_COUNT = 15
 EXPECTED_PROBLEM_ROW_COUNT = 17
 EXPECTED_BACKLOG_ROW_COUNT = 7
 EXPECTED_CORE_GUARD_COUNT = 15
-EXPECTED_PENDING_GATE_COUNT = 15
+EXPECTED_COMPLETED_GATE_COUNT = 4
+EXPECTED_PENDING_GATE_COUNT = 11
 EXPECTED_DOC_ANCHOR_COUNT = 11
 MAX_PLAN_STATUS_BOUNDARY_LINES = 900
 MAX_STATUS_OUTPUT_ANCHOR_MODULE_LINES = 300
@@ -163,6 +165,10 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
                 in_progress_without_gate.append(filename)
 
     missing_core_guard_anchors = missing_snippets(support_sources, CORE_GUARD_ANCHORS)
+    missing_completed_gate_anchors = missing_snippets(
+        support_sources,
+        COMPLETED_GATE_ANCHORS,
+    )
     missing_pending_gate_anchors = missing_snippets(
         support_sources + (index_source, runtime_05_source, review_source),
         PENDING_GATE_ANCHORS,
@@ -255,9 +261,9 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
     runtime_05_closeout_anchors = missing_snippets(
         (runtime_05_source, index_source, review_source),
         (
-            "pending_full_scene_cargo",
-            "cargo test -p zircon_runtime --lib scene:: --locked",
-            "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
+            "runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete",
+            "1642 passed / 0 failed / 5 ignored",
+            "runtime_05_closeout_status_records_completed_scene_cargo_gate",
         ),
     )
 
@@ -290,6 +296,12 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("Runtime index in-progress rows are missing remaining gate markers.")
     if missing_core_guard_anchors:
         risks.append("Runtime plan-status core guard anchors are missing.")
+    if len(COMPLETED_GATE_ANCHORS) != EXPECTED_COMPLETED_GATE_COUNT:
+        risks.append("Runtime completed Cargo gate anchor inventory count drifted.")
+    if missing_completed_gate_anchors:
+        risks.append("Runtime completed Cargo gate anchors are missing.")
+    if len(PENDING_GATE_ANCHORS) != EXPECTED_PENDING_GATE_COUNT:
+        risks.append("Runtime pending Cargo gate anchor inventory count drifted.")
     if missing_pending_gate_anchors:
         risks.append("Runtime pending Cargo gate anchors are missing.")
     if missing_doc_anchors:
@@ -332,10 +344,10 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
         or missing_cargo_attempt_status_guard_anchors
     ):
         risks.append("Runtime Cargo attempt status anchors are missing.")
-    if runtime_05_status != "in_progress":
-        risks.append("Runtime 05 closeout status changed before full scene Cargo gate evidence.")
+    if runtime_05_status != "completed":
+        risks.append("Runtime 05 closeout status does not reflect the completed full-scene gate.")
     if runtime_05_closeout_anchors:
-        risks.append("Runtime 05 full-scene closeout gate anchors are missing.")
+        risks.append("Runtime 05 completed full-scene closeout anchors are missing.")
 
     return {
         "plan_status_boundary_script": PLAN_STATUS_BOUNDARY_SCRIPT,
@@ -369,6 +381,8 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
         "in_progress_without_gate": in_progress_without_gate,
         "missing_core_guard_anchors": missing_core_guard_anchors,
         "core_guard_count": len(CORE_GUARD_ANCHORS),
+        "missing_completed_gate_anchors": missing_completed_gate_anchors,
+        "completed_gate_count": len(COMPLETED_GATE_ANCHORS),
         "missing_pending_gate_anchors": missing_pending_gate_anchors,
         "pending_gate_count": len(PENDING_GATE_ANCHORS),
         "missing_doc_anchors": missing_doc_anchors,

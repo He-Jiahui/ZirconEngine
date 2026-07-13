@@ -35,6 +35,7 @@ mod font_assets;
 mod font_id_report;
 mod native_bitmap_atlas;
 mod prepare_report;
+mod resolved_batches;
 mod sdf_fallback;
 
 use self::font_assets::{
@@ -53,6 +54,7 @@ use self::prepare_report::text_prepare_report;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
+use self::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use self::sdf_fallback::apply_sdf_atlas_fallbacks;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
@@ -100,47 +102,6 @@ struct ScreenSpaceUiTextBackend {
 struct ScreenSpaceUiNativePrepareReport {
     font_ids: ScreenSpaceUiTextFontIdReport,
     bitmap_atlas: NativeBitmapAtlasPrepareReport,
-}
-
-#[derive(Clone, Debug, Default)]
-struct ResolvedScreenSpaceUiTextBatches {
-    native_texts: Vec<ScreenSpaceUiTextBatch>,
-    sdf_texts: Vec<ScreenSpaceUiTextBatch>,
-}
-
-impl ResolvedScreenSpaceUiTextBatches {
-    fn from_explicit_batches(
-        native_texts: &[ScreenSpaceUiTextBatch],
-        sdf_texts: &[ScreenSpaceUiTextBatch],
-    ) -> Self {
-        Self {
-            native_texts: native_texts.to_vec(),
-            sdf_texts: sdf_texts.to_vec(),
-        }
-    }
-
-    fn push_resolved_auto_text(
-        &mut self,
-        text: ScreenSpaceUiTextBatch,
-        resolved_mode: UiTextRenderMode,
-    ) {
-        match resolved_mode {
-            UiTextRenderMode::Auto | UiTextRenderMode::Native => self.native_texts.push(text),
-            UiTextRenderMode::Sdf => self.sdf_texts.push(text),
-        }
-    }
-
-    fn native_texts(&self) -> &[ScreenSpaceUiTextBatch] {
-        &self.native_texts
-    }
-
-    fn sdf_texts(&self) -> &[ScreenSpaceUiTextBatch] {
-        &self.sdf_texts
-    }
-
-    fn sdf_atlas_texts(&self) -> &[ScreenSpaceUiTextBatch] {
-        &self.sdf_texts
-    }
 }
 
 impl ScreenSpaceUiTextSystem {
@@ -209,10 +170,17 @@ impl ScreenSpaceUiTextSystem {
         );
         let font_faces_changed_before_native =
             self.font_assets.len() != font_asset_count_before_resolve;
-        self.sdf_atlas.prepare(resolved_texts.sdf_atlas_texts());
+        self.sdf_atlas.prepare(resolved_texts.sdf_texts());
+        let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
+            self.sdf_atlas.plan(),
+            &mut self.font_database,
+            self.asset_manager.as_ref(),
+        );
+        self.sdf_atlas
+            .record_generation_failures(&sdf_generation_failures);
         let sdf_fallback_glyph_advances =
             self.sdf_renderer.measure_text_glyph_advances_for_fallbacks(
-                resolved_texts.sdf_atlas_texts(),
+                resolved_texts.sdf_texts(),
                 &mut self.font_database,
                 self.asset_manager.as_ref(),
             );
@@ -224,8 +192,15 @@ impl ScreenSpaceUiTextSystem {
         );
         if sdf_fallback_report.has_whole_batch_fallbacks() {
             self.sdf_atlas
-                .discard_cached_slots_not_in_texts(resolved_texts.sdf_atlas_texts());
-            self.sdf_atlas.prepare(resolved_texts.sdf_atlas_texts());
+                .discard_cached_slots_not_in_texts(resolved_texts.sdf_texts());
+            self.sdf_atlas.prepare(resolved_texts.sdf_texts());
+            let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
+                self.sdf_atlas.plan(),
+                &mut self.font_database,
+                self.asset_manager.as_ref(),
+            );
+            self.sdf_atlas
+                .record_generation_failures(&sdf_generation_failures);
         }
         let sdf_atlas_report = self.sdf_atlas.cache_report();
         self.sdf_renderer.prepare(
@@ -233,6 +208,7 @@ impl ScreenSpaceUiTextSystem {
             queue,
             viewport_size,
             resolved_texts.sdf_texts(),
+            resolved_texts.native_texts(),
             self.sdf_atlas.plan(),
             sdf_atlas_report.clone(),
             &mut self.font_database,
@@ -476,6 +452,7 @@ impl ScreenSpaceUiTextBackend {
 
         let bitmap_frame = native_bitmap_atlas_frame(
             font_system,
+            font_database,
             self.bitmap_raster_worker_pool.as_ref(),
             &mut self.bitmap_source_cache,
             &mut self.bitmap_retry_state,

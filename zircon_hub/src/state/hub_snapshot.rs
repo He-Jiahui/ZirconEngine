@@ -85,7 +85,7 @@ impl ProjectFilterMode {
 }
 
 fn project_matches_query(project: &RecentProject, query: &str) -> bool {
-    project.display_name.to_ascii_lowercase().contains(query)
+    project.summary.name.to_ascii_lowercase().contains(query)
         || project
             .path
             .to_string_lossy()
@@ -94,7 +94,7 @@ fn project_matches_query(project: &RecentProject, query: &str) -> bool {
 }
 
 fn project_display_name(project: &RecentProject) -> String {
-    if project.display_name.trim().is_empty() {
+    if project.summary.name.trim().is_empty() {
         return project
             .path
             .file_name()
@@ -102,7 +102,7 @@ fn project_display_name(project: &RecentProject) -> String {
             .unwrap_or("Zircon Project")
             .to_string();
     }
-    project.display_name.clone()
+    project.summary.name.clone()
 }
 
 #[cfg(test)]
@@ -134,8 +134,8 @@ mod tests {
             task_status: TaskStatus::idle(),
             queued_background_actions: 0,
             recent_projects: vec![
-                RecentProject::new("Zeta", "E:/Projects/Zeta", 30),
-                RecentProject::new("Alpha", "E:/Projects/Alpha", 10),
+                RecentProject::fixture("Zeta", "E:/Projects/Zeta", 30),
+                RecentProject::fixture("Alpha", "E:/Projects/Alpha", 10),
             ],
             project_metadata: ProjectMetadataMap::new(),
             assets: Vec::new(),
@@ -151,8 +151,8 @@ mod tests {
 
         let projects = snapshot.filtered_recent_projects();
 
-        assert_eq!(projects[0].display_name, "Alpha");
-        assert_eq!(projects[1].display_name, "Zeta");
+        assert_eq!(projects[0].summary.name, "Alpha");
+        assert_eq!(projects[1].summary.name, "Zeta");
     }
 
     #[test]
@@ -181,8 +181,8 @@ mod tests {
             task_status: TaskStatus::idle(),
             queued_background_actions: 0,
             recent_projects: vec![
-                RecentProject::new("Missing", missing.clone(), 30),
-                RecentProject::new("Existing", existing.clone(), 10),
+                RecentProject::fixture("Missing", missing.clone(), 30),
+                RecentProject::fixture("Existing", existing.clone(), 10),
             ],
             project_metadata: ProjectMetadataMap::new(),
             assets: Vec::new(),
@@ -200,7 +200,7 @@ mod tests {
         fs::remove_dir_all(&root).unwrap();
 
         assert_eq!(projects.len(), 1);
-        assert_eq!(projects[0].display_name, "Existing");
+        assert_eq!(projects[0].summary.name, "Existing");
     }
 
     #[test]
@@ -210,7 +210,7 @@ mod tests {
             "Projects",
             std::process::id()
         );
-        let project = RecentProject::new(
+        let project = RecentProject::fixture(
             format!("{} {}", "Elysium", "Chronicles"),
             &missing_fixture_path,
             10,
@@ -237,7 +237,7 @@ mod tests {
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             queued_background_actions: 0,
-            recent_projects: vec![RecentProject::new("Latest", "E:/Projects/Latest", 20)],
+            recent_projects: vec![RecentProject::fixture("Latest", "E:/Projects/Latest", 20)],
             project_metadata: ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),

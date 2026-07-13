@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "81d8ba81-b5d2-44aa-bf86-8d250fb12cba"
 url = "res://models/kenney_graveyard/crypt-large.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/189de490-6efd-638d-afe4-3e8f03fa8ea0.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670020000
-source_hash = "1f4b4a7390eca44b"
+source_digest = "1f4b4a7390eca44b"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/crypt-large.glb#Node0",
     "res://models/kenney_graveyard/crypt-large.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/crypt-large.glb#Node0",
     "res://models/kenney_graveyard/crypt-large.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "2dd87d19-6646-4fae-9e1a-d4e8665409b9"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/crypt-large.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/017ec5df-d5f0-a911-590d-00897c2423d3.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "fb879967-6d74-4397-9ac0-4c09968a8910"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/crypt-large.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/0eaab9d2-7566-dc00-9e65-8618896683c6.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "6b40792a-7b3d-460d-b17e-4d3755790417"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/crypt-large.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "7b51a8d0-f61f-4bf6-80dd-6c585f9094a4"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/crypt-large.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/crypt-large.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "e9519b76-7b19-4cf1-910b-a1eaccf4452a"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/crypt-large.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/8785d577-ff17-0a63-62c9-b26b615f8680.zasset"
 dependencies = ["res://models/kenney_graveyard/crypt-large.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "78f4f540-c92a-4121-85b6-4ee079d9bdcc"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/crypt-large.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/crypt-large.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "64adaa84-48b2-4910-9741-61054fa954fc"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/crypt-large.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/crypt-large.glb#Material0",
 ]
+tags = []

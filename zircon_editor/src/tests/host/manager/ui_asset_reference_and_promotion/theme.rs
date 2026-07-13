@@ -9,10 +9,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")
@@ -129,10 +126,7 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")
@@ -199,10 +193,7 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")
@@ -339,10 +330,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")

@@ -1,12 +1,10 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
 - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/frontier/refine_visible_probe_frontier.rs
 - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/ordering/hybrid_gi_probe_request_sort_key.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 plan_sources:
   - user: 2026-04-18 剩余更值得继续推进的主链是更完整的 scene-driven screen-probe hierarchy / probe gather / RT hybrid lighting
   - user: 2026-04-18 continue M5
@@ -14,7 +12,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-scene-driven-probe-gather.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-gpu-hierarchy-completion-continuation.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_requests_nonresident_hybrid_gi_descendant_supported_by_trace_regions
   - cargo test -p zircon_graphics --offline --locked visibility_context_prefers_deeper_nonresident_hybrid_gi_descendant_when_trace_support_ties
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_visibility

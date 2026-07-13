@@ -41,7 +41,9 @@ fn static_plugin_manifest_enum_options_roundtrip_runtime_value_sets() {
                 .get("value_type")
                 .and_then(toml::Value::as_str)
                 .unwrap_or_else(|| {
-                    panic!("plugin manifest {relative_path:?} option `{key}` should declare value_type")
+                    panic!(
+                        "plugin manifest {relative_path:?} option `{key}` should declare value_type"
+                    )
                 });
 
             let runtime_option = runtime_manifest

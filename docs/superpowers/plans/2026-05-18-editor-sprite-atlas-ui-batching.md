@@ -25,7 +25,7 @@
 - `zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs` already uses partial-order layers and groups images by `resource_key` through `BTreeMap<String, Vec<ImageVertex>>` inside each independent layer.
 - Existing test `batch_plan_groups_images_by_resource_key` proves same-key grouping for disjoint images, but does not prove the key regression cases for same-resource overlapping images, same-resource separated-by-overlap chains, or multiple atlas subregions sharing one texture.
 - `zircon_runtime/src/rhi/ui_surface.rs` defines `UiSurfaceImagePayload` with `resource_key`, `width`, `height`, `upload_bytes`, and optional `rgba`; it has no atlas-region or UV-rect field.
-- `zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs` defines the editor-side `ChromeImagePayload` with the same payload shape and no atlas-region field.
+- `zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs` defines the editor-side `ChromeImagePayload` with the same payload shape and no atlas-region field.
 - `zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs` forwards `ChromeImagePayload` into `UiSurfaceImagePayload` field-for-field.
 - `zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs` computes image UVs from the visible clipped rect against the command frame as if the whole source image is sampled.
 - `zircon_runtime/src/rhi_wgpu/ui_surface.rs` uploads one texture per `resource_key`, binds that texture once per image draw op, and draws the image vertex range.
@@ -115,7 +115,7 @@
 
 ### Retained Host Atlas Consumption
 
-- Modify `zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs`:
+- Modify `zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs`:
   - Add optional atlas UV rect to `ChromeImagePayload`.
   - Keep existing `push_image(...)` callers compiling by passing `None` where no atlas entry is selected.
   - Add tests that command-stream replay preserves non-atlas pixels and forwards atlas metadata.
@@ -123,8 +123,8 @@
   - Forward atlas UV rect from `ChromeImagePayload` into `UiSurfaceImagePayload`.
   - Add a presenter unit test that inspects the recorded `UiSurfaceDrawList` and asserts atlas metadata reaches runtime.
 - Modify image command producers only where atlas manifests are intentionally consumed:
-  - `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs`
-  - `zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs`
+  - `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs`
+  - `zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs`
   - `zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs`
   - Keep viewport frame images non-atlas unless a concrete atlas manifest owns them; do not force dynamic viewport textures into a static atlas.
 
@@ -256,7 +256,7 @@ pub struct SpriteAtlasUvRect {
   - Pack source rectangles with `rectangle-pack` using deterministic insertion order.
   - Grow atlas dimensions from config initial size to max size.
   - Copy source image rows into a transparent RGBA atlas image.
-  - Write an atlas PNG and atlas manifest under `ProjectPaths::library_root()`.
+  - Write an atlas PNG and atlas manifest under `ProjectPaths::cache_root()/editor-sprite-atlases/`.
   - Return structured diagnostics for success, skipped sources, and pack failures.
   - Do not change runtime importers or plugin importer workspaces in this milestone.
 - Dependencies:
@@ -329,7 +329,7 @@ pub struct UiSurfaceImageUvRect {
   - Debug/correction loop: If non-atlas viewport image parity breaks, revert the atlas payload path to `None` at the producer and fix geometry composition before touching WGPU cache/upload code.
   - Acceptance evidence: non-atlas command-stream and viewport-image tests pass, atlas metadata reaches runtime, and atlas UV clipping is covered by numeric geometry tests.
 - Lightweight checks:
-  - `rustfmt --edition 2021 --check zircon_runtime/src/rhi/ui_surface.rs zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs` after DTO and geometry edits.
+  - `rustfmt --edition 2021 --check zircon_runtime/src/rhi/ui_surface.rs zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs` after DTO and geometry edits.
 - Exit evidence:
   - Atlas metadata is a normal optional image payload field, not a special renderer branch.
 

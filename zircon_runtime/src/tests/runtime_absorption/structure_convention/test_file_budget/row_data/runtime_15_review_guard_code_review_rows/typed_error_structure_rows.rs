@@ -13,8 +13,7 @@ mod status_doc_paths;
 #[path = "typed_error_structure_rows/status_mirrors.rs"]
 mod status_mirrors;
 
-const TYPED_ERROR_STRUCTURE_ROWS_STATUS_OUTPUT_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows.rs";
+const TYPED_ERROR_STRUCTURE_ROWS_STATUS_OUTPUT_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows.rs";
 const TYPED_ERROR_STRUCTURE_ROW_GROUPS: &[(&str, &str)] = &[
     ("core_rows", "EXPECTED_STATUS_OUTPUT_SLICES"),
     (

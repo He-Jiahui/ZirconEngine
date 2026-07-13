@@ -52,9 +52,9 @@ fn described_module(name: &'static str, description: &'static str) -> Arc<dyn En
 #[test]
 fn plugin_group_builder_orders_and_omits_disabled_modules() {
     let group = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
-        .add(module("B"))
+        .add_module(module("B"))
         .unwrap()
         .add_after("A", module("C"))
         .unwrap()
@@ -69,11 +69,11 @@ fn plugin_group_builder_orders_and_omits_disabled_modules() {
 #[test]
 fn plugin_group_builder_set_replaces_without_moving_order() {
     let group = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
-        .add(described_module("B", "old"))
+        .add_module(described_module("B", "old"))
         .unwrap()
-        .add(module("C"))
+        .add_module(module("C"))
         .unwrap()
         .set(described_module("B", "replacement"))
         .unwrap()
@@ -87,12 +87,12 @@ fn plugin_group_builder_set_replaces_without_moving_order() {
 #[test]
 fn plugin_group_builder_reports_duplicate_key_and_missing_anchor() {
     let duplicate = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap_err();
     let missing_anchor = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
         .add_before("Missing", module("B"))
         .unwrap_err();
@@ -116,7 +116,7 @@ fn plugin_group_builder_reports_duplicate_key_and_missing_anchor() {
 #[test]
 fn plugin_group_builder_reports_missing_keys_for_mutation() {
     let set_error = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
         .set(module("Missing"))
         .unwrap_err();
@@ -139,9 +139,9 @@ fn plugin_group_builder_reports_missing_keys_for_mutation() {
 #[test]
 fn plugin_group_builder_reports_disabled_anchor_reordering() {
     let error = PluginGroupBuilder::start("TestPlugins")
-        .add(module("A"))
+        .add_module(module("A"))
         .unwrap()
-        .add(module("B"))
+        .add_module(module("B"))
         .unwrap()
         .disable("B")
         .unwrap()
@@ -160,9 +160,9 @@ fn plugin_group_builder_reports_disabled_anchor_reordering() {
 #[test]
 fn builtin_plugin_groups_resolve_expected_module_sets() {
     let minimal = MinimalPlugins.build().unwrap().finish();
-    let default = DefaultPlugins::default().build().unwrap().finish();
-    let dev = DevPlugins::default().build().unwrap().finish();
-    let headless = HeadlessPlugins::default().build().unwrap().finish();
+    let default = DefaultPlugins.build().unwrap().finish();
+    let dev = DevPlugins.build().unwrap().finish();
+    let headless = HeadlessPlugins.build().unwrap().finish();
 
     assert_eq!(
         minimal.module_keys(),
@@ -225,9 +225,9 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
 fn builtin_plugin_groups_finish_in_descriptor_activation_order() {
     for group in [
         MinimalPlugins.build().unwrap().finish(),
-        DefaultPlugins::default().build().unwrap().finish(),
-        DevPlugins::default().build().unwrap().finish(),
-        HeadlessPlugins::default().build().unwrap().finish(),
+        DefaultPlugins.build().unwrap().finish(),
+        DevPlugins.build().unwrap().finish(),
+        HeadlessPlugins.build().unwrap().finish(),
     ] {
         let descriptors = group.module_descriptors();
         let sorted_names = sort_module_activation_order(&descriptors).unwrap();

@@ -1,3 +1,4 @@
+use crate::core::commands::DocumentKind;
 use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::SceneViewportSettings;
 use zircon_runtime_interface::math::UVec2;
@@ -11,6 +12,7 @@ use super::{InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry, StatusTaskPr
 
 #[derive(Clone, Debug)]
 pub struct EditorChromeSnapshot {
+    pub focused_document_kind: Option<DocumentKind>,
     pub workbench: WorkbenchSnapshot,
     pub scene_entries: Vec<SceneEntry>,
     pub inspector: Option<InspectorSnapshot>,

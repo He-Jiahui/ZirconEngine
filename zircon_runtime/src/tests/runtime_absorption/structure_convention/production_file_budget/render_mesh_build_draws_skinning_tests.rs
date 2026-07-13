@@ -9,7 +9,8 @@ fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
     );
 
     let plan_02 = read_repo("docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let mesh_pass_doc =
@@ -32,15 +33,15 @@ fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
     for moved_test_anchor in [
         "fn joint_palette_composes_pose_world_against_bind_world_matrices(",
         "fn joint_palette_reports_missing_parent_bone_reference(",
-        "fn joint_palette_uniform_packs_gpu_matrices_and_count(",
-        "fn joint_palette_uniform_rejects_current_uniform_limit_overflow(",
-        "fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit(",
+        "fn joint_palette_storage_packs_gpu_matrices_and_count(",
+        "fn joint_palette_storage_rejects_current_storage_limit_overflow(",
+        "fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_storage_limit(",
         "fn skin_model_primitive_rotates_weighted_vertex_around_joint_bind_origin(",
         "fn skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning(",
         "fn skin_mesh_asset_primitive_applies_morph_weights_before_skinning(",
         "fn prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning(",
         "fn unit_test_skeleton(",
-        "fn oversized_uniform_skeleton(",
+        "fn oversized_storage_skeleton(",
         "fn joint_quarter_turn_pose(",
     ] {
         assert!(
@@ -57,15 +58,15 @@ fn runtime_15_build_mesh_draws_skinning_tests_are_child_owner() {
             "SKINNED_MESH_MAX_JOINT_MATRICES",
             "fn joint_palette_composes_pose_world_against_bind_world_matrices(",
             "fn joint_palette_reports_missing_parent_bone_reference(",
-            "fn joint_palette_uniform_packs_gpu_matrices_and_count(",
-            "fn joint_palette_uniform_rejects_current_uniform_limit_overflow(",
-            "fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit(",
+            "fn joint_palette_storage_packs_gpu_matrices_and_count(",
+            "fn joint_palette_storage_rejects_current_storage_limit_overflow(",
+            "fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_storage_limit(",
             "fn skin_model_primitive_rotates_weighted_vertex_around_joint_bind_origin(",
             "fn skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning(",
             "fn skin_mesh_asset_primitive_applies_morph_weights_before_skinning(",
             "fn prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning(",
             "fn unit_test_skeleton(",
-            "fn oversized_uniform_skeleton(",
+            "fn oversized_storage_skeleton(",
             "fn joint_quarter_turn_pose(",
         ],
     );

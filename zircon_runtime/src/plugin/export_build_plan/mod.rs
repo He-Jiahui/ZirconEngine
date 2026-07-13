@@ -1,6 +1,7 @@
 mod asset_manifest_template;
 mod cargo_manifest_template;
 mod default_profile;
+mod error;
 mod export_build_plan;
 mod export_generated_file;
 mod export_materialize_report;
@@ -18,13 +19,14 @@ mod plugin_selection_template;
 mod project_manifest_validation;
 mod source_template_build_plan;
 
+pub use error::ExportBuildPlanError;
 pub use export_build_plan::ExportBuildPlan;
 pub(crate) use export_build_plan::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
 pub use export_generated_file::ExportGeneratedFile;
 pub use export_materialize_report::ExportMaterializeReport;
 pub use export_validate_report::{
-    ExportPipelineStage, ExportValidateGeneratedFileSummary, ExportValidatePlanSummary,
-    ExportValidateProfileSummary, ExportValidateReport,
+    ExportValidateGeneratedFileSummary, ExportValidatePlanSummary, ExportValidateProfileSummary,
+    ExportValidateReport,
 };
 pub use library_embed_compile_plan::{
     LibraryEmbedCompileHostPlan, LibraryEmbedCompileHostTarget, LibraryEmbedLinkedRuntimeCrate,

@@ -27,6 +27,19 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )
     }
 
+    pub fn optional_texture_view(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<Option<&wgpu::TextureView>, String> {
+        Self::optional_texture_view_by_name(
+            self.resources,
+            self.resource_resolver,
+            resource_name,
+            access,
+        )
+    }
+
     pub fn require_buffer(
         &self,
         resource_name: &str,

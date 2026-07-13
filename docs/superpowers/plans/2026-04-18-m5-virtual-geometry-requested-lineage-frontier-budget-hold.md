@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
 plan_sources:
   - user: 2026-04-18 下一步是更深的 unified-indirect / residency-manager cascade，把同一套 frontier truth 继续推进到真实 GPU uploader / page-table / split-merge frontier policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -11,7 +11,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-pending-cascade-descendant-hold.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-frontier-priority-and-active-request-lineage.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontier_budget_collapses -- --nocapture
   - cargo test -p zircon_graphics --offline --locked visibility -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry -- --nocapture

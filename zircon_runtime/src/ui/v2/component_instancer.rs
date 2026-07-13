@@ -290,8 +290,12 @@ fn apply_patch_to_node(node: &mut UiV2NodeDefinition, patch: MountPatch) {
     node.classes.extend(patch.classes);
     node.props.extend(patch.props);
     node.state.extend(patch.state);
-    if patch.layout.is_some() {
-        node.layout = patch.layout;
+    if let Some(layout_patch) = patch.layout {
+        if let Some(layout) = &mut node.layout {
+            merge_value_map(layout, &layout_patch);
+        } else {
+            node.layout = Some(layout_patch);
+        }
     }
     if patch.repeat.is_some() {
         node.repeat = patch.repeat;
@@ -312,15 +316,69 @@ fn push_slot_children(stack: &mut Vec<ExpandTask>, task: &ExpandTask, node: &UiV
         return;
     };
     for child in children.iter().rev() {
+        let mut mount_slot = slot_placeholder_mount_slot(node);
+        merge_mount_slot(&mut mount_slot, &child.slot);
         stack.push(ExpandTask {
             document: Arc::clone(&task.slot_context.caller_document),
             node_id: child.node.clone(),
             parent_output_id: task.parent_output_id.clone(),
-            mount_slot: child.slot.clone(),
+            mount_slot,
             patch: None,
             slot_context: empty_slot_context(Arc::clone(&task.slot_context.caller_document)),
             component_stack: task.component_stack.clone(),
         });
+    }
+}
+
+/// A filled child replaces the placeholder node in the output graph, but the
+/// placeholder still owns the child's layout contract inside the component.
+/// Transfer that contract before the placeholder disappears; caller-authored
+/// mount values remain the final override.
+fn slot_placeholder_mount_slot(node: &UiV2NodeDefinition) -> BTreeMap<String, Value> {
+    let mut slot = BTreeMap::new();
+    if let Some(layout) = &node.layout {
+        slot.insert(
+            "layout".to_string(),
+            Value::Table(layout.clone().into_iter().collect()),
+        );
+    }
+    slot
+}
+
+fn merge_mount_slot(target: &mut BTreeMap<String, Value>, source: &BTreeMap<String, Value>) {
+    merge_value_map(target, source);
+}
+
+/// Component roots own structural defaults such as their container kind while
+/// instance sites commonly override only one axis. Merge nested layout maps so
+/// omitted prototype structure survives and the instance remains authoritative
+/// at every leaf it explicitly authors.
+fn merge_value_map(target: &mut BTreeMap<String, Value>, source: &BTreeMap<String, Value>) {
+    for (key, value) in source {
+        match (target.get_mut(key), value) {
+            (Some(Value::Table(target_table)), Value::Table(source_table)) => {
+                merge_toml_table(target_table, source_table);
+            }
+            _ => {
+                target.insert(key.clone(), value.clone());
+            }
+        }
+    }
+}
+
+fn merge_toml_table(
+    target: &mut toml::map::Map<String, Value>,
+    source: &toml::map::Map<String, Value>,
+) {
+    for (key, value) in source {
+        match (target.get_mut(key), value) {
+            (Some(Value::Table(target_table)), Value::Table(source_table)) => {
+                merge_toml_table(target_table, source_table);
+            }
+            _ => {
+                target.insert(key.clone(), value.clone());
+            }
+        }
     }
 }
 

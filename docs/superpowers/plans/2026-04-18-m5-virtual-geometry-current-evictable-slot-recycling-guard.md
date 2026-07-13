@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/slot_is_assignable.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_pending_pages.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/slot_is_assignable.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_pending_pages.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/slot_is_assignable.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/slot_is_assignable.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry 的 deeper unified indirect / cluster raster / residency-manager cascade
   - user: 2026-04-18 继续列出所有剩余 todo，作为 tasks，然后继续深入
@@ -14,7 +14,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-merge-back-child-hysteresis.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-lineage-segments.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_rejects_gpu_slot_recycling_when_current_evictable_set_withdraws_page
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime
   - cargo check -p zircon_graphics --lib --offline --locked

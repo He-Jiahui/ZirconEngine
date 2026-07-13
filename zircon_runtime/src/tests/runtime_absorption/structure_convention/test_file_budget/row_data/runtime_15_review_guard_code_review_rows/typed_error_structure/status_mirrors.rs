@@ -6,7 +6,6 @@ const STATUS_MIRROR_DOC_PATHS: &[&str] = &[
     "docs/plans/engine-code-review-findings-2026-06.md",
     "docs/plans/engine-code-structure-convention.md",
     "docs/zircon_runtime/structure/module-convention.md",
-    ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
 ];
 
 fn assert_status_docs_include(label: &str, expected: &[&str]) {

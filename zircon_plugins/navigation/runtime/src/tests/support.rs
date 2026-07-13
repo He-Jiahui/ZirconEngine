@@ -1,6 +1,8 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavLinkMotion, AREA_JUMP, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
+};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity,
 };
 
 pub(super) fn two_island_navmesh(with_link: bool) -> NavMeshAsset {

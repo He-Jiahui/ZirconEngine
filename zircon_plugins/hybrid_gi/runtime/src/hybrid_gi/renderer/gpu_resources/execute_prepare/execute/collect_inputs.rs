@@ -169,6 +169,9 @@ mod tests {
             resident_probes: vec![HybridGiPrepareProbe {
                 probe_id: 7,
                 slot: 0,
+                stable_instance_key: 0,
+                source_mask: zircon_runtime::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+                dynamic_weight_q8: u8::MAX,
                 ray_budget: 32,
                 irradiance_rgb: [8, 16, 24],
             }],

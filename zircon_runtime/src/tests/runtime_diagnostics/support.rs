@@ -22,7 +22,6 @@ use crate::core::framework::render::{
 use crate::core::runtime::ServiceObject;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode};
 use crate::engine_module::factory;
-use crate::graphics::RenderPipelineAsset;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 pub(super) const DIAGNOSTICS_TEST_MODULE: &str = crate::graphics::GRAPHICS_MODULE_NAME;
@@ -88,13 +87,6 @@ impl RenderFramework for FakeRenderFramework {
         Ok(())
     }
 
-    fn register_pipeline_asset(
-        &self,
-        pipeline: RenderPipelineAsset,
-    ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
-        Ok(pipeline.handle)
-    }
-
     fn reload_pipeline(&self, _pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {
         Ok(())
     }
@@ -121,6 +113,7 @@ impl RenderFramework for FakeRenderFramework {
                 false,
                 true,
                 true,
+                false,
             ),
             last_frame_target_size: Some(crate::core::math::UVec2::new(1280, 720)),
             last_frame_render_size: Some(crate::core::math::UVec2::new(960, 540)),
@@ -140,6 +133,7 @@ impl RenderFramework for FakeRenderFramework {
                 crate::core::framework::render::RenderCameraTargetWritebackReport::not_requested(
                     crate::core::framework::render::RenderCameraTargetKind::Headless,
                 ),
+            last_camera_loop_submission_count: 4,
             last_scene_camera_scheduled_count: 3,
             last_scene_camera_order_ambiguity_count: 1,
             last_visibility_view_count: 2,
@@ -213,6 +207,9 @@ impl RenderFramework for FakeRenderFramework {
             last_graph_compute_missing_dispatch_count: 1,
             last_graph_compute_workload_mismatch_count: 0,
             last_graph_compute_unexpected_dispatch_count: 0,
+            last_volumetric_fog_compute_dispatch_count: 3,
+            last_volumetric_fog_compute_dispatch_group_count: 44_400,
+            last_volumetric_fog_uploaded_bytes: 624,
             last_graph_execution_resource_report: RenderGraphExecutionResourceReport::new(
                 18, 14, 4, 3,
             )

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginDistributionManifest {

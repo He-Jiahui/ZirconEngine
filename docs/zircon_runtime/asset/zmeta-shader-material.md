@@ -5,6 +5,7 @@ related_code:
   - zircon_runtime_interface/src/resource/asset_reference.rs
   - zircon_runtime_interface/src/resource/resource_id.rs
   - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/meta_io.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
@@ -24,6 +25,7 @@ related_code:
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/material_asset/management.rs
   - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/subsurface.rs
   - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
   - zircon_runtime/src/asset/assets/material/property_values.rs
   - zircon_runtime/src/asset/assets/material/texture_slot.rs
@@ -66,8 +68,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
@@ -80,10 +82,10 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
@@ -102,6 +104,7 @@ implementation_files:
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/asset_reference.rs
   - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/meta_io.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
@@ -119,14 +122,15 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
   - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/material_asset/management.rs
   - zircon_runtime/src/asset/assets/material/material_asset/readiness.rs
+  - zircon_runtime/src/asset/assets/material/material_asset/subsurface.rs
   - zircon_runtime/src/asset/assets/material/material_asset/value_sync.rs
   - zircon_runtime/src/asset/assets/material/property_values.rs
   - zircon_runtime/src/asset/assets/material/texture_slot.rs
@@ -168,10 +172,10 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/folder_projection.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/core/project/authority.rs
   - zircon_editor/src/ui/workbench/project/runtime_asset_resolution.rs
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
-  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.zshader
+  - templates/projects/renderable-empty/assets/shaders/pbr_shader/pbr.wgsl
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
@@ -179,6 +183,7 @@ implementation_files:
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - docs/assets-and-rendering/fixtures/zmeta-shader-material
 plan_sources:
+  - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
@@ -192,6 +197,7 @@ plan_sources:
   - user: 2026-05-27 continue shader/material management
   - docs/plans/zircon_runtime/shader/01-shader-asset-kinds-and-zshader-v2.md
 tests:
+  - zircon_runtime/src/asset/tests/project/zmeta/schema_v7.rs
   - rustfmt --edition 2021 zircon_runtime/src/asset/mod.rs zircon_runtime/src/asset/assets/mod.rs zircon_runtime/src/asset/assets/shader/mod.rs zircon_runtime/src/asset/assets/shader/zshader.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/shader/asset_kind.rs zircon_runtime/src/core/framework/render/shader/queue.rs zircon_runtime/src/core/framework/render/shader/render_state.rs zircon_runtime/src/core/framework/render/shader/resource.rs (2026-07-02 SH01-M1 zshader v2 contract parse: passed)
   - cargo test -p zircon_runtime --lib zshader_v2 --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh01-m1 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SH01-M1 zshader v2 contract parse: passed, 3 passed, 5948 filtered; existing repository warnings only)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs (2026-07-02 SH01-M2 zshader v2 importer cutover review guard: passed)
@@ -502,6 +508,8 @@ doc_type: module-detail
 
 The asset identity path is now owned by `zircon_runtime::asset` and `zircon_runtime::core::resource`: `.zmeta` stores UUID identity, human-readable URL, source unit, included files, subasset entries, importer state, artifact locators, and dependency locators. There is no second asset database.
 
+Current sidecars are format version 7 and spell the source fingerprint `source_digest`. `AssetMetaDocument::from_toml_str` first classifies missing, non-integer, negative, out-of-u32-range, old, current, and future versions; only current v7 then checks the retired `source_hash` key and strict top-level/nested serde shape. `AssetMetaDocument::save` writes and syncs a unique same-directory staging file, then commits by rename. Existing targets remain continuously visible: Windows commits replacement plus backup with one `ReplaceFileW` call, while Unix preserves a hard-link/copy backup and uses same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable. Unix backup-sync failure cleans staging and backup; Windows ReplaceFileW failure preserves any backup created by the OS and returns its path together with the original OS error code/source. No serde alias or automatic legacy migration remains. Repository `.zmeta` files and Rust-authored sidecar strings use only the v7 shape. M2.1 tests cover typed schema classification, nested unknown fields, atomic replacement, injected commit rollback, and cleanup; Cargo execution remains for the milestone testing stage.
+
 ## Locator Rules
 
 - `res://path/to/asset` maps to `{project_root}/assets/path/to/asset`.
@@ -574,6 +582,8 @@ Source-only shader imports now participate in the project resource dependency gr
 Material/schema mismatches are represented as typed readiness diagnostics rather than importer failures. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` with `ShaderAsset.property_schema` and `[textures.<slot>]` with `ShaderAsset.texture_slots`; it records unknown overrides, override type mismatches, missing required shader properties, unknown texture slots, and missing required texture-slot references with stable document paths. A fallback-only slot such as `[textures.base_color] fallback = "white"` remains valid authoring metadata, but it does not satisfy a shader slot marked `required = true` because no concrete texture asset reference can enter the dependency graph or renderer upload path. `ResourceStreamer::ensure_material(...)` now has a focused regression, `render_product_streamer_reports_shader_material_contract_diagnostics`, that verifies those rows survive shader loading and are stored on the runtime material readiness report together. `MaterialAsset::readiness_report_with_shader_contract(...)` merges those diagnostics with dependency-resolution readiness based on the shader-promoted descriptor dependency set and consumes `ShaderAsset::readiness_report()` so missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, and shader-side WGSL capture diagnostics all reach material/runtime readiness reports. It also checks `ShaderAsset.dependencies`, so a redirected shader include that cannot be resolved becomes a material `UnresolvedShaderReference` plus shader fallback usage instead of surfacing only as a later shader-template/pipeline failure. `MaterialAsset.validation_diagnostics` now flows into the report's non-blocking `diagnostics` list with `MaterialAsset` source and paths like `material.validation_diagnostics[0]`; uniform payload unsupported rows flow into the same list with `MaterialUniform` source and paths like `uniform.debug_label`. Diagnostics-only rows classify as `Diagnostic` but still leave `is_ready()` true; fallback and validation rows classify as degraded or invalid according to the shared status priority. The readiness report de-duplicates those rows by full diagnostic identity before storage. Importer notes from glTF, generated default materials, and non-uniform property retention stay visible without making the material fail readiness.
 
 Runtime 15 M4 material asset value/readiness helper owner split status is `runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result`. The M4 structure slice keeps `asset/assets/material/material_asset.rs` as the 750-line owner for `MaterialAsset` DTOs, `.zmaterial` document conversion entry points, descriptor/readiness public API, management overview, and shader-aware dependency/texture-slot entry points; it moves TOML override reads, texture-slot hydration, legacy default synchronization, and TOML array emission into `asset/assets/material/material_asset/value_sync.rs` (136 lines), and moves shader readiness diagnostic projection plus material validation diagnostic rows into `asset/assets/material/material_asset/readiness.rs` (70 lines). `runtime_15_material_asset_value_readiness_helpers_are_child_owners` guards the parent/child layout, moved helper ownership, three-way 800-line budget, and Runtime 15/status/material asset/module documentation anchors. This split does not change `.zmaterial` serialization, `MaterialAsset` public APIs, render material descriptor fields, or readiness report semantics; full `large_file_ownership_gate`, `module_convention_gate`, and asset/render material Cargo sweep remain pending because the focused locked Cargo command timed out after 120 seconds with no test result.
+
+2026-07-12 的优先结构门复验捕获到 Subsurface profile 投影把 `material_asset.rs` 推到 809 行。当前实现已将 `subsurface_profile_index(...)`、`is_subsurface_material(...)` 与 `authored_subsurface_profile(...)` 硬拆到 `material_asset/subsurface.rs`，父 owner 回到 777 行，新 child 为 38 行；公共方法路径和 `SubsurfaceProfileData` 语义不变，也没有旧模块 facade。`runtime_15_material_asset_value_readiness_helpers_are_child_owners` 现同时锁定 subsurface child mount、方法不得回流父文件、五个 material asset owner 均低于 800 行。源码型旧二进制守卫 3/3 已恢复；重编译后的完整结构门证据另由 Runtime 15 / Frameworks 06 状态记录承接。
 
 Runtime 15 M4 material asset management record owner split status is `runtime_15_material_asset_management_record_owner_split_static_passed_cargo_deferred`. The follow-up M4 structure slice keeps `asset/assets/material/material_asset.rs` as the 651-line owner for `MaterialAsset` DTOs, `.zmaterial` document conversion entry points, descriptor/readiness public API, `overview(...)`/`management_record(...)` entry points, and shader-aware dependency/texture-slot entry points; it moves `MaterialAssetOverview`, `MaterialAssetManagementRecord`, `MaterialAssetManagementRecordSetSummary`, and `MaterialAssetManagementRecordSet` plus record-set sorting/summary impls into `asset/assets/material/material_asset/management.rs` (108 lines). The parent keeps the original public type paths through `mod management;` and `pub use self::management::{...}`. `runtime_15_material_asset_management_records_are_child_owner` guards the parent/child layout, management DTO/impl ownership, two-way 800-line budget, and Runtime 15/status/material asset/module documentation anchors. This split does not change `.zmaterial` serialization, `MaterialAsset::overview(...)` or `management_record(...)` public behavior, management row ordering, summary counts, render material descriptor fields, or readiness report semantics; full `large_file_ownership_gate`, `module_convention_gate`, and asset/render material Cargo sweep remain pending because Cargo was deferred while external cargo/rustc lanes were active.
 

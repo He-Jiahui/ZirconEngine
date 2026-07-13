@@ -3,7 +3,7 @@ use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
     SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot,
 };
-use crate::graphics::scene::scene_renderer::ui::sdf_params::SdfBakeParams;
+use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
 
 #[test]
 fn sdf_upload_report_uses_full_texture_when_atlas_resizes() {
@@ -249,7 +249,7 @@ fn sdf_upload_report_emits_dirty_commands_for_pages_beyond_page_zero() {
             dirty_pages: vec![dirty_cache_page(1, dirty_rect)],
         },
         false,
-        2 * 512 * 512,
+        512 * 512,
         false,
     );
 
@@ -268,7 +268,7 @@ fn sdf_upload_report_emits_dirty_commands_for_pages_beyond_page_zero() {
     let commands = sdf_atlas_upload_commands(
         &atlas_plan_with_page_slots(vec![slot_on_page('B', 1, dirty_rect)]),
         report,
-        2 * 512 * 512,
+        512 * 512,
     );
 
     assert_eq!(commands.len(), 1);
@@ -278,10 +278,7 @@ fn sdf_upload_report_emits_dirty_commands_for_pages_beyond_page_zero() {
         GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 1)
     );
     assert_eq!(commands[0].rect, glyph_rect(64, 128, 128, 64));
-    assert_eq!(
-        commands[0].source_offset,
-        (512 * 512 + 128 * 512 + 64) as u64
-    );
+    assert_eq!(commands[0].source_offset, (128 * 512 + 64) as u64);
     assert_eq!(commands[0].bytes_per_row, 512);
     assert_eq!(commands[0].rows_per_image, 512);
     assert_eq!(commands[0].upload_byte_len, 128 * 64);
@@ -343,6 +340,113 @@ fn sdf_upload_report_emits_full_page_commands_for_all_resized_layers() {
     assert_eq!(commands[1].source_offset, 512 * 512);
 }
 
+#[test]
+fn sdf_upload_commands_preserve_mixed_page_stride_and_source_offsets() {
+    let page_area = 512 * 512;
+    let source_byte_len = page_area + page_area * 4;
+    let plan = atlas_plan_with_page_slots(vec![
+        slot_on_format(
+            'A',
+            SdfMode::Sdf,
+            GlyphAtlasFormat::Sdf,
+            sdf_rect(0, 0, 64, 64),
+        ),
+        slot_on_format(
+            'M',
+            SdfMode::Msdf,
+            GlyphAtlasFormat::Msdf,
+            sdf_rect(0, 0, 64, 64),
+        ),
+    ]);
+    let report = sdf_atlas_upload_report(
+        &plan,
+        SdfAtlasCacheReport {
+            current_slot_count: 2,
+            added_slot_count: 2,
+            atlas_resized: true,
+            ..Default::default()
+        },
+        true,
+        source_byte_len,
+        true,
+    );
+
+    assert_eq!(report.mode, SdfAtlasUploadMode::FullTexture);
+    assert_eq!(report.byte_len, source_byte_len);
+    assert_eq!(report.dirty_pages.len(), 2);
+    assert_eq!(report.dirty_pages[0].byte_len, page_area);
+    assert_eq!(report.dirty_pages[1].byte_len, page_area * 4);
+
+    let commands = sdf_atlas_upload_commands(&plan, report, source_byte_len);
+    assert_eq!(commands.len(), 2);
+    assert_eq!(
+        commands[0].page_key,
+        GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0)
+    );
+    assert_eq!(commands[0].source_offset, 0);
+    assert_eq!(commands[0].bytes_per_row, 512);
+    assert_eq!(commands[0].upload_byte_len, page_area);
+    assert_eq!(
+        commands[1].page_key,
+        GlyphAtlasPageKey::new(GlyphAtlasFormat::Msdf, 0)
+    );
+    assert_eq!(commands[1].source_offset, page_area as u64);
+    assert_eq!(commands[1].bytes_per_row, 512 * 4);
+    assert_eq!(commands[1].upload_byte_len, page_area * 4);
+}
+
+#[test]
+fn sdf_upload_partial_msdf_rect_uses_rgba_row_stride() {
+    let page_area = 512 * 512;
+    let source_byte_len = page_area + page_area * 4;
+    let dirty_rect = sdf_rect(64, 128, 128, 64);
+    let plan = atlas_plan_with_page_slots(vec![
+        slot_on_format(
+            'A',
+            SdfMode::Sdf,
+            GlyphAtlasFormat::Sdf,
+            sdf_rect(0, 0, 64, 64),
+        ),
+        slot_on_format('M', SdfMode::Msdf, GlyphAtlasFormat::Msdf, dirty_rect),
+    ]);
+    let report = sdf_atlas_upload_report(
+        &plan,
+        SdfAtlasCacheReport {
+            previous_slot_count: 2,
+            current_slot_count: 2,
+            retained_slot_count: 2,
+            stable_slot_count: 1,
+            relocated_slot_count: 1,
+            dirty_pages: vec![SdfAtlasDirtyPageReport {
+                page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Msdf, 0),
+                dirty_rect,
+            }],
+            ..Default::default()
+        },
+        false,
+        source_byte_len,
+        false,
+    );
+
+    assert_eq!(report.mode, SdfAtlasUploadMode::DirtySlots);
+    assert_eq!(report.byte_len, 128 * 64 * 4);
+    let commands = sdf_atlas_upload_commands(&plan, report, source_byte_len);
+    assert_eq!(commands.len(), 1);
+    assert_eq!(commands[0].mode, GlyphAtlasUploadMode::PartialRect);
+    assert_eq!(
+        commands[0].page_key,
+        GlyphAtlasPageKey::new(GlyphAtlasFormat::Msdf, 0)
+    );
+    assert_eq!(commands[0].rect, glyph_rect(64, 128, 128, 64));
+    assert_eq!(
+        commands[0].source_offset,
+        (page_area + (128 * 512 + 64) * 4) as u64
+    );
+    assert_eq!(commands[0].bytes_per_row, 512 * 4);
+    assert_eq!(commands[0].rows_per_image, 512);
+    assert_eq!(commands[0].upload_byte_len, 128 * 64 * 4);
+}
+
 fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
     let slots = (0..slot_count)
         .map(|index| SdfAtlasSlot {
@@ -350,6 +454,7 @@ fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
                 glyph: char::from_u32('A' as u32 + index as u32).unwrap_or('A'),
                 glyph_id: None,
                 font_id: None,
+                font_instance_id: None,
                 font: Some("res://fonts/default.font.toml".to_string()),
                 font_family: Some("Zircon Sans".to_string()),
                 language: None,
@@ -379,17 +484,13 @@ fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
 }
 
 fn atlas_plan_with_page_slots(slots: Vec<SdfAtlasSlot>) -> SdfAtlasPlan {
-    let max_page_index = slots
+    let page_keys = slots
         .iter()
-        .map(|slot| slot.page_key.page_index)
-        .max()
-        .unwrap_or(0);
+        .map(|slot| slot.page_key)
+        .collect::<std::collections::BTreeSet<_>>();
     let mut atlas_set = crate::graphics::text::atlas::GlyphAtlasSet::default();
-    for page_index in 0..=max_page_index {
-        atlas_set = atlas_set.with_page(GlyphAtlasPageSpec::new(
-            GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index),
-            UVec2::splat(512),
-        ));
+    for page_key in page_keys {
+        atlas_set = atlas_set.with_page(GlyphAtlasPageSpec::new(page_key, UVec2::splat(512)));
     }
     SdfAtlasPlan {
         atlas_size: UVec2::splat(512),
@@ -407,6 +508,7 @@ fn slot_on_page(glyph: char, page_index: u32, rect: SdfAtlasRect) -> SdfAtlasSlo
             glyph,
             glyph_id: None,
             font_id: None,
+            font_instance_id: None,
             font: Some("res://fonts/default.font.toml".to_string()),
             font_family: Some("Zircon Sans".to_string()),
             language: None,
@@ -414,6 +516,31 @@ fn slot_on_page(glyph: char, page_index: u32, rect: SdfAtlasRect) -> SdfAtlasSlo
             bake_params: SdfBakeParams::default(),
         },
         page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index),
+        rect,
+    }
+}
+
+fn slot_on_format(
+    glyph: char,
+    mode: SdfMode,
+    format: GlyphAtlasFormat,
+    rect: SdfAtlasRect,
+) -> SdfAtlasSlot {
+    let mut bake_params = SdfBakeParams::default();
+    bake_params.mode = mode;
+    SdfAtlasSlot {
+        key: SdfAtlasGlyphKey {
+            glyph,
+            glyph_id: None,
+            font_id: None,
+            font_instance_id: None,
+            font: Some("res://fonts/default.font.toml".to_string()),
+            font_family: Some("Zircon Sans".to_string()),
+            language: None,
+            font_weight: 400,
+            bake_params,
+        },
+        page_key: GlyphAtlasPageKey::new(format, 0),
         rect,
     }
 }

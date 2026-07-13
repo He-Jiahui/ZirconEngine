@@ -35,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
 ) -> WorkbenchFieldMetrics {
     let border_width = metrics.border_width;
     let min_rect_extent = border_width.max(1.0);
-    let search_icon_size = (metrics.row_height - metrics.gap_m)
+    let search_icon_size = (metrics.row_height - metrics.gap_l)
         .max(metrics.font_body)
         .round();
     let search_text_left = metrics.input_pad[0] + search_icon_size + metrics.gap_s;
@@ -88,12 +88,12 @@ mod tests {
         assert_eq!(metrics.font_size, 12.0);
         assert!((metrics.line_height - 14.4).abs() < 0.001);
         assert_eq!(metrics.min_text_rect_width, 2.0);
-        assert_eq!(metrics.search_icon_size, 21.0);
-        assert_eq!(metrics.search_text_left, 35.0);
+        assert_eq!(metrics.search_icon_size, 18.0);
+        assert_eq!(metrics.search_text_left, 32.0);
         assert_eq!(metrics.search_max_height, 38.0);
-        assert_eq!(metrics.stepper_width, 21.0);
+        assert_eq!(metrics.stepper_width, 18.0);
         assert_eq!(metrics.stepper_divider_width, 2.0);
         assert_eq!(metrics.stepper_divider_inset_y, 5.0);
-        assert_eq!(metrics.stepper_glyph_width, 16.0);
+        assert_eq!(metrics.stepper_glyph_width, 13.0);
     }
 }

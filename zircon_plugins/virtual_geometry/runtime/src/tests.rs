@@ -21,8 +21,8 @@ fn virtual_geometry_registration_contributes_render_feature_descriptor() {
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(report.package_manifest.category, "rendering");
@@ -117,9 +117,9 @@ fn virtual_geometry_registration_contributes_render_feature_descriptor() {
 fn virtual_geometry_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(manifest
-        .default_packaging
-        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.default_packaging.contains(
+        &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+    ));
 
     let distribution = manifest
         .distribution
@@ -128,7 +128,7 @@ fn virtual_geometry_package_manifest_declares_dist_contract() {
     assert_eq!(distribution.forms, vec!["dist".to_string()]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
@@ -155,8 +155,8 @@ fn virtual_geometry_package_manifest_declares_dist_contract() {
     assert_eq!(
         native_module.target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     for capability in RUNTIME_CAPABILITIES {

@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderExposureMode, RenderExposureSettings,
+    VOLUMETRIC_FOG_VOLUME_COMPONENT,
 };
 use crate::core::math::Vec3;
 
@@ -123,7 +124,7 @@ const DEPTH_OF_FIELD_PARAMS: [VolumeParamSchema; 7] = [
 ];
 
 const MOTION_BLUR_PARAMS: [VolumeParamSchema; 2] =
-    [float_param("shutter_angle", 0.0), uint_param("samples", 0)];
+    [float_param("shutter_angle", 0.0), uint_param("samples", 1)];
 
 const EXPOSURE_PARAMS: [VolumeParamSchema; 9] = [
     enum_param("mode", 0),
@@ -144,8 +145,8 @@ const SCREEN_SPACE_REFLECTION_PARAMS: [VolumeParamSchema; 6] = [
     float_param("intensity", 0.0),
     float_param("thickness", 0.1),
     float_param("max_ray_distance", 50.0),
-    uint_param("max_steps", 0),
-    float_param("temporal_blend_factor", 0.9),
+    uint_param("max_steps", 64),
+    float_param("temporal_blend_factor", 0.18),
     float_param("roughness_mip_bias", 0.0),
 ];
 
@@ -194,7 +195,8 @@ const COLOR_LOOKUP_PARAMS: [VolumeParamSchema; 3] = [
 
 const BLUR_PARAMS: [VolumeParamSchema; 1] = [float_param("radius", 0.0)];
 
-const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 14] = [
+const BUILTIN_POST_PROCESS_VOLUME_COMPONENTS_ARRAY: [VolumeComponentDescriptor; 15] = [
+    VOLUMETRIC_FOG_VOLUME_COMPONENT,
     VolumeComponentDescriptor::new(
         "post.depth-of-field",
         &DEPTH_OF_FIELD_PARAMS,

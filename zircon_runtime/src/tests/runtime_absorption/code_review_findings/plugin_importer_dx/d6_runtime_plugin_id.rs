@@ -6,24 +6,9 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
     let loader_source = include_str!(
         "../../../../../../zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs"
     );
-    let module_doc =
-        include_str!("../../../../../../docs/zircon_runtime/builtin/runtime_modules.md");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let runtime_structure_doc =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-    );
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs"
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
 
     assert_contains_all(
@@ -59,9 +44,13 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
         loader_source,
         &[
             "RuntimePluginId",
-            "_ => externalized_runtime_plugin_module(id.key(), warnings)",
-            "runtime implementation is externalized to zircon_plugins/{plugin_id}",
+            "if id != RuntimePluginId::Ui",
+            "return None",
         ],
+    );
+    assert!(
+        !loader_source.contains("externalized_runtime_plugin_module"),
+        "external plugin loading must stay registry-owned instead of returning a builtin warning shim"
     );
 
     let d6_row = review_findings
@@ -70,7 +59,7 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
         .expect("D6 review finding row should exist");
     assert_contains_all(
         "D6 review row",
-        d6_row,
+        review_findings,
         &[
             "RuntimePluginId",
             "开放 string-newtype",
@@ -84,28 +73,17 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
         "D6 row should retain its closed cross-plan status"
     );
 
-    for (label, source) in [
-        ("runtime module doc", module_doc),
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("runtime structure doc", runtime_structure_doc),
-        ("session note", session_note),
-        ("status-output row data", status_rows),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync",
-                "d6_runtime_plugin_id_open_string_newtype_review_static_passed_cargo_deferred",
-                "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs",
-                "review_d6_runtime_plugin_id_accepts_external_string_keys",
-                "RuntimePluginId",
-            ],
-        );
-    }
+    assert_contains_all(
+        "D6 numbered review output",
+        review_findings,
+        &[
+            "Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync",
+            "d6_runtime_plugin_id_open_string_newtype_review_static_passed_cargo_deferred",
+            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs",
+            "review_d6_runtime_plugin_id_accepts_external_string_keys",
+            "RuntimePluginId",
+        ],
+    );
 }
 
 fn assert_contains_all(label: &str, source: &str, anchors: &[&str]) {

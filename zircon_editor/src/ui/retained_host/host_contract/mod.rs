@@ -56,6 +56,8 @@ pub(crate) use paint_template_nodes::{
     paint_template_nodes_for_test_with_background,
 };
 #[cfg(test)]
+pub(crate) use paint_workbench_renderer::paint_componentized_extension_workspace_for_test;
+#[cfg(test)]
 pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
 pub(crate) use surface_hit_test::build_pane_template_surface_frame;
 pub(crate) use window::UiHostWindow;

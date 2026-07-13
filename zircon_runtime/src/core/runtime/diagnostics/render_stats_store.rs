@@ -10,6 +10,7 @@ mod product;
 mod shader_variant;
 mod solari;
 mod virtual_geometry;
+mod volumetric_fog;
 
 use crate::core::framework::render::RenderStats;
 
@@ -26,6 +27,7 @@ pub(super) fn record_render_stats_diagnostics(store: &mut DiagnosticStore, stats
     particle::record(store, stats);
     virtual_geometry::record(store, stats);
     hybrid_gi::record(store, stats);
+    volumetric_fog::record(store, stats);
     advanced_provider::record(store, stats);
     solari::record(store, stats);
 }

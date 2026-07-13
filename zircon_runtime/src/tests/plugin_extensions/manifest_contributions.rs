@@ -2,12 +2,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 use crate::plugin::{
     CapabilityStatus, PluginFeatureBundleManifest, PluginModuleKind, PluginPackageManifest,
     RuntimePluginDescriptor,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[path = "manifest_contributions/editor_only.rs"]
 mod editor_only;

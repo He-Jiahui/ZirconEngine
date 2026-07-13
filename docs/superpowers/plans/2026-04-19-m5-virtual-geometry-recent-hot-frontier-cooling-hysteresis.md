@@ -1,24 +1,24 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/consume_feedback.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/consume_feedback.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 plan_sources:
   - user: 2026-04-19 继续把 normalized page_table / completion / hot frontier 真值压进更深的 residency-manager cascade / split-merge frontier policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_carries_recent_hot_frontier_lineage_through_one_cooling_frame_before_next_prepare -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_frontier_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline --locked page_table -- --nocapture

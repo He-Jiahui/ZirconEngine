@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-use super::{world::QueryCacheRevision, World};
+use super::{generation::WorldGeneration, world::QueryCacheRevision, World};
 use crate::scene::components::{
     default_render_layer_mask, ActiveInHierarchy, ActiveSelf, AmbientLight, CameraComponent,
     DirectionalLight, Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind,
@@ -64,6 +64,7 @@ impl World {
             deferred_command_errors: Vec::new(),
             ecs_frame_performance_diagnostics: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
+            world_generation: WorldGeneration::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
             active_change_tick: None,
@@ -170,6 +171,7 @@ impl World {
         self.rebuild_fixed_component_presence_for_entity(id);
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.advance_world_generation();
         id
     }
 

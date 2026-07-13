@@ -1,7 +1,7 @@
 use super::super::*;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use zircon_runtime::diagnostic_log::{
-    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+    diagnostic_log_allows, write_diagnostic_log, write_error, DiagnosticLogLevel,
 };
 
 impl RetainedEditorHost {
@@ -40,11 +40,19 @@ impl RetainedEditorHost {
                 submission.ui,
                 self.viewport_size,
             ) {
-                Ok(true) => {}
+                Ok(true) => {
+                    // RenderStats are updated by submission after pane payloads were collected.
+                    // Refresh presentation data once so diagnostics observe the committed frame.
+                    self.mark_presentation_dirty();
+                }
                 Ok(false) => {
                     keep_render_dirty = true;
                 }
                 Err(error) => {
+                    write_error(
+                        "editor_viewport_submission",
+                        format!("Viewport submit failed: {error}"),
+                    );
                     self.set_status_line(format!("Viewport submit failed: {error}"));
                 }
             }
@@ -57,5 +65,35 @@ impl RetainedEditorHost {
             let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
             self.ui.request_frame_update_region(frame);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn successful_render_submission_refreshes_post_submit_diagnostics_without_requeueing_render() {
+        let source = include_str!("render_submission.rs");
+        let success_arm = source
+            .split_once("Ok(true) => {")
+            .and_then(|(_, tail)| tail.split_once("Ok(false) =>"))
+            .map(|(arm, _)| arm)
+            .expect("render submission success arm should remain explicit");
+
+        assert!(success_arm.contains("self.mark_presentation_dirty();"));
+        assert!(!success_arm.contains("mark_render_and_presentation_dirty"));
+    }
+
+    #[test]
+    fn failed_render_submission_records_the_typed_error_in_process_diagnostics() {
+        let source = include_str!("render_submission.rs");
+        let error_arm = source
+            .split_once("Err(error) => {")
+            .and_then(|(_, tail)| tail.split_once("}\n            }"))
+            .map(|(arm, _)| arm)
+            .expect("render submission error arm should remain explicit");
+
+        assert!(error_arm.contains("write_error("));
+        assert!(error_arm.contains("editor_viewport_submission"));
+        assert!(error_arm.contains("{error}"));
     }
 }

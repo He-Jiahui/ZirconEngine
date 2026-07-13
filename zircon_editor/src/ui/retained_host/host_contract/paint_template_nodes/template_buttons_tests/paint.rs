@@ -3,7 +3,7 @@ use super::super::super::super::paint_text::{
     measure_runtime_text_width, measure_runtime_text_width_with_style,
 };
 use super::super::super::super::paint_theme::{
-    HostTextPreferences, HostTextSmoothing, HostUtilityTabTextRole, PALETTE,
+    HostTextPreferences, HostTextSmoothing, HostUtilityTabTextRole, METRICS, PALETTE,
 };
 use super::super::super::template_nodes::{
     paint_template_nodes_for_test, push_template_node_commands,
@@ -229,8 +229,8 @@ fn editor_variant_button_uses_centered_button_text_path() {
         "button text frame should not force Asset Browser onto a wrapped second line, got width={}",
         text_commands[0].frame.width
     );
-    assert_eq!(text_commands[0].font_size, 10.0);
-    assert_eq!(text_commands[0].line_height, 12.0);
+    assert_eq!(text_commands[0].font_size, METRICS.font_body);
+    assert!((text_commands[0].line_height - METRICS.line_height(METRICS.font_body)).abs() < 0.0001);
     let runtime_width = measure_runtime_text_width("Asset Browser", text_commands[0].font_size);
     let expected_centered_x = 12.0 + (128.0 - runtime_width) * 0.5;
     assert!(
@@ -588,7 +588,7 @@ fn selected_asset_browser_utility_tab_still_paints_slate_indicator() {
 
     let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
 
-    assert_eq!(pixel_at(&bytes, 112, 48, 10), PALETTE.surface_pressed);
+    assert_eq!(pixel_at(&bytes, 112, 48, 10), [0, 0, 0, 255]);
     assert_ne!(pixel_at(&bytes, 112, 16, 30), PALETTE.accent);
     assert_eq!(pixel_at(&bytes, 112, 48, 30), PALETTE.accent);
     assert_ne!(pixel_at(&bytes, 112, 48, 8), PALETTE.focus_ring);

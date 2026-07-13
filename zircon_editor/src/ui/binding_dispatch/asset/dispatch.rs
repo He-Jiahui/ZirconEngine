@@ -14,8 +14,8 @@ pub fn dispatch_asset_binding(
     };
 
     match command {
-        AssetCommand::OpenAsset { asset_path } => Ok(AssetHostEvent::OpenAsset {
-            asset_path: asset_path.clone(),
+        AssetCommand::OpenAsset { asset_locator } => Ok(AssetHostEvent::OpenAsset {
+            asset_locator: asset_locator.clone(),
         }),
         AssetCommand::SelectFolder { folder_id } => Ok(AssetHostEvent::SelectFolder {
             folder_id: folder_id.clone(),

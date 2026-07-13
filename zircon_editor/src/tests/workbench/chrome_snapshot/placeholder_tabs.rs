@@ -89,6 +89,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
         &layout,
         vec![present],
         descriptors,
+        None,
     );
 
     let drawer = chrome

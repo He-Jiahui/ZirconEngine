@@ -3,9 +3,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::artifact::{
     resolve_ibl_bake_artifact_runtime_dispatch, IblBakeArtifactAssetDerivedRead,
-    IblBakeArtifactCacheStore, IblSourceCubemapStagingRead, IblSourceCubemapStagingStore,
-    IBL_BAKE_ASSET_DERIVED_DIRECTORY, IBL_BAKE_ASSET_DERIVED_EXTENSION,
-    IBL_SOURCE_CUBEMAP_STAGING_DIRECTORY, IBL_SOURCE_CUBEMAP_STAGING_EXTENSION,
+    IblBakeArtifactCacheStore, IblSourceCubemapStagingError, IblSourceCubemapStagingRead,
+    IblSourceCubemapStagingStore, IBL_BAKE_ASSET_DERIVED_DIRECTORY,
+    IBL_BAKE_ASSET_DERIVED_EXTENSION, IBL_SOURCE_CUBEMAP_STAGING_DIRECTORY,
+    IBL_SOURCE_CUBEMAP_STAGING_EXTENSION,
 };
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
@@ -42,8 +43,8 @@ fn zcube_staged_ibl_bundle_keeps_source_cube_separate_from_derived_pmrem() {
         IblSourceCubemapStagingRead::Hit(cubemap) => cubemap,
         other => panic!("expected staged .zcube hit, got {other:?}"),
     };
-    assert_eq!(staged_cubemap.face_size(), source.face_size());
-    assert_eq!(staged_cubemap.mip_count(), source.mip_count());
+    assert_eq!(staged_cubemap.face_size(), source.source_face_size());
+    assert_eq!(staged_cubemap.mip_count(), source.source_mip_count());
     assert_rgba16f_close(staged_cubemap.texels(), source.source_texels());
 
     let asset_read = store
@@ -62,7 +63,12 @@ fn zcube_staged_ibl_bundle_keeps_source_cube_separate_from_derived_pmrem() {
         staged_environment.mip_chain.source_texels(),
         source.source_texels(),
     );
-    assert_rgba16f_close(staged_environment.mip_chain.texels(), source.texels());
+    assert_rgba16f_close(
+        staged_environment.mip_chain.pmrem_texels(),
+        source.pmrem_texels(),
+    );
+    assert_eq!(staged_environment.mip_chain.source_face_size(), 8);
+    assert_eq!(staged_environment.mip_chain.pmrem_face_size(), 128);
     assert_ne!(
         staged_environment.bake_artifact_hash, [0; 4],
         "restored environments must carry the derived artifact identity"
@@ -88,6 +94,35 @@ fn zcube_staged_ibl_bundle_keeps_source_cube_separate_from_derived_pmrem() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn staged_zcube_rejects_a_request_with_a_different_source_layout() {
+    let root = unique_temp_root("zcube_staged_layout_mismatch");
+    let source = high_frequency_source_cubemap();
+    let request = request_for_source(&source);
+    let mismatched_request = IblBakeArtifactRequest::new(request.bake_key(), 16, 5)
+        .with_required_contents(request.required_contents());
+    let store = IblSourceCubemapStagingStore::new(&root);
+
+    store
+        .write_source_cubemap_zcube(&request, test_uri(), &source)
+        .expect("source zcube should write");
+    let error = store
+        .read_source_cubemap_zcube(&mismatched_request, test_uri())
+        .expect_err("a colliding request must not consume a different source layout");
+
+    assert!(matches!(
+        error,
+        IblSourceCubemapStagingError::RequestSourceLayoutMismatch {
+            request_face_size: 16,
+            request_mip_count: 5,
+            source_face_size: 8,
+            source_mip_count: 4,
+        }
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn high_frequency_source_cubemap() -> SourceCubemapMipChain {
     build_source_cubemap_from_equirect(8, |u, v| {
         let stripe = if ((u * 29.0).floor() as i32 + (v * 19.0).floor() as i32) & 1 == 0 {
@@ -102,8 +137,8 @@ fn high_frequency_source_cubemap() -> SourceCubemapMipChain {
 fn request_for_source(source: &SourceCubemapMipChain) -> IblBakeArtifactRequest {
     IblBakeArtifactRequest::new(
         ProceduralSkyParams::default_gradient().ibl_bake_key(),
-        source.face_size(),
-        source.mip_count(),
+        source.source_face_size(),
+        source.source_mip_count(),
     )
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9)
 }

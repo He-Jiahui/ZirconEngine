@@ -10,11 +10,12 @@ use super::gltf_scene_fixtures::write_two_scene_gltf;
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
 use crate::asset::{
-    AnimationChannelValueAsset, AnimationInterpolationAsset, AssetImportOutcome, AssetImporter,
-    AssetImporterCapabilityStatus, AssetUri, DataAssetFormat, ImportedAsset, ImportedAssetEntry,
-    MaterialAsset, MeshAttributeValues, ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
+    AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus, AssetUri, DataAssetFormat,
+    ImportedAsset, ImportedAssetEntry, MaterialAsset, MeshAttributeValues, ModelPrimitiveAsset,
+    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    MESH_ATTRIBUTE_UV1,
 };
+use crate::core::framework::animation::{AnimationChannelValueAsset, AnimationInterpolationAsset};
 
 mod basic_import;
 mod external_inputs;

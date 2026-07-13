@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
 use crate::asset::AssetImporterDescriptor;
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::framework::bridge::PluginInterface;
+use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy, ExportTargetPlatform,
-    PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleManifest,
-    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    CapabilityStatus, CapabilityStatusManifest, PluginDependencyManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginInterfaceManifest,
+    PluginInterfaceMethodManifest, PluginModuleManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
+    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[path = "runtime_plugin_package_manifest/capability_status.rs"]
 mod capability_status;

@@ -8,6 +8,6 @@ pub struct ProjectEditorWorkspace {
     pub layout_version: u32,
     pub workbench: WorkbenchLayout,
     pub open_view_instances: Vec<ViewInstance>,
-    pub active_center_tab: Option<ViewInstanceId>,
+    pub focused_view: Option<ViewInstanceId>,
     pub active_drawers: Vec<ActivityDrawerSlot>,
 }

@@ -1,10 +1,14 @@
 use super::support::{collect_rayon_references, rust_source_files};
 
 const JOB_SYSTEM_DOC: &str = include_str!("../../../../../docs/zircon_runtime/core/job_system.md");
-const RUNTIME_11_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md");
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+const RUNTIME_11_PLAN: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md")
+);
+const RUNTIME_INDEX: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+);
 
 #[test]
 fn rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status() {

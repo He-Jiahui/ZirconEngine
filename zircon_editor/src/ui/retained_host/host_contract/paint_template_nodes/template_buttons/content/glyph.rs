@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
 
 pub(super) fn button_glyph_width(node: &TemplatePaneNodeData, glyph: ButtonGlyph) -> f32 {
     if has_leading_asset_icon(node) || has_leading_glyph(glyph) {
-        button_icon_size() + button_icon_gap()
+        button_icon_size() + button_icon_gap(node)
     } else {
         0.0
     }

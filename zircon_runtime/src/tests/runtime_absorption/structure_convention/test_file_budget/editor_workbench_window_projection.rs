@@ -2,8 +2,7 @@ use super::{assert_contains_all, read_repo};
 
 const SLICE: &str =
     "Runtime 15 M3 editor retained-host workbench window projection tests child-owner split";
-const STATUS: &str =
-    "runtime_15_editor_retained_host_workbench_window_projection_tests_child_owner_split_static_passed_cargo_deferred";
+const STATUS: &str = "runtime_15_editor_retained_host_workbench_window_projection_tests_child_owner_split_static_passed_cargo_deferred";
 const DATE: &str = "2026-06-27";
 const GUARD: &str =
     "runtime_15_editor_retained_host_workbench_window_projection_tests_are_child_owner";

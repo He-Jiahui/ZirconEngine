@@ -52,8 +52,10 @@ pub(super) fn assert_typed_error_status_mirror_status_current_split_layout_child
             "typed-error status-doc status mirrors status-current split-layout child {child_path} should own {anchor}"
         );
         assert!(
-            read_runtime_src(TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_SPLIT_LAYOUT_CHILD)
-                .contains(&path_attr),
+            read_runtime_src(
+                TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_SPLIT_LAYOUT_CHILD
+            )
+            .contains(&path_attr),
             "typed-error status-doc status mirrors status-current split-layout parent should mount {module_name}"
         );
     }

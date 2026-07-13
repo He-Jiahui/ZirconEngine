@@ -5,8 +5,9 @@ use crate::core::framework::render::{
 };
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::text::font::FontDatabase;
-use crate::ui::text::shaper::resolve_text_render_mode;
-use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRenderMode};
+use zircon_runtime_interface::ui::surface::{
+    resolve_ui_text_render_mode, UiResolvedStyle, UiTextRenderMode,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScreenSpaceUiTextFontIdReport {
@@ -89,7 +90,7 @@ pub(super) fn resolved_style_for_text_batch(
         text_align: text.text_align,
         text_direction: text.text_direction,
         wrap: text.wrap,
-        text_render_mode: resolve_text_render_mode(UiTextRenderMode::Native, None),
+        text_render_mode: resolve_ui_text_render_mode(UiTextRenderMode::Native, None),
         ..UiResolvedStyle::default()
     }
 }

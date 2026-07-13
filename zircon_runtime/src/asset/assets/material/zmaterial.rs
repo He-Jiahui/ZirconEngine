@@ -33,20 +33,52 @@ pub struct ZMaterialDocument {
 }
 
 impl ZMaterialDocument {
-    pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
-        let parsed: Self = toml::from_str(document)?;
-        if parsed.version == 2 {
-            Ok(parsed)
-        } else {
-            Err(toml::de::Error::custom(format!(
-                "zmaterial v2 document version `{}` is unsupported; migrate material files to version = 2",
-                parsed.version
-            )))
-        }
+    pub fn to_project_toml_string(
+        &self,
+        resolver: impl FnMut(
+            &AssetReference,
+        ) -> Result<
+            zircon_runtime_interface::project::PersistedAssetReference,
+            crate::asset::ReferenceResolutionError,
+        >,
+    ) -> Result<String, crate::asset::assets::ProjectDocumentError> {
+        let document = crate::asset::assets::project_document::serialize_material(self, resolver)?;
+        crate::asset::assets::project_document::validate_material(&document)?;
+        Ok(document)
     }
 
+    pub fn from_project_toml_str(
+        document: &str,
+        resolver: impl FnMut(
+            &zircon_runtime_interface::project::PersistedAssetReference,
+        ) -> Result<AssetReference, crate::asset::ReferenceResolutionError>,
+    ) -> Result<Self, crate::asset::assets::ProjectDocumentError> {
+        crate::asset::assets::project_document::validate_material(document)?;
+        let parsed =
+            crate::asset::assets::project_document::deserialize_material(document, resolver)?;
+        validate_version(parsed).map_err(Into::into)
+    }
+
+    #[cfg(test)]
+    pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
+        let parsed: Self = toml::from_str(document)?;
+        validate_version(parsed)
+    }
+
+    #[cfg(test)]
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(self)
+    }
+}
+
+fn validate_version(document: ZMaterialDocument) -> Result<ZMaterialDocument, toml::de::Error> {
+    if document.version == 2 {
+        Ok(document)
+    } else {
+        Err(toml::de::Error::custom(format!(
+            "zmaterial v2 document version `{}` is unsupported; migrate material files to version = 2",
+            document.version
+        )))
     }
 }
 

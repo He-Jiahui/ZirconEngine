@@ -3,17 +3,21 @@ use super::*;
 #[test]
 fn host_handles_are_stable_and_valid() {
     let registry = HostRegistry::default();
-    let handle = registry.register_capability("RenderingManager");
+    let handle = registry.register_capability("RenderingManager").unwrap();
     assert!(registry.is_valid(handle));
 }
 
 #[test]
 fn host_registry_exposes_stable_capability_records_without_concrete_objects() {
     let registry = HostRegistry::default();
-    let ui_shell = registry.register_capability("editor.host.ui_shell");
-    let asset_core = registry.register_capability("editor.host.asset_core");
+    let ui_shell = registry
+        .register_capability("editor.host.ui_shell")
+        .unwrap();
+    let asset_core = registry
+        .register_capability("editor.host.asset_core")
+        .unwrap();
 
-    let ui_record = registry.capability(ui_shell).unwrap();
+    let ui_record = registry.resolve(ui_shell).unwrap();
     assert_eq!(ui_record.handle, ui_shell);
     assert_eq!(ui_record.label, "editor.host.ui_shell");
 
@@ -23,8 +27,8 @@ fn host_registry_exposes_stable_capability_records_without_concrete_objects() {
     assert_eq!(records[1].handle, asset_core);
     assert!(records.iter().all(|record| !record.label.is_empty()));
     assert!(registry
-        .capability(super::super::HostHandle::new(999))
-        .is_none());
+        .resolve(super::super::HostHandle::from_raw(999))
+        .is_err());
 }
 
 #[test]

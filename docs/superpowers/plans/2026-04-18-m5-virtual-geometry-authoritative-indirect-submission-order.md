@@ -1,15 +1,14 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
 plan_sources:
   - user: 2026-04-18 把 confirmed submission_slot / page-table / completion 真值继续压进更深的 residency-manager cascade
   - user: 2026-04-18 把同一套 confirmed slot/page truth 继续下沉到更真实的 GPU-driven cluster raster / indirect execution
@@ -17,8 +16,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-fallback-slot-submission-authority-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-page-table-confirmed-completion-cascade.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_submission_authority -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_unified_indirect -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_render -- --nocapture

@@ -507,9 +507,9 @@ fn sample_environment_pmrem_mip0(
 ) -> [f32; 3] {
     let mip_chain = &environment.mip_chain;
     let texel = sample_cubemap_linear_at_mip(
-        mip_chain.texels(),
-        mip_chain.face_size(),
-        mip_chain.mip_count(),
+        mip_chain.pmrem_texels(),
+        mip_chain.pmrem_face_size(),
+        mip_chain.pmrem_mip_count(),
         direction,
         0,
     );

@@ -2,14 +2,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::assets::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationGraphAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
     AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
     AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
     AnimationTransitionConditionAsset,
 };
-use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::{AnimationParameterValue, AnimationTrackPath};
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 
@@ -30,25 +30,22 @@ fn write_state_machine_asset_with_transition(path: &Path) {
         name: Some("Hero State Machine".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: graph_reference.clone(),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: graph_reference,
-            },
+            AnimationStateAsset::graph_ref("Idle", graph_reference.clone()),
+            AnimationStateAsset::graph_ref("Run", graph_reference),
         ],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: 0.25,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "speed".to_string(),
                 operator: AnimationConditionOperatorAsset::GreaterEqual,
                 value: Some(AnimationParameterValue::Scalar(1.0)),
             }],
         }],
+        layers: Vec::new(),
     };
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, asset.to_bytes().unwrap()).unwrap();
@@ -61,25 +58,22 @@ fn write_state_machine_asset_with_vec2_transition(path: &Path) {
         name: Some("Hero State Machine".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: graph_reference.clone(),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: graph_reference,
-            },
+            AnimationStateAsset::graph_ref("Idle", graph_reference.clone()),
+            AnimationStateAsset::graph_ref("Run", graph_reference),
         ],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: 0.25,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "velocity".to_string(),
                 operator: AnimationConditionOperatorAsset::Equal,
                 value: Some(AnimationParameterValue::Vec2([1.0, 2.0])),
             }],
         }],
+        layers: Vec::new(),
     };
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, asset.to_bytes().unwrap()).unwrap();

@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportProfile, ExportTargetPlatform};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::{
+    ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
+};
 
 pub(in crate::ui::retained_host::app) fn desktop_export_profiles() -> Vec<ExportProfile> {
     let desktop = [

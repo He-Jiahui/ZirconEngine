@@ -110,10 +110,6 @@ fn runtime_15_review_guard_moved_row_code_review_rows_route_metadata_is_child_ow
             "module convention doc",
             "docs/zircon_runtime/structure/module-convention.md",
         ),
-        (
-            "runtime implementation session",
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-        ),
     ] {
         let source = read_repo(path);
         assert_contains_all(label, &source, &status_anchors);

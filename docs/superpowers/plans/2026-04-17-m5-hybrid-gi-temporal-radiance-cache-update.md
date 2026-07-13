@@ -1,25 +1,25 @@
 ---
 related_code:
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_resident_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_resident_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/gpu_resident_probe_input.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/gpu_resident_probe_input.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
 plan_sources:
   - user: 2026-04-17 Hybrid GI should replace runtime default or test-injected irradiance_rgb with real GPU radiance-cache update output
   - user: 2026-04-17 continue the remaining M5 Hybrid GI route without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-radiance-cache-lighting-resolve.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - cargo test -p zircon_graphics hybrid_gi_gpu_completion_readback_reports_completed_probe_updates_and_traces --locked
   - cargo test -p zircon_graphics hybrid_gi_gpu_completion_readback_respects_probe_budget_without_evictable_slots --locked
   - cargo test -p zircon_graphics hybrid_gi_gpu_completion_readback_changes_when_previous_irradiance_changes --locked

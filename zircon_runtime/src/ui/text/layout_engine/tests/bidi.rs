@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap},
+    surface::{UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap},
 };
 
 use super::{layout_text, test_style};
@@ -23,7 +23,7 @@ fn rtl_visual_order_reverses_grapheme_clusters() {
 #[test]
 fn rtl_visual_order_preserves_rich_run_boundary_grapheme_clusters() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    style.rich_text = true;
+    style.rich_text_format = UiRichTextFormat::Markdown;
 
     let layout = layout_text(
         "abc *ש*\u{05b8}ל def",
@@ -39,7 +39,7 @@ fn rtl_visual_order_preserves_rich_run_boundary_grapheme_clusters() {
         .iter()
         .map(|run| run.text.as_str())
         .collect();
-    assert_eq!(run_texts, vec!["abc ", "ל", "ש", "\u{05b8}", " def"]);
+    assert_eq!(run_texts, vec!["abc ", "ל", "ש\u{05b8}", " def"]);
 }
 
 #[test]
@@ -113,4 +113,35 @@ fn text_bidi_mirrors_arrow_in_rtl() {
         .runs
         .iter()
         .any(|run| run.text == "←" && run.source_range == UiTextRange { start: 5, end: 8 }));
+}
+
+#[test]
+fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
+    use super::super::candidate_line::{append_segment, CandidateLine};
+    use super::super::visual_order::apply_visual_order_with_advances;
+    use zircon_runtime_interface::ui::surface::UiTextRunKind;
+
+    let text = "A אב";
+    let mut line = CandidateLine::empty();
+    append_segment(
+        &mut line,
+        UiTextRunKind::Plain,
+        text,
+        UiTextRange {
+            start: 0,
+            end: text.len(),
+        },
+    );
+    let logical_advances = vec![1.0, 2.0, 3.0, 4.0];
+    let mut visual_advances = logical_advances.clone();
+
+    apply_visual_order_with_advances(
+        &mut line,
+        text,
+        UiTextDirection::LeftToRight,
+        &mut visual_advances,
+    );
+
+    assert_eq!(line.text, "A בא");
+    assert_eq!(visual_advances, vec![1.0, 2.0, 4.0, 3.0]);
 }

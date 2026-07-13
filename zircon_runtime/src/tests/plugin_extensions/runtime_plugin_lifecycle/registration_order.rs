@@ -1,8 +1,10 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{
+    ExportPackagingStrategy, ProjectPluginManifest, ProjectPluginSelection,
+};
 use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::plugin::{
-    ExportPackagingStrategy, PluginModuleManifest, PluginPackageManifest, ProjectPluginManifest,
-    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePluginCatalog,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry, RuntimePluginCatalog,
     RuntimePluginRegistrationReport,
 };
 

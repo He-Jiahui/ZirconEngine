@@ -13,19 +13,14 @@ pub(super) const FOUNDATION_GUARD_SLICE: &str =
     "Runtime 15 M3 foundation expected-slice maps guard folder-backed split";
 pub(super) const FOUNDATION_GUARD_STATUS: &str =
     "runtime_15_foundation_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
-pub(super) const FOUNDATION_GUARD_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_foundation_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const FOUNDATION_GUARD_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_foundation_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred";
 pub(super) const FOUNDATION_GUARD: &str =
     "runtime_15_foundation_expected_slice_maps_guard_is_folder_backed";
 
-pub(super) const STATUS_PARENT: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs";
-pub(super) const DATE_PARENT: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs";
-pub(super) const FOUNDATION_ROUTE_PARENT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation.rs";
-pub(super) const EXPECTED_SLICE_MAPS_PARENT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps.rs";
+pub(super) const STATUS_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs";
+pub(super) const DATE_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs";
+pub(super) const FOUNDATION_ROUTE_PARENT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation.rs";
+pub(super) const EXPECTED_SLICE_MAPS_PARENT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps.rs";
 
 pub(super) const PLAN_STATUS_CHILDREN: &[&str] = &[
     "foundation/asset_provider_cleanup.rs",
@@ -45,8 +40,7 @@ pub(super) const FOUNDATION_GUARD_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/route_mounts.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/status_mirrors.rs",
 ];
-pub(super) const FOUNDATION_STATUS_MIRRORS_PARENT: &str =
-    "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/status_mirrors.rs";
+pub(super) const FOUNDATION_STATUS_MIRRORS_PARENT: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/status_mirrors.rs";
 pub(super) const FOUNDATION_STATUS_MIRRORS_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/budgets.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/docs.rs",

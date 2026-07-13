@@ -273,12 +273,13 @@ fn shell_frame_from_ui_frame(frame: UiFrame) -> ShellFrame {
 mod tests {
     use std::collections::BTreeMap;
 
+    use crate::core::commands::MenuBarModel;
     use crate::ui::host::NativeWindowHostState;
     use crate::ui::workbench::autolayout::{ShellFrame, WorkbenchChromeMetrics};
     use crate::ui::workbench::layout::MainPageId;
     use crate::ui::workbench::model::{
         DocumentWorkspaceModel, DrawerRingModel, FloatingWindowModel, MainHostStripModel,
-        MainHostStripViewModel, MenuBarModel, StatusBarModel, WorkbenchViewModel,
+        MainHostStripViewModel, StatusBarModel, WorkbenchViewModel,
     };
     use crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot;
     use zircon_runtime_interface::ui::event_ui::UiTreeId;

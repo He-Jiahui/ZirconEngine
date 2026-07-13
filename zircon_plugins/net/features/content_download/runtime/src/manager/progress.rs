@@ -51,7 +51,7 @@ impl NetContentDownloadRuntimeManager {
         &self,
         download: NetDownloadId,
         chunk_id: &str,
-        actual_sha256: &str,
+        actual_content_hash: &[u8; 32],
     ) -> Option<NetDownloadProgress> {
         let mut state = self.state();
         let chunk = state
@@ -62,7 +62,7 @@ impl NetContentDownloadRuntimeManager {
             .find(|chunk| chunk.id == chunk_id)?
             .clone();
         let progress = state.progress.get_mut(&download)?;
-        if chunk.sha256 != actual_sha256 {
+        if chunk.content_hash != *actual_content_hash {
             progress.status = NetDownloadStatus::Failed;
             progress.diagnostic = Some(format!("chunk hash mismatch: {chunk_id}"));
             return Some(progress.clone());
@@ -105,12 +105,12 @@ impl NetContentDownloadRuntimeManager {
         &self,
         download: NetDownloadId,
         chunk_id: &str,
-        actual_sha256: &str,
+        actual_content_hash: &[u8; 32],
     ) -> bool {
         self.state()
             .manifests
             .get(&download)
             .and_then(|manifest| manifest.chunks.iter().find(|chunk| chunk.id == chunk_id))
-            .is_some_and(|chunk| chunk.sha256 == actual_sha256)
+            .is_some_and(|chunk| chunk.content_hash == *actual_content_hash)
     }
 }

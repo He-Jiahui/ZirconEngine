@@ -1,19 +1,12 @@
 use super::*;
 
-pub(super) const TYPED_ERROR_STATUS_DOCS_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status_docs.rs";
-pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs.rs";
-pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_STATUS_PATH: &str =
-    "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs.rs";
-pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/status_doc_maps.rs";
-pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/status_doc_maps.rs";
-const TYPED_ERROR_STATUS_DOCS_ROW_DATA_CHILD_ROOT: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs";
-pub(super) const TYPED_ERROR_STATUS_DOCS_STATUS_ROW_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows/review_guard_rows/typed_error_guard_rows.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status_docs.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_STATUS_PATH: &str = "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/status_doc_maps.rs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/review_guard_row_data_maps/status_doc_maps.rs";
+const TYPED_ERROR_STATUS_DOCS_ROW_DATA_CHILD_ROOT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs";
+pub(super) const TYPED_ERROR_STATUS_DOCS_STATUS_ROW_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows/review_guard_rows/typed_error_guard_rows.rs";
 
 pub(super) const TYPED_ERROR_STATUS_DOCS_ROW_DATA_CHILDREN: &[(&str, &str)] = &[
     (

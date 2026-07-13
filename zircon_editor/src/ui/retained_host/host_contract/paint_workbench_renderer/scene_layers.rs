@@ -7,6 +7,8 @@ use super::super::data::HostWindowPresentationData;
 use super::super::paint_frame::HostRgbaFrame;
 use super::root_frames::RootFrames;
 
+#[cfg(test)]
+pub(crate) use self::overlay::paint_componentized_extension_workspace_for_test;
 pub(in crate::ui::retained_host::host_contract) use self::overlay::{
     draw_componentized_workbench_window, draws_componentized_workbench_window,
 };

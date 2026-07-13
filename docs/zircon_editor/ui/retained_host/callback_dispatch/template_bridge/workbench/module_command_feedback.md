@@ -1,9 +1,9 @@
 ---
 related_code:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/routes.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/routing/routes.js
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs

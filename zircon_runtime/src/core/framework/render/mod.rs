@@ -1,4 +1,5 @@
 mod advanced;
+mod advanced_lighting;
 mod anti_alias;
 mod backend_types;
 mod camera;
@@ -38,6 +39,18 @@ pub use advanced::{
     AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AdvancedProviderReport,
     AdvancedProviderStatus, AdvancedRenderDegradation, AdvancedRenderDegradationReason,
     AdvancedRenderFeature,
+};
+pub use advanced_lighting::{
+    burley_radial_pdf, derive_planar_reflection_camera, henyey_greenstein_phase,
+    integrate_volumetric_step, oit_support, planar_oblique_near_clip_projection,
+    planar_reflection_matrix, resolve_subsurface_profile_table, AdvancedLightingExtract,
+    CookieProjection, CookieWrapMode, FogVolumeData, FroxelGridParams, FroxelGridQuality,
+    IrradianceVolumeData, LightCookieData, OitBufferPlan, OitCapabilityProfile, OitSettings,
+    OitSupport, PlanarReflectionProbeData, PlanarReflectionQuality, PlanarReflectionUpdateState,
+    PlanarUpdateMode, SubsurfaceProfileData, SubsurfaceProfileDiagnostic, SubsurfaceProfileTable,
+    VolumetricFogSettings, VolumetricIntegrationStep,
+    OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE, VOLUMETRIC_FOG_VOLUME_COMPONENT,
+    ZR_SSS_BURLEY_SAMPLE_COUNT, ZR_SSS_MAX_PROFILES,
 };
 pub use anti_alias::{
     AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
@@ -110,17 +123,23 @@ pub use environment::{
     IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactReadbackError,
     IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
     IblBakeArtifactResolvedPayload, IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeKey,
+    LightProbeGridData, LightmapAtlasBudget, LightmapAtlasDescriptor, LightmapAtlasFormat,
+    LightmapAtlasPage, LightmapBakeOutput, LightmapBakeRequest, LightmapBakeSceneSnapshot,
+    LightmapConsumeContract, LightmapContractValidationError, LightmapInstanceSlot,
     ProbeBakeTiming, ProbeInfluenceShape, ProceduralSkyParams, ReflectionProbeBlend,
-    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError, SkyboxMode,
-    SkyboxSettings, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
+    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError, ShL2Rgb,
+    SkyboxMode, SkyboxSettings, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
     SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
     SourceCubemapPrefilterQuality, SourceCubemapUploadKey, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
     ENVIRONMENT_BRDF_LUT_SIZE, IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_HEADER_SIZE,
     IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
-    PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION, RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-    SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE, SOURCE_CUBEMAP_MAX_FACE_SIZE,
-    SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_ROUGHEST_MIP, SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
+    LIGHTMAP_CONSUME_CONTRACT_VERSION, LIGHTMAP_SCENE_SNAPSHOT_VERSION,
+    PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION, RGBA16F_TEXEL_SIZE_BYTES, SH_L2_RGB_COEFFICIENT_COUNT,
+    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE,
+    SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+    SOURCE_CUBEMAP_PMREM_MIP_COUNT, SOURCE_CUBEMAP_ROUGHEST_MIP,
+    SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
@@ -224,10 +243,11 @@ pub use post_process::{
     MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
 };
 pub use prepared_runtime_sidebands::{
-    RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
+    RenderHybridGiCompositePolicy, RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
     RenderHybridGiPreparedProbeRtLighting, RenderHybridGiPreparedProbeSceneData,
     RenderHybridGiPreparedTraceRegionSceneData, RenderHybridGiPreparedUpdateRequest,
-    RenderPreparedRuntimeSidebands,
+    RenderPreparedRuntimeSidebands, HYBRID_GI_SOURCE_BAKED_BASELINE,
+    HYBRID_GI_SOURCE_DYNAMIC_DELTA, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 pub use profile::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
@@ -237,14 +257,15 @@ pub use relevance::PrimitiveRelevance;
 pub use scene_extract::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, PreviewEnvironmentExtract,
     RenderBloomSettings, RenderColorGradingSettings, RenderExtractPacket, RenderHybridGiDebugView,
-    RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderParticleBillboardBasisSnapshot, RenderParticleBoundsSnapshot,
-    RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
-    SceneViewportRenderPacket, RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
-    RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
+    RenderHybridGiExtract, RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
+    RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderMeshLodSelection,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderParticleBillboardBasisSnapshot,
+    RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
+    RenderParticleSpriteSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
+    RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL, RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
 pub use shader::{
     builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
@@ -304,10 +325,12 @@ pub use text::font::{
     FontWeight, InstancedFaceId, SubFontRange, VariationCoords,
 };
 pub use text::{
-    normalized_open_type_features, InlineBaseline, InlineObjectRef, LinkRef, OpenTypeFeature,
-    ParagraphOverride, RichParseResult, RichTextFormat, ShapedGlyph, ShapedGlyphClusterFlags,
-    ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedTextLine, StyleOverride,
-    StyledRun, TextOrientation, TextShapeRequest, TextShapingService, VerticalMode,
+    normalized_open_type_features, InlineBaseline, InlineObjectRef, LaidOutLine, LaidOutText,
+    LayoutItem, LinkRef, OpenTypeFeature, ParagraphOverride, RichParseResult, RichTable,
+    RichTableCell, RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn, RichTextFormat,
+    ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
+    ShapedTextLine, StyleOverride, StyledRun, TextOrientation, TextShapeRequest,
+    TextShapingService, VerticalMode, MAX_RICH_TABLE_ROW_SPAN,
 };
 pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use virtual_geometry_debug_snapshot::{

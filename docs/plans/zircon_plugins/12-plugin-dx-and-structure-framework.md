@@ -648,3 +648,5 @@ status: in_progress
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`12/2026-07-09-plugin-dx-and-structure-framework-output-records.md`](12/2026-07-09-plugin-dx-and-structure-framework-output-records.md)
+- Navigation M6 editor/runtime mirror consumer SDK：`待修复（open）`；[failure 交接](12/failure-2026-07-13-plugin-editor-runtime-mirror-consumer-wiring.md)。
+- Plugin structure audit report fixture descriptor 字段同步：`待修复（open）`；[failure 交接](12/failure-2026-07-13-plugin-structure-audit-report-fixture-drift.md)。

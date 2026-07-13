@@ -116,7 +116,7 @@ button_color = "secondary"
         UiPainterFamily::Button,
     );
     assert_eq!(button.style.painter_state, UiPainterResolvedState::Hovered);
-    assert_eq!(button.style.background_color.as_deref(), Some("#43ccd8"));
+    assert_eq!(button.style.background_color.as_deref(), Some("#263d43"));
 
     let text_field = component_surface(
         &surface.render_extract.list.commands,
@@ -127,7 +127,7 @@ button_color = "secondary"
         text_field.style.painter_state,
         UiPainterResolvedState::Focused
     );
-    assert_eq!(text_field.style.border_color.as_deref(), Some("#35c7d0"));
+    assert_eq!(text_field.style.border_color.as_deref(), Some("#2aa6b8"));
 
     let dropdown = component_surface(
         &surface.render_extract.list.commands,
@@ -162,7 +162,7 @@ button_color = "secondary"
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::Slider
             && command.style.painter_state == UiPainterResolvedState::DropHovered
-            && command.style.background_color.as_deref() == Some("#35c7d03a")
+            && command.style.background_color.as_deref() == Some("#d8e3e71a")
     }));
 
     let loading_button = component_surface(

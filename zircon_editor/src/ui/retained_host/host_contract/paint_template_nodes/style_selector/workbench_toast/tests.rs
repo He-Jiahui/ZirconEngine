@@ -44,13 +44,13 @@ fn focused_toast_keeps_neutral_border() {
 }
 
 #[test]
-fn open_toast_uses_active_border() {
+fn focused_open_toast_keeps_shared_focused_priority() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
     node.popup_open = true;
 
     let style = select_workbench_toast_style(&node);
 
-    assert_eq!(style.state, UiPainterResolvedState::Open);
-    assert_eq!(style.border, PALETTE.focus_ring);
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.border, super::palette::WORKBENCH_TOAST_BORDER);
 }

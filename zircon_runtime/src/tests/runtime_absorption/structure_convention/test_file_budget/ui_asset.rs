@@ -109,8 +109,8 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 32,
-        "UI asset children should preserve all 32 parent tests"
+        child_test_total, 33,
+        "UI asset children should preserve all 32 split-time parent tests plus the component-slot layout regression"
     );
 
     for (path, source) in [

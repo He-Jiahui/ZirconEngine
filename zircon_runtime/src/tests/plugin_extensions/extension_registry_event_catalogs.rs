@@ -1,9 +1,9 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, PluginPackageManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_accepts_valid_plugin_event_catalog() {
@@ -92,9 +92,10 @@ fn runtime_plugin_registration_report_validates_shadowed_manifest_event_catalogs
 
     let report =
         RuntimePluginCatalog::from_registration_reports([registration], []).runtime_extensions();
-    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("runtime plugin weather diagnostic")
-        && diagnostic.contains("at least one event")));
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("runtime plugin weather diagnostic")
+            && diagnostic.contains("at least one event")
+    }));
 }
 
 #[test]
@@ -107,9 +108,10 @@ fn native_runtime_plugin_registration_report_diagnoses_duplicate_manifest_event_
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("event catalog namespace `weather.events`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("event catalog namespace `weather.events`")
+            && diagnostic.contains("unique")
+    }));
     assert_eq!(registration.extensions.plugin_event_catalogs().len(), 1);
 }
 
@@ -128,9 +130,10 @@ fn native_runtime_plugin_registration_report_diagnoses_unowned_manifest_event_ca
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("event catalog namespace `storm.events`")
-        && diagnostic.contains("package id `weather`")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("event catalog namespace `storm.events`")
+            && diagnostic.contains("package id `weather`")
+    }));
     assert_eq!(registration.extensions.plugin_event_catalogs().len(), 1);
 }
 

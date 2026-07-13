@@ -3,7 +3,7 @@ related_code:
   - zircon_app/src/lib.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_runtime/src/foundation/mod.rs
-  - zircon_plugins/mod.rs
+  - zircon_plugins/Cargo.toml
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
@@ -34,7 +34,7 @@ implementation_files:
   - zircon_app/src/lib.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_runtime/src/foundation/mod.rs
-  - zircon_plugins/mod.rs
+  - zircon_plugins/Cargo.toml
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
@@ -91,6 +91,7 @@ doc_type: category-index
 
 ## Documents
 
+- [Zircon Development Conventions](../plans/zircon_runtime/frameworks/development-conventions.md): 跨域开发规范唯一权威入口；结构、硬切、命名、生成边界、测试、文档与验证规则均从这里路由到专题细节。
 - [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_runtime::core::{runtime, manager, framework, math, resource} -> zircon_runtime modules -> zircon_editor` 主干、ECS 运行时世界、manager contracts、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
 - [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_runtime::core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、`PluginFactory + PluginContext` 分流，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_plugins` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。

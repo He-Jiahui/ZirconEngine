@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 use super::super::feature_capabilities::feature_declares_capability_for_target;
 use super::super::feature_definitions::FeatureDefinition;

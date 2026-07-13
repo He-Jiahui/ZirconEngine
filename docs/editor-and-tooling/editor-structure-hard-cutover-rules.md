@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/build.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/core/mod.rs
-  - zircon_editor/src/core/editing/state/editor_state_render.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/scene/mod.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/template/registry.rs
@@ -39,12 +39,12 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 implementation_files:
   - Cargo.toml
   - zircon_editor/build.rs
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/core/editing/state/editor_state_render.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/template/registry.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
@@ -77,7 +77,7 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN

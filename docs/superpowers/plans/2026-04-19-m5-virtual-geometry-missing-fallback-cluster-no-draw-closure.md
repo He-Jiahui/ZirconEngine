@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
 implementation_files:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
 plan_sources:
   - user: 2026-04-19 把 virtual_geometry_cluster_draws authority 继续下沉到更真实的 visibility-owned / GPU-generated args source
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-virtual-geometry-fallback-unified-indirect-downshift.md
   - docs/superpowers/plans/2026-04-19-m5-virtual-geometry-missing-segment-authority-closure.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_missing_fallback_clusters_do_not_emit_zero_count_indirect_records -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_args_source_authority -- --nocapture
 doc_type: milestone-detail

@@ -14,7 +14,7 @@
 
 - Create: `zircon_runtime/src/scene/level_system.rs`
   - Runtime-owned `LevelSystem`, `LevelLifecycleState`, and `LevelMetadata`
-- Create: `zircon_runtime/src/scene/render_extract.rs`
+- Create: `zircon_runtime/src/scene/render_extract/mod.rs`
   - `RenderExtractProducer for LevelSystem`
 - Create: `zircon_runtime/src/scene/semantics.rs`
   - Runtime-owned `RuntimeObject` and `RuntimeSystem` traits plus `LevelSystem` impls
@@ -39,7 +39,7 @@
   - Structural ownership test for scene absorption
 - Modify: `zircon_scene/src/lib.rs`
   - Remove `LevelSystem`/manager exports; keep world/domain authority only
-- Modify: `zircon_scene/src/render_extract.rs`
+- Modify: `zircon_runtime/src/scene/render_extract/mod.rs`
   - Keep only `World` extract behavior
 - Modify: `zircon_scene/src/semantics.rs`
   - Keep only `EntityIdentity` and `ComponentData`; remove `LevelSystem`-owned runtime semantics
@@ -51,16 +51,16 @@
   - Drop tests that move to runtime
 - Modify: `zircon_scene/Cargo.toml`
   - Remove dependencies that become unused after module/lifecycle extraction
-- Delete: `zircon_scene/src/level_system.rs`
+- Delete: `zircon_runtime/src/scene/level_system.rs`
 - Delete: `zircon_scene/src/module.rs`
 - Delete: `zircon_scene/src/module/core_error.rs`
-- Delete: `zircon_scene/src/module/default_level_manager.rs`
+- Delete: `zircon_runtime/src/scene/module/default_level_manager.rs`
 - Delete: `zircon_scene/src/module/level_display_name.rs`
 - Delete: `zircon_runtime/src/scene/module/level_manager_contract.rs`
-- Delete: `zircon_scene/src/module/level_manager_lifecycle.rs`
-- Delete: `zircon_scene/src/module/level_manager_project_io.rs`
+- Delete: `zircon_runtime/src/scene/module/level_manager_lifecycle.rs`
+- Delete: `zircon_runtime/src/scene/module/level_manager_project_io.rs`
 - Delete: `zircon_scene/src/module/service_names.rs`
-- Delete: `zircon_scene/src/module/world_driver.rs`
+- Delete: `zircon_runtime/src/scene/module/world_driver.rs`
   - Remove legacy runtime-orchestration ownership from `zircon_scene`
 - Modify: `zircon_editor/src/core/editing/state/editor_state_construction.rs`
 - Modify: `zircon_editor/src/core/editing/state/editor_state_project.rs`
@@ -75,7 +75,7 @@
 - Modify: `zircon_editor/src/tests/workbench/project.rs`
 - Modify: `zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 - Modify: `zircon_app/src/entry/runtime_entry_app/mod.rs`
-- Modify: `zircon_graphics/src/tests/project_render.rs`
+- Modify: `zircon_runtime/src/graphics/tests/project_render.rs`
   - Switch all `LevelSystem` / `DefaultLevelManager` imports to `zircon_runtime::scene`
 - Modify: `.codex/sessions/20260418-1910-runtime-absorption-boundary-cutover.md`
   - Record the completed slice and new validation evidence
@@ -157,12 +157,12 @@ Expected: FAIL because `zircon_scene/src/lib.rs` still exports runtime-owned ite
 
 **Files:**
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/level_system.rs`
-- Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/render_extract.rs`
+- Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/render_extract/mod.rs`
 - Create: `E:/Git/ZirconEngine/zircon_runtime/src/scene/semantics.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_runtime/src/scene/mod.rs`
-- Modify: `E:/Git/ZirconEngine/zircon_scene/src/render_extract.rs`
+- Modify: `E:/Git/ZirconEngine/zircon_runtime/src/scene/render_extract/mod.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_scene/src/semantics.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/level_system.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/level_system.rs`
 
 - [ ] **Step 1: Create the runtime-owned `LevelSystem` file by moving the current type intact**
 
@@ -199,7 +199,7 @@ pub struct LevelSystem {
 - [ ] **Step 2: Move the `LevelSystem`-specific render extract impl into runtime**
 
 ```rust
-// zircon_runtime/src/scene/render_extract.rs
+// zircon_runtime/src/scene/render_extract/mod.rs
 use zircon_framework::render::{RenderExtractContext, RenderExtractProducer, RenderFrameExtract};
 
 use crate::scene::LevelSystem;
@@ -258,7 +258,7 @@ impl EntityIdentity for EntityId {
 ```
 
 ```rust
-// zircon_scene/src/render_extract.rs
+// zircon_runtime/src/scene/render_extract/mod.rs
 use zircon_framework::render::{
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderWorldSnapshotHandle,
 };
@@ -346,18 +346,18 @@ Expected: PASS or zero matching tests if the file contains only compile-owned ru
 - Modify: `E:/Git/ZirconEngine/zircon_editor/src/tests/workbench/project.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests/mod.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_app/src/entry/runtime_entry_app/mod.rs`
-- Modify: `E:/Git/ZirconEngine/zircon_graphics/src/tests/project_render.rs`
+- Modify: `E:/Git/ZirconEngine/zircon_runtime/src/graphics/tests/project_render.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_scene/src/tests/asset_scene.rs`
 - Modify: `E:/Git/ZirconEngine/zircon_scene/src/tests/mod.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/core_error.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/default_level_manager.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/default_level_manager.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_display_name.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_contract.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_manager_lifecycle.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/level_manager_project_io.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_lifecycle.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/level_manager_project_io.rs`
 - Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/service_names.rs`
-- Delete: `E:/Git/ZirconEngine/zircon_scene/src/module/world_driver.rs`
+- Delete: `E:/Git/ZirconEngine/zircon_runtime/src/scene/module/world_driver.rs`
 
 - [ ] **Step 1: Copy the existing manager/driver subtree into `zircon_runtime/src/scene/module/` with runtime-local imports**
 

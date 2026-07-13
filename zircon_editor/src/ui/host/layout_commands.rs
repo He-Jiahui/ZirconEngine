@@ -39,6 +39,8 @@ impl EditorUiHost {
                 self.recompute_session_metadata(&mut session);
                 drop(session);
                 self.restore_page_layout(DEFAULT_LAYOUT_PERSISTENCE_USER_ID, &page_id)?;
+                let mut session = self.lock_session();
+                session.focused_view = active_main_page_view_for_layout(&session.layout);
                 return Ok(diff.changed);
             }
             LayoutCommand::ResetToDefault => {
@@ -55,6 +57,10 @@ impl EditorUiHost {
             _ => {}
         }
 
+        let focused_view = match &cmd {
+            LayoutCommand::FocusView { instance_id } => Some(instance_id.clone()),
+            _ => None,
+        };
         let mut session = self.lock_session();
         let detached_window_title = match &cmd {
             LayoutCommand::DetachViewToWindow {
@@ -84,6 +90,11 @@ impl EditorUiHost {
             }
         }
         self.recompute_session_metadata(&mut session);
+        if diff.changed {
+            if let Some(focused_view) = focused_view {
+                session.focused_view = Some(focused_view);
+            }
+        }
         Ok(diff.changed)
     }
 
@@ -214,6 +225,7 @@ impl EditorUiHost {
                 anchor: None,
             })?;
         }
+        self.lock_session().focused_view = Some(instance.instance_id.clone());
         Ok(instance.instance_id)
     }
 
@@ -228,6 +240,26 @@ impl EditorUiHost {
                 )
             })
     }
+}
+
+fn active_main_page_view_for_layout(
+    layout: &crate::ui::workbench::layout::WorkbenchLayout,
+) -> Option<ViewInstanceId> {
+    use crate::ui::host::layout_hosts::active_tab_from_document::active_tab_from_document;
+    use crate::ui::workbench::layout::MainHostPageLayout;
+
+    layout
+        .main_pages
+        .iter()
+        .find(|page| page.id() == &layout.active_main_page)
+        .and_then(|page| match page {
+            MainHostPageLayout::WorkbenchPage {
+                document_workspace, ..
+            } => active_tab_from_document(document_workspace),
+            MainHostPageLayout::ExclusiveActivityWindowPage {
+                window_instance, ..
+            } => Some(window_instance.clone()),
+        })
 }
 
 fn default_open_target_for_instance(instance: &ViewInstance) -> ViewHost {

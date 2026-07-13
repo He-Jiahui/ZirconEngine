@@ -1,5 +1,6 @@
 pub(super) use std::collections::BTreeMap;
 
+pub(super) use crate::core::commands::MenuBarModel;
 pub(super) use crate::ui::host::NativeWindowHostState;
 pub(super) use crate::ui::retained_host::callback_dispatch::{
     BuiltinHostRootShellFrames, BuiltinWorkbenchWindowLayoutFrames,
@@ -29,8 +30,8 @@ pub(super) use crate::ui::workbench::layout::{
 };
 pub(super) use crate::ui::workbench::model::{
     DocumentTabModel, DocumentWorkspaceModel, DrawerRingModel, FloatingWindowModel,
-    MainHostStripModel, MainHostStripViewModel, MenuBarModel, PaneTabModel, StatusBarModel,
-    ToolWindowStackModel, WorkbenchViewModel,
+    MainHostStripModel, MainHostStripViewModel, PaneTabModel, StatusBarModel, ToolWindowStackModel,
+    WorkbenchViewModel,
 };
 pub(super) use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, ViewContentKind};
 pub(super) use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};

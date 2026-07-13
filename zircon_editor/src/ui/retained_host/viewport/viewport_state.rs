@@ -1,18 +1,22 @@
 use std::sync::Arc;
-use std::thread::JoinHandle;
 
+use crate::core::jobs::{
+    CancellationToken, EditorJobSpec, EditorJobSystem, JobCategory, JobTicket,
+};
 use crate::scene::viewport::{RenderFramework, RenderFrameworkError};
 use crate::ui::retained_host::host_contract::WorldSpaceUiSurfaceSubmission;
 use crate::ui::retained_host::primitives::Image;
-use zircon_runtime::core::manager::resolve_render_framework;
 use zircon_runtime::core::CoreHandle;
 
 use super::active_viewport::ActiveViewport;
+use super::render_framework_resolve_job::RenderFrameworkResolveJob;
 
 pub(super) struct ViewportState {
     pub(super) render_framework: Option<Arc<dyn RenderFramework>>,
     render_framework_core: Option<CoreHandle>,
-    render_framework_task: Option<JoinHandle<Result<Arc<dyn RenderFramework>, String>>>,
+    pub(super) jobs: Option<EditorJobSystem>,
+    pub(super) render_framework_cancel: Option<CancellationToken>,
+    pub(super) render_framework_task: Option<JobTicket<Arc<dyn RenderFramework>>>,
     pub(super) viewport: Option<ActiveViewport>,
     pub(super) latest_generation: Option<u64>,
     pub(super) latest_image: Option<Image>,
@@ -31,6 +35,10 @@ impl ViewportState {
         Self::new(Some(render_framework), None)
     }
 
+    pub(super) fn bind_jobs(&mut self, jobs: EditorJobSystem) {
+        self.jobs = Some(jobs);
+    }
+
     pub(super) fn render_framework(
         &mut self,
     ) -> Result<Arc<dyn RenderFramework>, RenderFrameworkError> {
@@ -46,24 +54,25 @@ impl ViewportState {
             return Ok(Some(render_framework.clone()));
         }
 
-        if let Some(task) = &self.render_framework_task {
-            if !task.is_finished() {
-                return Ok(None);
-            }
-        }
-
-        if let Some(task) = self.render_framework_task.take() {
-            let render_framework = match task.join() {
-                Ok(Ok(render_framework)) => render_framework,
-                Ok(Err(error)) => return Err(RenderFrameworkError::Backend(error)),
-                Err(_) => {
-                    return Err(RenderFrameworkError::Backend(
-                        "editor viewport render framework resolver panicked".to_string(),
-                    ))
+        if self.render_framework_task.is_some() {
+            let result = self
+                .render_framework_task
+                .as_ref()
+                .and_then(JobTicket::try_take);
+            match result {
+                None => return Ok(None),
+                Some(Ok(render_framework)) => {
+                    self.render_framework = Some(render_framework.clone());
+                    self.render_framework_cancel = None;
+                    self.render_framework_task = None;
+                    return Ok(Some(render_framework));
                 }
-            };
-            self.render_framework = Some(render_framework.clone());
-            return Ok(Some(render_framework));
+                Some(Err(error)) => {
+                    self.render_framework_cancel = None;
+                    self.render_framework_task = None;
+                    return Err(RenderFrameworkError::Backend(error.to_string()));
+                }
+            }
         }
 
         let Some(core) = self.render_framework_core.clone() else {
@@ -72,40 +81,38 @@ impl ViewportState {
             ));
         };
 
-        zircon_runtime::profile_scope!(
-            "editor",
-            "viewport",
-            "start_async_render_framework_resolve"
-        );
+        let Some(jobs) = self.jobs.as_ref() else {
+            return Err(RenderFrameworkError::Backend(
+                "editor jobs were not configured for viewport lazy resolve".to_string(),
+            ));
+        };
+        zircon_runtime::profile_scope!("editor", "viewport", "submit_render_framework_resolve");
+        let cancel = CancellationToken::default();
         self.render_framework_task = Some(
-            std::thread::Builder::new()
-                .name("zircon-editor-render-framework-resolve".to_string())
-                .spawn(move || {
-                    zircon_runtime::profile_scope!(
-                        "editor",
-                        "viewport",
-                        "async_resolve_render_framework"
-                    );
-                    resolve_render_framework(&core).map_err(|error| {
-                        format!("failed to resolve editor viewport render framework: {error}")
-                    })
-                })
-                .map_err(|error| {
-                    RenderFrameworkError::Backend(format!(
-                        "failed to start editor viewport render framework resolver: {error}"
-                    ))
-                })?,
+            jobs.submit(
+                EditorJobSpec::new("Resolve editor render framework", JobCategory::Misc)
+                    .with_cancel(cancel.clone()),
+                RenderFrameworkResolveJob::new(core),
+            )
+            .map_err(|error| {
+                RenderFrameworkError::Backend(format!(
+                    "failed to submit editor viewport render framework resolver: {error}"
+                ))
+            })?,
         );
+        self.render_framework_cancel = Some(cancel);
         Ok(None)
     }
 
-    fn new(
+    pub(super) fn new(
         render_framework: Option<Arc<dyn RenderFramework>>,
         render_framework_core: Option<CoreHandle>,
     ) -> Self {
         Self {
             render_framework,
             render_framework_core,
+            jobs: None,
+            render_framework_cancel: None,
             render_framework_task: None,
             viewport: None,
             latest_generation: None,

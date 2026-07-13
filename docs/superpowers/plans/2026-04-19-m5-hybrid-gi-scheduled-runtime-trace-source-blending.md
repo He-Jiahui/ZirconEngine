@@ -1,21 +1,21 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 plan_sources:
   - user: 2026-04-19 scene-driven screen-probe hierarchy / RT hybrid lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-pending-probe-runtime-source-continuation.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-requested-lineage-rt-runtime-source.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_pending_probe_gpu_trace_lighting_blends_runtime_hierarchy_source_with_current_trace_schedule -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_runtime_source -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_ -- --nocapture

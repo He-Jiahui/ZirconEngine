@@ -4,15 +4,14 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::asset::assets::{
-    decode_zcube_source_cubemap_texture, texture_asset_from_source_cubemap_zcube, TextureAsset,
-    TexturePayload, ZcubeSourceCubemap, ZcubeSourceCubemapError, ZCUBE_SOURCE_CUBEMAP_FORMAT,
-    ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
+    decode_zcube_source_cubemap_bytes, texture_asset_from_source_cubemap_zcube, TexturePayload,
+    ZcubeSourceCubemap, ZcubeSourceCubemapError, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    source_cubemap_environment_with_bake_artifact, IblBakeArtifactRequest,
-    SourceCubemapBakeArtifactError, SourceCubemapEnvironment, SourceCubemapIrradianceCube,
-    SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION, SOURCE_CUBEMAP_FACE_COUNT,
+    build_source_cubemap_from_source_mips, source_cubemap_environment_with_bake_artifact,
+    IblBakeArtifactRequest, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
+    SourceCubemapIrradianceCube, SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
 };
 
 use super::ibl_bake_artifact_asset_derived::{
@@ -26,32 +25,27 @@ pub const IBL_SOURCE_CUBEMAP_STAGING_EXTENSION: &str = "zcube";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblSourceCubemapStagingStore {
-    library_root: PathBuf,
+    cache_root: PathBuf,
 }
 
 impl IblSourceCubemapStagingStore {
-    pub fn new(library_root: impl Into<PathBuf>) -> Self {
+    pub fn new(cache_root: impl Into<PathBuf>) -> Self {
         Self {
-            library_root: library_root.into(),
+            cache_root: cache_root.into(),
         }
     }
 
     pub fn source_cubemap_path(&self, request: &IblBakeArtifactRequest) -> PathBuf {
         let source_hash = ibl_bake_artifact_request_identity_hash(request);
-        self.library_root
+        self.cache_root
             .join(IBL_SOURCE_CUBEMAP_STAGING_DIRECTORY)
             .join(format!("v{:016x}", IBL_BAKE_ALGORITHM_VERSION))
             .join(source_hash)
-            .join(format!(
-                "face_{:04}_mips_{:02}.{}",
-                request.face_size(),
-                request.mip_count(),
-                IBL_SOURCE_CUBEMAP_STAGING_EXTENSION
-            ))
+            .join(format!("source.{IBL_SOURCE_CUBEMAP_STAGING_EXTENSION}"))
     }
 
     pub fn asset_derived_store(&self) -> IblBakeArtifactAssetDerivedStore {
-        IblBakeArtifactAssetDerivedStore::new(self.library_root.clone())
+        IblBakeArtifactAssetDerivedStore::new(self.cache_root.clone())
     }
 
     pub fn write_source_cubemap_zcube(
@@ -93,7 +87,7 @@ impl IblSourceCubemapStagingStore {
     pub fn read_source_cubemap_zcube(
         &self,
         request: &IblBakeArtifactRequest,
-        uri: AssetUri,
+        _uri: AssetUri,
     ) -> Result<IblSourceCubemapStagingRead, IblSourceCubemapStagingError> {
         let path = self.source_cubemap_path(request);
         let bytes = match fs::read(&path) {
@@ -106,21 +100,22 @@ impl IblSourceCubemapStagingStore {
             }
         };
 
-        let texture = TextureAsset::new_container(
-            uri,
-            request.face_size(),
-            request.face_size(),
-            ZCUBE_SOURCE_CUBEMAP_FORMAT,
-            bytes,
-            request.mip_count(),
-            SOURCE_CUBEMAP_FACE_COUNT as u32,
-        );
-        let cubemap = decode_zcube_source_cubemap_texture(&texture).map_err(|source| {
+        let cubemap = decode_zcube_source_cubemap_bytes(&bytes).map_err(|source| {
             IblSourceCubemapStagingError::DecodeZcube {
                 path: path.clone(),
                 source,
             }
         })?;
+        if cubemap.face_size() != request.source_face_size()
+            || cubemap.mip_count() != request.source_mip_count()
+        {
+            return Err(IblSourceCubemapStagingError::RequestSourceLayoutMismatch {
+                request_face_size: request.source_face_size(),
+                request_mip_count: request.source_mip_count(),
+                source_face_size: cubemap.face_size(),
+                source_mip_count: cubemap.mip_count(),
+            });
+        }
         Ok(IblSourceCubemapStagingRead::Hit(cubemap))
     }
 
@@ -149,7 +144,7 @@ impl IblSourceCubemapStagingStore {
             }
         };
 
-        let source_chain = SourceCubemapMipChain::new(
+        let source_chain = build_source_cubemap_from_source_mips(
             source.face_size(),
             source.mip_count(),
             source.texels().to_vec(),
@@ -285,14 +280,18 @@ fn ensure_request_matches_source_cubemap(
     request: &IblBakeArtifactRequest,
     cubemap: &SourceCubemapMipChain,
 ) -> Result<(), IblSourceCubemapStagingError> {
-    if request.face_size() == cubemap.face_size() && request.mip_count() == cubemap.mip_count() {
+    if request.source_face_size() == cubemap.source_face_size()
+        && request.source_mip_count() == cubemap.source_mip_count()
+        && request.pmrem_face_size() == cubemap.pmrem_face_size()
+        && request.pmrem_mip_count() == cubemap.pmrem_mip_count()
+    {
         return Ok(());
     }
 
     Err(IblSourceCubemapStagingError::RequestSourceLayoutMismatch {
-        request_face_size: request.face_size(),
-        request_mip_count: request.mip_count(),
-        source_face_size: cubemap.face_size(),
-        source_mip_count: cubemap.mip_count(),
+        request_face_size: request.source_face_size(),
+        request_mip_count: request.source_mip_count(),
+        source_face_size: cubemap.source_face_size(),
+        source_mip_count: cubemap.source_mip_count(),
     })
 }

@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
 
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     NavAvoidanceQuality, NavMeshAgentDescriptor, NavigationError, NavigationErrorKind,
 };

@@ -4,6 +4,7 @@ use crate::core::resource::{
 };
 
 use crate::core::framework::scene::{EntityId, Mobility};
+use serde::{Deserialize, Serialize};
 
 use super::light::{
     RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
@@ -292,7 +293,8 @@ impl Default for RenderVirtualGeometryExtract {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RenderHybridGiQuality {
     Low,
     Medium,
@@ -305,7 +307,82 @@ impl Default for RenderHybridGiQuality {
     }
 }
 
+impl RenderHybridGiQuality {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RenderHybridGiMode {
+    #[default]
+    DynamicOnly,
+    BakedStaticDynamic,
+}
+
+impl RenderHybridGiMode {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::DynamicOnly => "dynamic-only",
+            Self::BakedStaticDynamic => "baked-static-dynamic",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RenderHybridGiProfile {
+    FullyDynamic,
+    IndoorStatic,
+    OpenWorld,
+    Cinematic,
+    #[default]
+    Custom,
+}
+
+impl RenderHybridGiProfile {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::FullyDynamic => "fully-dynamic",
+            Self::IndoorStatic => "indoor-static",
+            Self::OpenWorld => "open-world",
+            Self::Cinematic => "cinematic",
+            Self::Custom => "custom",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RenderHybridGiFallbackReason {
+    BakedLightingUnavailable,
+}
+
+impl RenderHybridGiFallbackReason {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::BakedLightingUnavailable => "baked-lighting-unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderHybridGiResolvedSettings {
+    pub mode: RenderHybridGiMode,
+    pub profile: RenderHybridGiProfile,
+    pub quality: RenderHybridGiQuality,
+    pub trace_budget: u32,
+    pub card_budget: u32,
+    pub voxel_budget: u32,
+    pub fallback_reason: Option<RenderHybridGiFallbackReason>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RenderHybridGiDebugView {
     None,
     Cards,
@@ -320,9 +397,12 @@ impl Default for RenderHybridGiDebugView {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct RenderHybridGiExtract {
     pub enabled: bool,
+    pub mode: RenderHybridGiMode,
+    pub profile: RenderHybridGiProfile,
     pub quality: RenderHybridGiQuality,
     pub trace_budget: u32,
     pub card_budget: u32,
@@ -330,10 +410,83 @@ pub struct RenderHybridGiExtract {
     pub debug_view: RenderHybridGiDebugView,
 }
 
+impl RenderHybridGiExtract {
+    pub fn resolved_settings(
+        &self,
+        baked_lighting_available: bool,
+    ) -> RenderHybridGiResolvedSettings {
+        let (requested_mode, quality, trace_budget, card_budget, voxel_budget) = match self.profile
+        {
+            RenderHybridGiProfile::FullyDynamic => (
+                RenderHybridGiMode::DynamicOnly,
+                RenderHybridGiQuality::High,
+                96,
+                192,
+                96,
+            ),
+            RenderHybridGiProfile::IndoorStatic => (
+                RenderHybridGiMode::BakedStaticDynamic,
+                RenderHybridGiQuality::High,
+                64,
+                256,
+                64,
+            ),
+            RenderHybridGiProfile::OpenWorld => (
+                RenderHybridGiMode::BakedStaticDynamic,
+                RenderHybridGiQuality::Medium,
+                64,
+                192,
+                128,
+            ),
+            RenderHybridGiProfile::Cinematic => (
+                RenderHybridGiMode::BakedStaticDynamic,
+                RenderHybridGiQuality::High,
+                192,
+                512,
+                192,
+            ),
+            RenderHybridGiProfile::Custom => (
+                self.mode,
+                self.quality,
+                self.trace_budget,
+                self.card_budget,
+                self.voxel_budget,
+            ),
+        };
+        let fallback_reason = (requested_mode == RenderHybridGiMode::BakedStaticDynamic
+            && !baked_lighting_available)
+            .then_some(RenderHybridGiFallbackReason::BakedLightingUnavailable);
+
+        RenderHybridGiResolvedSettings {
+            mode: if fallback_reason.is_some() {
+                RenderHybridGiMode::DynamicOnly
+            } else {
+                requested_mode
+            },
+            profile: self.profile,
+            quality,
+            trace_budget: non_zero_override(self.trace_budget, trace_budget),
+            card_budget: non_zero_override(self.card_budget, card_budget),
+            voxel_budget: non_zero_override(self.voxel_budget, voxel_budget),
+            fallback_reason,
+        }
+    }
+}
+
+const fn non_zero_override(value: u32, profile_default: u32) -> u32 {
+    if value == 0 {
+        profile_default
+    } else {
+        value
+    }
+}
+
 impl Default for RenderHybridGiExtract {
     fn default() -> Self {
         Self {
             enabled: false,
+            mode: RenderHybridGiMode::DynamicOnly,
+            profile: RenderHybridGiProfile::Custom,
             quality: RenderHybridGiQuality::Medium,
             trace_budget: 0,
             card_budget: 0,
@@ -512,3 +665,46 @@ pub struct SceneViewportRenderPacket {
 
 pub type RenderExtractPacket = SceneViewportRenderPacket;
 pub type RenderSceneSnapshot = SceneViewportRenderPacket;
+
+#[cfg(test)]
+mod hybrid_gi_m4_tests {
+    use super::*;
+
+    #[test]
+    fn hybrid_gi_legacy_settings_default_to_dynamic_custom_profile() {
+        let extract: RenderHybridGiExtract = serde_json::from_str(
+            r#"{
+                "enabled": true,
+                "quality": "high",
+                "trace_budget": 32,
+                "card_budget": 64,
+                "voxel_budget": 16,
+                "debug_view": "surface_cache"
+            }"#,
+        )
+        .expect("legacy Hybrid GI settings should keep defaults for new M4 fields");
+
+        assert_eq!(extract.mode, RenderHybridGiMode::DynamicOnly);
+        assert_eq!(extract.profile, RenderHybridGiProfile::Custom);
+    }
+
+    #[test]
+    fn hybrid_gi_baked_mode_and_profile_serde_roundtrip() {
+        let extract = RenderHybridGiExtract {
+            enabled: true,
+            mode: RenderHybridGiMode::BakedStaticDynamic,
+            profile: RenderHybridGiProfile::IndoorStatic,
+            quality: RenderHybridGiQuality::High,
+            trace_budget: 32,
+            card_budget: 64,
+            voxel_budget: 16,
+            debug_view: RenderHybridGiDebugView::InputSet,
+        };
+
+        let encoded = serde_json::to_string(&extract).expect("Hybrid GI settings should encode");
+        let decoded: RenderHybridGiExtract =
+            serde_json::from_str(&encoded).expect("Hybrid GI settings should decode");
+
+        assert_eq!(decoded, extract);
+    }
+}

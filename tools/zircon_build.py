@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import dataclasses
 import os
 import platform
 import shutil
@@ -20,11 +19,13 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
     raise
 
 try:
+    from .zircon_build_config import BuildConfig
     from .zircon_build_asset_staging import (
         copy_resource_dirs,
         stage_engine_assets,
     )
     from .zircon_build_hub import build_hub
+    from .zircon_build_font_sdf import bake_font_sdf_manifest
     from .zircon_build_plugin_assets import collect_plugin_asset_roots
     from .zircon_build_plugin_manifest_contract import (
         collect_module_crate_names,
@@ -62,11 +63,13 @@ try:
         validate_staged_shader_prewarm_acceptance_contract,
     )
 except ImportError:  # pragma: no cover - exercised when run as a script.
+    from zircon_build_config import BuildConfig
     from zircon_build_asset_staging import (
         copy_resource_dirs,
         stage_engine_assets,
     )
     from zircon_build_hub import build_hub
+    from zircon_build_font_sdf import bake_font_sdf_manifest
     from zircon_build_plugin_assets import collect_plugin_asset_roots
     from zircon_build_plugin_manifest_contract import (
         collect_module_crate_names,
@@ -105,84 +108,10 @@ except ImportError:  # pragma: no cover - exercised when run as a script.
     )
 
 
-TARGETS = ("hub", "editor", "runtime", "plugins")
+TARGETS = ("hub", "editor", "runtime", "plugins", "font-sdf")
 MODES = ("debug", "release", "profiling")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
-TARGET_FEATURES = ("target-client", "target-server", "target-editor-host")
-ENGINE_DIR_NAME = "ZirconEngine"
 PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"
-@dataclasses.dataclass(frozen=True)
-class BuildConfig:
-    repo_root: Path
-    out_root: Path
-    cargo: str
-    mode: str
-    targets: tuple[str, ...]
-    runtime_features: tuple[str, ...]
-    plugins: tuple[PluginPackage, ...]
-    plugin_carrier: str
-    locked: bool
-    jobs: str | None
-    dry_run: bool
-    prewarm_shaders: bool
-    validate_wgpu_shaders: bool
-    validate_wgpu_pipelines: bool
-    shader_quality_tiers: tuple[str, ...]
-    shader_geometry_sources: tuple[str, ...]
-    shader_asset_roots: tuple[Path, ...]
-    shader_geometry_source_ids: tuple[str, ...]
-    shader_shading_model_ids: tuple[str, ...]
-    shader_permutation_registries: tuple[Path, ...]
-    shader_resource_registry: Path | None
-
-    @property
-    def engine_root(self) -> Path:
-        return self.out_root / ENGINE_DIR_NAME
-
-    @property
-    def targets_root(self) -> Path:
-        return self.out_root / "targets"
-
-    @property
-    def profile_dir(self) -> str:
-        if self.mode == "release":
-            return "release"
-        if self.mode == "profiling":
-            return "profiling"
-        return "debug"
-
-    @property
-    def runtime_feature_arg(self) -> str:
-        return " ".join(self.runtime_features)
-
-    @property
-    def runtime_preview_feature_arg(self) -> str:
-        return self.feature_arg_for_target("target-client")
-
-    def feature_arg_for_target(self, target_feature: str) -> str:
-        features = [target_feature]
-        features.extend(
-            feature
-            for feature in self.runtime_features
-            if feature not in TARGET_FEATURES and feature not in features
-        )
-        return " ".join(features)
-
-    @property
-    def shader_prewarm_cache_root(self) -> Path:
-        return self.engine_root / "cache" / "shader_variants"
-
-    @property
-    def shader_prewarm_report_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_variants_report.json"
-
-    @property
-    def shader_prewarm_resource_registry_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_resource_records.json"
-
-    @property
-    def shader_prewarm_permutation_registry_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_permutation_registry.json"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -211,6 +140,7 @@ Examples:
   python tools/zircon_build.py --targets runtime --out E:\\zircon-build-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
   python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets plugins --plugins all --plugin-carrier native_dynamic --out E:\\zircon-build --mode release
+  python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\\project\\font-sdf.json --out E:\\zircon-build --mode release
 
 Plugin carrier boundary:
   native_dynamic crates are cdylib plugins copied into ZirconEngine/plugins.
@@ -220,9 +150,13 @@ Plugin carrier boundary:
     parser.add_argument(
         "--targets",
         "--target",
-        help="Comma-separated build targets: hub,editor,runtime,plugins.",
+        help="Comma-separated build targets: hub,editor,runtime,plugins,font-sdf.",
     )
     parser.add_argument("--out", "--output", help="Build output directory.")
+    parser.add_argument(
+        "--font-sdf-manifest",
+        help="Versioned JSON bake manifest required by the font-sdf target.",
+    )
     parser.add_argument("--mode", choices=MODES, help="Cargo profile mode.")
     parser.add_argument(
         "--runtime-features",
@@ -377,6 +311,7 @@ def resolve_config(
         else default_runtime_features(targets)
     )
     plugin_carrier = args.plugin_carrier
+    font_sdf_manifest = resolve_optional_path(args.font_sdf_manifest)
 
     if mode == "profiling" and "hub" in targets:
         raise SystemExit("--mode profiling is not supported for the hub/Tauri target.")
@@ -391,6 +326,10 @@ def resolve_config(
         selected_plugins = tuple(prompt_plugins(candidates))
     if "plugins" in targets and not selected_plugins:
         raise SystemExit("No plugins selected for the plugins target.")
+    if "font-sdf" in targets and font_sdf_manifest is None:
+        raise SystemExit("The font-sdf target requires --font-sdf-manifest.")
+    if "font-sdf" not in targets and font_sdf_manifest is not None:
+        raise SystemExit("--font-sdf-manifest requires the font-sdf target.")
 
     return BuildConfig(
         repo_root=repo_root,
@@ -420,6 +359,7 @@ def resolve_config(
             args.shader_permutation_registry
         ),
         shader_resource_registry=resolve_optional_path(args.shader_resource_registry),
+        font_sdf_manifest=font_sdf_manifest,
     )
 
 
@@ -636,6 +576,8 @@ def print_plan(config: BuildConfig) -> None:
         print("  dry-run: enabled")
     if config.prewarm_shaders:
         print_shader_prewarm_plan(config)
+    if config.font_sdf_manifest is not None:
+        print(f"  font-SDF manifest: {config.font_sdf_manifest}")
     if config.plugins:
         print("  plugins:")
         for package in config.plugins:
@@ -667,6 +609,8 @@ def build(config: BuildConfig) -> None:
     if "plugins" in config.targets:
         ensure_plugin_base_artifacts(config)
         build_plugins(config)
+    if "font-sdf" in config.targets:
+        bake_font_sdf_manifest(config, config.font_sdf_manifest)
 
 
 def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview: bool) -> None:

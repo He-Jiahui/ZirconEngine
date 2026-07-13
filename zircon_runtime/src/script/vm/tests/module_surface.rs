@@ -102,7 +102,10 @@ fn core_resolve_plugin_exposes_vm_plugin_runtime_and_manager_facade_shares_it() 
 
     assert!(Arc::ptr_eq(&plugin, &manager));
 
-    let capability = driver.registry().register_capability("RenderingManager");
+    let capability = driver
+        .registry()
+        .register_capability("RenderingManager")
+        .unwrap();
     assert!(plugin.host_registry().is_valid(capability));
     assert!(driver.host_exports().module("zr.zircon.math").is_some());
     assert!(plugin
@@ -191,6 +194,10 @@ fn vm_subsystem_is_grouped_by_module_backend_host_plugin_and_runtime() {
         "backend/unavailable_vm_backend.rs",
         "backend/mock_vm_backend.rs",
         "backend/vm_error.rs",
+        "gc_bridge/mod.rs",
+        "gc_bridge/host_handle.rs",
+        "gc_bridge/vm_object_ref.rs",
+        "gc_bridge/budget.rs",
         "host/mod.rs",
         "host/bridge_host_module.rs",
         "host/builtin_host_modules.rs",

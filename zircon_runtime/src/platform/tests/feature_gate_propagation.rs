@@ -7,7 +7,7 @@ fn platform_window_gate_propagates_to_window_owned_capabilities() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(
@@ -61,7 +61,7 @@ fn platform_winit_gate_propagates_to_desktop_window_host_capabilities() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(
@@ -119,7 +119,7 @@ fn input_feature_gates_take_precedence_over_available_host_capability() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(
@@ -210,7 +210,7 @@ fn browser_gamepad_backend_requires_platform_web_gate() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Wasm,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(

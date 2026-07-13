@@ -1,4 +1,4 @@
-use crate::asset::AssetImporterRegistry;
+use crate::asset::{AssetImporterRegistry, AssetImporterRegistryError};
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 #[cfg(feature = "graphics")]
@@ -11,7 +11,7 @@ use crate::plugin::RuntimeExtensionRegistry;
 
 pub(super) struct RuntimeModuleExtensionInputs {
     pub(super) asset_importers: AssetImporterRegistry,
-    pub(super) asset_importer_errors: Vec<String>,
+    pub(super) asset_importer_errors: Vec<AssetImporterRegistryError>,
     #[cfg(feature = "graphics")]
     pub(super) render_features: Vec<RenderFeatureDescriptor>,
     #[cfg(feature = "graphics")]
@@ -60,13 +60,13 @@ pub(super) fn extension_inputs_from_extension_registries<'a>(
 
 fn asset_importers_from_extension_registries<'a>(
     registries: impl IntoIterator<Item = &'a RuntimeExtensionRegistry>,
-) -> (AssetImporterRegistry, Vec<String>) {
+) -> (AssetImporterRegistry, Vec<AssetImporterRegistryError>) {
     let mut asset_importers = AssetImporterRegistry::default();
     let mut errors = Vec::new();
     for registry in registries {
         for importer in registry.asset_importers().importers() {
             if let Err(error) = asset_importers.register_arc(importer) {
-                errors.push(format!("asset importer registration failed: {error}"));
+                errors.push(error);
             }
         }
     }

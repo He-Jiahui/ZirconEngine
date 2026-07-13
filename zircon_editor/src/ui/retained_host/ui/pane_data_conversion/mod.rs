@@ -53,7 +53,8 @@ pub(super) use self::native_template_node_panes::{
 pub(super) use self::pane_component_projection::{
     projected_command_palette_options, projected_command_palette_structured_options,
     projected_notification_center_options, projected_notification_center_structured_options,
-    projected_notification_center_value_text,
+    projected_notification_center_value_text, projected_sample_grid_data,
+    projected_timeline_strip_data, projected_weight_heatmap_data,
 };
 pub(super) use self::pane_menu_projection::structured_menu_items;
 pub(super) use self::pane_option_projection::structured_options_for_node;

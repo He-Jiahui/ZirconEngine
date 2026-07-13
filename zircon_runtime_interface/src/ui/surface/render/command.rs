@@ -8,7 +8,8 @@ use super::text_shape::text_paint_runs_from_shaped;
 use super::{
     UiBrushPayload, UiBrushSet, UiClipMode, UiClipState, UiPaintEffects, UiPaintElement,
     UiPaintPayload, UiRenderCommandKind, UiRenderResourceKey, UiRenderResourceKind,
-    UiResolvedStyle, UiResolvedTextLayout, UiTextPaint, UiVisualAssetRef,
+    UiResolvedStyle, UiResolvedTextBox, UiResolvedTextLayout, UiTextPaint, UiTextPaintDecoration,
+    UiVisualAssetRef,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -283,6 +284,18 @@ impl UiRenderCommand {
             })
             .unwrap_or_default();
 
+        let mut decorations = self
+            .text_layout
+            .as_ref()
+            .map(|layout| text_box_background_decorations(&layout.boxes))
+            .unwrap_or_default();
+        if let Some((layout, editable)) = self.text_layout.as_ref().zip(editable) {
+            decorations.extend(editable_text_decorations(layout, editable));
+        }
+        if let Some(layout) = self.text_layout.as_ref() {
+            decorations.extend(text_box_border_decorations(&layout.boxes));
+        }
+
         UiTextPaint {
             source_text,
             color: self.style.foreground_color.clone(),
@@ -293,20 +306,53 @@ impl UiRenderCommand {
             line_height: self.style.line_height,
             writing_mode: self.style.text_writing_mode,
             render_mode: self.style.text_render_mode,
+            text_effects: self.style.text_effects.normalized(),
+            text_decorations: self.style.text_decorations.clone(),
             overflow: self.style.text_overflow,
             shaped,
             selection: editable.and_then(|editable| editable.selection.clone()),
             caret: editable.map(|editable| editable.caret.clone()),
             composition: editable.and_then(|editable| editable.composition.clone()),
-            decorations: self
-                .text_layout
-                .as_ref()
-                .zip(editable)
-                .map(|(layout, editable)| editable_text_decorations(layout, editable))
-                .unwrap_or_default(),
+            decorations,
             runs,
         }
     }
+}
+
+fn text_box_background_decorations(boxes: &[UiResolvedTextBox]) -> Vec<UiTextPaintDecoration> {
+    boxes
+        .iter()
+        .filter_map(|text_box| {
+            text_box.background_color.map(|color| {
+                UiTextPaintDecoration::table_cell_background(
+                    text_box.range,
+                    text_box.frame,
+                    rgba_hex(color),
+                )
+            })
+        })
+        .collect()
+}
+
+fn text_box_border_decorations(boxes: &[UiResolvedTextBox]) -> Vec<UiTextPaintDecoration> {
+    boxes
+        .iter()
+        .filter_map(|text_box| {
+            text_box.border_color.map(|color| {
+                UiTextPaintDecoration::table_cell_border(
+                    text_box.range,
+                    text_box.frame,
+                    rgba_hex(color),
+                    text_box.border_width,
+                )
+            })
+        })
+        .collect()
+}
+
+fn rgba_hex(color: crate::ui::style::UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    format!("#{red:02X}{green:02X}{blue:02X}{alpha:02X}")
 }
 
 fn stable_hash64(bytes: &[u8]) -> u64 {

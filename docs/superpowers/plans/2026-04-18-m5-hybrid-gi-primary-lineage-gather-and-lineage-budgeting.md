@@ -1,14 +1,12 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/shaders/update_completion.wgsl
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 plan_sources:
   - user: 2026-04-18 更完整的 screen-probe hierarchy / RT hybrid lighting 或 Virtual Geometry unified indirect / residency-manager cascade
   - user: 2026-04-18 后续任务需要列出所有 tasks 写入 todo 然后执行
@@ -17,8 +15,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-gpu-hierarchy-completion-continuation.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-descendant-request-frontier.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_hierarchy
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_visibility
   - cargo test -p zircon_graphics --offline --locked visibility

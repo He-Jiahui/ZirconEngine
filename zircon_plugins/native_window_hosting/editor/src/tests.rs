@@ -1,5 +1,5 @@
 use zircon_runtime::{
-    builtin::RuntimeTargetMode,
+    core::framework::platform::RuntimeTargetMode,
     plugin::{ExportPackagingStrategy, PluginModuleKind},
 };
 
@@ -46,9 +46,9 @@ fn native_window_hosting_plugin_contributes_window_views_and_capability() {
             .any(|menu| menu.operation().as_str() == operation_path));
         assert!(registration
             .extensions
-            .operations()
-            .descriptors()
-            .any(|operation| operation.path().as_str() == operation_path));
+            .commands()
+            .commands()
+            .any(|operation| operation.id().as_str() == operation_path));
     }
 }
 

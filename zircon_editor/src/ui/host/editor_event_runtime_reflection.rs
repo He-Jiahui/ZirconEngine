@@ -7,6 +7,7 @@ use crate::core::editor_message::{
 };
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
+use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
@@ -23,10 +24,15 @@ const VIEW_INVALIDATED_TOPIC: &str = "view.invalidated";
 impl EditorHostEventController {
     pub(crate) fn refresh_reflection(&self) {
         let mut shell = self.shell().lock();
-        Self::refresh_reflection_for_shell(&mut shell);
+        let commands = self.commands().lock();
+        Self::refresh_reflection_for_shell(&mut shell, &commands, self.context().command_eval());
     }
 
-    pub(crate) fn refresh_reflection_for_shell(shell: &mut WorkbenchShellStateData) {
+    pub(crate) fn refresh_reflection_for_shell(
+        shell: &mut WorkbenchShellStateData,
+        commands: &crate::core::commands::EditorCommandRegistry,
+        command_eval: &crate::core::commands::CommandEvalSnapshotHandle,
+    ) {
         let descriptors = shell.manager.descriptors();
         let (views, windows) = activity_descriptors_from_views(&descriptors);
         register_activity_descriptors(&mut shell.control_service, views, windows);
@@ -38,10 +44,13 @@ impl EditorHostEventController {
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
-        let view_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+        let eval_context = command_eval_ctx_from_chrome(&chrome, enabled_capabilities.clone());
+        command_eval.replace(eval_context.clone());
+        let view_model = WorkbenchViewModel::build_with_extensions_and_context(
+            commands,
             &chrome,
             &active_extensions,
-            &enabled_capabilities,
+            &eval_context,
         );
         let model = register_workbench_reflection_routes(
             &mut shell.control_service,
@@ -92,13 +101,16 @@ impl EditorHostEventController {
         descriptors: Vec<ViewDescriptor>,
     ) -> EditorChromeSnapshot {
         let component_drawers = Self::active_component_drawers_for_shell(shell);
+        let mut editor_snapshot = shell
+            .state
+            .snapshot_with_component_drawers(&component_drawers);
+        Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot);
         EditorChromeSnapshot::build(
-            shell
-                .state
-                .snapshot_with_component_drawers(&component_drawers),
+            editor_snapshot,
             &shell.manager.current_layout(),
             shell.manager.current_view_instances(),
             descriptors,
+            shell.manager.current_focused_view().as_ref(),
         )
     }
 

@@ -33,10 +33,9 @@ class CoordinatorClient:
             runtime = json.loads(config.runtime_path.read_text(encoding="utf-8"))
             host = str(runtime["host"])
             port = int(runtime["port"])
-            token = str(runtime["token"])
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise CoordinatorClientError("offline", "Coordinator runtime descriptor is unavailable") from error
-        return cls(base_url=f"http://{host}:{port}", token=token)
+        return cls(base_url=f"http://{host}:{port}", token="")
 
     def health(self) -> dict[str, Any]:
         return self._request("GET", "/health")
@@ -82,6 +81,42 @@ class CoordinatorClient:
     def control_snapshot(self) -> dict[str, Any]:
         return self.control_request("GET", "/control/v1/snapshot")
 
+    def execute_control_action(
+        self,
+        kind: str,
+        parameters: dict[str, Any],
+        *,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Run one local controlled action through its preview/confirm boundary."""
+        preview = self.control_request(
+            "POST",
+            "/control/v1/actions/preview",
+            {"kind": kind, "parameters": parameters},
+        )
+        action = preview.get("action")
+        if not isinstance(action, dict):
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator action preview omitted its action record"
+            )
+        action_id = action.get("actionId")
+        phrase = action.get("confirmationPhrase")
+        if not isinstance(action_id, str) or not action_id or not isinstance(phrase, str) or not phrase:
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator action preview omitted its confirmation data"
+            )
+        confirmed = self.control_request(
+            "POST",
+            f"/control/v1/actions/{action_id}/confirm",
+            {"phrase": phrase, "reason": reason},
+        )
+        action = confirmed.get("action")
+        if not isinstance(action, dict):
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator action confirmation omitted its result"
+            )
+        return action
+
     def issue_elevation_grant(
         self,
         *,
@@ -123,7 +158,6 @@ class CoordinatorClient:
             f"{self.base_url}{path}",
             data=data,
             headers={
-                "Authorization": f"Bearer {self.token}",
                 "Content-Type": "application/json",
             },
             method=method,

@@ -1,41 +1,41 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/draw_segment.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/indirect_draw.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_segments.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/draw_segment.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/indirect_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_state_readbacks/read_indirect_segments.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 implementation_files:
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/draw_segment.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/indirect_draw.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_segments.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/draw_segment.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/indirect_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_state_readbacks/read_indirect_segments.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry deeper cluster raster consumption 和更深 residency-manager cascade / split-merge policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline virtual_geometry_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline virtual_geometry_unified_indirect -- --nocapture
   - cargo test -p zircon_graphics --offline visibility -- --nocapture

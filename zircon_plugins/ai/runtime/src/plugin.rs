@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::bridge::PluginInterface;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::behavior_tree::BehaviorNodeRegistry;
 use crate::{

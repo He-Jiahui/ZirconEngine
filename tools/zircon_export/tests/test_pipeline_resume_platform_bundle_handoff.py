@@ -26,7 +26,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = out / "stages" / "pack" / "assets.zrpack"
@@ -42,7 +42,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
                 "platform_bundle",
             )
 
-            bundled_host = out / "bundle" / "windows-release" / "zircon_runtime.exe"
+            bundled_host = out / "bundle" / "windows-release" / "zircon_hub.exe"
             platform_report = json_loads(
                 (out / "stages" / "platform_bundle" / "report.json").read_text(
                     encoding="utf-8"
@@ -108,7 +108,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             pack = root / "pack-output" / "assets.zrpack"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
@@ -152,7 +152,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -184,7 +184,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -199,7 +199,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
                 _export_args(out=out, stage="platform_bundle", dry_run=False)
             )
 
-            bundled_host = out / "bundle" / "windows-release" / "zircon_runtime.exe"
+            bundled_host = out / "bundle" / "windows-release" / "zircon_hub.exe"
             bundled_pack = out / "bundle" / "windows-release" / "custom-assets.zrpack"
             platform_report = json_loads(
                 (out / "stages" / "platform_bundle" / "report.json").read_text(
@@ -221,7 +221,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -261,7 +261,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"
@@ -302,7 +302,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             stale_pack = root / "pack-output" / "stale-assets.zrpack"
@@ -341,7 +341,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             default_pack = out / "stages" / "pack" / "assets.zrpack"
@@ -384,7 +384,7 @@ class PipelineResumePlatformBundleHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = out / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "staged" / "ZirconEngine" / "zircon_hub.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"

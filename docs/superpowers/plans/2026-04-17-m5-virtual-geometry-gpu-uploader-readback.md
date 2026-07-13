@@ -1,41 +1,37 @@
 ---
 related_code:
-  - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/execute/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/decode/read_buffer_u32s.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/execute/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
 implementation_files:
-  - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_readback/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/execute/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/decode/read_buffer_u32s.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/execute/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
 plan_sources:
   - user: 2026-04-17 Virtual Geometry next step should enter real GPU uploader/readback before cluster hierarchy/refine
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-feedback-streaming.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
   - cargo test -p zircon_graphics --offline render_server_bridge
   - cargo test -p zircon_graphics --offline virtual_geometry_runtime
   - cargo test -p zircon_graphics --offline virtual_geometry_prepare_render

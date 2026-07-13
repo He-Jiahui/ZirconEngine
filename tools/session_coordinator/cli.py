@@ -168,6 +168,34 @@ def _parser() -> argparse.ArgumentParser:
     cargo_release.add_argument("--session-id")
     cargo_commands.add_parser("list")
 
+    milestone = commands.add_parser("milestone")
+    milestone_commands = milestone.add_subparsers(dest="milestone_command", required=True)
+    milestone_prepare = milestone_commands.add_parser("prepare")
+    milestone_prepare.add_argument("--session-id", required=True)
+    milestone_prepare.add_argument("--milestone", required=True)
+    milestone_review = milestone_commands.add_parser("review")
+    milestone_review.add_argument("--session-id", required=True)
+    milestone_review.add_argument("--executor-session-id", required=True)
+    milestone_review.add_argument("--run-id", required=True)
+    milestone_review.add_argument("--milestone", required=True)
+    milestone_review.add_argument("--critical-count", type=int, required=True)
+    milestone_review.add_argument("--important-count", type=int, required=True)
+    milestone_review.add_argument("--summary", required=True)
+    milestone_validate = milestone_commands.add_parser("validate")
+    milestone_validate.add_argument("--session-id", required=True)
+    milestone_validate.add_argument("--run-id", required=True)
+    milestone_validate.add_argument("--milestone", required=True)
+    milestone_validate.add_argument(
+        "--template", choices=("coordinator-actions", "web-check"), required=True
+    )
+    milestone_commit = milestone_commands.add_parser("commit")
+    milestone_commit.add_argument("--session-id", required=True)
+    milestone_commit.add_argument("--run-id", required=True)
+    milestone_commit.add_argument("--milestone", required=True)
+    milestone_goal = milestone_commands.add_parser("close-goal")
+    milestone_goal.add_argument("--session-id", required=True)
+    milestone_goal.add_argument("--run-id", required=True)
+
     cleanup = commands.add_parser("cleanup")
     cleanup_commands = cleanup.add_subparsers(dest="cleanup_command", required=True)
     cleanup_plan = cleanup_commands.add_parser("plan")
@@ -503,6 +531,60 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             )
         if arguments.cargo_command == "list":
             return client.command("cargo.list")
+    if arguments.command == "milestone":
+        if arguments.milestone_command == "prepare":
+            action = client.execute_control_action(
+                "topology.refresh",
+                {"sessionId": arguments.session_id},
+                reason=f"prepare milestone {arguments.milestone.strip().upper()}",
+            )
+        elif arguments.milestone_command == "validate":
+            action = client.execute_control_action(
+                "validation.start",
+                {
+                    "sessionId": arguments.session_id,
+                    "runId": arguments.run_id,
+                    "milestoneId": arguments.milestone.strip().upper(),
+                    "template": arguments.template,
+                },
+                reason=f"start managed validation for {arguments.milestone.strip().upper()}",
+            )
+        elif arguments.milestone_command == "review":
+            action = client.execute_control_action(
+                "topology.refresh",
+                {
+                    "sessionId": arguments.session_id,
+                    "executorSessionId": arguments.executor_session_id,
+                    "runId": arguments.run_id,
+                    "milestoneId": arguments.milestone.strip().upper(),
+                    "criticalCount": arguments.critical_count,
+                    "importantCount": arguments.important_count,
+                    "summary": arguments.summary,
+                },
+                reason=f"submit independent review for {arguments.milestone.strip().upper()}",
+            )
+        elif arguments.milestone_command == "commit":
+            action = client.execute_control_action(
+                "milestone.commit",
+                {
+                    "sessionId": arguments.session_id,
+                    "runId": arguments.run_id,
+                    "milestoneId": arguments.milestone.strip().upper(),
+                },
+                reason=f"commit accepted milestone {arguments.milestone.strip().upper()}",
+            )
+        else:
+            action = client.execute_control_action(
+                "session.complete",
+                {"sessionId": arguments.session_id, "runId": arguments.run_id},
+                reason="close accepted workflow goal",
+            )
+        result = action.get("result")
+        if not isinstance(result, dict):
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator action completed without a result payload"
+            )
+        return result
     if arguments.command == "cleanup":
         payload = {"older_than_hours": arguments.older_than_hours}
         if arguments.cleanup_command == "apply":

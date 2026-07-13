@@ -337,12 +337,12 @@ mod tests {
                 .join("shaders")
                 .join(format!("{name}.wgsl.zmeta")),
             format!(
-                r#"format_version = 6
+                r#"format_version = 7
 uuid = "{id}"
 url = "{locator}"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "{source_hash}"
+source_digest = "{source_hash}"
 "#
             ),
         )

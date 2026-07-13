@@ -1,4 +1,5 @@
-use crate::plugin::{ProjectPluginManifest, RuntimeExtensionRegistry};
+use crate::core::framework::project::ProjectPluginManifest;
+use crate::plugin::RuntimeExtensionRegistry;
 
 use super::super::extension_merge::merge_feature_extensions;
 use super::super::feature_registration_match::feature_registration_matches_project_selection;

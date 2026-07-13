@@ -46,7 +46,7 @@ pub(super) fn assert_review_source_anchors(label: &str, source: &str) {
             "review_f5_navigation_asset_uses_typed_error",
             "review_f5_font_asset_uses_typed_error_source",
             "review_f5_sound_asset_uses_typed_error",
-        "review_f5_zshader_v2_replaces_user_shader_definitions",
+            "review_f5_zshader_v2_replaces_user_shader_definitions",
             "review_f5_asset_meta_uses_typed_error",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/args_boundary.rs",

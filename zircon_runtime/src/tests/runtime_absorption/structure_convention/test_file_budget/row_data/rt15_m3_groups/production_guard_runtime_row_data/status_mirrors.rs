@@ -18,8 +18,6 @@ pub(super) fn assert_runtime_row_data_status_mirrors_are_current() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     let mut status_paths = vec![
         "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/runtime_row_data.rs",
@@ -43,7 +41,6 @@ pub(super) fn assert_runtime_row_data_status_mirrors_are_current() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("production guard expected-slice rows", status_rows.as_str()),
     ] {
         assert_contains_all(label, source, &status_anchors);

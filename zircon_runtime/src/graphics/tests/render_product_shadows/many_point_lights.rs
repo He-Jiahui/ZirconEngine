@@ -292,6 +292,7 @@ fn product_point_light(index: u64) -> RenderPointLightSnapshot {
         color: Vec3::new(1.0, 0.9, 0.7),
         intensity: 2.0,
         range: 6.0,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     }
 }
@@ -307,6 +308,7 @@ fn visible_product_point_light(index: u64) -> RenderPointLightSnapshot {
         color: Vec3::new(1.0, 0.86, 0.62),
         intensity: 0.08,
         range: 6.0,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     }
 }
@@ -460,6 +462,7 @@ fn hundred_point_light_density_light(
         color: Vec3::new(1.0, 0.84, 0.62),
         intensity: 0.04,
         range,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     }
 }

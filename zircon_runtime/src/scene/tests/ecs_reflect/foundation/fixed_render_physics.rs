@@ -129,17 +129,44 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
     world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            "can_sleep",
-            ReflectedValue::Bool(false),
+            "sleep_policy",
+            ReflectedValue::Enum("Never".to_string()),
         ))
-        .expect("can_sleep should be writable");
+        .expect("sleep_policy should be writable");
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            address.clone(),
+            "mass_density",
+            ReflectedValue::Scalar(4.0),
+        ))
+        .expect("mass density should select auto-from-shape mode");
+    world
+        .reflect_write(ReflectWriteRequest::new(
+            address.clone(),
+            "ccd_mode",
+            ReflectedValue::Enum("LinearCast".to_string()),
+        ))
+        .expect("ccd_mode should be writable");
 
     let rigid_body = world.get::<RigidBodyComponent>(entity).unwrap();
     assert_eq!(rigid_body.mass, 9.5);
     assert_eq!(rigid_body.linear_damping, 0.25);
     assert_eq!(rigid_body.angular_damping, 0.5);
     assert_eq!(rigid_body.gravity_scale, 0.75);
-    assert!(!rigid_body.can_sleep);
+    assert_eq!(
+        rigid_body.sleep_policy,
+        crate::core::framework::scene::physics::PhysicsSleepPolicy::Never
+    );
+    assert_eq!(
+        rigid_body.mass_properties,
+        crate::core::framework::scene::physics::PhysicsMassProperties::AutoFromShape {
+            density: 4.0,
+        }
+    );
+    assert_eq!(
+        rigid_body.ccd_mode,
+        crate::core::framework::scene::physics::PhysicsCcdMode::LinearCast
+    );
     let unchanged_mass = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),

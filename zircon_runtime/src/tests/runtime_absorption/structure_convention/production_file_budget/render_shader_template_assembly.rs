@@ -47,15 +47,33 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     let owner_budget = read_runtime_src(ASSERTION_OWNER_BUDGET_OWNER);
     let docs = read_runtime_src(DOCS_OWNER);
     let sources = read_runtime_src(SOURCES_OWNER);
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
+    let status_rows = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/anchor_mirror.rs",
+        ),
+    ]
+    .join("\n");
+    let status_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
+        ),
+    ]
+    .join("\n");
+    let date_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
+        ),
+    ]
+    .join("\n");
     let mesh_cache_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let mesh_cache_source_tests = read_runtime_src(
@@ -197,8 +215,6 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     for (label, source) in [
         ("status rows", status_rows.as_str()),
         ("status map", status_map.as_str()),
@@ -208,7 +224,6 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
         ("structure convention", structure_convention.as_str()),
         ("review findings", review_findings.as_str()),
         ("module convention", module_convention.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -243,7 +258,6 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
         ("structure convention", structure_convention.as_str()),
         ("review findings", review_findings.as_str()),
         ("module convention", module_convention.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -317,7 +331,6 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
         ("structure convention", structure_convention.as_str()),
         ("review findings", review_findings.as_str()),
         ("module convention", module_convention.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,

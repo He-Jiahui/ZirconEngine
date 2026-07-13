@@ -1,5 +1,6 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::{ExportProfile, RuntimeProfileDescriptor, RuntimeProfileId};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ExportProfile, RuntimeProfileId};
+use crate::plugin::RuntimeProfileDescriptor;
 
 pub(super) fn runtime_profile_for_export_profile(
     profile: &ExportProfile,

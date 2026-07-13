@@ -55,7 +55,9 @@ base_color = [1.0, 1.0, 1.0, 1.0]
 fn project_material_readiness_reports_imported_shader_redirect_dependency() {
     let root = unique_temp_project_root("material_shader_redirect_project_contract");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Redirect Project",
         AssetUri::parse("res://shaders/redirect_surface").unwrap(),
@@ -168,7 +170,7 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
 fn write_redirect_surface_shader_package(paths: &ProjectPaths) -> AssetUri {
     let shader_uri = AssetUri::parse("res://shaders/redirect_surface").unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("redirect_surface.zmeta");
     let mut shader_meta =
@@ -177,7 +179,10 @@ fn write_redirect_surface_shader_package(paths: &ProjectPaths) -> AssetUri {
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("redirect_surface");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("redirect_surface");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("redirect_surface.zshader"),
@@ -211,7 +216,7 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
 fn write_material_for_shader(paths: &ProjectPaths, shader_uri: &AssetUri) -> AssetUri {
     let material_uri = AssetUri::parse("res://materials/redirect_surface.zmaterial").unwrap();
     let material_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("materials")
         .join("redirect_surface.zmaterial");
     fs::create_dir_all(material_path.parent().unwrap()).unwrap();

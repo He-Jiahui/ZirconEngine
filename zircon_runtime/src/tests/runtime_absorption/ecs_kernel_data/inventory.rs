@@ -56,7 +56,7 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/messages/store.rs",
     "src/scene/ecs/resource/mod.rs",
     "src/scene/ecs/resource/id.rs",
-    "src/scene/ecs/resource/marker.rs",
+    "src/core/framework/scene/resource.rs",
     "src/scene/ecs/resource/registry.rs",
     "src/scene/ecs/resource_store/mod.rs",
     "src/scene/ecs/resource_store/stored_resource.rs",

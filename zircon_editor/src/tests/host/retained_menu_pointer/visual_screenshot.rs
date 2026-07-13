@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::ui::retained_host::primitives::{Color, PhysicalSize, SharedString};
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
+use crate::core::project::RecentProjectValidation;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::layouts::windows::workbench_host_window::{
@@ -16,9 +17,10 @@ use crate::ui::retained_host::callback_dispatch::{
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
-    apply_presentation, paint_host_frame_for_test, paint_template_nodes_for_test_with_background,
-    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
-    HostMenuChromeData, HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
+    apply_presentation, paint_componentized_extension_workspace_for_test,
+    paint_host_frame_for_test, paint_template_nodes_for_test_with_background, FrameRect,
+    HostChromeControlFrameData, HostChromeTabData, HostClosePromptData, HostMenuChromeData,
+    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
     HostPageOverflowMenuStateData, HostWindowLayoutData, TabData, TemplateNodeFrameData,
     TemplatePaneNodeData, UiHostContext, UiHostWindow,
 };
@@ -32,12 +34,12 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSubassetSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
-    EditorChromeSnapshot,
+    AssetSubassetSnapshot, AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode,
+    AssetWorkspaceSnapshot, EditorChromeSnapshot,
 };
 use crate::ui::workbench::startup::{
-    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation,
-    WelcomePaneSnapshot, WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID,
+    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot,
+    WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID,
 };
 use crate::ui::workbench::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
@@ -63,7 +65,9 @@ const WORKBENCH_COMPONENT_ATLAS_SCREENSHOT: &str =
     "editor-components-workbench-slate-atlas-900x620.png";
 const REFERENCE_WORKBENCH_MIN_DOCUMENT_WIDTH_FRACTION: f32 = 0.55;
 
+mod asset_browser_content;
 mod assets_drawer;
+mod blend_space_workspace;
 mod layout_assertions;
 
 use assets_drawer::assets_drawer_window;
@@ -78,7 +82,10 @@ fn capture_scrolled_window_popup_visual_artifact() {
     let metrics = WorkbenchChromeMetrics::default();
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
@@ -168,7 +175,10 @@ fn capture_close_prompt_visual_artifact() {
     let metrics = WorkbenchChromeMetrics::default();
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
@@ -1340,6 +1350,7 @@ fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
             &fixture.layout,
             fixture.instances.clone(),
             fixture.descriptors.clone(),
+            None,
         ),
         &fixture.layout,
         &fixture.descriptors,
@@ -1406,6 +1417,7 @@ fn asset_browser_window_with_workspace(
             &fixture.layout,
             fixture.instances.clone(),
             fixture.descriptors.clone(),
+            None,
         ),
         &fixture.layout,
         &fixture.descriptors,
@@ -1630,7 +1642,10 @@ fn presented_window_from_chrome(
     preset_names: &[String],
     active_preset_name: Option<&str>,
 ) -> UiHostWindow {
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let shell_size = ShellSizePx::new(width as f32, height as f32);
     let metrics = WorkbenchChromeMetrics::default();
     let geometry = compute_workbench_shell_geometry(
@@ -1988,7 +2003,7 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
         project_name: "Zircon M3 Visual".to_string(),
         project_root: "E:/Git/ZirconEngine".to_string(),
         assets_root: "zircon_editor/assets".to_string(),
-        library_root: "zircon_runtime/assets".to_string(),
+        cache_root: "zircon_runtime/.zircon/cache".to_string(),
         default_scene_uri: "res://scenes/editor_preview.zscene".to_string(),
         catalog_revision: 42,
         view_mode: AssetViewMode::Thumbnail,
@@ -2069,10 +2084,13 @@ fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
             display_name: "workbench_page_chrome.zui".to_string(),
             locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
             kind: Some(ResourceKind::UiLayout),
+            asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(ResourceKind::UiLayout),
             preview_artifact_path: "docs/tests/editor/editor-window-m3-workbench-900x620.png"
                 .to_string(),
             meta_path: "zircon_editor/assets/ui/editor/workbench_page_chrome.zui".to_string(),
-            adapter_key: "runtime-ui-template".to_string(),
+            toolkit_view_id: "editor.ui_asset".to_string(),
+            toolkit_open_operation: "view.editor.ui_asset.open".to_string(),
+            context_commands: Vec::new(),
             package_id: Some("zircon.editor.ui".to_string()),
             asset_unit: "single".to_string(),
             included_files: vec![
@@ -2183,6 +2201,9 @@ fn asset_item(
         file_name: file_name.to_string(),
         extension: extension.to_string(),
         kind,
+        asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            kind,
+        ),
         preview_artifact_path: String::new(),
         dirty: false,
         diagnostics: Vec::new(),
@@ -2203,6 +2224,7 @@ fn asset_reference(
         locator: locator.to_string(),
         display_name: display_name.to_string(),
         kind: Some(kind),
+        asset_type: Some(AssetTypeProjectionSnapshot::from_resource_kind(kind)),
         known_project_asset: true,
     }
 }
@@ -2212,6 +2234,7 @@ fn asset_subasset(uuid: &str, locator: &str, kind: ResourceKind) -> AssetSubasse
         uuid: uuid.to_string(),
         locator: locator.to_string(),
         kind,
+        asset_type: AssetTypeProjectionSnapshot::from_resource_kind(kind),
         artifact_locator: Some(locator.to_string()),
         dependency_locators: Vec::new(),
     }

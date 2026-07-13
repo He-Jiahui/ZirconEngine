@@ -31,7 +31,7 @@ fn project_overview_projection_maps_bootstrap_asset_into_template_nodes() {
             project_name: "Sample Project".to_string(),
             project_root: "E:/Projects/SampleProject".to_string(),
             assets_root: "res://".to_string(),
-            library_root: "E:/Projects/SampleProject/Library".to_string(),
+            cache_root: "E:/Projects/SampleProject/.zircon/cache".to_string(),
             default_scene_uri: "res://scenes/main.scene".to_string(),
             catalog_revision: 42,
             folder_count: 7,

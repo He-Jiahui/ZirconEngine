@@ -1,18 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/plan_ingestion.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/pending_page_requests.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/plan_ingestion.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，不要中途确认
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-frontier-priority-and-active-request-lineage.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_keeps_first_unique_visibility_request_order_when_duplicate_requested_pages_reappear -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_frontier_runtime -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

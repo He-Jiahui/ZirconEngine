@@ -39,13 +39,15 @@ doc_type: module-detail
 
 ## Optional Physics State
 
-Physics step plans, contacts, and triggers are simulation outputs rather than always-on scene schema. The target architecture selects `physics_runtime_enabled.rs` or `physics_runtime_disabled.rs` at module declaration time. The enabled adapter owns the optional contract imports and the physics-specific `LevelSystem` methods; the disabled adapter contributes only an empty runtime-state slot. This keeps the shared `level_system.rs` declaration independent of `physics-contracts` while preserving one `WorldRuntimeState` lifecycle.
+Physics step plans, contacts, and triggers are simulation outputs rather than always-on scene schema. `level_system.rs` now selects `physics_runtime_enabled.rs` or `physics_runtime_disabled.rs` at module declaration time. The enabled adapter owns the optional contract imports and the physics-specific `LevelSystem` methods; the disabled adapter contributes only an empty runtime-state slot. This keeps the shared declaration independent of `physics-contracts` while preserving one `WorldRuntimeState` lifecycle.
 
-The adapter files are currently staged but not mounted. Until the active shared Runtime and Physics builds release their source graph, `level_system.rs` remains unchanged and this hard cut is not complete. The final cut must add the declaration-time selection, replace the inline physics fields with one `PhysicsRuntimeState`, gate physics-only tests, and remove every direct optional-Physics import from `level_system.rs` in one change. No disabled-mode stub methods or compatibility re-exports are allowed.
+The hard cut replaced the inline Physics fields with `PhysicsRuntimeState`, gated Physics-only behavior at the adapter declaration, and removed direct `core::framework::physics` imports from `level_system.rs`. The disabled adapter does not expose stub simulation methods, and no compatibility re-export exists.
 
 ## Ownership Boundary
 
 `LevelSystem` owns live level state. Callers use `snapshot`, `replace`, `with_world`, `with_world_mut`, and runtime-state record/read methods instead of reaching into the internal `Mutex` fields.
+
+Animation pose recording retains existing entity entries before applying a new frame. Stable entities copy through `AnimationPoseOutput::clone_from_reusing_storage`, preserving the final pose vector and bone-name capacities; disappeared entities are removed and new entities transfer their owned pose directly. This keeps the level snapshot API owned while eliminating the previous whole-map replacement and stable-rig handoff churn.
 
 `DefaultLevelManager` owns the level map. The lifecycle owner creates and resolves levels through `create_level`, `create_default_level`, and `level`.
 
@@ -58,6 +60,8 @@ The level owner exposes private field-specific lock helpers for world, runtime s
 Test code may intentionally call `lock().unwrap()` to poison a mutex, but production code in these owners must not directly call `.lock().unwrap(`.
 
 ## Validation
+
+The 2026-07-11 Frameworks 03 static suite passes 27/27, including `test_optional_physics_runtime_state_uses_declaration_adapters`. The current Runtime `physics` filter passes 35/35, including `physics_runtime_state_records_and_resets_with_the_level`; nightly `core-min + physics-contracts` passes independently in 12m39s.
 
 `scene::tests::level_system_state_locks_use_poison_recovery_helpers` scans the production section of the scene level owner files and rejects direct `.lock().unwrap(` usage. `level_system.rs` also has module-local poison coverage for world, runtime state, metadata, lifecycle, and subsystem holders.
 

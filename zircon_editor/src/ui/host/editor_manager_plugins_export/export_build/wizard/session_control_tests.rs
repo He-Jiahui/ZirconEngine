@@ -1,17 +1,19 @@
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::time::Duration;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
+
+use crate::core::jobs::{test_job_system, JobError};
 
 use super::*;
 
 struct FirstStageBlockingRunner {
-    stage_started: Sender<ExportPipelineStage>,
+    stage_started: Sender<ExportStage>,
     release_first_stage: Option<Receiver<()>>,
 }
 
 impl FirstStageBlockingRunner {
-    fn new(stage_started: Sender<ExportPipelineStage>, release_first_stage: Receiver<()>) -> Self {
+    fn new(stage_started: Sender<ExportStage>, release_first_stage: Receiver<()>) -> Self {
         Self {
             stage_started,
             release_first_stage: Some(release_first_stage),
@@ -23,7 +25,7 @@ impl ExportWizardCommandRunner for FirstStageBlockingRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         let _ = self.stage_started.send(command.stage);
         if let Some(release_first_stage) = self.release_first_stage.take() {
             let _ = release_first_stage.recv();
@@ -65,7 +67,7 @@ fn export_wizard_panel_session_start_updates_controls_before_worker_poll() {
         stage_started_receiver
             .recv_timeout(Duration::from_secs(1))
             .expect("first stage should still start"),
-        ExportPipelineStage::Validate
+        ExportStage::Validate
     );
     release_stage_sender
         .send(())
@@ -104,20 +106,27 @@ fn export_wizard_panel_session_cancel_disables_cancel_before_terminal_poll() {
     release_stage_sender
         .send(())
         .expect("release first stage after cancellation");
-    let snapshot = session
-        .finish_job()
-        .expect("cancelling panel job should join cleanly")
-        .expect("panel job should have been active");
-    assert_eq!(snapshot.status, ExportWizardJobStatus::Cancelled);
+    assert_eq!(
+        session.finish_job(),
+        Err(ExportWizardPanelSessionError::Job(JobError::Cancelled))
+    );
+    assert_eq!(
+        session.view_model().snapshot().status,
+        ExportWizardJobStatus::Cancelled
+    );
     assert!(session.view_model().controls().can_close);
 }
 
 fn ready_session(job_id: &str) -> ExportWizardPanelSession {
-    ExportWizardPanelSession::new(job_id, export_wizard_pipeline_plan(ready_options()))
+    ExportWizardPanelSession::new(
+        test_job_system(),
+        job_id,
+        export_wizard_pipeline_plan(ready_options()),
+    )
 }
 
 fn ready_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

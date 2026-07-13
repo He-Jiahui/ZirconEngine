@@ -102,11 +102,11 @@ zircon_editor/assets/ui/editor/host/
 ### Task 3: Add Builtin Body Documents And Template Runtime Registration Tests
 
 **Files:**
-- Create: `zircon_editor/assets/ui/editor/host/console_body.ui.toml`
+- Create: `zircon_editor/assets/ui/editor/host/console_body.zui`
 - Create: `zircon_editor/assets/ui/editor/host/inspector_body.ui.toml`
-- Create: `zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml`
-- Create: `zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml`
-- Create: `zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml`
+- Create: `zircon_editor/assets/ui/editor/host/hierarchy_body.zui`
+- Create: `zircon_editor/assets/ui/editor/host/animation_sequence_body.zui`
+- Create: `zircon_editor/assets/ui/editor/host/animation_graph_body.zui`
 - Modify: `zircon_editor/src/ui/template_runtime/builtin/template_documents.rs`
 - Modify: `zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs`
 - Modify: `zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs`

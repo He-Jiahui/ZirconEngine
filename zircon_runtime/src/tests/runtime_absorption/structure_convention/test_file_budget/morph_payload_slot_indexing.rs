@@ -29,15 +29,17 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
         read_runtime_src("graphics/shader/wgsl/zr_template_velocity_alpha.wgsl");
     let virtual_geometry_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let gpu_scene_doc = read_repo("docs/zircon_runtime/graphics/scene/gpu_scene/mod.md");
     let mesh_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "GPUScene layout owns morph payload metadata without reusing VG payload_slot",
@@ -76,7 +78,9 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
     );
     assert_contains_all(
         "WGSL indexes morph rows through instance slot plus vertex_index",
-        &format!("{gpu_scene_wgsl}{morphed_wgsl}{skinned_morphed_wgsl}{surface_types}{forward_template}{velocity_template}{velocity_alpha_template}"),
+        &format!(
+            "{gpu_scene_wgsl}{morphed_wgsl}{skinned_morphed_wgsl}{surface_types}{forward_template}{velocity_template}{velocity_alpha_template}"
+        ),
         &[
             "@group(3) @binding(11) var<storage, read> zr_morph_payloads",
             "fn zr_gpu_scene_morph_payload(",
@@ -104,7 +108,10 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
     );
 
     for (path, source) in [
-        ("graphics/scene/gpu_scene/layout.rs", gpu_scene_layout.as_str()),
+        (
+            "graphics/scene/gpu_scene/layout.rs",
+            gpu_scene_layout.as_str(),
+        ),
         (
             "graphics/scene/gpu_scene/binding.rs",
             gpu_scene_binding.as_str(),
@@ -113,7 +120,10 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
             "graphics/scene/gpu_scene/gpu_scene.rs",
             gpu_scene_runtime.as_str(),
         ),
-        ("graphics/scene/gpu_scene/morph.rs", gpu_scene_morph.as_str()),
+        (
+            "graphics/scene/gpu_scene/morph.rs",
+            gpu_scene_morph.as_str(),
+        ),
         (
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs",
             morph_upload.as_str(),
@@ -138,7 +148,6 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
         ("mesh cache doc", mesh_cache_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

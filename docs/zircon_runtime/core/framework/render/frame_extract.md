@@ -61,7 +61,6 @@ related_code:
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
@@ -110,7 +109,6 @@ implementation_files:
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
@@ -170,9 +168,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs::tests::final_target_output_reports_suppressed_texture_children_only
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_overlay_stack_preserves_base_composite
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
   - cargo test -p zircon_runtime --lib runtime_session_menu --locked --jobs 1 --target-dir D:\cargo-targets\zircon-vampire-menu-0611 --message-format short --color never -- --nocapture --test-threads=1: initially failed 2026-06-11 on `phase_queue_summary.rs` type inference; fixed by explicitly typing the phase-order span vector before rerun
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
   - zircon_runtime/src/core/framework/render/capture.rs::tests::texture_capture_report_distinguishes_direct_import_and_conversion_sources
@@ -270,7 +266,7 @@ Plan 09 adds `RenderViewExtract.cameras` as the extract-side multi-camera descri
 
 Offscreen WGPU submit resolves `view.cameras` through `resolve_camera_sequence(...)` in `submit_frame_extract/submit/camera_loop.rs`, flattens each Base camera followed by its Overlay descriptors, and builds a child `RenderFrameExtract` for each descriptor with `RenderFrameExtract::with_selected_camera_descriptor(...)`. The child extract replaces the active descriptor list with that one selected descriptor, updates the transitional `view.camera`, core-pipeline kind, MSAA settings, target size, and selected scene entity, then runs the existing single-camera submit body. The loop attaches the shared UI extract only to the terminal child of the last `PrimarySurface` Base stack, falling back to the terminal child of the last Base stack when no primary stack exists. This is the current M1-S2 loop scaffold: it provides true per-descriptor offscreen submit iteration under one render-framework operation lock, but it does not yet implement Base/Overlay attachment reuse, load-op translation, final-target composite semantics, or per-camera post/history/light ownership.
 
-During WGPU submit the report is copied into `FrameSubmissionContext` and projected into `RenderStats.last_scene_camera_scheduled_count` plus `RenderStats.last_scene_camera_order_ambiguity_count`, then into `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` diagnostics. The report remains scheduling and visibility metadata. Generated offscreen submit, native surface present, and direct runtime-frame submit now consume descriptors by projecting one selected descriptor at a time into the renderer path. Final custom-target composite, complete split-screen product evidence, and per-camera post/history/light ownership remain separate renderer milestones.
+During WGPU submit the report is copied into `FrameSubmissionContext` and projected into `RenderStats.last_scene_camera_scheduled_count` plus `RenderStats.last_scene_camera_order_ambiguity_count`, then into `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` diagnostics. The report remains scheduling and visibility metadata. Generated offscreen submit, native surface present, and direct runtime-frame submit now consume descriptors by projecting one selected descriptor at a time into the renderer path. The outer loop separately records `RenderStats.last_camera_loop_submission_count` only after the complete sequence succeeds and projects it to `render.camera.loop_submission_count`; this execution count includes derived planar capture cameras and must not be inferred from the optional scene-order report. Final custom-target composite, complete split-screen product evidence, and per-camera post/history/light ownership remain separate renderer milestones.
 
 ## Sort Key Contract
 

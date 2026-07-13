@@ -3,12 +3,14 @@ use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
 
 use super::{
     TemplateNodeFrameData, TemplatePaneActionData, TemplatePaneCollectionFieldData,
-    TemplatePaneMenuItemData, TemplatePaneOptionData,
+    TemplatePaneMenuItemData, TemplatePaneOptionData, TemplatePaneSampleGridData,
+    TemplatePaneTimelineStripData, TemplatePaneWeightHeatmapData,
 };
 
 #[derive(Clone, Default)]
 pub(crate) struct TemplatePaneNodeData {
     pub node_id: SharedString,
+    pub parent_node_id: SharedString,
     pub control_id: SharedString,
     pub role: SharedString,
     pub text: SharedString,
@@ -43,6 +45,9 @@ pub(crate) struct TemplatePaneNodeData {
     pub has_preview_image: bool,
     pub preview_image: Image,
     pub vector_components: ModelRc<f32>,
+    pub sample_grid: TemplatePaneSampleGridData,
+    pub timeline_strip: TemplatePaneTimelineStripData,
+    pub weight_heatmap: TemplatePaneWeightHeatmapData,
     pub validation_level: SharedString,
     pub validation_message: SharedString,
     pub popup_open: bool,

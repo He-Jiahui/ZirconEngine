@@ -19,7 +19,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
   - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
@@ -61,7 +61,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/tab_drop.rs

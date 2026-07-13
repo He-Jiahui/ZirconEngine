@@ -13,27 +13,18 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
         Some(engine_code_review_findings_archive_source())
     } else if label.eq_ignore_ascii_case("structure convention")
         || label.eq_ignore_ascii_case("structure convention plan")
-        || label
-            .to_ascii_lowercase()
-            .contains("structure convention")
+        || label.to_ascii_lowercase().contains("structure convention")
         || normalized_label.contains("docs/plans/engine-code-structure-convention.md")
     {
         Some(engine_code_structure_archive_source())
     } else if label.eq_ignore_ascii_case("module convention doc")
         || label.eq_ignore_ascii_case("module doc")
-        || label
-            .to_ascii_lowercase()
-            .contains("module convention doc")
+        || label.to_ascii_lowercase().contains("module convention doc")
         || normalized_label.contains("docs/zircon_runtime/structure/module-convention.md")
         || label.eq_ignore_ascii_case("Frameworks 02")
         || label.eq_ignore_ascii_case("Frameworks 02 plan")
         || label.to_ascii_lowercase().contains("frameworks 02")
         || normalized_label.starts_with("docs/plans/zircon_runtime/frameworks/")
-        || label.to_ascii_lowercase().contains("session note")
-        || normalized_label.starts_with(".codex/sessions/")
-        || label
-            .to_ascii_lowercase()
-            .contains("runtime implementation session")
         || label.to_ascii_lowercase().contains("frameworks index")
         || label.to_ascii_lowercase().contains("framework plan")
         || label.to_ascii_lowercase().contains("frameworks plan")
@@ -65,14 +56,10 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
         || normalized_label
             .to_ascii_lowercase()
             .contains("status support")
-        || normalized_label
-            .to_ascii_lowercase()
-            .contains("status-doc")
+        || normalized_label.to_ascii_lowercase().contains("status-doc")
         || normalized_label.to_ascii_lowercase().contains("row-doc")
         || normalized_label.to_ascii_lowercase().contains("row status")
-        || normalized_label
-            .to_ascii_lowercase()
-            .contains("status map")
+        || normalized_label.to_ascii_lowercase().contains("status map")
         || normalized_label.to_ascii_lowercase().contains("date map")
         || (normalized_label.to_ascii_lowercase().contains("status")
             && normalized_label.to_ascii_lowercase().contains("map"))
@@ -86,8 +73,9 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
         Some(current_status_row_owner_inventory_source())
     } else if label.eq_ignore_ascii_case("Runtime 15 plan")
         || label.to_ascii_lowercase().contains("runtime 15 plan")
-        || normalized_label
-            .contains("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md")
+        || normalized_label.contains(
+            "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        )
         || label.eq_ignore_ascii_case("Plan 09")
     {
         Some(runtime_15_output_archive_source())
@@ -190,9 +178,12 @@ fn engine_code_review_findings_archive_source() -> &'static str {
     static SOURCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     SOURCE.get_or_init(|| {
         format!(
-            "{}\n{}",
+            "{}\n{}\n{}",
             read_output_archive(
                 "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+            ),
+            read_output_archive(
+                "docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md",
             ),
             priority_plan_doc_current_owner_archive_source(),
         )
@@ -203,9 +194,12 @@ fn engine_code_structure_archive_source() -> &'static str {
     static SOURCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     SOURCE.get_or_init(|| {
         format!(
-            "{}\n{}",
+            "{}\n{}\n{}",
             read_output_archive(
                 "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+            ),
+            read_output_archive(
+                "docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md",
             ),
             priority_plan_doc_current_owner_archive_source(),
         )

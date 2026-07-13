@@ -581,7 +581,7 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "AddNode",
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
-                    graph_path: "animation://selected/graph".to_string(),
+                    graph_locator: "animation://selected/graph".to_string(),
                     node_id: "new_state".to_string(),
                     node_kind: "State".to_string(),
                 }),

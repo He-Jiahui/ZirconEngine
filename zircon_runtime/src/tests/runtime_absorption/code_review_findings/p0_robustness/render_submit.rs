@@ -15,8 +15,10 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
     let present_frame_extract = include_str!(
         "../../../../graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
     );
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    );
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );

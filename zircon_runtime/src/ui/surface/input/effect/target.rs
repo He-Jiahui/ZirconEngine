@@ -10,6 +10,7 @@ pub(super) fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
         | UiDispatchEffect::UnlockPointer { target, .. }
         | UiDispatchEffect::UseHighPrecisionPointer { target, .. }
         | UiDispatchEffect::DragDrop { target, .. }
+        | UiDispatchEffect::RequestLinkActivation { target, .. }
         | UiDispatchEffect::DirtyRedraw { target, .. }
         | UiDispatchEffect::EmitComponentEvent { target, .. } => Some(*target),
         UiDispatchEffect::RequestInputMethod { request } => Some(request.owner),

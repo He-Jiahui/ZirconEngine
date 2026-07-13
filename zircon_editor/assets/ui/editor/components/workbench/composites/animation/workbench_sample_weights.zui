@@ -1,0 +1,174 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui"
+version = 2
+display_name = "Workbench Sample Weights"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader",
+  "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui#WorkbenchCheckbox",
+]
+styles = []
+
+[components.WorkbenchSampleWeights]
+root = "sample_weights_root"
+default_classes = ["workbench-panel", "workbench-surface-inset", "workbench-composite"]
+
+[nodes.sample_weights_root]
+component = "VerticalGroup"
+control_id = "WorkbenchSampleWeightsRoot"
+classes = ["workbench-panel", "workbench-surface-inset"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sample_weights_header" }, { node = "sample_weights_axes" }, { node = "sample_weights_run_forward_row" }, { node = "sample_weights_run_left_row" }, { node = "sample_weights_run_right_row" }, { node = "sample_weights_idle_row" }, { node = "sample_weights_footer" }]
+
+[nodes.sample_weights_header]
+component = "WorkbenchPanelHeader"
+control_id = "WorkbenchSampleWeightsHeader"
+layout = { width = { stretch = "Stretch" } }
+children = [{ node = "sample_weights_title", slot = { name = "title" } }]
+
+[nodes.sample_weights_title]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsTitle"
+props = { text = "SAMPLE WEIGHTS" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.sample_weights_axes]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsAxes"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 26.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "sample_weights_direction_label" }, { node = "sample_weights_direction_value" }, { node = "sample_weights_axes_fill" }, { node = "sample_weights_speed_label" }, { node = "sample_weights_speed_value" }]
+
+[nodes.sample_weights_direction_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsDirectionLabel"
+props = { text = "Direction" }
+layout = { width = { min = 52.0, preferred = 60.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_direction_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsDirectionValue"
+props = { text = "0.0" }
+layout = { width = { min = 30.0, preferred = 38.0, max = 46.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_axes_fill]
+component = "Container"
+control_id = "WorkbenchSampleWeightsAxesFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_speed_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsSpeedLabel"
+props = { text = "Speed" }
+layout = { width = { min = 38.0, preferred = 46.0, max = 54.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_speed_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsSpeedValue"
+props = { text = "600.0" }
+layout = { width = { min = 40.0, preferred = 48.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_forward_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunForwardRow"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "sample_weights_run_forward_label" }, { node = "sample_weights_run_forward" }, { node = "sample_weights_run_forward_value" }]
+
+[nodes.sample_weights_run_forward_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunForwardLabel"
+props = { text = "Run_Fwd" }
+layout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_forward]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchSampleWeightsRunForward"
+props = { value = 100.0, value_percent = 1.0, min = 0.0, max = 100.0, show_label = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_forward_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunForwardValue"
+props = { text = "1.00" }
+layout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_left_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunLeftRow"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "sample_weights_run_left_label" }, { node = "sample_weights_run_left" }, { node = "sample_weights_run_left_value" }]
+
+[nodes.sample_weights_run_left_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunLeftLabel"
+props = { text = "Run_Fwd_L" }
+layout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_left]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchSampleWeightsRunLeft"
+props = { value = 0.0, value_percent = 0.0, min = 0.0, max = 100.0, show_label = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_left_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunLeftValue"
+props = { text = "0.00" }
+layout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_right_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsRunRightRow"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "sample_weights_run_right_label" }, { node = "sample_weights_run_right" }, { node = "sample_weights_run_right_value" }]
+
+[nodes.sample_weights_run_right_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunRightLabel"
+props = { text = "Run_Fwd_R" }
+layout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_right]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchSampleWeightsRunRight"
+props = { value = 0.0, value_percent = 0.0, min = 0.0, max = 100.0, show_label = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_run_right_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsRunRightValue"
+props = { text = "0.00" }
+layout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_idle_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSampleWeightsIdleRow"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "sample_weights_idle_label" }, { node = "sample_weights_idle" }, { node = "sample_weights_idle_value" }]
+
+[nodes.sample_weights_idle_label]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsIdleLabel"
+props = { text = "Idle" }
+layout = { width = { min = 58.0, preferred = 72.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_idle]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchSampleWeightsIdle"
+props = { value = 0.0, value_percent = 0.0, min = 0.0, max = 100.0, show_label = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_idle_value]
+component = "WorkbenchCaption"
+control_id = "WorkbenchSampleWeightsIdleValue"
+props = { text = "0.00" }
+layout = { width = { min = 28.0, preferred = 34.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sample_weights_footer]
+component = "WorkbenchCheckbox"
+control_id = "WorkbenchSampleWeightsNormalize"
+props = { text = "Normalize", value = true, checked = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }

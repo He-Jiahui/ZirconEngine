@@ -45,7 +45,7 @@ pub(in crate::ui::retained_host::host_contract) fn host_role_family(
     match role {
         "Button" => Some(TemplateComponentFamily::Button),
         "IconButton" => Some(TemplateComponentFamily::IconButton),
-        "InputField" | "TextField" => Some(TemplateComponentFamily::TextInput),
+        "InputField" | "TextField" | "SearchField" => Some(TemplateComponentFamily::TextInput),
         "Slider" | "RangeField" => Some(TemplateComponentFamily::Slider),
         "Checkbox" => Some(TemplateComponentFamily::Checkbox),
         "Radio" => Some(TemplateComponentFamily::Radio),

@@ -1,9 +1,18 @@
+use crate::core::framework::scene::physics::{
+    PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
+};
 use crate::core::framework::scene::ScenePropertyValue;
-use crate::scene::components::{ColliderShape, JointKind, RigidBodyType};
+use crate::scene::components::{JointKind, RigidBodyType};
 use crate::scene::EntityId;
+
+#[path = "collider_shape.rs"]
+mod collider_shape;
 
 use super::super::super::World;
 use super::super::value_conversion::combine_rule_label;
+use collider_shape::{
+    collider_shape_property_entry_capacity, visit_collider_shape_property_entries,
+};
 
 impl World {
     pub(super) fn visit_physics_property_entries<F>(
@@ -38,6 +47,24 @@ impl World {
                 true,
             );
             push_entry!(
+                "RigidBody.mass_properties.mode",
+                ScenePropertyValue::Enum(match rigid_body.mass_properties {
+                    PhysicsMassProperties::Explicit { .. } => "explicit".to_string(),
+                    PhysicsMassProperties::AutoFromShape { .. } => {
+                        "auto_from_shape".to_string()
+                    }
+                }),
+                false,
+            );
+            push_entry!(
+                "RigidBody.mass_properties.density",
+                ScenePropertyValue::Scalar(match rigid_body.mass_properties {
+                    PhysicsMassProperties::AutoFromShape { density } => density,
+                    PhysicsMassProperties::Explicit { .. } => 1.0,
+                }),
+                true,
+            );
+            push_entry!(
                 "RigidBody.linear_velocity",
                 ScenePropertyValue::Vec3(rigid_body.linear_velocity.to_array()),
                 true,
@@ -63,8 +90,19 @@ impl World {
                 true,
             );
             push_entry!(
-                "RigidBody.can_sleep",
-                ScenePropertyValue::Bool(rigid_body.can_sleep),
+                "RigidBody.ccd_mode",
+                ScenePropertyValue::Enum(match rigid_body.ccd_mode {
+                    PhysicsCcdMode::Disabled => "disabled".to_string(),
+                    PhysicsCcdMode::LinearCast => "linear_cast".to_string(),
+                }),
+                false,
+            );
+            push_entry!(
+                "RigidBody.sleep_policy",
+                ScenePropertyValue::Enum(match rigid_body.sleep_policy {
+                    PhysicsSleepPolicy::Allow => "allow".to_string(),
+                    PhysicsSleepPolicy::Never => "never".to_string(),
+                }),
                 false,
             );
             for (axis_name, axis_index) in [("x", 0usize), ("y", 1usize), ("z", 2usize)] {
@@ -154,51 +192,8 @@ impl World {
                     false,
                 );
             }
-            match &collider.shape {
-                ColliderShape::Box { half_extents } => {
-                    push_entry!(
-                        "Collider.shape.kind",
-                        ScenePropertyValue::Enum("box".to_string()),
-                        false,
-                    );
-                    push_entry!(
-                        "Collider.shape.half_extents",
-                        ScenePropertyValue::Vec3(half_extents.to_array()),
-                        true,
-                    );
-                }
-                ColliderShape::Sphere { radius } => {
-                    push_entry!(
-                        "Collider.shape.kind",
-                        ScenePropertyValue::Enum("sphere".to_string()),
-                        false,
-                    );
-                    push_entry!(
-                        "Collider.shape.radius",
-                        ScenePropertyValue::Scalar(*radius),
-                        true,
-                    );
-                }
-                ColliderShape::Capsule {
-                    radius,
-                    half_height,
-                } => {
-                    push_entry!(
-                        "Collider.shape.kind",
-                        ScenePropertyValue::Enum("capsule".to_string()),
-                        false,
-                    );
-                    push_entry!(
-                        "Collider.shape.radius",
-                        ScenePropertyValue::Scalar(*radius),
-                        true,
-                    );
-                    push_entry!(
-                        "Collider.shape.half_height",
-                        ScenePropertyValue::Scalar(*half_height),
-                        true,
-                    );
-                }
+            if !visit_collider_shape_property_entries(&collider.shape, "Collider.shape", visitor) {
+                return false;
             }
         }
         if let Some(joint) = self.joints.get(&entity) {
@@ -254,7 +249,7 @@ impl World {
     pub(super) fn physics_property_entry_capacity_hint(&self, entity: EntityId) -> usize {
         let mut capacity = 0;
         if self.rigid_bodies.contains_key(&entity) {
-            capacity += 14;
+            capacity += 17;
         }
         if let Some(collider) = self.colliders.get(&entity) {
             capacity += 7;
@@ -264,10 +259,7 @@ impl World {
             if collider.material_override.is_some() {
                 capacity += 5;
             }
-            capacity += match &collider.shape {
-                ColliderShape::Box { .. } | ColliderShape::Sphere { .. } => 2,
-                ColliderShape::Capsule { .. } => 3,
-            };
+            capacity += collider_shape_property_entry_capacity(&collider.shape);
         }
         if let Some(joint) = self.joints.get(&entity) {
             capacity += 5;

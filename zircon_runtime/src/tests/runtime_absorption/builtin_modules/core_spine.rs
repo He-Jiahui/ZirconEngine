@@ -69,10 +69,13 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
             .position(|name| *name == crate::ui::UI_MODULE_NAME)
             .expect("ui module should exist in runtime builtins");
 
-        assert_eq!(
-            ui_index,
-            script_index + 1,
-            "ui plugin should follow the target-client core spine"
+        assert!(
+            graphics_index < ui_index,
+            "ui should initialize after the graphics module it depends on"
+        );
+        assert!(
+            ui_index < script_index,
+            "scene-level ui should initialize before the post-level script module"
         );
     }
 

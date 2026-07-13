@@ -1,3 +1,5 @@
+use crate::core::asset::AssetTypeId;
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord};
 
 use crate::ui::host::editor_asset_manager::{
@@ -29,6 +31,10 @@ impl EditorState {
 
     pub fn navigate_to_asset(&mut self, asset_uuid: &str) {
         self.asset_workspace.navigate_to_asset(asset_uuid);
+    }
+
+    pub(crate) fn asset_type_id_for_locator(&self, locator: &AssetUri) -> Option<AssetTypeId> {
+        self.asset_workspace.asset_type_id_for_locator(locator)
     }
 
     pub fn set_asset_search_query(&mut self, query: impl Into<String>) {

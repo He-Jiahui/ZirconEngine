@@ -16,11 +16,13 @@ fn runtime_15_ui_architecture_tests_are_folder_backed() {
             "mod architecture_boundaries;",
             "mod legacy_renames;",
             "mod mirror_docs;",
-            "fn repo_root()",
-            "fn top_level_entry_names(",
-            "fn rust_files_under(",
-            "fn production_ui_file(",
+            "mod split_layout;",
+            "mod support;",
         ],
+    );
+    assert!(
+        !parent.contains("fn repo_root()") && !parent.contains("fn top_level_entry_names("),
+        "UI architecture route parent should not retain helper implementations or helper mirrors"
     );
     assert_eq!(
         parent.matches("#[test]").count(),

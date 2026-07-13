@@ -27,12 +27,12 @@ fn shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay() 
     fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
     fs::write(
         root.join("shaders/example.wgsl.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000045"
 url = "res://shaders/example"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "source-hash-registry-fallback"
+source_digest = "source-hash-registry-fallback"
 "#,
     )
     .unwrap();
@@ -76,12 +76,12 @@ fn shader_prewarm_asset_root_exports_shader_resource_records() {
     fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
     fs::write(
         root.join("shaders/example.wgsl.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000046"
 url = "res://shaders/example"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "source-hash-registry-export"
+source_digest = "source-hash-registry-export"
 "#,
     )
     .unwrap();
@@ -218,12 +218,12 @@ fn shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_re
     fs::write(root.join("shaders/live.wgsl"), "fn live() {}\n").unwrap();
     fs::write(
         root.join("shaders/live.wgsl.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000047"
 url = "res://shaders/live"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "source-hash-live-manager-fallback"
+source_digest = "source-hash-live-manager-fallback"
 "#,
     )
     .unwrap();
@@ -305,12 +305,12 @@ fn write_named_shader_with_meta(
             .join("shaders")
             .join(format!("{name}.wgsl.zmeta")),
         format!(
-            r#"format_version = 6
+            r#"format_version = 7
 uuid = "{id}"
 url = "{locator}"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "{source_hash}"
+source_digest = "{source_hash}"
 "#
         ),
     )

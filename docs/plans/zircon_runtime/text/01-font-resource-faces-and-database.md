@@ -169,7 +169,7 @@ impl FontDatabase {
     pub fn load_system_fonts(&mut self);                       // fontdb 系统枚举(可关,headless 不调)
     pub fn match_face(&self, q: &FontQuery) -> Option<FontMatch>; // best-match(weight 距离 + style/stretch)
     pub fn fallback_candidates(&self, cp: char, base: &FontQuery) -> Vec<FontFaceId>; // cmap 命中 + script 过滤(喂 06)
-    pub fn instance(&self, face: FontFaceId, vars: &VariationCoords) -> InstancedFaceId;
+    pub fn instance(&mut self, face: FontFaceId, vars: &VariationCoords) -> Result<InstancedFaceId, FontDatabaseError>; // fvar clamp/default-drop/F2DOT14 normalized quantization 后登记
     pub fn face_bytes(&self, face: FontFaceId) -> Arc<FaceBytes>; // 零拷贝;glyphon/SDF/MSDF 共享
     pub fn unregister_asset(&mut self, asset: &FontAssetSourceKey) -> Vec<FontFaceId>; // 资产卸载/替换;返回被失效的 face(2026-07-02 评审收口)
     pub fn invalidate_face(&mut self, face: FontFaceId);          // 单 face 失效,触发下述失效级联(2026-07-02 评审收口)
@@ -182,7 +182,7 @@ best-match 权重距离用 CSS Fonts L4 算法(weight 优先就近、style Itali
 
 face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体包卸载、变量实例回收)必须按以下固定顺序级联,任何一级不得跳过:
 
-1. `ShapedRunCache` 按 `font_id`(`FontFaceId`/`InstancedFaceId`)剔除全部命中条目;
+1. `ShapedRunCache` 按 base `font_id: FontFaceId` 与 `font_instance_id: InstancedFaceId` 剔除全部命中条目；base face 失效必须覆盖其所有 instance；
 2. `LayoutCache` 连带剔除(其键含 shaped key,见 D6/09);
 3. `GlyphRasterKey` 索引按 face 剔除,对应 atlas slot 标脏回收;
 4. SDF bake cache(含离线 `.zsdf` 预填页的内存驻留项)按 face 剔除。
@@ -216,9 +216,11 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-10）：系统 `fontdb` face 已能从权威 backend ID 物化容器字节，并按记录的 collection face index 提取独立 SFNT；`Microsoft YaHei UI` 已通过同一 `FontDatabase` 进入 production SDF CJK 竖排帧，不再因 `StoredFontSource::FontDb` 被误判为无字节。项目字体、系统字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage，没有新增旁路数据库或兼容层。变量轴实例实际应用、per-run `locl` 与跨平台 CJK fixture 仍保持 open。
+当前概述（2026-07-13）：系统 `fontdb` face 已能从权威 backend ID 物化容器字节，并按记录的 collection face index 提取独立 SFNT；`Microsoft YaHei UI` 已通过同一 `FontDatabase` 进入 production SDF CJK 竖排帧。Screen-space renderer 构造现在对共享快照重新应用 `SystemFontPolicy::Discover` 后再同步 glyphon `FontSystem`，默认空项目快照不再清空系统 face；Editor HUD 使用与 Runtime 产品门禁一致的 24 帧异步 glyph 收敛窗口后，真实帧缓冲回归为 1/1。项目字体、系统字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage，没有新增 Editor 旁路数据库、硬编码平台字体或兼容层。FR-M2 变量轴已从仅有哈希推进到可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity 的同一坐标链；horizontal leaf 同时承接 cosmic-text `Attrs` 缺失的 per-run language→`locl`，并显式拒绝竖排请求。当前源 Windows exact `text_horizontal_` 已 5/5，通过真实 `Bahnschrift` width-axis、真实 `Calibri` 俄语/塞尔维亚语 `locl`、空语言/竖排边界和 renderer face/instance identity；F2DOT14 数据库量化、dynamic SDF 像素、atlas instance separation 与产品帧仍待继续验收，因此本计划保持 `in_progress`。跨平台 CJK fixture 继续保持 open。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`01/2026-07-10-font-resource-faces-and-database-output-records.md`](01/2026-07-10-font-resource-faces-and-database-output-records.md)
-- 失败交接（`open / 待修复`）：[`01/failure-2026-07-11-editor-m1-font-discovery.md`](01/failure-2026-07-11-editor-m1-font-discovery.md)
+- 已修复交接（`fixed / 2026-07-11`）：[`Editor 01/fixed-2026-07-11-editor-m1-font-discovery.md`](../../zircon_editor/editor/01/fixed-2026-07-11-editor-m1-font-discovery.md)；当前 HUD glyph capture 上层 exact 为 1/1，功能计划保留回链与摘要，不保留重复真相。
+- fixed 已修复：[reflection-probe-product-type-inference](01/fixed-2026-07-12-reflection-probe-product-type-inference.md)
+- fixed 已修复：[font-decoration-display-size-argument](../../zircon_editor/editor/09/fixed-2026-07-13-font-decoration-display-size-argument.md)

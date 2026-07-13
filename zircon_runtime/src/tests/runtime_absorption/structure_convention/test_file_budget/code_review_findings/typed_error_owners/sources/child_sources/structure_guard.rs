@@ -7,11 +7,8 @@ mod route_ownership;
 #[path = "structure_guard/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_STRUCTURE_GUARD_CHILDREN: &[(
-    &str,
-    &str,
-    &str,
-)] = &[
+pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_STRUCTURE_GUARD_CHILDREN:
+    &[(&str, &str, &str)] = &[
     (
         "route_ownership",
         TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_STRUCTURE_GUARD_ROUTE_CHILD,

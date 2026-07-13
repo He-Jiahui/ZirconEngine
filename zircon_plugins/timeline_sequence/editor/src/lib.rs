@@ -4,7 +4,7 @@ mod plugin;
 
 use std::collections::BTreeMap;
 
-use zircon_runtime::asset::AnimationSequenceAsset;
+use zircon_runtime::core::framework::animation::AnimationSequenceAsset;
 
 pub use capability::{
     ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID,

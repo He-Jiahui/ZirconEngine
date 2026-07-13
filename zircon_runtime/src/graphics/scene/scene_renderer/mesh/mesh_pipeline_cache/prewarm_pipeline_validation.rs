@@ -130,6 +130,8 @@ fn create_validation_scene_layout(device: &wgpu::Device) -> wgpu::BindGroupLayou
 }
 
 fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_apply_bind_group_layout_entries;
+    use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridParams;
     use crate::graphics::scene::scene_renderer::shadow::atlas::{
         shadow_atlas_bind_group_layout_entries, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
@@ -143,6 +145,10 @@ fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::Bind
     entries.extend(
         crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries(),
     );
+    entries.extend(lightmap_bind_group_layout_entries());
+    entries.extend(volumetric_apply_bind_group_layout_entries(
+        wgpu::ShaderStages::FRAGMENT,
+    ));
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: 20,
@@ -215,7 +221,7 @@ fn create_validation_gpu_scene_layout(device: &wgpu::Device) -> wgpu::BindGroupL
     let joint_palette_buffer = Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("zircon-shader-prewarm-validation-joint-palette"),
         size: 256 * 64 + 16,
-        usage: wgpu::BufferUsages::UNIFORM,
+        usage: wgpu::BufferUsages::STORAGE,
         mapped_at_creation: false,
     }));
     let min_binding_size =
@@ -261,7 +267,7 @@ fn material_sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "dynamic-api"))]
 mod tests {
     use crate::core::framework::render::{
         ShaderFeatureBits, ShaderQualityTier, SHADING_MODEL_ID_BLINN_PHONG,

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::EntityId;
 use crate::core::math::Real;
 use crate::core::resource::AssetReference;
-use crate::scene::EntityId;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationEventRecord {

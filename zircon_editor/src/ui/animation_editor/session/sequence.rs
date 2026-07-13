@@ -1,8 +1,8 @@
-use zircon_runtime::asset::assets::{
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
 use super::support::{clamp_timeline_span, frame_to_seconds};
 use super::AnimationEditorSession;

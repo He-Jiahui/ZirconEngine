@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred";
 const EXPORT_CONTRACT_STATUS: &str =
     "render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred";
 
@@ -14,20 +13,22 @@ fn runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired() 
     let virtual_geometry_plugin =
         read_repo("zircon_plugins/virtual_geometry/runtime/src/plugin.rs");
     let virtual_geometry_static_manifest = read_repo("zircon_plugins/virtual_geometry/plugin.toml");
-    let build_tool = read_repo("tools/zircon_build.py");
+    let build_tool = read_zircon_build_sources();
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let build_prewarm_registry_contract_tests =
         read_repo("tools/tests/test_zircon_build_shader_permutation_registry_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let plugin_readme = read_repo("zircon_plugins/README.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "plugin package manifest owns shader permutation metadata",
@@ -154,7 +155,6 @@ fn runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired() 
         ("plugin README", plugin_readme.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

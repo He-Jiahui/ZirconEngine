@@ -8,8 +8,8 @@ related_code:
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/ui/workbench/preset/functional_window.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
@@ -19,8 +19,8 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/mod.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
 plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan

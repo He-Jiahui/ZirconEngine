@@ -24,7 +24,7 @@ related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
   - zircon_runtime/src/scene/ecs/internal_scene_system.rs
-  - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs

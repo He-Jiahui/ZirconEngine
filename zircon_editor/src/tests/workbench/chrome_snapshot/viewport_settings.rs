@@ -50,6 +50,7 @@ fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
         &WorkbenchLayout::default(),
         Vec::new(),
         Vec::new(),
+        None,
     );
 
     assert_eq!(chrome.scene_viewport_settings, settings);

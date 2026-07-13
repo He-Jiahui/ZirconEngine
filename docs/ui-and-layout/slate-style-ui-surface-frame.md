@@ -59,17 +59,17 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/diagnostics_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
@@ -148,17 +148,17 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/diagnostics_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs

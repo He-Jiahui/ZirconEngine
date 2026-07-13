@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred";
+const STATUS: &str = "render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
@@ -17,7 +16,7 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
     let request_device = read_runtime_src("graphics/backend/render_backend/request_device.rs");
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
-    let build_tool = read_repo("tools/zircon_build.py");
+    let build_tool = read_zircon_build_sources();
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
     let command_contract_tests =
@@ -27,15 +26,17 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         read_repo("tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py");
     let acceptance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let mesh_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "mesh prewarm validation creates real render pipelines for every material mesh pass",
@@ -90,16 +91,23 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
     assert_contains_all(
         "render backend requests enough storage-buffer slots for full mesh pipeline validation",
         &resource_limits,
-        &["MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE: u32 = 12"],
+        &[
+            "MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE: u32 = 14",
+            "OIT_FRAGMENT_STORE_STORAGE_BUFFERS_PER_SHADER_STAGE: u32 = 2",
+            "OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE: u32 =",
+        ],
     );
     assert_contains_all(
         "offscreen WGPU device limits cover mesh forward pipeline layout requirements",
         &request_device,
         &[
             "MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE",
+            "OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE",
             "required_storage_buffers_per_shader_stage",
-            ".max(MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)",
+            ".max(OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)",
             "offscreen_device_limits_cover_renderer_layout_requirements",
+            "offscreen_device_limits_cover_oit_fragment_store_bindings",
+            "offscreen_device_limits_keep_hzb_occlusion_optional_when_only_mesh_capacity_exists",
         ],
     );
     assert_contains_all(
@@ -226,7 +234,6 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         ("build tool doc", build_tool_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

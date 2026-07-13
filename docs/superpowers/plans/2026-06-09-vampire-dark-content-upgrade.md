@@ -19,7 +19,7 @@
 - Modify `docs/zircon_runtime/asset/assets/scene.md`: document the new scene fields, conversion path, and tests.
 - Modify `examples/vampire/assets/scenes/main.scene.toml`: replace primitive arena composition with a crypt/graveyard scene, post-process settings, lights, and enemy archetype entities.
 - Modify `examples/vampire/assets/materials/*`: add dark stone, bone, vampire, warm emissive, and fog-readable materials.
-- Modify `examples/vampire/assets/models/*` and `examples/vampire/library/**`: add project-facing artifacts for selected real asset meshes; keep a few generated proxy meshes only for invisible gameplay markers if needed.
+- Modify `examples/vampire/assets/models/*` and `examples/vampire/.zircon/cache/assets/**`: add project-facing artifacts for selected real asset meshes; keep a few generated proxy meshes only for invisible gameplay markers if needed.
 - Create/modify `examples/vampire/assets/external/**`: store CC0 source packs or extracted subsets and local license notes.
 - Modify `examples/vampire/assets/data/balance.toml`: store player, weapon, enemy, XP, and wave values from the design.
 - Modify `examples/vampire/scripts/vampire_game/main.zr`: add wave timers, archetype behavior, XP/stat progression, and tuned camera/attack values.

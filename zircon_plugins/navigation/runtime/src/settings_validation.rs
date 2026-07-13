@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
-use zircon_runtime::asset::NavigationSettingsAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavigationError, NavigationErrorKind, MAX_NAV_AREAS,
+    NavigationError, NavigationErrorKind, NavigationSettingsAsset, MAX_NAV_AREAS,
 };
 use zircon_runtime::core::math::Real;
 

@@ -19,6 +19,8 @@ pub mod net;
 #[cfg(feature = "physics-contracts")]
 pub mod physics;
 pub mod picking;
+pub mod platform;
+pub mod project;
 pub mod render;
 pub mod scene;
 pub mod script;

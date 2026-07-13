@@ -20,6 +20,7 @@ use crate::ui::workbench::view::{
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -61,7 +62,7 @@ fn runtime_diagnostics_pane() -> crate::ui::layouts::windows::workbench_host_win
         ),
         build_pane_body_presentation(
             &PaneBodySpec::new(
-                "pane.runtime.diagnostics.body",
+                "res://ui/editor/host/runtime_diagnostics_body.zui",
                 PanePayloadKind::RuntimeDiagnosticsV1,
                 PaneRouteNamespace::Dock,
                 PaneInteractionMode::TemplateOnly,
@@ -94,7 +95,7 @@ fn runtime_diagnostics_pane() -> crate::ui::layouts::windows::workbench_host_win
 }
 
 #[test]
-fn runtime_diagnostics_template_body_projects_ui_debug_reflector_nodes() {
+fn runtime_diagnostics_template_body_projects_runtime_status_before_debug_reflector_nodes() {
     let projected = to_host_contract_runtime_diagnostics_pane_from_host_pane(
         &runtime_diagnostics_pane(),
         PaneContentSize::new(420.0, 260.0),
@@ -105,20 +106,17 @@ fn runtime_diagnostics_template_body_projects_ui_debug_reflector_nodes() {
 
     let summary = nodes
         .iter()
-        .find(|node| node.control_id == "UiDebugReflectorSummary")
-        .expect("reflector summary node should project");
-    assert_eq!(
-        summary.text.as_str(),
-        "UI Debug Reflector: no active surface snapshot"
-    );
+        .find(|node| node.control_id == "RuntimeDiagnosticsSummary")
+        .expect("runtime summary node should project");
+    assert_eq!(summary.text.as_str(), "0 runtime systems available");
 
     assert!(nodes.iter().any(|node| {
-        node.control_id == "UiDebugReflectorExportStatus"
-            && node.text.as_str().contains("Export unavailable")
+        node.control_id == "RuntimeDiagnosticsStatus.0"
+            && node.text.as_str().contains("Render: unavailable")
     }));
     assert!(nodes.iter().any(|node| {
-        node.control_id == "UiDebugReflectorDetail"
-            && node.text.as_str().contains("UiSurfaceDebugSnapshot")
+        node.control_id == "RuntimeDiagnosticsStatus.1"
+            && node.text.as_str().contains("Physics: unavailable")
     }));
     assert!(nodes.iter().any(|node| {
         node.control_id == "UiDebugReflectorSummaryText"

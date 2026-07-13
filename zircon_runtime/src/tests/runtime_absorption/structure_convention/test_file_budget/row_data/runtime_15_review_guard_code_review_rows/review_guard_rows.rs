@@ -82,7 +82,6 @@ fn assert_review_guard_rows_row_data_status_is_current() {
         "docs/plans/engine-code-review-findings-2026-06.md",
         "docs/plans/engine-code-structure-convention.md",
         "docs/zircon_runtime/structure/module-convention.md",
-        ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
     ] {
         assert_contains_all(path, &read_repo(path), &doc_anchors);
     }

@@ -30,7 +30,7 @@ doc_type: module-detail
 
 `read_buffer_f32x4_array_bytes(...)` is the typed layout helper for compute outputs stored as an array of `vec4<f32>`. `read_buffer_sh9_f32x4_bytes(...)` fixes the IBL irradiance readback size to nine `vec4<f32>` values, or 144 bytes, matching `IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES`.
 
-The module is intentionally backend-only. It does not decode SH coefficients, assemble artifact payload sections, write `.zircon-cache` files, or schedule the IBL compute passes that will produce the SH9 buffer.
+The module is intentionally backend-only. It does not decode SH coefficients, assemble artifact payload sections, write `.zircon/cache` files, or schedule the IBL compute passes that will produce the SH9 buffer.
 
 ## Verification
 

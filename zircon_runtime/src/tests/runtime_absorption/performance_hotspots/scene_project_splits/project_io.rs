@@ -12,6 +12,9 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
+    let runtime_07_archive = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let large_file_doc =
@@ -82,6 +85,7 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
         assert!(
             project_io_doc.contains(doc_anchor)
                 || runtime_07_plan.contains(doc_anchor)
+                || runtime_07_archive.contains(doc_anchor)
                 || runtime_index.contains(doc_anchor)
                 || large_file_doc.contains(doc_anchor)
                 || hotspot_doc.contains(doc_anchor),

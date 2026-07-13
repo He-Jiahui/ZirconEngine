@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use super::{DesktopExportJobPhase, DesktopExportJobQueue, DesktopExportJobSnapshot};
 
 impl DesktopExportJobQueue {
@@ -20,7 +18,7 @@ impl DesktopExportJobQueue {
                 id: active.id,
                 profile_name: active.profile_name.clone(),
                 output_root: active.output_root.clone(),
-                phase: if active.cancel_requested.load(Ordering::SeqCst) {
+                phase: if active.cancel.is_cancelled() {
                     DesktopExportJobPhase::CancelRequested
                 } else {
                     DesktopExportJobPhase::Running

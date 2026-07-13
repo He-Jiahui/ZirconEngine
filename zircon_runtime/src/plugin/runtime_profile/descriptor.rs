@@ -1,18 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::plugin::{PluginMaturity, ProjectPluginManifest, ProjectPluginSelection};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RuntimeProfileId {
-    Minimal,
-    Client2d,
-    Client3d,
-    Editor,
-    Dev,
-    Server,
-}
+use crate::core::framework::project::{
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
+};
+use crate::plugin::PluginMaturity;
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeProfilePluginSelection {

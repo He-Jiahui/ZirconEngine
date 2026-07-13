@@ -52,6 +52,9 @@ mod tests {
                 resident_probes: vec![RenderHybridGiPreparedProbe {
                     probe_id: 9,
                     slot: 1,
+                    stable_instance_key: 0,
+                    source_mask: crate::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+                    dynamic_weight_q8: u8::MAX,
                     ray_budget: 64,
                     irradiance_rgb: [1, 2, 3],
                 }],

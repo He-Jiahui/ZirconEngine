@@ -1,54 +1,54 @@
 ---
 related_code:
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/render_extract.rs
-  - zircon_scene/src/lib.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/visibility/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_graphics/src/visibility/declarations/mod.rs
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_cluster.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/visibility/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_history_snapshot.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_cluster.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_feedback.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/lib.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/visibility/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_graphics/src/visibility/declarations/mod.rs
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_cluster.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/visibility/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_history_snapshot.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_cluster.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_feedback.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_page_upload_plan.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 plan_sources:
   - user: 2026-04-16 continue next step after M5 capability-slot slice
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-flagship-capability-slots.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-runtime-host.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
   - cargo test -p zircon_graphics visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan --locked
   - cargo test -p zircon_graphics visibility_context_with_history_tracks_virtual_geometry_requested_pages --locked
   - cargo test -p zircon_graphics visibility --locked

@@ -7,21 +7,14 @@ mod folder_backed_status;
 #[path = "mirrors/historical_status.rs"]
 mod historical_status;
 
-const EXPECTED_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/module_layout_maps.rs";
-const EXPECTED_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/module_layout_maps.rs";
-const PRODUCTION_GUARD_SUPPORT_ROWS_ANCHOR: &str =
-    "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs";
+const EXPECTED_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/module_layout_maps.rs";
+const EXPECTED_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/module_layout_maps.rs";
+const PRODUCTION_GUARD_SUPPORT_ROWS_ANCHOR: &str = "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs";
 
-const STATUS_MIRRORS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/child_split_status.rs";
-const HISTORICAL_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/historical_status.rs";
-const FOLDER_BACKED_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/folder_backed_status.rs";
+const STATUS_MIRRORS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/child_split_status.rs";
+const HISTORICAL_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/historical_status.rs";
+const FOLDER_BACKED_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/folder_backed_status.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 module-layout status-doc status-mirror child split";

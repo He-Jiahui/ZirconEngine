@@ -5,7 +5,7 @@ pub(super) fn parse_module_contribution_line(
     name: &mut Option<String>,
     kind: &mut Option<zircon_runtime::plugin::PluginModuleKind>,
     crate_name: &mut Option<String>,
-    target_modes: &mut Vec<zircon_runtime::builtin::RuntimeTargetMode>,
+    target_modes: &mut Vec<zircon_runtime::core::framework::platform::RuntimeTargetMode>,
     capabilities: &mut Vec<String>,
 ) {
     if identity::parse_module_identity_line(line, name, crate_name) {

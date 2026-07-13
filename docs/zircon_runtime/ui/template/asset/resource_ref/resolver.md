@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
   - zircon_runtime_interface/src/resource/locator.rs

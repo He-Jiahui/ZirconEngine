@@ -108,6 +108,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
         material.unlit,
         material.shading_model_id.value(),
         material.taa_reactive_mask_strength,
+        material.subsurface_profile_index,
         material.alpha_cutoff,
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
@@ -122,6 +123,7 @@ fn fallback_standard_material_uniform_contents() -> Vec<u8> {
         false,
         2,
         0.0,
+        0,
         None,
         [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
         [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -135,6 +137,7 @@ fn standard_material_uniform_contents_from_values(
     unlit: bool,
     shading_model_id: u8,
     taa_reactive_mask_strength: f32,
+    subsurface_profile_index: u32,
     alpha_cutoff: Option<f32>,
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -159,6 +162,7 @@ fn standard_material_uniform_contents_from_values(
     values[32] = finite_or(taa_reactive_mask_strength, 0.0).clamp(0.0, 1.0);
     values[33] = f32::from(shading_model_id) / SHADING_MODEL_GBUFFER_ALPHA_SCALE;
     values[34] = material_alpha_cutoff_scalar(alpha_cutoff);
+    values[35] = subsurface_profile_index.min(255) as f32 / 255.0;
 
     bytemuck::cast_slice(&values).to_vec()
 }
@@ -224,6 +228,7 @@ mod tests {
             true,
             0,
             1.4,
+            0,
             Some(1.4),
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -251,6 +256,7 @@ mod tests {
             false,
             2,
             0.25,
+            0,
             Some(0.625),
             [
                 transform([2.0, 3.0], [0.25, 0.5]),
@@ -281,6 +287,7 @@ mod tests {
             false,
             16,
             0.0,
+            0,
             None,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -305,6 +312,7 @@ mod tests {
                 false,
                 2,
                 0.0,
+                0,
                 alpha_cutoff,
                 [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
                 [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -312,6 +320,24 @@ mod tests {
 
             assert_eq!(f32_at(&bytes, 136), expected);
         }
+    }
+
+    #[test]
+    fn standard_material_uniform_packs_subsurface_profile_index() {
+        let bytes = standard_material_uniform_contents_from_values(
+            0.0,
+            0.5,
+            [0.0; 3],
+            false,
+            16,
+            0.0,
+            11,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+        );
+
+        assert_eq!(f32_at(&bytes, 140), 11.0 / 255.0);
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {

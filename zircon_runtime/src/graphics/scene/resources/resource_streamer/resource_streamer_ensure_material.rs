@@ -412,6 +412,7 @@ impl ResourceStreamer {
             material_queue: descriptor.material_queue,
             depth_bias: descriptor.depth_bias,
             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
+            subsurface_profile_index: descriptor.subsurface_profile_index,
             base_color_texture: base_color_texture.id(),
             base_color_texture_transform: descriptor.base_color_texture_transform,
             base_color_texture_uv_channel: descriptor.base_color_texture_uv_channel,

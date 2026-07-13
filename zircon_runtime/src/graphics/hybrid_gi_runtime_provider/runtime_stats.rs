@@ -1,3 +1,5 @@
+use crate::core::framework::render::RenderHybridGiResolvedSettings;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct HybridGiRuntimeStats {
     cache_entry_count: usize,
@@ -18,6 +20,7 @@ pub struct HybridGiRuntimeStats {
     voxel_resident_clipmap_count: usize,
     voxel_dirty_clipmap_count: usize,
     voxel_invalidated_clipmap_count: usize,
+    resolved_settings: Option<RenderHybridGiResolvedSettings>,
 }
 
 impl HybridGiRuntimeStats {
@@ -61,7 +64,16 @@ impl HybridGiRuntimeStats {
             voxel_resident_clipmap_count,
             voxel_dirty_clipmap_count,
             voxel_invalidated_clipmap_count,
+            resolved_settings: None,
         }
+    }
+
+    pub fn with_resolved_settings(
+        mut self,
+        resolved_settings: Option<RenderHybridGiResolvedSettings>,
+    ) -> Self {
+        self.resolved_settings = resolved_settings;
+        self
     }
 
     pub fn cache_entry_count(&self) -> usize {
@@ -134,5 +146,9 @@ impl HybridGiRuntimeStats {
 
     pub fn voxel_invalidated_clipmap_count(&self) -> usize {
         self.voxel_invalidated_clipmap_count
+    }
+
+    pub fn resolved_settings(&self) -> Option<RenderHybridGiResolvedSettings> {
+        self.resolved_settings
     }
 }

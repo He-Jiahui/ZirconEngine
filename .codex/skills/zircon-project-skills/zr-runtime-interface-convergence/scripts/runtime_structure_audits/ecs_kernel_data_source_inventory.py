@@ -58,7 +58,7 @@ RUNTIME_08_SOURCE_FILES = (
     "zircon_runtime/src/scene/ecs/messages/store.rs",
     "zircon_runtime/src/scene/ecs/resource/mod.rs",
     "zircon_runtime/src/scene/ecs/resource/id.rs",
-    "zircon_runtime/src/scene/ecs/resource/marker.rs",
+    "zircon_runtime/src/core/framework/scene/resource.rs",
     "zircon_runtime/src/scene/ecs/resource/registry.rs",
     "zircon_runtime/src/scene/ecs/resource_store/mod.rs",
     "zircon_runtime/src/scene/ecs/resource_store/stored_resource.rs",

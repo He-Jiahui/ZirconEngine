@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
@@ -25,7 +25,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
-  - zircon_editor/assets/ui/theme/editor_base.ui.toml
+  - zircon_editor/assets/ui/theme/editor_base.zui
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
   - zircon_editor/src/tests/ui/boundary/material_ui_component_design_matrix.rs
@@ -51,22 +51,22 @@ related_code:
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime/src/ui/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
@@ -132,14 +132,14 @@ related_code:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/selection_state.rs
   - zircon_editor/assets/ui/editor/material_component_lab.zui
-  - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/feedback/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/layout/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display
+  - zircon_editor/assets/ui/editor/material_components/feedback
+  - zircon_editor/assets/ui/editor/material_components/inputs
+  - zircon_editor/assets/ui/editor/material_components/layout
+  - zircon_editor/assets/ui/editor/material_components/mui_x
+  - zircon_editor/assets/ui/editor/material_components/navigation
+  - zircon_editor/assets/ui/editor/material_components/surfaces
+  - zircon_editor/assets/ui/editor/material_components/utils_lab
   - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
   - zircon_editor/src/tests/ui/boundary/material_component_lab/catalog.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs
@@ -157,7 +157,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/core/gui_startup_request.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
@@ -169,8 +169,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
@@ -188,8 +188,8 @@ related_code:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/virtualization.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_components/feedback/material_alert.zui
@@ -228,21 +228,21 @@ implementation_files:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime/src/ui/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets/mui_icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
@@ -271,7 +271,7 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/core/gui_startup_request.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
@@ -285,8 +285,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/popup.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
@@ -440,7 +440,7 @@ tests:
   - 2026-05-15 Material visual slice: cargo fmt --all -- --check (passed)
   - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -ScenarioList startup,idle_hover -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (startup 20260516-000244 passed; idle_hover 20260516-000253 recorded redraw/GPU work with zero alerts but missed the strict batch gate)
   - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -Scenario click -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (20260516-000343 passed)
-  - 2026-05-16 Material feedback emphasis: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs (passed)
+  - 2026-05-16 Material feedback emphasis: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs (passed)
   - 2026-05-16 Material feedback emphasis: Python tomllib parse for zircon_editor/assets/ui/theme/editor_material.zui, zircon_editor/src/tests/fixtures/ui_zui/theme/editor_material.zui, and zircon_editor/assets/ui/editor/component_showcase.zui (passed)
   - 2026-05-16 Material feedback emphasis: git diff --check on touched Material feedback files (passed; line-ending warnings only)
   - 2026-05-16 Material feedback emphasis: cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never (blocked before compile by existing Cargo.lock mismatch; lockfile left unchanged)
@@ -454,7 +454,7 @@ tests:
   - 2026-05-17 Material Lab Drawer count rows focused Rust retry: cargo test -p zircon_editor --lib material_component_lab_shell_keeps_material_lab_layout_regions --locked --jobs 1 --message-format short --color never failed before reaching Zircon tests while compiling `wgpu-hal v29.0.3` DX12; `cargo tree` shows `wgpu-hal` using `windows 0.62.2` directly while `gpu-allocator 0.28.0` brings `windows 0.61.3`, producing incompatible `ID3D12Device`/`ID3D12Heap` types. Lockfile left unchanged.
   - 2026-05-17 typed Button style binding: WSL `cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1`, `cargo test -p zircon_runtime --lib material_button_style --locked --jobs 1`, `cargo test -p zircon_runtime --lib v2_asset --locked --jobs 1`, `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1`, `cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1`, and `cargo test -p zircon_editor --lib template_assets --locked --jobs 1` passed in the focused Linux target. Windows native focused Cargo remains blocked before Zircon tests by the same `wgpu-hal` DX12/windows dependency mismatch.
   - 2026-05-17 Material Lab section grids: rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/material_component_lab/shell.rs, Python tomllib section-grid validation (passed: sections=8, columns=2), cargo metadata --locked --no-deps --format-version 1, and git diff --check on the section-grid/docs slice (passed; line-ending warnings only)
-  - 2026-05-18 Floating Action Button slice: rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs zircon_runtime/src/ui/component/catalog/material_foundation/inputs.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs zircon_editor/src/tests/ui/boundary/material_component_lab/inventory.rs zircon_editor/src/tests/ui/boundary/material_component_lab/support.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs (planned/rerun after review fix); git diff --check on the focused FAB asset/theme/docs/catalog/test files passed with LF/CRLF warnings only; Cargo intentionally skipped for milestone-first implementation cadence and known external render compile blocker risk
+  - 2026-05-18 Floating Action Button slice: rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs zircon_runtime/src/ui/component/catalog/material_foundation/inputs.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs zircon_editor/src/tests/ui/boundary/material_component_lab/inventory.rs zircon_editor/src/tests/ui/boundary/material_component_lab/support.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs (planned/rerun after review fix); git diff --check on the focused FAB asset/theme/docs/catalog/test files passed with LF/CRLF warnings only; Cargo intentionally skipped for milestone-first implementation cadence and known external render compile blocker risk
   - 2026-05-23 MUI Web token, icon, and customization freeze: rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/mui_web_parity_inventory.rs and direct rustc inventory test passed; editor visual assets now resolve local `mui-icons-material` modules; runtime foundation descriptors now expose common `mui_*` customization props; Cargo focused tests blocked by workspace lockfile/build-process state
   - 2026-05-23 MUI Web style/slot bridge: rustfmt check passed for runtime style matcher/apply/prototype/component-instance/test files; `cargo metadata --locked --no-deps --format-version 1` passed; focused `cargo test -p zircon_runtime --lib asset_mui_web_style --locked --jobs 1` stopped before compile because `Cargo.lock` requires an update under `--locked`, so the lockfile was not changed
   - 2026-05-23 MUI primitive renderer bridge: rustfmt --edition 2021 --check passed for retained template DTO/projection/conversion, native painter MUI primitive tests, and affected runtime layout/mutation files; `cargo metadata --locked --no-deps --format-version 1` passed; focused `cargo test -p zircon_editor --lib native_material_painter_mui_primitives --locked --jobs 1` stopped before compile because `Cargo.lock` requires an update under `--locked`, so the lockfile was not changed
@@ -615,7 +615,7 @@ M4 MUI X prototype contract 把上述 runtime 表面接回编辑器可见样例�
 
 M4 MUI X editor theme contract 将这些 utility selectors 接入 `editor_material.zui`，使 Material Lab 中的 retained X 样例不再只依赖通用 `material-control` 底色。DataGrid root/header/column-header/row/cell/loading/autoHeight 使用 primary/info palette token，TreeView multi-select 与 TreeItem content/label/icon/checkbox 使用 success/info token，DateTimePickers root 与 field/layout/toolbar/popper slot-state 使用 secondary token，Charts/Gauge/Line/Bar/Pie/Sparkline root 与 legend/tooltip slot-state 映射到对应 chart 语义色，AgentChat messages/composer slot-state 与 ChatComposer 映射 info/error/focus-ring surface；`material-mui-x-header`、`column-header`、`row`、`cell`、`tree-item`、`tree-content`、`tree-label`、`tree-icon`、`tree-checkbox`、`field`、`layout`、`toolbar`、`popper`、`legend`、`tooltip`、`messages`、`composer` 这些 `slotProps` class 也有独立主题规则，保证后续自定义面板能直接看到 MUI Web 风格反馈。
 
-M4 MUI X retained painter contract 把 MUI X 样例从“有 descriptor 和主题 selector 但 native host 仍是泛 surface”推进到可见的 retained primitive。`zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives.rs` 由 `template_nodes.rs` 在 Material feedback primitive 之后、generic surface 之前调用，图表 raster 细节拆入 `mui_x_primitives/charts.rs`。DataGrid 绘制 root/header/row/selected-row chrome；TreeView 绘制 selected/multi root surface、缩进 item rows 与 expanded marker；DateTimePickers 绘制 field、picker icon、popup layout、toolbar 和 selected-cell feedback；aggregate Charts/BarChart 绘制 themed plot 与 bar series，LineChart/SparkLineChart 绘制 retained line stroke 与 active points，PieChart 绘制 MUI-colored pie/donut slice feedback，Gauge 绘制 value arc feedback；AgentChat 绘制 message bubbles、streaming indicator 与 error/info surface；ChatComposer 绘制输入 field 与 send affordance。该模块按 `component_role` 或 `role` 识别 MUI X 节点，并保留作者通过 resolved style 提供的 root background override；full chart engines、完整 TreeView item interaction、完整 picker calendar/time grid lifecycle 和 chat list virtualization 仍保持 `needs support`，但 Material Lab retained host 不再退化为空白通用面板。
+M4 MUI X retained painter contract 把 MUI X 样例从“有 descriptor 和主题 selector 但 native host 仍是泛 surface”推进到可见的 retained primitive。`zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs` 由 `template_nodes.rs` 在 Material feedback primitive 之后、generic surface 之前调用，图表 raster 细节拆入 `mui_x_primitives/charts.rs`。DataGrid 绘制 root/header/row/selected-row chrome；TreeView 绘制 selected/multi root surface、缩进 item rows 与 expanded marker；DateTimePickers 绘制 field、picker icon、popup layout、toolbar 和 selected-cell feedback；aggregate Charts/BarChart 绘制 themed plot 与 bar series，LineChart/SparkLineChart 绘制 retained line stroke 与 active points，PieChart 绘制 MUI-colored pie/donut slice feedback，Gauge 绘制 value arc feedback；AgentChat 绘制 message bubbles、streaming indicator 与 error/info surface；ChatComposer 绘制输入 field 与 send affordance。该模块按 `component_role` 或 `role` 识别 MUI X 节点，并保留作者通过 resolved style 提供的 root background override；full chart engines、完整 TreeView item interaction、完整 picker calendar/time grid lifecycle 和 chat list virtualization 仍保持 `needs support`，但 Material Lab retained host 不再退化为空白通用面板。
 
 当前审计保持四个边界：
 

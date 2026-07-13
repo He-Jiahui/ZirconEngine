@@ -1,9 +1,7 @@
 pub(super) const ROUTE_MOUNTS_SLICE: &str =
     "Runtime 15 M3 review-guard expected-slice root guard body route mounts folder-backed split";
-pub(super) const ROUTE_MOUNTS_STATUS: &str =
-    "runtime_15_review_guard_expected_slice_root_guard_body_route_mounts_folder_backed_static_passed_cargo_deferred";
-pub(super) const ROUTE_MOUNTS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_review_guard_expected_slice_root_guard_body_route_mounts_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_MOUNTS_STATUS: &str = "runtime_15_review_guard_expected_slice_root_guard_body_route_mounts_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_MOUNTS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_review_guard_expected_slice_root_guard_body_route_mounts_folder_backed_static_passed_cargo_deferred";
 pub(super) const ROUTE_MOUNTS_GUARD: &str =
     "runtime_15_review_guard_expected_slice_root_guard_body_route_mounts_is_folder_backed";
 pub(super) const ROUTE_MOUNTS_ROUTE_PATH: &str =

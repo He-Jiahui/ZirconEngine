@@ -1,22 +1,20 @@
 ---
 related_code:
-  - zircon_framework/src/render/backend_types.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
 implementation_files:
-  - zircon_framework/src/render/backend_types.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
 plan_sources:
   - user: 2026-04-18 下一步是更深的 unified-indirect / residency-manager cascade，把同一套 frontier truth 继续推进到真实 GPU uploader / page-table / split-merge frontier policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -24,8 +22,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-frontier-rank-uploader-and-page-table-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-runtime-owned-stats-closure.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/render_framework_bridge.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_consumes_explicit_gpu_replacement_truth_before_slot_fallbacks -- --nocapture
   - cargo test -p zircon_graphics --offline --locked headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities -- --nocapture
   - cargo test -p zircon_graphics --offline --locked render_framework_bridge -- --nocapture

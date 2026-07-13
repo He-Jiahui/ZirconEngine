@@ -1,7 +1,6 @@
 use super::*;
 
-const PRODUCT_STAGED_PREWARM_OWNER_SPLIT_VELOCITY_STATUS: &str =
-    "render_plan08_product_material_mesh_staged_prewarm_owner_split_velocity_static_passed_cargo_deferred_active_lanes";
+const PRODUCT_STAGED_PREWARM_OWNER_SPLIT_VELOCITY_STATUS: &str = "render_plan08_product_material_mesh_staged_prewarm_owner_split_velocity_static_passed_cargo_deferred_active_lanes";
 
 #[test]
 fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
@@ -29,8 +28,11 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
     let wgpu_framework = read_runtime_src(
         "graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");
     let mesh_cache_doc =
@@ -38,7 +40,6 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
     let product_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "render product mesh cache parent mounts staged prewarm child",
@@ -132,7 +133,6 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
         ("render product submit doc", product_submit_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -148,15 +148,12 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
         );
     }
 
-    let current_session_doc =
-        read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
     for (label, source) in [
         ("Plan 08", plan_08.as_str()),
         ("render index", render_index.as_str()),
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("current render session doc", current_session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

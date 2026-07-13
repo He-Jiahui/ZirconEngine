@@ -13,8 +13,6 @@ fn runtime_15_priority_plan_docs_guard_tests_stay_listed() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = priority_plan_doc_owner_row_source();
     let status_map = priority_plan_doc_status_map_source();
     let date_map = priority_plan_doc_date_map_source();
@@ -25,7 +23,6 @@ fn runtime_15_priority_plan_docs_guard_tests_stay_listed() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(
@@ -79,8 +76,7 @@ fn assert_priority_plan_doc_tests_list_guard_functions(label: &str, path: &str, 
     let test_entries = frontmatter_section_items(&frontmatter, "tests");
 
     for guard in PRIORITY_PLAN_DOC_GUARDS {
-        let expected_prefix =
-            "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/";
+        let expected_prefix = "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/";
         assert!(
             test_entries
                 .iter()

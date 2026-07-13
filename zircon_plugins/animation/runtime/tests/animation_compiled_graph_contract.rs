@@ -3,9 +3,10 @@ use std::sync::Arc;
 use zircon_plugin_animation_runtime::{
     AnimationGraphCompileError, CompiledAnimationGraph, SkeletonTargetTable,
 };
-use zircon_runtime::asset::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetReference, AssetUri,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
 use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationParameterValue};
 

@@ -6,7 +6,8 @@ use super::derive_animation_assets_from_model_source;
 use zircon_runtime::asset::project::{
     AssetMetaDocument, ProjectManager, ProjectManifest, ProjectPaths,
 };
-use zircon_runtime::asset::{AnimationClipAsset, AnimationSkeletonAsset, AssetUri};
+use zircon_runtime::asset::AssetUri;
+use zircon_runtime::core::framework::animation::{AnimationClipAsset, AnimationSkeletonAsset};
 
 fn unique_temp_dir(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -16,6 +17,7 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("{prefix}_{unique}"))
 }
 
+#[test]
 fn derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_clip_files() {
     let root = unique_temp_dir("zircon_editor_derived_animation_assets");
     let assets_root = root.join("assets");
@@ -23,8 +25,16 @@ fn derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_
     fs::create_dir_all(&model_dir).unwrap();
     let model_path = write_animated_gltf(&model_dir);
 
-    let first = derive_animation_assets_from_model_source(&assets_root, &model_path).unwrap();
-    let second = derive_animation_assets_from_model_source(&assets_root, &model_path).unwrap();
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let manifest = ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+    manifest.save(paths.manifest_path()).unwrap();
+    let project = ProjectManager::open(&root).unwrap();
+    let first = derive_animation_assets_from_model_source(&project, &model_path).unwrap();
+    let second = derive_animation_assets_from_model_source(&project, &model_path).unwrap();
 
     assert_eq!(first, second);
     assert_eq!(
@@ -60,11 +70,14 @@ fn derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
 fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars(
 ) {
     let root = unique_temp_dir("zircon_editor_derived_animation_reimport");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -72,14 +85,14 @@ fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_
     )
     .save(paths.manifest_path())
     .unwrap();
-    let model_dir = paths.assets_root().join("models");
+    let model_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("models");
     fs::create_dir_all(&model_dir).unwrap();
     let model_path = write_animated_gltf(&model_dir);
 
-    let first_generated =
-        derive_animation_assets_from_model_source(paths.assets_root(), &model_path).unwrap();
-
     let mut manager = ProjectManager::open(&root).unwrap();
+    let first_generated = derive_animation_assets_from_model_source(&manager, &model_path).unwrap();
     manager.scan_and_import().unwrap();
 
     let skeleton_uri = AssetUri::parse("res://models/hero.skeleton.zranim").unwrap();
@@ -100,7 +113,7 @@ fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_
         AssetMetaDocument::load(model_dir.join("hero.idle.clip.zranim.zmeta")).unwrap();
 
     let second_generated =
-        derive_animation_assets_from_model_source(paths.assets_root(), &model_path).unwrap();
+        derive_animation_assets_from_model_source(&manager, &model_path).unwrap();
     manager.scan_and_import().unwrap();
 
     let second_skeleton_id = manager
@@ -132,6 +145,35 @@ fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_
         "gltf buffer sidecars should not get runtime asset metadata sidecars"
     );
 
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn animation_derivatives_stay_beside_a_model_in_the_second_manifest_root() {
+    let root = unique_temp_dir("zircon_editor_second_root_animation_assets");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let mut manifest = ProjectManifest::new(
+        "Two Roots",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+    manifest.asset_roots = vec![
+        zircon_runtime_interface::project::RelPath::parse("game-assets").unwrap(),
+        zircon_runtime_interface::project::RelPath::parse("shared-assets").unwrap(),
+    ];
+    manifest.save(paths.manifest_path()).unwrap();
+    let shared_models = root.join("shared-assets/models");
+    fs::create_dir_all(&shared_models).unwrap();
+    let model_path = write_animated_gltf(&shared_models);
+    let project = ProjectManager::open(&root).unwrap();
+
+    derive_animation_assets_from_model_source(&project, &model_path).unwrap();
+
+    assert!(shared_models.join("hero.skeleton.zranim").is_file());
+    assert!(shared_models.join("hero.idle.clip.zranim").is_file());
+    assert!(!root
+        .join("game-assets/models/hero.skeleton.zranim")
+        .exists());
     let _ = fs::remove_dir_all(root);
 }
 

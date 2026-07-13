@@ -1,10 +1,86 @@
 use super::{
-    RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderHybridGiReadbackOutputs, RenderHybridGiResolvedSettings,
+    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
     RenderVirtualGeometryReadbackOutputs,
 };
 
+pub const HYBRID_GI_SOURCE_FULL_DYNAMIC: u32 = 1 << 0;
+pub const HYBRID_GI_SOURCE_BAKED_BASELINE: u32 = 1 << 1;
+pub const HYBRID_GI_SOURCE_DYNAMIC_DELTA: u32 = 1 << 2;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderHybridGiCompositePolicy {
+    source_mask: u32,
+    baked_baseline_weight_q8: u8,
+    dynamic_weight_q8: u8,
+    baked_light_set_generation: Option<u64>,
+    participation_epoch: u64,
+}
+
+impl RenderHybridGiCompositePolicy {
+    pub const fn full_dynamic(participation_epoch: u64) -> Self {
+        Self {
+            source_mask: HYBRID_GI_SOURCE_FULL_DYNAMIC,
+            baked_baseline_weight_q8: 0,
+            dynamic_weight_q8: u8::MAX,
+            baked_light_set_generation: None,
+            participation_epoch,
+        }
+    }
+
+    pub const fn baked_baseline_with_dynamic_delta(
+        baked_light_set_generation: u64,
+        participation_epoch: u64,
+    ) -> Self {
+        Self {
+            source_mask: HYBRID_GI_SOURCE_BAKED_BASELINE | HYBRID_GI_SOURCE_DYNAMIC_DELTA,
+            baked_baseline_weight_q8: u8::MAX,
+            dynamic_weight_q8: u8::MAX,
+            baked_light_set_generation: Some(baked_light_set_generation),
+            participation_epoch,
+        }
+    }
+
+    pub const fn source_mask(self) -> u32 {
+        self.source_mask
+    }
+
+    pub const fn baked_baseline_weight_q8(self) -> u8 {
+        self.baked_baseline_weight_q8
+    }
+
+    pub const fn dynamic_weight_q8(self) -> u8 {
+        self.dynamic_weight_q8
+    }
+
+    pub const fn baked_light_set_generation(self) -> Option<u64> {
+        self.baked_light_set_generation
+    }
+
+    pub const fn participation_epoch(self) -> u64 {
+        self.participation_epoch
+    }
+
+    pub const fn accepts_hybrid_gi_output(self) -> bool {
+        let has_full_dynamic = self.source_mask & HYBRID_GI_SOURCE_FULL_DYNAMIC != 0;
+        let has_baked_baseline = self.source_mask & HYBRID_GI_SOURCE_BAKED_BASELINE != 0;
+        let has_dynamic_delta = self.source_mask & HYBRID_GI_SOURCE_DYNAMIC_DELTA != 0;
+
+        (has_full_dynamic && !has_baked_baseline && !has_dynamic_delta)
+            || (!has_full_dynamic && has_baked_baseline && has_dynamic_delta)
+    }
+}
+
+impl Default for RenderHybridGiCompositePolicy {
+    fn default() -> Self {
+        Self::full_dynamic(0)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderHybridGiPreparedFrame {
+    pub composite_policy: RenderHybridGiCompositePolicy,
+    pub resolved_settings: Option<RenderHybridGiResolvedSettings>,
     pub resident_probes: Vec<RenderHybridGiPreparedProbe>,
     pub pending_updates: Vec<RenderHybridGiPreparedUpdateRequest>,
     pub scheduled_trace_region_ids: Vec<u32>,
@@ -16,7 +92,9 @@ pub struct RenderHybridGiPreparedFrame {
 
 impl RenderHybridGiPreparedFrame {
     pub fn is_empty(&self) -> bool {
-        self.resident_probes.is_empty()
+        self.composite_policy == RenderHybridGiCompositePolicy::default()
+            && self.resolved_settings.is_none()
+            && self.resident_probes.is_empty()
             && self.pending_updates.is_empty()
             && self.scheduled_trace_region_ids.is_empty()
             && self.evictable_probe_ids.is_empty()
@@ -30,6 +108,9 @@ impl RenderHybridGiPreparedFrame {
 pub struct RenderHybridGiPreparedProbe {
     pub probe_id: u32,
     pub slot: u32,
+    pub stable_instance_key: u64,
+    pub source_mask: u32,
+    pub dynamic_weight_q8: u8,
     pub ray_budget: u32,
     pub irradiance_rgb: [u8; 3],
 }
@@ -172,6 +253,13 @@ mod tests {
             ..RenderHybridGiPreparedFrame::default()
         }
         .is_empty());
+        assert!(!RenderHybridGiPreparedFrame {
+            composite_policy: RenderHybridGiCompositePolicy::baked_baseline_with_dynamic_delta(
+                7, 3
+            ),
+            ..RenderHybridGiPreparedFrame::default()
+        }
+        .is_empty());
 
         let sidebands = RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs::default(),
@@ -181,5 +269,26 @@ mod tests {
 
         assert!(!sidebands.is_empty());
         assert_eq!(sidebands.hybrid_gi_evictable_probe_ids(), &[5]);
+    }
+
+    #[test]
+    fn hybrid_gi_composite_policy_rejects_full_dynamic_baked_double_ownership() {
+        let full_dynamic = RenderHybridGiCompositePolicy::full_dynamic(4);
+        assert!(full_dynamic.accepts_hybrid_gi_output());
+        assert_eq!(full_dynamic.source_mask(), HYBRID_GI_SOURCE_FULL_DYNAMIC);
+
+        let baked_delta = RenderHybridGiCompositePolicy::baked_baseline_with_dynamic_delta(9, 5);
+        assert!(baked_delta.accepts_hybrid_gi_output());
+        assert_eq!(baked_delta.baked_light_set_generation(), Some(9));
+        assert_eq!(baked_delta.participation_epoch(), 5);
+        assert_eq!(
+            baked_delta.source_mask(),
+            HYBRID_GI_SOURCE_BAKED_BASELINE | HYBRID_GI_SOURCE_DYNAMIC_DELTA
+        );
+        assert_eq!(
+            baked_delta.source_mask() & HYBRID_GI_SOURCE_FULL_DYNAMIC,
+            0,
+            "a baked baseline must never share a lobe with full-dynamic indirect light"
+        );
     }
 }

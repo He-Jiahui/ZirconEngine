@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{
+    BridgeDiagnosticsSnapshot, BridgeError, BridgeInterfaceStatus, BridgeOwnerTransitionMode,
+    InterfaceSlot, PluginInterface,
+};
 use crate::plugin::{
-    BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeInterfaceStatus,
-    BridgeOwnerTransitionMode, BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary,
-    InterfaceSlot, PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-    WeakBridge,
+    BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeOwnerTransitionReport,
+    BridgeTableDiagnosticsSummary, PluginModuleId, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, WeakBridge,
 };
 
 trait WeatherQueryInterface: Send + Sync {

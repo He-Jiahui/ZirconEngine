@@ -16,12 +16,12 @@ related_code:
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi_wgpu/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
@@ -45,12 +45,12 @@ implementation_files:
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
@@ -85,11 +85,11 @@ tests:
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/src/rhi_wgpu/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
@@ -261,4 +261,4 @@ Validation should prove both the boundary and the renderer contract:
 - The 2026-05-18 runtime UI graph and retained-cache damage closeout connected `runtime-ui` to the product render graph through the built-in `ui.screen-space` executor and restored direct-surface damage with `WgpuRetainedSurfaceCache`. The 2026-05-19 revalidation passed `cargo test -p zircon_runtime --locked render_product_ui --jobs 1 --message-format short --color never` (2 passed), `cargo test -p zircon_runtime --locked runtime_ui --jobs 1 --message-format short --color never` (23 runtime lib tests plus 6 text-contract tests), `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never` (50 passed), `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` (5 passed), `cargo test -p zircon_runtime --lib material_button_style --locked --jobs 1 --message-format short --color never` (4 passed), and `cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never` (6 passed). The app-side linked advanced render fixture was also revalidated after registering a minimal provider: `cargo test -p zircon_app --lib linked_runtime_render_feature_descriptors_rebuild_default_pipelines --locked --jobs 1 --message-format short --color never` (1 passed) and `cargo test -p zircon_app --lib --locked --jobs 1 --message-format short --color never` (70 passed). The later `.zmaterial` source-rewrite blocker found during workspace expansion was fixed in the material asset serialization layer, after which `cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1` passed `1634` tests and `cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1` passed. All of these Windows revalidation commands used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage`. The native painter guard now samples the FAB shadow on a non-black test background so half-transparent shadow output is distinguishable from the default black frame.
 - The 2026-05-18 SpriteAtlas M1 planner evidence added focused same-resource image partial-order tests for the future editor-generated atlas path without changing production planner code. In `D:\cargo-targets\zircon-shared\sprite-atlas-ui`, `cargo check -p zircon_runtime --lib --locked --message-format short --color never` passed, then `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never` passed with `47` UI-surface-filtered tests. The new cases prove three disjoint images with `resource_key = "atlas://editor/icons"` collapse to one image draw and 18 vertices, overlapping images with that same key split into two dependency layers, an image-solid-image overlap chain preserves painter order across three layers, and independent same-resource images around an overlapping solid share the first image layer with 12 vertices.
 - The SpriteAtlas M4 retained UI payload slice adds optional atlas UV metadata to the RHI image DTO and forwards the matching editor chrome image metadata into runtime. Planned focused validation for this slice is `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1`, `cargo test -p zircon_editor --lib command_stream --locked --jobs 1`, and `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1` in `D:\cargo-targets\zircon-shared\sprite-atlas-ui`. The numeric geometry coverage pins full-image clipping at `[0.25, 0.25]` to `[0.75, 0.75]` and atlas UV `[0.5, 0.25]` to `[0.75, 0.5]` to `[0.5625, 0.3125]` through `[0.6875, 0.4375]` after the same clip.
-- The SpriteAtlas M5 atlas-backed UI batching slice adds focused coverage for upload-byte de-duplication, same-key/different-UV runtime batching, retained-host same-atlas/different-atlas command streams, atlas texture payload conversion, resolver lookup through generated project-library atlas TOML/PNG artifacts, software replay atlas sampling from embedded atlas bytes, and headless WGPU stats proving same-atlas subimages reduce to one image draw/upload. Focused validation ran on 2026-05-22 in `D:\cargo-targets\zircon-shared\sprite-atlas-ui`: `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never` passed `53` tests after one warm-up compile timeout; `cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never` passed `11` tests after fixing atlas recorded payload conversion and after the test-only split; `cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never` passed `12` tests; `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` passed `5` tests; `cargo check -p zircon_runtime --lib --locked --message-format short --color never`, `cargo check -p zircon_editor --lib --locked --message-format short --color never`, and `cargo check -p zircon_app --features target-editor-host --locked --message-format short --color never` all finished successfully with warnings. No live atlas-heavy profile artifact was produced because the workspace currently has no `editor-sprite-atlases` project-library artifacts for a retained-host scenario.
+- The SpriteAtlas M5 atlas-backed UI batching slice adds focused coverage for upload-byte de-duplication, same-key/different-UV runtime batching, retained-host same-atlas/different-atlas command streams, atlas texture payload conversion, resolver lookup through generated `.zircon/cache/editor-sprite-atlases` TOML/PNG artifacts, software replay atlas sampling from embedded atlas bytes, and headless WGPU stats proving same-atlas subimages reduce to one image draw/upload. Focused validation ran on 2026-05-22 in `D:\cargo-targets\zircon-shared\sprite-atlas-ui`: `cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never` passed `53` tests after one warm-up compile timeout; `cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never` passed `11` tests after fixing atlas recorded payload conversion and after the test-only split; `cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never` passed `12` tests; `cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never` passed `5` tests; `cargo check -p zircon_runtime --lib --locked --message-format short --color never`, `cargo check -p zircon_editor --lib --locked --message-format short --color never`, and `cargo check -p zircon_app --features target-editor-host --locked --message-format short --color never` all finished successfully with warnings. No live atlas-heavy profile artifact was produced because the workspace currently has no `.zircon/cache/editor-sprite-atlases` artifacts for a retained-host scenario.

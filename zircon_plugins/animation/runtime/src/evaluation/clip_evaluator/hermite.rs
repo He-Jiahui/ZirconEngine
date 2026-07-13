@@ -1,4 +1,6 @@
-use zircon_runtime::asset::{AnimationChannelKeyAsset, AnimationChannelValueAsset};
+use zircon_runtime::core::framework::animation::{
+    AnimationChannelKeyAsset, AnimationChannelValueAsset,
+};
 use zircon_runtime::core::math::{Quat, Real};
 
 pub(super) fn sample_hermite(

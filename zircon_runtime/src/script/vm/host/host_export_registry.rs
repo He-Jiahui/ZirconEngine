@@ -107,7 +107,8 @@ impl HostExportRegistry {
 
         let handle = self
             .host_registry
-            .register_capability(format!("host.module.{}", descriptor.name));
+            .register_capability(format!("host.module.{}", descriptor.name))
+            .map_err(|error| VmError::Operation(error.to_string()))?;
         modules.insert(
             descriptor.name.clone(),
             HostExportModuleEntry {

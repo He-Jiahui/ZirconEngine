@@ -44,7 +44,6 @@ fn runtime_15_module_convention_module_doc_frontmatter_has_unique_entries() {
         "docs/plans/engine-code-structure-convention.md",
         "docs/plans/engine-code-review-findings-2026-06.md",
         "docs/zircon_runtime/structure/module-convention.md",
-        ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
         "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/frontmatter_and_gate_rows.rs",
     ] {
         let source = read_repo(doc);

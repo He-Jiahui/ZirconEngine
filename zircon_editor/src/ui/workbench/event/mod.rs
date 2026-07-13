@@ -9,6 +9,7 @@ mod editor_operation_binding;
 mod menu_action_binding;
 mod menu_action_from_id;
 mod menu_action_id;
+mod menu_item_binding;
 mod node_kind_from_id;
 mod node_kind_id;
 
@@ -18,3 +19,5 @@ pub use editor_host_event::EditorHostEvent;
 pub use editor_host_event_error::EditorHostEventError;
 pub use editor_operation_binding::editor_operation_binding;
 pub use menu_action_binding::menu_action_binding;
+pub use menu_item_binding::menu_item_binding;
+pub(crate) use menu_item_binding::operation_path_for_menu_action;

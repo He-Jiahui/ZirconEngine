@@ -1,9 +1,9 @@
 use crate::core::CoreError;
-use crate::plugin::{
+use crate::scene::SystemStage;
+use crate::scene::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
 };
-use crate::scene::SystemStage;
 
 mod diagnostics;
 mod events;

@@ -8,10 +8,10 @@ use crate::graphics::{
 };
 
 use super::super::super::super::deferred::DeferredSceneResources;
-use super::super::super::super::environment::IblBakeWgpuPipelineCache;
+use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
 use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
-    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_uniform_min_binding_size,
+    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
 };
 use super::super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
 use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRenderer};
@@ -56,12 +56,13 @@ impl SceneRendererCore {
         let gpu_scene = GpuScene::new(
             device,
             Arc::clone(&skinned_joint_palette_fallback_buffer),
-            skinned_joint_palette_uniform_min_binding_size(),
+            skinned_joint_palette_storage_min_binding_size(),
         );
 
         let scene_color_format = SCENE_COLOR_HDR_FORMAT;
         let mut mesh_pipelines = MeshPipelineCache::new(
             device,
+            queue,
             scene_color_format,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
@@ -71,6 +72,7 @@ impl SceneRendererCore {
             mesh_pipelines.register_geometry_source_descriptor(descriptor);
         }
         let ibl_bake_pipeline_cache = IblBakeWgpuPipelineCache::new(device);
+        let realtime_ibl = RealtimeIblRuntime::new(device);
         let scene_clear = SceneRegionClearResources::new(device, scene_color_format, DEPTH_FORMAT);
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         let shadow_atlas_resources =
@@ -90,6 +92,7 @@ impl SceneRendererCore {
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
             mesh_pipelines.reflection_probes.bindings(),
+            mesh_pipelines.lightmaps.bindings(),
             scene_color_format,
             &plugin_shading_models,
         )?;
@@ -130,6 +133,7 @@ impl SceneRendererCore {
             texture_bind_group_layout,
             scene_bind_group_layout: scene_bind_group_bundle.layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
+            scene_environment_sh9_buffer: scene_bind_group_bundle.environment_sh9_buffer,
             scene_environment_cubemap: scene_bind_group_bundle.environment_cubemap,
             scene_environment_brdf_lut: scene_bind_group_bundle.environment_brdf_lut,
             scene_bind_group: scene_bind_group_bundle.bind_group,
@@ -140,6 +144,8 @@ impl SceneRendererCore {
             material_texture_bind_group_layout,
             mesh_pipelines,
             ibl_bake_pipeline_cache,
+            realtime_ibl,
+            scene_bind_group_realtime_ibl_slot: None,
             cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
             gpu_scene,
             hzb_occlusion_culler,

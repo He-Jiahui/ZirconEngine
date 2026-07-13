@@ -189,10 +189,7 @@ fn runtime_15_script_vm_gameplay_host_guard_is_child_owner() {
     );
     for moved_anchor in [
         "let spawn_transform = read_runtime_src(\"script/vm/gameplay_host/tests/spawn_transform.rs\")",
-        concat!(
-            "fn gameplay_pose_exports_update_entity_",
-            "transform"
-        ),
+        concat!("fn gameplay_pose_exports_update_entity_", "transform"),
         concat!(
             "runtime_15_gameplay_host_tests_folder_split_",
             "static_passed_cargo_deferred"

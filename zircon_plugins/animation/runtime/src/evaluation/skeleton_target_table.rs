@@ -1,4 +1,6 @@
-use zircon_runtime::asset::AnimationSkeletonAsset;
+use std::collections::BTreeMap;
+
+use zircon_runtime::core::framework::animation::AnimationSkeletonAsset;
 use zircon_runtime::core::framework::animation::AnimationTargetId;
 use zircon_runtime::core::framework::scene::EntityPath;
 
@@ -13,6 +15,8 @@ pub struct SkeletonTargetTable {
     targets: TargetTable<usize>,
     bone_slots: Box<[TargetSlot]>,
     bone_names: Box<[String]>,
+    bone_name_indices: BTreeMap<String, Option<usize>>,
+    bone_paths: Box<[String]>,
     target_ids: Box<[AnimationTargetId]>,
 }
 
@@ -21,6 +25,8 @@ impl SkeletonTargetTable {
         let mut targets = TargetTable::new();
         let mut bone_slots = Vec::with_capacity(skeleton.bones.len());
         let mut target_ids = Vec::with_capacity(skeleton.bones.len());
+        let mut bone_paths = Vec::with_capacity(skeleton.bones.len());
+        let mut bone_name_indices = BTreeMap::new();
 
         for bone_index in 0..skeleton.bones.len() {
             let path = skeleton_bone_path(skeleton, bone_index)?;
@@ -36,7 +42,12 @@ impl SkeletonTargetTable {
                     }
                 })?;
             bone_slots.push(slot);
+            bone_paths.push(path.as_str().to_string());
             target_ids.push(target_id);
+            bone_name_indices
+                .entry(skeleton.bones[bone_index].name.clone())
+                .and_modify(|index| *index = None)
+                .or_insert(Some(bone_index));
         }
 
         Ok(Self {
@@ -48,6 +59,8 @@ impl SkeletonTargetTable {
                 .map(|bone| bone.name.clone())
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
+            bone_name_indices,
+            bone_paths: bone_paths.into_boxed_slice(),
             target_ids: target_ids.into_boxed_slice(),
         })
     }
@@ -79,6 +92,18 @@ impl SkeletonTargetTable {
 
     pub(crate) fn bone_index_for_slot(&self, slot: TargetSlot) -> Option<usize> {
         self.targets.target(slot).copied()
+    }
+
+    pub(crate) fn bone_index_for_unique_name(&self, name: &str) -> Option<usize> {
+        self.bone_name_indices.get(name).copied().flatten()
+    }
+
+    pub(crate) fn bone_paths(&self) -> &[String] {
+        &self.bone_paths
+    }
+
+    pub(crate) fn bone_path_for_index(&self, bone_index: usize) -> Option<&str> {
+        self.bone_paths.get(bone_index).map(String::as_str)
     }
 
     pub(crate) fn resolve_unique_bone_name(

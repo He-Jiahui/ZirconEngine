@@ -14,6 +14,7 @@ use crate::core::resource::ResourceId;
 
 mod management;
 mod readiness;
+mod subsurface;
 mod value_sync;
 
 pub use self::management::{
@@ -62,12 +63,27 @@ pub struct MaterialAsset {
 }
 
 impl MaterialAsset {
+    #[cfg(test)]
     pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
         ZMaterialDocument::from_toml_str(document).map(Self::from_zmaterial_document)
     }
 
+    #[cfg(test)]
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         self.to_zmaterial_document().to_toml_string()
+    }
+
+    pub fn to_project_toml_string(
+        &self,
+        resolver: impl FnMut(
+            &AssetReference,
+        ) -> Result<
+            zircon_runtime_interface::project::PersistedAssetReference,
+            crate::asset::ReferenceResolutionError,
+        >,
+    ) -> Result<String, crate::asset::assets::ProjectDocumentError> {
+        self.to_zmaterial_document()
+            .to_project_toml_string(resolver)
     }
 
     pub fn from_zmaterial_document(document: ZMaterialDocument) -> Self {
@@ -320,6 +336,7 @@ impl MaterialAsset {
             material_queue: self.material_queue(),
             depth_bias: self.depth_bias(),
             taa_reactive_mask_strength: self.taa_reactive_mask_strength(),
+            subsurface_profile_index: self.subsurface_profile_index(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
     }

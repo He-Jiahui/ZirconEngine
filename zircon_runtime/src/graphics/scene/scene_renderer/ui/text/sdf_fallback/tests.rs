@@ -31,6 +31,7 @@ fn sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend() {
                 allocation_failure_count: 2,
                 page_limit_failure_count: 1,
                 oversized_failure_count: 1,
+                ..Default::default()
             },
         ],
         &[],
@@ -102,6 +103,7 @@ fn sdf_atlas_fallback_overlays_failed_spans_for_horizontal_ltr_text() {
             allocation_failure_count: 2,
             page_limit_failure_count: 2,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0]],
     );
@@ -174,6 +176,7 @@ fn sdf_atlas_fallback_overlays_failed_spans_for_horizontal_rtl_text() {
             allocation_failure_count: 2,
             page_limit_failure_count: 2,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![5.0, 6.0, 7.0, 8.0]],
     );
@@ -224,6 +227,7 @@ fn sdf_atlas_fallback_resolves_auto_direction_for_horizontal_rtl_overlay() {
             allocation_failure_count: 1,
             page_limit_failure_count: 1,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![5.0, 6.0, 7.0, 8.0]],
     );
@@ -268,6 +272,7 @@ fn sdf_atlas_fallback_overlays_whole_grapheme_from_resolved_advances() {
             allocation_failure_count: 1,
             page_limit_failure_count: 1,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![20.0, 10.0]],
     );
@@ -313,6 +318,7 @@ fn sdf_atlas_fallback_reports_unsupported_mixed_overlay_layout_reason() {
             allocation_failure_count: 2,
             page_limit_failure_count: 2,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![5.0, 6.0, 7.0, 8.0]],
     );
@@ -358,6 +364,7 @@ fn sdf_atlas_fallback_rejects_ambiguous_horizontal_text_direction() {
             allocation_failure_count: 2,
             page_limit_failure_count: 2,
             oversized_failure_count: 0,
+            ..Default::default()
         }],
         &[vec![5.0, 6.0, 7.0, 8.0]],
     );
@@ -406,21 +413,27 @@ fn sdf_atlas_fallback_groups_failed_glyph_reason_spans() {
                 glyph_count: 2,
                 start_byte_index: 1,
                 end_byte_index: 3,
-                reason: SdfAtlasAllocationFailureReason::PageLimit,
+                reason: SdfGlyphFallbackReason::Allocation(
+                    SdfAtlasAllocationFailureReason::PageLimit,
+                ),
             },
             SdfAtlasGlyphFallbackSpan {
                 start_glyph_index: 4,
                 glyph_count: 2,
                 start_byte_index: 4,
                 end_byte_index: 6,
-                reason: SdfAtlasAllocationFailureReason::OversizedSlot,
+                reason: SdfGlyphFallbackReason::Allocation(
+                    SdfAtlasAllocationFailureReason::OversizedSlot,
+                ),
             },
             SdfAtlasGlyphFallbackSpan {
                 start_glyph_index: 6,
                 glyph_count: 1,
                 start_byte_index: 6,
                 end_byte_index: 7,
-                reason: SdfAtlasAllocationFailureReason::PageLimit,
+                reason: SdfGlyphFallbackReason::Allocation(
+                    SdfAtlasAllocationFailureReason::PageLimit,
+                ),
             },
         ]
     );
@@ -450,17 +463,58 @@ fn sdf_atlas_fallback_maps_failed_glyph_spans_to_utf8_byte_ranges() {
                 glyph_count: 2,
                 start_byte_index: 1,
                 end_byte_index: 8,
-                reason: SdfAtlasAllocationFailureReason::PageLimit,
+                reason: SdfGlyphFallbackReason::Allocation(
+                    SdfAtlasAllocationFailureReason::PageLimit,
+                ),
             },
             SdfAtlasGlyphFallbackSpan {
                 start_glyph_index: 4,
                 glyph_count: 1,
                 start_byte_index: 9,
                 end_byte_index: 11,
-                reason: SdfAtlasAllocationFailureReason::OversizedSlot,
+                reason: SdfGlyphFallbackReason::Allocation(
+                    SdfAtlasAllocationFailureReason::OversizedSlot,
+                ),
             },
         ]
     );
+}
+
+#[test]
+fn sdf_atlas_generation_failure_uses_normal_native_overlay_path() {
+    let mut native_texts = Vec::new();
+    let mut sdf_texts = vec![text_batch("abc")];
+    let run = SdfAtlasRun {
+        glyph_slot_indices: vec![Some(0), Some(1), Some(2)],
+        glyph_generation_failures: vec![
+            None,
+            Some(SdfGlyphGenerationError::MissingGlyphOutline(42)),
+            None,
+        ],
+        generation_failure_count: 1,
+        ..Default::default()
+    };
+
+    let report = apply_sdf_atlas_fallbacks(
+        &mut native_texts,
+        &mut sdf_texts,
+        &[run],
+        &[vec![5.0, 6.0, 7.0]],
+    );
+
+    assert_eq!(native_texts.len(), 1);
+    assert_eq!(native_texts[0].text, "b");
+    assert_eq!(native_texts[0].frame, UiFrame::new(5.0, 0.0, 6.0, 24.0));
+    assert_eq!(sdf_texts.len(), 1);
+    assert_eq!(sdf_texts[0].text, "abc");
+    assert_eq!(report.fallback_text_batch_count, 1);
+    assert_eq!(report.fallback_native_overlay_batch_count, 1);
+    assert_eq!(report.whole_batch_fallback_text_batch_count, 0);
+    assert_eq!(report.fallback_glyph_count, 1);
+    assert_eq!(report.fallback_span_count, 1);
+    assert_eq!(report.fallback_source_byte_count, 1);
+    assert_eq!(report.page_limit_glyph_count, 0);
+    assert_eq!(report.oversized_glyph_count, 0);
 }
 
 fn text_batch(text: &str) -> ScreenSpaceUiTextBatch {
@@ -484,5 +538,10 @@ fn text_batch(text: &str) -> ScreenSpaceUiTextBatch {
         writing_mode: UiTextWritingMode::HorizontalTb,
         wrap: UiTextWrap::None,
         style: Default::default(),
+        distance_field_mode: crate::graphics::text::sdf::SdfMode::Sdf,
+        text_effects: Default::default(),
+        text_decorations: Default::default(),
+        text_decoration_baseline: None,
+        clip_transform: None,
     }
 }

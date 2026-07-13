@@ -32,7 +32,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`ibl_bake_artifact_runtime_writeback.rs` and `ibl_bake_artifact_runtime_dispatch.rs` are the asset-layer bridge for Plan 11 / Shader 06 §4.7 source 2: runtime `.zircon-cache` artifacts. The writeback module accepts already-acquired PMREM/SH9/IEM readback sections, validates they describe a current request, writes the encoded `.zribl` blob through `IblBakeArtifactCacheStore`, and reports exactly what happened. The dispatch module combines source 1 asset-derived blobs from `IblBakeArtifactAssetDerivedStore`, runtime-cache reads, and later readback writeback so a runtime-compute miss can become a runtime-cache hit on the next resolve.
+`ibl_bake_artifact_runtime_writeback.rs` and `ibl_bake_artifact_runtime_dispatch.rs` are the asset-layer bridge for Plan 11 / Shader 06 §4.7 source 2: runtime `.zircon/cache` artifacts. The writeback module accepts already-acquired PMREM/SH9/IEM readback sections, validates they describe a current request, writes the encoded `.zribl` blob through `IblBakeArtifactCacheStore`, and reports exactly what happened. The dispatch module combines source 1 asset-derived blobs from `IblBakeArtifactAssetDerivedStore`, runtime-cache reads, and later readback writeback so a runtime-compute miss can become a runtime-cache hit on the next resolve.
 
 The boundary is intentionally narrow. It does not issue wgpu commands, map buffers, choose bake work, or mutate `SourceCubemapEnvironment`. Those responsibilities stay in renderer/runtime bake scheduling and the render-core artifact-application bridge.
 
@@ -44,7 +44,7 @@ Renderer-local graph-output writeback now lives in `graphics/scene/scene_rendere
 
 For current descriptors, `IblBakeArtifactReadbackSections::into_payload()` validates required PMREM RGBA16F, SH9, and optional IEM RGBA16F byte lengths against the descriptor. The function then creates an `IblBakeArtifactBlob`, writes it through `IblBakeArtifactCacheStore::write_runtime_cache(...)`, and returns `Written` with the cache path, encoded length, and payload length.
 
-`resolve_ibl_bake_artifact_runtime_dispatch(...)` reads `.zircon-cache`, merges the cache hit with caller-provided asset-derived blobs, and returns a report that exposes the selected source, resolved payload, and runtime compute dispatch count. `write_ibl_bake_artifact_runtime_dispatch_readback(...)` accepts a previous dispatch report and only writes readback bytes when that report required runtime compute. If the request already resolved from asset-derived or runtime-cache data, readback writeback is skipped and the runtime cache remains unchanged.
+`resolve_ibl_bake_artifact_runtime_dispatch(...)` reads `.zircon/cache`, merges the cache hit with caller-provided asset-derived blobs, and returns a report that exposes the selected source, resolved payload, and runtime compute dispatch count. `write_ibl_bake_artifact_runtime_dispatch_readback(...)` accepts a previous dispatch report and only writes readback bytes when that report required runtime compute. If the request already resolved from asset-derived or runtime-cache data, readback writeback is skipped and the runtime cache remains unchanged.
 
 `ibl_bake_runtime_writeback.rs` relies on that skip behavior before touching graph resources. Cache/asset hits can therefore skip renderer readback even if no IBL transient resources exist for the frame, while compute misses read the graph sections and feed them into the same asset-layer writeback path.
 

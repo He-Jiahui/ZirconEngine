@@ -23,14 +23,15 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/apply_to_module/runtime_core.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_ui/component.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
-  - zircon_runtime/src/core/framework/bridge.rs
+  - zircon_runtime/src/core/framework/bridge/mod.rs
+  - zircon_runtime/src/core/framework/bridge/interface_slot.rs
   - zircon_runtime/src/plugin/bridge.rs
-  - zircon_runtime/src/plugin/bridge/interface_id.rs
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/bridge/strong.rs
+  - zircon_runtime/src/core/framework/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
+  - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
@@ -90,11 +91,11 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_module/runtime_core.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_ui/component.rs
-  - zircon_runtime/src/core/framework/bridge.rs
+  - zircon_runtime/src/core/framework/bridge/mod.rs
+  - zircon_runtime/src/core/framework/bridge/interface_slot.rs
   - zircon_runtime/src/plugin/bridge.rs
-  - zircon_runtime/src/plugin/bridge/interface_id.rs
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/bridge/strong.rs
+  - zircon_runtime/src/core/framework/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
@@ -145,6 +146,7 @@ plan_sources:
   - user: 2026-06-12 implement docs/plans/zircon_plugins plugin architecture code
   - docs/plans/zircon_plugins/index.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
+  - docs/plans/zircon_plugins/04-animation.md
   - docs/plans/zircon_plugins/08-zr-vm.md
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
 tests:
@@ -153,6 +155,8 @@ tests:
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
+  - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_typed_points.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_event_catalogs.rs
@@ -240,7 +244,7 @@ Static first-party manifest coverage now includes `declared_system_anchors_are_r
 
 System ordering is compiled by `SceneScheduleStagePlan`. It groups internal, native, and runtime scene systems per `SystemStage`, expands `SystemRef::Set(...)` constraints to member systems, rejects cross-stage system constraints, and reports ordering cycles during registration/cache rebuild instead of deferring them to frame execution. `order` remains a deterministic tie-break inside the topology, not the only ordering contract.
 
-World-level runtime extensions are installed on `CoreRuntime` and applied to both default levels and levels loaded from scene assets. The runtime-world extension set currently carries the repeatable runtime scene system subset; one-shot native system/resource/event installation still flows through explicit registry application so it does not get accidentally consumed across multiple worlds.
+World-executable registrations are projected by `RuntimeExtensionRegistry::world_runtime_extension_plan()` into a scene-owned `WorldRuntimeExtensionPlan`. `WorldDriver` transactionally merges and stores those type-erased commands, then applies them to default and asset-loaded levels. The plan carries component descriptors, resource initializers, typed events, native scene systems, and runtime scene systems; each new World receives fresh values and system instances. CoreRuntime no longer stores a plugin registry or accepts a concrete Scene World.
 
 Frameworks 02 M3 hard-cuts RuntimePlugin lifecycle ownership to the embedded kernel `ModuleDescriptor`. `RuntimePlugin` keeps only descriptor/manifest/selection projection plus the extension `register(...)` hook; `lifecycle()` returns the descriptor's `dyn ModuleLifecycle`. The retired plugin-only `PluginReadyContext`, `PluginFinishContext`, `PluginRuntimeContext`, `ready`, `finish`, `activate`, and `deactivate` APIs and catalog dispatcher were deleted instead of retained as compatibility wrappers. Runtime startup now runs build/ready/finish/cleanup exactly once through `CoreRuntime` after report-contributed module descriptors are selected and registered.
 

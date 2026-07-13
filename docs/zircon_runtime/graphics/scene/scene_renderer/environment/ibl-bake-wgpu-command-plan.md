@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
@@ -18,6 +19,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
@@ -47,6 +49,8 @@ doc_type: module-detail
 ## Purpose
 
 `ibl_bake_wgpu_command_plan.rs` is the renderer-local WGPU command/readback contract for Plan 11 / Shader 06 IBL baking. It sits between the shader/kernel plan and the real WGPU binding/executor path.
+
+The production contract remains in the parent owner. Its focused contract tests are folder-backed in `ibl_bake_wgpu_command_plan/tests.rs`; the parent declares only `mod tests` under `cfg(test)` and does not retain copied test helpers or compatibility forwarding.
 
 The module does not create GPU objects or submit work. It converts an `IblBakeArtifactRequest` into a deterministic list of command plans that the binding and executor layers can use to create bind groups, select pipelines, bind per-mip storage views, dispatch compute work, and copy outputs into artifact-aligned readback buffers.
 

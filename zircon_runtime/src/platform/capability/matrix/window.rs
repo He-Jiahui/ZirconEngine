@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 use super::super::backends::{
     CursorBoundaryBackend, CursorOptionsBackend, FileDragDropBackend, ImeBackend, MonitorBackend,

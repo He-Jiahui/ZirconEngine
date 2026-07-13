@@ -28,6 +28,12 @@ impl ZrByteSlice {
         self.len == 0
     }
 
+    /// Views this ABI slice as a Rust byte slice.
+    ///
+    /// # Safety
+    ///
+    /// For a non-empty slice, `data` must be non-null, properly aligned, and point to
+    /// `len` initialized bytes that remain valid for the returned lifetime.
     pub unsafe fn as_slice<'a>(self) -> &'a [u8] {
         if self.data.is_null() || self.len == 0 {
             &[]

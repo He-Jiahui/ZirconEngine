@@ -7,6 +7,7 @@ This policy has priority for `zirconEngine` planning, implementation, validation
 - Do not let TDD, plan execution, review, validation, or subagent workflows force per-slice write-test-run loops.
 - Do not run build or unit-test commands after every small implementation task unless the user explicitly asks.
 - Prefer code production, documentation, and lightweight Rust syntax/type checking during implementation.
+- Apply `prefer-windows-validation/SKILL.md` before every Cargo build or validation command. All Cargo output must be coordinator-managed below exactly one of the drive-root `cargo-targets`, `targets`, or `ZirconBuilds` directories on `D:`, `E:`, or `F:` (nine Windows roots and their mounted WSL equivalents). No repository, profile, temporary, home, or other output location is allowed.
 
 ## Planning
 
@@ -35,6 +36,7 @@ This policy has priority for `zirconEngine` planning, implementation, validation
 
 - When another numbered child plan owns the lowest shared cause, create `failure-{date}-{summary}.md` in that fixing child directory and continue every independent slice in the originating plan.
 - Do not mark a session blocked solely because a cross-plan handoff is open.
+- **Failure Priority Gate:** the fixing-plan Session must set `resolving_failure` and may perform only diagnosis, architectural repair, validation, and handoff return until the applicable `failure-*.md` becomes the canonical `fixed-*` artifact. Starting a normal fixing-plan slice first is invalid.
 - A fixing-plan session must prioritize its open `failure-*.md` before normal feature progress and repair the lowest shared architecture, not add a fallback, alias, compatibility shim, test-only bypass, or call-site exception.
 - After upward validation, move and rename the canonical artifact into the originating child directory as `fixed-{date}-{summary}.md`; the fixing plan retains a concise status summary and relative link.
 

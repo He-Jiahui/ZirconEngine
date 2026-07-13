@@ -62,8 +62,8 @@ fn runtime_15_asset_material_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        24,
-        "asset material child modules should preserve the current 24 tests"
+        25,
+        "asset material child modules should preserve the current 25 tests"
     );
 
     assert_contains_all(
@@ -102,6 +102,7 @@ fn runtime_15_asset_material_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn material_asset_reports_shader_contract_diagnostics_without_blocking_import",
+            "fn persisted_standard_pbr_overrides_are_ready_with_builtin_shader_contract",
             "fn material_asset_reports_missing_required_shader_texture_slot",
             "fn shader_declared_texture_slot_overrides_standard_material_bridge",
         ],

@@ -16,18 +16,25 @@ use super::*;
 fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     let root = unique_temp_project_root("project_manager_minimal_asset_flow");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new("MinimalAssetFlow", uri("res://models/hero.gltf#Scene0"), 1)
         .save(paths.manifest_path())
         .unwrap();
 
-    write_minimal_textured_gltf(paths.assets_root().join("models").join("hero.gltf"));
+    write_minimal_textured_gltf(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("hero.gltf"),
+    );
     write_sample_shader_package(&paths);
     write_default_pbr_shader_package(&paths);
     write_sample_material(&paths);
     write_bc1_texture(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("textures")
             .join("hero_albedo_bc1.dds"),
     );

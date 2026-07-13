@@ -73,8 +73,8 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     );
     assert_eq!(
         tests.matches("#[test]").count(),
-        11,
-        "screen-space UI text test owner should preserve the 10 moved private tests plus the raster-upload diagnostics regression"
+        12,
+        "screen-space UI text test owner should preserve the current 12 private regression tests"
     );
 
     for (path, source) in [

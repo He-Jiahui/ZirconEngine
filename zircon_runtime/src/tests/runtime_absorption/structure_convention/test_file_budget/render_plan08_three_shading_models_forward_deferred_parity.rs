@@ -1,15 +1,11 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred";
-const DEFAULT_FEATURES_STATUS: &str =
-    "render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred";
+const DEFAULT_FEATURES_STATUS: &str = "render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred";
 const DEFERRED_PROBE_STATUS: &str =
     "render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred";
-const DEFERRED_PROBE_DEFAULT_STATUS: &str =
-    "render_plan08_deferred_project_shader_gbuffer_probe_default_features_wgpu_refresh_passed_renderdoc_deferred";
-const PRODUCT_READBACK_PNG_STATUS: &str =
-    "render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred";
+const DEFERRED_PROBE_DEFAULT_STATUS: &str = "render_plan08_deferred_project_shader_gbuffer_probe_default_features_wgpu_refresh_passed_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str = "render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired() {
@@ -29,14 +25,16 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
     let execution_resources = read_runtime_src(
         "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let material_doc = read_repo("docs/zircon_runtime/core/framework/render/material.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "Plan 08 three shading-model render_product parity test is wired",
@@ -177,7 +175,6 @@ fn runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wire
         ("structure convention", structure_convention.as_str()),
         ("shader doc", shader_doc.as_str()),
         ("render product doc", render_product_doc.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

@@ -10,9 +10,8 @@ mod vm_plugin_host_context;
 mod vm_plugin_slot_lifecycle;
 
 pub use bridge_host_module::{
-    register_bridge_host_module, register_bridge_host_module_from_manifest,
-    script_bridge_method_descriptors_from_manifest, ScriptBridgeCall, ScriptBridgeMethodBinding,
-    ScriptBridgeMethodDescriptor, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
+    register_bridge_host_module, ScriptBridgeCall, ScriptBridgeMethodDescriptor,
+    BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
 };
 pub use builtin_host_modules::{builtin_host_capabilities, register_builtin_host_modules};
 pub use constants::{
@@ -21,7 +20,7 @@ pub use constants::{
 pub use host_export_registry::{
     HostExportCallback, HostExportFunction, HostExportModuleRecord, HostExportRegistry,
 };
-pub use host_registry::{HostCapabilityRecord, HostRegistry};
+pub use host_registry::{HostCapabilityRecord, HostRegistry, HostRegistryError};
 pub use plugin_host_driver::PluginHostDriver;
 pub use reflection_docs::{
     builtin_host_module_descriptors, render_script_host_modules_markdown,

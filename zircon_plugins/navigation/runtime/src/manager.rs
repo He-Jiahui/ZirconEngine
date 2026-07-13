@@ -10,16 +10,16 @@ use std::sync::MutexGuard;
 use std::sync::{Arc, Mutex};
 
 use zircon_plugin_navigation_recast::RecastBackend;
-use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
-    NavAgentTickReport, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle, NavPathQuery,
-    NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery,
-    NavigationError, NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE,
+    NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
+    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
+    NavSampleQuery, NavigationError, NavigationManager, NavigationRuntimeStats,
+    NavigationSettingsAsset, DEFAULT_AGENT_TYPE,
 };
 use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::runtime::tasks::TaskPool;
-use zircon_runtime::scene::World;
+use zircon_runtime::scene::{SceneNavigationRuntime, World};
 
 pub use self::bake::{
     NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
@@ -143,8 +143,8 @@ impl Default for DefaultNavigationManager {
     }
 }
 
-impl NavigationManager for DefaultNavigationManager {
-    fn bake_surface(
+impl DefaultNavigationManager {
+    pub fn bake_surface(
         &self,
         world: &World,
         request: NavMeshBakeRequest,
@@ -187,14 +187,6 @@ impl NavigationManager for DefaultNavigationManager {
         query::find_path(self, query)
     }
 
-    fn find_path_with_filter(
-        &self,
-        query: NavPathQuery,
-        filter: &NavQueryFilter,
-    ) -> Result<NavPathResult, NavigationError> {
-        query::find_path_with_filter(self, query, filter)
-    }
-
     fn sample_position(
         &self,
         query: NavSampleQuery,
@@ -206,7 +198,7 @@ impl NavigationManager for DefaultNavigationManager {
         query::raycast(self, query)
     }
 
-    fn tick_world_agents(
+    pub fn tick_world_agents(
         &self,
         world: &mut World,
         dt_seconds: Real,
@@ -217,6 +209,64 @@ impl NavigationManager for DefaultNavigationManager {
     fn stats(&self) -> NavigationRuntimeStats {
         let state = self.lock_state();
         state.stats.clone()
+    }
+}
+
+impl NavigationManager for DefaultNavigationManager {
+    fn load_nav_mesh(&self, asset: NavMeshAsset) -> Result<NavMeshHandle, NavigationError> {
+        DefaultNavigationManager::load_nav_mesh(self, asset)
+    }
+
+    fn load_navigation_settings(
+        &self,
+        settings: NavigationSettingsAsset,
+    ) -> Result<(), NavigationError> {
+        DefaultNavigationManager::load_navigation_settings(self, settings)
+    }
+
+    fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError> {
+        DefaultNavigationManager::find_path(self, query)
+    }
+
+    fn find_path_with_filter(
+        &self,
+        query: NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
+        DefaultNavigationManager::find_path_with_filter(self, query, filter)
+    }
+
+    fn sample_position(
+        &self,
+        query: NavSampleQuery,
+    ) -> Result<Option<NavSampleHit>, NavigationError> {
+        DefaultNavigationManager::sample_position(self, query)
+    }
+
+    fn raycast(&self, query: NavRaycastQuery) -> Result<NavRaycastResult, NavigationError> {
+        DefaultNavigationManager::raycast(self, query)
+    }
+
+    fn stats(&self) -> NavigationRuntimeStats {
+        DefaultNavigationManager::stats(self)
+    }
+}
+
+impl SceneNavigationRuntime for DefaultNavigationManager {
+    fn bake_surface(
+        &self,
+        world: &World,
+        request: NavMeshBakeRequest,
+    ) -> Result<NavMeshBakeReport, NavigationError> {
+        DefaultNavigationManager::bake_surface(self, world, request)
+    }
+
+    fn tick_world_agents(
+        &self,
+        world: &mut World,
+        dt_seconds: Real,
+    ) -> Result<NavAgentTickReport, NavigationError> {
+        DefaultNavigationManager::tick_world_agents(self, world, dt_seconds)
     }
 }
 

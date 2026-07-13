@@ -17,16 +17,11 @@ pub(super) const SOURCE_ANCHORS_FOLDER_BACKED_SPLIT_NAME: &str =
     super::STATUS_DOC_SOURCE_ANCHORS_FOLDER_BACKED_SLICE;
 pub(super) const SOURCE_ANCHORS_FOLDER_BACKED_SPLIT_ID: &str =
     super::STATUS_DOC_SOURCE_ANCHORS_FOLDER_BACKED_STATUS;
-pub(super) const SOURCE_ANCHORS_REVIEW_SOURCES_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/review_sources.rs";
-pub(super) const SOURCE_ANCHORS_NATIVE_TYPED_ERROR_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/native_typed_error.rs";
-pub(super) const SOURCE_ANCHORS_RUNTIME_SURFACE_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/runtime_surface.rs";
-pub(super) const SOURCE_ANCHORS_STRUCTURE_OWNERS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/structure_owners.rs";
-pub(super) const SOURCE_ANCHORS_STATUS_MIRRORS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/status_mirrors.rs";
+pub(super) const SOURCE_ANCHORS_REVIEW_SOURCES_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/review_sources.rs";
+pub(super) const SOURCE_ANCHORS_NATIVE_TYPED_ERROR_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/native_typed_error.rs";
+pub(super) const SOURCE_ANCHORS_RUNTIME_SURFACE_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/runtime_surface.rs";
+pub(super) const SOURCE_ANCHORS_STRUCTURE_OWNERS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/structure_owners.rs";
+pub(super) const SOURCE_ANCHORS_STATUS_MIRRORS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/status_mirrors.rs";
 
 pub(super) const SOURCE_ANCHOR_CHILDREN: &[&str] = &[
     SOURCE_ANCHORS_REVIEW_SOURCES_OWNER,

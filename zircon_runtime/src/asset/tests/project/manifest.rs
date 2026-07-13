@@ -1,21 +1,30 @@
 use std::fs;
+use std::path::PathBuf;
 
-use crate::asset::project::{ProjectManifest, ProjectPaths, ProjectScriptManifest};
+use crate::asset::project::{
+    ProjectManifest, ProjectManifestError, ProjectPaths, ProjectScriptManifest,
+};
 use crate::asset::AssetUri;
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildMode, plugin::ExportBuildPlan, plugin::ExportPackagingStrategy,
-    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginSelection,
-    plugin::RuntimeProfileId,
+    core::framework::project::ExportBuildMode, core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportProfile, core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan,
 };
 
 use super::unique_temp_project_root;
+use zircon_runtime_interface::project::{
+    ProjectManifestSummary, ProjectManifestSummaryError, RelPath,
+};
 
 #[test]
 fn project_manifest_roundtrip_preserves_default_scene_and_paths() {
     let root = unique_temp_project_root("manifest");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let manifest = ProjectManifest::new(
         "Sandbox",
@@ -27,17 +36,154 @@ fn project_manifest_roundtrip_preserves_default_scene_and_paths() {
     let loaded = ProjectManifest::load(paths.manifest_path()).unwrap();
 
     assert_eq!(loaded, manifest);
-    assert!(paths.assets_root().is_dir());
-    assert!(paths.library_root().is_dir());
+    assert!(paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .is_dir());
+    assert!(paths.asset_artifact_root().is_dir());
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manifest_migrates_real_v1_toml_to_v2_without_a_v1_rust_type() {
+    let loaded = ProjectManifest::load_with_report(shared_manifest_fixture("v1")).unwrap();
+
+    assert_eq!(loaded.migrated_from, Some(1));
+    assert_eq!(loaded.value.format_version, 2);
+    assert_eq!(loaded.value.engine_version_req, None);
+    assert_eq!(
+        loaded.value.asset_roots,
+        [RelPath::parse("assets").unwrap()]
+    );
+    assert_eq!(loaded.value.settings, None);
+    assert_eq!(loaded.value.library_version, 3);
+}
+
+#[test]
+fn project_manifest_rejects_future_format_versions() {
+    let error = ProjectManifest::load(shared_manifest_fixture("future")).unwrap_err();
+
+    assert!(matches!(
+        error,
+        ProjectManifestError::Summary(ProjectManifestSummaryError::FutureVersion {
+            found: 3,
+            supported: 2
+        })
+    ));
+}
+
+#[test]
+fn project_manifest_rejects_unsafe_empty_and_duplicate_asset_roots() {
+    let unsafe_root = ProjectManifest::from_toml_str(
+        r#"
+name = "Unsafe Roots"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["../outside"]
+library_version = 1
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(unsafe_root, ProjectManifestError::Decode { .. }));
+
+    let empty_roots = ProjectManifest::from_toml_str(
+        r#"
+name = "Empty Roots"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = []
+library_version = 1
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(empty_roots, ProjectManifestError::EmptyAssetRoots));
+
+    let duplicate_roots = ProjectManifest::from_toml_str(
+        r#"
+name = "Duplicate Roots"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["assets", "assets/"]
+library_version = 1
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        duplicate_roots,
+        ProjectManifestError::DuplicateAssetRoot { .. }
+    ));
+}
+
+#[test]
+fn project_manifest_save_is_stable_and_writes_only_v2() {
+    let root = unique_temp_project_root("manifest_stable_v2");
+    let path = root.join("zircon-project.toml");
+    let mut manifest = ProjectManifest::new(
+        "Stable Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        4,
+    );
+    manifest.engine_version_req = Some("^0.1".to_string());
+    manifest.asset_roots = vec![
+        RelPath::parse("game-assets").unwrap(),
+        RelPath::parse("shared-assets").unwrap(),
+    ];
+    manifest.settings = Some(RelPath::parse("config/project-settings.toml").unwrap());
+
+    manifest.save(&path).unwrap();
+    let first = fs::read_to_string(&path).unwrap();
+    let loaded = ProjectManifest::load_with_report(&path).unwrap();
+    loaded.value.save(&path).unwrap();
+    let second = fs::read_to_string(&path).unwrap();
+
+    assert!(first.contains("format_version = 2"));
+    assert!(first.contains("asset_roots = [\"game-assets\", \"shared-assets\"]"));
+    assert_eq!(first, second);
+    assert_eq!(loaded.migrated_from, None);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_projection_matches_interface_summary_for_the_same_manifest_text() {
+    let source = fs::read_to_string(shared_manifest_fixture("v2")).unwrap();
+
+    let runtime = ProjectManifest::from_toml_str(&source).unwrap();
+    let interface = ProjectManifestSummary::parse_toml_str(&source).unwrap();
+
+    assert_eq!(runtime.value.summary(), interface.value);
+    assert_eq!(runtime.migrated_from, interface.migrated_from);
+}
+
+#[test]
+fn runtime_rejects_shared_invalid_engine_version_requirement_with_typed_source() {
+    let error = ProjectManifest::load(shared_manifest_fixture("invalid")).unwrap_err();
+    assert!(matches!(
+        error,
+        ProjectManifestError::Summary(
+            ProjectManifestSummaryError::InvalidEngineVersionReq { value, .. }
+        ) if value == "not a semver requirement"
+    ));
+}
+
+fn shared_manifest_fixture(version: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("tests")
+        .join("fixtures")
+        .join("serialization")
+        .join("project-manifest")
+        .join(version)
+        .join("zircon-project.toml")
 }
 
 #[test]
 fn project_manifest_roundtrip_preserves_asset_manifest_path() {
     let root = unique_temp_project_root("manifest_asset_manifest");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let mut manifest = ProjectManifest::new(
         "Sandbox",
@@ -59,7 +205,9 @@ fn project_manifest_roundtrip_preserves_asset_manifest_path() {
 fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
     let root = unique_temp_project_root("manifest_plugins");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let mut manifest = ProjectManifest::new(
         "Sandbox",
@@ -126,7 +274,9 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
 fn project_manifest_roundtrip_preserves_script_package_roots() {
     let root = unique_temp_project_root("manifest_scripts");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let mut manifest = ProjectManifest::new(
         "Sandbox",
@@ -163,7 +313,7 @@ strategies = ["source_template"]
 output_name = "client"
 "#;
 
-    let manifest: ProjectManifest = toml::from_str(source).unwrap();
+    let manifest = ProjectManifest::from_toml_str(source).unwrap().value;
 
     assert_eq!(manifest.export_profiles.len(), 1);
     assert_eq!(manifest.export_profiles[0].runtime_profile_id, None);
@@ -186,7 +336,7 @@ features = { sound = ["timeline_animation_track"], net = ["http", "websocket"] }
 asset_filter = "shipping"
 "#;
 
-    let manifest: ProjectManifest = toml::from_str(source).unwrap();
+    let manifest = ProjectManifest::from_toml_str(source).unwrap().value;
 
     assert_eq!(manifest.export_profiles.len(), 1);
     let profile = &manifest.export_profiles[0];

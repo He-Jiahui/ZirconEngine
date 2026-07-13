@@ -16,7 +16,7 @@ plan_sources:
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
   - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
-status: planned
+status: in_progress
 ---
 
 # 07 富文本(BBCode + HTML 子集)
@@ -197,6 +197,10 @@ pub struct RichParseResult {
 
 ## 8. 状态与产出记录
 
-| 日期 | 里程碑/切片 | 状态 | 产出 | 验证 | 后续 |
-|------|-------------|------|------|------|------|
-| 2026-06-27 | 计划建立 | planned | BBCode 全集 + HTML 受控子集 + 装饰器 + 内联对象路线 | 文档 | RT-M1 解析框架 + BBCode;产 StyledRun 喂 02/03 |
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+当前状态（2026-07-13）：RT-M1–RT-M7 已完成解析、块布局、span、cell box 与真实 VerticalRl WGPU 表格闭环；验收图仍为 1080×1450、257,649 bytes、SHA256 `82EC5035EDB80AC4F6D894C9A1A000279F23B75B95D4FE1881B0AC70655813DE`，target 同名计数 0。RT-M8 关闭表格链接交互：共享 hit test 先按完整 physical line frame 选候选，Horizontal/Vertical table link 2/2、padding 负向 1/1、surface host activation 1/1、既有普通链接回归 3/3。随后 `text_rich` 全量 74/75 唯一暴露 RT-M7 短 CJK + 大 padding 的 vertical preferred-frame 精度问题；已用 source-length bounded frame 与 font-size minimum row extent 修正，但最终 Cargo retry 被 concurrent Environment PMREM/ProceduralSky API drift 的 100 个外部错误阻断，故不冒充 75/75。Text03 完整 VerticalRl 首行缩进/列对齐及 Text05 Native/SDF 竖排 parity 仍 open，总状态保持 `in_progress`。
+
+- 产出记录：[`07/2026-07-11-rich-text-html-bbcode-output-records.md`](07/2026-07-11-rich-text-html-bbcode-output-records.md)
+- fixed 已修复：[rich-inline-provider-export-name](../shader/06/fixed-2026-07-11-rich-inline-provider-export-name.md)
+- fixed 已修复：[rich-table-layout-provider-visibility](../../zircon_editor/editor/15/fixed-2026-07-12-rich-table-layout-provider-visibility.md)

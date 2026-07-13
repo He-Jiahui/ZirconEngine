@@ -21,10 +21,10 @@ fn menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects() {
     assert_eq!(
         harness
             .runtime
-            .operation_stack()
-            .undo_stack()
+            .journal()
+            .records()
             .last()
-            .map(|entry| entry.operation_id.as_str()),
+            .and_then(|record| record.operation_id.as_deref()),
         Some("scene.node.create_cube")
     );
 }

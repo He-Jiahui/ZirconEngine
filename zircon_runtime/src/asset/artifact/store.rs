@@ -31,7 +31,7 @@ impl ArtifactStore {
             ARTIFACT_CACHE_EXTENSION
         );
         let artifact_uri = AssetUri::parse(&format!("lib://{relative_path}"))?;
-        let artifact_path = resolve_library_path(paths, &artifact_uri)?;
+        let artifact_path = resolve_artifact_cache_path(paths, &artifact_uri)?;
         if let Some(parent) = artifact_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -45,13 +45,13 @@ impl ArtifactStore {
         paths: &ProjectPaths,
         artifact_uri: &AssetUri,
     ) -> Result<ImportedAsset, AssetImportError> {
-        let artifact_path = resolve_library_path(paths, artifact_uri)?;
+        let artifact_path = resolve_artifact_cache_path(paths, artifact_uri)?;
         let payload = fs::read(artifact_path)?;
         deserialize_asset(artifact_uri.path(), &payload)
     }
 }
 
-fn resolve_library_path(
+fn resolve_artifact_cache_path(
     paths: &ProjectPaths,
     artifact_uri: &AssetUri,
 ) -> Result<PathBuf, AssetImportError> {
@@ -60,7 +60,7 @@ fn resolve_library_path(
             "artifact uri must use lib:// scheme: {artifact_uri}"
         )));
     }
-    Ok(paths.library_root().join(artifact_uri.path()))
+    Ok(paths.asset_artifact_root().join(artifact_uri.path()))
 }
 
 fn asset_kind_directory(kind: AssetKind) -> &'static str {

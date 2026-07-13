@@ -34,8 +34,6 @@ fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
     assert_eq!(routed.native_texts()[0].text, "Normal");
     assert_eq!(routed.sdf_texts().len(), 1);
     assert_eq!(routed.sdf_texts()[0].text, "Signed");
-    assert_eq!(routed.sdf_atlas_texts().len(), 1);
-    assert_eq!(routed.sdf_atlas_texts()[0].text, "Signed");
 }
 
 #[test]
@@ -55,7 +53,6 @@ fn text_backend_routing_respects_auto_font_mode_without_crossing_backends() {
     assert_eq!(routed.native_texts()[0].text, "NormalAuto");
     assert_eq!(routed.sdf_texts().len(), 1);
     assert_eq!(routed.sdf_texts()[0].text, "SdfAuto");
-    assert_eq!(routed.sdf_atlas_texts()[0].text, "SdfAuto");
 }
 
 #[test]
@@ -98,6 +95,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         atlas_slot_count: 2,
         atlas_size: crate::core::math::UVec2::splat(512),
         atlas_page_count: 1,
+        msdf_atlas_page_count: 1,
         atlas_allocation_failure_count: 0,
         atlas_page_limit_failure_count: 0,
         atlas_oversized_failure_count: 0,
@@ -132,6 +130,12 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             }],
         },
         vertex_count: 12,
+        decoration_vertex_count: 0,
+        material_count: 2,
+        draw_count: 2,
+        outline_batch_count: 0,
+        shadow_batch_count: 0,
+        glow_batch_count: 0,
     };
 
     let report = text_prepare_report(
@@ -246,6 +250,7 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             worker_request_submitted_count: 2,
             worker_request_pending_count: 1,
             worker_request_unavailable_count: 1,
+            worker_request_failed_count: 2,
             ..Default::default()
         },
         submission: crate::graphics::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
@@ -289,6 +294,7 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             worker_request_submitted_count: 2,
             worker_request_pending_count: 1,
             worker_request_unavailable_count: 1,
+            worker_request_failed_count: 2,
             upload_command_count: 3,
             upload_copy_count: 3,
             upload_byte_len: 384,
@@ -421,7 +427,7 @@ fn native_text_area_placement_drops_non_finite_origin_values() {
     assert_eq!(placement.bounds.top, 0);
 }
 
-fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
+fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
         text: text.to_string(),
         frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
@@ -442,5 +448,16 @@ fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         writing_mode: UiTextWritingMode::HorizontalTb,
         wrap: UiTextWrap::None,
         style: Default::default(),
+        distance_field_mode: match mode {
+            UiTextRenderMode::Msdf => crate::graphics::text::sdf::SdfMode::Msdf,
+            UiTextRenderMode::Mtsdf => crate::graphics::text::sdf::SdfMode::Mtsdf,
+            UiTextRenderMode::Auto | UiTextRenderMode::Native | UiTextRenderMode::Sdf => {
+                crate::graphics::text::sdf::SdfMode::Sdf
+            }
+        },
+        text_effects: Default::default(),
+        text_decorations: Default::default(),
+        text_decoration_baseline: None,
+        clip_transform: None,
     }
 }

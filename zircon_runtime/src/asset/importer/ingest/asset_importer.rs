@@ -415,6 +415,7 @@ impl AssetImporter {
     #[cfg(test)]
     pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
         vec![
+            #[cfg(feature = "ui")]
             crate::asset::tests::support::ui_document_importer_fixture(),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
@@ -429,6 +430,7 @@ impl AssetImporter {
                 .with_required_capabilities(["runtime.asset.importer.texture.image"]),
                 import_texture::import_texture,
             ),
+            #[cfg(feature = "graphics")]
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
                     "shader_wgsl_importer.wgsl",

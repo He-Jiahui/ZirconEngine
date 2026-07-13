@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime/src/asset/assets/font.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
 plan_sources:
   - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
@@ -249,3 +249,11 @@ GPU command stream：glyph atlas（SDF / 位图按 raster_path_for）→ 提交
 | 文本编辑控件行为 | `dev/godot/scene/gui/{text_edit.cpp, line_edit.cpp}` | `dev/godot/scene/gui/rich_text_label.cpp` | 光标/选区/双击选词/IME（Godot 对 IME preedit 的处理是成熟参考）、富文本标签 |
 | shaping 服务化/BiDi | `dev/godot/servers/text` | — | TextServer 的 shaping 接口边界、BiDi 与字簇 API 形态（架构参考，不复制实现） |
 | 字体资产 | `dev/Fyrox/fyrox-ui/src/font/` | — | Rust 引擎字体资产加载与度量缓存 |
+
+## 产出记录与时间
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 当前失败交接（`open / 待修复`）：[`03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md`](03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md)
+- fixed 已修复：[rich-table-runtime-export-and-layout-boxes](../editor/15/fixed-2026-07-12-rich-table-runtime-export-and-layout-boxes.md)
+- fixed 已修复：[runtime-rich-table-layout-recursion](../../zircon_runtime/runtime/09/fixed-2026-07-12-runtime-rich-table-layout-recursion.md)

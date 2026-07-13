@@ -169,6 +169,7 @@ mod tests {
     fn render_volume_registry_exposes_builtin_post_process_components() {
         let registry = VolumeComponentRegistry::with_builtin_post_process_components();
         let expected_ids = [
+            "lighting.volumetric-fog",
             "post.depth-of-field",
             "post.motion-blur",
             "post.bloom",
@@ -216,13 +217,16 @@ mod tests {
 
     #[test]
     fn render_volume_registry_rejects_duplicate_component_id() {
+        let depth_of_field = BUILTIN_POST_PROCESS_VOLUME_COMPONENTS
+            .iter()
+            .find(|descriptor| descriptor.component_id == "post.depth-of-field")
+            .copied()
+            .expect("depth-of-field must remain a built-in volume component");
         let mut registry = VolumeComponentRegistry::new();
-        registry
-            .register(BUILTIN_POST_PROCESS_VOLUME_COMPONENTS[0])
-            .unwrap();
+        registry.register(depth_of_field).unwrap();
 
         assert_eq!(
-            registry.register(BUILTIN_POST_PROCESS_VOLUME_COMPONENTS[0]),
+            registry.register(depth_of_field),
             Err(VolumeRegistryError::DuplicateComponentId {
                 component_id: "post.depth-of-field".to_string(),
             })

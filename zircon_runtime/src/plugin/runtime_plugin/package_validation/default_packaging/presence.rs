@@ -1,4 +1,4 @@
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 pub(super) fn validate_runtime_plugin_default_packaging_presence(
     owner: &str,

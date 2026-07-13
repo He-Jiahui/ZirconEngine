@@ -1,12 +1,20 @@
+use zircon_editor::core::asset::{
+    AssetContextCommandDescriptor, AssetCreationTemplateDescriptor, AssetToolkitDescriptor,
+    AssetTypeContribution, AssetTypeId,
+};
+use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportTargetPlatform, plugin::PluginDistributionManifest,
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::{
     CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID, UI_ASSET_DRAWER_ID, UI_ASSET_TEMPLATE_ID,
@@ -56,7 +64,69 @@ impl zircon_editor::EditorPlugin for UiAssetAuthoringEditorPlugin {
                     "Plugins/UI Asset",
                 )],
             },
-        )
+        )?;
+        let open = EditorOperationPath::parse("view.editor.ui_asset.open").map_err(
+            zircon_editor::core::editor_extension::EditorExtensionRegistryError::OperationPath,
+        )?;
+        for (kind, template_id, create_path, display_name, document) in [
+            (
+                ResourceKind::UiLayout,
+                "ui_asset.layout",
+                "ui_asset.create.layout",
+                "UI Layout",
+                "plugins://ui_asset_authoring/editor/templates/layout.zui",
+            ),
+            (
+                ResourceKind::UiWidget,
+                "ui_asset.widget",
+                "ui_asset.create.widget",
+                "UI Widget",
+                "plugins://ui_asset_authoring/editor/templates/widget.zui",
+            ),
+            (
+                ResourceKind::UiStyle,
+                "ui_asset.style",
+                "ui_asset.create.style",
+                "UI Style",
+                "plugins://ui_asset_authoring/editor/templates/style.zui",
+            ),
+        ] {
+            let create = EditorOperationPath::parse(create_path).map_err(
+                zircon_editor::core::editor_extension::EditorExtensionRegistryError::OperationPath,
+            )?;
+            registry.register_command(
+                EditorCommandDescriptor::pending_operation(
+                    create.clone(),
+                    format!("Create {display_name}"),
+                )
+                .with_required_capabilities([CAPABILITY])
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                    ViewDescriptorId::new(UI_ASSET_VIEW_ID),
+                ))),
+            )?;
+            registry.register_asset_type_contribution(
+                AssetTypeContribution::augment(AssetTypeId::from_resource_kind(kind))
+                    .with_toolkit(
+                        AssetToolkitDescriptor::new(UI_ASSET_VIEW_ID, open.clone())
+                            .with_required_capabilities([CAPABILITY]),
+                    )
+                    .with_creation_template(
+                        AssetCreationTemplateDescriptor::new(template_id, display_name, create)
+                            .with_default_document(document)
+                            .with_required_capabilities([CAPABILITY]),
+                    )
+                    .with_context_command(
+                        AssetContextCommandDescriptor::new(
+                            format!("{template_id}.open"),
+                            format!("Open {display_name}"),
+                            open.clone(),
+                        )
+                        .with_icon_name("edit")
+                        .with_required_capabilities([CAPABILITY]),
+                    ),
+            )?;
+        }
+        Ok(())
     }
 }
 

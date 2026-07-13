@@ -1,5 +1,5 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshPolygonAsset};
 use zircon_runtime::core::framework::navigation::NavQueryFilter;
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavMeshPolygonAsset};
 use zircon_runtime::core::math::Real;
 
 pub(super) fn area_allowed(

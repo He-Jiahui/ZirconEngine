@@ -2,7 +2,7 @@
 related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/core/editor_event/mod.rs
-  - zircon_editor/src/core/editor_extension/mod.rs
+  - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs
   - zircon_plugins/texture/editor/src/plugin.rs
   - zircon_runtime/src/plugin/mod.rs

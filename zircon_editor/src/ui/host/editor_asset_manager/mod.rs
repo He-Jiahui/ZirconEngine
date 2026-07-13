@@ -1,6 +1,5 @@
 mod api;
 mod catalog;
-mod editor_meta;
 mod manager;
 mod preview;
 mod records;
@@ -9,7 +8,6 @@ mod resolver;
 
 pub use api::EditorAssetManager;
 pub use catalog::AssetCatalogRecord;
-pub(crate) use editor_meta::{editor_meta_path_for_source, EditorAssetMetaDocument};
 pub use manager::DefaultEditorAssetManager;
 pub use preview::{PreviewArtifactKey, PreviewCache, PreviewScheduler};
 pub use records::{

@@ -11,7 +11,8 @@ impl SceneViewportController {
         &self,
         scene: &Scene,
     ) -> Option<u64> {
-        scene.inspect_world(self.selected_node()).focused_entity
+        self.selected_node()
+            .filter(|entity| scene.contains_entity(*entity))
     }
 
     pub(in crate::scene::viewport::controller) fn handle_overlays(

@@ -5,8 +5,11 @@ fn runtime_15_hzb_occlusion_culler_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs");
     let tests = read_runtime_src("graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs");
 
-    let plan_04 = read_repo("docs/plans/zircon_runtime/render/04/2026-07-09-visibility-culling-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_04 = read_repo(
+        "docs/plans/zircon_runtime/render/04/2026-07-09-visibility-culling-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let visibility_doc = read_repo("docs/zircon_runtime/graphics/visibility.md");

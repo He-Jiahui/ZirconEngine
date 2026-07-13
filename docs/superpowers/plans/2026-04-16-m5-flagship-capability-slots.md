@@ -1,55 +1,55 @@
 ---
 related_code:
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/render_extract.rs
-  - zircon_scene/src/lib.rs
-  - zircon_graphics/src/extract/history.rs
-  - zircon_graphics/src/feature/mod.rs
-  - zircon_graphics/src/pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_graphics/src/visibility/culling/mod.rs
-  - zircon_graphics/src/visibility/culling/is_mesh_visible.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/runtime_features.rs
-  - zircon_graphics/src/tests/mod.rs
-  - zircon_graphics/src/tests/m5_flagship_slots.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/graphics/extract/history.rs
+  - zircon_runtime/src/graphics/feature/mod.rs
+  - zircon_runtime/src/graphics/pipeline/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_runtime/src/graphics/visibility/culling/mod.rs
+  - zircon_runtime/src/graphics/visibility/culling/is_mesh_visible.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/tests/mod.rs
+  - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/render_extract.rs
-  - zircon_scene/src/lib.rs
-  - zircon_graphics/src/extract/history.rs
-  - zircon_graphics/src/feature/mod.rs
-  - zircon_graphics/src/pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_graphics/src/visibility/culling/mod.rs
-  - zircon_graphics/src/visibility/culling/is_mesh_visible.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/runtime_features.rs
-  - zircon_graphics/src/tests/mod.rs
-  - zircon_graphics/src/tests/m5_flagship_slots.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/graphics/extract/history.rs
+  - zircon_runtime/src/graphics/feature/mod.rs
+  - zircon_runtime/src/graphics/pipeline/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_runtime/src/graphics/visibility/culling/mod.rs
+  - zircon_runtime/src/graphics/visibility/culling/is_mesh_visible.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/tests/mod.rs
+  - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 plan_sources:
   - user: 2026-04-16 continue next step after M4
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 tests:
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/tests/m5_flagship_slots.rs
-  - zircon_graphics/src/tests/pipeline_compile.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - cargo test -p zircon_scene --locked
   - cargo test -p zircon_graphics compile_options_can_opt_in_virtual_geometry_and_hybrid_gi_features --locked
   - cargo test -p zircon_graphics headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities --locked

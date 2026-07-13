@@ -4,29 +4,36 @@ use std::collections::BTreeMap;
 mod additive_reference_pose;
 #[path = "runtime_physics_animation_tick_contract/animation_assets.rs"]
 mod animation_assets;
+#[path = "runtime_physics_animation_tick_contract/blend_space_state.rs"]
+mod blend_space_state;
 #[path = "runtime_physics_animation_tick_contract/cache_invalidation.rs"]
 mod cache_invalidation;
 #[path = "runtime_physics_animation_tick_contract/evaluation_diagnostics.rs"]
 mod evaluation_diagnostics;
+#[path = "runtime_physics_animation_tick_contract/ik_postprocess.rs"]
+mod ik_postprocess;
 #[path = "runtime_physics_animation_tick_contract/runtime_helpers.rs"]
 mod runtime_helpers;
 #[path = "runtime_physics_animation_tick_contract/state_machine_boundaries.rs"]
 mod state_machine_boundaries;
+#[path = "runtime_physics_animation_tick_contract/state_machine_interruption.rs"]
+mod state_machine_interruption;
 #[path = "runtime_physics_animation_tick_contract/target_resolution.rs"]
 mod target_resolution;
 
 use animation_assets::{
-    additive_mask_graph, register_animation_blend_assets, register_single_clip_graph,
-    sequence_asset_for_entity, single_hand_translation_clip, single_state_machine,
-    timed_transition_state_machine, two_bone_skeleton, two_clip_blend_graph,
+    additive_mask_graph, interruptible_transition_state_machine, register_animation_blend_assets,
+    register_single_clip_graph, sequence_asset_for_entity, single_hand_translation_clip,
+    single_state_machine, timed_transition_state_machine, two_bone_skeleton, two_clip_blend_graph,
 };
 use runtime_helpers::{
     runtime_asset_manager, runtime_physics_query_bridge,
     runtime_with_physics_animation_scene_asset, runtime_with_scene_asset_only,
 };
-use zircon_runtime::asset::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::{
     AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AssetReference, AssetUri,
+    AnimationGraphParameterAsset,
 };
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationParameterValue,
@@ -136,11 +143,12 @@ fn level_tick_advances_physics_and_records_contacts() {
                 origin: [-4.0, 0.0, 0.0],
                 direction: [1.0, 0.0, 0.0],
                 max_distance: 16.0,
+                mode: Default::default(),
                 filter: PhysicsQueryFilter::default(),
             })
         })
         .expect("physics.query ray cast should be enabled");
-    assert!(ray_hit.is_some());
+    assert!(!ray_hit.is_empty());
 
     let overlap_hits = physics_query
         .call(|physics| {
@@ -150,6 +158,7 @@ fn level_tick_advances_physics_and_records_contacts() {
                     half_extents: [2.0, 2.0, 2.0],
                 },
                 transform: Transform::default(),
+                mode: Default::default(),
                 filter: PhysicsQueryFilter::default(),
             })
         })
@@ -166,11 +175,12 @@ fn level_tick_advances_physics_and_records_contacts() {
                 origin_transform: Transform::default(),
                 direction: [1.0, 0.0, 0.0],
                 max_distance: 4.0,
+                mode: Default::default(),
                 filter: PhysicsQueryFilter::default(),
             })
         })
         .expect("physics.query shape cast should be enabled");
-    assert!(shape_cast_hit.is_some());
+    assert!(!shape_cast_hit.is_empty());
 }
 
 #[test]
@@ -875,101 +885,4 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
         .local_transform
         .translation
         .abs_diff_eq(Vec3::new(10.0, 0.0, 0.0), 1.0e-4));
-}
-
-#[test]
-fn level_tick_blends_state_machine_transition_until_duration_completes() {
-    let runtime = runtime_with_physics_animation_scene_asset();
-    let core = runtime.handle();
-    let asset_manager = runtime_asset_manager(&core);
-    let skeleton_uri = AssetUri::parse("res://animation/transition.skeleton.zranim").unwrap();
-    let idle_clip_uri = AssetUri::parse("res://animation/transition-idle.clip.zranim").unwrap();
-    let run_clip_uri = AssetUri::parse("res://animation/transition-run.clip.zranim").unwrap();
-    let idle_graph_uri = AssetUri::parse("res://animation/transition-idle.graph.zranim").unwrap();
-    let run_graph_uri = AssetUri::parse("res://animation/transition-run.graph.zranim").unwrap();
-    let machine_uri = AssetUri::parse("res://animation/transition.state_machine.zranim").unwrap();
-    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
-    let machine_id = ResourceId::from_locator(&machine_uri);
-
-    register_animation_blend_assets(&asset_manager, &skeleton_uri, &idle_clip_uri, &run_clip_uri);
-    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
-    register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
-    asset_manager.resource_manager().register_ready(
-        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
-        timed_transition_state_machine(&idle_graph_uri, &run_graph_uri),
-    );
-
-    let level = runtime.create_default_level().unwrap();
-    let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
-        world
-            .set_animation_skeleton(
-                entity,
-                Some(AnimationSkeletonComponent {
-                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
-                }),
-            )
-            .unwrap();
-        world
-            .set_animation_state_machine_player(
-                entity,
-                Some(AnimationStateMachinePlayerComponent {
-                    state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
-                    parameters: BTreeMap::from([(
-                        "advance".to_string(),
-                        AnimationParameterValue::Bool(true),
-                    )]),
-                    active_state: Some("Idle".to_string()),
-                    playing: true,
-                }),
-            )
-            .unwrap();
-        entity
-    });
-
-    runtime.tick_level_seconds(&level, 0.1).unwrap();
-
-    let midway_pose = level
-        .animation_pose(entity)
-        .expect("transition should produce a blended pose");
-    let midway_hand = midway_pose
-        .bones
-        .iter()
-        .find(|bone| bone.name == "Hand")
-        .unwrap();
-    assert!(midway_hand
-        .local_transform
-        .translation
-        .abs_diff_eq(Vec3::new(5.0, 0.0, 0.0), 1.0e-4));
-    assert_eq!(
-        level.with_world(|world| world
-            .animation_state_machine_player(entity)
-            .unwrap()
-            .active_state
-            .clone()),
-        Some("Idle".to_string())
-    );
-
-    runtime.tick_level_seconds(&level, 0.1).unwrap();
-
-    let final_pose = level
-        .animation_pose(entity)
-        .expect("completed transition should keep producing target pose");
-    let final_hand = final_pose
-        .bones
-        .iter()
-        .find(|bone| bone.name == "Hand")
-        .unwrap();
-    assert!(final_hand
-        .local_transform
-        .translation
-        .abs_diff_eq(Vec3::new(10.0, 0.0, 0.0), 1.0e-4));
-    assert_eq!(
-        level.with_world(|world| world
-            .animation_state_machine_player(entity)
-            .unwrap()
-            .active_state
-            .clone()),
-        Some("Run".to_string())
-    );
 }

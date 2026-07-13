@@ -1,5 +1,5 @@
-use zircon_runtime::asset::{NavMeshAsset, NavigationAssetError};
 use zircon_runtime::core::framework::navigation::{NavLinkMotion, AREA_JUMP};
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationAssetError};
 
 #[test]
 fn v1_link_asset_migrates_before_runtime_consumption() {

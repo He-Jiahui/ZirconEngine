@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
@@ -9,7 +9,7 @@ related_code:
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/zircon_editor/assets/icon-resource-audit.md
 implementation_files:
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
 plan_sources:

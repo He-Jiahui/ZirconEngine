@@ -75,7 +75,10 @@ pub(super) fn write_ambientcg_metal_texture_assets(
     fixture: AmbientCgMetalFixture,
 ) {
     let source_dir = super::shader_test_asset_dir().join(fixture.asset_dir);
-    let texture_dir = paths.assets_root().join("textures").join(fixture.asset_dir);
+    let texture_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("textures")
+        .join(fixture.asset_dir);
     fs::create_dir_all(&texture_dir).unwrap();
 
     for file_name in [

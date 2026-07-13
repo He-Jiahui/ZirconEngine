@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/animation/manager.rs
+  - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/animation/scene_hook.rs
@@ -11,7 +11,7 @@ related_code:
   - zircon_runtime/src/engine_module/engine_module.rs
   - zircon_runtime/src/engine_module/service_factory.rs
   - zircon_runtime/src/foundation/mod.rs
-  - zircon_runtime/src/core/diagnostics
+  - zircon_runtime/src/core/runtime/diagnostics
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_markdown.py
 plan_sources:
@@ -21,7 +21,7 @@ plan_sources:
   - docs/zircon_runtime/diagnostic_log/mod.md
   - docs/zircon_runtime/engine_module/relationship.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-13
 ---
 
 # 14 运行时模块族完备性收尾（animation / navigation / diagnostic_log / engine_module）

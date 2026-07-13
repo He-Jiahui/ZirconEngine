@@ -11,9 +11,11 @@ struct SceneUniform {
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
+    sky_sun_direction: vec4<f32>,
+    sky_sun_color_radius: vec4<f32>,
+    sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
-    environment_sh9: array<vec4<f32>, 9>,
 };
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;
@@ -36,7 +38,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     );
     let position = positions[vertex_index];
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(position, 0.0, 1.0);
+    output.clip_position = vec4<f32>(position, 1.0, 1.0);
     output.uv = vec2<f32>(position.x * 0.5 + 0.5, position.y * 0.5 + 0.5);
     return output;
 }
@@ -136,19 +138,34 @@ fn source_cubemap_sky_color(direction: vec3<f32>) -> vec3<f32> {
     ).rgb * max(scene.environment_params.y, 0.0);
 }
 
+fn procedural_sun_radiance(direction: vec3<f32>) -> vec3<f32> {
+    let sun_direction_length = length(scene.sky_sun_direction.xyz);
+    if (scene.sky_sun_direction.w < 0.5 || scene.sky_sun_params.x <= 0.0 || sun_direction_length <= SKYBOX_EPSILON) {
+        return vec3<f32>(0.0);
+    }
+    let sun_direction = scene.sky_sun_direction.xyz / sun_direction_length;
+    let angular_radius = clamp(scene.sky_sun_color_radius.w, 0.0001, 1.5707963);
+    let inner_cosine = cos(angular_radius * 0.72);
+    let outer_cosine = cos(angular_radius);
+    let sun_mask = smoothstep(outer_cosine, inner_cosine, dot(direction, sun_direction));
+    return scene.sky_sun_color_radius.rgb * scene.sky_sun_params.x * sun_mask;
+}
+
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let ndc = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
     let direction = skybox_world_direction_from_ndc(ndc);
+    var color: vec3<f32>;
     if (scene.environment_sample_params.x >= SKYBOX_SOURCE_CUBEMAP_KIND - 0.5) {
-        return vec4<f32>(source_cubemap_sky_color(direction), 1.0);
+        color = source_cubemap_sky_color(direction);
+    } else {
+        let sky_t = clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
+        let ground_t = clamp(direction.y + 1.0, 0.0, 1.0);
+        let intensity = max(scene.environment_params.y, 0.0);
+        let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
+        let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
+        color = select(ground, sky, direction.y >= 0.0) * intensity
+            + procedural_sun_radiance(direction);
     }
-
-    let sky_t = clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
-    let ground_t = clamp(direction.y + 1.0, 0.0, 1.0);
-    let intensity = max(scene.environment_params.y, 0.0);
-    let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
-    let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
-    let color = select(ground, sky, direction.y >= 0.0) * intensity;
-    return vec4<f32>(color, 1.0);
+    return vec4<f32>(zr_volumetric_apply(color, input.clip_position.xy, 1.0), 1.0);
 }

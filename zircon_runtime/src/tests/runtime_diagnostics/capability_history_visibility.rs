@@ -219,6 +219,18 @@ pub(super) fn assert_capability_history_visibility(snapshot: &RuntimeDiagnostics
         true,
         &["history", "copy", "exposure"],
     );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.volumetric_scattering_copied",
+        false,
+        &["history", "copy", "volumetric_scattering"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.camera.loop_submission_count",
+        4.0,
+        &["render", "camera", "execution"],
+    );
     assert_render_count_series(
         &snapshot.store,
         "render.camera.scheduled_count",

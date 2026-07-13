@@ -1,5 +1,6 @@
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
+use crate::core::asset::AssetToolkitOpenRoute;
 use crate::ui::animation_editor::{AnimationEditorPanePresentation, AnimationEditorSession};
 use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
@@ -25,24 +26,19 @@ impl EditorUiHost {
         &self,
         instance: &ViewInstance,
     ) -> Result<(), EditorError> {
-        let source_path = instance
-            .serializable_payload
-            .get("path")
-            .and_then(|value| value.as_str())
-            .ok_or_else(|| {
+        let route: AssetToolkitOpenRoute =
+            serde_json::from_value(instance.serializable_payload.clone()).map_err(|error| {
                 EditorError::UiAsset(format!(
-                    "invalid animation editor route for {}",
+                    "invalid animation editor route for {}: {error}",
                     instance.instance_id.0
                 ))
             })?;
-        let session = AnimationEditorSession::from_path(std::path::Path::new(source_path))
+        let source_path = self.resolve_asset_locator_path(route.asset_locator())?;
+        let session = AnimationEditorSession::from_path(&source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         self.lock_animation_editor_sessions().insert(
             instance.instance_id.clone(),
-            AnimationEditorWorkspaceEntry {
-                source_path: std::path::PathBuf::from(source_path),
-                session,
-            },
+            AnimationEditorWorkspaceEntry { route, session },
         );
         self.sync_animation_editor_instance(&instance.instance_id)
     }

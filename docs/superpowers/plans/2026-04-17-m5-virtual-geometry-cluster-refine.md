@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_scene/src/components.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 implementation_files:
-  - zircon_scene/src/components.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
 plan_sources:
   - user: 2026-04-17 continue next M5 slice after Virtual Geometry GPU uploader/readback
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-preprocess.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-gpu-uploader-readback.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics visibility --locked
   - cargo test -p zircon_graphics virtual_geometry --locked
   - cargo test -p zircon_scene --locked

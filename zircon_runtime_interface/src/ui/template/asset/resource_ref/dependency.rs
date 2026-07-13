@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::resource_ref::UiResourceRef;
+use super::value::UiResourceRef;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum UiResourceDependencySource {

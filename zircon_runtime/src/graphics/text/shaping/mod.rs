@@ -3,6 +3,7 @@
 mod bidi;
 mod cosmic;
 mod fallback_spans;
+mod horizontal;
 mod line_break;
 mod normalize;
 mod script_segment;

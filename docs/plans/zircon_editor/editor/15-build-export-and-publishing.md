@@ -1,12 +1,18 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/export/mod.rs
+  - zircon_runtime_interface/src/export/artifact.rs
+  - zircon_runtime_interface/src/export/report.rs
+  - zircon_runtime_interface/src/export/stage.rs
+  - zircon_editor/src/core/export/mod.rs
+  - zircon_editor/src/core/export/pipeline.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
   - tools/zircon_build.py
   - tools/zircon_export
   - zircon_runtime/src/asset/pack
   - zircon_runtime/src/asset/virtual_geometry_cook
-  - zircon_runtime/src/plugin/export_build_plan.rs
+  - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_profile.rs
 reference_sources:
   - dev/godot/editor/export/editor_export_plugin.h
@@ -19,7 +25,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/cli-and-tooling/zircon-export-tool.md
-status: planned
+status: in_progress
 ---
 
 # 15 发行与生成（Build / Export / Publishing）
@@ -158,3 +164,41 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 - cook 按引用裁剪 vs 脚本动态取资产：keep_list 显式保留 + 导出报告列「registry 中未入包资产」清单供人工核对——规则文档化，不做运行时兜底。
 - zrpack 压缩选型（zstd/lz4 分块）与 streaming 读取的耦合，需 runtime asset/load owner 会签读取侧约束后定格式头——M2 前置确认项。
 - `SourceTemplate` 平台模板包的内容边界（图标/清单/签名占位）windows 之外平台依据 profile-selection 文档矩阵逐平台立案，不在本计划内铺开。
+
+## 产出记录与时间
+
+请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+当前状态：M1 正在执行。M1.1 shared export DTO、core pipeline、八阶段 interface hard-cut 与 focused tests 已完成；M1.2 preset/生产向导/core stage executor 已完成实现、整改并获得 `SPEC APPROVED` 与 `QUALITY APPROVED`。Editor15 自有 current-binary focused 矩阵 36/36，Windows 平台策略当前二进制 1/1，Layout15 已回传 `paint_template_nodes` 696/696 与 `ui::layouts` 76/76；Render11 E0425/E0716 编译阻断也已修复并回传 fixed。当前源码 full gate 的最低执行阻塞已继续下沉为 Runtime02 service registry 与 `EditorUiHost.core` 的强 `CoreHandle` 自拥有环；Runtime11 的 task-pool/asset-worker 双预算改为该生命周期修复后的独立复测项。UI03/UI06/UI08 的既有产品失败仍由各自功能计划处理。M1 未取得全量自然 summary，因此不关闭；M2 与 M3 未开始。
+
+fixed 已修复：[export-build-string-error-boundary](14/fixed-2026-07-12-export-build-string-error-boundary.md)
+
+本次 owner 产出记录：[2026-07-12-typed-export-error-hard-cutover.md](15/2026-07-12-typed-export-error-hard-cutover.md)
+
+M1.1 产出记录：[2026-07-12-m1-1-export-pipeline-contract.md](15/2026-07-12-m1-1-export-pipeline-contract.md)
+
+M1.2 产出记录：[2026-07-12-m1-2-preset-production-pipeline.md](15/2026-07-12-m1-2-preset-production-pipeline.md)
+
+本计划测试硬切记录：[compile-host-report-test-hard-cutover](15/2026-07-12-compile-host-report-test-hard-cutover.md)
+
+当前测试阶段记录（`in_progress`）：[m1-full-lib-partition-validation](15/2026-07-12-m1-full-lib-partition-validation.md)
+
+- 当前最低执行阻塞（`open / Runtime02 service-registry 强引用环`）：[service-corehandle-retention-cycle](../../zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md)
+
+- 后续资源预算复测（`open / Runtime11 task-pool 与 asset worker`）：[editor-full-harness-runtime-thread-budget](../../zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)
+
+- fixed 已修复：[export-cargo-single-worker-windows-output-hang](09/fixed-2026-07-13-export-cargo-single-worker-windows-output-hang.md)
+
+- fixed 已修复：[retained-painter-component-contract-regressions](15/fixed-2026-07-13-retained-painter-component-contract-regressions.md)
+
+- fixed 已修复：[lightmap-forward-bind-group-integration-compile](15/fixed-2026-07-13-lightmap-forward-bind-group-integration-compile.md)
+
+fixed 已修复：[rich-table-runtime-export-and-layout-boxes](15/fixed-2026-07-12-rich-table-runtime-export-and-layout-boxes.md)
+
+fixed 已修复：[blend-space-visual-test-target-lock](15/fixed-2026-07-12-blend-space-visual-test-target-lock.md)
+
+fixed 已修复：[navigation-query-filter-serde-array](15/fixed-2026-07-12-navigation-query-filter-serde-array.md)
+
+fixed 已修复：[rich-table-layout-provider-visibility](15/fixed-2026-07-12-rich-table-layout-provider-visibility.md)
+
+fixed 已修复：[subsurface-profile-mask-test-inference](15/fixed-2026-07-13-subsurface-profile-mask-test-inference.md)

@@ -101,7 +101,7 @@ pub(crate) fn asset_surface_presentation(
                 .unwrap_or_default()
                 .into(),
             meta_path: snapshot.selection.meta_path.clone().into(),
-            adapter_key: snapshot.selection.adapter_key.clone().into(),
+            toolkit_view_id: snapshot.selection.toolkit_view_id.clone().into(),
             state: resource_state_label(snapshot.selection.resource_state).into(),
             revision: snapshot
                 .selection

@@ -40,10 +40,19 @@ pub(super) const PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE: &str =
     include_str!("../../../scene/tests/dynamic_scene_session/path_management/slot_mutations.rs");
 pub(super) const ASSET_RELOAD_BEHAVIOR_SOURCE: &str =
     include_str!("../../../scene/tests/dynamic_scene_asset_reload.rs");
-pub(super) const RUNTIME_05_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
+pub(super) const RUNTIME_05_PLAN: &str = concat!(
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
+    ),
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md"
+    )
 );
-pub(super) const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+pub(super) const RUNTIME_INDEX: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+    include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    )
+);
 pub(super) const DYNAMIC_SCENE_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/scene/dynamic_scene.md");

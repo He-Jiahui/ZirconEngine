@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 
 use super::super::feature_capabilities::base_capabilities_for_target;
 use super::super::feature_definitions::FeatureDefinitionMap;

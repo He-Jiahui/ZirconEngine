@@ -15,9 +15,6 @@ fn runtime_15_render_product_mesh_cache_morph_tests_are_child_owners() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let runtime_session =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
-    let render_session = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
@@ -139,8 +136,6 @@ fn runtime_15_render_product_mesh_cache_morph_tests_are_child_owners() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("Runtime 15 session", runtime_session.as_str()),
-        ("Render Plan 08 session", render_session.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

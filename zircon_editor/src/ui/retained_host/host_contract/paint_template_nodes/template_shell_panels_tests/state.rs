@@ -20,5 +20,5 @@ fn shell_panel_chrome_selector_states_reach_native_paint() {
     assert_eq!(pixel_at(&bytes, 240, 20, 8), PALETTE.border_disabled);
     assert_eq!(pixel_at(&bytes, 240, 20, 22), PALETTE.surface_disabled);
     assert_eq!(pixel_at(&bytes, 240, 152, 24), PALETTE.border);
-    assert_eq!(pixel_at(&bytes, 240, 184, 24), PALETTE.surface_selected);
+    assert_eq!(pixel_at(&bytes, 240, 184, 24), PALETTE.surface);
 }

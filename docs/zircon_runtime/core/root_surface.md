@@ -3,6 +3,8 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/mod.rs
+  - zircon_runtime/src/core/framework/platform/mod.rs
+  - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
   - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
@@ -43,7 +45,7 @@ The crate root has two public `pub use` sites:
 - `crate::core::resource`
 - `zircon_runtime_reflection_macros::{zircon_host_function, zircon_host_module, ZirconScriptType}`
 
-The Runtime 02 builtin facade cutover removed root-level `RuntimeModuleLoadReport`, `RuntimePluginId`, `RuntimeRequiredPluginMissing`, and `RuntimeTargetMode` exports. These helper types are also excluded from `zircon_runtime::prelude` so the prelude cannot become a compatibility facade for retired root paths. Callers must use `zircon_runtime::builtin::{...}` or `crate::builtin::{...}`.
+The Runtime 02 builtin facade cutover removed root-level `RuntimeModuleLoadReport`, `RuntimeModuleLoadDiagnostic`, `RuntimePluginId`, and `RuntimeTargetMode` exports. These helper types are also excluded from `zircon_runtime::prelude` so the prelude cannot become a compatibility facade for retired root paths. Module assembly helpers, ids, and load reports use `zircon_runtime::builtin`; the later Frameworks05 hard cut gives `RuntimeTargetMode` its direct neutral owner at `zircon_runtime::core::framework::platform`. Neither crate-root forwarding nor a builtin target-mode alias is retained. The former dedicated required-missing DTO was deleted in the Frameworks 02 diagnostic hard cut; required-provider absence is represented only by structured plugin availability entries.
 
 Subsystems such as `graphics`, `render_graph`, `rhi`, `ui`, `input`, `scene`, `asset`, and `plugin` are exposed as namespaces. They must not add flattened root `pub use` surfaces without updating Runtime 02 and its guard.
 

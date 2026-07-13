@@ -49,10 +49,17 @@ pub(super) fn register_vm_host_capabilities(
 
     let registry = driver.registry();
     for capability in editor_host_minimal_contract().minimal_capability_ids() {
-        let handle = registry.register_capability(capability.clone());
-        report
-            .loaded_capabilities
-            .push(EditorHostCapabilityHandle { capability, handle });
+        match registry.register_capability(capability.clone()) {
+            Ok(handle) => report
+                .loaded_capabilities
+                .push(EditorHostCapabilityHandle { capability, handle }),
+            Err(error) => {
+                report.diagnostics.push(format!(
+                    "failed to register editor VM host capability {capability}: {error}"
+                ));
+                break;
+            }
+        }
     }
     report
 }
@@ -117,10 +124,16 @@ impl EditorUiHost {
             };
         }
 
-        let manager = match self
-            .core
-            .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)
-        {
+        let core = match self.runtime_core() {
+            Ok(core) => core,
+            Err(error) => {
+                return EditorVmExtensionLoadReport {
+                    loaded_slot: None,
+                    diagnostics: vec![error.to_string()],
+                };
+            }
+        };
+        let manager = match core.resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME) {
             Ok(manager) => manager,
             Err(error) => {
                 return EditorVmExtensionLoadReport {

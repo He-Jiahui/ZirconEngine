@@ -37,91 +37,50 @@ fn review_f12_runtime_production_dead_code_suppression_is_globally_gated() {
         "F12 runtime production sources should stay free of dead-code suppression: {violations:?}"
     );
 
-    let review_findings =
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    let review_findings = concat!(
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
-    let module_doc =
-        include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-    );
-    let status_rows = include_str!(
-        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs"
-    );
-    let status_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
-
     let f12_row = markdown_table_row(review_findings, "| F12 |");
     assert_contains_all(
         "F12 review row",
         f12_row,
+        &[
+            "production `allow(dead_code)` suppression",
+            "Runtime 15 + Editor UI 10",
+        ],
+    );
+    assert!(
+        f12_row.ends_with("| Runtime 15 + Editor UI 10 |"),
+        "F12 overview row should keep only the finding and delegated owners"
+    );
+    assert_contains_all(
+        "F12 numbered output record",
+        review_findings,
         &[
             "Runtime production `allow(dead_code)` sweep is globally gated",
             "runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred",
             "runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred",
             "runtime_15_production_sources_do_not_allow_dead_code_suppression",
             "review_f12_runtime_production_dead_code_suppression_is_globally_gated",
-            "Editor UI 10",
         ],
-    );
-    assert!(
-        f12_row.ends_with("| Runtime 15 + Editor UI 10 + convention |"),
-        "F12 top review row should keep the runtime-side closure and Editor UI 10 delegation boundary"
     );
     assert!(
         !f12_row.contains("全 crate 200 命中"),
         "F12 top review row should not keep the stale full-crate 200-hit evidence as current runtime status"
     );
 
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan),
-        ("Runtime index", runtime_index),
-        ("review findings", review_findings),
-        ("structure convention", convention),
-        ("module convention doc", module_doc),
-        ("session note", session_note),
-        ("status-output row data", status_rows),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 F12 dead-code review status sync",
-                "runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred",
-                "Runtime 15 F12 dead-code runtime/editor boundary status guard",
-                "runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred",
-                "tests/runtime_absorption/code_review_findings/f12_dead_code.rs",
-                "review_f12_runtime_production_dead_code_suppression_is_globally_gated",
-                "runtime_15_production_sources_do_not_allow_dead_code_suppression",
-            ],
-        );
-    }
-
     assert_contains_all(
-        "Runtime 15 status map",
-        status_map,
+        "F12 numbered output record",
+        review_findings,
         &[
             "Runtime 15 F12 dead-code review status sync",
             "runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred",
             "Runtime 15 F12 dead-code runtime/editor boundary status guard",
             "runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "Runtime 15 date map",
-        date_map,
-        &[
-            "Runtime 15 F12 dead-code review status sync",
-            "Runtime 15 F12 dead-code runtime/editor boundary status guard",
-            "2026-06-28",
+            "tests/runtime_absorption/code_review_findings/f12_dead_code.rs",
+            "review_f12_runtime_production_dead_code_suppression_is_globally_gated",
+            "runtime_15_production_sources_do_not_allow_dead_code_suppression",
         ],
     );
 }

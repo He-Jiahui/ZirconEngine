@@ -1,26 +1,25 @@
-use zircon_runtime::asset::assets::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::{
     AnimationConditionOperatorAsset, AnimationStateAsset, AnimationStateMachineAsset,
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
-use zircon_runtime::asset::{AssetReference, AssetUri};
 
 use super::parameters::parse_parameter_value;
 use super::support::frame_to_seconds;
 use super::{AnimationEditorSession, DEFAULT_STATE_MACHINE_TRANSITION_FPS};
 
 impl AnimationEditorSession {
-    pub fn create_state(&mut self, state_name: &str, graph_path: &str) -> Result<bool, String> {
+    pub fn create_state(&mut self, state_name: &str, graph_locator: &str) -> Result<bool, String> {
         let asset = self.state_machine_asset_mut()?;
         if asset.states.iter().any(|state| state.name == state_name) {
             return Ok(false);
         }
         let graph = AssetReference::from_locator(
-            AssetUri::parse(graph_path).map_err(|error| error.to_string())?,
+            AssetUri::parse(graph_locator).map_err(|error| error.to_string())?,
         );
-        asset.states.push(AnimationStateAsset {
-            name: state_name.to_string(),
-            graph,
-        });
+        asset
+            .states
+            .push(AnimationStateAsset::graph_ref(state_name, graph));
         self.dirty = true;
         Ok(true)
     }
@@ -87,6 +86,8 @@ impl AnimationEditorSession {
                 duration_frames,
                 DEFAULT_STATE_MACHINE_TRANSITION_FPS,
             ),
+            exit_time: None,
+            interruption: Default::default(),
             conditions: Vec::new(),
         });
         self.dirty = true;

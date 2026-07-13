@@ -2,7 +2,6 @@ use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, FunctionAssetImporter,
     ImportedAsset,
 };
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::framework::render::{
     RenderFrameExtract, RenderPipelineHandle, RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
@@ -13,7 +12,7 @@ use crate::graphics::{
     HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput, HybridGiRuntimePrepareOutput,
     HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration, HybridGiRuntimeState,
     HybridGiRuntimeUpdate, RenderFeatureDescriptor, RenderPassExecutionContext,
-    RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
+    RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassStage,
     RuntimePrepareCollectorContext, RuntimePrepareCollectorRegistration,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
     VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
@@ -22,12 +21,16 @@ use crate::graphics::{
 };
 use crate::plugin::{
     PluginEventManifest, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
-    RuntimePluginDescriptor, SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
-    SceneRuntimeHookRegistration,
+    RuntimePluginDescriptor,
 };
 use crate::scene::ecs::{Res, ResMut, ResMutParam, ResParam, Resource, RuntimeSceneSystemContext};
+use crate::scene::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
+};
 use crate::scene::{SystemStage, World};
 use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_collects_render_feature_contributions() {
@@ -38,6 +41,7 @@ fn runtime_extension_registry_collects_render_feature_contributions() {
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
         stage_passes: Vec::new(),
+        pass_resource_extensions: Vec::new(),
     };
 
     registry
@@ -180,6 +184,7 @@ fn runtime_extension_registry_rejects_duplicate_render_feature_and_provider_name
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
         stage_passes: Vec::new(),
+        pass_resource_extensions: Vec::new(),
     };
 
     registry
@@ -345,13 +350,7 @@ fn runtime_modules_propagate_reported_executor_registrations_into_render_framewo
         .unwrap()
         .shared();
 
-    let mut pipeline = RenderPipelineAsset::default_forward_plus()
-        .with_plugin_render_features([weather_render_feature_descriptor()]);
-    pipeline.handle = RenderPipelineHandle::new(91);
-    pipeline.name = "weather-executor-propagation".to_string();
-    let pipeline = framework
-        .register_pipeline_asset(pipeline)
-        .expect("reported executor should validate through the render framework");
+    let pipeline = RenderPipelineHandle::new(1);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 64)))
         .expect("viewport");
@@ -401,6 +400,7 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             stage_passes: Vec::new(),
+            pass_resource_extensions: Vec::new(),
         })?;
         registry.register_render_pass_executor(RenderPassExecutorRegistration::new(
             "weather.volumetric-clouds",

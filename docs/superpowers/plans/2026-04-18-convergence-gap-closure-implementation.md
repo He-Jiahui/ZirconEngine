@@ -1,48 +1,48 @@
 ---
 related_code:
-  - zircon_ui/src/module/ui_module_descriptor.rs
-  - zircon_ui/src/event_ui/manager/ui_event_manager.rs
-  - zircon_ui/src/tests/shared_core.rs
-  - zircon_core/src/runtime/contexts/plugin_context.rs
-  - zircon_core/src/runtime/descriptors/plugin_descriptor.rs
-  - zircon_core/src/runtime/descriptors/service_factory.rs
-  - zircon_core/src/runtime/handle/registration.rs
-  - zircon_core/src/runtime/handle/resolution.rs
-  - zircon_core/src/runtime/state/service_entry.rs
-  - zircon_module/src/service_factory.rs
-  - zircon_script/src/vm/module/module_descriptor.rs
-  - zircon_script/src/vm/backend/backend_registry.rs
-  - zircon_script/src/vm/backend/vm_backend.rs
-  - zircon_script/src/vm/plugin/vm_plugin_instance.rs
-  - zircon_script/src/vm/runtime/hot_reload_coordinator.rs
-  - zircon_script/src/vm/runtime/vm_plugin_manager.rs
-  - zircon_script/src/vm/tests.rs
-  - zircon_editor/src/editing/ui_asset/session.rs
-  - zircon_editor/src/editing/ui_asset/session/mod.rs
-  - zircon_editor/src/editing/ui_asset/session/ui_asset_editor_session.rs
-  - zircon_editor/src/tests/editing/ui_asset.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/ui/event_ui/manager/ui_event_manager.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/core/runtime/contexts/plugin_context.rs
+  - zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/service_factory.rs
+  - zircon_runtime/src/core/runtime/handle/registration/mod.rs
+  - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/state/service_entry.rs
+  - zircon_runtime/src/engine_module/service_factory.rs
+  - zircon_runtime/src/script/vm/module/module_descriptor.rs
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
+  - zircon_runtime/src/script/vm/backend/vm_backend.rs
+  - zircon_runtime/src/script/vm/plugin/vm_plugin_instance.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/tests.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/session/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/tests/editing/ui_asset/mod.rs
   - zircon_editor/src/tests/editing/ui_asset_palette_drop.rs
-  - zircon_editor/src/tests/host/manager.rs
+  - zircon_editor/src/tests/host/manager/mod.rs
 implementation_files:
-  - zircon_ui/src/module/ui_runtime_driver.rs
-  - zircon_core/src/runtime/descriptors/plugin_factory.rs
-  - zircon_script/src/vm/backend/vm_backend_family.rs
-  - zircon_script/src/vm/backend/builtin_vm_backend_family.rs
-  - zircon_script/src/vm/host/vm_plugin_host_context.rs
-  - zircon_script/src/vm/host/vm_plugin_slot_lifecycle.rs
-  - zircon_editor/src/editing/ui_asset/session/lifecycle.rs
-  - zircon_editor/src/editing/ui_asset/session/command_entry.rs
-  - zircon_editor/src/editing/ui_asset/session/palette_state.rs
-  - zircon_editor/src/editing/ui_asset/session/binding_state.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/core/runtime/descriptors/plugin_factory.rs
+  - zircon_runtime/src/script/vm/backend/vm_backend_family.rs
+  - zircon_runtime/src/script/vm/backend/builtin_vm_backend_family.rs
+  - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
+  - zircon_runtime/src/script/vm/host/vm_plugin_slot_lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/session/command_entry.rs
+  - zircon_editor/src/ui/asset_editor/session/palette_state.rs
+  - zircon_editor/src/ui/asset_editor/session/binding_state.rs
 plan_sources:
   - user: 2026-04-18 formalize convergence-gap repair spec and detailed implementation plan
   - docs/superpowers/specs/2026-04-18-convergence-gap-closure-design.md
 tests:
-  - zircon_ui/src/tests/shared_core.rs
-  - zircon_script/src/vm/tests.rs
-  - zircon_editor/src/tests/editing/ui_asset.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/script/vm/tests.rs
+  - zircon_editor/src/tests/editing/ui_asset/mod.rs
   - zircon_editor/src/tests/editing/ui_asset_palette_drop.rs
-  - zircon_editor/src/tests/host/manager.rs
+  - zircon_editor/src/tests/host/manager/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
 doc_type: milestone-detail
 ---
@@ -95,12 +95,12 @@ zircon_editor/src/editing/ui_asset/session/
 ### Task 1: Promote `zircon_ui` To A Real Runtime Module
 
 **Files:**
-- Create: `zircon_ui/src/module/ui_runtime_driver.rs`
-- Modify: `zircon_ui/src/module/mod.rs`
-- Modify: `zircon_ui/src/module/ui_module_name.rs`
-- Modify: `zircon_ui/src/module/ui_module_descriptor.rs`
-- Modify: `zircon_ui/src/lib.rs`
-- Modify: `zircon_ui/src/tests/shared_core.rs`
+- Create: `zircon_runtime/src/ui/module.rs`
+- Modify: `zircon_runtime/src/ui/module.rs`
+- Modify: `zircon_runtime/src/ui/module.rs`
+- Modify: `zircon_runtime/src/ui/module.rs`
+- Modify: `zircon_runtime/src/ui/mod.rs`
+- Modify: `zircon_runtime/src/ui/tests/shared_core.rs`
 
 - [ ] **Step 1: Write failing tests for real UI driver/manager registration**
 
@@ -138,19 +138,19 @@ Expected: fail while `module_descriptor()` still returns a stub descriptor.
 - [ ] **Step 3: Implement the new runtime driver and real descriptor**
 
 ```rust
-// zircon_ui/src/module/ui_runtime_driver.rs
+// zircon_runtime/src/ui/module.rs
 #[derive(Debug, Default)]
 pub struct UiRuntimeDriver;
 ```
 
 ```rust
-// zircon_ui/src/module/ui_module_name.rs
+// zircon_runtime/src/ui/module.rs
 pub const UI_RUNTIME_DRIVER_NAME: &str = "UiModule.Driver.UiRuntimeDriver";
 pub const UI_EVENT_MANAGER_NAME: &str = "UiModule.Manager.UiEventManager";
 ```
 
 ```rust
-// zircon_ui/src/module/ui_module_descriptor.rs
+// zircon_runtime/src/ui/module.rs
 ModuleDescriptor::new(UI_MODULE_NAME, "Runtime UI widgets and layout")
     .with_driver(DriverDescriptor::new(
         qualified_name(UI_MODULE_NAME, ServiceKind::Driver, "UiRuntimeDriver"),
@@ -180,16 +180,16 @@ Expected: tests green, no search results.
 ### Task 2: Make Core Plugin Descriptors Context-Aware
 
 **Files:**
-- Create: `zircon_core/src/runtime/descriptors/plugin_factory.rs`
+- Create: `zircon_runtime/src/core/runtime/descriptors/plugin_factory.rs`
 - Modify: `zircon_core/src/runtime/descriptors/mod.rs`
-- Modify: `zircon_core/src/runtime/descriptors/plugin_descriptor.rs`
-- Modify: `zircon_core/src/runtime/contexts/plugin_context.rs`
-- Modify: `zircon_core/src/runtime/state/service_entry.rs`
-- Modify: `zircon_core/src/runtime/handle/registration.rs`
-- Modify: `zircon_core/src/runtime/handle/resolution.rs`
+- Modify: `zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs`
+- Modify: `zircon_runtime/src/core/runtime/contexts/plugin_context.rs`
+- Modify: `zircon_runtime/src/core/runtime/state/service_entry.rs`
+- Modify: `zircon_runtime/src/core/runtime/handle/registration/mod.rs`
+- Modify: `zircon_runtime/src/core/runtime/handle/resolution.rs`
 - Modify: `zircon_core/src/runtime/tests.rs`
-- Modify: `zircon_module/src/service_factory.rs`
-- Modify: `zircon_module/src/lib.rs`
+- Modify: `zircon_runtime/src/engine_module/service_factory.rs`
+- Modify: `zircon_runtime/src/engine_module/mod.rs`
 
 - [ ] **Step 1: Add a failing test proving plugin resolution needs `PluginContext`**
 
@@ -292,18 +292,18 @@ Expected: core plugin-resolution tests green.
 ### Task 3: Add `VmPluginHostContext`, Backend Families, And Slot Lifecycle To `zircon_script`
 
 **Files:**
-- Create: `zircon_script/src/vm/backend/vm_backend_family.rs`
-- Create: `zircon_script/src/vm/backend/builtin_vm_backend_family.rs`
-- Create: `zircon_script/src/vm/host/vm_plugin_host_context.rs`
-- Create: `zircon_script/src/vm/host/vm_plugin_slot_lifecycle.rs`
+- Create: `zircon_runtime/src/script/vm/backend/vm_backend_family.rs`
+- Create: `zircon_runtime/src/script/vm/backend/builtin_vm_backend_family.rs`
+- Create: `zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs`
+- Create: `zircon_runtime/src/script/vm/host/vm_plugin_slot_lifecycle.rs`
 - Modify: `zircon_script/src/vm/backend/mod.rs`
-- Modify: `zircon_script/src/vm/backend/backend_registry.rs`
-- Modify: `zircon_script/src/vm/backend/vm_backend.rs`
-- Modify: `zircon_script/src/vm/plugin/vm_plugin_instance.rs`
-- Modify: `zircon_script/src/vm/runtime/hot_reload_coordinator.rs`
-- Modify: `zircon_script/src/vm/runtime/vm_plugin_manager.rs`
-- Modify: `zircon_script/src/vm/module/module_descriptor.rs`
-- Modify: `zircon_script/src/vm/tests.rs`
+- Modify: `zircon_runtime/src/script/vm/backend/backend_registry.rs`
+- Modify: `zircon_runtime/src/script/vm/backend/vm_backend.rs`
+- Modify: `zircon_runtime/src/script/vm/plugin/vm_plugin_instance.rs`
+- Modify: `zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs`
+- Modify: `zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs`
+- Modify: `zircon_runtime/src/script/vm/module/module_descriptor.rs`
+- Modify: `zircon_runtime/src/script/vm/tests.rs`
 
 - [ ] **Step 1: Add failing tests for host-context propagation and backend-family resolution**
 
@@ -421,8 +421,8 @@ Expected: the new host-context and backend-family tests pass together with exist
 ### Task 4: Prove `zircon_script` No Longer Relies On A Core-Only Plugin Path
 
 **Files:**
-- Modify: `zircon_script/src/vm/tests.rs`
-- Modify: `zircon_script/src/vm/runtime/vm_plugin_manager.rs`
+- Modify: `zircon_runtime/src/script/vm/tests.rs`
+- Modify: `zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs`
 
 - [ ] **Step 1: Extend tests to assert base `PluginContext` and slot-source roots are visible**
 
@@ -457,17 +457,17 @@ Expected: tests green, audit no longer reports `plugin-runtime-gap`.
 ### Task 5: Move `UiAssetEditorSession` Into The `session/` Subtree For Real
 
 **Files:**
-- Create: `zircon_editor/src/editing/ui_asset/session/lifecycle.rs`
-- Create: `zircon_editor/src/editing/ui_asset/session/command_entry.rs`
-- Create: `zircon_editor/src/editing/ui_asset/session/palette_state.rs`
-- Create: `zircon_editor/src/editing/ui_asset/session/binding_state.rs`
-- Modify: `zircon_editor/src/editing/ui_asset/session/mod.rs`
-- Modify: `zircon_editor/src/editing/ui_asset/session/ui_asset_editor_session.rs`
+- Create: `zircon_editor/src/ui/asset_editor/session/lifecycle.rs`
+- Create: `zircon_editor/src/ui/asset_editor/session/command_entry.rs`
+- Create: `zircon_editor/src/ui/asset_editor/session/palette_state.rs`
+- Create: `zircon_editor/src/ui/asset_editor/session/binding_state.rs`
+- Modify: `zircon_editor/src/ui/asset_editor/session/mod.rs`
+- Modify: `zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs`
 - Modify: `zircon_editor/src/editing/ui_asset/session/preview_compile.rs`
 - Modify: `zircon_editor/src/editing/ui_asset/session/style_inspection.rs`
 - Modify: `zircon_editor/src/editing/ui_asset/session/hierarchy_projection.rs`
 - Modify: `zircon_editor/src/editing/ui_asset/session/session_state.rs`
-- Modify: `zircon_editor/src/editing/ui_asset/session.rs`
+- Modify: `zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs`
 
 - [ ] **Step 1: Replace the shim in `ui_asset_editor_session.rs` with the real type and error definitions**
 
@@ -583,9 +583,9 @@ Expected: `UiAssetEditorSession::from_source` remains compatible and the split c
 ### Task 6: Repair Editor Test-Only Drift And Restore `ui_asset_sessions` Structure Coverage
 
 **Files:**
-- Modify: `zircon_editor/src/tests/editing/ui_asset.rs`
+- Modify: `zircon_editor/src/tests/editing/ui_asset/mod.rs`
 - Modify: `zircon_editor/src/tests/editing/ui_asset_palette_drop.rs`
-- Modify: `zircon_editor/src/tests/host/manager.rs`
+- Modify: `zircon_editor/src/tests/host/manager/mod.rs`
 - Modify: any editor-local helpers revealed by compile drift
 
 - [ ] **Step 1: Re-run the editor test compile and classify failures**
@@ -674,7 +674,7 @@ Run:
 
 ```powershell
 Get-ChildItem zircon_ui/src -Recurse -File | Select-String -Pattern 'stub_module_descriptor'
-Get-Item 'zircon_editor/src/editing/ui_asset/session.rs' | Format-List FullName,Length
+Get-Item 'zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs' | Format-List FullName,Length
 ```
 
 Expected: no `stub_module_descriptor` usage; `session.rs` deleted or reduced to a tiny shim.

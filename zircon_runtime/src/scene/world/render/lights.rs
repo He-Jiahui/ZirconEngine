@@ -2,6 +2,7 @@ use crate::core::framework::render::{
     RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderLayerSet,
     RenderPointLightSnapshot, RenderRectLightSnapshot, RenderSpotLightSnapshot,
 };
+use crate::core::framework::scene::Mobility;
 use crate::scene::components::default_render_layer_mask;
 
 use super::super::World;
@@ -55,6 +56,7 @@ impl World {
                 direction: light.direction,
                 color: light.color,
                 intensity: light.intensity,
+                mobility: self.mobility(*entity).unwrap_or(Mobility::Dynamic),
                 shadow: None,
             })
             .collect::<Vec<_>>();
@@ -87,6 +89,7 @@ impl World {
                 color: light.color,
                 intensity: light.intensity,
                 range: light.range,
+                mobility: self.mobility(*entity).unwrap_or(Mobility::Dynamic),
                 shadow: None,
             })
             .collect::<Vec<_>>();
@@ -160,6 +163,7 @@ impl World {
                 range: light.range,
                 inner_angle_radians: light.inner_angle_radians,
                 outer_angle_radians: light.outer_angle_radians,
+                mobility: self.mobility(*entity).unwrap_or(Mobility::Dynamic),
                 shadow: None,
             })
             .collect::<Vec<_>>();

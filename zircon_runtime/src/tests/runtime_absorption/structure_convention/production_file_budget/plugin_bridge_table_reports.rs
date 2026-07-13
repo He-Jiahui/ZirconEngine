@@ -5,6 +5,7 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
     let parent = read_runtime_src("plugin/bridge/table.rs");
     let reports = read_runtime_src("plugin/bridge/table/reports.rs");
     let bridge_root = read_runtime_src("plugin/bridge.rs");
+    let neutral_bridge = read_runtime_src("core/framework/bridge/mod.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -12,8 +13,6 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
@@ -58,32 +57,41 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
         &reports,
         &[
             "impl fmt::Debug for super::InterfaceExport",
-            "pub enum BridgeInterfaceStatus",
             "pub struct BridgeInterfaceSnapshot",
             "pub struct BridgeTableDiagnosticsSummary",
             "pub struct BridgeDiagnosticsMatrix",
             "pub struct BridgeOwnerTransitionReport",
-            "pub enum BridgeOwnerTransitionMode",
-            "pub(super) fn from_installed_entry",
             "pub(super) fn record_snapshot",
             "pub(super) fn from_rows",
         ],
     );
     assert_contains_all(
-        "plugin bridge root still re-exports table report DTOs",
+        "neutral bridge owner holds cross-domain slot and lifecycle contracts",
+        &neutral_bridge,
+        &[
+            "pub enum BridgeInterfaceStatus",
+            "pub enum BridgeOwnerTransitionMode",
+            "pub trait BridgeInvocationTable",
+            "fn resolve_interface_slot(",
+            "fn interface_status_at(",
+        ],
+    );
+    assert_contains_all(
+        "plugin bridge root exports plugin-owned table/report DTOs only",
         &bridge_root,
         &[
             "pub use table::{",
             "BridgeDiagnosticsMatrix",
             "BridgeInterfaceSnapshot",
-            "BridgeInterfaceStatus",
-            "BridgeOwnerTransitionMode",
             "BridgeOwnerTransitionReport",
             "BridgeTableDiagnosticsSummary",
             "FrozenBridgeTable",
             "InterfaceExport",
+            "pub use weak::{BridgeGuard, WeakBridge};",
         ],
     );
+    assert!(!bridge_root.contains("BridgeInterfaceStatus"));
+    assert!(!bridge_root.contains("BridgeOwnerTransitionMode"));
 
     for (path, source) in [
         ("plugin/bridge/table.rs", parent.as_str()),
@@ -103,7 +111,6 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("plugin bridge doc", plugin_bridge_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

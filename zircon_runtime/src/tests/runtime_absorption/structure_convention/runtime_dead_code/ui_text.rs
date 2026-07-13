@@ -16,8 +16,6 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_map = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
     );
@@ -75,7 +73,6 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("UI text doc", ui_text_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

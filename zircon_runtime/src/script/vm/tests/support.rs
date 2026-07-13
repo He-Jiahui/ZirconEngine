@@ -189,7 +189,9 @@ pub(super) fn test_host_context(
         package_source: source,
         host_registry: HostRegistry::default(),
         host_exports: HostExportRegistry::default(),
+        host_interfaces: VmHostInterfaceRegistry::default(),
         slot_lifecycle: Arc::new(NoopSlotLifecycle),
+        vm_owner: None,
     }
 }
 

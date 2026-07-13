@@ -1,10 +1,18 @@
+mod bake_panel;
 mod capability;
 mod extension_ids;
+mod overlay;
 mod plugin;
+mod runtime_mirror;
 
 #[cfg(test)]
 mod tests;
 
+pub use bake_panel::{
+    NavigationBakeAction, NavigationBakeBackend, NavigationBakePanel, NavigationBakePanelBusy,
+    NavigationBakePanelController, NavigationBakePhase, NavigationBakeProgress,
+    NavigationBakeRequest, NavigationBakeSubmitError,
+};
 pub use capability::{
     EDITOR_CAPABILITIES, NAVIGATION_AUTHORING_CAPABILITY, NAVIGATION_GIZMOS_CAPABILITY, PLUGIN_ID,
 };
@@ -20,7 +28,13 @@ pub use extension_ids::{
     NAV_MESH_MODIFIER_DRAWER_ID, NAV_MESH_OBSTACLE_DRAWER_ID, NAV_MESH_OFF_MESH_LINK_DRAWER_ID,
     NAV_MESH_SURFACE_DRAWER_ID,
 };
+pub use overlay::{
+    build_navigation_overlay, NavigationOverlayController, NavigationOverlayOptions,
+    NavigationViewportGizmoSink, NAVIGATION_OVERLAY_MODE_ID, NAVIGATION_OVERLAY_PROVIDER_ID,
+};
 pub use plugin::{
     editor_capabilities, editor_host_contract_marker, editor_plugin, editor_plugin_descriptor,
     package_manifest, plugin_registration, NavigationEditorPlugin,
 };
+pub use runtime_mirror::{NavigationPieFrame, NavigationPieMirror, NavigationPieMirrorApply};
+pub use zircon_runtime::core::framework::navigation::NavigationAgentDebugState;

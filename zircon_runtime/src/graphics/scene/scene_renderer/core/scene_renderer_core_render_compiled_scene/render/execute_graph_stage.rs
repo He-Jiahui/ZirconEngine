@@ -1,7 +1,8 @@
 use std::time::{Duration, Instant};
 
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, PostProcessPassGraph, RenderPluginRendererOutputs,
+    MotionVectorCameraStatus, PostProcessGraphResourceNames, PostProcessPassGraph,
+    RenderPluginRendererOutputs,
 };
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
@@ -241,6 +242,7 @@ fn execute_graph_pass(
         &mut *execution.plugin_outputs,
         screen_space_ui_renderer,
     );
+    gpu.streamer = streamer;
     if let Some(shadow_atlas_resources) = shadow_atlas_resources {
         gpu = gpu.with_shadow_atlas_resources(shadow_atlas_resources);
     }
@@ -337,6 +339,13 @@ fn execute_graph_pass(
         [hzb_plan.hzb_size.x, hzb_plan.hzb_size.y],
         hzb_occlusion_indirect_arg_count,
     );
+    if let Some(desc) = execution
+        .resources
+        .owned_texture_desc(PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING)
+    {
+        dispatch_context =
+            dispatch_context.with_froxel_grid_size([desc.width, desc.height, desc.depth]);
+    }
     if let Some(report) = hzb_occlusion_cull_report {
         dispatch_context =
             dispatch_context.with_indirect_args_dispatch_group_count(report.dispatch_group_count);

@@ -73,7 +73,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 ### M0 基线与决策批准
 
 实现切片：
-- 采集编译基线：根 workspace 与 `-p zircon_runtime` 的冷/增量 `cargo build --timings` 报告，存入 `docs/plans/zircon_runtime/frameworks/baselines/`（含硬件与命令说明）；
+- 采集编译基线：根 workspace 与 `-p zircon_runtime` 的冷/增量 `cargo build --timings` 报告，存入本计划编号目录 `docs/plans/zircon_runtime/frameworks/01/baselines/`（含硬件与命令说明）；
 - 生成当前模块依赖图（脚本扫描 `use crate::` 交叉引用），确认除计划 05 已列接缝外无未知横向依赖；
 - 批准并锁定：crate 清单、`zr_` 命名、`zircon_runtime/crates/` 路径、CI 影响面（`.github/workflows/ci.yml` 需要的 members 变化）。
 
@@ -133,3 +133,11 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 - **孤儿规则**：跨 crate 的 trait impl 可能被迫移动归属；原则是 impl 随 trait 或随类型走，禁止 newtype 包装做兼容层；处理不了的接缝回流计划 05 重切。
 - **工作量失控**：每 Phase 独立可验收、可暂停；任一 Phase 完成态都是合法长期形态，不存在"半迁移"中间态依赖桥。
 - **与收束计划的表述冲突**：D1 修订已记录于 index §3；如后续发现 `.codex/plans` 条目与本计划硬冲突，先更新双方勾稽再动代码。
+
+## 6. 状态与产出记录
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- fixed 已修复：[`core/contracts` 反向依赖上层域与 facade](01/fixed-2026-07-13-core-contract-reverse-dependencies.md)（修复责任：Frameworks05；禁止方向 current-source 引用已清零，编译与核心行为门已通过）
+- 产出记录：[`01/2026-07-13-m0-current-structure-and-dependency-baseline.md`](01/2026-07-13-m0-current-structure-and-dependency-baseline.md)
+- 当前状态：M0 的 current workspace/feature/CI 事实、初始 2,151 production refs / 77 domain edges 与内部 `zr_*` crate 层级已经锁定；layer audit 发现的 `core`→asset/graphics/scene 18 refs 与 internal domains→builtin/plugin facade 38 refs 已由 Frameworks05 完成十八类 owner/behavior 硬切。回传基线为 2,290 / 72，全部禁止方向为 0，Runtime core-min/default、App、Editor、相关插件编译与 core-min 生命周期行为门均通过，因此该反向依赖阻断已解除，M0 crate-DAG 分类与物理提取可继续。`zircon_runtime/crates/` 仍不存在，M1–M4 尚未开始迁移；冷/增量 `cargo build --timings` 仍 pending，故不声明 M0 或计划 01 完成。

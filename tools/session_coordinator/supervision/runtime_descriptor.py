@@ -30,7 +30,8 @@ class RuntimeDescriptor:
             "descriptor_version": RUNTIME_DESCRIPTOR_VERSION,
             "host": self.host,
             "port": self.port,
-            "token": self.token,
+            # Retained as an empty compatibility field for the installed tray.
+            "token": "",
             "pid": self.process.pid,
             "process_creation_time": self.process.creation_time,
             "executable": self.process.executable,
@@ -46,6 +47,4 @@ class RuntimeDescriptor:
         }
 
     def diagnostic_payload(self) -> dict[str, object]:
-        payload = self.to_payload()
-        payload.pop("token")
-        return payload
+        return self.to_payload()

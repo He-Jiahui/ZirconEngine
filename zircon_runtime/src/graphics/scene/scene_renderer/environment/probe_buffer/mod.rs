@@ -6,7 +6,9 @@ mod upload;
 pub(in crate::graphics::scene::scene_renderer) use gpu_layout::{
     reflection_probe_bind_group_layout_entries, ReflectionProbeGpuBindings,
 };
-pub(in crate::graphics::scene::scene_renderer) use resources::SceneReflectionProbeResources;
+pub(in crate::graphics::scene::scene_renderer) use resources::{
+    SceneReflectionProbeResources, PLANAR_REFLECTION_MIP_COUNT, PLANAR_REFLECTION_TEXTURE_SIZE,
+};
 
 #[cfg(test)]
 mod tests;

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::serialization::PayloadHeader;
 
 use crate::scene::World;
 
@@ -14,9 +15,14 @@ pub const DYNAMIC_SCENE_FORMAT_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DynamicScene {
+    #[serde(
+        skip,
+        default = "crate::scene::dynamic_scene::document::current_dynamic_scene_header"
+    )]
+    pub(super) payload_header: PayloadHeader,
     pub format_version: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub component_types: Vec<crate::plugin::ComponentTypeDescriptor>,
+    pub component_types: Vec<crate::core::framework::scene::ComponentTypeDescriptor>,
     #[serde(default)]
     pub entities: Vec<DynamicEntity>,
     #[serde(default)]
@@ -26,6 +32,7 @@ pub struct DynamicScene {
 impl DynamicScene {
     pub fn empty() -> Self {
         Self {
+            payload_header: crate::scene::dynamic_scene::document::current_dynamic_scene_header(),
             format_version: DYNAMIC_SCENE_FORMAT_VERSION,
             component_types: Vec::new(),
             entities: Vec::new(),

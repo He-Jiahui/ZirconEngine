@@ -1,13 +1,14 @@
+use crate::core::asset::{AssetCreationTemplateDescriptor, AssetTypeContribution, AssetTypeId};
+use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodeDescriptor,
-    GraphNodePaletteDescriptor, GraphPinDescriptor, TimelineEditorDescriptor,
-    TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
+    TimelineEditorDescriptor, TimelineTrackDescriptor, ViewportToolModeDescriptor,
 };
 use crate::core::editor_extension::{
     ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
     EditorUiTemplateDescriptor,
 };
-use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use crate::core::editor_operation::EditorOperationPath;
 
 #[test]
 fn authoring_descriptors_register_and_preserve_capability_gates() {
@@ -21,7 +22,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
 
     for operation in [&open, &validate, &compile, &create, &tool, &timeline_open] {
         registry
-            .register_operation(EditorOperationDescriptor::new(
+            .register_command(EditorCommandDescriptor::pending_operation(
                 operation.clone(),
                 operation.as_str(),
             ))
@@ -29,20 +30,25 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
     }
     let schema_operation = EditorOperationPath::parse("authoring.material.schema_compile").unwrap();
     registry
-        .register_operation(
-            EditorOperationDescriptor::new(schema_operation.clone(), "Compile With Schema")
-                .with_payload_schema_id("material_editor.compile_graph.v1"),
+        .register_command(
+            EditorCommandDescriptor::pending_operation(
+                schema_operation.clone(),
+                "Compile With Schema",
+            )
+            .with_payload_schema_id("material_editor.compile_graph.v1"),
         )
         .unwrap();
     registry
-        .register_asset_creation_template(
-            AssetCreationTemplateDescriptor::new(
-                "material_editor.template.material_graph",
-                "Material Graph",
-                "material.graph",
-                create,
-            )
-            .with_required_capabilities(["editor.extension.material_editor_authoring"]),
+        .register_asset_type_contribution(
+            AssetTypeContribution::augment(AssetTypeId::parse("material.graph").unwrap())
+                .with_creation_template(
+                    AssetCreationTemplateDescriptor::new(
+                        "material_editor.template.material_graph",
+                        "Material Graph",
+                        create,
+                    )
+                    .with_required_capabilities(["editor.extension.material_editor_authoring"]),
+                ),
         )
         .unwrap();
     registry
@@ -59,7 +65,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
     registry
         .register_graph_editor(
             GraphEditorDescriptor::new(
-                "material.graph",
+                AssetTypeId::parse("material.graph").unwrap(),
                 "material_editor.graph",
                 "Material Graph",
                 open,
@@ -71,18 +77,21 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
         .unwrap();
     registry
         .register_graph_node_palette(
-            GraphNodePaletteDescriptor::new("material_editor.palette", "material.graph")
-                .with_node(
-                    GraphNodeDescriptor::new("output", "Output", "Material")
-                        .with_input(GraphPinDescriptor::new("base_color", "vec4").required(true)),
-                )
-                .with_node(
-                    GraphNodeDescriptor::new("multiply", "Multiply", "Math")
-                        .with_input(GraphPinDescriptor::new("a", "float").required(true))
-                        .with_input(GraphPinDescriptor::new("b", "float").required(true))
-                        .with_output(GraphPinDescriptor::new("value", "float")),
-                )
-                .with_required_capabilities(["editor.extension.material_editor_authoring"]),
+            GraphNodePaletteDescriptor::new(
+                "material_editor.palette",
+                AssetTypeId::parse("material.graph").unwrap(),
+            )
+            .with_node(
+                GraphNodeDescriptor::new("output", "Output", "Material")
+                    .with_input(GraphPinDescriptor::new("base_color", "vec4").required(true)),
+            )
+            .with_node(
+                GraphNodeDescriptor::new("multiply", "Multiply", "Math")
+                    .with_input(GraphPinDescriptor::new("a", "float").required(true))
+                    .with_input(GraphPinDescriptor::new("b", "float").required(true))
+                    .with_output(GraphPinDescriptor::new("value", "float")),
+            )
+            .with_required_capabilities(["editor.extension.material_editor_authoring"]),
         )
         .unwrap();
     registry
@@ -98,7 +107,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
     registry
         .register_timeline_editor(
             TimelineEditorDescriptor::new(
-                "animation.sequence",
+                AssetTypeId::parse("animation.sequence").unwrap(),
                 "timeline_sequence.timeline",
                 "Timeline Sequence",
                 timeline_open,
@@ -108,9 +117,12 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
         )
         .unwrap();
 
-    assert_eq!(registry.asset_creation_templates().len(), 1);
+    assert_eq!(registry.asset_type_contributions().len(), 1);
     assert_eq!(registry.viewport_tool_modes().len(), 1);
-    assert_eq!(registry.graph_editors()[0].asset_kind(), "material.graph");
+    assert_eq!(
+        registry.graph_editors()[0].asset_type().as_str(),
+        "material.graph"
+    );
     assert_eq!(registry.graph_node_palettes()[0].nodes().len(), 2);
     assert_eq!(
         registry.timeline_editors()[0].track_types(),
@@ -122,19 +134,17 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
     );
     assert_eq!(
         registry
-            .operations()
-            .descriptor(&schema_operation)
-            .and_then(EditorOperationDescriptor::payload_schema_id),
+            .pending_command(&schema_operation)
+            .and_then(EditorCommandDescriptor::payload_schema_id),
         Some("material_editor.compile_graph.v1")
     );
     let schema_operation_toml = toml::to_string(
         registry
-            .operations()
-            .descriptor(&schema_operation)
+            .pending_command(&schema_operation)
             .expect("schema operation descriptor"),
     )
     .expect("operation descriptor toml");
-    let decoded_schema_operation: EditorOperationDescriptor =
+    let decoded_schema_operation: EditorCommandDescriptor =
         toml::from_str(&schema_operation_toml).expect("operation descriptor roundtrip");
     assert_eq!(
         decoded_schema_operation.payload_schema_id(),
@@ -147,13 +157,16 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
     let mut registry = EditorExtensionRegistry::default();
     let error = registry
         .register_graph_node_palette(
-            GraphNodePaletteDescriptor::new("material_editor.palette", "material.graph")
-                .with_node(GraphNodeDescriptor::new("output", "Output", "Material"))
-                .with_node(GraphNodeDescriptor::new(
-                    "output",
-                    "Duplicate Output",
-                    "Material",
-                )),
+            GraphNodePaletteDescriptor::new(
+                "material_editor.palette",
+                AssetTypeId::parse("material.graph").unwrap(),
+            )
+            .with_node(GraphNodeDescriptor::new("output", "Output", "Material"))
+            .with_node(GraphNodeDescriptor::new(
+                "output",
+                "Duplicate Output",
+                "Material",
+            )),
         )
         .unwrap_err();
 
@@ -167,8 +180,8 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
     let mut registry = EditorExtensionRegistry::default();
     let operation = EditorOperationPath::parse("authoring.material.compile").unwrap();
     let error = registry
-        .register_operation(
-            EditorOperationDescriptor::new(operation, "Compile Material")
+        .register_command(
+            EditorCommandDescriptor::pending_operation(operation, "Compile Material")
                 .with_payload_schema_id("material_editor. compile.v1"),
         )
         .unwrap_err();

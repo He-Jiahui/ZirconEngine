@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::plugin::{ExportBuildMode, ExportPackagingStrategy};
+use crate::core::framework::project::{ExportBuildMode, ExportPackagingStrategy};
 
 use super::ExportBuildPlan;
 

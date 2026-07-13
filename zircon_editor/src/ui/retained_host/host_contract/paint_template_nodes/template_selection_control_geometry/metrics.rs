@@ -39,7 +39,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
 ) -> WorkbenchSelectionControlMetrics {
     let font_size = metrics.font_body;
     let mark_inset_x = metrics.gap_m + metrics.border_width * 2.0;
-    let mark_size = (metrics.row_height - metrics.gap_m).max(metrics.gap_m);
+    // Checkbox/radio marks use the same compact Icon16 density slot as panel
+    // buttons; row height controls the hit row, not a larger authored mark.
+    let mark_size = (metrics.row_height - metrics.gap_l).max(metrics.gap_m);
     let text_inset_y = metrics.gap_s + metrics.border_width;
     WorkbenchSelectionControlMetrics {
         mark_inset_x,

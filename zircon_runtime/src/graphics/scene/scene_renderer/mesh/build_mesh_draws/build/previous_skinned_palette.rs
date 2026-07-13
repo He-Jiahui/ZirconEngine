@@ -4,13 +4,13 @@ use crate::graphics::scene::gpu_scene::{
     GpuScene, GpuSceneSkinnedGpuSourceState, GpuSceneSkinnedJointPaletteState,
 };
 use crate::graphics::scene::resources::GpuMeshResource;
-use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
 use super::pending_mesh_draw::{PendingMeshDraw, PendingSkinnedGpuSource};
 
 #[derive(Default)]
 pub(super) struct PreviousSkinnedGpuState {
-    pub(super) joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    pub(super) joint_palette: Option<SkinnedMeshJointPaletteStorage>,
     pub(super) source: Option<Arc<GpuMeshResource>>,
 }
 
@@ -40,7 +40,7 @@ pub(super) fn skinned_joint_palette_state_for_pending_draw(
             .skinned_gpu_source
             .as_ref()
             .and_then(PendingSkinnedGpuSource::morph_shape_signature),
-        uniform: pending_draw.skinned_joint_palette?,
+        storage: pending_draw.skinned_joint_palette?,
     })
 }
 
@@ -74,13 +74,13 @@ fn previous_skinned_gpu_state_for_states(
         return PreviousSkinnedGpuState::default();
     };
     if previous.signature != current.signature
-        || previous.uniform.joint_count() != current.uniform.joint_count()
+        || previous.storage.joint_count() != current.storage.joint_count()
     {
         return PreviousSkinnedGpuState::default();
     }
     if !uses_cpu_morphed_source {
         return PreviousSkinnedGpuState {
-            joint_palette: Some(previous.uniform),
+            joint_palette: Some(previous.storage),
             source: None,
         };
     }
@@ -90,7 +90,7 @@ fn previous_skinned_gpu_state_for_states(
     };
     if Some(current_morph_shape_signature) == previous.morph_shape_signature {
         return PreviousSkinnedGpuState {
-            joint_palette: Some(previous.uniform),
+            joint_palette: Some(previous.storage),
             source: None,
         };
     }
@@ -105,7 +105,7 @@ fn previous_skinned_gpu_state_for_states(
         return PreviousSkinnedGpuState::default();
     }
     PreviousSkinnedGpuState {
-        joint_palette: Some(previous.uniform),
+        joint_palette: Some(previous.storage),
         source: Some(previous_source.mesh),
     }
 }
@@ -120,7 +120,7 @@ mod tests {
         GpuSceneSkinnedGpuSourceState, GpuSceneSkinnedJointPaletteState,
     };
     use crate::graphics::scene::resources::GpuMeshResource;
-    use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+    use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
     use super::previous_skinned_gpu_state_for_states;
 
@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(
             previous_skinned_gpu_state_for_states(false, Some(current), Some(previous), None)
                 .joint_palette,
-            Some(previous.uniform)
+            Some(previous.storage)
         );
         assert_eq!(
             previous_skinned_gpu_state_for_states(
@@ -179,7 +179,7 @@ mod tests {
                 None,
             )
             .joint_palette,
-            Some(previous_same_shape.uniform)
+            Some(previous_same_shape.storage)
         );
         assert_eq!(
             previous_skinned_gpu_state_for_states(
@@ -212,7 +212,7 @@ mod tests {
             Some(previous_source.clone()),
         );
 
-        assert_eq!(selected.joint_palette, Some(previous_shape.uniform));
+        assert_eq!(selected.joint_palette, Some(previous_shape.storage));
         assert!(Arc::ptr_eq(
             &selected.source.expect("previous source"),
             &previous_source.mesh
@@ -285,8 +285,8 @@ mod tests {
         GpuSceneSkinnedJointPaletteState {
             signature,
             morph_shape_signature,
-            uniform: SkinnedMeshJointPaletteUniform::from_matrices(&matrices)
-                .expect("test palette fits fixed uniform ABI"),
+            storage: SkinnedMeshJointPaletteStorage::from_matrices(&matrices)
+                .expect("test palette fits fixed storage ABI"),
         }
     }
 

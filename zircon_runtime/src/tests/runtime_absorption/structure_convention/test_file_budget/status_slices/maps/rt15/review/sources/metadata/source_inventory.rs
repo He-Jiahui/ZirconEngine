@@ -2,8 +2,7 @@ pub(in super::super::super) const SOURCES_SLICE: &str =
     "Runtime 15 M3 review-guard root source inventory folder-backed split";
 pub(in super::super::super) const SOURCES_STATUS: &str =
     "runtime_15_review_guard_root_source_inventory_folder_backed_static_passed_cargo_deferred";
-pub(in super::super::super) const SOURCES_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_review_guard_root_source_inventory_folder_backed_static_passed_cargo_deferred";
+pub(in super::super::super) const SOURCES_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_review_guard_root_source_inventory_folder_backed_static_passed_cargo_deferred";
 pub(in super::super::super) const SOURCES_GUARD: &str =
     "runtime_15_review_guard_root_sources_are_folder_backed";
 pub(in super::super::super) const SOURCES_ROUTE_PATH: &str =

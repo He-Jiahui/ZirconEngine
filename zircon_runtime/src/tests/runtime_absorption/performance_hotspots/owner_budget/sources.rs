@@ -83,21 +83,8 @@ pub(super) struct OwnerBudgetSources {
     pub(super) submit_context_status_docs: &'static str,
     pub(super) submit_error_paths: &'static str,
     pub(super) source_inventory: &'static str,
-    pub(super) runtime_07_plan: &'static str,
-    pub(super) runtime_15_plan: &'static str,
-    pub(super) runtime_index: &'static str,
-    pub(super) review_findings: &'static str,
-    pub(super) structure_convention: &'static str,
-    pub(super) module_doc: &'static str,
-    pub(super) hotspot_doc: &'static str,
-    pub(super) dynamic_session_doc: &'static str,
-    pub(super) ecs_doc: &'static str,
-    pub(super) interface_doc: &'static str,
-    pub(super) architecture_review: &'static str,
-    pub(super) status_rows: &'static str,
-    pub(super) status_slice: &'static str,
-    pub(super) date_slice: &'static str,
-    pub(super) session_note: &'static str,
+    pub(super) runtime_07_archive: &'static str,
+    pub(super) runtime_15_archive: &'static str,
 }
 
 pub(super) fn load() -> OwnerBudgetSources {
@@ -129,7 +116,7 @@ pub(super) fn assert_sources_guard_folder_backed(sources: &OwnerBudgetSources) {
         &[
             "pub(super) fn load() -> OwnerBudgetSources",
             "performance_hotpath_source_inventory.py",
-            "../../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md",
+            "../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md",
         ],
     );
     let source_load_child_anchor = [

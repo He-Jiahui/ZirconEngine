@@ -10,7 +10,7 @@ related_code:
   - zircon_editor/src/core/editor_message/refresh_report.rs
   - zircon_editor/src/core/editor_message/ids/mod.rs
   - zircon_editor/src/core/editor_message/ids/document_id.rs
-  - zircon_editor/src/core/editor_message/ids/history_context_id.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_message/ids/play_state_kind.rs
   - zircon_editor/src/core/editor_message/ids/scene_mode_id.rs
   - zircon_editor/src/core/editor_message/ids/selection_domain.rs
@@ -28,6 +28,8 @@ related_code:
   - zircon_editor/src/core/editor_message/message/transaction.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
+  - zircon_editor/src/core/jobs/event.rs
+  - zircon_editor/src/core/jobs/pump.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
 implementation_files:
   - zircon_editor/src/core/editor_message/mod.rs
@@ -40,7 +42,7 @@ implementation_files:
   - zircon_editor/src/core/editor_message/refresh_report.rs
   - zircon_editor/src/core/editor_message/ids/mod.rs
   - zircon_editor/src/core/editor_message/ids/document_id.rs
-  - zircon_editor/src/core/editor_message/ids/history_context_id.rs
+  - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_message/ids/play_state_kind.rs
   - zircon_editor/src/core/editor_message/ids/scene_mode_id.rs
   - zircon_editor/src/core/editor_message/ids/selection_domain.rs
@@ -56,10 +58,13 @@ implementation_files:
   - zircon_editor/src/core/editor_message/message/request.rs
   - zircon_editor/src/core/editor_message/message/response.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
+  - zircon_editor/src/core/jobs/event.rs
+  - zircon_editor/src/core/jobs/pump.rs
 plan_sources:
   - user: 2026-07-10 完整实现 editor 架构并硬切旧架构
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
+  - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -81,7 +86,7 @@ doc_type: module-detail
 
 `core::editor_message` is the L1 messaging boundary shared by headless editor services and UI consumers. It routes small typed facts to multiple subscribers, records request deliveries, and accumulates view invalidation without making the message bus a second source of authoritative editor state.
 
-Plan 01 M1.1 removes the old `Empty` and `Text` payloads. A message now belongs to the document, transaction, mode, or focus family, or carries a schema-labelled JSON custom payload. Heavy document, history, world, and selection state remains behind its owning query surface.
+Plan 01 M1.1 removes the old `Empty` and `Text` payloads. A message now belongs to the document, transaction, mode, focus, or job family, or carries a schema-labelled JSON custom payload. Heavy document, history, world, selection, and active-job state remains behind its owning query surface.
 
 ## Related Files
 
@@ -103,13 +108,13 @@ If the handler unregisters the target during phase 2, phase 3 returns `EditorMes
 
 Every protocol transports every built-in payload family without conversion:
 
-| Protocol | Document | Transaction | Mode | Focus |
-|---|---|---|---|---|
-| Publish | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out |
-| Request | one target + response | one target + response | one target + response | one target + response |
-| Broadcast | all subscribers | all subscribers | all subscribers | all subscribers |
+| Protocol | Document | Transaction | Mode | Focus | Job |
+|---|---|---|---|---|---|
+| Publish | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | main-thread pump fan-out |
+| Request | one target + response | one target + response | one target + response | one target + response | one target + response |
+| Broadcast | all subscribers | all subscribers | all subscribers | all subscribers | all subscribers |
 
-Built-in topic strings are `editor.document`, `editor.transaction`, `editor.mode`, and `editor.focus`. The topic parser continues to require at least two non-empty lowercase namespace segments.
+Built-in topic strings are `editor.document`, `editor.transaction`, `editor.mode`, `editor.focus`, and `editor.job`. Job workers never invoke subscribers: they write `JobEvent` values to the jobs channel, and the main-thread `pump_events()` publishes them. The topic parser continues to require at least two non-empty lowercase namespace segments.
 
 ## Data And Invalidation Flow
 

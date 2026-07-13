@@ -13,6 +13,7 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
     for deleted in [
         core_event_root.join("runtime.rs"),
         core_event_root.join("runtime"),
+        core_root.join("editing").join("operation_state.rs"),
         ui_host_root.join("editor_event_runtime_bootstrap.rs"),
         ui_host_root.join("editor_event_listener_control.rs"),
     ] {
@@ -30,7 +31,14 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
             .join("service")
             .join("editor_event_service.rs"),
         core_event_root.join("service").join("listener_control.rs"),
-        core_root.join("editing").join("operation_state.rs"),
+        core_root.join("editing").join("mod.rs"),
+        core_root.join("editing").join("context.rs"),
+        core_root.join("editing").join("engine").join("mod.rs"),
+        core_root.join("editing").join("engine").join("history.rs"),
+        core_root
+            .join("editing")
+            .join("engine")
+            .join("transaction.rs"),
         core_root.join("play").join("bridge.rs"),
         ui_host_root.join("editor_host_event_controller.rs"),
         workbench_root.join("shell_state.rs"),
@@ -92,6 +100,72 @@ fn editor_event_owners_are_split_without_the_legacy_aggregate() {
     );
     assert!(!ui_host_mod.contains("mod editor_event_runtime_bootstrap;"));
     assert!(!ui_host_mod.contains("mod editor_event_listener_control;"));
+}
+
+#[test]
+fn editor_transaction_context_hard_cuts_the_operation_stack_shape() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let core_root = crate_root.join("core");
+    let ui_root = crate_root.join("ui");
+
+    for owner in [core_root.clone(), ui_root] {
+        for file in collect_rust_files(&owner) {
+            let source = std::fs::read_to_string(&file).expect("editor source");
+            for forbidden in [
+                concat!("EditorOperation", "Stack"),
+                concat!("EditorOperation", "StackEntry"),
+                concat!("QueryOperation", "Stack"),
+                concat!("operation_", "stack("),
+            ] {
+                assert!(
+                    !source.contains(forbidden),
+                    "legacy operation history API `{forbidden}` remains in {file:?}"
+                );
+            }
+        }
+    }
+
+    assert!(
+        !core_root
+            .join("editing")
+            .join("operation_state.rs")
+            .exists(),
+        "retired aggregate operation state owner must remain deleted"
+    );
+
+    let editing_root =
+        std::fs::read_to_string(core_root.join("editing").join("mod.rs")).expect("editing root");
+    assert!(editing_root.contains("pub mod engine;"));
+    assert!(editing_root.contains("pub(crate) mod context;"));
+
+    let transaction_engine_root =
+        std::fs::read_to_string(core_root.join("editing").join("engine").join("mod.rs"))
+            .expect("transaction engine root");
+    for required in [
+        "mod history;",
+        "mod transaction;",
+        "EditorTransactionEngine",
+        "HistoryStore",
+    ] {
+        assert!(
+            transaction_engine_root.contains(required),
+            "transaction engine root should expose current owner `{required}`"
+        );
+    }
+
+    let edit_context = core_root.join("editing").join("context.rs");
+    assert!(
+        edit_context.exists(),
+        "headless edit context owner is missing"
+    );
+    let edit_context_source = std::fs::read_to_string(edit_context).expect("edit context source");
+    assert!(!edit_context_source.contains("crate::ui"));
+
+    let editor_context =
+        std::fs::read_to_string(core_root.join("context").join("editor_context.rs"))
+            .expect("editor context source");
+    assert!(editor_context.contains("transactions: EditorTransactionEngine"));
+    assert!(editor_context.contains("pub fn transactions(&self)"));
 }
 
 #[test]

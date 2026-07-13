@@ -11,6 +11,10 @@ const RENDER_QUEUE_PROPERTY: &str = "render_queue";
 const MATERIAL_QUEUE_PROPERTY: &str = "material_queue";
 const DEPTH_BIAS_PROPERTY: &str = "depth_bias";
 const TAA_REACTIVE_MASK_STRENGTH_PROPERTY: &str = "taa_reactive_mask_strength";
+const SUBSURFACE_PROFILE_PROPERTY: &str = "subsurface_profile";
+const SUBSURFACE_SCATTER_RADIUS_PROPERTY: &str = "subsurface_scatter_radius";
+const SUBSURFACE_FALLOFF_PROPERTY: &str = "subsurface_falloff";
+const SUBSURFACE_WORLD_UNIT_SCALE_PROPERTY: &str = "subsurface_world_unit_scale";
 
 pub(super) fn lighting_model(
     values: &BTreeMap<String, toml::Value>,
@@ -46,6 +50,14 @@ pub(super) fn taa_reactive_mask_strength(values: &BTreeMap<String, toml::Value>)
         .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
 }
 
+pub(super) fn subsurface_profile_index(values: &BTreeMap<String, toml::Value>) -> Option<u32> {
+    values
+        .get(SUBSURFACE_PROFILE_PROPERTY)
+        .and_then(toml::Value::as_integer)
+        .and_then(|value| u32::try_from(value).ok())
+        .filter(|value| *value < crate::core::framework::render::ZR_SSS_MAX_PROFILES as u32)
+}
+
 pub(super) fn validation_errors(
     values: &BTreeMap<String, toml::Value>,
 ) -> Vec<RenderMaterialValidationError> {
@@ -71,6 +83,19 @@ pub(super) fn validation_errors(
     errors.extend(normalized_f32_override_validation_errors(
         values,
         TAA_REACTIVE_MASK_STRENGTH_PROPERTY,
+    ));
+    errors.extend(subsurface_profile_validation_errors(values));
+    errors.extend(vec3_override_validation_errors(
+        values,
+        SUBSURFACE_SCATTER_RADIUS_PROPERTY,
+    ));
+    errors.extend(vec3_override_validation_errors(
+        values,
+        SUBSURFACE_FALLOFF_PROPERTY,
+    ));
+    errors.extend(positive_f32_override_validation_errors(
+        values,
+        SUBSURFACE_WORLD_UNIT_SCALE_PROPERTY,
     ));
     errors
 }
@@ -131,7 +156,60 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
             | MATERIAL_QUEUE_PROPERTY
             | DEPTH_BIAS_PROPERTY
             | TAA_REACTIVE_MASK_STRENGTH_PROPERTY
+            | SUBSURFACE_PROFILE_PROPERTY
+            | SUBSURFACE_SCATTER_RADIUS_PROPERTY
+            | SUBSURFACE_FALLOFF_PROPERTY
+            | SUBSURFACE_WORLD_UNIT_SCALE_PROPERTY
     )
+}
+
+fn subsurface_profile_validation_errors(
+    values: &BTreeMap<String, toml::Value>,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(_) = values.get(SUBSURFACE_PROFILE_PROPERTY) else {
+        return Vec::new();
+    };
+    if subsurface_profile_index(values).is_some() {
+        Vec::new()
+    } else {
+        type_mismatch_error(SUBSURFACE_PROFILE_PROPERTY, "integer in 0..16")
+    }
+}
+
+fn vec3_override_validation_errors(
+    values: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(value) = values.get(property) else {
+        return Vec::new();
+    };
+    let valid = value.as_array().is_some_and(|items| {
+        items.len() == 3
+            && items.iter().all(|item| {
+                item.as_float()
+                    .or_else(|| item.as_integer().map(|value| value as f64))
+                    .is_some_and(|value| value.is_finite() && value >= 0.0)
+            })
+    });
+    if valid {
+        Vec::new()
+    } else {
+        type_mismatch_error(property, "three non-negative finite numbers")
+    }
+}
+
+fn positive_f32_override_validation_errors(
+    values: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(_) = values.get(property) else {
+        return Vec::new();
+    };
+    if override_f32(values, property).is_some_and(|value| value.is_finite() && value > 0.0) {
+        Vec::new()
+    } else {
+        type_mismatch_error(property, "finite number greater than zero")
+    }
 }
 
 fn lighting_model_validation_errors(
@@ -246,6 +324,23 @@ fn override_i32(values: &BTreeMap<String, toml::Value>, key: &str) -> Option<i32
 
 pub(super) fn override_bool(values: &BTreeMap<String, toml::Value>, key: &str) -> Option<bool> {
     values.get(key).and_then(toml::Value::as_bool)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn material_subsurface_profile_index_rejects_out_of_gpu_table_range() {
+        let mut values = BTreeMap::new();
+        values.insert(
+            SUBSURFACE_PROFILE_PROPERTY.to_string(),
+            toml::Value::Integer(16),
+        );
+
+        assert_eq!(subsurface_profile_index(&values), None);
+        assert_eq!(subsurface_profile_validation_errors(&values).len(), 1);
+    }
 }
 
 fn sync_default_true_bool_override(

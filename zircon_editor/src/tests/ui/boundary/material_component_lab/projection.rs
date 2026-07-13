@@ -11,7 +11,7 @@ fn material_component_lab_projects_to_renderable_host_nodes() {
         .load_builtin_host_templates()
         .expect("built-in host templates should load");
     let projection = runtime
-        .project_document("editor.window.material_component_lab")
+        .project_document("res://ui/editor/material_component_lab.zui")
         .expect("Material Component Lab document should project");
     let projected_binding_ids = projection
         .bindings
@@ -25,7 +25,7 @@ fn material_component_lab_projects_to_renderable_host_nodes() {
         );
     }
     let surface = runtime
-        .build_shared_surface("editor.window.material_component_lab")
+        .build_shared_surface("res://ui/editor/material_component_lab.zui")
         .expect("Material Component Lab surface should build");
     let host_model = runtime
         .build_host_model_with_surface(&projection, &surface)

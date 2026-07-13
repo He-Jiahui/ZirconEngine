@@ -1,12 +1,14 @@
 use std::fmt;
 use std::path::Path;
 
+use crate::core::jobs::{EditorJobSystem, JobError, JobSubmitError};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, EditorUiHostRuntimeError, RetainedUiProjection,
 };
 use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
 
+use super::controller::ExportWizardJobPoll;
 use super::{
     export_wizard_pipeline_plan, ExportWizardCommandRunner, ExportWizardJobController,
     ExportWizardJobEventKind, ExportWizardJobSnapshot, ExportWizardPanelViewModel,
@@ -225,7 +227,8 @@ pub enum ExportWizardPanelSessionError {
     NoActiveJob {
         job_id: String,
     },
-    Worker(String),
+    JobSubmit(JobSubmitError),
+    Job(JobError),
 }
 
 impl fmt::Display for ExportWizardPanelSessionError {
@@ -240,7 +243,8 @@ impl fmt::Display for ExportWizardPanelSessionError {
             Self::NoActiveJob { job_id } => {
                 write!(f, "export wizard job {job_id} is not active")
             }
-            Self::Worker(error) => f.write_str(error),
+            Self::JobSubmit(error) => write!(f, "export wizard job submission failed: {error}"),
+            Self::Job(error) => write!(f, "export wizard job failed: {error}"),
         }
     }
 }
@@ -248,6 +252,7 @@ impl fmt::Display for ExportWizardPanelSessionError {
 impl std::error::Error for ExportWizardPanelSessionError {}
 
 pub struct ExportWizardPanelSession {
+    jobs: EditorJobSystem,
     job_id: String,
     plan: ExportWizardPipelinePlan,
     view_model: ExportWizardPanelViewModel,
@@ -255,10 +260,15 @@ pub struct ExportWizardPanelSession {
 }
 
 impl ExportWizardPanelSession {
-    pub fn new(job_id: impl Into<String>, plan: ExportWizardPipelinePlan) -> Self {
+    pub fn new(
+        jobs: EditorJobSystem,
+        job_id: impl Into<String>,
+        plan: ExportWizardPipelinePlan,
+    ) -> Self {
         let job_id = job_id.into();
         let view_model = ExportWizardPanelViewModel::from_plan(job_id.clone(), &plan);
         Self {
+            jobs,
             job_id,
             plan,
             view_model,
@@ -266,8 +276,12 @@ impl ExportWizardPanelSession {
         }
     }
 
-    pub fn from_options(job_id: impl Into<String>, options: ExportWizardPipelineOptions) -> Self {
-        Self::new(job_id, export_wizard_pipeline_plan(options))
+    pub fn from_options(
+        jobs: EditorJobSystem,
+        job_id: impl Into<String>,
+        options: ExportWizardPipelineOptions,
+    ) -> Self {
+        Self::new(jobs, job_id, export_wizard_pipeline_plan(options))
     }
 
     pub fn regenerate_plan(
@@ -339,7 +353,7 @@ impl ExportWizardPanelSession {
     }
 
     pub fn start(&mut self) -> Result<(), ExportWizardPanelSessionError> {
-        self.start_with_runner(ProcessCommandRunner)
+        self.start_with_runner(ProcessCommandRunner::new(self.jobs.clone()))
     }
 
     pub fn start_with_runner(
@@ -353,11 +367,15 @@ impl ExportWizardPanelSession {
                 reason: "plan is not ready",
             });
         }
-        self.controller = Some(ExportWizardJobController::spawn(
-            self.job_id.clone(),
-            self.plan.clone(),
-            runner,
-        ));
+        self.controller = Some(
+            ExportWizardJobController::submit(
+                &self.jobs,
+                self.job_id.clone(),
+                self.plan.clone(),
+                runner,
+            )
+            .map_err(ExportWizardPanelSessionError::JobSubmit)?,
+        );
         self.view_model.mark_job_started();
         Ok(())
     }
@@ -383,8 +401,27 @@ impl ExportWizardPanelSession {
         &mut self,
     ) -> Result<usize, ExportWizardPanelSessionError> {
         let drained = self.poll_events();
-        if self.controller.is_some() && self.view_model.snapshot().is_terminal() {
-            let _ = self.finish_job()?;
+        let job_poll = match self.controller.as_ref() {
+            Some(controller) => controller.poll(),
+            None => return Ok(drained),
+        };
+        match job_poll {
+            ExportWizardJobPoll::Pending => {}
+            ExportWizardJobPoll::Completed { events, snapshot } => {
+                for event in events {
+                    self.view_model.apply_event(event);
+                }
+                self.controller.take();
+                self.view_model.mark_job_finished(&snapshot);
+            }
+            ExportWizardJobPoll::Failed { events, error } => {
+                for event in events {
+                    self.view_model.apply_event(event);
+                }
+                self.view_model.mark_job_error(&error);
+                self.controller.take();
+                return Err(ExportWizardPanelSessionError::Job(error));
+            }
         }
         Ok(drained)
     }
@@ -395,17 +432,26 @@ impl ExportWizardPanelSession {
         let Some(controller) = self.controller.take() else {
             return Ok(None);
         };
-        let snapshot = controller
-            .finish()
-            .map_err(ExportWizardPanelSessionError::Worker)?;
-        self.view_model.mark_job_finished(&snapshot);
-        Ok(Some(snapshot))
+        let completion = controller.finish();
+        for event in completion.events {
+            self.view_model.apply_event(event);
+        }
+        match completion.result {
+            Ok(snapshot) => {
+                self.view_model.mark_job_finished(&snapshot);
+                Ok(Some(snapshot))
+            }
+            Err(error) => {
+                self.view_model.mark_job_error(&error);
+                Err(ExportWizardPanelSessionError::Job(error))
+            }
+        }
     }
 
     pub fn active_job_id(&self) -> Option<&str> {
         self.controller
             .as_ref()
-            .map(|controller| controller.handle().job_id.as_str())
+            .map(ExportWizardJobController::job_id)
     }
 
     pub fn view_model(&self) -> &ExportWizardPanelViewModel {

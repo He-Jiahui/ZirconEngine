@@ -1,22 +1,22 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/resources/gpu_mesh/gpu_mesh_resource.rs
-  - zircon_graphics/src/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build/build_shared_indirect_args_buffer.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
 plan_sources:
   - user: 2026-04-19 继续把 visibility-owned authority 压进更真实的 GPU-generated args source / compaction ownership
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-virtual-geometry-repeated-draw-ref-gpu-args-authority.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_primitives_only_change_model_enumeration_order_with_distinct_uvs -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_render -- --nocapture

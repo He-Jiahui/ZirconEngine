@@ -4,7 +4,7 @@ related_code:
   - zircon_plugins/navigation/native/native/detour_tile_cache.cpp
   - zircon_plugins/navigation/runtime/src/manager/traversal/mod.rs
   - zircon_runtime/src/core/framework/navigation/off_mesh_link.rs
-  - zircon_runtime/src/asset/assets/navigation/v1.rs
+  - zircon_runtime/src/core/framework/navigation/asset/v1.rs
 implementation_files:
   - zircon_plugins/navigation/native/native/detour_off_mesh_connections.cpp
   - zircon_plugins/navigation/native/native/detour_off_mesh_connections.h
@@ -12,7 +12,7 @@ implementation_files:
   - zircon_plugins/navigation/runtime/src/manager/traversal/capacity.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
-  - zircon_runtime/src/asset/assets/navigation/v1.rs
+  - zircon_runtime/src/core/framework/navigation/asset/v1.rs
 plan_sources:
   - docs/plans/zircon_plugins/05-navigation.md
   - user: 2026-07-12 严格按 zircon_plugins 架构计划完成插件功能

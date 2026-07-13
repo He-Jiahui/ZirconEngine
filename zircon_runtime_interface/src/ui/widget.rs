@@ -45,7 +45,7 @@ pub enum UiWidgetEvent {
         source: UiWidgetEventSource,
     },
     TextEditChange {
-        edit: UiTextEdit,
+        edit: Box<UiTextEdit>,
     },
     OpenChanged {
         target: UiNodeId,

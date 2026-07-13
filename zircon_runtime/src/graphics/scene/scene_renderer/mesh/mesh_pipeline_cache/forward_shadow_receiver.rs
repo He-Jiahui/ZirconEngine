@@ -1,6 +1,8 @@
 use bytemuck::bytes_of;
 use wgpu::util::DeviceExt;
 
+use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_apply_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
     LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
@@ -10,6 +12,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::{
     SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
 use super::MeshPipelineCache;
 
@@ -27,6 +30,61 @@ impl MeshPipelineCache {
         light_grid_params_buffer: Option<&wgpu::Buffer>,
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
+    ) -> wgpu::BindGroup {
+        let params_buffer = self
+            .forward_volumetric_apply
+            .create_disabled_params_buffer(device, "zircon-forward-volumetric-disabled-params");
+        self.create_forward_receiver_bind_group_with_volumetric(
+            device,
+            shadow_atlas_resources,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            &params_buffer,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::graphics::scene::scene_renderer) fn create_forward_shading_bind_group(
+        &self,
+        device: &wgpu::Device,
+        frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        light_grid_params_buffer: Option<&wgpu::Buffer>,
+        light_zbins_buffer: Option<&wgpu::Buffer>,
+        light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
+    ) -> wgpu::BindGroup {
+        let params_buffer = self.forward_volumetric_apply.create_params_buffer(
+            device,
+            frame,
+            render_region,
+            integrated_volumetric_view.is_some(),
+            "zircon-forward-volumetric-params",
+        );
+        self.create_forward_receiver_bind_group_with_volumetric(
+            device,
+            shadow_atlas_resources,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            &params_buffer,
+            integrated_volumetric_view,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn create_forward_receiver_bind_group_with_volumetric(
+        &self,
+        device: &wgpu::Device,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        light_grid_params_buffer: Option<&wgpu::Buffer>,
+        light_zbins_buffer: Option<&wgpu::Buffer>,
+        light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        volumetric_params_buffer: &wgpu::Buffer,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
     ) -> wgpu::BindGroup {
         let shadow_atlas_view = shadow_atlas_resources
             .map(ShadowAtlasResources::atlas_view)
@@ -78,6 +136,12 @@ impl MeshPipelineCache {
             },
         ];
         entries.extend(reflection_probe_bindings.bind_group_entries());
+        let lightmap_bindings = self.lightmaps.bindings();
+        entries.extend(lightmap_bindings.bind_group_entries());
+        entries.extend(
+            self.forward_volumetric_apply
+                .bind_group_entries(volumetric_params_buffer, integrated_volumetric_view),
+        );
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-forward-shadow-receiver-bind-group"),
             layout: &self.forward_shadow_receiver_layout,
@@ -94,6 +158,10 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_forward_shadow_re
         FORWARD_SHADOW_RECEIVER_BINDING_SHADER_STAGES,
     ));
     entries.extend(reflection_probe_bind_group_layout_entries());
+    entries.extend(lightmap_bind_group_layout_entries());
+    entries.extend(volumetric_apply_bind_group_layout_entries(
+        FORWARD_SHADOW_RECEIVER_BINDING_SHADER_STAGES,
+    ));
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: LIGHT_GRID_PARAMS_BINDING,

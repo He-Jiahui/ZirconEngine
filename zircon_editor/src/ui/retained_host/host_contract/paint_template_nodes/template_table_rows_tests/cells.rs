@@ -35,7 +35,7 @@ fn table_cells_ignore_options_that_look_like_complete_rows() {
         ..TemplatePaneNodeData::default()
     };
 
-    assert_eq!(table_cells(&node), vec!["Host", "UI", "64K", "r42"]);
+    assert_eq!(table_cells(&node), vec!["Host", "UI", "64 KB", "rev 42"]);
 }
 
 #[test]

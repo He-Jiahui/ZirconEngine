@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "c1cf749e-2ba2-4af1-894e-a3d4b6eccddf"
 url = "res://models/kenney_graveyard/gravestone-wide.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/013210f6-a17f-b11a-539e-dd2dd2459477.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "a677729c1aac8dbf"
+source_digest = "a677729c1aac8dbf"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -21,6 +21,7 @@ dependencies = [
     "res://models/kenney_graveyard/gravestone-wide.glb#Node0",
     "res://models/kenney_graveyard/gravestone-wide.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -38,6 +39,7 @@ dependencies = [
     "res://models/kenney_graveyard/gravestone-wide.glb#Node0",
     "res://models/kenney_graveyard/gravestone-wide.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "217a75d4-cd96-48b8-b468-fb296b910cee"
@@ -45,6 +47,7 @@ url = "res://models/kenney_graveyard/gravestone-wide.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/cfd0cd47-709e-fdc7-33ad-6536a6bdf30a.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "6a106361-2f8a-4ef2-878c-8b5da17ef67e"
@@ -52,6 +55,7 @@ url = "res://models/kenney_graveyard/gravestone-wide.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/9df961c0-b26a-ebde-84b1-306cff2a78e8.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "f57ebee4-8c15-427b-8a9b-413223dae5e2"
@@ -62,6 +66,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/gravestone-wide.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "3aad1999-18df-4f86-a142-f6586a931b96"
@@ -72,6 +77,7 @@ dependencies = [
     "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/gravestone-wide.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "41f3f5e8-d2ae-48d6-9194-bf0d6f61d262"
@@ -79,6 +85,7 @@ url = "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/806203db-ded2-0262-6e1e-8847f8039827.zasset"
 dependencies = ["res://models/kenney_graveyard/gravestone-wide.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "a8752bfa-081f-48c1-bc39-e223893ca2ce"
@@ -91,6 +98,7 @@ dependencies = [
     "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/gravestone-wide.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "4410bffd-543a-4ce0-8f00-2cf129d1a780"
@@ -103,3 +111,4 @@ dependencies = [
     "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/gravestone-wide.glb#Material0",
 ]
+tags = []

@@ -10,6 +10,7 @@ mod dirty_state;
 mod dynamic_components;
 mod error;
 mod events;
+mod generation;
 mod hierarchy;
 mod identity;
 mod messages;

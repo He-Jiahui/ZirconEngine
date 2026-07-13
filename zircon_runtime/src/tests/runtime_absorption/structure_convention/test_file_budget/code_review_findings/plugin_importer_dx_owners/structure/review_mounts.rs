@@ -13,22 +13,14 @@ mod sources;
 #[path = "review_mounts/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure_assertions.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/paths.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/sources.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/parent_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/review_children.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/budgets.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/status_mirrors.rs";
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure_assertions.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/paths.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/sources.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/parent_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/review_children.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/budgets.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/status_mirrors.rs";
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_SLICE: &str =
     "Runtime 15 M3 plugin-importer DX review mounts guard folder-backed split";
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_STATUS: &str =
@@ -44,12 +36,9 @@ pub(super) const PLUGIN_IMPORTER_DX_REVIEW_CHILDREN_GUARD: &str =
     "assert_plugin_importer_dx_review_children_are_mounted";
 pub(super) const PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET: usize = 800;
 
-const REVIEW_GUARD_STATUS_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/structure_assertions.rs";
-const REVIEW_GUARD_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs";
-const REVIEW_GUARD_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs";
+const REVIEW_GUARD_STATUS_ROWS_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/structure_assertions.rs";
+const REVIEW_GUARD_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs";
+const REVIEW_GUARD_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs";
 
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILDREN: &[(&str, &str, &str)] = &[
     (

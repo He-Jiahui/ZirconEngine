@@ -29,14 +29,14 @@ fn package_declares_texture_importers() {
 fn package_manifest_declares_texture_importer_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(manifest
-        .default_packaging
-        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.default_packaging.contains(
+        &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+    ));
     let distribution = manifest.distribution.as_ref().expect("dist metadata");
     assert_eq!(distribution.forms, vec!["dist"]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(distribution.engine_compat, ">=0.1, <0.2");

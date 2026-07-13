@@ -91,6 +91,9 @@ impl<'a> BehaviorNodeTickContext<'a> {
 
 pub trait BehaviorNodeRuntime: fmt::Debug + Send {
     fn tick(&mut self, context: &BehaviorNodeTickContext<'_>) -> AiDecisionStatus;
+
+    /// Cancels a currently active runtime before its branch is reset or deactivated.
+    fn on_abort(&mut self, _context: &BehaviorNodeTickContext<'_>) {}
 }
 
 #[derive(Clone, Copy)]

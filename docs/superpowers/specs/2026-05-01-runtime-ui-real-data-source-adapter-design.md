@@ -153,7 +153,7 @@ Zircon repository evidence:
 - `zircon_runtime/src/ui/component/state.rs` already applies descriptor-validated events and stores values/flags/reference metadata.
 - `zircon_editor/src/ui/template_runtime/showcase_demo_state.rs` proves the typed events can drive retained state, but currently only for demo state.
 - `zircon_editor/src/ui/slint_host/app/inspector.rs` and `zircon_editor/src/ui/binding_dispatch/inspector/apply.rs` prove real inspector mutation exists but is hardcoded to inspector controls.
-- `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs` proves runtime fixtures already load through shared `UiSurface`, but fixture data remains static.
+- `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs` proves runtime fixtures already load through shared `UiSurface`, but fixture data remains static.
 
 Deliberate divergence:
 

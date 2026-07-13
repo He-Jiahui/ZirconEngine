@@ -1,6 +1,6 @@
 use std::sync::mpsc::channel;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::*;
 
@@ -10,15 +10,15 @@ impl ExportWizardCommandRunner for StageOutputRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
-        let stage_id = export_pipeline_stage_cli_id(command.stage);
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+        let stage_id = command.stage.cli_id();
         Ok(ExportWizardCommandExecution {
             exit_code: Some(0),
             stdout_lines: vec![
                 command.stdout_banner("windows-release"),
                 format!("{stage_id} stdout detail"),
             ],
-            stderr_lines: if command.stage == ExportPipelineStage::Pack {
+            stderr_lines: if command.stage == ExportStage::Pack {
                 vec!["pack stderr detail".to_string()]
             } else {
                 Vec::new()
@@ -53,7 +53,7 @@ fn export_wizard_panel_template_state_projects_stage_stdout_and_stderr() {
     let rows = view_model.stage_rows();
     let pack = rows
         .iter()
-        .find(|row| row.stage == ExportPipelineStage::Pack)
+        .find(|row| row.stage == ExportStage::Pack)
         .expect("Pack row should exist");
     assert!(pack
         .stdout_lines
@@ -81,7 +81,7 @@ fn export_wizard_panel_template_state_projects_stage_stdout_and_stderr() {
 }
 
 fn ready_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

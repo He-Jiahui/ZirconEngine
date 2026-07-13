@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use zircon_runtime::asset::{
-    AnimationGraphAsset, AnimationSkeletonAsset, AssetId, ProjectAssetManager,
-};
+use zircon_runtime::asset::{AssetId, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::AnimationParameterMap;
+use zircon_runtime::core::framework::animation::{AnimationGraphAsset, AnimationSkeletonAsset};
 use zircon_runtime::core::resource::{
     AnimationGraphMarker, AnimationSkeletonMarker, ResourceHandle, ResourceSnapshot,
 };

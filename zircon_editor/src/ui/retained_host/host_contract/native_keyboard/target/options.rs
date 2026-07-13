@@ -46,6 +46,7 @@ pub(in crate::ui::retained_host::host_contract) fn option_popup_keyboard_target(
                 },
                 focused: option.focused || option.hovered || option.pressed,
                 selected: option.selected || option.special,
+                source_index: None,
                 frame: option_keyboard_row_frame_within(
                     node,
                     &control_frame,

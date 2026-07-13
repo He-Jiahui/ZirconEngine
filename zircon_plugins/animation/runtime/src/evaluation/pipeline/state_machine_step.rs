@@ -1,22 +1,24 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_runtime::asset::{AnimationStateMachineAsset, ProjectAssetManager};
-use zircon_runtime::core::framework::animation::{
-    AnimationManager, AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
-    AnimationStateTransitionEvaluation,
-};
-use zircon_runtime::core::math::Real;
-use zircon_runtime::core::resource::AssetReference;
+use zircon_runtime::asset::ProjectAssetManager;
+use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationPoseOutput};
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
-use super::graph_evaluate::{sample_graph_evaluation_clip_events, sample_graph_evaluation_pose};
-use super::pose_blend::blend_weighted_poses;
+use super::machine_instance_key::MachineInstanceKey;
+use super::nested_machine_resolve::resolve_machine_instance;
+use super::nested_machine_sample::{
+    normalized_machine_state_time, sample_machine_state_events, sample_machine_state_pose,
+    sample_machine_transition_pose,
+};
 use super::requests::PendingStateMachinePoseSample;
-use crate::AnimationClipEvaluator;
+use super::state_machine_transition::{
+    advance_state_machine_transition, begin_state_machine_transition, select_interruption_candidate,
+};
+use super::AnimationEvaluationPipeline;
+use crate::CompiledAnimationStateMachine;
 
 pub(super) fn resolve_state_machine_pose_requests(
-    animation: &dyn AnimationManager,
-    evaluator: &mut AnimationClipEvaluator,
+    pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
     pending_samples: Vec<PendingStateMachinePoseSample>,
 ) -> (
@@ -29,25 +31,129 @@ pub(super) fn resolve_state_machine_pose_requests(
     let mut events = Vec::new();
     let mut active_state_updates = Vec::new();
     let mut transition_updates = BTreeMap::new();
+    pipeline.retain_interrupted_transition_sources(
+        &pending_samples
+            .iter()
+            .map(|pending| pending.entity)
+            .collect::<BTreeSet<_>>(),
+    );
+    pipeline.retain_nested_machine_instances(
+        &pending_samples
+            .iter()
+            .map(|pending| pending.entity)
+            .collect::<BTreeSet<_>>(),
+    );
 
     for pending in pending_samples {
-        let Some(state_machine) = asset_manager
-            .load_animation_state_machine_asset(pending.state_machine_id)
-            .ok()
-        else {
+        let instance = MachineInstanceKey::root(pending.entity, pending.state_machine_id);
+        let Some(mut resolved) = resolve_machine_instance(
+            pipeline,
+            asset_manager,
+            instance,
+            pending.state_machine_id,
+            pending.active_state.clone(),
+            pending.transition.clone(),
+            &pending.parameters,
+            pending.skeleton_id,
+            pending.to_time_seconds,
+        ) else {
             continue;
         };
-        let evaluation = animation.evaluate_state_machine(
-            &state_machine,
-            pending.active_state.as_deref(),
-            &pending.parameters,
-        );
-        let transition = resolve_state_machine_transition_runtime(
-            pending.transition.clone(),
-            evaluation.transition.as_ref(),
-            pending.to_time_seconds,
-            pending.delta_seconds,
-        );
+        let instance = resolved.instance;
+        let state_machine = resolved.machine;
+        let evaluation = resolved.evaluation;
+        let requested_desc = resolved.requested_desc;
+        let root_active_state = resolved.root_active_state;
+        let is_nested = resolved.is_nested;
+        let Some(active_state) = evaluation.active_state.as_deref() else {
+            continue;
+        };
+        let mut interrupted_source = None;
+        let transition = if let Some(previous) = resolved.transition.take() {
+            let advanced = advance_state_machine_transition(previous, pending.delta_seconds);
+            let candidate = select_interruption_candidate(
+                pipeline,
+                asset_manager,
+                state_machine.as_ref(),
+                &evaluation.parameters,
+                pending.skeleton_id,
+                &advanced,
+            );
+            if let Some(candidate) = candidate {
+                let previous_source = pipeline.interrupted_transition_source(
+                    &instance,
+                    &advanced.from_state,
+                    &advanced.to_state,
+                );
+                let sampled_source = sample_state_transition_pose(
+                    pipeline,
+                    asset_manager,
+                    state_machine.as_ref(),
+                    &evaluation.parameters,
+                    &pending,
+                    &instance,
+                    &advanced,
+                    previous_source.as_deref(),
+                )
+                .map(|(_, pose)| pose);
+                if let Some(source) = sampled_source {
+                    events.extend(sample_state_transition_clip_events(
+                        pipeline,
+                        asset_manager,
+                        state_machine.as_ref(),
+                        &evaluation.parameters,
+                        &pending,
+                        &instance,
+                        &advanced,
+                    ));
+                    interrupted_source = Some(source);
+                    Some(begin_state_machine_transition(
+                        &candidate.transition,
+                        candidate.from_time_seconds,
+                        0.0,
+                    ))
+                } else {
+                    Some(advanced)
+                }
+            } else {
+                Some(advanced)
+            }
+        } else {
+            let normalized_state_time = normalized_machine_state_time(
+                pipeline,
+                asset_manager,
+                &instance,
+                state_machine.as_ref(),
+                active_state,
+                &evaluation.parameters,
+                pending.skeleton_id,
+                pending.to_time_seconds,
+            );
+            evaluation
+                .transition
+                .as_ref()
+                .zip(requested_desc)
+                .filter(|(_, desc)| desc.exit_ready(normalized_state_time))
+                .map(|(requested, desc)| {
+                    begin_state_machine_transition(
+                        requested,
+                        pending.to_time_seconds,
+                        if desc.exit_time().is_some() {
+                            0.0
+                        } else {
+                            pending.delta_seconds
+                        },
+                    )
+                })
+        };
+        if let (Some(source), Some(active_transition)) = (interrupted_source, transition.as_ref()) {
+            pipeline.record_interrupted_transition_source(
+                instance.clone(),
+                &active_transition.from_state,
+                &active_transition.to_state,
+                source,
+            );
+        }
         let state_update = transition
             .as_ref()
             .map(|transition| {
@@ -58,55 +164,87 @@ pub(super) fn resolve_state_machine_pose_requests(
                 }
             })
             .or_else(|| evaluation.active_state.clone());
-        active_state_updates.push((pending.entity, state_update.clone()));
+        if is_nested {
+            active_state_updates.push((pending.entity, Some(root_active_state)));
+            if let Some(state) = state_update.as_ref() {
+                pipeline
+                    .nested_machine_states
+                    .insert(instance.clone(), state.clone());
+            }
+        } else {
+            active_state_updates.push((pending.entity, state_update.clone()));
+        }
 
         if let Some(active_transition) = transition.as_ref() {
+            let active_source = pipeline.interrupted_transition_source(
+                &instance,
+                &active_transition.from_state,
+                &active_transition.to_state,
+            );
             events.extend(sample_state_transition_clip_events(
-                animation,
+                pipeline,
                 asset_manager,
-                &state_machine,
+                state_machine.as_ref(),
                 &evaluation.parameters,
                 &pending,
+                &instance,
                 active_transition,
             ));
             let Some((entity, pose)) = sample_state_transition_pose(
-                animation,
-                evaluator,
+                pipeline,
                 asset_manager,
-                &state_machine,
+                state_machine.as_ref(),
                 &evaluation.parameters,
                 &pending,
+                &instance,
                 active_transition,
+                active_source.as_deref(),
             ) else {
                 continue;
             };
             poses.insert(entity, pose);
             if active_transition.elapsed_seconds < active_transition.duration_seconds {
-                transition_updates.insert(entity, active_transition.clone());
+                if is_nested {
+                    pipeline
+                        .nested_machine_transitions
+                        .insert(instance.clone(), active_transition.clone());
+                } else {
+                    transition_updates.insert(entity, active_transition.clone());
+                }
+            } else {
+                pipeline.clear_interrupted_transition_source(&instance);
+                pipeline.nested_machine_transitions.remove(&instance);
             }
             continue;
         }
 
-        events.extend(sample_state_graph_clip_events(
-            animation,
+        pipeline.clear_interrupted_transition_source(&instance);
+
+        let Some(active_state) = state_update.as_deref() else {
+            continue;
+        };
+        events.extend(sample_machine_state_events(
+            pipeline,
             asset_manager,
-            evaluation.graph.as_ref(),
+            &instance,
+            state_machine.as_ref(),
+            active_state,
             &evaluation.parameters,
             pending.entity,
+            pending.skeleton_id,
             pending.from_time_seconds,
             pending.to_time_seconds,
         ));
-        let Some((entity, pose)) = sample_state_graph_pose(
-            animation,
-            evaluator,
+        let Some((entity, pose)) = sample_machine_state_pose(
+            pipeline,
             asset_manager,
-            &state_machine,
-            evaluation.graph.as_ref(),
+            &instance,
+            state_machine.as_ref(),
+            active_state,
             &evaluation.parameters,
             pending.entity,
             pending.skeleton_id,
             pending.to_time_seconds,
-            state_update,
         ) else {
             continue;
         };
@@ -116,203 +254,71 @@ pub(super) fn resolve_state_machine_pose_requests(
     (poses, events, active_state_updates, transition_updates)
 }
 
-fn resolve_state_machine_transition_runtime(
-    previous: Option<AnimationStateTransitionRuntime>,
-    requested: Option<&AnimationStateTransitionEvaluation>,
-    time_seconds: Real,
-    delta_seconds: Real,
-) -> Option<AnimationStateTransitionRuntime> {
-    let delta_seconds = if delta_seconds.is_finite() {
-        delta_seconds.max(0.0)
-    } else {
-        0.0
-    };
-    if let Some(mut previous) = previous {
-        if !previous.duration_seconds.is_finite() || previous.duration_seconds <= Real::EPSILON {
-            previous.duration_seconds = 0.0;
-            previous.elapsed_seconds = 0.0;
-            previous.to_time_seconds = (previous.to_time_seconds + delta_seconds).max(0.0);
-            return Some(previous);
-        }
-        previous.elapsed_seconds = (previous.elapsed_seconds + delta_seconds)
-            .min(previous.duration_seconds)
-            .max(0.0);
-        previous.from_time_seconds = (previous.from_time_seconds + delta_seconds).max(0.0);
-        previous.to_time_seconds = (previous.to_time_seconds + delta_seconds).max(0.0);
-        return Some(previous);
-    }
-
-    requested.map(|requested| AnimationStateTransitionRuntime {
-        from_state: requested.from_state.clone(),
-        to_state: requested.to_state.clone(),
-        duration_seconds: requested.duration_seconds,
-        elapsed_seconds: delta_seconds.min(requested.duration_seconds).max(0.0),
-        from_time_seconds: time_seconds.max(0.0),
-        to_time_seconds: delta_seconds,
-    })
-}
-
 fn sample_state_transition_pose(
-    animation: &dyn AnimationManager,
-    evaluator: &mut AnimationClipEvaluator,
+    pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
-    state_machine: &AnimationStateMachineAsset,
+    state_machine: &CompiledAnimationStateMachine,
     parameters: &AnimationParameterMap,
     pending: &PendingStateMachinePoseSample,
+    instance: &MachineInstanceKey,
     transition: &AnimationStateTransitionRuntime,
+    interrupted_source: Option<&AnimationPoseOutput>,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
-    let from_graph = state_machine_graph_reference(state_machine, &transition.from_state)?;
-    let to_graph = state_machine_graph_reference(state_machine, &transition.to_state)?;
-    let (_, from_pose) = sample_state_graph_pose(
-        animation,
-        evaluator,
+    sample_machine_transition_pose(
+        pipeline,
         asset_manager,
+        instance,
         state_machine,
-        Some(from_graph),
         parameters,
         pending.entity,
         pending.skeleton_id,
-        transition.from_time_seconds,
-        Some(transition.from_state.clone()),
-    )?;
-    let (_, to_pose) = sample_state_graph_pose(
-        animation,
-        evaluator,
-        asset_manager,
-        state_machine,
-        Some(to_graph),
-        parameters,
-        pending.entity,
-        pending.skeleton_id,
-        transition.to_time_seconds,
-        Some(transition.to_state.clone()),
-    )?;
-    let progress = transition_progress(transition);
-    blend_weighted_poses(
-        vec![(from_pose, 1.0 - progress), (to_pose, progress)],
-        AnimationPoseSource::StateMachine,
-        Some(if progress >= 1.0 {
-            transition.to_state.clone()
-        } else {
-            transition.from_state.clone()
-        }),
+        transition,
+        interrupted_source,
     )
-    .map(|pose| (pending.entity, pose))
-}
-
-fn transition_progress(transition: &AnimationStateTransitionRuntime) -> Real {
-    if !transition.duration_seconds.is_finite() || transition.duration_seconds <= Real::EPSILON {
-        return 1.0;
-    }
-    let progress = transition.elapsed_seconds / transition.duration_seconds;
-    if progress.is_finite() {
-        progress.clamp(0.0, 1.0)
-    } else {
-        1.0
-    }
 }
 
 fn sample_state_transition_clip_events(
-    animation: &dyn AnimationManager,
+    pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,
-    state_machine: &AnimationStateMachineAsset,
+    state_machine: &CompiledAnimationStateMachine,
     parameters: &AnimationParameterMap,
     pending: &PendingStateMachinePoseSample,
+    instance: &MachineInstanceKey,
     transition: &AnimationStateTransitionRuntime,
 ) -> Vec<crate::AnimationClipEvent> {
     let mut events = Vec::new();
-    let from_graph = state_machine_graph_reference(state_machine, &transition.from_state);
-    let to_graph = state_machine_graph_reference(state_machine, &transition.to_state);
     let (from_start_seconds, to_start_seconds) = pending
         .transition
         .as_ref()
+        .filter(|previous| {
+            previous.from_state == transition.from_state && previous.to_state == transition.to_state
+        })
         .map(|previous| (previous.from_time_seconds, previous.to_time_seconds))
         .unwrap_or((pending.from_time_seconds, 0.0));
 
-    events.extend(sample_state_graph_clip_events(
-        animation,
+    events.extend(sample_machine_state_events(
+        pipeline,
         asset_manager,
-        from_graph,
+        instance,
+        state_machine,
+        &transition.from_state,
         parameters,
         pending.entity,
+        pending.skeleton_id,
         from_start_seconds,
         transition.from_time_seconds,
     ));
-    events.extend(sample_state_graph_clip_events(
-        animation,
+    events.extend(sample_machine_state_events(
+        pipeline,
         asset_manager,
-        to_graph,
+        instance,
+        state_machine,
+        &transition.to_state,
         parameters,
         pending.entity,
+        pending.skeleton_id,
         to_start_seconds,
         transition.to_time_seconds,
     ));
     events
-}
-
-fn sample_state_graph_clip_events(
-    animation: &dyn AnimationManager,
-    asset_manager: &ProjectAssetManager,
-    graph_reference: Option<&AssetReference>,
-    parameters: &AnimationParameterMap,
-    entity: EntityId,
-    from_time_seconds: Real,
-    to_time_seconds: Real,
-) -> Vec<crate::AnimationClipEvent> {
-    let Some(graph_reference) = graph_reference else {
-        return Vec::new();
-    };
-    let Some(graph_id) = asset_manager.resolve_asset_id(&graph_reference.locator) else {
-        return Vec::new();
-    };
-    let Ok(graph) = asset_manager.load_animation_graph_asset(graph_id) else {
-        return Vec::new();
-    };
-    let graph_evaluation = animation.evaluate_graph(&graph, parameters);
-    sample_graph_evaluation_clip_events(
-        asset_manager,
-        entity,
-        from_time_seconds,
-        to_time_seconds,
-        &graph_evaluation,
-    )
-}
-
-fn sample_state_graph_pose(
-    animation: &dyn AnimationManager,
-    evaluator: &mut AnimationClipEvaluator,
-    asset_manager: &ProjectAssetManager,
-    _state_machine: &AnimationStateMachineAsset,
-    graph_reference: Option<&AssetReference>,
-    parameters: &AnimationParameterMap,
-    entity: EntityId,
-    skeleton_id: zircon_runtime::asset::AssetId,
-    time_seconds: Real,
-    active_state: Option<String>,
-) -> Option<(EntityId, AnimationPoseOutput)> {
-    let graph_reference = graph_reference?;
-    let graph_id = asset_manager.resolve_asset_id(&graph_reference.locator)?;
-    let graph = asset_manager.load_animation_graph_asset(graph_id).ok()?;
-    let graph_evaluation = animation.evaluate_graph(&graph, parameters);
-    sample_graph_evaluation_pose(
-        evaluator,
-        asset_manager,
-        entity,
-        skeleton_id,
-        time_seconds,
-        AnimationPoseSource::StateMachine,
-        active_state,
-        &graph_evaluation,
-    )
-}
-
-fn state_machine_graph_reference<'a>(
-    state_machine: &'a AnimationStateMachineAsset,
-    state_name: &str,
-) -> Option<&'a AssetReference> {
-    state_machine
-        .states
-        .iter()
-        .find(|state| state.name == state_name)
-        .map(|state| &state.graph)
 }

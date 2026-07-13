@@ -1,7 +1,6 @@
-use crate::builtin::{
-    default_manifest_for_target, manifest_with_mode_baseline, RuntimePluginId, RuntimeTargetMode,
-};
-use crate::plugin::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::builtin::{default_manifest_for_target, manifest_with_mode_baseline, RuntimePluginId};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 
 #[test]
 fn default_server_manifest_avoids_ui() {

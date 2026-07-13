@@ -137,9 +137,16 @@ fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {
         .map(|light| option_string_bytes(&light.degradation_reason))
         .sum::<usize>();
     bytes += slice_bytes(&extract.environment.probes);
-    bytes += extract.lighting.baked_lighting.as_ref().map_or(0, |_| {
-        std::mem::size_of_val(&extract.lighting.baked_lighting)
-    });
+    if let Some(lightmaps) = extract.environment.baked_lighting() {
+        bytes += std::mem::size_of_val(lightmaps);
+        bytes += lightmaps.slots.capacity()
+            * std::mem::size_of::<(u64, crate::core::framework::render::LightmapInstanceSlot)>();
+    }
+    if let Some(probe_grid) = extract.environment.light_probe_grid() {
+        bytes += std::mem::size_of_val(probe_grid);
+        bytes += probe_grid.sh.capacity()
+            * std::mem::size_of::<crate::core::framework::render::ShL2Rgb>();
+    }
     if let Some(hybrid_gi) = &extract.lighting.hybrid_global_illumination {
         bytes += std::mem::size_of_val(hybrid_gi);
     }

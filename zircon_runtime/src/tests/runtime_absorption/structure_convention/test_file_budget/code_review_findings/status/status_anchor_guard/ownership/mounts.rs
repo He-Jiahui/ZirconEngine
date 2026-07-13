@@ -34,7 +34,6 @@ pub(super) fn assert_status_doc_children_own_status_anchor_assertions(child_tree
         &[
             "status_anchors::status_doc_child_anchors",
             "status_anchors::STATUS_DOC_MAP_ANCHORS",
-            "status_anchors::status_doc_session_anchors",
             "fn runtime_15_code_review_findings_status_docs_status_anchors_are_child_owner",
         ],
     );

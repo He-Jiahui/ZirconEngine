@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/animation/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/error.rs
   - zircon_runtime/src/core/framework/animation/avatar_mask.rs
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/event.rs
@@ -8,6 +10,8 @@ related_code:
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
+  - zircon_runtime/src/core/framework/animation/ik_command.rs
+  - zircon_runtime/src/core/framework/animation/ik_command_error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/core/framework/animation/parameter_map.rs
   - zircon_runtime/src/core/framework/animation/parameter_value.rs
@@ -24,17 +28,22 @@ related_code:
   - zircon_runtime/src/core/framework/animation/track_path_error.rs
   - zircon_runtime/src/core/framework/animation/tests.rs
   - zircon_plugins/animation/runtime/src/manager.rs
-  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_runtime/src/animation/scene_hook.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
 implementation_files:
   - zircon_runtime/src/core/framework/animation/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/mod.rs
+  - zircon_runtime/src/core/framework/animation/asset/error.rs
   - zircon_runtime/src/core/framework/animation/avatar_mask.rs
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/event.rs
   - zircon_runtime/src/core/framework/animation/gpu_skinning.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
+  - zircon_runtime/src/core/framework/animation/ik_command.rs
+  - zircon_runtime/src/core/framework/animation/ik_command_error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
+  - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/core/framework/animation/runtime_status.rs
   - zircon_runtime/src/core/framework/animation/state_machine_evaluation.rs
   - zircon_runtime/src/core/framework/animation/tick.rs
@@ -54,10 +63,13 @@ tests:
   - avatar_mask_filters_exact_leaf_and_excluded_targets
   - animation_tick_contract_records_work_events_and_sanitized_delta
   - gpu_skinning_readiness_requires_enabled_gpu_resources
-  - timeline_descriptor_summarizes_sequence_property_tracks
-  - timeline_descriptor_summarizes_clip_bone_and_event_tracks
   - timeline_track_masks_and_clip_status_sanitize_contract_values
   - runtime_status_reports_player_rig_and_gpu_readiness
+  - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs::manager_ik_commands_are_validated_and_drained_per_world
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/ik_postprocess.rs
+  - cargo +nightly check --locked --offline -p zircon_plugin_animation_runtime --test animation_ik_contract --jobs 1 (2026-07-11: passed)
+  - cargo +nightly check --locked --offline -p zircon_plugin_animation_runtime --test runtime_physics_animation_tick_contract --jobs 1 (2026-07-11: passed)
+  - CARGO_INCREMENTAL=0; RUSTFLAGS=-C debuginfo=0; cargo +nightly test --locked --offline -p zircon_plugin_animation_runtime --test animation_ik_contract --jobs 1 --target-dir F:\cargo-targets\zircon-animation-m3-lowmem -- --nocapture (2026-07-11: 4/4 passed in 457.8s)
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/animation/*.rs (planned for current slice)
   - git diff --check -- zircon_runtime/src/core/framework/animation docs/zircon_runtime/core/framework/animation.md docs/zircon_plugins/animation/runtime.md (planned for current slice)
   - cargo test -p zircon_runtime --lib animation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-animation-framework-contract --message-format short --color never (pending while active Cargo lanes are busy)
@@ -68,7 +80,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::framework::animation` is the neutral animation contract layer. It defines timeline descriptors, playback settings, graph evaluation DTOs, state-machine evaluation DTOs, pose output records, avatar masks, GPU-skinning readiness, tick requests/reports, runtime status snapshots, typed animation errors, and the `AnimationManager` trait. It does not own concrete clip sampling, graph blending, scene mutation, authored timeline UI, GPU buffer allocation, or event dispatch.
+`zircon_runtime::core::framework::animation` is the neutral animation contract layer. It defines the versioned skeleton/clip/sequence/graph/state-machine resource schemas, timeline descriptors, playback settings, evaluation DTOs, pose output records, avatar masks, GPU-skinning readiness, stable-ID IK commands, tick requests/reports, runtime status snapshots, typed animation errors, and the `AnimationManager` trait. It does not own project loading, concrete clip sampling, graph blending, IK target-slot compilation/solving, scene mutation, authored timeline UI, GPU buffer allocation, or event dispatch.
 
 Concrete runtime behavior remains in `zircon_plugins/animation/runtime`. The framework gives runtime, editor, scripting, and future VM plugin callers a shared vocabulary for animation service access without importing the plugin crate or sharing plugin-owned objects.
 
@@ -77,11 +89,15 @@ Concrete runtime behavior remains in `zircon_plugins/animation/runtime`. The fra
 The framework is folder-backed and `mod.rs` is only the public re-export surface.
 
 - `error.rs` defines `AnimationError` and `AnimationResult` for framework-facing manager, pose sampling, and sequence writeback failures.
-- `manager.rs` defines `AnimationManager`, including default status and timeline descriptor accessors.
+- `asset/` is the unique versioned animation resource-schema owner, including `ZRANIM01` binary conversion and typed `AnimationAssetError`; asset import/cache code consumes these records without re-exporting them from the asset facade.
+- `manager.rs` defines `AnimationManager` and its neutral status, control, evaluation, and command surface. It does not project concrete asset models into timeline descriptors or accept `scene::World` for mutation.
+- `ik_command.rs` defines script/component-facing TwoBone and LookAt commands in skeleton model space; `ik_command_error.rs` classifies unsupported managers, non-finite input, invalid weight, degenerate axis, and bounded-queue overflow.
 - `tick.rs`, `event.rs`, and `runtime_status.rs` define world tick inputs, emitted clip-event records, per-player status, per-rig status, and aggregate runtime status.
 - `timeline.rs`, `track_path.rs`, and `sequence_apply_report.rs` describe property tracks, bone tracks, event tracks, timeline clip spans, sequence writeback paths, and missing-track reporting.
 - `avatar_mask.rs`, `graph_clip_instance.rs`, `graph_evaluation.rs`, and `state_machine_evaluation.rs` describe masked/additive graph output and state-machine transition reports.
 - `pose_bone.rs`, `pose_output.rs`, `pose_source.rs`, and `gpu_skinning.rs` describe sampled pose output and GPU skinning readiness without owning renderer resources.
+
+`AnimationPoseOutput::clone_from_reusing_storage` is the neutral handoff primitive for a stable rig. It updates source/state data in place, reuses the existing bone vector, and reuses each bone-name string allocation when topology and names remain stable. The contract remains an owned snapshot; callers do not receive plugin-owned pool buffers or renderer resources.
 
 ## Behavior Model
 
@@ -93,6 +109,8 @@ Timeline descriptors summarize authored or imported animation data:
 - clip descriptors expose bone-transform tracks and event tracks;
 - track descriptors can carry an `AnimationAvatarMask`, allowing editor/runtime tools to reason about masked targets before a concrete graph evaluator runs;
 - clip spans sanitize start, duration, playback speed, and weight so callers can display or validate bad data without panicking.
+
+The framework owns only these descriptor DTOs and their validation helpers. The retired `from_sequence`, `from_clip`, `sequence_timeline_descriptor`, `clip_timeline_descriptor`, and `sequence_track_paths` convenience APIs directly imported concrete asset models and had no production callers; the hard cut deletes them instead of preserving asset projections or compatibility wrappers. A concrete animation/editor adapter that actually needs a descriptor must assemble it at the implementation boundary.
 
 Runtime status snapshots summarize live state:
 
@@ -112,7 +130,7 @@ The deliberate divergence is that Zircon does not add a non-network `server` lay
 
 ## Control Flow
 
-`zircon_plugins/animation/runtime` registers the concrete module, default manager, manager handle, and scene runtime hook. The scene hook resolves `AnimationManager`, advances scene player components, loads animation assets through `ProjectAssetManager`, samples/blends poses, emits clip events, and records pose/playback runtime state on `LevelSystem`.
+The Runtime animation absorption layer registers the default manager and manager handle. `zircon_plugins/animation/runtime` registers `animation.evaluate`, resolves that neutral `AnimationManager`, advances scene player components, loads assets through `ProjectAssetManager`, samples/blends poses, consumes IK commands after the final layer blend, emits events, and records pose/playback state on `LevelSystem`.
 
 Framework callers can request:
 
@@ -120,26 +138,29 @@ Framework callers can request:
 2. normalized track paths;
 3. graph or state-machine evaluations;
 4. pose sampling for a clip;
-5. sequence writeback through `apply_sequence_to_world`;
-6. status or timeline descriptors through the data-only methods.
+5. sequence evaluation records; concrete sequence writeback is invoked by the animation runtime/scene hook owner, not through the neutral manager;
+6. validated, bounded IK work through `queue_ik_command`, drained by the owning world tick;
+7. runtime status through the data-only manager methods; timeline descriptors are assembled by concrete implementation adapters rather than by the neutral manager.
 
 The framework defaults return inert status and descriptor records so optional managers can remain small while still satisfying the trait.
 
-Runtime 15 F5 animation manager typed errors records the current error boundary as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `AnimationManager::sample_clip_pose` and `AnimationManager::apply_sequence_to_world` now return `AnimationResult`, and concrete animation owners map skeleton bind, clip sample, quaternion normalization, and sequence channel conversion failures into `AnimationError` variants before crossing the framework boundary.
+Runtime 15 F5 animation manager typed errors records the typed boundary as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `AnimationManager::sample_clip_pose` returns `AnimationResult`; the upper animation sequence apply function also returns `AnimationResult` while owning concrete `scene::World` mutation. Concrete animation owners map skeleton bind, clip sample, quaternion normalization, and sequence channel conversion failures into `AnimationError` variants without putting `World` back into the framework trait.
 
 ## Edge Cases
 
 Framework DTOs sanitize non-finite and negative times, playback speeds, and weights. Target matching accepts exact ids and slash-path leaf matches, matching current clip target-id and sequence target-id behavior. Empty or muted target descriptors do not match runtime targets. Missing skeletons, missing targets, GPU resource gaps, invalid players, and waiting-for-asset states are represented as status data rather than panics.
 
+IK commands are one-shot and world-scoped. The neutral boundary validates finite target/pole/axis/clamp values, normalized weights, and non-degenerate LookAt axes before enqueue. Stable `AnimationTargetId` values deliberately cross the framework boundary; skeleton-scoped dense slots never do. Optional custom managers return `Unsupported` by default instead of pretending to accept work.
+
 `AnimationPlayerRuntimeStatus` also sanitizes its JSON boundary. `time_seconds` and `playback_speed` serialize and deserialize as finite non-negative values, and `weight` serializes and deserializes as a finite `0.0..=1.0` value. `AnimationRuntimeStatus::sanitized_snapshot()` exposes the same comparison shape used by the serde round-trip guard, so diagnostics and editor panels do not receive JSON `null` values from `NaN` or infinite runtime floats.
 
 Concrete managers must still validate asset availability, clip duration, graph cycles, state-machine transition validity, malformed quaternion channels, skeleton/track mismatch, GPU resource allocation, and event dispatch ordering. The framework-level error surface intentionally covers manager/apply failures that callers can act on without parsing strings: non-finite skeleton bind fields, zero-length bind rotations, sample type mismatches, non-finite samples, zero-length quaternion samples, non-finite sequence channel samples, and zero-length sequence channel quaternions.
 
-2026-06-04 plugin runtime follow-up split `zircon_plugins/animation/runtime/src/sequence.rs` into a structural facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. This did not change the neutral framework contracts; sequence binding iteration, channel sampling, interpolation, target-id fallback, and scene property writeback remain plugin-owned runtime behavior behind the same `AnimationManager::apply_sequence_to_world(...)` capability.
+2026-06-04 plugin runtime follow-up split `zircon_plugins/animation/runtime/src/sequence.rs` into a structural facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. The 2026-07-13 Frameworks05 hard cut then removed the concrete scene-mutation method from `AnimationManager`: sequence binding iteration, channel sampling, interpolation, target-id fallback, and scene property writeback remain runtime/plugin-owned functions invoked by their scene hook owners.
 
 ## Test Coverage
 
-Framework tests lock avatar mask target filtering, tick/event report behavior, GPU-skinning readiness, sequence timeline descriptor generation, clip bone/event descriptor generation, track mask matching, clip status sanitization, runtime player/rig aggregation, and serde round-trips for runtime status records. `runtime_animation_status_json_boundary_sanitizes_non_finite_values` keeps the Runtime 14 plan and module-family audit tied to the same JSON boundary guard. `review_f5_animation_manager_uses_animation_error` keeps `AnimationError`/`AnimationResult`, the manager trait signatures, concrete manager sampling/conversion owners, and Runtime 15/review/status docs synchronized.
+Framework tests lock avatar mask target filtering, tick/event report behavior, GPU-skinning readiness, track mask matching, clip status sanitization, runtime player/rig aggregation, and serde round-trips for runtime status records. `test_animation_timeline_contract_does_not_project_asset_models` keeps asset-to-timeline conversion out of framework, while `test_animation_manager_contract_does_not_mutate_scene_world` keeps sequence writeback in the concrete runtime/scene owner. Animation plugin contracts additionally cover Manager IK validation/world isolation. `review_f5_animation_manager_uses_animation_error` still protects `AnimationError`/`AnimationResult` across manager sampling and upper sequence conversion owners.
 
 Focused Cargo validation for the current framework-contract update is pending while active Cargo lanes are running. The intended focused check is:
 

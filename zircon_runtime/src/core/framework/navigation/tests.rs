@@ -1,4 +1,3 @@
-use crate::asset::NavMeshAsset;
 use crate::core::math::Real;
 
 use super::*;
@@ -77,11 +76,22 @@ fn off_mesh_traverse_state_and_event_are_serializable_contracts() {
 }
 
 #[test]
-fn nav_mesh_asset_gizmo_snapshot_projects_triangle_edges() {
-    let snapshot = NavigationGizmoSnapshot::from_nav_mesh_asset(&NavMeshAsset::simple_quad(
-        DEFAULT_AGENT_TYPE,
-        2.0,
-    ));
+fn navigation_gizmo_snapshot_projects_triangle_edges() {
+    let snapshot = NavigationGizmoSnapshot {
+        triangles: vec![
+            NavigationGizmoTriangle {
+                vertices: [[-1.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 0.0, 1.0]],
+                area: AREA_WALKABLE,
+                tile: 0,
+            },
+            NavigationGizmoTriangle {
+                vertices: [[-1.0, 0.0, -1.0], [1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]],
+                area: AREA_WALKABLE,
+                tile: 0,
+            },
+        ],
+        off_mesh_links: Vec::new(),
+    };
     let overlay = snapshot.to_scene_gizmo_overlay(42, true);
 
     assert_eq!(snapshot.triangles.len(), 2);

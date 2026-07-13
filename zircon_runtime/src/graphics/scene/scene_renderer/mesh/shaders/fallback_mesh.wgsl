@@ -11,9 +11,11 @@ struct SceneUniform {
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
+    sky_sun_direction: vec4<f32>,
+    sky_sun_color_radius: vec4<f32>,
+    sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
-    environment_sh9: array<vec4<f32>, 9>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -71,6 +73,7 @@ struct VertexOutput {
     @location(7) tint: vec4<f32>,
     @location(8) shadow_params: vec4<f32>,
     @location(9) motion_params: vec4<f32>,
+    @location(10) @interpolate(flat) instance_index: u32,
 };
 
 struct VelocityVertexOutput {
@@ -318,6 +321,7 @@ fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> 
     output.tint = zr_gpu_scene_tint(instance_index);
     output.shadow_params = zr_gpu_scene_shadow_params(instance_index);
     output.motion_params = motion_params;
+    output.instance_index = instance_index;
     return output;
 }
 
@@ -516,7 +520,11 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let world_normal = sampled_world_normal(input);
     let material = sampled_material(input);
     if (material.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
-        return vec4<f32>(material.albedo.rgb + material.emissive, material.albedo.a);
+        let shaded = material.albedo.rgb + material.emissive;
+        return vec4<f32>(
+            zr_volumetric_apply(shaded, input.clip_position.xy, input.clip_position.z),
+            material.albedo.a,
+        );
     }
     let ambient = scene.ambient_color.rgb * material.occlusion;
     let diffuse_color = material_diffuse_color(material);
@@ -533,9 +541,18 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
         material.occlusion,
         material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
     );
-    let lit = diffuse_color * ambient + direct_lights + environment_lights;
+    let baked_indirect = diffuse_color * material.occlusion * zr_lightmap_baked_irradiance(
+        input.instance_index,
+        input.uv1,
+        input.world_position,
+        world_normal,
+    );
+    let lit = diffuse_color * ambient + direct_lights + environment_lights + baked_indirect;
     let shaded = lit + material.emissive;
-    return vec4<f32>(shaded, material.albedo.a);
+    return vec4<f32>(
+        zr_volumetric_apply(shaded, input.clip_position.xy, input.clip_position.z),
+        material.albedo.a,
+    );
 }
 
 @fragment

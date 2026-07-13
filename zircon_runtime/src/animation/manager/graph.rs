@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::asset::{AnimationGraphAsset, AnimationGraphNodeAsset};
+use crate::core::framework::animation::{AnimationGraphAsset, AnimationGraphNodeAsset};
 use crate::core::framework::animation::{
     AnimationGraphBlendMode, AnimationGraphClipInstance, AnimationGraphEvaluation,
     AnimationParameterMap,

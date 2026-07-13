@@ -1,12 +1,12 @@
 use std::sync::mpsc::Receiver;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use crate::core::jobs::JobError;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::{
-    export_pipeline_stage_cli_id, export_pipeline_stage_report_name, ExportStageProgressKind,
-    ExportWizardJobEvent, ExportWizardJobEventKind, ExportWizardJobSnapshot, ExportWizardJobState,
-    ExportWizardJobStatus, ExportWizardPipelinePlan, ExportWizardStageArtifactPath,
-    ExportWizardStageExecution, ExportWizardStageOutputBuffer,
+    ExportStageProgressKind, ExportWizardJobEvent, ExportWizardJobEventKind,
+    ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus, ExportWizardPipelinePlan,
+    ExportWizardStageArtifactPath, ExportWizardStageExecution, ExportWizardStageOutputBuffer,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub struct ExportWizardControlState {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageViewRow {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub stage_id: &'static str,
     pub label: &'static str,
     pub progress_kind: ExportStageProgressKind,
@@ -39,13 +39,13 @@ pub struct ExportWizardStageViewRow {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStagePlannedArtifacts {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub artifacts: Vec<ExportWizardStageArtifactPath>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageMissingInputs {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub inputs: Vec<&'static str>,
 }
 
@@ -143,6 +143,27 @@ impl ExportWizardPanelViewModel {
         }
     }
 
+    /// Converts infrastructure terminal errors into the wizard's single snapshot state source.
+    pub fn mark_job_error(&mut self, error: &JobError) {
+        let mut snapshot = self.snapshot.clone();
+        match error {
+            JobError::Cancelled => {
+                snapshot.status = ExportWizardJobStatus::Cancelled;
+                snapshot.cancel_requested = true;
+                snapshot.fatal = false;
+            }
+            JobError::Failed(_) | JobError::Panicked(_) | JobError::ResultChannelClosed => {
+                snapshot.status = ExportWizardJobStatus::Failed;
+                snapshot.fatal = true;
+                let diagnostic = error.to_string();
+                if !snapshot.diagnostics.contains(&diagnostic) {
+                    snapshot.diagnostics.push(diagnostic);
+                }
+            }
+        }
+        self.mark_job_finished(&snapshot);
+    }
+
     pub fn drain_events(&mut self, events: &Receiver<ExportWizardJobEvent>) -> usize {
         let mut drained = 0;
         while let Ok(event) = events.try_recv() {
@@ -209,8 +230,8 @@ impl ExportWizardPanelViewModel {
                     .or_else(|| report_path_from_artifacts(&planned_artifacts));
                 ExportWizardStageViewRow {
                     stage: progress.stage,
-                    stage_id: export_pipeline_stage_cli_id(progress.stage),
-                    label: export_pipeline_stage_report_name(progress.stage),
+                    stage_id: progress.stage.cli_id(),
+                    label: progress.stage.report_name(),
                     progress_kind: self.row_progress_kind(progress.stage, progress.kind),
                     is_current: self.snapshot.current_stage == Some(progress.stage),
                     report_path,
@@ -227,7 +248,7 @@ impl ExportWizardPanelViewModel {
 
     fn row_progress_kind(
         &self,
-        stage: ExportPipelineStage,
+        stage: ExportStage,
         progress_kind: ExportStageProgressKind,
     ) -> ExportStageProgressKind {
         let Some(execution) = self.stage_execution(stage) else {
@@ -255,7 +276,7 @@ impl ExportWizardPanelViewModel {
         }
     }
 
-    fn planned_artifacts(&self, stage: ExportPipelineStage) -> Vec<ExportWizardStageArtifactPath> {
+    fn planned_artifacts(&self, stage: ExportStage) -> Vec<ExportWizardStageArtifactPath> {
         self.planned_artifacts
             .iter()
             .find(|artifacts| artifacts.stage == stage)
@@ -263,7 +284,7 @@ impl ExportWizardPanelViewModel {
             .unwrap_or_default()
     }
 
-    fn missing_inputs(&self, stage: ExportPipelineStage) -> Vec<&'static str> {
+    fn missing_inputs(&self, stage: ExportStage) -> Vec<&'static str> {
         self.missing_inputs
             .iter()
             .find(|missing| missing.stage == stage)
@@ -271,14 +292,14 @@ impl ExportWizardPanelViewModel {
             .unwrap_or_default()
     }
 
-    fn stage_execution(&self, stage: ExportPipelineStage) -> Option<&ExportWizardStageExecution> {
+    fn stage_execution(&self, stage: ExportStage) -> Option<&ExportWizardStageExecution> {
         self.snapshot
             .stages
             .iter()
             .find(|entry| entry.stage == stage)
     }
 
-    fn stage_output(&self, stage: ExportPipelineStage) -> Option<&ExportWizardStageOutputBuffer> {
+    fn stage_output(&self, stage: ExportStage) -> Option<&ExportWizardStageOutputBuffer> {
         self.snapshot
             .live_stage_outputs
             .iter()

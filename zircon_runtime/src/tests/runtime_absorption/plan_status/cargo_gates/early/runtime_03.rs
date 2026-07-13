@@ -1,13 +1,11 @@
 #[test]
-fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation() {
+fn runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation() {
     let runtime_03_plan = runtime_plan_source_with_archive("03", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"
     ));
     let runtime_03_plan = runtime_03_plan.as_str();
-    let runtime_index = runtime_index_with_numbered_archives(include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-    ));
-    let runtime_index = runtime_index.as_str();
+    let runtime_index =
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let frame_schedule_doc =
         include_str!("../../../../../../../docs/zircon_runtime/core/frame_schedule.md");
     let schedule_parallel_doc = include_str!(
@@ -19,25 +17,23 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
 
     assert_eq!(
         frontmatter_status(runtime_03_plan),
-        Some("in_progress"),
-        "Runtime 03 should stay in progress until schedule/frame-loop Cargo validation closes"
+        Some("completed"),
+        "Runtime 03 should be complete after current Runtime and zircon_app validation closes"
     );
 
-    for row_name in [
-        "1.1 隐式顺序显式化",
-        "1.2 UI extract 合法旁路契约",
-        "2.1 单次 `RuntimeTimeAdvance` 接通",
-        "2.2 插值因子",
-        "3.1 开关与计数",
-        "3.2 一致性与收益",
-    ] {
-        let row_anchor = format!("| {row_name} |");
-        let row = runtime_03_plan
-            .lines()
-            .find(|line| line.contains(&row_anchor))
-            .unwrap_or_else(|| panic!("Runtime 03 should keep status row `{row_name}`"));
-        assert_contains_all("Runtime 03 pending status row", row, &["Cargo", "待"]);
-    }
+    assert_contains_all(
+        "Runtime 03 completion evidence",
+        runtime_03_plan,
+        &[
+            "runtime_03_all_declared_cargo_gates_passed_completed",
+            "`ecs_schedule` 77/77",
+            "`tests::time::` 4/4",
+            "`session` 165 passed / 0 failed / 10 ignored",
+            "`schedule_parallel` 15/15",
+            "主测试 135 passed / 0 failed / 1 ignored",
+            "PBR viewer 15/15",
+        ],
+    );
 
     assert_contains_all(
         "Runtime 03 validation gate commands",
@@ -49,7 +45,7 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
             "cargo test -p zircon_runtime --lib fixed_update --locked -- --nocapture",
             "cargo test -p zircon_runtime --lib tests::time:: --locked",
             "cargo test -p zircon_runtime --lib schedule_parallel --locked -- --nocapture",
-            "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
+            "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
             "schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration",
             "session_ui_extract_remains_documented_dynamic_session_side_path",
             "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
@@ -67,9 +63,9 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
         "Runtime 03 index row",
         runtime_03_index_row,
         &[
-            "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
-            "ecs_schedule/time/session/schedule_parallel Cargo gates",
-            "Cargo 待 active lanes 清空",
+            "completed",
+            "Runtime filters 77/77、4/4、165/0/10 ignored、15/15",
+            "`zircon_app` 135/0/1 ignored + PBR viewer 15/15",
         ],
     );
 
@@ -79,9 +75,9 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
         "Runtime index P3 row",
         runtime_03_problem_row,
         &[
-            "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
-            "ecs_schedule/time/session/schedule_parallel",
-            "Cargo 回归待运行",
+            "schedule/time/frame-loop 单一权威已收口",
+            "当前 Runtime 四组过滤门",
+            "`zircon_app` 全包门槛已闭合",
         ],
     );
 
@@ -111,9 +107,10 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
         "Runtime architecture review Runtime 03 gate",
         review,
         &[
-            "Runtime 03 Schedule Frame-Loop Guard",
-            "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
-            "ecs_schedule/time/session/schedule_parallel",
+            "Runtime 03 Schedule Frame-Loop Completion Guard",
+            "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
+            "Runtime 03 as `completed`",
+            "135 passed / 0 failed / 1 ignored",
         ],
     );
 }

@@ -1,24 +1,19 @@
 pub(super) const ROUTE_METADATA_SLICE: &str =
     "Runtime 15 M3 status-support expected-slice route metadata folder-backed split";
-pub(super) const ROUTE_METADATA_STATUS: &str =
-    "runtime_15_status_support_expected_slice_route_metadata_folder_backed_static_passed_cargo_deferred";
-pub(super) const ROUTE_METADATA_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_status_support_expected_slice_route_metadata_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_METADATA_STATUS: &str = "runtime_15_status_support_expected_slice_route_metadata_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_METADATA_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_status_support_expected_slice_route_metadata_folder_backed_static_passed_cargo_deferred";
 pub(super) const ROUTE_METADATA_GUARD: &str =
     "runtime_15_status_support_expected_slice_route_metadata_is_folder_backed";
 pub(super) const ROUTE_METADATA_STATUS_MIRRORS_SLICE: &str =
     "Runtime 15 M3 status-support expected-slice route metadata status mirrors folder-backed split";
-pub(super) const ROUTE_METADATA_STATUS_MIRRORS_STATUS: &str =
-    "runtime_15_status_support_expected_slice_route_metadata_status_mirrors_folder_backed_static_passed_cargo_deferred";
-pub(super) const ROUTE_METADATA_STATUS_MIRRORS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_status_support_expected_slice_route_metadata_status_mirrors_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_METADATA_STATUS_MIRRORS_STATUS: &str = "runtime_15_status_support_expected_slice_route_metadata_status_mirrors_folder_backed_static_passed_cargo_deferred";
+pub(super) const ROUTE_METADATA_STATUS_MIRRORS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_status_support_expected_slice_route_metadata_status_mirrors_folder_backed_static_passed_cargo_deferred";
 pub(super) const ROUTE_METADATA_STATUS_MIRRORS_GUARD: &str =
     "runtime_15_status_support_expected_slice_route_metadata_status_mirrors_are_folder_backed";
 
 pub(super) const GUARD_ROUTE_METADATA_SLICE: &str =
     "Runtime 15 M3 status-support expected-slice guard route metadata child split";
-pub(super) const GUARD_ROUTE_METADATA_STATUS: &str =
-    "runtime_15_status_support_expected_slice_guard_route_metadata_child_split_static_passed_cargo_deferred";
+pub(super) const GUARD_ROUTE_METADATA_STATUS: &str = "runtime_15_status_support_expected_slice_guard_route_metadata_child_split_static_passed_cargo_deferred";
 pub(super) const GUARD_ROUTE_METADATA_GUARD: &str =
     "runtime_15_status_support_expected_slice_guard_route_metadata_is_child_owned";
 
@@ -39,8 +34,7 @@ pub(super) const ROUTE_METADATA_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/route_mounts.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/status_mirrors.rs",
 ];
-pub(super) const ROUTE_METADATA_STATUS_MIRRORS_ROUTE_PATH: &str =
-    "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/status_mirrors.rs";
+pub(super) const ROUTE_METADATA_STATUS_MIRRORS_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/status_mirrors.rs";
 pub(super) const ROUTE_METADATA_STATUS_MIRRORS_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/mirrors/folder_backed.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/mirrors/row_maps.rs",

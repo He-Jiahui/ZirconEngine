@@ -332,12 +332,12 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
     ui_runtime.load_builtin_host_templates().unwrap();
 
     for document_id in [
-        "editor.host.editor_main_frame",
-        "editor.window.workbench",
-        "editor.window.asset",
-        "editor.window.ui_layout_editor",
-        "editor.window.ui_component_showcase",
-        "editor.window.material_demo",
+        "res://ui/editor/host/editor_main_frame.zui",
+        "res://ui/editor/windows/workbench_window.zui",
+        "res://ui/editor/windows/asset_window.zui",
+        "res://ui/editor/windows/ui_layout_editor_window.zui",
+        "res://ui/editor/component_showcase.zui",
+        "res://ui/editor/material_demo_window.zui",
     ] {
         let projection = ui_runtime
             .project_document(document_id)
@@ -362,7 +362,7 @@ fn material_demo_window_document_projects_material_primitives() {
     let mut ui_runtime = EditorUiHostRuntime::default();
     ui_runtime.load_builtin_host_templates().unwrap();
 
-    let document_id = "editor.window.material_demo";
+    let document_id = "res://ui/editor/material_demo_window.zui";
     let projection = ui_runtime.project_document(document_id).unwrap();
     let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
@@ -432,7 +432,7 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     let mut ui_runtime = EditorUiHostRuntime::default();
     ui_runtime.load_builtin_host_templates().unwrap();
 
-    let document_id = "editor.window.ui_component_showcase";
+    let document_id = "res://ui/editor/component_showcase.zui";
     let projection = ui_runtime.project_document(document_id).unwrap();
     let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
@@ -709,7 +709,7 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
     let mut ui_runtime = EditorUiHostRuntime::default();
     ui_runtime.load_builtin_host_templates().unwrap();
 
-    let document_id = "inspector.surface_controls";
+    let document_id = "res://ui/editor/host/inspector_surface_controls.zui";
     let projection = ui_runtime.project_document(document_id).unwrap();
     let surface = ui_runtime.build_shared_surface(document_id).unwrap();
     let host_projection = ui_runtime
@@ -773,61 +773,61 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
     let cases = [
         (
             "editor.console",
-            "pane.console.body",
+            "res://ui/editor/host/console_body.zui",
             "ConsolePaneBody",
             "ConsolePaneBody/FocusConsole",
         ),
         (
             "editor.inspector",
-            "pane.inspector.body",
+            "res://ui/editor/host/inspector_body.zui",
             "InspectorPaneBody",
             "InspectorPaneBody/ApplyDraft",
         ),
         (
             "editor.hierarchy",
-            "pane.hierarchy.body",
+            "res://ui/editor/host/hierarchy_body.zui",
             "HierarchyPaneBody",
             "HierarchyPaneBody/SelectRoot",
         ),
         (
             "editor.animation_sequence",
-            "pane.animation.sequence.body",
+            "res://ui/editor/host/animation_sequence_body.zui",
             "AnimationSequencePaneBody",
             "AnimationSequencePaneBody/ScrubTimeline",
         ),
         (
             "editor.animation_graph",
-            "pane.animation.graph.body",
+            "res://ui/editor/host/animation_graph_body.zui",
             "AnimationGraphPaneBody",
             "AnimationGraphPaneBody/AddNode",
         ),
         (
             "editor.runtime_diagnostics",
-            "pane.runtime.diagnostics.body",
+            "res://ui/editor/host/runtime_diagnostics_body.zui",
             "RuntimeDiagnosticsPaneBody",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
         ),
         (
             "editor.performance_timeline",
-            "pane.performance.timeline.body",
+            "res://ui/editor/host/performance_timeline_body.zui",
             "PerformanceTimelinePaneBody",
             "PerformanceTimelinePaneBody/RefreshSnapshot",
         ),
         (
             "editor.module_plugins",
-            "pane.module_plugins.body",
+            "res://ui/editor/host/module_plugins_body.zui",
             "ModulePluginsPaneBody",
             "ModulePluginsPaneBody/FocusModulePlugins",
         ),
         (
             "editor.build_export_desktop",
-            "pane.build_export_desktop.body",
+            "res://ui/editor/host/build_export_desktop_body.zui",
             "BuildExportPaneBody",
             "BuildExportPaneBody/FocusBuildExport",
         ),
         (
             "editor.generated_bottom",
-            "pane.generated_bottom.body",
+            "res://ui/editor/host/generated_bottom_body.zui",
             "GeneratedBottomPaneBody",
             "WorkbenchGeneratedBottom/OpenPanel",
         ),
@@ -919,16 +919,15 @@ fn performance_timeline_body_exposes_capture_export_and_summary_sections() {
 }
 
 #[test]
-fn runtime_diagnostics_body_exposes_ui_debug_reflector_section() {
+fn runtime_diagnostics_body_exposes_compact_runtime_and_reflector_sections() {
     let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.zui"))
         .expect("runtime diagnostics pane body asset should be readable");
     let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
         .expect("runtime diagnostics pane body asset should parse");
 
     for control_id in [
-        "UiDebugReflectorSummary",
-        "UiDebugReflectorExportStatus",
-        "UiDebugReflectorDetail",
+        "RuntimeDiagnosticsSummary",
+        "FocusDiagnostics",
         "UiDebugReflectorNodeList",
     ] {
         assert!(
@@ -950,7 +949,7 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
     let cases = [
         (
             "hierarchy_body.zui",
-            "editor.host.pane.hierarchy.body",
+            "editor.host.res://ui/editor/host/hierarchy_body.zui",
             "hierarchy_tree_slot",
         ),
         (
@@ -965,7 +964,7 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
         ),
         (
             "module_plugins_body.zui",
-            "editor.host.pane.module_plugins.body",
+            "editor.host.res://ui/editor/host/module_plugins_body.zui",
             "module_plugin_list_slot",
         ),
         (
@@ -1016,47 +1015,47 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
 
     let cases = [
         (
-            "pane.console.body",
+            "res://ui/editor/host/console_body.zui",
             "ConsolePaneBody/FocusConsole",
             "DockCommand",
         ),
         (
-            "pane.inspector.body",
+            "res://ui/editor/host/inspector_body.zui",
             "InspectorPaneBody/ApplyDraft",
             "DraftCommand",
         ),
         (
-            "pane.hierarchy.body",
+            "res://ui/editor/host/hierarchy_body.zui",
             "HierarchyPaneBody/SelectRoot",
             "SelectionCommand",
         ),
         (
-            "pane.animation.sequence.body",
+            "res://ui/editor/host/animation_sequence_body.zui",
             "AnimationSequencePaneBody/ScrubTimeline",
             "AnimationCommand",
         ),
         (
-            "pane.animation.graph.body",
+            "res://ui/editor/host/animation_graph_body.zui",
             "AnimationGraphPaneBody/AddNode",
             "AnimationCommand",
         ),
         (
-            "pane.runtime.diagnostics.body",
+            "res://ui/editor/host/runtime_diagnostics_body.zui",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
             "DockCommand",
         ),
         (
-            "pane.performance.timeline.body",
+            "res://ui/editor/host/performance_timeline_body.zui",
             "PerformanceTimelinePaneBody/RefreshSnapshot",
             "DockCommand",
         ),
         (
-            "pane.module_plugins.body",
+            "res://ui/editor/host/module_plugins_body.zui",
             "ModulePluginsPaneBody/FocusModulePlugins",
             "DockCommand",
         ),
         (
-            "pane.build_export_desktop.body",
+            "res://ui/editor/host/build_export_desktop_body.zui",
             "BuildExportPaneBody/FocusBuildExport",
             "DockCommand",
         ),

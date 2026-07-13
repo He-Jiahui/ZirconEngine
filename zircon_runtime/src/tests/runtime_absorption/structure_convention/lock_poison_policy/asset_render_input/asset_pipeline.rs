@@ -29,7 +29,7 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
             "MutexGuard<'_, Vec<ChannelSender<AssetChange>>>",
             "pub(in crate::asset::pipeline::manager) fn lock_watch_error_subscribers(",
             "MutexGuard<'_, Vec<ChannelSender<AssetWatchError>>>",
-            "fn lock_watcher(&self) -> MutexGuard<'_, Option<AssetWatcher>>",
+            "fn lock_watchers(&self) -> MutexGuard<'_, Vec<AssetWatcher>>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "project_asset_manager_runtime_accessors_recover_poisoned_locks",
         ],

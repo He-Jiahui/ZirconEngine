@@ -33,7 +33,7 @@
 - `zircon_runtime_interface/src/ui/surface/diagnostics.rs`: add rebuild/invalidation and batch-break DTO fields to shared debug snapshots.
 - `zircon_runtime/src/ui/surface/diagnostics.rs`: populate the extended debug DTOs from `UiSurfaceFrame`.
 - `zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs`: new focused module for debug overlay frame calculation.
-- `zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs`: use the shared overlay frame helper instead of local geometry.
+- `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs`: use the shared overlay frame helper instead of local geometry.
 - `zircon_editor/src/ui/slint_host/host_contract/presenter.rs`: union overlay damage into region presents when diagnostics text changes without scheduling a second redraw.
 - `zircon_editor/src/ui/slint_host/app/invalidation.rs`: expose the full structured invalidation snapshot.
 - `docs/ui-and-layout/slate-style-ui-surface-frame.md`, `docs/editor-and-tooling/editor-workbench-shell.md`, and `tests/acceptance/ui-m7-invalidation-performance.md`: record behavior and evidence.
@@ -84,7 +84,7 @@ cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir "E:\zircon-bu
 Run:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs"
+rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs" "zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs"
 cargo test -p zircon_editor --lib presenter::tests --locked --jobs 1 --target-dir "E:\zircon-build\targets\ui-m7" --message-format short --color never -- --nocapture
 cargo test -p zircon_editor --lib rust_owned_host_window_snapshot_draws_top_right_debug_refresh_rate --locked --jobs 1 --target-dir "E:\zircon-build\targets\ui-m7" --message-format short --color never
 ```

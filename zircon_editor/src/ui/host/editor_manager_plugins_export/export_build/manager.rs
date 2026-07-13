@@ -1,8 +1,8 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::core::jobs::CancellationToken;
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
 use zircon_runtime::plugin::ExportBuildPlan;
 
@@ -15,6 +15,7 @@ use super::diagnostics::{
     cargo_invocation_diagnostics, cargo_invocation_diagnostics_with_label,
     finalize_export_diagnostics, skipped_export_cargo_build_diagnostic,
 };
+use super::error::EditorExportBuildError;
 use super::generated_files::{should_invoke_cargo, should_probe_exported_native_manifest};
 use super::progress::EditorExportBuildProgress;
 use super::report::EditorExportBuildReport;
@@ -24,11 +25,12 @@ impl EditorManager {
         &self,
         manifest: &ProjectManifest,
         profile_name: &str,
-    ) -> Result<ExportBuildPlan, String> {
+    ) -> Result<ExportBuildPlan, EditorExportBuildError> {
         ExportBuildPlan::from_project_manifest(
             &self.complete_project_plugin_manifest(manifest),
             profile_name,
         )
+        .map_err(EditorExportBuildError::from)
     }
 
     pub fn generate_native_aware_export_plan(
@@ -36,11 +38,12 @@ impl EditorManager {
         project_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         profile_name: &str,
-    ) -> Result<ExportBuildPlan, String> {
+    ) -> Result<ExportBuildPlan, EditorExportBuildError> {
         ExportBuildPlan::from_project_manifest(
             &self.complete_native_aware_project_plugin_manifest(project_root, manifest),
             profile_name,
         )
+        .map_err(EditorExportBuildError::from)
     }
 
     pub fn execute_native_aware_export_build(
@@ -49,13 +52,14 @@ impl EditorManager {
         output_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         profile_name: &str,
-    ) -> Result<EditorExportBuildReport, String> {
+    ) -> Result<EditorExportBuildReport, EditorExportBuildError> {
+        let cancel = CancellationToken::default();
         self.execute_native_aware_export_build_with_cancellation(
             project_root,
             output_root,
             manifest,
             profile_name,
-            None,
+            &cancel,
         )
     }
 
@@ -65,14 +69,14 @@ impl EditorManager {
         output_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         profile_name: &str,
-        cancel_requested: Option<&AtomicBool>,
-    ) -> Result<EditorExportBuildReport, String> {
+        cancel: &CancellationToken,
+    ) -> Result<EditorExportBuildReport, EditorExportBuildError> {
         self.execute_native_aware_export_build_with_cancellation_and_progress(
             project_root,
             output_root,
             manifest,
             profile_name,
-            cancel_requested,
+            cancel,
             |_| {},
         )
     }
@@ -83,9 +87,9 @@ impl EditorManager {
         output_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         profile_name: &str,
-        cancel_requested: Option<&AtomicBool>,
+        cancel: &CancellationToken,
         mut progress: F,
-    ) -> Result<EditorExportBuildReport, String>
+    ) -> Result<EditorExportBuildReport, EditorExportBuildError>
     where
         F: FnMut(EditorExportBuildProgress),
     {
@@ -120,17 +124,18 @@ impl EditorManager {
             25,
             "Preparing native dynamic plugin packages",
         );
-        let native_preparation = prepare_native_dynamic_packages_with_cancellation(
+        let mut native_preparation = prepare_native_dynamic_packages_with_cancellation(
             output_root.as_ref(),
             &plan,
             &native_report,
-            cancel_requested,
+            self.context().jobs(),
+            cancel,
         )?;
-        if export_cancellation_requested(cancel_requested) {
-            let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
-            return Err(cancelled_export_error(
+        if cancel.is_cancelled() {
+            let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
+            return Err(EditorExportBuildError::cancelled(
                 "native dynamic package preparation",
-                cleanup_diagnostics,
+                cleanup_error,
             ));
         }
         emit_export_progress(
@@ -139,14 +144,23 @@ impl EditorManager {
             45,
             "Writing export files and plugin package payloads",
         );
-        let materialized = plan
+        let materialized = match plan
             .materialize_with_native_packages(&native_preparation.plugin_root, output_root.as_ref())
-            .map_err(|error| error.to_string())?;
-        if export_cancellation_requested(cancel_requested) {
-            let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
-            return Err(cancelled_export_error(
+        {
+            Ok(materialized) => materialized,
+            Err(source) => {
+                let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
+                return Err(EditorExportBuildError::materialize_with_cleanup(
+                    source,
+                    cleanup_error,
+                ));
+            }
+        };
+        if cancel.is_cancelled() {
+            let cleanup_error = cleanup_native_dynamic_preparation(&native_preparation).err();
+            return Err(EditorExportBuildError::cancelled(
                 "export materialization",
-                cleanup_diagnostics,
+                cleanup_error,
             ));
         }
         emit_export_progress(
@@ -155,13 +169,14 @@ impl EditorManager {
             58,
             "Cleaning temporary native dynamic staging directories",
         );
-        let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
-        if export_cancellation_requested(cancel_requested) {
-            return Err(cancelled_export_error(
+        let cleanup_result = cleanup_native_dynamic_preparation(&native_preparation);
+        if cancel.is_cancelled() {
+            return Err(EditorExportBuildError::cancelled(
                 "export cleanup",
-                cleanup_diagnostics,
+                cleanup_result.err(),
             ));
         }
+        cleanup_result?;
         let cargo_invocation = if should_invoke_cargo(&plan, &materialized.generated_files) {
             emit_export_progress(
                 &mut progress,
@@ -171,7 +186,8 @@ impl EditorManager {
             );
             Some(invoke_cargo_build_with_cancellation(
                 output_root.as_ref(),
-                cancel_requested,
+                self.context().jobs(),
+                cancel,
             )?)
         } else {
             emit_export_progress(
@@ -185,7 +201,7 @@ impl EditorManager {
         let mut diagnostics = native_report.diagnostics.clone();
         diagnostics.extend(native_report.descriptor_diagnostics());
         diagnostics.extend(native_report.entry_diagnostics());
-        diagnostics.extend(native_preparation.diagnostics);
+        diagnostics.extend(std::mem::take(&mut native_preparation.diagnostics));
         for invocation in &native_preparation.cargo_invocations {
             diagnostics.extend(cargo_invocation_diagnostics_with_label(
                 invocation,
@@ -194,7 +210,6 @@ impl EditorManager {
         }
         diagnostics.extend(materialized.diagnostics);
         let fatal_diagnostics = materialized.fatal_diagnostics;
-        diagnostics.extend(cleanup_diagnostics);
         if should_probe_exported_native_manifest(&materialized.generated_files) {
             emit_export_progress(
                 &mut progress,
@@ -228,16 +243,18 @@ impl EditorManager {
             100,
             "Desktop export build finished",
         );
-        Ok(EditorExportBuildReport {
+        let report = EditorExportBuildReport {
             plan,
             invoked_cargo: cargo_invocation.is_some(),
             cargo_invocation,
-            native_cargo_invocations: native_preparation.cargo_invocations,
+            native_cargo_invocations: std::mem::take(&mut native_preparation.cargo_invocations),
             generated_files: materialized.generated_files,
             copied_packages: materialized.copied_packages,
             diagnostics,
             fatal_diagnostics,
-        })
+        };
+        drop(native_preparation);
+        Ok(report)
     }
 
     pub fn execute_export_build(
@@ -245,14 +262,14 @@ impl EditorManager {
         output_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
         profile_name: &str,
-    ) -> Result<EditorExportBuildReport, String> {
+    ) -> Result<EditorExportBuildReport, EditorExportBuildError> {
         let output_root = output_root.as_ref();
         let plan = self.generate_export_plan(manifest, profile_name)?;
         let materialized = plan
             .materialize(output_root)
-            .map_err(|error| error.to_string())?;
+            .map_err(EditorExportBuildError::materialize)?;
         let cargo_invocation = if should_invoke_cargo(&plan, &materialized.generated_files) {
-            Some(invoke_cargo_build(output_root)?)
+            Some(invoke_cargo_build(output_root, self.context().jobs())?)
         } else {
             None
         };
@@ -305,7 +322,7 @@ fn blocked_native_aware_export_build_report(
     output_root: &Path,
     plan: ExportBuildPlan,
     progress: &mut impl FnMut(EditorExportBuildProgress),
-) -> Result<EditorExportBuildReport, String> {
+) -> Result<EditorExportBuildReport, EditorExportBuildError> {
     emit_export_progress(
         progress,
         "materialize-export",
@@ -314,7 +331,7 @@ fn blocked_native_aware_export_build_report(
     );
     let materialized = plan
         .materialize(output_root)
-        .map_err(|error| error.to_string())?;
+        .map_err(EditorExportBuildError::materialize)?;
     let mut diagnostics = materialized.diagnostics;
     let fatal_diagnostics = materialized.fatal_diagnostics;
     diagnostics.push(skipped_export_cargo_build_diagnostic(&plan));
@@ -342,21 +359,6 @@ fn blocked_native_aware_export_build_report(
         diagnostics,
         fatal_diagnostics,
     })
-}
-
-fn export_cancellation_requested(cancel_requested: Option<&AtomicBool>) -> bool {
-    cancel_requested.is_some_and(|cancel_requested| cancel_requested.load(Ordering::SeqCst))
-}
-
-fn cancelled_export_error(stage: &str, cleanup_diagnostics: Vec<String>) -> String {
-    if cleanup_diagnostics.is_empty() {
-        format!("desktop export cancelled during {stage}")
-    } else {
-        format!(
-            "desktop export cancelled during {stage}; cleanup diagnostics: {}",
-            cleanup_diagnostics.join("; ")
-        )
-    }
 }
 
 #[cfg(test)]

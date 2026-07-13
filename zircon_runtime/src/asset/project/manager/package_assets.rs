@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use crate::asset::AssetImportError;
-use crate::plugin::PluginPackageManifest;
 
 use super::ProjectManager;
 
@@ -14,12 +13,16 @@ impl ProjectManager {
         self.package_assets.register_root(package_id, assets_root)
     }
 
-    pub fn register_package_manifest_asset_roots(
+    pub fn register_package_asset_roots<Root>(
         &mut self,
-        manifest: &PluginPackageManifest,
+        package_id: impl Into<String>,
+        asset_roots: impl IntoIterator<Item = Root>,
         package_root: impl AsRef<Path>,
-    ) -> Result<(), AssetImportError> {
+    ) -> Result<(), AssetImportError>
+    where
+        Root: AsRef<str>,
+    {
         self.package_assets
-            .register_manifest_roots(manifest, package_root)
+            .register_package_roots(package_id, asset_roots, package_root)
     }
 }

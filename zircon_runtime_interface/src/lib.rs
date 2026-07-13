@@ -1,6 +1,7 @@
 //! Stable ABI and DTO contracts shared by runtime hosts, editors, and plugins.
 
 pub mod buffer;
+pub mod export;
 pub mod handles;
 pub mod manifest;
 pub mod math;
@@ -8,12 +9,15 @@ pub mod plugin_api;
 pub mod plugin_diagnostics;
 pub mod plugin_events;
 pub mod profiling;
+pub mod project;
 pub mod reflect;
 pub mod resource;
 pub mod runtime_api;
+pub mod serialization;
 pub mod status;
 pub mod ui;
 pub mod version;
+pub mod world_sync;
 
 pub use buffer::{ZrByteBufferRef, ZrByteSlice, ZrFreeBytesFn, ZrOwnedByteBuffer};
 pub use handles::{ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};

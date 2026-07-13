@@ -1,12 +1,16 @@
+use zircon_editor::core::asset::{
+    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
+    AssetTypePresentation, ThumbnailProviderDescriptor,
+};
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodeDescriptor,
-    GraphNodePaletteDescriptor, GraphPinDescriptor,
+    GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
 use zircon_editor::core::editor_extension::{
     ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
     EditorMenuItemDescriptor,
 };
-use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, EditorAuthoringContributionBatch, EditorAuthoringSurface,
 };
@@ -51,11 +55,12 @@ pub fn register_net_authoring_workflows(
     let schema_validate = operation_path(NET_REPLICATION_SCHEMA_VALIDATE_OPERATION)?;
     let schema_compile = operation_path(NET_REPLICATION_SCHEMA_COMPILE_OPERATION)?;
     let schema_create = operation_path(NET_REPLICATION_SCHEMA_CREATE_OPERATION)?;
+    let schema_type = AssetTypeId::parse(NET_REPLICATION_SCHEMA_ASSET_KIND)?;
 
     register_authoring_contribution_batch(
         registry,
         EditorAuthoringContributionBatch {
-            operations: vec![
+            commands: vec![
                 configure_operation(
                     listener_config.clone(),
                     "Configure Network Listener",
@@ -68,22 +73,22 @@ pub fn register_net_authoring_workflows(
                     "Plugins/Network/Route",
                     "net.route_config.v1",
                 ),
-                EditorOperationDescriptor::new(
+                EditorCommandDescriptor::pending_operation(
                     schema_open.clone(),
                     "Open Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorOperationDescriptor::new(
+                EditorCommandDescriptor::pending_operation(
                     schema_validate.clone(),
                     "Validate Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorOperationDescriptor::new(
+                EditorCommandDescriptor::pending_operation(
                     schema_compile.clone(),
                     "Compile Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorOperationDescriptor::new(
+                EditorCommandDescriptor::pending_operation(
                     schema_create.clone(),
                     "Create Network Replication Schema",
                 )
@@ -122,16 +127,31 @@ pub fn register_net_authoring_workflows(
                 .with_data_root("net.replication_schema")
                 .with_binding(schema_open.as_str()),
             ],
-            asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(
-                NET_REPLICATION_SCHEMA_TEMPLATE_ID,
-                "Network Replication Schema",
-                NET_REPLICATION_SCHEMA_ASSET_KIND,
-                schema_create,
+            asset_type_contributions: vec![AssetTypeContribution::define(
+                schema_type.clone(),
+                AssetTypePresentation::new(
+                    "Network Replication Schema",
+                    "NET",
+                    "asset-network-schema",
+                    "asset.network",
+                ),
+                ThumbnailProviderDescriptor::Icon("asset-network-schema".to_owned()),
             )
-            .with_default_document("plugins://net/editor/replication_schema.default.toml")
-            .with_required_capabilities([NET_AUTHORING_CAPABILITY])],
+            .with_toolkit(
+                AssetToolkitDescriptor::new(NET_AUTHORING_VIEW_ID, schema_open.clone())
+                    .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+            )
+            .with_creation_template(
+                AssetCreationTemplateDescriptor::new(
+                    NET_REPLICATION_SCHEMA_TEMPLATE_ID,
+                    "Network Replication Schema",
+                    schema_create,
+                )
+                .with_default_document("plugins://net/editor/replication_schema.default.toml")
+                .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
+            )],
             graph_editors: vec![GraphEditorDescriptor::new(
-                NET_REPLICATION_SCHEMA_ASSET_KIND,
+                schema_type.clone(),
                 NET_AUTHORING_VIEW_ID,
                 "Network Replication Schema",
                 schema_open,
@@ -141,7 +161,7 @@ pub fn register_net_authoring_workflows(
             .with_required_capabilities([NET_AUTHORING_CAPABILITY])],
             graph_node_palettes: vec![GraphNodePaletteDescriptor::new(
                 NET_REPLICATION_SCHEMA_PALETTE_ID,
-                NET_REPLICATION_SCHEMA_ASSET_KIND,
+                schema_type,
             )
             .with_node(
                 GraphNodeDescriptor::new("network_identity", "Network Identity", "Replication")
@@ -167,8 +187,8 @@ fn configure_operation(
     display_name: &'static str,
     menu_path: &'static str,
     payload_schema_id: &'static str,
-) -> EditorOperationDescriptor {
-    EditorOperationDescriptor::new(path, display_name)
+) -> EditorCommandDescriptor {
+    EditorCommandDescriptor::pending_operation(path, display_name)
         .with_menu_path(menu_path)
         .with_payload_schema_id(payload_schema_id)
         .with_required_capabilities([NET_AUTHORING_CAPABILITY])
@@ -180,5 +200,5 @@ fn menu_item(path: &'static str, operation: EditorOperationPath) -> EditorMenuIt
 }
 
 fn operation_path(path: &'static str) -> Result<EditorOperationPath, EditorExtensionRegistryError> {
-    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::Operation)
+    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::OperationPath)
 }

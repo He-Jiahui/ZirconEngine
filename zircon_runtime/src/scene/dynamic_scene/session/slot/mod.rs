@@ -1,6 +1,7 @@
 mod capture;
 mod diff;
 mod restore;
+mod scene_document;
 mod summary;
 
 use serde::{Deserialize, Serialize};
@@ -13,5 +14,6 @@ pub struct RuntimeSessionSlot {
     pub slot_id: String,
     #[serde(default)]
     pub metadata: RuntimeSessionMetadata,
+    #[serde(with = "scene_document")]
     pub scene: DynamicScene,
 }

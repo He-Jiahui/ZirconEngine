@@ -2,19 +2,9 @@ use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 
 #[test]
 fn review_d13_importer_runtime_exports_use_sdk_macro() {
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let importer_doc = include_str!(
-        "../../../../../../../docs/zircon_plugins/asset_importers/runtime-skeletons.md"
-    );
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_exports =
         include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/runtime_exports.rs");
@@ -63,7 +53,7 @@ fn review_d13_importer_runtime_exports_use_sdk_macro() {
 
     for required in [
         "macro_rules! runtime_plugin_exports",
-        "pub fn runtime_selection() -> zircon_runtime::plugin::ProjectPluginSelection",
+        "pub fn runtime_selection(\n        ) -> zircon_runtime::core::framework::project::ProjectPluginSelection",
         "pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistrationReport",
         "zircon_runtime::plugin::RuntimePlugin::project_selection(&runtime_plugin())",
         "zircon_runtime::plugin::RuntimePluginRegistrationReport::from_plugin(&runtime_plugin())",
@@ -85,8 +75,8 @@ fn review_d13_importer_runtime_exports_use_sdk_macro() {
         "d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred",
     ] {
         assert!(
-            d13_row.contains(required),
-            "D13 row should record importer runtime export macro convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D13 numbered review evidence should record importer runtime export macro convergence anchor `{required}`"
         );
     }
     for stale in [
@@ -99,23 +89,9 @@ fn review_d13_importer_runtime_exports_use_sdk_macro() {
         );
     }
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("asset importer doc", importer_doc),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D13 importer runtime export macro convergence",
-            "d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred",
-            "review_d13_importer_runtime_exports_use_sdk_macro",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D13 importer export convergence anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D13 importer runtime export macro convergence")
+            && review_findings.contains("review_d13_importer_runtime_exports_use_sdk_macro"),
+        "D13 numbered output should own the concrete importer export evidence"
+    );
 }

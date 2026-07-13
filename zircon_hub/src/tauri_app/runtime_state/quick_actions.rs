@@ -179,7 +179,7 @@ mod tests {
         config.settings.default_source_dir = PathBuf::new();
         config.settings.default_build_output_dir = temp.join("out");
         config.settings.default_device_install_dir = temp.join("device");
-        config.recent_projects = vec![RecentProject::new(name, project, 1)];
+        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(

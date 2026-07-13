@@ -9,7 +9,7 @@ use super::ProjectManager;
 impl ProjectManager {
     pub fn source_path_for_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
         match uri.scheme() {
-            ResourceScheme::Res => Ok(self.paths.assets_root().join(uri.path())),
+            ResourceScheme::Res => self.source_path_for_project_uri(uri),
             ResourceScheme::Library => Err(AssetImportError::UnsupportedFormat(format!(
                 "source path requested for library uri {uri}"
             ))),
@@ -40,6 +40,53 @@ impl ProjectManager {
                     "source path requested for non-project uri {uri}"
                 )))
             }
+        }
+    }
+
+    /// Resolves a not-yet-existing `res://` destination into the first manifest root.
+    pub fn primary_project_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<PathBuf, AssetImportError> {
+        if uri.scheme() != ResourceScheme::Res {
+            return Err(AssetImportError::UnsupportedFormat(format!(
+                "primary project destination requested for non-res uri {uri}"
+            )));
+        }
+        validate_relative_package_path(uri.path())?;
+        Ok(self.primary_project_asset_root()?.join(uri.path()))
+    }
+
+    /// Resolves an existing unique source, or explicitly chooses the primary root for a new one.
+    pub fn existing_or_primary_project_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<PathBuf, AssetImportError> {
+        match self.source_path_for_uri(uri) {
+            Ok(path) => Ok(path),
+            Err(AssetImportError::MissingProjectAssetUri { .. }) => {
+                self.primary_project_source_path_for_uri(uri)
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn source_path_for_project_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
+        validate_relative_package_path(uri.path())?;
+        let existing = self
+            .package_assets
+            .project_roots()
+            .iter()
+            .map(|root| root.join(uri.path()))
+            .filter(|candidate| candidate.exists())
+            .collect::<Vec<_>>();
+        match existing.as_slice() {
+            [path] => Ok(path.clone()),
+            [] => Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() }),
+            _ => Err(AssetImportError::AmbiguousProjectAssetUri {
+                uri: uri.clone(),
+                paths: existing,
+            }),
         }
     }
 }

@@ -4,9 +4,9 @@ use crate::reflect::{
     ReflectEditorHint, ReflectEnumOption, ReflectError, ReflectFieldInfo, ReflectFieldValue,
     ReflectFieldsRequest, ReflectFieldsResponse, ReflectNumericRange, ReflectObjectAddress,
     ReflectReadRequest, ReflectReadResponse, ReflectSchemaFilter, ReflectSchemaRequest,
-    ReflectSchemaResponse, ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind,
-    ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest, ReflectWriteResponse,
-    ReflectedValue,
+    ReflectSchemaResponse, ReflectScriptVisibility, ReflectSerializationStrategy, ReflectTypeInfo,
+    ReflectTypeKind, ReflectTypePath, ReflectTypeRegistration, ReflectWriteRequest,
+    ReflectWriteResponse, ReflectedValue,
 };
 
 fn sample_registration() -> ReflectTypeRegistration {
@@ -60,6 +60,31 @@ fn type_registration_serializes_with_ordered_fields() {
     assert_eq!(
         registration.type_path.plugin_id.as_deref(),
         Some("sample.plugin")
+    );
+    assert_eq!(
+        round_trip::<ReflectTypeRegistration>(&registration),
+        registration
+    );
+}
+
+#[test]
+fn script_visibility_is_independent_from_remote_visibility() {
+    let registration = sample_registration()
+        .with_remote_visible(false)
+        .with_script_visibility(ReflectScriptVisibility::Public)
+        .with_documentation("Shared script-visible type metadata");
+    let serialized = serde_json::to_value(&registration).unwrap();
+
+    assert!(!registration.remote_visible);
+    assert_eq!(
+        registration.script_visibility,
+        ReflectScriptVisibility::Public
+    );
+    assert_eq!(serialized["remote_visible"], false);
+    assert_eq!(serialized["script_visibility"], "public");
+    assert_eq!(
+        serialized["documentation"],
+        "Shared script-visible type metadata"
     );
     assert_eq!(
         round_trip::<ReflectTypeRegistration>(&registration),
@@ -220,7 +245,7 @@ fn field_metadata_preserves_editability_defaults_and_docs() {
         .with_serializable(true)
         .with_editor_visible(true)
         .with_documentation("Physics body type");
-    let json = serde_json::to_value(&ReflectFieldInfo::new(
+    let json = serde_json::to_value(ReflectFieldInfo::new(
         "visible",
         "bool",
         ReflectEditorHint::Bool,
@@ -343,7 +368,7 @@ fn reflect_object_address_schema_and_read_write_dtos_roundtrip() {
 
 #[test]
 fn reflect_error_display_includes_type_field_and_entity_context() {
-    let errors = vec![
+    let errors = [
         ReflectError::InvalidTypePath {
             type_path: " ".to_string(),
             reason: "type path must not be empty".to_string(),

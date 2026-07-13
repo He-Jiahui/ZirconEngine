@@ -1,3 +1,4 @@
+mod ambient;
 mod cubemap_projection;
 mod environment_brdf_lut;
 mod extract;
@@ -5,6 +6,7 @@ mod ibl_bake_artifact;
 mod ibl_bake_artifact_blob;
 mod ibl_bake_artifact_readback;
 mod ibl_bake_artifact_resolution;
+mod lightmap;
 mod reflection_probe;
 mod rgba16f;
 mod skybox;
@@ -12,6 +14,7 @@ mod source_cubemap;
 mod source_cubemap_artifact;
 mod source_irradiance_cubemap;
 
+pub use ambient::{ShL2Rgb, SH_L2_RGB_COEFFICIENT_COUNT};
 pub use cubemap_projection::{
     cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
     cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
@@ -39,6 +42,12 @@ pub use ibl_bake_artifact_readback::{
 pub use ibl_bake_artifact_resolution::{
     resolve_ibl_bake_artifact_payload, IblBakeArtifactBlobCandidate, IblBakeArtifactResolvedPayload,
 };
+pub use lightmap::{
+    LightProbeGridData, LightmapAtlasBudget, LightmapAtlasDescriptor, LightmapAtlasFormat,
+    LightmapAtlasPage, LightmapBakeOutput, LightmapBakeRequest, LightmapBakeSceneSnapshot,
+    LightmapConsumeContract, LightmapContractValidationError, LightmapInstanceSlot,
+    LIGHTMAP_CONSUME_CONTRACT_VERSION, LIGHTMAP_SCENE_SNAPSHOT_VERSION,
+};
 pub use reflection_probe::{
     reflection_probe_box_project_direction, reflection_probe_influence_weight,
     select_reflection_probe_blend, ProbeBakeTiming, ProbeInfluenceShape, ReflectionProbeBlend,
@@ -63,7 +72,8 @@ pub use source_cubemap::{
     source_cubemap_sample_count, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
     SourceCubemapPrefilterQuality, SOURCE_CUBEMAP_FACE_COUNT,
     SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE,
-    SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_ROUGHEST_MIP,
+    SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+    SOURCE_CUBEMAP_PMREM_MIP_COUNT, SOURCE_CUBEMAP_ROUGHEST_MIP,
     SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
 pub use source_cubemap_artifact::{

@@ -1,11 +1,14 @@
 const PYTHON_EXECUTABLE: &str = "python";
 
-use zircon_runtime::plugin::ExportPackagingStrategy;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime_interface::export::{ExportPreset, ExportTargetMode};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardPipelineOptions {
+    pub preset_name: String,
+    pub preset_path: String,
+    pub preset: ExportPreset,
     pub python: String,
-    pub profile: String,
     pub project: String,
     pub out: String,
     pub strategies: Option<Vec<ExportPackagingStrategy>>,
@@ -31,14 +34,18 @@ pub struct ExportWizardPipelineOptions {
 }
 
 impl ExportWizardPipelineOptions {
-    pub fn new(
-        profile: impl Into<String>,
+    pub fn from_preset(
+        preset_name: impl Into<String>,
+        preset_path: impl Into<String>,
+        preset: ExportPreset,
         project: impl Into<String>,
         out: impl Into<String>,
     ) -> Self {
         Self {
+            preset_name: preset_name.into(),
+            preset_path: preset_path.into(),
+            preset,
             python: PYTHON_EXECUTABLE.to_string(),
-            profile: profile.into(),
             project: project.into(),
             out: out.into(),
             strategies: None,
@@ -62,6 +69,19 @@ impl ExportWizardPipelineOptions {
             source_template_build: false,
             determinism_check: false,
         }
+    }
+
+    #[cfg(test)]
+    pub fn for_test_profile(
+        profile: impl Into<String>,
+        project: impl Into<String>,
+        out: impl Into<String>,
+    ) -> Self {
+        let profile = profile.into();
+        let preset_name = profile.clone();
+        let preset_path = format!("export/{preset_name}.zpreset");
+        let preset = ExportPreset::new(profile, ExportTargetMode::ClientRuntime);
+        Self::from_preset(preset_name, preset_path, preset, project, out)
     }
 
     pub fn with_strategies(

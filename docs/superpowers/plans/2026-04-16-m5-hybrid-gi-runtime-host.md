@@ -1,56 +1,52 @@
 ---
 related_code:
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/render_extract.rs
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/visibility/declarations/mod.rs
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_probe.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
+  - zircon_runtime/src/graphics/runtime/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_history_snapshot.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_probe.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_feedback.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_update_plan.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_scene/src/components.rs
-  - zircon_scene/src/lib.rs
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/visibility/declarations/mod.rs
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_probe.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_update_plan.rs
-  - zircon_graphics/src/visibility/planning/mod.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/mod.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/mod.rs
-  - zircon_render_server/src/types.rs
+  - zircon_runtime/src/scene/components
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/graphics/runtime/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_history_snapshot.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_probe.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_feedback.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_update_plan.rs
+  - zircon_runtime/src/graphics/visibility/planning/mod.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/mod.rs
+  - zircon_runtime/src/core/framework/render
 plan_sources:
   - user: 2026-04-16 continue M5 Hybrid GI runtime representation slice
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-flagship-capability-slots.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
   - cargo test -p zircon_graphics visibility_context_builds_hybrid_gi_probe_and_trace_plan --locked
   - cargo test -p zircon_graphics visibility_context_with_history_tracks_hybrid_gi_requested_probes --locked
   - cargo test -p zircon_graphics hybrid_gi_runtime_state_tracks_cache_residency_pending_updates_and_trace_schedule --locked

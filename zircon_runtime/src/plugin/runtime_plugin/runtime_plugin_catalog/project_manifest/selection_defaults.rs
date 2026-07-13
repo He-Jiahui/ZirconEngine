@@ -1,7 +1,7 @@
 mod catalog_selections;
 mod hydration;
 
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::project::ProjectPluginManifest;
 
 use super::super::RuntimePluginRegistrationReport;
 use catalog_selections::add_missing_catalog_selections;

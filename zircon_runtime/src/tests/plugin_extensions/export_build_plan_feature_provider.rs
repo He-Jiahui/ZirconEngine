@@ -1,13 +1,15 @@
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginFeatureSelection,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
 };
 
 #[test]
-fn source_template_links_active_optional_feature_runtime_crates() {
+fn source_template_catalog_completion_links_active_external_optional_feature_runtime_crates() {
     let mut manifest = ProjectManifest::new(
         "Optional Feature Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -24,6 +26,7 @@ fn source_template_links_active_optional_feature_runtime_crates() {
                 ),
             ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false)
                 .with_runtime_crate("zircon_plugin_animation_runtime"),
+            external_feature_provider_selection("sound_timeline_animation_track", true),
         ],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -44,7 +47,7 @@ fn source_template_links_active_optional_feature_runtime_crates() {
         .contains(&"zircon_plugin_sound_timeline_animation_runtime".to_string()));
     assert!(
         cargo_manifest.contains(
-            "zircon_plugin_sound_timeline_animation_runtime = { path = \"../../zircon_plugins/sound/features/timeline_animation_track/runtime\" }"
+            "zircon_plugin_sound_timeline_animation_runtime = { path = \"../../zircon_plugins/sound_timeline_animation_track/runtime\" }"
         ),
         "{cargo_manifest}"
     );
@@ -165,7 +168,7 @@ fn native_dynamic_exports_external_feature_provider_package_without_native_owner
 }
 
 #[test]
-fn source_template_reports_native_dynamic_feature_without_native_owner_as_fatal_when_required() {
+fn source_template_reports_missing_native_dynamic_feature_provider_as_fatal_when_required() {
     let mut manifest = ProjectManifest::new(
         "Native Dynamic Feature Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -196,12 +199,14 @@ fn source_template_reports_native_dynamic_feature_without_native_owner_as_fatal_
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic.contains(
-        "optional feature sound.timeline_animation_track uses NativeDynamic packaging but owner plugin sound is not NativeDynamic"
-    )));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic.contains(
-        "optional feature sound.timeline_animation_track uses NativeDynamic packaging but owner plugin sound is not NativeDynamic"
-    )));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("required feature sound.timeline_animation_track is blocked")
+            && diagnostic.contains("missing plugins: sound_timeline_animation_track")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("required feature sound.timeline_animation_track is blocked")
+            && diagnostic.contains("missing plugins: sound_timeline_animation_track")
+    }));
 }
 
 #[test]

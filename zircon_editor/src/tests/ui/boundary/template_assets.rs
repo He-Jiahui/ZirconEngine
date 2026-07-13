@@ -406,11 +406,11 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
     let builtin_documents = crate::ui::template_runtime::builtin::builtin_template_documents();
     for (document_id, expected_suffix) in [
         (
-            "ui.host_window",
+            "res://ui/editor/host/workbench_shell.zui",
             "assets/ui/editor/host/workbench_shell.zui",
         ),
         (
-            "editor.window.workbench",
+            "res://ui/editor/windows/workbench_window.zui",
             "assets/ui/editor/windows/workbench_window.zui",
         ),
     ] {

@@ -1,7 +1,7 @@
 use zircon_runtime::core::framework::navigation::{
     NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
 };
-use zircon_runtime::plugin::ComponentTypeDescriptor;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 
 use crate::PLUGIN_ID;
 

@@ -1,19 +1,24 @@
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
+
+use crate::core::jobs::{CancellationToken, EditorJobSystem};
 
 use super::super::super::export_cargo_process::invoke_cargo_process;
 use super::cargo_invocation::EditorExportCargoInvocation;
+use super::error::EditorExportBuildError;
 
 pub(super) fn invoke_cargo_build(
     output_root: &Path,
-) -> Result<EditorExportCargoInvocation, String> {
-    invoke_cargo_build_with_cancellation(output_root, None)
+    jobs: &EditorJobSystem,
+) -> Result<EditorExportCargoInvocation, EditorExportBuildError> {
+    let cancel = CancellationToken::default();
+    invoke_cargo_build_with_cancellation(output_root, jobs, &cancel)
 }
 
 pub(super) fn invoke_cargo_build_with_cancellation(
     output_root: &Path,
-    cancel_requested: Option<&AtomicBool>,
-) -> Result<EditorExportCargoInvocation, String> {
+    jobs: &EditorJobSystem,
+    cancel: &CancellationToken,
+) -> Result<EditorExportCargoInvocation, EditorExportBuildError> {
     let manifest_path = output_root.join("Cargo.toml");
     if !manifest_path.exists() {
         return Ok(EditorExportCargoInvocation {
@@ -35,11 +40,6 @@ pub(super) fn invoke_cargo_build_with_cancellation(
         manifest_path.display().to_string(),
         "--locked".to_string(),
     ];
-    invoke_cargo_process(
-        cargo,
-        args,
-        Some(output_root),
-        cancel_requested,
-        "export build",
-    )
+    invoke_cargo_process(jobs, cargo, args, Some(output_root), cancel, "export build")
+        .map_err(EditorExportBuildError::cargo)
 }

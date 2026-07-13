@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/runtime_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/pending_probe_inputs.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/resident_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/pending_probe_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/resident_probe_inputs.rs
 plan_sources:
   - user: 2026-04-19 Hybrid GI 更完整的 scene-driven screen-probe hierarchy / gather / RT hybrid-lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_runtime_source -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

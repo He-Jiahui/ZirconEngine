@@ -109,10 +109,10 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
         &host_registry,
         &[
             "use std::sync::{Arc, Mutex, MutexGuard};",
-            "fn lock_handles(&self) -> MutexGuard<'_, HashMap<HostHandle, HostCapabilityRecord>>",
+            "fn lock_state(&self) -> MutexGuard<'_, HostRegistryState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "self.lock_handles().insert(",
-            "self.lock_handles().get(&handle).cloned()",
+            "let mut state = self.lock_state();",
+            "let state = self.lock_state();",
             "host_registry_accessors_recover_poisoned_handle_lock",
         ],
     );

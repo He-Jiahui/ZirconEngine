@@ -1,14 +1,15 @@
+use zircon_editor::core::asset::AssetTypeContribution;
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodePaletteDescriptor,
-    TimelineEditorDescriptor, TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
+    TimelineTrackDescriptor, ViewportToolModeDescriptor,
 };
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor,
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
-    EditorUiTemplateDescriptor, ViewDescriptor,
+    AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor, EditorExtensionRegistry,
+    EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
+    ViewDescriptor,
 };
-use zircon_editor::core::editor_operation::EditorOperationDescriptor;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EditorAuthoringSurface<'a> {
@@ -63,12 +64,11 @@ pub fn register_authoring_extensions(
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EditorAuthoringContributionBatch {
-    pub operations: Vec<EditorOperationDescriptor>,
+    pub commands: Vec<EditorCommandDescriptor>,
     pub menu_items: Vec<EditorMenuItemDescriptor>,
     pub asset_importers: Vec<AssetImporterDescriptor>,
-    pub asset_editors: Vec<AssetEditorDescriptor>,
+    pub asset_type_contributions: Vec<AssetTypeContribution>,
     pub component_drawers: Vec<ComponentDrawerDescriptor>,
-    pub asset_creation_templates: Vec<AssetCreationTemplateDescriptor>,
     pub viewport_tool_modes: Vec<ViewportToolModeDescriptor>,
     pub graph_editors: Vec<GraphEditorDescriptor>,
     pub graph_node_palettes: Vec<GraphNodePaletteDescriptor>,
@@ -80,8 +80,8 @@ pub fn register_authoring_contribution_batch(
     registry: &mut EditorExtensionRegistry,
     batch: EditorAuthoringContributionBatch,
 ) -> Result<(), EditorExtensionRegistryError> {
-    for operation in batch.operations {
-        registry.register_operation(operation)?;
+    for operation in batch.commands {
+        registry.register_command(operation)?;
     }
     for menu_item in batch.menu_items {
         registry.register_menu_item(menu_item)?;
@@ -89,14 +89,11 @@ pub fn register_authoring_contribution_batch(
     for importer in batch.asset_importers {
         registry.register_asset_importer(importer)?;
     }
-    for editor in batch.asset_editors {
-        registry.register_asset_editor(editor)?;
+    for contribution in batch.asset_type_contributions {
+        registry.register_asset_type_contribution(contribution)?;
     }
     for drawer in batch.component_drawers {
         registry.register_component_drawer(drawer)?;
-    }
-    for template in batch.asset_creation_templates {
-        registry.register_asset_creation_template(template)?;
     }
     for tool_mode in batch.viewport_tool_modes {
         registry.register_viewport_tool_mode(tool_mode)?;
@@ -123,9 +120,9 @@ pub fn register_authoring_surface(
     let view = ViewDescriptor::new(surface.view_id, surface.display_name, surface.category);
     let operation_path = view
         .open_operation_path()
-        .map_err(EditorExtensionRegistryError::Operation)?;
-    registry.register_operation(
-        EditorOperationDescriptor::new(
+        .map_err(EditorExtensionRegistryError::OperationPath)?;
+    registry.register_command(
+        EditorCommandDescriptor::pending_operation(
             operation_path.clone(),
             format!("Open {}", view.display_name()),
         )
@@ -144,6 +141,10 @@ pub fn register_authoring_surface(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::core::asset::{
+        AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeId,
+        AssetTypePresentation, ThumbnailProviderDescriptor,
+    };
     use zircon_editor::core::editor_authoring_extension::{
         GraphNodeDescriptor, GraphPinDescriptor,
     };
@@ -161,20 +162,36 @@ mod tests {
         let compile = operation("support.authoring.compile");
         let create = operation("support.authoring.create");
         let activate = operation("support.authoring.activate_tool");
+        let support_type = AssetTypeId::parse("support.asset").unwrap();
         let mut registry = EditorExtensionRegistry::default();
 
         register_authoring_contribution_batch(
             &mut registry,
             EditorAuthoringContributionBatch {
-                operations: vec![
-                    EditorOperationDescriptor::new(import.clone(), "Import Support Asset")
-                        .with_menu_path("Plugins/Support/Import")
-                        .with_payload_schema_id("support.import.v1"),
-                    EditorOperationDescriptor::new(open.clone(), "Open Support Asset"),
-                    EditorOperationDescriptor::new(validate.clone(), "Validate Support Asset"),
-                    EditorOperationDescriptor::new(compile.clone(), "Compile Support Asset"),
-                    EditorOperationDescriptor::new(create.clone(), "Create Support Asset"),
-                    EditorOperationDescriptor::new(activate.clone(), "Activate Support Tool"),
+                commands: vec![
+                    EditorCommandDescriptor::pending_operation(
+                        import.clone(),
+                        "Import Support Asset",
+                    )
+                    .with_menu_path("Plugins/Support/Import")
+                    .with_payload_schema_id("support.import.v1"),
+                    EditorCommandDescriptor::pending_operation(open.clone(), "Open Support Asset"),
+                    EditorCommandDescriptor::pending_operation(
+                        validate.clone(),
+                        "Validate Support Asset",
+                    ),
+                    EditorCommandDescriptor::pending_operation(
+                        compile.clone(),
+                        "Compile Support Asset",
+                    ),
+                    EditorCommandDescriptor::pending_operation(
+                        create.clone(),
+                        "Create Support Asset",
+                    ),
+                    EditorCommandDescriptor::pending_operation(
+                        activate.clone(),
+                        "Activate Support Tool",
+                    ),
                 ],
                 menu_items: vec![EditorMenuItemDescriptor::new(
                     "Plugins/Support/Import",
@@ -187,25 +204,32 @@ mod tests {
                     import.clone(),
                 )
                 .with_source_extension("support")
-                .with_output_kind("support.asset")],
-                asset_editors: vec![AssetEditorDescriptor::new(
-                    "support.asset",
+                .with_output_type(support_type.clone())],
+                asset_type_contributions: vec![AssetTypeContribution::define(
+                    support_type.clone(),
+                    AssetTypePresentation::new(
+                        "Support Asset",
+                        "SUP",
+                        "asset-support",
+                        "asset.support",
+                    ),
+                    ThumbnailProviderDescriptor::Icon("asset-support".to_owned()),
+                )
+                .with_toolkit(AssetToolkitDescriptor::new(
                     "support.authoring",
-                    "Support Asset",
                     open.clone(),
-                )],
+                ))
+                .with_creation_template(AssetCreationTemplateDescriptor::new(
+                    "support.template.asset",
+                    "Support Asset",
+                    create,
+                ))],
                 component_drawers: vec![ComponentDrawerDescriptor::new(
                     "support.Component",
                     "plugins://support/editor/component.zui",
                     "support.editor.component",
                 )
                 .with_binding(validate.as_str())],
-                asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(
-                    "support.template.asset",
-                    "Support Asset",
-                    "support.asset",
-                    create,
-                )],
                 viewport_tool_modes: vec![ViewportToolModeDescriptor::new(
                     "support.tool.paint",
                     "Paint Support",
@@ -213,7 +237,7 @@ mod tests {
                     activate,
                 )],
                 graph_editors: vec![GraphEditorDescriptor::new(
-                    "support.graph",
+                    AssetTypeId::parse("support.graph").unwrap(),
                     "support.authoring",
                     "Support Graph",
                     open.clone(),
@@ -222,14 +246,14 @@ mod tests {
                 .with_compile_operation(compile)],
                 graph_node_palettes: vec![GraphNodePaletteDescriptor::new(
                     "support.palette",
-                    "support.graph",
+                    AssetTypeId::parse("support.graph").unwrap(),
                 )
                 .with_node(
                     GraphNodeDescriptor::new("output", "Output", "Graph")
                         .with_input(GraphPinDescriptor::new("value", "float").required(true)),
                 )],
                 timeline_editors: vec![TimelineEditorDescriptor::new(
-                    "support.timeline",
+                    AssetTypeId::parse("support.timeline").unwrap(),
                     "support.authoring",
                     "Support Timeline",
                     open,
@@ -246,9 +270,9 @@ mod tests {
 
         assert_eq!(
             registry
-                .operations()
-                .descriptor(&import)
-                .and_then(EditorOperationDescriptor::payload_schema_id),
+                .commands()
+                .command(&import)
+                .and_then(EditorCommandDescriptor::payload_schema_id),
             Some("support.import.v1")
         );
         let support_capabilities = vec!["editor.extension.support_authoring".to_string()];
@@ -258,20 +282,22 @@ mod tests {
                 && item.required_capabilities() == support_capabilities.as_slice()
         }));
         assert_eq!(registry.asset_importers()[0].id(), "support.asset.importer");
-        assert_eq!(registry.asset_editors()[0].asset_kind(), "support.asset");
+        assert_eq!(
+            registry.asset_type_contributions()[0].asset_type(),
+            &support_type
+        );
         assert_eq!(
             registry.component_drawers()[0].component_type(),
             "support.Component"
         );
-        assert_eq!(
-            registry.asset_creation_templates()[0].id(),
-            "support.template.asset"
-        );
         assert_eq!(registry.viewport_tool_modes()[0].id(), "support.tool.paint");
-        assert_eq!(registry.graph_editors()[0].asset_kind(), "support.graph");
+        assert_eq!(
+            registry.graph_editors()[0].asset_type().as_str(),
+            "support.graph"
+        );
         assert_eq!(registry.graph_node_palettes()[0].id(), "support.palette");
         assert_eq!(
-            registry.timeline_editors()[0].asset_kind(),
+            registry.timeline_editors()[0].asset_type().as_str(),
             "support.timeline"
         );
         assert_eq!(

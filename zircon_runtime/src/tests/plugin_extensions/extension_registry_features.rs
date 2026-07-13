@@ -1,12 +1,14 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::project::{
+    ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
+    ProjectPluginSelection,
+};
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleManifest, ProjectPluginFeatureSelection, ProjectPluginManifest,
-    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePluginCatalog,
-    RuntimePluginDescriptor, RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
-    RuntimePluginRegistrationReport,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
+    RuntimeExtensionRegistry, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginFeature,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins() {
@@ -181,8 +183,9 @@ fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
 
     assert!(report.is_success(), "{:?}", report.fatal_diagnostics);
     assert!(report.fatal_diagnostics.is_empty());
-    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("optional feature sound.timeline_animation_track is blocked")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("optional feature sound.timeline_animation_track is blocked")
+    }));
     assert_eq!(report.registry.modules().len(), 1);
     assert_eq!(report.registry.modules()[0].name, "sound.runtime");
 }
@@ -221,8 +224,9 @@ fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
 
     assert!(!report.is_success());
     assert!(report.has_fatal_diagnostics());
-    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("required feature sound.timeline_animation_track is blocked")));
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("required feature sound.timeline_animation_track is blocked")
+    }));
     assert_eq!(report.registry.modules().len(), 1);
     assert_eq!(report.registry.modules()[0].name, "sound.runtime");
 }
@@ -263,12 +267,12 @@ fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
             [&feature_registration],
         );
 
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    assert!(report
-        .warnings
-        .iter()
-        .any(|warning| warning
-            .contains("optional feature sound.timeline_animation_track is blocked")));
+    let fatal_messages = report.fatal_messages();
+    let warning_messages = report.warning_messages();
+    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
+    assert!(warning_messages.iter().any(|warning| {
+        warning.contains("optional feature sound.timeline_animation_track is blocked")
+    }));
 }
 
 #[test]
@@ -309,8 +313,10 @@ fn runtime_module_load_reports_blocked_required_features_as_errors() {
             [&feature_registration],
         );
 
-    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
-    assert!(report.errors.iter().any(|error| {
+    let warning_messages = report.warning_messages();
+    let fatal_messages = report.fatal_messages();
+    assert!(warning_messages.is_empty(), "{warning_messages:?}");
+    assert!(fatal_messages.iter().any(|error| {
         error.contains("required feature sound.timeline_animation_track is blocked")
     }));
 }

@@ -4,13 +4,13 @@ use crate::runtime_system::{
     register_runtime_systems, NET_FLUSH_EGRESS_SYSTEM, NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET,
 };
 use crate::{module_descriptor, PLUGIN_ID};
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "net.runtime";
 pub const NET_DIST_CRATE_NAME: &str = "zircon_plugin_net_dist";

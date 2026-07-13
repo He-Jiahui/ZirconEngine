@@ -1,11 +1,11 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
 use super::support::*;
 
 #[test]
 fn export_wizard_stage_execution_feeds_stdout_into_progress() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -13,9 +13,7 @@ fn export_wizard_stage_execution_feeds_stdout_into_progress() {
     options.source_asset_manifest = Some("D:\\assets\\source-assets.json".to_string());
     options.host_executable = Some("D:\\zircon-export\\host\\ZirconRuntime.exe".to_string());
     let plan = export_wizard_pipeline_plan(options);
-    let command = plan
-        .command(ExportPipelineStage::Pack)
-        .expect("pack command");
+    let command = plan.command(ExportStage::Pack).expect("pack command");
     let mut runner = StubRunner::with_execution(ExportWizardCommandExecution {
         exit_code: Some(0),
         stdout_lines: vec![
@@ -36,21 +34,19 @@ fn export_wizard_stage_execution_feeds_stdout_into_progress() {
     assert_eq!(
         execution
             .progress
-            .snapshot(ExportPipelineStage::Pack)
+            .snapshot(ExportStage::Pack)
             .expect("pack progress")
             .report_path
             .as_deref(),
         Some("D:\\zircon-export\\stages\\pack\\report.json")
     );
-    assert_eq!(runner.seen_stages, vec![ExportPipelineStage::Pack]);
+    assert_eq!(runner.seen_stages, vec![ExportStage::Pack]);
 }
 
 #[test]
 fn export_wizard_stage_execution_preserves_report_json_diagnostics() {
     let plan = export_wizard_pipeline_plan(ready_export_options());
-    let command = plan
-        .command(ExportPipelineStage::Report)
-        .expect("report command");
+    let command = plan.command(ExportStage::Report).expect("report command");
     let mut runner = StubRunner::with_execution(ExportWizardCommandExecution {
         exit_code: Some(0),
         stdout_lines: vec![
@@ -79,7 +75,7 @@ fn export_wizard_stage_execution_preserves_report_json_diagnostics() {
 
 #[test]
 fn export_wizard_pipeline_execution_stops_on_missing_inputs_before_process_run() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -92,7 +88,7 @@ fn export_wizard_pipeline_execution_stops_on_missing_inputs_before_process_run()
 
     assert_eq!(
         execution.stages.last().expect("stopped stage").stage,
-        ExportPipelineStage::CookAssets
+        ExportStage::CookAssets
     );
     assert!(execution.fatal);
     assert!(execution
@@ -102,17 +98,17 @@ fn export_wizard_pipeline_execution_stops_on_missing_inputs_before_process_run()
     assert_eq!(
         runner.seen_stages,
         vec![
-            ExportPipelineStage::Validate,
-            ExportPipelineStage::SourceTemplate,
-            ExportPipelineStage::NativeDynamic,
-            ExportPipelineStage::CompileHost,
+            ExportStage::Validate,
+            ExportStage::SourceTemplate,
+            ExportStage::NativeDynamic,
+            ExportStage::CompileHost,
         ]
     );
 }
 
 #[test]
 fn export_wizard_pipeline_execution_stops_on_plan_diagnostics_before_process_run() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -136,7 +132,7 @@ fn export_wizard_pipeline_execution_stops_on_plan_diagnostics_before_process_run
 
 #[test]
 fn export_wizard_pipeline_execution_stops_on_process_failure() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

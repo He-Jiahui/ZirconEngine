@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportTargetPlatform};
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 
 pub const SDK_API_VERSION: &str = "0.1.0";
 

@@ -61,7 +61,7 @@ impl EditorUiHost {
                 &draft.asset_id,
                 &draft.component_name,
                 &draft.document_id,
-            );
+            )?;
             let Some(widget_document) = entry
                 .session
                 .promote_selected_component_to_external_widget(
@@ -115,7 +115,7 @@ impl EditorUiHost {
                 &draft.asset_id,
                 &draft.document_id,
                 &draft.display_name,
-            );
+            )?;
             let Some(style_document) = entry
                 .session
                 .promote_local_theme_to_external_style_asset(

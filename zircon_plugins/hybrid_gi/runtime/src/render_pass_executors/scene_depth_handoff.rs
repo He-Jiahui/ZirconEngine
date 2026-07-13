@@ -8,7 +8,9 @@ use crate::{
 
 use super::scene_hzb_camera_packet::{scene_hzb_camera_packet, SCENE_HZB_CAMERA_WORD_OFFSET};
 use super::scene_trace_input_packet::{scene_trace_input_packet, SCENE_TRACE_INPUT_WORD_OFFSET};
-use super::{HYBRID_GI_SCENE_RESOURCE, SCENE_DEPTH_RESOURCE, SCENE_HZB_RESOURCE};
+use super::{
+    HYBRID_GI_SCENE_RESOURCE, SCENE_DEPTH_RESOURCE, SCENE_HZB_RESOURCE, SCENE_NORMAL_RESOURCE,
+};
 
 enum SceneDepthHandoffShader {
     SingleSample,
@@ -59,6 +61,9 @@ pub(super) fn record_scene_depth_handoff(
     let scene_depth_view = gpu
         .require_texture_view(SCENE_DEPTH_RESOURCE, RenderGraphResourceAccessKind::Read)?
         .clone();
+    let scene_normal_view = gpu
+        .require_texture_view(SCENE_NORMAL_RESOURCE, RenderGraphResourceAccessKind::Read)?
+        .clone();
     let scene_hzb_view = gpu.require_owned_texture_full_mip_view(
         SCENE_HZB_RESOURCE,
         RenderGraphResourceAccessKind::Read,
@@ -86,6 +91,7 @@ pub(super) fn record_scene_depth_handoff(
         gpu,
         &shader,
         &scene_depth_view,
+        &scene_normal_view,
         &scene_hzb_view,
         &hybrid_gi_scene_buffer,
     );
@@ -104,6 +110,7 @@ fn encode_scene_depth_handoff(
     gpu: &mut RenderPassGpuExecutionContext<'_>,
     shader: &SceneDepthHandoffShader,
     scene_depth_view: &wgpu::TextureView,
+    scene_normal_view: &wgpu::TextureView,
     scene_hzb_view: &wgpu::TextureView,
     hybrid_gi_scene_buffer: &wgpu::Buffer,
 ) {
@@ -115,6 +122,7 @@ fn encode_scene_depth_handoff(
         scene_depth_view,
         scene_hzb_view,
         hybrid_gi_scene_buffer,
+        scene_normal_view,
     );
     let mut pass = gpu
         .encoder
@@ -168,6 +176,16 @@ fn create_scene_depth_handoff_bind_group_layout(
                 },
                 count: None,
             },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: shader.texture_multisampled(),
+                },
+                count: None,
+            },
         ],
     })
 }
@@ -206,6 +224,7 @@ fn create_scene_depth_handoff_bind_group(
     scene_depth_view: &wgpu::TextureView,
     scene_hzb_view: &wgpu::TextureView,
     hybrid_gi_scene_buffer: &wgpu::Buffer,
+    scene_normal_view: &wgpu::TextureView,
 ) -> wgpu::BindGroup {
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-hybrid-gi-scene-depth-handoff-bind-group"),
@@ -222,6 +241,10 @@ fn create_scene_depth_handoff_bind_group(
             wgpu::BindGroupEntry {
                 binding: 2,
                 resource: hybrid_gi_scene_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(scene_normal_view),
             },
         ],
     })
@@ -256,6 +279,21 @@ mod tests {
             view_formats: &[],
         });
         let depth_view = depth.create_view(&wgpu::TextureViewDescriptor::default());
+        let normal = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("hybrid-gi-scene-depth-handoff-msaa-test-normal"),
+            size: wgpu::Extent3d {
+                width: 8,
+                height: 8,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 4,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let normal_view = normal.create_view(&wgpu::TextureViewDescriptor::default());
         let (_hzb, hzb_view) = test_hzb_range_texture(&device, &queue);
         const STORAGE_WORD_COUNT: usize = 294;
         let storage = device.create_buffer(&wgpu::BufferDescriptor {
@@ -278,7 +316,20 @@ mod tests {
         {
             let _clear = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("hybrid-gi-scene-depth-handoff-msaa-test-clear"),
-                color_attachments: &[],
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &normal_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.5,
+                            g: 0.5,
+                            b: 1.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: &depth_view,
                     depth_ops: Some(wgpu::Operations {
@@ -302,6 +353,7 @@ mod tests {
             &depth_view,
             &hzb_view,
             &storage,
+            &normal_view,
         );
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -332,6 +384,9 @@ mod tests {
         assert_eq!(words[9], ((0.25 * DEPTH_Q24_SCALE) + 0.5) as u32);
         assert_eq!(words[14..16], [8, 64]);
         assert_eq!(words[16], ((0.25 * DEPTH_Q24_SCALE) + 0.5) as u32);
+        let normal_code = (words[19] >> 8) & 63;
+        assert!((3..=4).contains(&(normal_code & 7)));
+        assert!((3..=4).contains(&((normal_code >> 3) & 7)));
     }
 
     #[test]
@@ -345,6 +400,8 @@ mod tests {
             assert!(source.contains("SCENE_HZB_TILE_GRID_EXTENT"));
             assert!(source.contains("center_furthest_depth"));
             assert!(source.contains("center_closest_depth"));
+            assert!(source.contains("pack_octahedral_normal_6bit"));
+            assert!(source.contains("SCENE_NORMAL_CODE_SHIFT"));
         }
     }
 

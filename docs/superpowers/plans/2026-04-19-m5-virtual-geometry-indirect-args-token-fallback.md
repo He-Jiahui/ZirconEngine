@@ -1,19 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_records.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_indirect_args.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_state_readbacks/read_indirect_execution_records.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_records.rs
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_state_readbacks/read_indirect_execution_records.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，不要中途确认，继续把 authority 压进更真实的 GPU-generated args source
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-visibility-owned-indirect-args-compaction.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-prepare-owned-indirect-order-authority.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indirect_args_tokens_when_debug_channels_are_missing -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_unified_indirect -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

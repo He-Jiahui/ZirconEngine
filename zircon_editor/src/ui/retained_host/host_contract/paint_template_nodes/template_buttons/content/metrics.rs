@@ -109,8 +109,12 @@ pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect
     (rect.width - pad_x * 2.0).max(1.0)
 }
 
-pub(super) fn button_icon_gap() -> f32 {
-    button_content_metrics().icon_gap
+pub(super) fn button_icon_gap(node: &TemplatePaneNodeData) -> f32 {
+    if node.layout_content_offset_x.is_finite() && node.layout_content_offset_x > 0.0 {
+        node.layout_content_offset_x
+    } else {
+        button_content_metrics().icon_gap
+    }
 }
 
 pub(super) fn button_chevron_reserve() -> f32 {

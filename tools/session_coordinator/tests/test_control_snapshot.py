@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
+from tools.session_coordinator.cargo_jobs import (
+    CargoCompatibility,
+    CargoJobService,
+    CargoLaneKind,
+    TargetPathPolicy,
+)
 from tools.session_coordinator.control_plane.snapshot import ControlSnapshotService
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
@@ -16,6 +23,65 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
+    def test_validation_lifecycle_summary_counts_only_existing_latest_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            target_root = root / "cargo-targets"
+            target_root.mkdir()
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            SessionService(database, repo).register(session_id="session-a")
+            jobs = CargoJobService(
+                database,
+                TargetPathPolicy([target_root]),
+                repo_root=repo,
+                free_space=lambda _path: 200 * 1024**3,
+            )
+            reusable = jobs.acquire(
+                "session-a",
+                CargoLaneKind.CHECK,
+                compatibility=CargoCompatibility(
+                    platform="windows",
+                    toolchain="stable-x86_64-pc-windows-msvc",
+                    target_architecture="x86_64-pc-windows-msvc",
+                    workspace="Cargo.toml",
+                    build_config="profile=dev",
+                ),
+            )
+            pending = jobs.acquire("session-a", CargoLaneKind.TEST)
+            failed = jobs.acquire("session-a", CargoLaneKind.WORKSPACE)
+            historical = jobs.acquire("session-a", CargoLaneKind.GPU)
+            with database.transaction() as connection:
+                connection.execute(
+                    "UPDATE cargo_jobs SET cleanup_status='failed' WHERE job_id=?",
+                    (failed.job_id,),
+                )
+                connection.execute(
+                    "UPDATE cargo_jobs SET cleanup_status='failed' WHERE job_id=?",
+                    (historical.job_id,),
+                )
+            shutil.rmtree(historical.target_dir)
+
+            with database.connect() as connection:
+                projection = ControlSnapshotService._validation(connection)
+
+        self.assertEqual(
+            {
+                "reusablePools": 1,
+                "ephemeralTargets": 2,
+                "pendingCleanup": 1,
+                "failedCleanup": 1,
+            },
+            projection["artifactLifecycle"],
+        )
+        self.assertEqual(
+            {reusable.target_dir, pending.target_dir, failed.target_dir},
+            {item["target_dir"] for item in projection["currentCargoTargets"]},
+        )
+        self.assertTrue(Path(reusable.target_dir).exists() is False)
+        self.assertTrue(Path(pending.target_dir).exists() is False)
+
     def test_git_projection_never_reads_internal_index_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

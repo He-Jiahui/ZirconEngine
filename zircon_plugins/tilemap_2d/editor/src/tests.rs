@@ -12,8 +12,8 @@ fn tilemap_authoring_registration_exposes_menu_items_and_payload_schemas() {
     let operation =
         EditorOperationPath::parse("tilemap_2d.authoring.paint").expect("operation path");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("paint operation registered");
 
     assert_eq!(descriptor.menu_path(), Some("Plugins/Tilemap 2D/Paint"));

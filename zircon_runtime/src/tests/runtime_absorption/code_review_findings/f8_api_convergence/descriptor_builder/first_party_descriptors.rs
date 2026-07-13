@@ -93,8 +93,10 @@ fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
         );
     }
 
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_06_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
     );

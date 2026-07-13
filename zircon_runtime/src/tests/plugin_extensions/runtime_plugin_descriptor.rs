@@ -1,12 +1,12 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::project::ExportPackagingStrategy;
 use crate::core::{CoreError, InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
-    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
-    RuntimePluginRegistrationReport,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
+    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginDescriptorBuilder, RuntimePluginRegistrationReport,
 };
 use crate::scene::SystemStage;
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
@@ -40,9 +40,10 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
     let catalog = RuntimePluginCatalog::from_descriptors([empty_segment]);
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("package_id `weather..layer`")
-        && diagnostic.contains("non-empty segments")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("package_id `weather..layer`")
+            && diagnostic.contains("non-empty segments")
+    }));
 }
 
 #[test]
@@ -80,9 +81,10 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
     let registration = RuntimePluginRegistrationReport::from_plugin(&hyphenated);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("crate_name `zircon-plugin-weather-runtime`")
-        && diagnostic.contains("lowercase ASCII")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("crate_name `zircon-plugin-weather-runtime`")
+            && diagnostic.contains("lowercase ASCII")
+    }));
 
     let missing_prefix = RuntimePluginDescriptor::builder(
         "weather",
@@ -96,9 +98,10 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
     let registration = RuntimePluginRegistrationReport::from_plugin(&missing_prefix);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("descriptor crate_name `weather_runtime`")
-        && diagnostic.contains("`zircon_plugin_` prefix")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("descriptor crate_name `weather_runtime`")
+            && diagnostic.contains("`zircon_plugin_` prefix")
+    }));
 
     let repeated_underscore = RuntimePluginDescriptor::builder(
         "weather",
@@ -112,9 +115,10 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_crate_names() {
     let registration = RuntimePluginRegistrationReport::from_plugin(&repeated_underscore);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("descriptor crate_name `zircon_plugin_weather__runtime`")
-        && diagnostic.contains("repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("descriptor crate_name `zircon_plugin_weather__runtime`")
+            && diagnostic.contains("repeated underscores")
+    }));
 }
 
 #[test]
@@ -132,9 +136,9 @@ fn runtime_plugin_registration_report_rejects_empty_descriptor_default_packaging
     let registration = RuntimePluginRegistrationReport::from_plugin(&descriptor);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("descriptor default_packaging")
-        && diagnostic.contains("at least one")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("descriptor default_packaging") && diagnostic.contains("at least one")
+    }));
 }
 
 #[test]
@@ -155,9 +159,10 @@ fn runtime_plugin_registration_report_rejects_duplicate_descriptor_default_packa
     let registration = RuntimePluginRegistrationReport::from_plugin(&descriptor);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("descriptor default_packaging strategy LibraryEmbed")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("descriptor default_packaging strategy LibraryEmbed")
+            && diagnostic.contains("unique")
+    }));
 }
 
 #[test]
@@ -194,9 +199,9 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_target_modes() 
     let registration = RuntimePluginRegistrationReport::from_plugin(&duplicate);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("descriptor target mode ClientRuntime")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("descriptor target mode ClientRuntime") && diagnostic.contains("unique")
+    }));
 }
 
 #[test]

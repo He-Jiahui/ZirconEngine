@@ -8,8 +8,9 @@ use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
     MaterialGraphNodeKindAsset, MaterialGraphParameterAsset,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::plugin::PluginModuleKind;
 
 #[test]
 fn material_authoring_registration_exposes_menu_items_and_payload_schemas() {
@@ -20,8 +21,8 @@ fn material_authoring_registration_exposes_menu_items_and_payload_schemas() {
     let operation =
         EditorOperationPath::parse("material_editor.graph.compile").expect("valid material path");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("compile operation registered");
 
     assert_eq!(
@@ -49,7 +50,7 @@ fn material_editor_package_manifest_declares_editor_only_metadata() {
     assert_eq!(manifest.category, "authoring");
     assert_eq!(
         manifest.supported_targets,
-        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
     );
     assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
     assert_eq!(editor_module.capabilities, manifest.capabilities);

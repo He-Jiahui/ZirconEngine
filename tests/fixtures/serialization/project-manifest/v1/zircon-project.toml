@@ -1,0 +1,4 @@
+name = "Shared Legacy Project"
+format_version = 1
+default_scene = "res://scenes/main.scene.toml"
+library_version = 3

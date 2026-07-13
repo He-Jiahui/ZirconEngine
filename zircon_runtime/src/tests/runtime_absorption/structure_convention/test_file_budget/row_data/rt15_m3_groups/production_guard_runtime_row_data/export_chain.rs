@@ -21,7 +21,12 @@ pub(super) fn assert_runtime_row_data_export_chain_is_current() {
     );
     assert_contains_all(
         "M3/Runtime15/top-level exports include runtime row-data children",
-        &[runtime_15_m3.as_str(), runtime_15.as_str(), top_level.as_str()].join("\n"),
+        &[
+            runtime_15_m3.as_str(),
+            runtime_15.as_str(),
+            top_level.as_str(),
+        ]
+        .join("\n"),
         &[
             "PRODUCTION_GUARD_SUPPORT_RUNTIME_ROW_DATA_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES",
             "PRODUCTION_GUARD_SUPPORT_RUNTIME_ROW_DATA_LOCK_POISON_SCENE_SCRIPT_EXPECTED_STATUS_OUTPUT_SLICES",

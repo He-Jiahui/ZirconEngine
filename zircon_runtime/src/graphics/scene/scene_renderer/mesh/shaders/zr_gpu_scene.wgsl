@@ -17,6 +17,8 @@ struct ZrGpuInstanceData {
     flags: u32,
     payload_slot: u32,
     morph_payload_slot: u32,
+    lightmap_uv_rect: vec4<f32>,
+    lightmap_params: vec4<u32>,
 };
 
 struct ZrGpuLightData {
@@ -28,7 +30,7 @@ struct ZrGpuLightData {
     shadow_params: vec4<f32>,
 };
 
-struct ZrSkinnedJointPaletteUniform {
+struct ZrSkinnedJointPaletteStorage {
     joint_matrices: array<mat4x4<f32>, 256>,
     params: vec4<u32>,
 };
@@ -40,8 +42,8 @@ struct ZrGpuSceneVisibleInstanceRemapParams {
 @group(3) @binding(0) var<storage, read> zr_primitive_data: array<ZrGpuPrimitiveData>;
 @group(3) @binding(1) var<storage, read> zr_instance_data: array<ZrGpuInstanceData>;
 @group(3) @binding(2) var<storage, read> zr_light_data: array<ZrGpuLightData>;
-@group(3) @binding(3) var<uniform> zr_skinned_joint_palette: ZrSkinnedJointPaletteUniform;
-@group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteUniform;
+@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette: ZrSkinnedJointPaletteStorage;
+@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteStorage;
 @group(3) @binding(5) var<storage, read> zr_visible_instance_remap: array<u32>;
 @group(3) @binding(6) var<uniform> zr_visible_instance_remap_params: ZrGpuSceneVisibleInstanceRemapParams;
 @group(3) @binding(7) var<storage, read> zr_morph_deltas: array<vec4<f32>>;
@@ -155,4 +157,16 @@ fn zr_gpu_scene_shadow_params(instance_index: u32) -> vec4<f32> {
 
 fn zr_gpu_scene_motion_params(instance_index: u32) -> vec4<f32> {
     return zr_gpu_scene_primitive_for_instance(instance_index).motion_params;
+}
+
+fn zr_gpu_scene_has_lightmap(instance_index: u32) -> bool {
+    return zr_gpu_scene_instance(instance_index).lightmap_params.y != 0u;
+}
+
+fn zr_gpu_scene_lightmap_uv_rect(instance_index: u32) -> vec4<f32> {
+    return zr_gpu_scene_instance(instance_index).lightmap_uv_rect;
+}
+
+fn zr_gpu_scene_lightmap_params(instance_index: u32) -> vec4<u32> {
+    return zr_gpu_scene_instance(instance_index).lightmap_params;
 }

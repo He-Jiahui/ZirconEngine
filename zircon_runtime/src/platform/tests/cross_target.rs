@@ -5,7 +5,7 @@ fn mobile_and_browser_capabilities_are_explicit() {
     let mobile = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Android,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert_eq!(mobile.event_loop_policy, EventLoopPolicy::Mobile);
@@ -105,7 +105,7 @@ fn mobile_and_browser_capabilities_are_explicit() {
     let browser = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Wasm,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert_eq!(

@@ -3,12 +3,14 @@ use std::fmt;
 use std::ops::Range;
 
 use zircon_runtime::core::framework::ai::{
-    AiBehaviorNodeKind, AiBehaviorNodeParameter, AiBehaviorTreeDescriptor,
+    AiBehaviorAbortPolicy, AiBehaviorNodeKind, AiBehaviorNodeParameter,
+    AiBehaviorNodeParameterValue, AiBehaviorTreeDescriptor,
 };
 
 use super::{
     standard_node_catalog, BehaviorNodeCatalogError, BehaviorNodeCategory, BehaviorNodeFactory,
     BehaviorNodeSemantics, BehaviorNodeSlot, FrozenBehaviorNodeCatalog, SelectorRecheckPolicy,
+    SUBTREE_TARGET_PARAMETER_KEY,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,6 +23,8 @@ pub struct CompiledBehaviorNode {
     selector_recheck: SelectorRecheckPolicy,
     parameters: Box<[AiBehaviorNodeParameter]>,
     children: Range<u32>,
+    abort_policy: AiBehaviorAbortPolicy,
+    subtree_end: u32,
 }
 
 impl CompiledBehaviorNode {
@@ -54,6 +58,14 @@ impl CompiledBehaviorNode {
 
     pub fn children(&self) -> Range<u32> {
         self.children.clone()
+    }
+
+    pub fn abort_policy(&self) -> AiBehaviorAbortPolicy {
+        self.abort_policy
+    }
+
+    pub(crate) fn subtree_range(&self, node_index: u32) -> Range<u32> {
+        node_index..self.subtree_end
     }
 }
 
@@ -98,6 +110,53 @@ impl CompiledBehaviorTree {
     pub(crate) fn implementation_slots(&self) -> impl Iterator<Item = BehaviorNodeSlot> + '_ {
         self.nodes.iter().map(CompiledBehaviorNode::implementation)
     }
+
+    pub(crate) fn has_abort_observers(&self) -> bool {
+        self.nodes
+            .iter()
+            .any(|node| node.abort_policy != AiBehaviorAbortPolicy::None)
+    }
+
+    pub(crate) fn reachable_tree_has_abort_observers(
+        &self,
+        registered_trees: &[CompiledBehaviorTree],
+    ) -> bool {
+        reachable_behavior_trees(self, registered_trees)
+            .into_iter()
+            .any(CompiledBehaviorTree::has_abort_observers)
+    }
+}
+
+pub(crate) fn reachable_behavior_trees<'a>(
+    root: &'a CompiledBehaviorTree,
+    registered_trees: &'a [CompiledBehaviorTree],
+) -> Vec<&'a CompiledBehaviorTree> {
+    let mut reachable = Vec::new();
+    let mut pending = vec![root];
+    let mut visited = HashSet::new();
+    while let Some(tree) = pending.pop() {
+        if !visited.insert(tree.id()) {
+            continue;
+        }
+        reachable.push(tree);
+        for node in tree
+            .nodes()
+            .iter()
+            .filter(|node| node.semantics() == BehaviorNodeSemantics::RunSubtree)
+        {
+            let target = node.parameters().iter().find_map(|parameter| {
+                (parameter.key == SUBTREE_TARGET_PARAMETER_KEY)
+                    .then_some(&parameter.value)
+                    .and_then(AiBehaviorNodeParameterValue::as_string)
+            });
+            if let Some(target_tree) =
+                target.and_then(|target| registered_trees.iter().find(|tree| tree.id() == target))
+            {
+                pending.push(target_tree);
+            }
+        }
+    }
+    reachable
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -360,6 +419,8 @@ fn compile_subtree<'a>(
         selector_recheck: catalog_descriptor.selector_recheck_policy(),
         parameters: descriptor.parameters.clone().into_boxed_slice(),
         children: 0..0,
+        abort_policy: descriptor.abort_policy,
+        subtree_end: index + 1,
     });
     let mut compiled_children = Vec::with_capacity(descriptor.children.len());
     for child in &descriptor.children {
@@ -377,6 +438,7 @@ fn compile_subtree<'a>(
     child_indices.extend(compiled_children);
     let last_child = child_indices.len() as u32;
     nodes[index as usize].children = first_child..last_child;
+    nodes[index as usize].subtree_end = nodes.len() as u32;
     visiting.remove(node_id);
     visited.insert(node_id);
     Ok(index)

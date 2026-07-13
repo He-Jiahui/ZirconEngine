@@ -1,8 +1,10 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::{
+    platform::RuntimeTargetMode, project::ExportPackagingStrategy,
+};
 use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
 use zircon_runtime::{
     asset::{AssetImporterDescriptor, AssetKind},
-    plugin::{ExportPackagingStrategy, PluginMaturity, PluginModuleKind},
+    plugin::{PluginMaturity, PluginModuleKind},
 };
 
 use super::{

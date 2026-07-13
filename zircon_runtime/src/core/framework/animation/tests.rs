@@ -1,10 +1,4 @@
-use crate::asset::{
-    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationEventTrackAsset,
-    AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
-    AnimationSequenceTrackAsset,
-};
-use crate::core::framework::scene::{ComponentPropertyPath, EntityPath, WorldHandle};
+use crate::core::framework::scene::WorldHandle;
 use crate::core::resource::{AssetReference, ResourceLocator};
 
 use super::*;
@@ -71,48 +65,6 @@ fn gpu_skinning_readiness_requires_enabled_gpu_resources() {
         ..missing
     };
     assert!(ready.ready_for_gpu_skinning());
-}
-
-#[test]
-fn timeline_descriptor_summarizes_sequence_property_tracks() {
-    let sequence = sample_animation_sequence_asset();
-    let descriptor = AnimationTimelineDescriptor::from_sequence(&sequence);
-
-    assert_eq!(descriptor.id.as_deref(), Some("HeroSequence"));
-    assert_eq!(descriptor.sanitized_duration_seconds(), 2.0);
-    assert_eq!(descriptor.sanitized_frames_per_second(), 30.0);
-    assert_eq!(
-        descriptor.track_count_by_kind(AnimationTimelineTrackKind::Property),
-        2
-    );
-    assert_eq!(descriptor.tracks[0].target_id.as_deref(), Some("Root/Hero"));
-    assert_eq!(
-        descriptor.tracks[0].path.as_ref().unwrap().as_str(),
-        "Root/Hero:Transform.translation"
-    );
-    assert_eq!(descriptor.tracks[0].key_count, 2);
-}
-
-#[test]
-fn timeline_descriptor_summarizes_clip_bone_and_event_tracks() {
-    let clip = sample_animation_clip_asset();
-    let descriptor = AnimationTimelineDescriptor::from_clip(&clip);
-
-    assert_eq!(descriptor.id.as_deref(), Some("HeroIdle"));
-    assert_eq!(descriptor.clips.len(), 1);
-    assert_eq!(
-        descriptor.track_count_by_kind(AnimationTimelineTrackKind::BoneTransform),
-        1
-    );
-    assert_eq!(
-        descriptor.track_count_by_kind(AnimationTimelineTrackKind::Event),
-        1
-    );
-    assert_eq!(descriptor.tracks[0].target_id.as_deref(), Some("Root/Hand"));
-    assert!(descriptor.tracks[0].allows_target("Hand"));
-    assert!(descriptor.tracks[0].allows_target("Root/Hand"));
-    assert_eq!(descriptor.events[0].name, "footstep");
-    assert_eq!(descriptor.events[0].sanitized_time_seconds(), 0.5);
 }
 
 #[test]
@@ -191,97 +143,6 @@ fn runtime_status_reports_player_rig_and_gpu_readiness() {
     assert_eq!(roundtrip, status.sanitized_snapshot());
 }
 
-fn sample_animation_sequence_asset() -> AnimationSequenceAsset {
-    AnimationSequenceAsset {
-        name: Some("HeroSequence".to_string()),
-        duration_seconds: 2.0,
-        frames_per_second: 30.0,
-        bindings: vec![AnimationSequenceBindingAsset {
-            entity_path: EntityPath::parse("Root/Hero").unwrap(),
-            target_id: Some("Root/Hero".to_string()),
-            tracks: vec![
-                AnimationSequenceTrackAsset {
-                    property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
-                    channel: vec3_channel([(0.0, [0.0, 0.0, 0.0]), (1.0, [1.0, 0.0, 0.0])]),
-                },
-                AnimationSequenceTrackAsset {
-                    property_path: ComponentPropertyPath::parse("AnimationPlayer.weight").unwrap(),
-                    channel: scalar_channel([(0.0, 0.0), (1.0, 1.0)]),
-                },
-            ],
-        }],
-    }
-}
-
-fn sample_animation_clip_asset() -> AnimationClipAsset {
-    AnimationClipAsset {
-        name: Some("HeroIdle".to_string()),
-        skeleton: asset_reference("res://animation/hero.skeleton.zranim"),
-        duration_seconds: 1.0,
-        tracks: vec![AnimationClipBoneTrackAsset {
-            bone_name: "Hand".to_string(),
-            target_id: Some("Root/Hand".to_string()),
-            translation: vec3_channel([(0.0, [0.2, 0.8, 0.0]), (1.0, [0.25, 0.85, 0.0])]),
-            rotation: quaternion_channel([
-                (0.0, [0.0, 0.0, 0.0, 1.0]),
-                (1.0, [0.0, 0.38268343, 0.0, 0.9238795]),
-            ]),
-            scale: vec3_channel([(0.0, [1.0, 1.0, 1.0]), (1.0, [1.05, 1.05, 1.05])]),
-        }],
-        event_tracks: vec![AnimationEventTrackAsset {
-            target_id: Some("Root/Hand".to_string()),
-            event: "footstep".to_string(),
-            time_seconds: 0.5,
-            payload: Some("stone".to_string()),
-        }],
-    }
-}
-
 fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(ResourceLocator::parse(uri).unwrap())
-}
-
-fn scalar_channel(keys: [(f32, f32); 2]) -> AnimationChannelAsset {
-    AnimationChannelAsset {
-        interpolation: AnimationInterpolationAsset::Hermite,
-        keys: keys
-            .into_iter()
-            .map(|(time_seconds, value)| AnimationChannelKeyAsset {
-                time_seconds,
-                value: AnimationChannelValueAsset::Scalar(value),
-                in_tangent: Some(AnimationChannelValueAsset::Scalar(0.0)),
-                out_tangent: Some(AnimationChannelValueAsset::Scalar(0.0)),
-            })
-            .collect(),
-    }
-}
-
-fn vec3_channel(keys: [(f32, [f32; 3]); 2]) -> AnimationChannelAsset {
-    AnimationChannelAsset {
-        interpolation: AnimationInterpolationAsset::Hermite,
-        keys: keys
-            .into_iter()
-            .map(|(time_seconds, value)| AnimationChannelKeyAsset {
-                time_seconds,
-                value: AnimationChannelValueAsset::Vec3(value),
-                in_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
-                out_tangent: Some(AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])),
-            })
-            .collect(),
-    }
-}
-
-fn quaternion_channel(keys: [(f32, [f32; 4]); 2]) -> AnimationChannelAsset {
-    AnimationChannelAsset {
-        interpolation: AnimationInterpolationAsset::Hermite,
-        keys: keys
-            .into_iter()
-            .map(|(time_seconds, value)| AnimationChannelKeyAsset {
-                time_seconds,
-                value: AnimationChannelValueAsset::Quaternion(value),
-                in_tangent: None,
-                out_tangent: None,
-            })
-            .collect(),
-    }
 }

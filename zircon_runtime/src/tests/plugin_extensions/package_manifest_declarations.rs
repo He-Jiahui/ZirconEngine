@@ -1,15 +1,16 @@
 use crate::asset::AssetImporterDescriptor;
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 use crate::core::framework::render::{
     GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
     GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
     RenderShaderDefinitionValue, ShadingModelDescriptor, ShadingModelId,
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::core::{InitLevel, ModuleDependencySpec};
 use crate::plugin::{
-    ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
     PluginPackageKind, PluginPackageManifest, PluginShaderModuleManifest, UiComponentDescriptor,

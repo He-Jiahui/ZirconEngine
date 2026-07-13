@@ -7,7 +7,7 @@ use crate::ui::surface::{
 use crate::ui::text::{
     resolve_text_layout, UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest,
 };
-use zircon_runtime_interface::ui::surface::UiRenderCommand;
+use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRichTextFormat};
 use zircon_runtime_interface::ui::{layout::UiFrame, surface::UiArrangedTree, tree::UiTree};
 
 use super::{
@@ -171,7 +171,10 @@ mod tests {
     use zircon_runtime_interface::ui::{
         event_ui::UiNodeId,
         layout::UiFrame,
-        surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiTextWritingMode},
+        surface::{
+            UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiRichTextFormat,
+            UiTextWritingMode,
+        },
     };
 
     #[test]
@@ -182,9 +185,9 @@ mod tests {
         prewarm_render_command_text(
             &[
                 text_command(
-                    "**editor base.zui**",
+                    "**sample base.zui**",
                     UiResolvedStyle {
-                        rich_text: true,
+                        rich_text_format: UiRichTextFormat::Markdown,
                         font_size: 10.0,
                         line_height: 12.0,
                         ..UiResolvedStyle::default()
@@ -200,9 +203,9 @@ mod tests {
                     },
                 ),
                 text_command(
-                    "**editor base.zui**",
+                    "**sample base.zui**",
                     UiResolvedStyle {
-                        rich_text: true,
+                        rich_text_format: UiRichTextFormat::Markdown,
                         font_size: 10.0,
                         line_height: 12.0,
                         ..UiResolvedStyle::default()

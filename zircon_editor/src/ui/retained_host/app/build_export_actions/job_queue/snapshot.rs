@@ -2,16 +2,11 @@
 mod progress;
 #[path = "snapshot/status.rs"]
 mod status;
-#[path = "snapshot/status_task.rs"]
-mod status_task;
 #[path = "snapshot/target.rs"]
 mod target;
 
 use std::path::PathBuf;
 
-#[cfg(test)]
-pub(in crate::ui::retained_host::app) use status_task::desktop_export_status_task_from_job;
-pub(in crate::ui::retained_host::app) use status_task::desktop_export_status_task_from_queue;
 pub(in crate::ui::retained_host::app) use target::apply_job_snapshot_to_target;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -14,55 +14,64 @@ use super::SceneProjectError;
 pub(super) fn mesh_from_asset(
     project: &ProjectManager,
     mesh: Option<&SceneMeshInstanceAsset>,
-) -> Option<MeshRenderer> {
-    mesh.map(|mesh| {
-        let mut renderer = MeshRenderer::from_handles(
-            model_handle_for_reference(project, &mesh.model),
-            material_handle_for_reference(project, &mesh.material),
-        );
-        renderer.mesh = mesh
-            .mesh
-            .as_ref()
-            .map(|reference| handle_for_reference::<MeshMarker>(project, reference));
-        renderer.render_queue = mesh.render_queue;
-        renderer.material_queue = mesh.material_queue;
-        renderer.order_in_layer = mesh.order_in_layer;
-        renderer.depth_bias = mesh.depth_bias;
-        renderer.morph_weights = mesh.morph_weights.clone();
-        renderer.primitives = mesh
-            .primitives
-            .iter()
-            .map(|primitive| MeshRendererPrimitiveBinding {
-                mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
-                material: handle_for_reference::<MaterialMarker>(project, &primitive.material),
+) -> Result<Option<MeshRenderer>, SceneProjectError> {
+    let Some(mesh) = mesh else {
+        return Ok(None);
+    };
+    let mut renderer = MeshRenderer::from_handles(
+        model_handle_for_reference(project, &mesh.model)?,
+        material_handle_for_reference(project, &mesh.material)?,
+    );
+    renderer.mesh = mesh
+        .mesh
+        .as_ref()
+        .map(|reference| handle_for_reference::<MeshMarker>(project, reference))
+        .transpose()?;
+    renderer.render_queue = mesh.render_queue;
+    renderer.material_queue = mesh.material_queue;
+    renderer.order_in_layer = mesh.order_in_layer;
+    renderer.depth_bias = mesh.depth_bias;
+    renderer.morph_weights = mesh.morph_weights.clone();
+    renderer.primitives = mesh
+        .primitives
+        .iter()
+        .map(|primitive| {
+            Ok(MeshRendererPrimitiveBinding {
+                mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh)?,
+                material: handle_for_reference::<MaterialMarker>(project, &primitive.material)?,
             })
-            .collect();
-        renderer.lods = mesh
-            .lods
-            .iter()
-            .map(|lod| MeshRendererLodLevel {
+        })
+        .collect::<Result<Vec<_>, SceneProjectError>>()?;
+    renderer.lods = mesh
+        .lods
+        .iter()
+        .map(|lod| {
+            Ok(MeshRendererLodLevel {
                 min_distance: lod.min_distance,
-                model: model_handle_for_reference(project, &lod.model),
+                model: model_handle_for_reference(project, &lod.model)?,
                 mesh: lod
                     .mesh
                     .as_ref()
-                    .map(|reference| handle_for_reference::<MeshMarker>(project, reference)),
-                material: material_handle_for_reference(project, &lod.material),
+                    .map(|reference| handle_for_reference::<MeshMarker>(project, reference))
+                    .transpose()?,
+                material: material_handle_for_reference(project, &lod.material)?,
                 primitives: lod
                     .primitives
                     .iter()
-                    .map(|primitive| MeshRendererPrimitiveBinding {
-                        mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
-                        material: handle_for_reference::<MaterialMarker>(
-                            project,
-                            &primitive.material,
-                        ),
+                    .map(|primitive| {
+                        Ok(MeshRendererPrimitiveBinding {
+                            mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh)?,
+                            material: handle_for_reference::<MaterialMarker>(
+                                project,
+                                &primitive.material,
+                            )?,
+                        })
                     })
-                    .collect(),
+                    .collect::<Result<Vec<_>, SceneProjectError>>()?,
             })
-            .collect();
-        renderer
-    })
+        })
+        .collect::<Result<Vec<_>, SceneProjectError>>()?;
+    Ok(Some(renderer))
 }
 
 pub(super) fn mesh_to_asset(

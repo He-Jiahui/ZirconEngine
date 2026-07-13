@@ -21,8 +21,11 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "../../../../../bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs"
     );
     let run = include_str!("../../../../../bin/zircon_shader_prewarm/run.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+    );
     let runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );

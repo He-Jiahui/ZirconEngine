@@ -1,4 +1,5 @@
-use crate::plugin::{RuntimeExtensionRegistryError, SceneRuntimeHookRegistration};
+use crate::plugin::RuntimeExtensionRegistryError;
+use crate::scene::SceneRuntimeHookRegistration;
 
 use super::is_lowercase_plugin_package_id;
 

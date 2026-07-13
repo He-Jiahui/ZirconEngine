@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from pathlib import Path
 
 from ..database import Database
 from ..event_payloads import (
@@ -224,7 +225,69 @@ class ControlSnapshotService:
             """
         ):
             copies.append(dict(row))
-        return {"cargoJobs": jobs, "validationCopies": copies}
+        current_targets = ControlSnapshotService._current_cargo_targets(connection)
+        return {
+            "cargoJobs": jobs,
+            "validationCopies": copies,
+            "currentCargoTargets": current_targets,
+            "artifactLifecycle": ControlSnapshotService._artifact_lifecycle(current_targets),
+        }
+
+    @staticmethod
+    def _current_cargo_targets(connection) -> list[dict[str, object]]:
+        """Project one live row per Cargo target directory for the control UI."""
+        rows = connection.execute(
+            """
+            WITH latest_target AS (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY target_dir
+                           ORDER BY created_at DESC, job_id DESC
+                       ) AS row_number
+                FROM cargo_jobs
+                WHERE target_dir <> ''
+            )
+            SELECT *
+            FROM latest_target
+            WHERE row_number=1 AND cleanup_status <> 'deleted'
+            ORDER BY created_at DESC, job_id DESC
+            """
+        ).fetchall()
+        targets = []
+        for row in rows:
+            try:
+                exists = Path(row["target_dir"]).exists()
+            except OSError:
+                exists = False
+            if not exists:
+                continue
+            item = dict(row)
+            item.pop("row_number")
+            item["command"] = json.loads(item.pop("command_json"))
+            targets.append(item)
+        return targets
+
+    @staticmethod
+    def _artifact_lifecycle(current_targets: list[dict[str, object]]) -> dict[str, int]:
+        """Count the live target projection without historical job retries."""
+        counts = {
+            "reusablePools": 0,
+            "ephemeralTargets": 0,
+            "pendingCleanup": 0,
+            "failedCleanup": 0,
+        }
+        for row in current_targets:
+            policy = row["cleanup_policy"]
+            status = row["cleanup_status"]
+            if policy == "retained" and status == "retained":
+                counts["reusablePools"] += 1
+            if policy == "delete_on_release" and status != "deleted":
+                counts["ephemeralTargets"] += 1
+            if status == "pending":
+                counts["pendingCleanup"] += 1
+            if status == "failed":
+                counts["failedCleanup"] += 1
+        return counts
 
     @staticmethod
     def _git(connection) -> dict[str, object]:

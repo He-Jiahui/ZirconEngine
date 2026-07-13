@@ -134,7 +134,7 @@ fn applying_workspace_with_floating_window_syncs_native_window_bounds() {
         layout_version: 1,
         workbench: layout,
         open_view_instances: vec![restored_instance],
-        active_center_tab: None,
+        focused_view: None,
         active_drawers: Vec::new(),
     };
 

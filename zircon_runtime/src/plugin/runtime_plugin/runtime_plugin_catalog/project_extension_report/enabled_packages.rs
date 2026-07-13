@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ProjectPluginManifest;
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn enabled_plugin_ids_for_target(
     completed: &ProjectPluginManifest,

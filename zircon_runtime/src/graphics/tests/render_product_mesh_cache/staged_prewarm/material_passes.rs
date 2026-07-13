@@ -193,6 +193,7 @@ fn material_mesh_cache_shadow_light() -> RenderDirectionalLightSnapshot {
         direction: Vec3::new(0.35, -0.25, -1.0).normalize(),
         color: Vec3::ONE,
         intensity: 1.0,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: Some(LightShadowSettings {
             casts_shadow: true,
             depth_bias: 0.0,

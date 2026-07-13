@@ -4,10 +4,12 @@ use super::super::super::super::paint_theme::{current_host_metrics, HostControlM
 pub(super) const TABLE_COLUMN_COUNT: usize = 4;
 const TABLE_COLUMN_RATIOS: [f32; TABLE_COLUMN_COUNT] = [0.36, 0.27, 0.19, 0.18];
 const TABLE_COLUMN_DROP_ORDER: [usize; TABLE_COLUMN_COUNT] = [3, 2, 1, 0];
-const NAME_COLUMN_WIDTH_SAMPLE: &str = "DefaultAssetName";
-const TYPE_COLUMN_WIDTH_SAMPLE: &str = "Material";
-const SIZE_COLUMN_WIDTH_SAMPLE: &str = "999 MB";
-const REVISION_COLUMN_WIDTH_SAMPLE: &str = "Revision 999";
+// Column minimums guarantee readable headers. Variable row values may clip
+// inside their slot; they must not force a low-priority column out globally.
+const NAME_COLUMN_WIDTH_SAMPLE: &str = "Name";
+const TYPE_COLUMN_WIDTH_SAMPLE: &str = "Type";
+const SIZE_COLUMN_WIDTH_SAMPLE: &str = "Size";
+const REVISION_COLUMN_WIDTH_SAMPLE: &str = "Revision";
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct WorkbenchTableCellMetrics {
@@ -47,21 +49,17 @@ fn table_column_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchTable
     WorkbenchTableColumnMetrics {
         ratios: TABLE_COLUMN_RATIOS,
         min_widths: [
-            table_column_min_width(metrics, NAME_COLUMN_WIDTH_SAMPLE, metrics.row_height * 5.0),
             table_column_min_width(
                 metrics,
-                TYPE_COLUMN_WIDTH_SAMPLE,
-                metrics.row_height * 2.0 + metrics.gap_m,
+                NAME_COLUMN_WIDTH_SAMPLE,
+                metrics.row_height * 4.0 + metrics.gap_m,
             ),
-            table_column_min_width(
-                metrics,
-                SIZE_COLUMN_WIDTH_SAMPLE,
-                metrics.row_height * 2.0 + metrics.gap_m,
-            ),
+            table_column_min_width(metrics, TYPE_COLUMN_WIDTH_SAMPLE, metrics.row_height * 2.0),
+            table_column_min_width(metrics, SIZE_COLUMN_WIDTH_SAMPLE, metrics.row_height * 2.0),
             table_column_min_width(
                 metrics,
                 REVISION_COLUMN_WIDTH_SAMPLE,
-                metrics.row_height * 3.0,
+                metrics.row_height * 2.0 + metrics.gap_l + metrics.gap_s,
             ),
         ],
         drop_order: TABLE_COLUMN_DROP_ORDER,
@@ -107,7 +105,7 @@ mod tests {
         let metrics = table_column_metrics_from_host(host);
 
         assert_eq!(metrics.ratios, [0.36, 0.27, 0.19, 0.18]);
-        assert_eq!(metrics.min_widths, [150.0, 70.0, 70.0, 90.0]);
+        assert_eq!(metrics.min_widths, [130.0, 60.0, 60.0, 76.0]);
         assert_eq!(metrics.drop_order, [3, 2, 1, 0]);
     }
 

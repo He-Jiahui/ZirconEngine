@@ -4,7 +4,9 @@ use super::*;
 fn artifact_store_roundtrips_scene_assets_with_script_binding_json_values() {
     let root = unique_temp_project_root("artifact_store_scene_dynamic_json");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
 
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {

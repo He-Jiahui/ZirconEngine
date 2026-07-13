@@ -36,6 +36,11 @@ fn workbench_toast_style_uses_shared_state_priority() {
     assert_ne!(focused.border, PALETTE.focus_ring);
 
     node.popup_open = true;
+    let focused_open = select_workbench_toast_style(&node);
+    assert_eq!(focused_open.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused_open.border, WORKBENCH_TOAST_BORDER);
+
+    node.focused = false;
     let open = select_workbench_toast_style(&node);
     assert_eq!(open.state, UiPainterResolvedState::Open);
     assert_eq!(open.border, PALETTE.focus_ring);

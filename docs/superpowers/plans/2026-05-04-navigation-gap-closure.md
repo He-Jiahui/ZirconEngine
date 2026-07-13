@@ -21,7 +21,7 @@
 
 ## Source Map
 
-- Modify `zircon_runtime/src/asset/assets/navigation.rs`: persisted tiled navmesh DTOs, cache-layer metadata, tile dirty status, source geometry fingerprints, serialization tests.
+- Modify `zircon_runtime/src/core/framework/navigation/asset/mod.rs`: persisted tiled navmesh DTOs, cache-layer metadata, tile dirty status, source geometry fingerprints, serialization tests.
 - Modify `zircon_runtime/src/core/framework/navigation/mod.rs`: runtime stats, tick report counters, and model-geometry bake cache APIs on `NavigationManager`.
 - Update `docs/zircon_runtime/core/framework/navigation.md`: shared navigation contract docs.
 - Create `docs/zircon_runtime/asset/assets/navigation.md`: source-path mirror for `.znavmesh` asset persistence when tile/cache metadata lands.
@@ -135,7 +135,7 @@ Expected when renderer drift is still present: Cargo stops before navigation tes
 
 **Implementation Slices**
 
-- [ ] Modify `zircon_runtime/src/asset/assets/navigation.rs` and add neutral persisted records near the current asset structs:
+- [ ] Modify `zircon_runtime/src/core/framework/navigation/asset/mod.rs` and add neutral persisted records near the current asset structs:
 
 ```rust
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -376,7 +376,7 @@ git diff --check -- "zircon_runtime\src\asset\assets\navigation.rs" "zircon_runt
 ```rust
 use std::collections::HashMap;
 
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{NavMeshHandle, NavigationError};
 
 #[derive(Debug)]

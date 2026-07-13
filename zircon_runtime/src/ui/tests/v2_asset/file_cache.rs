@@ -241,7 +241,8 @@ fn ui_v2_file_cache_resolves_builtin_asset_id_widget_imports() {
     let temp_dir = v2_cache_temp_dir("asset_id_widget_imports");
     let assets_root = temp_dir.join("assets");
     let window_path = assets_root.join("ui/editor/windows/workbench_window.zui");
-    let component_path = assets_root.join("ui/editor/host/activity_drawer_window.zui");
+    let component_path =
+        assets_root.join("ui/editor/components/workbench/shell/activity_drawer_window.zui");
     std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(component_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -253,7 +254,7 @@ id = "editor.window.workbench"
 version = 2
 
 [imports]
-widgets = ["editor.host.activity_drawer_window#ActivityDrawerWindow"]
+widgets = ["editor.workbench.shell.activity_drawer_window#ActivityDrawerWindow"]
 
 [root]
 node = "root"
@@ -269,7 +270,7 @@ control_id = "WorkbenchWindow"
         r##"
 [asset]
 kind = "component"
-id = "editor.host.activity_drawer_window"
+id = "editor.workbench.shell.activity_drawer_window"
 version = 2
 
 [components.ActivityDrawerWindow]
@@ -287,11 +288,11 @@ control_id = "ActivityDrawerWindowRoot"
 
     assert!(outcome
         .store
-        .get("editor.host.activity_drawer_window")
+        .get("editor.workbench.shell.activity_drawer_window")
         .is_some());
     assert!(outcome
         .store
-        .get("res://ui/editor/host/activity_drawer_window.zui")
+        .get("res://ui/editor/components/workbench/shell/activity_drawer_window.zui")
         .is_some());
     let root = outcome
         .compiled

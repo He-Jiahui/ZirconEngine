@@ -9,6 +9,9 @@ related_code:
   - zircon_runtime_interface/src/reflect/field_info.rs
   - zircon_runtime_interface/src/reflect/type_info.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/script_visibility.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
   - zircon_runtime_interface/src/reflect/schema.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs
@@ -23,6 +26,9 @@ implementation_files:
   - zircon_runtime_interface/src/reflect/field_info.rs
   - zircon_runtime_interface/src/reflect/type_info.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/script_visibility.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
   - zircon_runtime_interface/src/reflect/schema.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs
@@ -33,6 +39,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-08-reflection-type-registry-implementation.md
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
+  - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime_interface/src/tests/reflect_contracts.rs
   - tests/acceptance/reflection-type-registry.md
@@ -45,7 +52,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime_interface::reflect` owns the neutral serialized reflection contract shared by runtime, editor, plugin tooling, persistence, and future remote projections. The module contains DTOs only: type identity, object addresses, schema metadata, reflected field values, read/write request and response shapes, tagged values, and structured errors.
+`zircon_runtime_interface::reflect` owns the neutral serialized reflection contract shared by runtime, editor, plugin tooling, persistence, remote consumers, and script VMs. It contains type identity, object addresses, schema metadata, reflected field values, read/write request and response shapes, tagged values, structured errors, and the runtime-neutral `ZrReflect` / `ZrReflectValue` derive contracts.
 
 This interface module must not depend on `zircon_runtime`, `zircon_editor`, `World`, ECS storage, adapters, render code, IO, or service managers. Runtime behavior such as `TypeRegistry`, component adapters, resource adapters, field conversion, dirty-state mutation, and `WorldReflection` dispatch belongs in `zircon_runtime::scene::reflect` in later M8 milestones.
 
@@ -58,13 +65,16 @@ The `reflect` root is structural and re-exports focused child modules:
 - `ReflectEditorHint`, `ReflectNumericRange`, and `ReflectEnumOption` describe editor and tooling metadata without requiring editor state.
 - `ReflectFieldInfo` stores ordered field schema, editability, serializability, visibility, defaults, numeric ranges, enum options, hints, and documentation.
 - `ReflectTypeInfo` groups the type kind and ordered fields.
-- `ReflectSerializationStrategy` and `ReflectTypeRegistration` describe registry entries with component/resource, plugin, serialization, editor, remote, and optional plugin-owner flags but without storing runtime adapters.
+- `ReflectSerializationStrategy`, `ReflectScriptVisibility`, and `ReflectTypeRegistration` describe registry entries with component/resource, plugin, serialization, editor, remote, script, optional documentation, and optional plugin-owner metadata but without storing runtime adapters.
+- `ZrReflect` exposes one fallible registration plus generated name-based tooling accessors and numeric field-slot accessors. Dense VM call sites use the numeric surface after load-time resolution; inspector and schema clients retain the name-based surface. `ZrReflectValue` owns neutral conversions between Rust values and `ReflectedValue`; neither trait depends on `World` or runtime storage.
 - `ReflectSchemaFilter`, `ReflectSchemaRequest`, and `ReflectSchemaResponse` define schema listing/filter requests and responses.
 - `ReflectFieldValue`, `ReflectFieldsRequest`, `ReflectFieldsResponse`, `ReflectReadRequest`, `ReflectReadResponse`, `ReflectWriteRequest`, and `ReflectWriteResponse` define the shared field access contract.
 
 The constructor helpers on these DTOs preserve simple contract invariants, especially non-empty type paths. They do not perform runtime lookup, world mutation, storage access, or plugin loading.
 
 `ReflectTypeRegistration::plugin_id` is the registry-level plugin owner. `ReflectTypeRegistration::with_plugin_id` keeps `ReflectTypePath::plugin_id` synchronized for DTO consumers that only receive type paths. `serialization` is the persistence strategy, while `serializable` is the explicit visibility/eligibility flag used by filters and tooling; constructors currently initialize it from the strategy and leave it overridable.
+
+`ReflectTypeRegistration::script_visibility` is independent from `remote_visible`. Script host types mark it `Public`, while private runtime metadata remains unavailable to VM projections. Type and field documentation stay on the unified registration, so script ABI descriptors, inspector surfaces, and schema consumers do not maintain parallel field schemas.
 
 ## Object Addressing
 

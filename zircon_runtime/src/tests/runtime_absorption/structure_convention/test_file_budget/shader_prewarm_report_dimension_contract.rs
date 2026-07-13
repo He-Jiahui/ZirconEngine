@@ -2,8 +2,7 @@ use super::*;
 
 const STATUS: &str =
     "render_plan08_build_tool_report_dimension_contract_python_passed_cargo_deferred";
-const PERMUTATION_ID_STATUS: &str =
-    "render_plan08_build_tool_permutation_id_report_dimension_contract_python_passed_cargo_deferred";
+const PERMUTATION_ID_STATUS: &str = "render_plan08_build_tool_permutation_id_report_dimension_contract_python_passed_cargo_deferred";
 const PRODUCT_PASS_STATUS: &str =
     "render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred";
 const COMPLETE_DIMENSION_STATUS: &str =
@@ -24,13 +23,15 @@ fn runtime_15_shader_prewarm_report_dimension_contract_is_wired() {
         read_repo("tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py");
     let permutation_registry_tests =
         read_repo("tools/tests/test_zircon_build_shader_permutation_registry_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "build helper validates requested prewarm dimensions against report summary",
@@ -163,7 +164,6 @@ fn runtime_15_shader_prewarm_report_dimension_contract_is_wired() {
         ("build tool doc", build_tool_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("session note", session.as_str()),
     ] {
         assert_contains_all(
             label,

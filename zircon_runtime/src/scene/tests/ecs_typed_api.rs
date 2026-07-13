@@ -1,8 +1,8 @@
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
+use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use crate::core::math::{Transform, Vec3};
-use crate::plugin::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use crate::scene::components::{LocalTransform, Name, RenderLayerMask, RigidBodyComponent};
 use crate::scene::ecs::{Component, Resource};
 use crate::scene::{SceneError, World};

@@ -84,6 +84,40 @@ fn text_measure_cache_separates_layouts_by_writing_mode() {
 }
 
 #[test]
+fn text_measure_cache_reuses_layout_across_native_and_sdf_modes() {
+    let native_style = UiResolvedStyle {
+        font_size: 14.0,
+        line_height: 18.0,
+        wrap: UiTextWrap::Glyph,
+        text_render_mode: zircon_runtime_interface::ui::surface::UiTextRenderMode::Native,
+        ..UiResolvedStyle::default()
+    };
+    let sdf_style = UiResolvedStyle {
+        text_render_mode: zircon_runtime_interface::ui::surface::UiTextRenderMode::Sdf,
+        ..native_style.clone()
+    };
+    let frame = UiFrame::new(8.0, 12.0, 72.0, 96.0);
+    let mut cache = UiTextMeasureCache::default();
+
+    let native = cache.resolve_or_shape(&UiTextLayoutRequest::new(
+        "Alpha世界Beta",
+        &native_style,
+        frame,
+        None,
+    ));
+    let sdf = cache.resolve_or_shape(&UiTextLayoutRequest::new(
+        "Alpha世界Beta",
+        &sdf_style,
+        frame,
+        None,
+    ));
+
+    assert_eq!(native.layout, sdf.layout);
+    assert_eq!(cache.frame_layout_report().miss_count, 1);
+    assert_eq!(cache.frame_layout_dedup_report().hit_count, 1);
+}
+
+#[test]
 fn render_perf_text_measure_then_layout_shapes_once() {
     let style = UiResolvedStyle {
         font_size: 10.0,

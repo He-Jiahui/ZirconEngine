@@ -1,6 +1,7 @@
 mod construct;
 mod ensure_depth_prepass_pipeline;
 mod ensure_gbuffer_pipeline;
+mod ensure_oit_pipeline;
 mod ensure_pipeline;
 mod ensure_shadow_pipeline;
 mod ensure_taa_reactive_mask_pipeline;

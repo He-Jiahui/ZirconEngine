@@ -10,8 +10,8 @@ related_code:
   - zircon_editor/src/ui/animation_editor/session/sequence.rs
   - zircon_editor/src/ui/animation_editor/session/state_machine.rs
   - zircon_editor/src/ui/animation_editor/session/support.rs
-  - zircon_editor/assets/ui/editor/animation_editor.ui.toml
-  - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/src/ui/layouts/views/animation_editor.rs
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
@@ -20,8 +20,12 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/animation_event.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/asset_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
+  - zircon_editor/src/core/asset/toolkit_route.rs
+  - zircon_editor/src/core/editor_event/types.rs
+  - zircon_editor/src/ui/binding/animation/command.rs
+  - zircon_editor/src/ui/binding/asset/command.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
@@ -35,9 +39,13 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/tests/editor_event/animation_runtime.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
+  - zircon_editor/src/tests/editor_event/support.rs
+  - zircon_editor/src/tests/editor_event/runtime/animation_assets.rs
+  - zircon_editor/src/tests/editor_event/locator_protocol_hard_cut.rs
+  - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
   - zircon_editor/src/tests/host/animation_editor.rs
-  - zircon_editor/tests/workbench_animation_editor_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
 implementation_files:
   - zircon_editor/src/ui/animation_editor/mod.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
@@ -49,8 +57,8 @@ implementation_files:
   - zircon_editor/src/ui/animation_editor/session/sequence.rs
   - zircon_editor/src/ui/animation_editor/session/state_machine.rs
   - zircon_editor/src/ui/animation_editor/session/support.rs
-  - zircon_editor/assets/ui/editor/animation_editor.ui.toml
-  - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/src/ui/layouts/views/animation_editor.rs
   - zircon_editor/src/ui/layouts/views/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/mod.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
@@ -59,8 +67,11 @@ implementation_files:
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/animation_event.rs
-  - zircon_editor/src/core/editor_event/runtime/execution/asset_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
+  - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
+  - zircon_editor/src/core/editor_event/types.rs
+  - zircon_editor/src/ui/binding/animation/command.rs
+  - zircon_editor/src/ui/binding/asset/command.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
@@ -75,14 +86,20 @@ implementation_files:
 plan_sources:
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
   - .codex/plans/Physics + Full Animation Support 新计划.md
+  - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
+  - docs/plans/zircon_editor/editor/07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md
+  - docs/plans/zircon_editor/editor/09/2026-07-14-m1-asset-toolkit-route-hard-cut.md
 tests:
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
-  - zircon_editor/src/tests/editor_event/animation_runtime.rs
+  - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
+  - zircon_editor/src/tests/editor_event/runtime/animation_assets.rs
+  - zircon_editor/src/tests/editor_event/locator_protocol_hard_cut.rs
+  - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
   - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
-  - zircon_editor/tests/workbench_animation_editor_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
   - cargo test -p zircon_editor --locked tests::ui::animation_editor:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
   - cargo test -p zircon_editor --locked tests::ui::boundary::template_assets:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
   - cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_host_contract_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
@@ -150,15 +167,16 @@ doc_type: module-detail
   - 定义 `AnimationEditorWorkspaceEntry`
 - `lifecycle.rs`
   - 创建或恢复 animation editor session
-  - 通过 `serializable_payload["path"]` 惰性恢复资产路径
+  - 从 `AssetToolkitOpenRoute` 恢复 canonical locator，并通过当前项目
+    `ProjectManager::source_path_for_uri` 惰性解析物理源路径
 - `sync.rs`
   - 对外暴露 pane 查询和 host/session 同步入口
 - `editing.rs`
   - 把 `EditorAnimationEvent` 路由到 sequence 或 graph/state-machine session
-  - 同步 title、dirty bit 和 payload path
+  - 按 typed locator 匹配目标 instance，并同步 title、dirty bit 和 typed route payload
 - `save.rs`
   - 对外暴露 `save_animation_editor(...)`
-  - 先把当前 session 序列化回源资产路径，再按需触发项目内 `res://...` 资产重导入
+  - 先把当前 session 序列化回已解析源路径，再直接用 route locator 触发项目资产重导入
   - 保存成功后回写 workbench metadata，清掉 pane dirty 状态
 
 `EditorUiHost` 现在持有一份 `BTreeMap<ViewInstanceId, AnimationEditorWorkspaceEntry>`，这让 animation pane 和 UI asset pane 一样，有正式的 host-level session registry，而不是只靠 fallback 描述文本。
@@ -198,11 +216,12 @@ doc_type: module-detail
 animation 命令现在有两条目标解析规则：
 
 - sequence 命令
-  - 依赖当前 `active_center_tab`
+  - 依赖 workspace 唯一 `focused_view`
   - 目标必须是 `editor.animation_sequence`
 - graph / state-machine 命令
-  - 优先按命令里的 `graph_path` / `state_machine_path` 匹配已打开的 `editor.animation_graph` instance
-  - 没找到时再回退到当前 `active_center_tab`
+  - 命令、Host event 与 normalized event 统一使用 `graph_locator` / `state_machine_locator`
+  - 优先把它解析为 `AssetUri`，再与已打开 `editor.animation_graph` instance 的 typed route 匹配
+  - 没找到时再回退到当前 `focused_view`
 
 `execution::animation_event` 还保留了一个稳定降级面：
 
@@ -230,11 +249,11 @@ animation pane 现在已经接到正式 workbench/retained-host 投影链：
 
 这轮 cutover 继续把 animation pane 的壳层几何从删除前的手写常量迁回 crate `assets/`：
 
-- [`animation_editor.ui.toml`](../../zircon_editor/assets/ui/editor/animation_editor.ui.toml)
+- [`animation_editor.zui`](../../zircon_editor/assets/ui/editor/animation_editor.zui)
   - 现在固定了 `AnimationEditorHeaderPanel` / `AnimationEditorBodyPanel`
   - 同时把 `HeaderModeRow`、`HeaderPathRow`、`HeaderStatusRow` 以及 sequence / graph / state-machine 三套 mode band 全部落进同一份 bootstrap asset
   - `BodyPanel` 使用 overlay 容器，让三种 mode shell 共享同一块 authoring 内容区域，而不是在 host 叶子层各自抄一遍 inset/offset 公式
-- [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs)
+- [`animation_editor.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor.rs)
   - 从 crate `assets/` 读取 tree asset、注册 editor base style、编译 `UiSurface`
   - 把 control frame 萃取成 `AnimationEditorShellLayout`
 - [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs)
@@ -247,17 +266,17 @@ animation pane 现在已经接到正式 workbench/retained-host 投影链：
 
 ## Asset Routing And Restore
 
-动画资产打开路由已经固定为：
+动画资产打开不再按文件后缀分派。固定链路是：
 
-- `*.sequence.zranim` -> `editor.animation_sequence`
-- `*.graph.zranim` -> `editor.animation_graph`
-- `*.state_machine.zranim` -> `editor.animation_graph`
+- `OpenAsset` 先解析 canonical `AssetUri`，未带 scheme 的机器路径直接拒绝
+- Editor catalog 的 indexed `ResourceKind` 映射为 `AssetTypeId`
+- 已启用 Timeline Sequence / Animation Graph plugin 的 `AssetTypeContribution` 选择 toolkit
+- view instance 只保存 `AssetToolkitOpenRoute { asset_locator, open_operation }`
+- sequence 使用 `editor.animation_sequence`；graph 与 state-machine 使用
+  `editor.animation_graph`，但由 typed operation 区分打开语义
 
-恢复语义同样固定：
-
-- workspace 只保存 view instance payload 里的 `"path"`
-- host 在真正需要 pane 数据时才恢复 session
-- 不引入第二套 inspector-only 或 slint-only animation payload
+恢复时 host 才通过当前项目 authority 把 locator 解析为源路径。旧 `{ path,
+operation_id }` payload、suffix fallback、source-path 反推 locator 与 inspector-only 第二路由均已删除。
 
 ## Save And Persistence
 
@@ -270,8 +289,8 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - `EditorUiHost::save_animation_editor(...)`
   - 确保目标 `ViewInstanceId` 的 session 已恢复
   - 执行 session save
-  - 如果源路径位于 `<project>/assets` 下，就推导成 `res://...` 并触发 `asset_manager.import_asset(...)`
-  - 最后同步 workbench metadata，保证标签页 dirty 状态和 payload path 与磁盘一致
+  - 直接使用 workspace route 的 canonical locator 触发 `asset_manager.import_asset(...)`
+  - 最后同步 workbench metadata，保证标签页 dirty 状态和 typed route 与磁盘一致
 - `EditorManager::save_animation_editor(...)`
   - 对外暴露给 host / 调用方的稳定入口
 
@@ -285,6 +304,9 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 
 当前文档记录的直接验证命令包括：
 
+- `rustc --edition 2021 --test zircon_editor/src/tests/editor_event/locator_protocol_hard_cut.rs`（2026-07-14：1 passed；核心事件、UI command、Host event、normalization 与执行器中的 `asset_path` / `graph_path` / `state_machine_path` 逻辑身份字段均已清零）
+- `cargo test -p zircon_editor --lib --locked tests::editor_event::animation_runtime -- --test-threads=1`（2026-07-14 变更前受管 current binary：15 passed；真实 ProjectAuthority/catalog/plugin contribution fixture）
+- `cargo test -p zircon_editor --lib --locked tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_animation_track_creation_from_inspector -- --exact --test-threads=1`（2026-07-14 字段硬切前受管 binary：1 passed；当前源码仍待下层编译门解除后复验）
 - `cargo test -p zircon_editor --locked tests::ui::animation_editor:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
 - `cargo test -p zircon_editor --locked tests::ui::boundary::template_assets:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
 - `cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_host_contract_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
@@ -300,12 +322,20 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - `cargo check -p zircon_editor --lib --locked --message-format short --color never`（2026-06-22 session owner split：passed，仅有既有 warning）
 - `python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json`（2026-06-22 session owner split：`oversized_production_file_count = 9`，`migration_debt_count = 9`）
 
+`Cargo.lock` 同步后 `cargo metadata --locked --offline` 已通过，current-source Cargo exact 也已实际启动。首次的
+Plugins08 reflection、Text02 variable shaping 与 Runtime04 reference resolver 共 31 项阻断在第二轮已不再出现。
+受管 job `9cc782db74224c43887dfe73b46a4680` 随后暴露本计划测试 import 未跟随
+`ui::host::module::EDITOR_MANAGER_NAME` 唯一 owner（已修正且不恢复 root re-export），以及 EditorUI03 retained
+paint-text fixture 构造 `ShapedGlyph` 时缺少 `font_instance_id` 的 E0063。后者已追加到对应文本 failure，完整日志
+`.codex/tmp/editor07-focused-document-current-exact-r2-20260714.log`。首门未编译成功，因此 animation runtime、
+animation-assets 与 reflection 三门本轮没有执行；字段硬切后的 current binary 结果仍不提前宣称。
+
 它覆盖了几类关键验收：
 
-- host 能从 payload path 恢复 sequence/state-machine session
+- host 能从 `AssetToolkitOpenRoute` 的 locator 恢复 sequence/state-machine session
 - animation authoring 命令能把 sequence/state-machine session 标记 dirty 并更新 pane 内容
 - sequence / graph / state-machine 资产文档现在都能通过同一 session save 链路真正写回磁盘
-- host save 会清掉 workbench dirty metadata，而不会破坏原有 payload path
+- host save 会清掉 workbench dirty metadata，同时保持 typed route 的 locator / operation 不变
 - workbench shell 已经声明 animation pane，而不是只剩 fallback surface
 - animation pane bootstrap asset 能导出 header/body 和 sequence / graph / state-machine mode frame
 - retained host-contract pane data now exposes the animation pane view, so the current build path no longer depends on generated pane imports

@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::{InitLevel, ModuleDependencySpec};
 use crate::plugin::{
     PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,

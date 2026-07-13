@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 plan_sources:
   - user: 2026-04-19 补更深的 residency-manager cascade / page-table / completion / split-merge frontier policy 收敛
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-hot-frontier-runtime-residency-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-page-table-confirmed-completion-cascade.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_carries_hot_frontier_truth_into_newly_completed_descendant_before_next_prepare -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_frontier_runtime -- --nocapture

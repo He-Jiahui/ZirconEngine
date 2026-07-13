@@ -19,7 +19,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiSurfaceDebugOptions, UiSurfaceDebugSnapshot},
 };
 
-const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "floating_window.source";
+const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "res://ui/editor/host/floating_window_source.zui";
 
 #[test]
 fn builtin_editor_host_templates_export_layout_engine_route_reports() {
@@ -51,7 +51,7 @@ fn builtin_editor_host_templates_export_layout_engine_route_reports() {
     let floating = shared_surface(
         &runtime,
         FLOATING_WINDOW_SOURCE_DOCUMENT_ID,
-        "editor.floating_window.source",
+        "editor.res://ui/editor/host/floating_window_source.zui",
     );
     assert_native_route(
         &floating,
@@ -70,7 +70,7 @@ fn builtin_editor_host_templates_export_layout_engine_route_reports() {
     let mut toolbar = shared_surface_with_size(
         &runtime,
         SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID,
-        "editor.scene.viewport_toolbar",
+        "editor.res://ui/editor/host/scene_viewport_toolbar.zui",
         UiSize::new(1280.0, 28.0),
     );
     assert_native_route(

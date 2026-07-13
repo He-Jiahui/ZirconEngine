@@ -892,7 +892,7 @@ fn project_sort_label(sort: ProjectSortMode, language: crate::settings::HubLangu
 }
 
 fn recent_project_display_name(project: &RecentProject) -> String {
-    if project.display_name.trim().is_empty() {
+    if project.summary.name.trim().is_empty() {
         return project
             .path
             .file_name()
@@ -900,7 +900,7 @@ fn recent_project_display_name(project: &RecentProject) -> String {
             .unwrap_or("Zircon Project")
             .to_string();
     }
-    project.display_name.clone()
+    project.summary.name.clone()
 }
 
 fn recent_project_slug(project: &RecentProject) -> String {

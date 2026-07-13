@@ -12,7 +12,7 @@ use crate::ui::host::editor_asset_manager::{
 pub(in crate::ui::host::editor_asset_manager::manager) struct EditorAssetState {
     pub(in crate::ui::host::editor_asset_manager::manager) project_root: Option<PathBuf>,
     pub(in crate::ui::host::editor_asset_manager::manager) assets_root: Option<PathBuf>,
-    pub(in crate::ui::host::editor_asset_manager::manager) library_root: Option<PathBuf>,
+    pub(in crate::ui::host::editor_asset_manager::manager) cache_root: Option<PathBuf>,
     pub(in crate::ui::host::editor_asset_manager::manager) project_name: String,
     pub(in crate::ui::host::editor_asset_manager::manager) default_scene_uri: Option<AssetUri>,
     pub(in crate::ui::host::editor_asset_manager::manager) catalog_revision: u64,

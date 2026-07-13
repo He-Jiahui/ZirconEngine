@@ -1,4 +1,4 @@
-use crate::asset::AssetImporterRegistry;
+use crate::asset::{AssetImporterRegistry, AssetImporterRegistryError};
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 #[cfg(feature = "graphics")]
@@ -16,7 +16,7 @@ use super::extension_inputs::{
 pub(super) struct RuntimeModuleRegistrationInputs {
     linked_plugin_ids: Vec<String>,
     asset_importers: AssetImporterRegistry,
-    asset_importer_errors: Vec<String>,
+    asset_importer_errors: Vec<AssetImporterRegistryError>,
     #[cfg(feature = "graphics")]
     render_features: Vec<RenderFeatureDescriptor>,
     #[cfg(feature = "graphics")]
@@ -77,7 +77,7 @@ impl RuntimeModuleRegistrationInputs {
         &self.asset_importers
     }
 
-    pub(super) fn asset_importer_errors(&self) -> &[String] {
+    pub(super) fn asset_importer_errors(&self) -> &[AssetImporterRegistryError] {
         &self.asset_importer_errors
     }
 
@@ -193,43 +193,4 @@ pub(super) fn registration_inputs_for_plugin_and_feature_reports(
 }
 
 #[cfg(all(test, feature = "graphics"))]
-mod tests {
-    use super::*;
-    use crate::builtin::RuntimePluginId;
-    use crate::core::framework::render::{
-        GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_PLUGIN_ID_START,
-    };
-    use crate::plugin::{PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry};
-
-    #[test]
-    fn plugin_registration_inputs_collect_shading_model_descriptors() {
-        let plugin_id = RuntimePluginId::new("toon_shading");
-        let plugin_key = plugin_id.key().to_string();
-        let descriptor = ShadingModelDescriptor::new(
-            ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START),
-            "custom:toon",
-            "toon_forward",
-            "toon_gbuffer",
-            "toon_deferred",
-            GBufferChannelMask::standard_lit(),
-        );
-        let mut extensions = RuntimeExtensionRegistry::default();
-        extensions
-            .register_shading_model(&plugin_key, descriptor.clone())
-            .expect("plugin shading model descriptor registers");
-        let registration = RuntimePluginRegistrationReport {
-            package_manifest: PluginPackageManifest::new(plugin_key.clone(), "Toon Shading"),
-            project_selection: ProjectPluginSelection::runtime_plugin(plugin_id, true, true),
-            extensions,
-            diagnostics: Vec::new(),
-        };
-
-        let inputs = registration_inputs_for_plugin_reports(&[&registration]);
-
-        assert_eq!(
-            inputs.linked_plugin_ids(),
-            std::slice::from_ref(&plugin_key)
-        );
-        assert_eq!(inputs.shading_models(), &[descriptor]);
-    }
-}
+mod tests;

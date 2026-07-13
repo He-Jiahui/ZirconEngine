@@ -2,19 +2,22 @@ import { readFileSync } from "node:fs";
 import { extensionModules } from "./src/modules/modules.js";
 
 const expectedExtensionEventsPerWorkspace = 20;
+const expectedSharedCompositeEventCount = 6;
 const previewActionIdPattern = /^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/;
 const allowedEventKinds = new Set(["Click", "Change", "Submit"]);
 const extensionEventInteractiveComponents = new Set([
   "WorkbenchButton",
+  "WorkbenchIconButton",
   "WorkbenchDropdown",
   "WorkbenchField",
   "WorkbenchListRow",
   "WorkbenchPropertyRow",
   "WorkbenchTab",
   "WorkbenchTableRow",
+  "WorkbenchTimelineStrip",
 ]);
 const extensionEventKindComponents = new Map([
-  ["Click", new Set(["WorkbenchButton", "WorkbenchListRow", "WorkbenchPropertyRow", "WorkbenchTab", "WorkbenchTableRow"])],
+  ["Click", new Set(["WorkbenchButton", "WorkbenchIconButton", "WorkbenchListRow", "WorkbenchPropertyRow", "WorkbenchTab", "WorkbenchTableRow", "WorkbenchTimelineStrip"])],
   ["Change", new Set(["WorkbenchDropdown", "WorkbenchField"])],
   ["Submit", new Set(["WorkbenchDropdown", "WorkbenchField"])],
 ]);
@@ -300,6 +303,7 @@ const extensionWorkspaceContracts = [
     feedbackOutputControlId: "WorkbenchExtensionBlendSpaceOutputRow",
     childPrefix: "blend_space",
     openerSourceName: "abilityWorkspace",
+    compositeSourceName: "blendSpaceDetails",
   },
   {
     moduleId: "pose-library",
@@ -605,6 +609,8 @@ const sources = {
   renderWorkspace: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui"),
   hudWorkspace: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui"),
   extensionWorkspaceHost: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui"),
+  blendSpaceDetails: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui"),
+  animationTransportControls: readRepo("../../../../zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui"),
   extensionWorkspaceFiles: [
     {
       sourceName: "workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui",
@@ -819,6 +825,7 @@ const sources = {
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs"),
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs"),
+    readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs"),
   ].join("\n"),
   extensionFeedback: [
     readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs"),
@@ -847,6 +854,14 @@ const extensionEvents = [
   ...sources.extensionWorkspaceFiles.flatMap((workspaceFile) =>
     extensionEventsFromZui(workspaceFile.sourceName, workspaceFile.source),
   ),
+  ...extensionEventsFromZui(
+    "workbench/composites/animation/workbench_blend_space_details.zui",
+    sources.blendSpaceDetails,
+  ),
+  ...extensionEventsFromZui(
+    "workbench/composites/animation/workbench_transport_controls.zui",
+    sources.animationTransportControls,
+  ),
 ];
 const extensionBindings = extensionBindingsFromRust(sources.extensionModuleBindings);
 const previewActions = previewActionsFromRust(sources.previewActions);
@@ -856,7 +871,8 @@ const bindingActionIds = new Set([...extensionBindings.values()].map((binding) =
 const extensionWorkspaceNodes = parseZuiNodes(extensionWorkspaceSource);
 const seenBindingIds = new Set();
 const expectedExtensionEventCount =
-  extensionWorkspaceContracts.length * expectedExtensionEventsPerWorkspace;
+  extensionWorkspaceContracts.length * expectedExtensionEventsPerWorkspace
+  + expectedSharedCompositeEventCount;
 
 for (const contract of extensionWorkspaceContracts) {
   if (!extensionModules.some((module) => module.id === contract.moduleId && module.extension === true)) {
@@ -907,6 +923,9 @@ for (const contract of extensionWorkspaceContracts) {
   }
 
   const workspaceDescendants = collectDescendantNodes(extensionWorkspaceNodes, contract.workspaceRoot);
+  if (contract.compositeSourceName) {
+    workspaceDescendants.push(...parseZuiNodes(sources[contract.compositeSourceName]).values());
+  }
   const workspaceComponents = new Set(workspaceDescendants.map((node) => node.component).filter(Boolean));
   for (const component of requiredWorkspaceComponents) {
     if (!workspaceComponents.has(component)) {

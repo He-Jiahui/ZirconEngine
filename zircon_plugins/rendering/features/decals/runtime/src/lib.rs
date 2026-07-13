@@ -43,8 +43,9 @@ impl Default for DecalProjectorDescriptor {
     }
 }
 
-pub fn decal_projector_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
-    zircon_runtime::plugin::ComponentTypeDescriptor::new(
+pub fn decal_projector_component_descriptor(
+) -> zircon_runtime::core::framework::scene::ComponentTypeDescriptor {
+    zircon_runtime::core::framework::scene::ComponentTypeDescriptor::new(
         DECAL_PROJECTOR_COMPONENT_TYPE,
         zircon_plugin_rendering_runtime::PLUGIN_ID,
         "Decal Projector",

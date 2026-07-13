@@ -17,7 +17,7 @@ pub(super) fn generated_bottom_view_descriptor() -> ViewDescriptor {
         ViewContentKind::GeneratedBottom,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.generated_bottom.body",
+        "res://ui/editor/host/generated_bottom_body.zui",
         PanePayloadKind::GeneratedBottomV1,
         PaneRouteNamespace::Dock,
         PaneInteractionMode::TemplateOnly,

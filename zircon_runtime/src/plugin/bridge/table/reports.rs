@@ -2,8 +2,9 @@ use std::fmt;
 
 use crate::plugin::extension_registry::PluginModuleId;
 
-use super::super::diagnostics::BridgeDiagnosticsSnapshot;
-use super::super::interface_id::InterfaceSlot;
+use crate::core::framework::bridge::{
+    BridgeDiagnosticsSnapshot, BridgeInterfaceStatus, BridgeOwnerTransitionMode, InterfaceSlot,
+};
 
 impl fmt::Debug for super::InterfaceExport {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -11,23 +12,6 @@ impl fmt::Debug for super::InterfaceExport {
             .debug_struct("InterfaceExport")
             .field("interface_id", &self.interface_id)
             .finish_non_exhaustive()
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BridgeInterfaceStatus {
-    Absent,
-    Enabled,
-    Disabled,
-}
-
-impl BridgeInterfaceStatus {
-    pub(super) fn from_installed_entry(generation: u32, provider_installed: bool) -> Self {
-        if generation % 2 == 0 && provider_installed {
-            Self::Enabled
-        } else {
-            Self::Disabled
-        }
     }
 }
 
@@ -162,12 +146,4 @@ impl BridgeOwnerTransitionReport {
                 .join(", ")
         )
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BridgeOwnerTransitionMode {
-    Activate,
-    Disable,
-    Deactivate,
-    Reload,
 }

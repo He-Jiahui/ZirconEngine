@@ -17,7 +17,7 @@ use crate::graphics::text::{
 use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiTextDirection, UiTextRange, UiTextWrap,
+    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap,
 };
 
 use super::resolved_layout::{
@@ -139,7 +139,7 @@ impl UiTextShapePrewarmRequest {
     }
 
     pub(crate) fn from_layout_source(text: &str, style: UiResolvedStyle) -> Option<Self> {
-        let text = layout_prewarm_text(text, style.rich_text)?;
+        let text = layout_prewarm_text(text, style.rich_text_format)?;
         Some(Self { text, style })
     }
 
@@ -156,15 +156,15 @@ impl UiTextShapePrewarmRequest {
     }
 }
 
-fn layout_prewarm_text(text: &str, rich_text: bool) -> Option<Arc<str>> {
+fn layout_prewarm_text(text: &str, format: UiRichTextFormat) -> Option<Arc<str>> {
     if text.is_empty() {
         return None;
     }
-    if !rich_text {
+    if matches!(format, UiRichTextFormat::Plain) {
         return Some(Arc::from(text));
     }
 
-    let visible_text = parse_source_text(text, true).text;
+    let visible_text = parse_source_text(text, format).text;
     (!visible_text.is_empty()).then(|| Arc::from(visible_text))
 }
 

@@ -14,8 +14,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         include_str!("../../../../../zircon_runtime/src/asset/module.rs");
     let runtime_asset_meta_source =
         include_str!("../../../../../zircon_runtime/src/asset/project/meta.rs");
-    let editor_asset_meta_source =
-        include_str!("../../../ui/host/editor_asset_manager/editor_meta.rs");
+    let editor_asset_registry_source =
+        include_str!("../../../core/asset/type_registry/registry.rs");
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
 
     assert!(
@@ -103,8 +103,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "runtime asset metadata should not persist editor adapter state"
     );
     assert!(
-        editor_asset_meta_source.contains("editor_adapter"),
-        "editor asset host should own editor adapter metadata"
+        editor_asset_registry_source.contains("AssetTypeDefinition"),
+        "editor asset behavior should be owned by the typed asset registry"
     );
 }
 

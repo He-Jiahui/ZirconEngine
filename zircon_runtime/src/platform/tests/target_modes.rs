@@ -4,19 +4,19 @@ use super::super::*;
 fn runtime_target_mode_diagnostic_tokens_stay_stable() {
     let cases = [
         (
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
             PlatformTarget::Windows,
             PlatformFeatureSelection::bevy_default_platform(),
             "platform.target_mode=client_runtime",
         ),
         (
-            crate::builtin::RuntimeTargetMode::ServerRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
             PlatformTarget::Linux,
             PlatformFeatureSelection::headless(),
             "platform.target_mode=server_runtime",
         ),
         (
-            crate::builtin::RuntimeTargetMode::EditorHost,
+            crate::core::framework::platform::RuntimeTargetMode::EditorHost,
             PlatformTarget::Linux,
             PlatformFeatureSelection::bevy_default_platform(),
             "platform.target_mode=editor_host",
@@ -42,7 +42,7 @@ fn runtime_target_modes_select_default_event_loop_policy() {
 
     let client = default_platform.report(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(client.event_loop_policy, EventLoopPolicy::Game);
     assert_eq!(
@@ -52,7 +52,7 @@ fn runtime_target_modes_select_default_event_loop_policy() {
 
     let editor = default_platform.report(
         PlatformTarget::Macos,
-        crate::builtin::RuntimeTargetMode::EditorHost,
+        crate::core::framework::platform::RuntimeTargetMode::EditorHost,
     );
     assert_eq!(editor.event_loop_policy, EventLoopPolicy::DesktopApp);
     assert_eq!(
@@ -62,7 +62,7 @@ fn runtime_target_modes_select_default_event_loop_policy() {
 
     let server = PlatformCapabilityMatrix::new(PlatformFeatureSelection::headless()).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
     );
     assert_eq!(server.event_loop_policy, EventLoopPolicy::Headless);
     assert_eq!(
@@ -77,7 +77,7 @@ fn explicit_headless_policy_request_falls_back_to_windowed_defaults() {
 
     let client = matrix.report_with_event_loop_policy(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         EventLoopPolicy::Headless,
     );
     assert_eq!(client.event_loop_policy, EventLoopPolicy::Game);
@@ -88,7 +88,7 @@ fn explicit_headless_policy_request_falls_back_to_windowed_defaults() {
 
     let editor = matrix.report_with_event_loop_policy(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::EditorHost,
+        crate::core::framework::platform::RuntimeTargetMode::EditorHost,
         EventLoopPolicy::Headless,
     );
     assert_eq!(editor.event_loop_policy, EventLoopPolicy::DesktopApp);
@@ -114,7 +114,7 @@ fn server_runtime_forces_headless_policy_across_host_targets() {
     ] {
         let report = matrix.report_with_event_loop_policy(
             target,
-            crate::builtin::RuntimeTargetMode::ServerRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
             EventLoopPolicy::Continuous,
         );
 

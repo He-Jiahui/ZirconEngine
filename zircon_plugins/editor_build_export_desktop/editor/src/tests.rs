@@ -5,8 +5,10 @@ mod tests {
     use std::collections::BTreeMap;
     use std::path::{Path, PathBuf};
 
-    use zircon_runtime::builtin::RuntimeTargetMode;
-    use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+    use zircon_editor::core::asset::AssetTypeId;
+    use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+    use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+    use zircon_runtime::plugin::PluginModuleKind;
     use zircon_runtime::ui::v2::UiZuiAssetLoader;
     use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
@@ -47,9 +49,9 @@ mod tests {
             .any(|template| template.id() == NATIVE_DYNAMIC_REPORT_ID));
         assert!(registration
             .extensions
-            .operations()
-            .descriptors()
-            .any(|operation| operation.path().as_str() == EXPORT_OPERATION_NATIVE_DYNAMIC));
+            .commands()
+            .commands()
+            .any(|operation| operation.id().as_str() == EXPORT_OPERATION_NATIVE_DYNAMIC));
         assert!(registration
             .extensions
             .menu_items()
@@ -57,9 +59,9 @@ mod tests {
             .any(|menu| menu.path() == "Project/Export/Desktop/Native Dynamic"));
         assert!(registration
             .extensions
-            .asset_creation_templates()
+            .asset_type_contributions()
             .iter()
-            .any(|template| template.asset_kind() == EXPORT_PROFILE_ASSET_KIND));
+            .any(|contribution| contribution.asset_type().as_str() == EXPORT_PROFILE_ASSET_KIND));
         assert!(registration
             .extensions
             .component_drawers()
@@ -74,7 +76,7 @@ mod tests {
         assert_eq!(manifest.category, "platform");
         assert_eq!(
             manifest.supported_targets,
-            vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+            vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
         );
         assert!(manifest.capabilities.contains(&CAPABILITY.to_string()));
         assert!(manifest
@@ -145,19 +147,19 @@ mod tests {
                 .map(|stage| stage.stage)
                 .collect::<Vec<_>>(),
             vec![
-                zircon_runtime::plugin::ExportPipelineStage::Validate,
-                zircon_runtime::plugin::ExportPipelineStage::SourceTemplate,
-                zircon_runtime::plugin::ExportPipelineStage::NativeDynamic,
-                zircon_runtime::plugin::ExportPipelineStage::CompileHost,
-                zircon_runtime::plugin::ExportPipelineStage::CookAssets,
-                zircon_runtime::plugin::ExportPipelineStage::Pack,
-                zircon_runtime::plugin::ExportPipelineStage::PlatformBundle,
-                zircon_runtime::plugin::ExportPipelineStage::Report,
+                zircon_runtime_interface::export::ExportStage::Validate,
+                zircon_runtime_interface::export::ExportStage::SourceTemplate,
+                zircon_runtime_interface::export::ExportStage::NativeDynamic,
+                zircon_runtime_interface::export::ExportStage::CompileHost,
+                zircon_runtime_interface::export::ExportStage::CookAssets,
+                zircon_runtime_interface::export::ExportStage::Pack,
+                zircon_runtime_interface::export::ExportStage::PlatformBundle,
+                zircon_runtime_interface::export::ExportStage::Report,
             ]
         );
         assert_eq!(
             wizard
-                .stage(zircon_runtime::plugin::ExportPipelineStage::Pack)
+                .stage(zircon_runtime_interface::export::ExportStage::Pack)
                 .expect("pack stage descriptor")
                 .report_path,
             "report.json"
@@ -167,7 +169,7 @@ mod tests {
             .expect("source template report");
         assert_eq!(
             source_template_report.required_stage,
-            zircon_runtime::plugin::ExportPipelineStage::SourceTemplate
+            zircon_runtime_interface::export::ExportStage::SourceTemplate
         );
         assert_eq!(
             source_template_report.template_document,
@@ -190,7 +192,7 @@ mod tests {
             .expect("library embed report");
         assert_eq!(
             library_embed_report.required_stage,
-            zircon_runtime::plugin::ExportPipelineStage::CompileHost
+            zircon_runtime_interface::export::ExportStage::CompileHost
         );
         assert_eq!(
             library_embed_report.template_document,
@@ -214,7 +216,7 @@ mod tests {
         assert_eq!(native_dynamic_report.template_id, NATIVE_DYNAMIC_REPORT_ID);
         assert_eq!(
             native_dynamic_report.required_stage,
-            zircon_runtime::plugin::ExportPipelineStage::NativeDynamic
+            zircon_runtime_interface::export::ExportStage::NativeDynamic
         );
         assert_eq!(
             native_dynamic_report.template_document,
@@ -263,11 +265,13 @@ mod tests {
             assert_view_template_asset(document, template_id);
         }
 
+        let profile_type = AssetTypeId::parse(EXPORT_PROFILE_ASSET_KIND).unwrap();
         let profile_template = registration
             .extensions
-            .asset_creation_templates()
+            .asset_type_contributions()
             .into_iter()
-            .find(|template| template.asset_kind() == EXPORT_PROFILE_ASSET_KIND)
+            .find(|contribution| contribution.asset_type() == &profile_type)
+            .and_then(|contribution| contribution.creation_templates().first())
             .expect("desktop export profile template");
         assert_eq!(
             profile_template.default_document(),

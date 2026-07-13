@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::builtin_geometry_source_descriptors;
-use crate::graphics::scene::scene_renderer::environment::SceneReflectionProbeResources;
+use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
+use crate::graphics::scene::scene_renderer::environment::{
+    SceneLightmapResources, SceneReflectionProbeResources,
+};
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::forward_shadow_receiver::{
@@ -16,6 +19,7 @@ use super::{MeshPipelineCache, MeshPipelineVariantRegistry};
 impl MeshPipelineCache {
     pub(crate) fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
         scene_layout: &wgpu::BindGroupLayout,
         material_layout: &wgpu::BindGroupLayout,
@@ -32,6 +36,36 @@ impl MeshPipelineCache {
             ],
             immediate_size: 0,
         });
+        let oit_fragment_store_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-oit-fragment-store-layout"),
+                entries: &[
+                    oit_storage_entry(0),
+                    oit_storage_entry(1),
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                ],
+            });
+        let oit_mesh_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("zircon-oit-mesh-layout"),
+                bind_group_layouts: &[
+                    Some(scene_layout),
+                    Some(&forward_shadow_receiver_layout),
+                    Some(material_layout),
+                    Some(gpu_scene_layout),
+                    Some(&oit_fragment_store_layout),
+                ],
+                immediate_size: 0,
+            });
         let forward_shadow_compare_sampler = create_forward_shadow_compare_sampler(device);
         let forward_light_grid_params_buffer = create_forward_light_grid_params_buffer(device);
         let forward_light_grid_empty_zbins_buffer =
@@ -43,10 +77,15 @@ impl MeshPipelineCache {
         let forward_shadow_atlas_fallback_globals_buffer =
             create_forward_shadow_atlas_fallback_globals_buffer(device);
         let fallback_shadow_atlas_view = create_fallback_shadow_atlas_view(device);
+        let forward_volumetric_apply =
+            VolumetricApplyFallbackResources::new(device, "zircon-forward");
         let reflection_probes = SceneReflectionProbeResources::new(device);
+        let lightmaps = SceneLightmapResources::new(device, queue);
         Self {
             target_format,
             mesh_pipeline_layout,
+            oit_fragment_store_layout,
+            oit_mesh_pipeline_layout,
             forward_shadow_receiver_layout,
             forward_shadow_compare_sampler,
             forward_light_grid_params_buffer,
@@ -55,9 +94,12 @@ impl MeshPipelineCache {
             forward_shadow_atlas_fallback_slot_buffer,
             forward_shadow_atlas_fallback_globals_buffer,
             fallback_shadow_atlas_view,
+            forward_volumetric_apply,
             reflection_probes,
+            lightmaps,
             shader_modules: HashMap::new(),
             mesh_variant_pipelines: HashMap::new(),
+            oit_mesh_variant_pipelines: HashMap::new(),
             gbuffer_mesh_pipelines: HashMap::new(),
             depth_prepass_mesh_pipelines: HashMap::new(),
             velocity_mesh_pipelines: HashMap::new(),
@@ -71,6 +113,19 @@ impl MeshPipelineCache {
                 .collect(),
             shader_variant_disk_cache: default_runtime_shader_cache(),
         }
+    }
+}
+
+fn oit_storage_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::FRAGMENT,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only: false },
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+        count: None,
     }
 }
 

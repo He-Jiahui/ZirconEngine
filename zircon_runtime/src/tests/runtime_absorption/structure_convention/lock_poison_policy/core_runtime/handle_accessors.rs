@@ -193,9 +193,8 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "pub(crate) fn lock_modules(&self)",
             "pub(crate) fn lock_services(&self)",
-            "pub(crate) fn lock_scene_hooks(&self)",
-            "pub(crate) fn lock_world_extensions(&self)",
-            "pub(crate) fn lock_plugin_bridge_lifecycle(",
+            "pub(crate) fn replace_devtools_scene_hook_snapshots(",
+            "pub(crate) fn lock_runtime_module_lifecycle_observer(",
             "core_handle_registry_accessors_recover_poisoned_runtime_locks",
         ],
     );
@@ -226,17 +225,13 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
         "CoreHandle runtime extensions use registry helpers",
         &runtime_extensions,
         &[
-            "self.lock_world_extensions().install(extensions)",
-            "self.lock_world_extensions().apply_to_world(world)",
-            "*self.lock_plugin_bridge_lifecycle() = Some(state);",
-            "self.lock_plugin_bridge_lifecycle().take()",
-            "self.lock_plugin_bridge_lifecycle().clone()",
-            "let hooks = self.lock_scene_hooks();",
-            "*self.lock_scene_hooks() =",
-            "self.lock_scene_hooks().hooks_for_stage(stage).to_vec()",
-            "self.lock_scene_hooks().stage_plan()",
+            "*self.lock_runtime_module_lifecycle_observer() = Some(observer);",
+            "self.lock_runtime_module_lifecycle_observer().take()",
+            "self.lock_runtime_module_lifecycle_observer().clone()",
         ],
     );
+    assert!(!runtime_extensions.contains("SceneRuntimeHook"));
+    assert!(!runtime_extensions.contains("lock_scene_hooks"));
     assert_contains_all(
         "registration structure test tracks helper commit boundary",
         &registration_structure,

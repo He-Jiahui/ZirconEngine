@@ -51,7 +51,7 @@ struct ArtifactCacheSceneEntityAsset {
     rect_light: Option<crate::asset::SceneRectLightAsset>,
     spot_light: Option<crate::asset::SceneSpotLightAsset>,
     post_process_volume: Option<crate::asset::ScenePostProcessVolumeAsset>,
-    rigid_body: Option<crate::asset::SceneRigidBodyAsset>,
+    rigid_body: Option<ArtifactCacheSceneRigidBodyAsset>,
     collider: Option<ArtifactCacheSceneColliderAsset>,
     joint: Option<ArtifactCacheSceneJointAsset>,
     animation_skeleton: Option<crate::asset::SceneAnimationSkeletonAsset>,
@@ -89,7 +89,10 @@ impl From<&crate::asset::SceneEntityAsset> for ArtifactCacheSceneEntityAsset {
             rect_light: asset.rect_light.clone(),
             spot_light: asset.spot_light.clone(),
             post_process_volume: asset.post_process_volume,
-            rigid_body: asset.rigid_body.clone(),
+            rigid_body: asset
+                .rigid_body
+                .as_ref()
+                .map(ArtifactCacheSceneRigidBodyAsset::from),
             collider: asset
                 .collider
                 .as_ref()
@@ -132,7 +135,9 @@ impl ArtifactCacheSceneEntityAsset {
             rect_light: self.rect_light,
             spot_light: self.spot_light,
             post_process_volume: self.post_process_volume,
-            rigid_body: self.rigid_body,
+            rigid_body: self
+                .rigid_body
+                .map(ArtifactCacheSceneRigidBodyAsset::into_asset),
             collider: self
                 .collider
                 .map(ArtifactCacheSceneColliderAsset::into_asset),
@@ -151,6 +156,100 @@ impl ArtifactCacheSceneEntityAsset {
                 .map(ArtifactCacheSceneScriptBindingAsset::into_asset)
                 .collect::<Result<Vec<_>, _>>()?,
         })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct ArtifactCacheSceneRigidBodyAsset {
+    body_type: crate::asset::SceneRigidBodyTypeAsset,
+    mass: crate::core::math::Real,
+    mass_properties: ArtifactCachePhysicsMassProperties,
+    linear_velocity: [crate::core::math::Real; 3],
+    angular_velocity: [crate::core::math::Real; 3],
+    linear_damping: crate::core::math::Real,
+    angular_damping: crate::core::math::Real,
+    gravity_scale: crate::core::math::Real,
+    ccd_mode: crate::core::framework::scene::physics::PhysicsCcdMode,
+    sleep_policy: crate::core::framework::scene::physics::PhysicsSleepPolicy,
+    lock_translation: [bool; 3],
+    lock_rotation: [bool; 3],
+}
+
+impl From<&crate::asset::SceneRigidBodyAsset> for ArtifactCacheSceneRigidBodyAsset {
+    fn from(asset: &crate::asset::SceneRigidBodyAsset) -> Self {
+        Self {
+            body_type: asset.body_type,
+            mass: asset.mass,
+            mass_properties: asset.mass_properties.into(),
+            linear_velocity: asset.linear_velocity,
+            angular_velocity: asset.angular_velocity,
+            linear_damping: asset.linear_damping,
+            angular_damping: asset.angular_damping,
+            gravity_scale: asset.gravity_scale,
+            ccd_mode: asset.ccd_mode,
+            sleep_policy: asset.sleep_policy,
+            lock_translation: asset.lock_translation,
+            lock_rotation: asset.lock_rotation,
+        }
+    }
+}
+
+impl ArtifactCacheSceneRigidBodyAsset {
+    fn into_asset(self) -> crate::asset::SceneRigidBodyAsset {
+        crate::asset::SceneRigidBodyAsset {
+            body_type: self.body_type,
+            mass: self.mass,
+            mass_properties: self.mass_properties.into(),
+            linear_velocity: self.linear_velocity,
+            angular_velocity: self.angular_velocity,
+            linear_damping: self.linear_damping,
+            angular_damping: self.angular_damping,
+            gravity_scale: self.gravity_scale,
+            ccd_mode: self.ccd_mode,
+            sleep_policy: self.sleep_policy,
+            lock_translation: self.lock_translation,
+            lock_rotation: self.lock_rotation,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+enum ArtifactCachePhysicsMassProperties {
+    Explicit {
+        inertia_tensor: Option<[[crate::core::math::Real; 3]; 3]>,
+    },
+    AutoFromShape {
+        density: crate::core::math::Real,
+    },
+}
+
+impl From<crate::core::framework::scene::physics::PhysicsMassProperties>
+    for ArtifactCachePhysicsMassProperties
+{
+    fn from(properties: crate::core::framework::scene::physics::PhysicsMassProperties) -> Self {
+        match properties {
+            crate::core::framework::scene::physics::PhysicsMassProperties::Explicit {
+                inertia_tensor,
+            } => Self::Explicit { inertia_tensor },
+            crate::core::framework::scene::physics::PhysicsMassProperties::AutoFromShape {
+                density,
+            } => Self::AutoFromShape { density },
+        }
+    }
+}
+
+impl From<ArtifactCachePhysicsMassProperties>
+    for crate::core::framework::scene::physics::PhysicsMassProperties
+{
+    fn from(properties: ArtifactCachePhysicsMassProperties) -> Self {
+        match properties {
+            ArtifactCachePhysicsMassProperties::Explicit { inertia_tensor } => {
+                Self::Explicit { inertia_tensor }
+            }
+            ArtifactCachePhysicsMassProperties::AutoFromShape { density } => {
+                Self::AutoFromShape { density }
+            }
+        }
     }
 }
 
@@ -436,6 +535,26 @@ enum ArtifactCacheSceneColliderShapeAsset {
         radius: crate::core::math::Real,
         half_height: crate::core::math::Real,
     },
+    Cylinder {
+        radius: crate::core::math::Real,
+        half_height: crate::core::math::Real,
+    },
+    ConvexHull {
+        points: Vec<[crate::core::math::Real; 3]>,
+    },
+    TriangleMesh {
+        mesh: crate::asset::AssetReference,
+    },
+    HeightField {
+        resolution: [u32; 2],
+        heights: crate::asset::AssetReference,
+    },
+    Compound {
+        children: Vec<(
+            crate::asset::TransformAsset,
+            Box<ArtifactCacheSceneColliderShapeAsset>,
+        )>,
+    },
 }
 
 impl From<&crate::asset::SceneColliderShapeAsset> for ArtifactCacheSceneColliderShapeAsset {
@@ -454,6 +573,37 @@ impl From<&crate::asset::SceneColliderShapeAsset> for ArtifactCacheSceneCollider
                 radius: *radius,
                 half_height: *half_height,
             },
+            crate::asset::SceneColliderShapeAsset::Cylinder {
+                radius,
+                half_height,
+            } => Self::Cylinder {
+                radius: *radius,
+                half_height: *half_height,
+            },
+            crate::asset::SceneColliderShapeAsset::ConvexHull { points } => Self::ConvexHull {
+                points: points.clone(),
+            },
+            crate::asset::SceneColliderShapeAsset::TriangleMesh { mesh } => {
+                Self::TriangleMesh { mesh: mesh.clone() }
+            }
+            crate::asset::SceneColliderShapeAsset::HeightField {
+                resolution,
+                heights,
+            } => Self::HeightField {
+                resolution: *resolution,
+                heights: heights.clone(),
+            },
+            crate::asset::SceneColliderShapeAsset::Compound { children } => Self::Compound {
+                children: children
+                    .iter()
+                    .map(|(transform, shape)| {
+                        (
+                            *transform,
+                            Box::new(ArtifactCacheSceneColliderShapeAsset::from(shape.as_ref())),
+                        )
+                    })
+                    .collect(),
+            },
         }
     }
 }
@@ -471,6 +621,32 @@ impl ArtifactCacheSceneColliderShapeAsset {
             } => crate::asset::SceneColliderShapeAsset::Capsule {
                 radius,
                 half_height,
+            },
+            Self::Cylinder {
+                radius,
+                half_height,
+            } => crate::asset::SceneColliderShapeAsset::Cylinder {
+                radius,
+                half_height,
+            },
+            Self::ConvexHull { points } => {
+                crate::asset::SceneColliderShapeAsset::ConvexHull { points }
+            }
+            Self::TriangleMesh { mesh } => {
+                crate::asset::SceneColliderShapeAsset::TriangleMesh { mesh }
+            }
+            Self::HeightField {
+                resolution,
+                heights,
+            } => crate::asset::SceneColliderShapeAsset::HeightField {
+                resolution,
+                heights,
+            },
+            Self::Compound { children } => crate::asset::SceneColliderShapeAsset::Compound {
+                children: children
+                    .into_iter()
+                    .map(|(transform, shape)| (transform, Box::new(shape.into_asset())))
+                    .collect(),
             },
         }
     }

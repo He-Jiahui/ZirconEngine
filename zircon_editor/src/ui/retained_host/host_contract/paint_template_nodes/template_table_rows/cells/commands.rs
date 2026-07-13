@@ -1,4 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::style::table_cell_color;
@@ -22,7 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         if cell_rect.width <= 0.0 {
             continue;
         }
-        commands.push(text_command(
+        let Some(command) = text_command(
             text_frame_for_cell(cell_rect, cell, index, metrics),
             clip,
             order,
@@ -30,7 +31,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             table_cell_color(node, index),
             metrics,
             opacity,
-        ));
+        ) else {
+            continue;
+        };
+        commands.push(command);
     }
 }
 
@@ -63,15 +67,15 @@ fn right_aligned_text_frame(
 
 fn text_command(
     rect: FrameRect,
-    _clip: &FrameRect,
+    clip: &FrameRect,
     order: i32,
     text: &str,
     color: [u8; 4],
     metrics: WorkbenchTableCellMetrics,
     opacity: f32,
-) -> HostPaintCommand {
-    let clip = rect.clone();
-    HostPaintCommand::text(
+) -> Option<HostPaintCommand> {
+    let clip = intersect(&rect, clip)?;
+    Some(HostPaintCommand::text(
         rect,
         Some(clip),
         order,
@@ -81,5 +85,49 @@ fn text_command(
         metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
-    )
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_cell_text_intersects_its_frame_with_the_inherited_clip() {
+        let command = text_command(
+            frame(10.0, 20.0, 80.0, 18.0),
+            &frame(0.0, 24.0, 100.0, 6.0),
+            3,
+            "Asset.mesh",
+            [255, 255, 255, 255],
+            table_cell_metrics(),
+            1.0,
+        )
+        .expect("partially visible table text command");
+
+        assert_eq!(command.clip_frame, Some(frame(10.0, 24.0, 80.0, 6.0)));
+    }
+
+    #[test]
+    fn table_cell_text_outside_the_inherited_clip_emits_no_command() {
+        assert!(text_command(
+            frame(10.0, 40.0, 80.0, 18.0),
+            &frame(0.0, 10.0, 100.0, 20.0),
+            3,
+            "Asset.mesh",
+            [255, 255, 255, 255],
+            table_cell_metrics(),
+            1.0,
+        )
+        .is_none());
+    }
+
+    fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
+        FrameRect {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
 }

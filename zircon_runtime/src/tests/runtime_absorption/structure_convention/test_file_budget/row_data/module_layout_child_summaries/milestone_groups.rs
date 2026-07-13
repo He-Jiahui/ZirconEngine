@@ -7,19 +7,14 @@ mod runtime_row_data;
 #[path = "milestone_groups/status_doc_groups.rs"]
 mod status_doc_groups;
 
-const MILESTONE_GROUPS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups.rs";
-const RUNTIME_ROW_DATA_GROUPS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/runtime_row_data.rs";
-const M3_CHILD_GROUPS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/m3_child_groups.rs";
-const STATUS_DOC_GROUPS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/status_doc_groups.rs";
+const MILESTONE_GROUPS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups.rs";
+const RUNTIME_ROW_DATA_GROUPS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/runtime_row_data.rs";
+const M3_CHILD_GROUPS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/m3_child_groups.rs";
+const STATUS_DOC_GROUPS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summaries/milestone_groups/status_doc_groups.rs";
 
 const MILESTONE_GROUP_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 module-layout child-summary milestone-groups child split";
-const MILESTONE_GROUP_SPLIT_STATUS_ID: &str =
-    "runtime_15_module_layout_child_summary_milestone_groups_child_split_static_passed_cargo_deferred";
+const MILESTONE_GROUP_SPLIT_STATUS_ID: &str = "runtime_15_module_layout_child_summary_milestone_groups_child_split_static_passed_cargo_deferred";
 
 const MILESTONE_GROUP_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
     (

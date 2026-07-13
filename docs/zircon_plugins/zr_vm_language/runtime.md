@@ -4,6 +4,12 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
   - zircon_plugins/zr_vm_language/runtime/src/backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/module.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/compiled_call_site.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/param_layout.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/call_site_error.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
@@ -20,6 +26,18 @@ related_code:
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime/reflection_macros/src/derive_type.rs
+  - zircon_runtime/reflection_macros/src/module.rs
+  - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
+  - zircon_reflect_derive/src/derive.rs
+  - zircon_reflect_derive/src/fields.rs
+  - zircon_runtime/src/scene/reflect/reflect_component.rs
+  - zircon_runtime/src/scene/reflect/derived/component_adapter.rs
+  - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
@@ -30,16 +48,17 @@ related_code:
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/include/zr_vm_rust_binding.h
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/src/zr_vm_rust_binding/api.c
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/src/zr_vm_rust_binding/internal.h
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys/src/lib.rs
 implementation_files:
   - zircon_plugins/zr_vm_language/runtime/Cargo.toml
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
   - zircon_plugins/zr_vm_language/runtime/src/backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/module.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/compiled_call_site.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/param_layout.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/call_site_error.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
@@ -57,6 +76,18 @@ implementation_files:
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime/reflection_macros/src/derive_type.rs
+  - zircon_runtime/reflection_macros/src/module.rs
+  - zircon_runtime_interface/src/reflect/type_registration.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
+  - zircon_reflect_derive/src/derive.rs
+  - zircon_reflect_derive/src/fields.rs
+  - zircon_runtime/src/scene/reflect/reflect_component.rs
+  - zircon_runtime/src/scene/reflect/derived/component_adapter.rs
+  - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
@@ -66,19 +97,20 @@ implementation_files:
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/include/zr_vm_rust_binding.h
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/src/zr_vm_rust_binding/api.c
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/src/zr_vm_rust_binding/internal.h
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
-  - external:E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys/src/lib.rs
 plan_sources:
   - user: 2026-05-15 implement ZrVM language plugin and reflection registration plan
   - user: 2026-05-16 continue precise VM host reflection macro implementation
+  - user: 2026-07-14 implement docs/plans/zircon_plugins architecture
+  - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/support.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
+  - zircon_runtime/reflection_macros/src/tests.rs
+  - zircon_runtime/src/scene/reflect/vm_type_backing.rs
+  - zircon_runtime/src/script/vm/tests/reflection_docs.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime: passed 2026-05-15"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm: passed 2026-05-15 with ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug"
@@ -92,7 +124,7 @@ tests:
   - "cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 --lib --tests with CARGO_HOME=D:\\cargo-home-zrvm, CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug: passed 2026-05-16"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 real_backend_loads_native_host_modules_and_roundtrips_lifecycle -- --nocapture --test-threads=1: attempted 2026-05-16; blocked in zircon_runtime by unrelated UiWidgetBehavior::RadioGroup/Radio non-exhaustive matches in ui/accessibility/extract.rs and ui/surface/surface/default_interactions.rs"
   - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 real_backend_loads_native_host_modules_and_roundtrips_lifecycle -- --nocapture --test-threads=1 with CARGO_HOME=D:\\cargo-home-zrvm, CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug: passed 2026-05-16; 1 passed, 0 failed, 3 filtered out"
-  - "ctypes native probe against E:\\Git\\zr_vm\\build\\codex-msvc-debug\\bin\\Debug\\zr_vm_rust_binding.dll: passed 2026-05-16; project compiled, activate() called foundation.time_unix_millis, math.vec3_dot, and foundation.log_info once each, saveState returned string 'created'"
+  - "historical pre-v2 ctypes native probe against E:\\Git\\zr_vm\\build\\codex-msvc-debug\\bin\\Debug\\zr_vm_rust_binding.dll: passed 2026-05-16; project compiled, activate() called foundation.time_unix_millis, math.vec3_dot, and foundation.log_info once each, legacy saveState returned string 'created' (superseded by the M5 full-envelope protocol)"
   - "cmake --build E:\\Git\\zr_vm\\build\\codex-msvc-debug --config Debug --target zr_vm_rust_binding_shared --parallel 1: passed 2026-05-16 after ProjectSession ABI patch"
   - "cargo test --manifest-path E:\\Git\\zr_vm\\zr_vm_rust_binding\\rust\\Cargo.toml -p zr_vm_rust_binding --locked --offline --jobs 1 project_session_preserves_module_state_between_export_calls -- --nocapture --test-threads=1 with CARGO_HOME=D:\\cargo-home-zrvm, CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug: passed 2026-05-16; 1 passed, 0 failed"
   - "cargo test --manifest-path E:\\Git\\zr_vm\\zr_vm_rust_binding\\rust\\Cargo.toml -p zr_vm_rust_binding --locked --offline --jobs 1 -- --nocapture --test-threads=1 with CARGO_HOME=D:\\cargo-home-zrvm, CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug: passed 2026-05-16; 9 unit tests passed, 6 native registration integration tests passed"
@@ -125,6 +157,17 @@ The plugin also contributes scene runtime hooks for entity-bound ZrVM scripts. T
 The plugin is optional and disabled by default in project selection. This keeps ZirconEngine buildable on machines that do not have `E:\Git\zr_vm` or the `zr_vm_rust_binding` dynamic library available.
 
 The crate root is a structural plugin surface: it declares backend/module children, exposes the plugin descriptor helpers, and delegates unit coverage to `src/tests/mod.rs`. Default-build registration and module tests live in `tests/registration.rs`; feature-gated native binding lifecycle tests live in `tests/real_backend.rs`; temporary ZrVM package fixtures and host-context helpers live in `tests/support.rs`.
+
+## Unified Reflection And Dense Calls
+
+The Plugins 08 M1 path uses `zircon_runtime_interface::reflect::ReflectTypeRegistration` as its only authoritative type and field schema:
+
+- `ZrReflect` derive output registers built-in component metadata and generated accessors; runtime adapters reinsert changed components through `World::insert`, preserving component-store invariants.
+- `TypeRegistry::register_vm_type` accepts VM-origin registrations and can back component-shaped types with the existing dynamic component storage path.
+- `ZirconScriptType` creates a public script-visible `ReflectTypeRegistration` first. `ScriptHostTypeDescriptor` is then a fallible ABI projection; only VM-specific value kinds, prototype kind, and construction permission remain outside the unified schema.
+- `ScriptCallTable` resolves type/member names once when a module is loaded. Compiled call sites retain only dense numeric slots, parameter layout, and captured adapters; steady-state reads and writes invoke numeric field-slot callbacks and never dispatch through the name-based reflection callback.
+
+The script projection validates visibility and field correspondence and reports `ReflectError::InvalidRegistration` instead of relying on an invariant panic. Registration failures are converted to `VmError` only at the host-module boundary where the VM-facing error contract requires it.
 
 `src/real_backend.rs` is now the structural entry for the feature-gated native backend. `real_backend/package.rs` owns package loading and session startup, `instance.rs` owns `VmPluginInstance` lifecycle forwarding, `host_modules.rs` owns host module/type/function registration, `values.rs` owns host-value lowering and ZrVM argument lifting, `errors.rs` owns binding error normalization, and `lock.rs` owns the process-global runtime mutex. `real_backend/tests.rs` keeps private helper coverage for arity validation, value conversion, callback diagnostics, and unsupported argument rejection.
 
@@ -174,7 +217,7 @@ When `backend-zr-vm` is enabled, `ZrVmBackend`:
 6. Starts a persistent `zr_vm_rust_binding::ProjectSession`.
 7. Maps optional lifecycle exports through `real_backend/instance.rs` to `VmPluginInstance` methods.
 
-Host type registration uses descriptor metadata without re-infering Rust names:
+Host type registration consumes the ABI descriptor projected from unified reflection metadata without re-infering Rust names:
 
 - `ScriptHostPrototypeKind` maps directly to `zr_vm_rust_binding::PrototypeType`.
 - `ScriptHostTypeDescriptor::allow_value_construction` maps to `TypeBuilder::allow_value_construction`.
@@ -182,7 +225,7 @@ Host type registration uses descriptor metadata without re-infering Rust names:
 - Native function parameters use `ScriptHostParameterDescriptor::type_ref.type_name`.
 - Native function return types use `ScriptHostFunctionDescriptor::return_type.type_name`.
 
-This means a Rust helper such as `fn length(value: f64) -> f64` registers as ZrVM `float -> float` by default, while custom value descriptors can register semantic host types such as `Vec3` without exposing Rust object pointers or requiring the plugin backend to know Rust type spelling.
+This means a Rust helper such as `fn length(value: f64) -> f64` registers as ZrVM `float -> float` by default, while custom value descriptors can register semantic host types such as `Vec3` without exposing Rust object pointers or requiring the plugin backend to know Rust type spelling. Type names, ordered fields, field type paths, and documentation all originate from `ReflectTypeRegistration`; the descriptor does not own a second field schema.
 
 The native callback bridge deliberately stays descriptor-driven rather than type-name-special-cased. The plugin accepts only the host value kinds that the shared script framework already exposes, rejects unsupported ZrVM argument kinds with the target function label, and wraps return-value lowering failures with the same label. This keeps interface registration and reflection metadata aligned with the shared `HostExportRegistry` contract instead of adding backend-local dispatch branches.
 
@@ -192,8 +235,9 @@ The lifecycle names are optional:
 - `deactivate()`
 - `saveState(): string`
 - `restoreState(state: string)`
+- `stateSchema(): string`
 
-`saveState` and `restoreState` map to `VmStateBlob` UTF-8 bytes. Missing lifecycle exports are accepted.
+`saveState` and `restoreState` use a hard-cut JSON protocol for the complete versioned `VmStateBlob` envelope: `schema_version`, the authoritative type-path/hash table, and payload bytes travel together. Raw payload-only lifecycle strings are no longer accepted. `stateSchema` is optional; when present it returns `VmStateSchema` JSON and enables reflected field migration. Missing lifecycle exports remain accepted, with a missing `stateSchema` selecting opaque-envelope transfer.
 
 ## Current Binding Notes
 
@@ -205,8 +249,8 @@ The local `E:\Git\zr_vm` binding used for 2026-05-16 validation includes a `ZrRu
 
 The older `ZrRustBinding_Project_CallModuleExport` API remains a fresh-capture compatibility path. It still preloads the project entry before resolving the export, returns `NOT_FOUND` when the export is absent, and preserves the current VM exception text in runtime-error diagnostics. Without the entry-load fix, `activate()` can compile but fail at export resolution because the project module was never loaded into the prepared runtime global.
 
-`ZrVmPluginInstance` owns one `ProjectSession` per loaded plugin instance. Hot reload creates a new session for the new project image; the manager saves state from the old session, activates the new instance, then calls `restoreState` on the new session. The focused real-backend test asserts that `saveState` observes the `activate` mutation and then observes the `restoreState` mutation, covering the state continuity that the earlier fresh-capture path could not provide.
+`ZrVmPluginInstance` owns one `ProjectSession` per loaded plugin instance. Hot reload creates a new session for the new project image; the manager decodes the old session's complete `saveState` envelope, activates the new instance, optionally reads `stateSchema`, migrates reflected fields, then sends the complete resulting envelope to `restoreState`. The feature-gated fixture publishes a reflected type table and schema so the test traverses the production migration protocol rather than a payload-only string shortcut.
 
 The real fixture avoids ZrVM string conversion syntax inside `activate()`. A direct probe showed `foundation.log_info("activated:" + <string> now + ":" + <string> dot)` fails inside ZrVM with `GET_MEMBER: receiver must be an object, array, or string`; the fixture now keeps `time_unix_millis` and `vec3_dot` calls for host callback coverage, then logs a static string so the test verifies native dispatch rather than a currently failing ZrVM cast/concatenation edge.
 
-The documented minimal example follows the same constraint. `docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr` imports `zr.zircon.foundation`, queries time during `activate()` to prove host access, logs static lifecycle messages, and keeps hot-reload state as plain strings returned by `saveState()` and accepted by `restoreState(state)`.
+The documented minimal example follows the same constraint. `docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr` imports `zr.zircon.foundation`, queries time during `activate()` to prove host access, logs static lifecycle messages, and returns/accepts the complete JSON `VmStateBlob` envelope. Its empty type table intentionally selects opaque mode while still obeying the v2 wire contract.

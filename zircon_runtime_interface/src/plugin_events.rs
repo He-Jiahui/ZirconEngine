@@ -36,30 +36,6 @@ impl ZrPluginEventCallbackRequestV1 {
             payload: ZrByteSlice::empty(),
         }
     }
-
-    pub const fn new(
-        abi_version: u32,
-        namespace: ZrByteSlice,
-        plugin_id: ZrByteSlice,
-        handler_id: ZrByteSlice,
-        event_id: ZrByteSlice,
-        source_path: ZrByteSlice,
-        time_seconds: f32,
-        payload_schema: ZrByteSlice,
-        payload: ZrByteSlice,
-    ) -> Self {
-        Self {
-            abi_version,
-            namespace,
-            plugin_id,
-            handler_id,
-            event_id,
-            source_path,
-            time_seconds,
-            payload_schema,
-            payload,
-        }
-    }
 }
 
 #[repr(C)]

@@ -428,10 +428,10 @@ related_code:
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/ui/host/commands/mod.rs
-  - zircon_editor/src/ui/host/commands/registry.rs
-  - zircon_editor/src/ui/host/commands/keymap.rs
-  - zircon_editor/src/ui/host/commands/palette.rs
+  - zircon_editor/src/core/commands/mod.rs
+  - zircon_editor/src/core/commands/registry.rs
+  - zircon_editor/src/core/commands/keymap.rs
+  - zircon_editor/src/core/commands/palette.rs
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell
@@ -617,8 +617,11 @@ winit（editor EventLoop）→ 01 platform_input 翻译 → batch
 
 ## 状态与产出记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md`](08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md)
+- 当前失败交接（`open / 待修复`）：[`08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md`](08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md)
+- 当前失败交接（`open / 待修复`）：[`08/failure-2026-07-11-retained-window-hard-cutover-expectations.md`](08/failure-2026-07-11-retained-window-hard-cutover-expectations.md)
+- fixed 已修复：[componentized-workspace-test-export](../editor/14/fixed-2026-07-12-componentized-workspace-test-export.md)

@@ -72,7 +72,7 @@ mod tests {
     }
 
     #[test]
-    fn keeps_legacy_character_advances_when_counts_match() {
+    fn keeps_prior_character_advances_when_counts_match() {
         let advances = resolved_layout_advances_for_sdf_glyphs("ABC", &[5.0, 7.0, 9.0], 3)
             .expect("character advances should stay usable");
 

@@ -4,7 +4,7 @@ mod linux;
 mod policy;
 mod window;
 
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 use super::backends::{EventLoopPolicy, LinuxWindowProtocol};
 use super::report::PlatformCapabilityReport;

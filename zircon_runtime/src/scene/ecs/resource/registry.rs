@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use super::id::ResourceId;
-use super::marker::Resource;
+use super::Resource;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResourceDescriptor {

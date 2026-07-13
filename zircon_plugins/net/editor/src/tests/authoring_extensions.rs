@@ -53,14 +53,14 @@ fn net_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.net.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.net.authoring.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.net.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.net.diagnostics.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.net.diagnostics.open"));
     assert_operation_payload_schema(
         &registration,
         NET_LISTENER_CONFIG_OPERATION,
@@ -93,14 +93,17 @@ fn net_editor_plugin_contributes_authoring_extensions() {
         .any(|drawer| drawer.component_type() == "net.ReplicationSchema"));
     assert!(registration
         .extensions
-        .asset_creation_templates()
+        .asset_type_contributions()
         .iter()
-        .any(|template| template.id() == NET_REPLICATION_SCHEMA_TEMPLATE_ID));
+        .any(|contribution| contribution
+            .creation_templates()
+            .iter()
+            .any(|template| template.id() == NET_REPLICATION_SCHEMA_TEMPLATE_ID)));
     assert!(registration
         .extensions
         .graph_editors()
         .iter()
-        .any(|editor| editor.asset_kind() == NET_REPLICATION_SCHEMA_ASSET_KIND));
+        .any(|editor| editor.asset_type().as_str() == NET_REPLICATION_SCHEMA_ASSET_KIND));
     assert!(registration
         .extensions
         .graph_node_palettes()
@@ -116,9 +119,9 @@ fn assert_operation_payload_schema(
 ) {
     let operation = registration
         .extensions
-        .operations()
-        .descriptors()
-        .find(|operation| operation.path().as_str() == operation_path)
+        .commands()
+        .commands()
+        .find(|operation| operation.id().as_str() == operation_path)
         .expect("network authoring operation should be registered");
     assert_eq!(operation.payload_schema_id(), Some(payload_schema_id));
 }

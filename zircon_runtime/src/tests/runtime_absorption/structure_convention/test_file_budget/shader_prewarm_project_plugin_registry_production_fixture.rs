@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_project_plugin_registry_production_fixture_static_passed_cargo_timeout_no_result";
+const STATUS: &str = "render_plan08_project_plugin_registry_production_fixture_static_passed_cargo_timeout_no_result";
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired() {
@@ -11,12 +10,14 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired
     let build_tool = read_repo("tools/zircon_build.py");
     let build_plugin_assets = read_repo("tools/zircon_build_plugin_assets.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "native dynamic fixture exposes a real plugin asset root",
@@ -33,7 +34,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired
             "url = \"package://native_dynamic_fixture/shaders/shader\"",
             "asset_kind = \"Shader\"",
             "unit = \"single\"",
-            "source_hash = \"8269800411942cc72d0a20c5bddc4ce19fcaeca1642bbda00c4801cce04b1ed4\"",
+            "source_digest = \"8269800411942cc72d0a20c5bddc4ce19fcaeca1642bbda00c4801cce04b1ed4\"",
             "preview_state = \"ready\"",
         ],
     );
@@ -85,7 +86,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

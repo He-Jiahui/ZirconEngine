@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/core/framework/sound/manager/backend.rs
   - zircon_runtime/src/core/framework/sound/manager/output_device.rs
   - zircon_runtime/src/core/framework/sound/output.rs
-  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/service_types/mod.rs
 implementation_files:
   - zircon_plugins/sound/editor/src/lib.rs
   - zircon_plugins/sound/editor/src/authoring_bindings.rs

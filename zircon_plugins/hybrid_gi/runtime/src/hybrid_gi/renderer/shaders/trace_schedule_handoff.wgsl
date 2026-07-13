@@ -31,7 +31,9 @@ const VOXEL_CELL_WORD_COUNT: u32 = 4u;
 const VOXEL_CELL_CAPACITY: u32 = 64u;
 const VOXEL_CELL_RESOLUTION: u32 = 4u;
 const TRACE_HZB_TILE_WORD_OFFSET: u32 = 64u;
-const TRACE_HZB_TILE_WORD_COUNT: u32 = 7u;
+const TRACE_HZB_TILE_WORD_COUNT: u32 = 8u;
+const SCENE_NORMAL_CODE_SHIFT: u32 = 8u;
+const SCENE_NORMAL_CODE_MASK: u32 = 63u;
 const TRACE_HZB_TILE_HIT_FLAG: u32 = 1u << 8u;
 const TRACE_HZB_TILE_RANGE_VALID_FLAG: u32 = 1u << 9u;
 const TRACE_SURFACE_CACHE_HIT_FLAG: u32 = 1u << 10u;
@@ -659,6 +661,15 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         radiance.support_signature,
         radiance.support_signature != 0u,
     );
+    let normal_tile_index =
+        trace.tile_coord.y * SCENE_HZB_TILE_GRID_EXTENT + trace.tile_coord.x;
+    let normal_tile_flags = hybrid_gi_scene_words[
+        SCENE_HZB_TILE_WORD_OFFSET +
+        normal_tile_index * SCENE_HZB_TILE_WORD_COUNT +
+        3u
+    ];
+    hybrid_gi_trace_words[trace_tile_offset + 7u] =
+        (normal_tile_flags >> SCENE_NORMAL_CODE_SHIFT) & SCENE_NORMAL_CODE_MASK;
 
     if (tile_index != 0u) {
         return;

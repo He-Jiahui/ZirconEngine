@@ -6,6 +6,8 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_constru
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) uniform_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) environment_sh9_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) environment_cubemap:
         SceneEnvironmentCubemap,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) environment_brdf_lut:

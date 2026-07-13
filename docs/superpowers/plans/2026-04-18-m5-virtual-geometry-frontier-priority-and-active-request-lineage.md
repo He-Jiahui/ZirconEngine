@@ -1,22 +1,22 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/plan_ingestion.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/pending_page_requests.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/tests/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/Cargo.toml
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_runtime/src/graphics/tests/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/Cargo.toml
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/plan_ingestion.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/pending_page_requests.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/tests/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/Cargo.toml
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_runtime/src/graphics/tests/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/Cargo.toml
 plan_sources:
   - user: 2026-04-18 切到 Virtual Geometry，当前活动任务是 unified indirect / residency-manager cascade / split-merge frontier policy
   - user: 2026-04-18 继续缺漏内容补充 / 继续深入 / 继续完成后续里程碑
@@ -25,7 +25,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-pending-cascade-descendant-hold.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-lineage-depth-and-eviction-distance.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
   - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_frontier_runtime -- --nocapture

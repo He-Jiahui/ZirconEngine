@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/drawer_header_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/mod.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app/workbench_pointer.rs
   - zircon_editor/src/ui/retained_host/app/workbench_pointer/document_tabs.rs
@@ -51,7 +51,7 @@ The boundary is split by UI region:
 
 - `zircon_editor/src/ui/retained_host/app/callback_wiring.rs` registers the native/template callbacks that call these retained-host methods.
 - `zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs`, `document_tab_pointer/mod.rs`, `drawer_header_pointer/mod.rs`, and `host_page_pointer/mod.rs` provide the bridge/layout types used by these dispatch methods.
-- `zircon_editor/src/ui/retained_host/shell_pointer/mod.rs` provides floating-window hit routing for the floating header focus path.
+- `zircon_editor/src/ui/retained_host/shell_pointer.rs` provides floating-window hit routing for the floating header focus path.
 
 ## Behavior Model
 

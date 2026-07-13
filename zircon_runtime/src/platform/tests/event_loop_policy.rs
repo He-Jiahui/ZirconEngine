@@ -5,7 +5,7 @@ fn editor_host_uses_desktop_app_event_policy() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Macos,
-            crate::builtin::RuntimeTargetMode::EditorHost,
+            crate::core::framework::platform::RuntimeTargetMode::EditorHost,
         );
 
     assert_eq!(report.event_loop_policy, EventLoopPolicy::DesktopApp);
@@ -21,7 +21,7 @@ fn explicit_continuous_event_policy_is_reported_for_windowed_targets() {
 
     let report = matrix.report_with_event_loop_policy(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         EventLoopPolicy::Continuous,
     );
 
@@ -37,7 +37,7 @@ fn explicit_event_policy_does_not_override_headless_topology() {
 
     let report = matrix.report_with_event_loop_policy(
         PlatformTarget::Headless,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
         EventLoopPolicy::Continuous,
     );
 

@@ -59,8 +59,8 @@ impl ProjectAssetManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn lock_watcher(&self) -> MutexGuard<'_, Option<AssetWatcher>> {
-        self.watcher
+    fn lock_watchers(&self) -> MutexGuard<'_, Vec<AssetWatcher>> {
+        self.watchers
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -87,26 +87,31 @@ impl ProjectAssetManager {
     }
 
     pub(in crate::asset::pipeline::manager) fn restart_watcher(&self) -> Result<(), CoreError> {
-        let assets_root = {
+        let asset_roots = {
             let project = self.project_read();
             let project = project
                 .as_ref()
                 .ok_or_else(|| asset_error_message("no project is currently open"))?;
-            project.paths().assets_root().to_path_buf()
+            project.project_asset_roots().to_vec()
         };
-        let manager = self.clone();
-        let error_manager = self.clone();
-        let watcher = AssetWatcher::spawn(
-            assets_root,
-            move |changes| {
-                manager.process_watch_changes(changes);
-            },
-            move |error| {
-                error_manager.broadcast_watch_error(error);
-            },
-        )
-        .map_err(asset_error)?;
-        *self.lock_watcher() = Some(watcher);
+        let mut watchers = Vec::with_capacity(asset_roots.len());
+        for asset_root in asset_roots {
+            let manager = self.clone();
+            let error_manager = self.clone();
+            watchers.push(
+                AssetWatcher::spawn(
+                    asset_root,
+                    move |changes| {
+                        manager.process_watch_changes(changes);
+                    },
+                    move |error| {
+                        error_manager.broadcast_watch_error(error);
+                    },
+                )
+                .map_err(asset_error)?,
+            );
+        }
+        *self.lock_watchers() = watchers;
         Ok(())
     }
 
@@ -137,16 +142,20 @@ impl ProjectAssetManager {
             let Some(project) = project.as_mut() else {
                 return;
             };
-            if let Err(error) = project.scan_and_import() {
+            let watch_error_root = match project.primary_project_asset_root() {
+                Ok(root) => root.to_path_buf(),
+                Err(_) => project.paths().root().to_path_buf(),
+            };
+            if let Err(error) = project.scan_and_import_watch_changes(&changes) {
                 self.broadcast_watch_error(AssetWatchError::from_message(
-                    project.paths().assets_root().to_path_buf(),
+                    watch_error_root.clone(),
                     error.to_string(),
                 ));
                 return;
             }
             if let Err(error) = self.sync_project_resources(project) {
                 self.broadcast_watch_error(AssetWatchError::from_message(
-                    project.paths().assets_root().to_path_buf(),
+                    watch_error_root,
                     error.to_string(),
                 ));
                 return;
@@ -193,8 +202,8 @@ mod tests {
         }))
         .is_err());
         assert!(catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.watcher.lock().unwrap();
-            panic!("poison watcher lock");
+            let _guard = manager.watchers.lock().unwrap();
+            panic!("poison watchers lock");
         }))
         .is_err());
 
@@ -202,6 +211,6 @@ mod tests {
         assert!(manager.importer_registry_read().importers().is_empty());
         assert!(manager.lock_change_subscribers().is_empty());
         assert!(manager.lock_watch_error_subscribers().is_empty());
-        assert!(manager.lock_watcher().is_none());
+        assert!(manager.lock_watchers().is_empty());
     }
 }

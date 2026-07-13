@@ -1,12 +1,12 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::{
     asset::AssetImporterDescriptor,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportTargetPlatform,
     core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor},
     plugin::CapabilityStatusManifest,
-    plugin::ComponentTypeDescriptor,
-    plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform,
     plugin::PluginMaturity,
     plugin::UiComponentDescriptor,
 };

@@ -1,15 +1,20 @@
 use super::super::super::super::core::DEPTH_FORMAT;
 
-const SKY_SHADER: &str = include_str!("../../../environment/shaders/skybox_procedural.wgsl");
+const SKY_SHADER: &str = concat!(
+    include_str!("../../../../../shader/wgsl/zr_volumetric.wgsl"),
+    "\n",
+    include_str!("../../../environment/shaders/skybox_procedural.wgsl"),
+);
 
 pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) fn create_sky_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
     scene_layout: &wgpu::BindGroupLayout,
+    volumetric_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::RenderPipeline {
     let sky_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-sky-layout"),
-        bind_group_layouts: &[Some(scene_layout)],
+        bind_group_layouts: &[Some(scene_layout), Some(volumetric_layout)],
         immediate_size: 0,
     });
     let sky_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -29,7 +34,7 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
         depth_stencil: Some(wgpu::DepthStencilState {
             format: DEPTH_FORMAT,
             depth_write_enabled: Some(false),
-            depth_compare: Some(wgpu::CompareFunction::Always),
+            depth_compare: Some(wgpu::CompareFunction::LessEqual),
             stencil: wgpu::StencilState::default(),
             bias: wgpu::DepthBiasState::default(),
         }),
@@ -82,5 +87,21 @@ mod tests {
         validator
             .validate(&module)
             .expect("skybox shader should validate");
+    }
+
+    #[test]
+    fn skybox_shader_applies_integrated_volumetric_lighting_at_far_depth() {
+        for expected in [
+            "output.clip_position = vec4<f32>(position, 1.0, 1.0);",
+            "@group(1) @binding(25) var<uniform> zr_volumetric_apply_params",
+            "@group(1) @binding(26) var zr_volumetric_integrated: texture_3d<f32>;",
+            "@group(1) @binding(27) var zr_volumetric_sampler: sampler;",
+            "zr_volumetric_apply(color, input.clip_position.xy, 1.0)",
+        ] {
+            assert!(
+                SKY_SHADER.contains(expected),
+                "skybox shader should use volumetric contract `{expected}`"
+            );
+        }
     }
 }

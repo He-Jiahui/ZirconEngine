@@ -7,9 +7,9 @@ use super::document_workspace_model::DocumentWorkspaceModel;
 use super::drawer_ring_model::DrawerRingModel;
 use super::floating_window_model::FloatingWindowModel;
 use super::main_host_strip_view_model::MainHostStripViewModel;
-use super::menu_bar_model::MenuBarModel;
 use super::status_bar_model::StatusBarModel;
 use super::tool_window_stack_model::ToolWindowStackModel;
+use crate::core::commands::MenuBarModel;
 
 #[derive(Clone, Debug)]
 pub struct WorkbenchViewModel {

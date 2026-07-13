@@ -80,7 +80,10 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let mut pointer_bridge = HostDocumentTabPointerBridge::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
@@ -147,7 +150,10 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
     .expect("asset browser open control should resolve")
     .expect("asset browser should open into the runtime");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let (close_index, close_tab) = model
         .document_tabs
         .iter()

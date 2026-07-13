@@ -1,4 +1,4 @@
-use crate::asset::AnimationClipAsset;
+use crate::core::framework::animation::AnimationClipAsset;
 use crate::core::math::Real;
 use crate::scene::EntityId;
 

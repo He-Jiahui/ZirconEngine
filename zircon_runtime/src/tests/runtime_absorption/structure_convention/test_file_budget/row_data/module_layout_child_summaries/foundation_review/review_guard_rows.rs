@@ -77,12 +77,13 @@ fn runtime_15_module_layout_child_summary_review_guard_rows_are_child_owned() {
             "runtime_15_status_output_review_guard_row_data_guard_child_owner_split_static_passed_cargo_deferred",
         ],
     );
-    assert!(!runtime_15_review_guard_row_data_parent.contains(
-        concat!(
+    assert!(
+        !runtime_15_review_guard_row_data_parent.contains(concat!(
             "fn runtime_15_status_output_m3_review_guard_",
             "row_data_moved_rows_are_child_owner"
-        )
-    ), "runtime_15_review_guard_row_data.rs should delegate moved-row assertions to its child owner");
+        )),
+        "runtime_15_review_guard_row_data.rs should delegate moved-row assertions to its child owner"
+    );
     assert_contains_all(
         "Runtime 15 review-guard row-data moved-row child owns moved-row assertions",
         &runtime_15_review_guard_row_data_moved_row_sources,

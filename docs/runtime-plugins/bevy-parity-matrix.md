@@ -2,16 +2,16 @@
 related_code:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/core/state/mod.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/modules/diagnostics.rs
-  - zircon_runtime/src/core/modules/frame_count.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/modules/tasks.rs
-  - zircon_runtime/src/core/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/export_profile.rs
@@ -24,7 +24,7 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/generated_files.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
@@ -52,9 +52,9 @@ related_code:
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_editor/src/tests/host/pane_presentation.rs
   - zircon_hub/src/plugins/catalog.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/shared.slint
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/components
   - .github/workflows/ci.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/validation/SKILL.md
@@ -65,8 +65,8 @@ related_code:
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/clip_event.rs
-  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/animation/scene_hook.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/editor/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
@@ -266,7 +266,7 @@ related_code:
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/tests/dynamic_events/mod.rs
   - zircon_plugins/sound/runtime/src/tests/ray_tracing.rs
   - zircon_plugins/sound/editor/src/lib.rs
   - zircon_runtime/src/core/framework/render/sprite/anchor.rs
@@ -283,7 +283,7 @@ related_code:
   - zircon_plugins/navigation/plugin.toml
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/navigation/mod.rs
-  - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -302,21 +302,21 @@ related_code:
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/http.rs
   - zircon_plugins/net/runtime/src/websocket.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/http/runtime/src/feature.rs
-  - zircon_plugins/net/features/http/runtime/src/tests.rs
+  - zircon_plugins/net/features/http/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/websocket/runtime/src/feature.rs
-  - zircon_plugins/net/features/websocket/runtime/src/tests.rs
+  - zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/rpc/runtime/src/feature.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager.rs
-  - zircon_plugins/net/features/rpc/runtime/src/tests.rs
+  - zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/replication/runtime/src/feature.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/feature.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_runtime/src/core/framework/net/mod.rs
   - zircon_runtime/src/core/framework/net/manager.rs
   - zircon_runtime/src/core/framework/net/http.rs
@@ -351,7 +351,7 @@ related_code:
   - zircon_plugins/particles/runtime/src/render/gpu/transparent.rs
   - zircon_plugins/particles/runtime/src/interop/animation.rs
   - zircon_plugins/particles/runtime/src/interop/physics.rs
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
   - zircon_plugins/particles/editor/src/authoring.rs
   - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/physics/plugin.toml
@@ -369,16 +369,16 @@ related_code:
 implementation_files:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/core/state/mod.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/modules/diagnostics.rs
-  - zircon_runtime/src/core/modules/frame_count.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/modules/tasks.rs
-  - zircon_runtime/src/core/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/export_profile.rs
@@ -389,7 +389,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/generated_files.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
@@ -414,9 +414,9 @@ implementation_files:
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_editor/src/tests/host/pane_presentation.rs
   - zircon_hub/src/plugins/catalog.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/shared.slint
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/components
   - .github/workflows/ci.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/validation/SKILL.md
@@ -427,8 +427,8 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
-  - zircon_plugins/animation/runtime/src/clip_event.rs
-  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/animation/scene_hook.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/editor/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
@@ -628,7 +628,7 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/tests/dynamic_events/mod.rs
   - zircon_plugins/sound/runtime/src/tests/ray_tracing.rs
   - zircon_plugins/sound/editor/src/lib.rs
   - zircon_runtime/src/core/framework/render/sprite/anchor.rs
@@ -645,7 +645,7 @@ implementation_files:
   - zircon_plugins/navigation/plugin.toml
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/navigation/mod.rs
-  - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -664,21 +664,21 @@ implementation_files:
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/http.rs
   - zircon_plugins/net/runtime/src/websocket.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/http/runtime/src/feature.rs
-  - zircon_plugins/net/features/http/runtime/src/tests.rs
+  - zircon_plugins/net/features/http/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/websocket/runtime/src/feature.rs
-  - zircon_plugins/net/features/websocket/runtime/src/tests.rs
+  - zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/rpc/runtime/src/feature.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager.rs
-  - zircon_plugins/net/features/rpc/runtime/src/tests.rs
+  - zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/replication/runtime/src/feature.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/feature.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_runtime/src/core/framework/net/mod.rs
   - zircon_runtime/src/core/framework/net/manager.rs
   - zircon_runtime/src/core/framework/net/http.rs
@@ -713,7 +713,7 @@ implementation_files:
   - zircon_plugins/particles/runtime/src/render/gpu/transparent.rs
   - zircon_plugins/particles/runtime/src/interop/animation.rs
   - zircon_plugins/particles/runtime/src/interop/physics.rs
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
   - zircon_plugins/particles/editor/src/authoring.rs
   - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/physics/plugin.toml
@@ -743,7 +743,7 @@ tests:
   - zircon_plugins/sound/runtime/src/tests/spatial.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/tests/dynamic_events/mod.rs
   - zircon_plugins/sound/runtime/src/tests/ray_tracing.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
@@ -752,16 +752,16 @@ tests:
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_editor/src/tests/host/pane_presentation.rs
   - zircon_hub/src/plugins/catalog.rs
-  - zircon_hub/src/app/view_model/plugins.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
   - zircon_plugins/navigation/runtime/src/lib.rs
-  - zircon_plugins/net/runtime/src/tests.rs
-  - zircon_plugins/net/features/http/runtime/src/tests.rs
-  - zircon_plugins/net/features/websocket/runtime/src/tests.rs
-  - zircon_plugins/net/features/rpc/runtime/src/tests.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/http/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
   - zircon_plugins/particles/editor/src/tests.rs
   - cargo test -p zircon_runtime --locked plugin_extensions::profile_maturity -- --nocapture
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --test runtime_physics_animation_tick_contract --locked -- --nocapture
@@ -966,7 +966,7 @@ M3 is not a registration milestone. Bevy's `AnimationPlugin` registers `Animatio
 
 | Capability | Bevy source evidence | Zircon owner / current evidence | M3 completion gate |
 |---|---|---|---|
-| Clip asset, curve channels, and duration | `AnimationClip` stores `AnimationCurves`, event tracks, and duration in `dev/bevy/crates/bevy_animation/src/lib.rs:105`; `add_curve_to_target` updates target curves and clip duration at `dev/bevy/crates/bevy_animation/src/lib.rs:284`. | `AnimationClipAsset`, `AnimationClipBoneTrackAsset`, `AnimationEventTrackAsset`, and binary fallback live in `zircon_runtime/src/asset/assets/animation/{clip,binary}.rs`; runtime pose sampling is in `zircon_plugins/animation/runtime/src/manager.rs`. | Keep skeleton clips and property sequences separate, document the target id/bone-name fallback order, and test step/hermite/quaternion sampling, zero-duration clips, non-finite samples, and missing channel reports. |
+| Clip asset, curve channels, and duration | `AnimationClip` stores `AnimationCurves`, event tracks, and duration in `dev/bevy/crates/bevy_animation/src/lib.rs:105`; `add_curve_to_target` updates target curves and clip duration at `dev/bevy/crates/bevy_animation/src/lib.rs:284`. | `AnimationClipAsset`, `AnimationClipBoneTrackAsset`, `AnimationEventTrackAsset`, and binary fallback live in `zircon_runtime/src/core/framework/animation/asset/{clip,binary}.rs`; runtime pose sampling is in `zircon_plugins/animation/runtime/src/manager.rs`. | Keep skeleton clips and property sequences separate, document the target id/bone-name fallback order, and test step/hermite/quaternion sampling, zero-duration clips, non-finite samples, and missing channel reports. |
 | Target identity and retargeting | Bevy's `AnimationTargetId` is UUID based and can be assigned independently of player ancestry in `dev/bevy/crates/bevy_animation/src/lib.rs:187`; targeted events use the same id path. | Zircon uses `target_id: Option<String>` on clip bone tracks, event tracks, sequence bindings, and graph mask targets; tests already cover target id before bone/path fallback in `runtime_physics_animation_tick_contract.rs`. | Either promote the string target id convention to a documented stable contract or introduce a normalized target-id type; add duplicate target, missing target, and retargeted hierarchy diagnostics before marking `animation` complete. |
 | Graph, blend, additive, and mask behavior | Bevy `AnimationGraph` is a DAG with clip/blend/add nodes and mask groups in `dev/bevy/crates/bevy_animation/src/graph.rs:36`, `:114`, and `:213`. | Zircon graph assets support `Clip`, `Blend`, `Additive`, `Mask`, and `Output` nodes; `DefaultAnimationManager::evaluate_graph` collects active clips and masks; tests cover blend weight, additive mask, and clip target reporting. | Lock graph evaluation order and cycle/missing-node diagnostics; test weight normalization, additive-only mask targets, unloaded clip handles, repeated graph load/unload, and graph/player playback-time persistence. |
 | Player update order and transform application | Bevy chains graph threading, transition advance, animation advance, target animation, event triggering, and transition expiry in `AnimationPlugin::build` at `dev/bevy/crates/bevy_animation/src/lib.rs:1227` before `TransformSystems::Propagate`. | `AnimationSceneRuntimeHook` registers `animation.scene.post_update` and runs from `SystemStage::PostUpdate`; `tick_animation_world` advances skeletal clips, sequences, graphs, and state machines. | Record the exact Zircon scene stage order relative to physics and transform propagation; add assertions that animation pose output is applied before dependent render/scene consumers and that disabled playback settings clear stale outputs. |
@@ -1076,12 +1076,12 @@ M7 is a security and layering milestone. Bevy Remote Protocol (BRP) is developer
 |---|---|---|---|
 | Protocol separated from transport | Bevy crate docs state `RemotePlugin` sets up BRP without starting transports in `dev/bevy/crates/bevy_remote/src/lib.rs:1`; `RemoteHttpPlugin` is the second plugin that enables HTTP communication in `lib.rs:5`. The root Bevy feature is opt-in in `dev/bevy/Cargo.toml:389`. | Zircon `net` is `Beta`/`Partial` in `zircon_plugins/net/plugin.toml:1` and exposes optional feature bundles for HTTP, WebSocket, RPC, replication, reliable UDP, and content download. Profiles keep `Net` optional/default-disabled for editor/dev/server in `zircon_runtime/src/plugin/runtime_profile.rs:509`, `:521`, and `:539`. | Add or document `net.remote_protocol` as a dev/editor capability separate from listener transports. Default clients must not open a port; server/dev/editor may enable it only by explicit profile/manifest selection. |
 | Method registry and custom methods | Bevy `RemotePlugin` stores method handlers at `bevy_remote/src/lib.rs:572`, adds custom methods with `with_method_main` / `with_method_render` at `:589` and `:601`, registers systems during `Plugin::build` at `:800`, and exposes runtime mutation through `RemoteMethods::insert` at `:967`. | Zircon has `RpcDescriptor` and `RpcDirection` in `zircon_runtime/src/core/framework/net/rpc.rs:28`, a `NetManager` trait with transport primitives in `zircon_runtime/src/core/framework/net/manager.rs:8`, and RPC feature registration/tests under `zircon_plugins/net/features/rpc/runtime/src/feature.rs:8` and `tests.rs:17`. | Define a remote method registry that supports stable names, duplicate handling, typed schema metadata where available, main/runtime versus render/editor domains, and runtime method list/discovery. |
-| JSON-RPC request/response/error shape | Bevy docs define BRP as JSON-RPC 2.0 in `bevy_remote/src/lib.rs:8`, require `id` and `method` at `:28`, describe `result`/`error` responses at `:49`, and document error `code`/`message`/`data` at `:93`. `BrpError` is defined at `:1198`; JSON-RPC-style error codes are in `error_codes` at `:1281`. | Zircon `NetError` is in `zircon_runtime/src/core/framework/net/error.rs:6`; HTTP request/response descriptors are in `zircon_runtime/src/core/framework/net/http.rs:15` and `:57`; RPC feature tests cover schema/handler/missing-handler failures in `zircon_plugins/net/features/rpc/runtime/src/tests.rs:385` and `:424`. | Lock a BRP-like request envelope: required method/id, optional params, batch policy, structured error codes, parse errors, invalid params, method-not-found, handler failure, response id preservation, and size limits. |
+| JSON-RPC request/response/error shape | Bevy docs define BRP as JSON-RPC 2.0 in `bevy_remote/src/lib.rs:8`, require `id` and `method` at `:28`, describe `result`/`error` responses at `:49`, and document error `code`/`message`/`data` at `:93`. `BrpError` is defined at `:1198`; JSON-RPC-style error codes are in `error_codes` at `:1281`. | Zircon `NetError` is in `zircon_runtime/src/core/framework/net/error.rs:6`; HTTP request/response descriptors are in `zircon_runtime/src/core/framework/net/http.rs:15` and `:57`; RPC feature tests cover schema/handler/missing-handler failures in `zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs:385` and `:424`. | Lock a BRP-like request envelope: required method/id, optional params, batch policy, structured error codes, parse errors, invalid params, method-not-found, handler failure, response id preservation, and size limits. |
 | Built-in developer methods | Bevy built-ins include world component/resource get/list/query/mutate/spawn/despawn/reparent/event/message methods, registry schema, schedule list/graph, watch methods, and `rpc.discover` in `bevy_remote/src/builtin_methods.rs:42` through `:105`; examples use `world.query` and `world.write_message` in `examples/remote/client.rs:60` and `:140`. | Zircon currently exposes broad net primitives but does not yet have a documented Bevy-like world/query/diagnostics remote method set in the parity matrix. Runtime diagnostics/profile availability are already structured in the plugin/profile layer. | Stage methods in tiers: read-only world/query/diagnostics first, then controlled mutation/message methods behind explicit dev/editor permission, then watch/streaming. No mutation endpoint should be accepted in published clients by default. |
 | Discovery and schema | Bevy `rpc.discover` follows OpenRPC service discovery in `bevy_remote/src/lib.rs:481`; `OpenRpcDocument`, `ServerObject`, and `MethodObject` are defined in `schemas/open_rpc.rs:14`, `:55`, and `:71`; JSON schema export types are in `schemas/json_schema.rs:224`. | Zircon has descriptor, manifest, capability, profile, and event catalog metadata; `NetRuntimePlugin` registers module/options/event catalogs in `zircon_plugins/net/runtime/src/lib.rs:50`; plugin and feature package manifests already advertise capabilities in `plugin.toml`. | Remote discovery must expose method list, capability/profile/maturity notes, target support, schema metadata where available, and server connection details only when a transport is actually enabled. |
-| HTTP listener and transport security | Bevy `RemoteHttpPlugin` binds `DEFAULT_ADDR` 127.0.0.1 and ports in `bevy_remote/src/http.rs:52` and `:60`; it starts the HTTP server in `Startup` at `:135` and accepts TCP listeners in `server_main` / `listen` at `:252` and `:266`. The server example adds `RemotePlugin` and `RemoteHttpPlugin` explicitly in `examples/remote/server.rs:18` and `:19`. | Zircon `NetManager` supports `listen_http`, `send_http_request`, `listen_websocket`, `connect_websocket`, TCP/UDP primitives, diagnostics, and events in `zircon_runtime/src/core/framework/net/manager.rs:8`. Base net tests require the HTTP/WebSocket feature for real backends in `zircon_plugins/net/runtime/src/tests.rs:220` and `:278`; feature tests cover security policy and certificate pin behavior in HTTP tests `:74` / `:107` and WebSocket tests `:155` / `:180`. | Transport enabling must require explicit bind address/port, loopback default, no wildcard bind without warning/fatal policy, request size/body limits, security policy, and provider-unavailable diagnostics. |
-| Watch/streaming and batching | Bevy registers watching methods for `world.get_components+watch` and `world.list_components+watch` in `bevy_remote/src/lib.rs:723` and `:728`; `RemoteWatchingRequests` is tracked at `:991`; HTTP processing handles batch request shape in `bevy_remote/src/http.rs:302`. | Zircon WebSocket loopback and frame budget tests live in `zircon_plugins/net/runtime/src/tests.rs:244`; WebSocket feature tests cover real handshake and policy in `zircon_plugins/net/features/websocket/runtime/src/tests.rs:37` and `:77`. | Watch/streaming should start after read-only request/response semantics: per-client budget, cancellation, bounded queues, stale entity/resource behavior, and WebSocket transport gating. |
-| Advanced game networking remains optional | Bevy Remote is not a replication/multiplayer default. It is a feature-gated developer protocol in `dev/bevy/Cargo.toml:389`; remote examples are under the Remote Protocol category at `:4844`. | Zircon has replication tests in `zircon_plugins/net/features/replication/runtime/src/tests.rs:36`, reliable UDP tests in `zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs:36`, RPC/session tests in `rpc/runtime/src/tests.rs:40`, and content download tests in `content_download/runtime/src/tests.rs:44`. | Keep replication, reliable UDP, gameplay RPC, WebSocket game sessions, and content download as optional feature gates. They can reuse `net`, but they do not satisfy BRP-style dev remote parity and should not enter default client profiles. |
+| HTTP listener and transport security | Bevy `RemoteHttpPlugin` binds `DEFAULT_ADDR` 127.0.0.1 and ports in `bevy_remote/src/http.rs:52` and `:60`; it starts the HTTP server in `Startup` at `:135` and accepts TCP listeners in `server_main` / `listen` at `:252` and `:266`. The server example adds `RemotePlugin` and `RemoteHttpPlugin` explicitly in `examples/remote/server.rs:18` and `:19`. | Zircon `NetManager` supports `listen_http`, `send_http_request`, `listen_websocket`, `connect_websocket`, TCP/UDP primitives, diagnostics, and events in `zircon_runtime/src/core/framework/net/manager.rs:8`. Base net tests require the HTTP/WebSocket feature for real backends in `zircon_plugins/net/runtime/src/tests/mod.rs:220` and `:278`; feature tests cover security policy and certificate pin behavior in HTTP tests `:74` / `:107` and WebSocket tests `:155` / `:180`. | Transport enabling must require explicit bind address/port, loopback default, no wildcard bind without warning/fatal policy, request size/body limits, security policy, and provider-unavailable diagnostics. |
+| Watch/streaming and batching | Bevy registers watching methods for `world.get_components+watch` and `world.list_components+watch` in `bevy_remote/src/lib.rs:723` and `:728`; `RemoteWatchingRequests` is tracked at `:991`; HTTP processing handles batch request shape in `bevy_remote/src/http.rs:302`. | Zircon WebSocket loopback and frame budget tests live in `zircon_plugins/net/runtime/src/tests/mod.rs:244`; WebSocket feature tests cover real handshake and policy in `zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs:37` and `:77`. | Watch/streaming should start after read-only request/response semantics: per-client budget, cancellation, bounded queues, stale entity/resource behavior, and WebSocket transport gating. |
+| Advanced game networking remains optional | Bevy Remote is not a replication/multiplayer default. It is a feature-gated developer protocol in `dev/bevy/Cargo.toml:389`; remote examples are under the Remote Protocol category at `:4844`. | Zircon has replication tests in `zircon_plugins/net/features/replication/runtime/src/tests/mod.rs:36`, reliable UDP tests in `zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs:36`, RPC/session tests in `rpc/runtime/src/tests.rs:40`, and content download tests in `content_download/runtime/src/tests.rs:44`. | Keep replication, reliable UDP, gameplay RPC, WebSocket game sessions, and content download as optional feature gates. They can reuse `net`, but they do not satisfy BRP-style dev remote parity and should not enter default client profiles. |
 
 M7 candidate commands:
 
@@ -1134,7 +1134,7 @@ M9 is an observability and productization milestone. Bevy core does not ship an 
 | Provider availability and fatal diagnostics | Bevy plugin lifecycle and uniqueness are explicit in `dev/bevy/crates/bevy_app/src/plugin.rs:57`, `:61`, `:68`, `:74`, and `:87`; plugin-group edits produce concrete missing/duplicate-style errors rather than vague warnings. | Zircon availability buckets live in `RuntimePluginAvailabilityReport` fields `linked`, `native_dynamic`, `externalized_missing`, and `missing_required` in `runtime_profile.rs:48`; query/diagnostic helpers are in `:82`, `:126`, `:407`, and provider bucketing in `:424`, `:449`, `:489`, and `:498`; `ExportBuildPlan::has_fatal_diagnostics` is in `export_build_plan.rs:103`. | Every UI surface must expose linked, native dynamic, externalized missing, missing required, maturity/stub/blocked state, counts, and entry details from the same report. Missing required entries are fatal, optional missing entries remain warnings. |
 | Native dynamic packaging | Bevy `dynamic_linking` is a development compile-time feature in `dev/bevy/Cargo.toml:279` and `dev/bevy/docs/cargo_features.md:122`; it is not runtime plugin packaging. | Zircon has export packaging `NativeDynamic` in `export_profile.rs:109`; native-aware editor status maps default packaging in `status/native.rs:23`, `:130`, and `:230`; export preparation/probe happens in `export_build/manager.rs:47`, `:115`, `:190`, and `:282`; materialization reports missing native artifacts in `materialize.rs:154`. | UX must clearly separate Bevy-style dev dynamic linking from Zircon export native dynamic plugins. Unsupported target/platform, duplicate package directory, missing artifact, and probe/load failures must be visible as build/export diagnostics. |
 | Plugin Manager status | Bevy plugin docs describe plugins as app extensions, and plugin-group examples show users how to enable, disable, and order those extensions. Public docs begin at `https://bevy.org/learn/quick-start/getting-started/plugins/`. | Zircon `EditorPluginStatusReport` is in `editor_plugin_status_report.rs:4`; built-in/native reports merge package manifest, feature dependency, capabilities, packaging, and target modes in `status/builtin.rs:19`, `:150`, `:174`, `:248`, and `status/native.rs:31`, `:62`, `:113`; pane presentation pins visible actions and diagnostics in `pane_presentation.rs:604` through `:649`. | Plugin Manager completion requires visible maturity, profile membership, target support, runtime/editor capabilities, optional feature dependency state, default/current packaging, diagnostics, primary action, packaging action, target mode action, unload, and hot reload. |
-| Hub project/engine plugin list | Bevy users see feature/profile decisions in `Cargo.toml` and feature docs before compiling. | Zircon Hub discovers engine/project plugin manifests in `zircon_hub/src/plugins/catalog.rs:18`, `:49`, `:103`, `:151`, and reads maturity/default packaging at `:172`; the Hub view model projects maturity, packaging, and module count in `zircon_hub/src/app/view_model/plugins.rs:10`, `:32`, `:33`, and `:34`; Slint views expose row metadata in `zircon_hub/ui/plugins.slint:11` and `zircon_hub/ui/shared.slint:110`. | Hub may summarize, but it cannot diverge from runtime/export state. It must either show the same availability/export buckets or clearly link to the editor/export report that owns them. |
+| Hub project/engine plugin list | Bevy users see feature/profile decisions in `Cargo.toml` and feature docs before compiling. | Zircon Hub discovers engine/project plugin manifests in `zircon_hub/src/plugins/catalog.rs:18`, `:49`, `:103`, `:151`, and reads maturity/default packaging at `:172`; the Hub view model projects maturity, packaging, and module count in `zircon_hub/src/tauri_app/view_model/catalog.rs:10`, `:32`, `:33`, and `:34`; Slint views expose row metadata in `zircon_hub/web/src/pages/CatalogPage.tsx:11` and `zircon_hub/web/src/components:110`. | Hub may summarize, but it cannot diverge from runtime/export state. It must either show the same availability/export buckets or clearly link to the editor/export report that owns them. |
 | Build/export progress and cancellation | Bevy does not provide this pipeline; the relevant contrast is that `dev` features are explicitly not for published apps and no-renderer examples support non-visual validation. | Zircon export manager reports stages for resolving plan, native package prep, materialize, cargo build, probe, diagnostics, completion, cancellation, and progress in `export_build/manager.rs:81`, `:103`, `:115`, `:130`, `:158`, `:190`, `:212`, and `:221`; build/export pane payloads expose profile, platform, target mode, strategies, enabled plugins, linked crates, native packages, generated files, diagnostics, and fatal state in `pane_payload_builders/build_export.rs:17` through `:27`. | Export UX must show stage progress, generated files, native prep/probe, skipped cargo, diagnostic output, fatal state, and cancellation cleanup. It must not rely on a single "ready" label when structured diagnostics exist. |
 
 M9 candidate commands:
@@ -1448,7 +1448,7 @@ Latest attempted validation in this session:
 - 2026-05-29 Sound source-environment volume boundary continuation: focused Sound runtime validation replaced the flat source-environment volume helper with folder-backed `zircon_plugins/sound/runtime/src/engine/source_environment/volume/` modules for AudioVolume influence selection, sphere/box shape and crossfade weight, and low-pass filter behavior. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-filter-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml ray_tracing --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-30 Sound automation target apply boundary continuation: focused Sound runtime validation passed after moving automation target dispatch into `zircon_plugins/sound/runtime/src/automation/target/apply.rs`, leaving `automation/target/mod.rs` structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. After an earlier cold check timed out after 10 minutes before diagnostics, `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-automation-target-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_binding --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_curve --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-30 Sound automation effect target boundary continuation: focused Sound runtime validation replaced `zircon_plugins/sound/runtime/src/automation/target/effect.rs` with folder-backed `zircon_plugins/sound/runtime/src/automation/target/effect/` modules for effect-kind dispatch, common enabled/bypass/wet parameters, and per-effect gain/filter/reverb/dynamics/modulation/delay/shaper/stereo parameter mapping. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after applying rustfmt to the new files. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the new effect target entry was too private for sibling `target/apply.rs`; after narrowing visibility to `crate::automation::target`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-automation-effect-target-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_binding --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml automation_curve --locked --offline --jobs 1 --message-format short --color never` passed with 5 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
-- 2026-05-30 Sound service-types root boundary continuation: focused Sound runtime validation passed after converting `zircon_plugins/sound/runtime/src/service_types.rs` into folder-backed `zircon_plugins/sound/runtime/src/service_types/mod.rs` and moving concrete manager state into `service_types/manager_state.rs`. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-types-root-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml runtime_core --locked --offline --jobs 1 --message-format short --color never` passed with 3 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
+- 2026-05-30 Sound service-types root boundary continuation: focused Sound runtime validation passed after converting `zircon_plugins/sound/runtime/src/service_types/mod.rs` into folder-backed `zircon_plugins/sound/runtime/src/service_types/mod.rs` and moving concrete manager state into `service_types/manager_state.rs`. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-types-root-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml runtime_core --locked --offline --jobs 1 --message-format short --color never` passed with 3 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-30 Sound service mixer-graph boundary continuation: focused Sound runtime validation replaced `zircon_plugins/sound/runtime/src/service_types/mixer_graph.rs` with folder-backed `zircon_plugins/sound/runtime/src/service_types/mixer_graph/` modules for full graph import, snapshot, track CRUD, send CRUD, and effect CRUD. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed after a rustfmt import adjustment. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the moved service methods were too private for sibling `manager_trait.rs`; after narrowing visibility to `crate::service_types`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-service-mixer-graph-boundary` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml graph_config --locked --offline --jobs 1 --message-format short --color never` passed with 2 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-30 Sound render-source orchestration boundary continuation: focused Sound runtime validation moved source buffer orchestration, source-environment delegation, sends, and finish reporting out of `zircon_plugins/sound/runtime/src/engine/render/source/mod.rs` and into `zircon_plugins/sound/runtime/src/engine/render/source/orchestration.rs`, leaving the source root structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` first exposed that the moved `mix_sources` method was too private for the render root; after narrowing visibility to `crate::engine::render`, the accepted rerun passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-source-orchestration` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml source_inputs --locked --offline --jobs 1 --message-format short --color never` passed with 4 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml spatial --locked --offline --jobs 1 --message-format short --color never` passed with 13 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.
 - 2026-05-30 Sound render root orchestration boundary continuation: focused Sound runtime validation moved block-level `render_mix` orchestration, graph validation, track buffer flow, sidechain taps, DSP/meter application, and master gain clamping out of `zircon_plugins/sound/runtime/src/engine/render/mod.rs` and into `zircon_plugins/sound/runtime/src/engine/render/orchestration.rs`, leaving the render root structural. `cargo fmt --manifest-path zircon_plugins/sound/runtime/Cargo.toml -- --check` passed. `cargo check --manifest-path zircon_plugins/sound/runtime/Cargo.toml --tests --locked --offline --jobs 1 --message-format short --color never` passed with `CARGO_TARGET_DIR=D:\cargo-targets\zircon-sound-render-root-orchestration` and existing `zircon_runtime` warnings only. `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml render --locked --offline --jobs 1 --message-format short --color never` passed with 12 tests and 0 failures; `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml mixer_graph --locked --offline --jobs 1 --message-format short --color never` passed with 8 tests and 0 failures. The full Sound runtime command passed with 97 runtime tests, 0 failures, and doctests with no failures; remaining output was limited to existing `zircon_runtime` warnings and existing non-CPAL `ring_buffer` dead-code warnings. This records module-boundary evidence only and does not promote the default-profile Sound row by itself.

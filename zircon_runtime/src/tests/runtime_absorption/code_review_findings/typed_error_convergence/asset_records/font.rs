@@ -6,8 +6,10 @@ fn review_f5_font_asset_uses_typed_error_source() {
     let font_tests = include_str!("../../../../../asset/tests/assets/font.rs");
     let import_font_asset =
         include_str!("../../../../../asset/importer/ingest/import_font_asset/mod.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
@@ -44,7 +46,7 @@ fn review_f5_font_asset_uses_typed_error_source() {
         "FontAssetResult",
         "font_asset_parse_reports_typed_toml_error_source",
         "FontAssetError::Parse(_)",
-        "AssetImportError::Parse(format!(\"parse font toml: {error}\"))",
+        "AssetImportError::FontDocument",
     ] {
         assert!(
             asset_assets_mod.contains(required)

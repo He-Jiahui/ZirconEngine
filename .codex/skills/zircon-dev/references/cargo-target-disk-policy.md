@@ -1,25 +1,45 @@
 # Cargo Target Disk Policy
 
-- All Cargo output belongs to a coordinator-managed lane under an available drive-root target tree:
+- All Cargo output belongs below one of the nine allowed drive-root directories:
 
 ```powershell
-D:\targets\zircon-engine\lanes\<kind>-<job-id>
+D:\cargo-targets\<coordinator-managed-path>
+E:\cargo-targets\<coordinator-managed-path>
+F:\cargo-targets\<coordinator-managed-path>
+D:\targets\<managed-build-path>
+E:\targets\<managed-build-path>
+F:\targets\<managed-build-path>
+D:\ZirconBuilds\<managed-build-path>
+E:\ZirconBuilds\<managed-build-path>
+F:\ZirconBuilds\<managed-build-path>
 ```
 
-- The service may choose `D:`, `E:`, or `F:` by available space. Machine-specific granted paths remain runtime data, not committed configuration.
-- Each active target has one job owner. Explicit and inherited targets pass through the same allowlist and active-owner check.
-- Repo-local `target` directories and arbitrary external targets are forbidden for development validation.
+- The service may choose an approved root by available space. No Cargo build may write to any other drive or directory tree.
+- The compatibility key is derived from repository identity, platform (`windows` or `wsl`), Rust toolchain, target architecture, workspace identity, and canonical build configuration.
+- Exactly one primary pool exists per compatibility key and only one active job may own it. A busy pool is not a reason to allocate a fallback pool.
+- Compatible pools survive release for cross-Session reuse. Missing or incomplete compatibility metadata makes the output ephemeral; delete it immediately after release, retry failed deletion during maintenance, and evict idle reusable pools oldest-first under disk pressure.
+- Explicit and inherited targets pass through the same allowlist, compatibility, and active-owner checks.
+- Repo-local `target` directories, user-profile targets, temporary targets, other drives, and arbitrary external targets are forbidden for every Cargo build or validation command.
 - Prefer crate-scoped loops such as `cargo build -p <crate>` and `cargo test -p <crate>` before escalating to full-workspace commands.
 - Before build or test, check free space on the drive that hosts the active target directory. If remaining space is `<= 50 GB`, clean that target directory first.
 - Clean stale outputs intentionally: use `cargo clean` after major profile or feature churn, or `cargo clean --release` when only release artifacts need pruning.
 - Treat release-size tweaks such as `[profile.release] strip = true` as secondary. They do not replace shared target directories, targeted builds, or cleanup.
+
+## WSL Exception Mapping
+
+- Prefer Windows-native validation. Apply `../../zircon-project-skills/prefer-windows-validation/SKILL.md` before launching WSL.
+- Map each approved Windows root to the same root name below `/mnt/d`, `/mnt/e`, or `/mnt/f`.
+- Use only the coordinator-selected WSL compatibility pool. A live Windows host wrapper must own and heartbeat the job while its WSL child runs.
+- Windows and WSL compatibility keys are distinct. Never share one leaf across operating systems because Cargo artifacts are platform-specific.
+- Never store WSL Cargo targets under `~`, `$HOME`, `/home/<user>`, or the repository.
+- Direct unleased WSL Cargo commands are forbidden. Set `CARGO_TARGET_DIR` or `--target-dir` only to the coordinator-granted mounted path.
 
 ## Validator Target Resolution
 
 - `validate-matrix.ps1` uses this priority order:
   1. Explicit `-TargetDir`, validated by the service.
   2. Inherited `CARGO_TARGET_DIR`, validated by the service.
-  3. A fresh service-selected lane.
+  3. The service-selected compatible primary pool.
 - Before entering `cargo build` or `cargo test`, the validator checks remaining free space on the target drive and runs `cargo clean --target-dir <active-target-dir>` first when that free space is `<= 50 GB`.
 - The validator records PID, rendered command and exit status, then releases the job in `finally`. The daemon marks a running job `orphaned` when its process disappears.
 

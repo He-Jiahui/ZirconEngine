@@ -4,12 +4,9 @@ const STATUS: &str =
     "render_plan08_build_tool_resource_registry_report_correlation_python_passed_cargo_deferred";
 const WRITTEN_VARIANT_STATUS: &str =
     "render_plan08_build_tool_resource_registry_written_source_label_python_passed_cargo_deferred";
-const USABLE_RECORD_STATUS: &str =
-    "render_plan08_build_tool_resource_registry_usable_shader_revision_python_passed_cargo_deferred";
-const READY_RECORD_STATUS: &str =
-    "render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred";
-const OWNER_SPLIT_STATUS: &str =
-    "render_plan08_build_tool_resource_registry_contract_tests_owner_split_python_passed_cargo_deferred";
+const USABLE_RECORD_STATUS: &str = "render_plan08_build_tool_resource_registry_usable_shader_revision_python_passed_cargo_deferred";
+const READY_RECORD_STATUS: &str = "render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred";
+const OWNER_SPLIT_STATUS: &str = "render_plan08_build_tool_resource_registry_contract_tests_owner_split_python_passed_cargo_deferred";
 const RECORD_SHAPE_STATUS: &str =
     "render_plan08_build_tool_resource_registry_record_shape_python_passed_cargo_deferred";
 const ENUM_SHAPE_STATUS: &str =
@@ -18,8 +15,7 @@ const NUMERIC_WIDTH_STATUS: &str =
     "render_plan08_build_tool_resource_registry_numeric_width_python_passed_cargo_deferred";
 const LOCATOR_SHAPE_STATUS: &str =
     "render_plan08_build_tool_resource_registry_locator_wire_shape_python_passed_cargo_deferred";
-const REGISTRY_BACKED_LOCATOR_STATUS: &str =
-    "render_plan08_build_tool_resource_registry_backed_locator_correlation_python_passed_cargo_deferred";
+const REGISTRY_BACKED_LOCATOR_STATUS: &str = "render_plan08_build_tool_resource_registry_backed_locator_correlation_python_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
@@ -32,13 +28,15 @@ fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
     let registry_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py");
     let registry_report_test_sources = format!("{acceptance_tests}\n{registry_tests}");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "build helper exposes the resource registry export contract",
@@ -215,7 +213,6 @@ fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
         ("build tool doc", build_tool_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("session note", session.as_str()),
     ] {
         assert_contains_all(
             label,

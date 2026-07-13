@@ -1,11 +1,14 @@
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportPlatformHostKind,
-    plugin::ExportPlatformPluginStrategy, plugin::ExportPlatformResourceStrategy,
-    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, plugin::RuntimePluginAvailabilityEntry,
-    plugin::RuntimeProfileId,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportPlatformHostKind,
+    core::framework::project::ExportPlatformPluginStrategy,
+    core::framework::project::ExportPlatformResourceStrategy,
+    core::framework::project::ExportProfile, core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan, plugin::RuntimePluginAvailabilityEntry,
 };
 
 #[path = "export_build_plan_platform/browser_hosts.rs"]

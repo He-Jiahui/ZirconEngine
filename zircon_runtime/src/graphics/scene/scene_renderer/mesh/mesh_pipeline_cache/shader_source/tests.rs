@@ -44,6 +44,10 @@ fn mesh_pipeline_standard_material_template_source_assembles_forward_base_source
     assert!(source.wgsl_source.contains("// include: zr_shadow.wgsl"));
     assert!(source.wgsl_source.contains("fn vs_main("));
     assert!(source.wgsl_source.contains("fn fs_main("));
+    assert!(!source.wgsl_source.contains("fn fs_oit("));
+    assert!(!source
+        .wgsl_source
+        .contains("var<storage, read_write> oit_layers"));
     assert!(source.wgsl_source.contains("fn zr_material_surface("));
     assert!(source
         .wgsl_source
@@ -69,6 +73,27 @@ fn mesh_pipeline_standard_material_template_source_assembles_forward_base_source
     assert!(key
         .shader_feature_bits()
         .contains(ShaderFeatureBits::ALPHA_TEST));
+}
+
+#[test]
+fn mesh_pipeline_oit_source_is_a_dedicated_fragment_store_variant() {
+    let key = default_pipeline_key();
+    let base = mesh_pipeline_standard_material_template_source(&key)
+        .expect("standard material template assembly");
+    let base_hash = base.source_hash.clone();
+    let oit = base
+        .into_oit_fragment_store_source()
+        .expect("template forward source should support OIT specialization");
+
+    assert_ne!(oit.source_hash, base_hash);
+    assert!(oit.template_revision.ends_with("+oit-fragment-store-v1"));
+    assert!(oit.wgsl_source.contains("fn fs_oit("));
+    assert!(oit
+        .wgsl_source
+        .contains("oit_draw(input.clip_position, zr_fs_main_impl(input));"));
+    assert!(oit
+        .wgsl_source
+        .contains("@group(4) @binding(0) var<storage, read_write> oit_layers"));
 }
 
 #[test]

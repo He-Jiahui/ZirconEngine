@@ -1,13 +1,14 @@
-use zircon_runtime::asset::{
+use zircon_runtime::asset::{AssetReference, AssetUri, ProjectAssetManager};
+use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
     AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
     AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
     AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
     AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
-    AnimationTransitionConditionAsset, AssetReference, AssetUri, ProjectAssetManager,
+    AnimationTransitionConditionAsset, AnimationTransitionInterruptionPolicyAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use zircon_runtime::core::resource::{ResourceId, ResourceKind, ResourceRecord};
 
@@ -229,19 +230,22 @@ pub(super) fn timed_transition_state_machine(
         name: Some("TimedTransition".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: AssetReference::from_locator(idle_graph_uri.clone()),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: AssetReference::from_locator(run_graph_uri.clone()),
-            },
+            AnimationStateAsset::graph_ref(
+                "Idle",
+                AssetReference::from_locator(idle_graph_uri.clone()),
+            ),
+            AnimationStateAsset::graph_ref(
+                "Run",
+                AssetReference::from_locator(run_graph_uri.clone()),
+            ),
         ],
+        layers: Vec::new(),
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: 0.2,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "advance".to_string(),
                 operator: AnimationConditionOperatorAsset::Equal,
@@ -251,15 +255,71 @@ pub(super) fn timed_transition_state_machine(
     }
 }
 
+pub(super) fn interruptible_transition_state_machine(
+    idle_graph_uri: &AssetUri,
+    run_graph_uri: &AssetUri,
+    sprint_graph_uri: &AssetUri,
+) -> AnimationStateMachineAsset {
+    AnimationStateMachineAsset {
+        name: Some("InterruptibleTransition".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![
+            state("Idle", idle_graph_uri),
+            state("Run", run_graph_uri),
+            state("Sprint", sprint_graph_uri),
+        ],
+        transitions: vec![
+            transition(
+                "Idle",
+                "Run",
+                "start",
+                AnimationTransitionInterruptionPolicyAsset::Both,
+            ),
+            transition(
+                "Run",
+                "Sprint",
+                "interrupt",
+                AnimationTransitionInterruptionPolicyAsset::None,
+            ),
+        ],
+        layers: Vec::new(),
+    }
+}
+
+fn state(name: &str, graph_uri: &AssetUri) -> AnimationStateAsset {
+    AnimationStateAsset::graph_ref(name, AssetReference::from_locator(graph_uri.clone()))
+}
+
+fn transition(
+    from_state: &str,
+    to_state: &str,
+    parameter: &str,
+    interruption: AnimationTransitionInterruptionPolicyAsset,
+) -> AnimationStateTransitionAsset {
+    AnimationStateTransitionAsset {
+        from_state: from_state.to_string(),
+        to_state: to_state.to_string(),
+        duration_seconds: 1.0,
+        exit_time: None,
+        interruption,
+        conditions: vec![AnimationTransitionConditionAsset {
+            parameter: parameter.to_string(),
+            operator: AnimationConditionOperatorAsset::Equal,
+            value: Some(AnimationParameterValue::Bool(true)),
+        }],
+    }
+}
+
 pub(super) fn single_state_machine(graph_uri: &AssetUri) -> AnimationStateMachineAsset {
     AnimationStateMachineAsset {
         name: Some("SingleState".to_string()),
         entry_state: "Idle".to_string(),
-        states: vec![AnimationStateAsset {
-            name: "Idle".to_string(),
-            graph: AssetReference::from_locator(graph_uri.clone()),
-        }],
+        states: vec![AnimationStateAsset::graph_ref(
+            "Idle",
+            AssetReference::from_locator(graph_uri.clone()),
+        )],
         transitions: Vec::new(),
+        layers: Vec::new(),
     }
 }
 

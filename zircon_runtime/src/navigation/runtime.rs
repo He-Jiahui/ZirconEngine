@@ -1,14 +1,13 @@
 use std::sync::{Mutex, MutexGuard};
 
-use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::navigation::{
-    NavAgentTickReport, NavMeshAgentDescriptor, NavMeshBakeReport, NavMeshBakeRequest,
-    NavMeshHandle, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter, NavRaycastQuery,
-    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind,
-    NavigationManager, NavigationRuntimeStats,
+    NavAgentTickReport, NavMeshAgentDescriptor, NavMeshAsset, NavMeshBakeReport,
+    NavMeshBakeRequest, NavMeshHandle, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter,
+    NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError,
+    NavigationErrorKind, NavigationManager, NavigationRuntimeStats, NavigationSettingsAsset,
 };
 use crate::core::math::{Real, Transform, Vec3};
-use crate::scene::World;
+use crate::scene::{SceneNavigationRuntime, World};
 
 mod avoidance;
 mod baked_mesh;
@@ -51,8 +50,8 @@ impl Default for BuiltinNavigationManager {
     }
 }
 
-impl NavigationManager for BuiltinNavigationManager {
-    fn bake_surface(
+impl BuiltinNavigationManager {
+    pub fn bake_surface(
         &self,
         _world: &World,
         _request: NavMeshBakeRequest,
@@ -118,7 +117,7 @@ impl NavigationManager for BuiltinNavigationManager {
         Ok(mesh.raycast(query))
     }
 
-    fn tick_world_agents(
+    pub fn tick_world_agents(
         &self,
         world: &mut World,
         dt_seconds: Real,
@@ -154,7 +153,7 @@ impl NavigationManager for BuiltinNavigationManager {
         Ok(report)
     }
 
-    fn tick_world_agent(
+    pub fn tick_world_agent(
         &self,
         world: &mut World,
         entity: u64,
@@ -194,6 +193,73 @@ impl NavigationManager for BuiltinNavigationManager {
 
     fn stats(&self) -> NavigationRuntimeStats {
         self.lock_state().stats.clone()
+    }
+}
+
+impl NavigationManager for BuiltinNavigationManager {
+    fn load_nav_mesh(&self, asset: NavMeshAsset) -> Result<NavMeshHandle, NavigationError> {
+        BuiltinNavigationManager::load_nav_mesh(self, asset)
+    }
+
+    fn load_navigation_settings(
+        &self,
+        settings: NavigationSettingsAsset,
+    ) -> Result<(), NavigationError> {
+        BuiltinNavigationManager::load_navigation_settings(self, settings)
+    }
+
+    fn find_path(&self, query: NavPathQuery) -> Result<NavPathResult, NavigationError> {
+        BuiltinNavigationManager::find_path(self, query)
+    }
+
+    fn find_path_with_filter(
+        &self,
+        query: NavPathQuery,
+        filter: &NavQueryFilter,
+    ) -> Result<NavPathResult, NavigationError> {
+        BuiltinNavigationManager::find_path_with_filter(self, query, filter)
+    }
+
+    fn sample_position(
+        &self,
+        query: NavSampleQuery,
+    ) -> Result<Option<NavSampleHit>, NavigationError> {
+        BuiltinNavigationManager::sample_position(self, query)
+    }
+
+    fn raycast(&self, query: NavRaycastQuery) -> Result<NavRaycastResult, NavigationError> {
+        BuiltinNavigationManager::raycast(self, query)
+    }
+
+    fn stats(&self) -> NavigationRuntimeStats {
+        BuiltinNavigationManager::stats(self)
+    }
+}
+
+impl SceneNavigationRuntime for BuiltinNavigationManager {
+    fn bake_surface(
+        &self,
+        world: &World,
+        request: NavMeshBakeRequest,
+    ) -> Result<NavMeshBakeReport, NavigationError> {
+        BuiltinNavigationManager::bake_surface(self, world, request)
+    }
+
+    fn tick_world_agents(
+        &self,
+        world: &mut World,
+        dt_seconds: Real,
+    ) -> Result<NavAgentTickReport, NavigationError> {
+        BuiltinNavigationManager::tick_world_agents(self, world, dt_seconds)
+    }
+
+    fn tick_world_agent(
+        &self,
+        world: &mut World,
+        entity: u64,
+        dt_seconds: Real,
+    ) -> Result<NavAgentTickReport, NavigationError> {
+        BuiltinNavigationManager::tick_world_agent(self, world, entity, dt_seconds)
     }
 }
 

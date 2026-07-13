@@ -2,14 +2,14 @@
 related_code:
   - zircon_editor/src/core/editor_message/mod.rs
   - zircon_editor/src/core/editor_message/bus.rs
-  - zircon_editor/src/core/editor_message/message.rs
+  - zircon_editor/src/core/editor_message/message/mod.rs
   - zircon_editor/src/core/editor_message/refresh_report.rs
   - zircon_editor/src/core/editor_message/topic.rs
   - zircon_editor/src/core/editor_message/view_dirty_set.rs
   - zircon_editor/src/core/editor_message/subscriber.rs
-  - zircon_editor/src/tests/editor_message/bus.rs
+  - zircon_editor/src/tests/editor_message/bus/mod.rs
   - zircon_editor/src/tests/editor_message/refresh.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
@@ -123,7 +123,7 @@ impl EditorEventRuntime {
 | 新增 | `zircon_editor/src/core/editor_message/mod.rs` | 主题 + 总线 + 多协议 |
 | 新增 | `zircon_editor/src/core/editor_message/bus.rs` | pub-sub / req-rep / broadcast 路由与 delivery inbox |
 | 新增 | `zircon_editor/src/core/editor_message/topic.rs` | 结构化 topic 校验 |
-| 新增 | `zircon_editor/src/core/editor_message/message.rs` | message / request / response / delivery DTO |
+| 新增 | `zircon_editor/src/core/editor_message/message/mod.rs` | message / request / response / delivery DTO |
 | 新增 | `zircon_editor/src/core/editor_message/subscriber.rs` | subscriber id |
 | 新增 | `zircon_editor/src/core/editor_message/view_dirty_set.rs` | 视图级脏集 |
 | 修改 | `editor_event_runtime_reflection.rs` | 拆全量为 `refresh_view` 增量 |

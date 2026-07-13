@@ -54,4 +54,6 @@ pub enum UiSurfaceInputEffectError {
     ClipboardReadRequestCarriesText,
     #[error("clipboard write request missing text")]
     ClipboardWriteRequestMissingText,
+    #[error("rich-text link target is not an approved engine resource: {href}")]
+    InvalidRichLinkTarget { href: String },
 }

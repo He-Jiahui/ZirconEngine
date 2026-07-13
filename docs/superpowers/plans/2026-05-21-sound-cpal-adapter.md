@@ -14,7 +14,7 @@
 
 - The root workspace is dirty and shared with other active lanes. This plan intentionally stays in the existing `main` checkout and does not create worktrees or branches.
 - `zircon_plugins/sound/runtime/src/output.rs` currently owns descriptor validation, backend catalog, unavailable-backend status, output lifecycle counters, and callback report accounting in one 260-line file. Adding CPAL there would mix software, OS-device, and buffer concerns, so this plan first splits it into `src/output/` modules.
-- `zircon_plugins/sound/runtime/src/service_types.rs` is already a large manager implementation. It should keep using output facade methods; CPAL code must not be added there.
+- `zircon_plugins/sound/runtime/src/service_types/mod.rs` is already a large manager implementation. It should keep using output facade methods; CPAL code must not be added there.
 - `software-null` and `software-*` descriptors already work for deterministic tests. Existing tests in `zircon_plugins/sound/runtime/src/tests/output_device.rs` cover catalog, callback reports, unavailable backend status, stopped pulls, reconfigure recovery, and runtime format updates.
 - `docs/superpowers/specs/2026-05-21-sound-cpal-adapter-design.md` is the approved design source for this plan.
 
@@ -27,7 +27,7 @@
 - Create `zircon_plugins/sound/runtime/src/output/ring_buffer.rs`: bounded interleaved `f32` FIFO with deterministic tests.
 - Create `zircon_plugins/sound/runtime/src/output/cpal.rs`: feature-gated CPAL capability row, descriptor support, stream state, producer lifecycle, callback drain behavior, and feature-disabled fallback module.
 - Modify `zircon_plugins/sound/runtime/src/engine/state.rs`: keep `SoundOutputDeviceRuntimeState::new(config)` construction valid after the output module split.
-- Modify `zircon_plugins/sound/runtime/src/service_types.rs`: update imports and call facade methods for configure/start/stop/status/render/callback without CPAL-specific logic.
+- Modify `zircon_plugins/sound/runtime/src/service_types/mod.rs`: update imports and call facade methods for configure/start/stop/status/render/callback without CPAL-specific logic.
 - Modify `zircon_plugins/sound/runtime/src/tests/output_device.rs`: add feature-gated and feature-disabled CPAL backend tests plus recovery assertions.
 - Update `docs/engine-architecture/runtime-sound-extension.md`: document CPAL backend architecture, ring-buffer behavior, tests, and remaining backend gaps.
 - Update `.codex/sessions/20260503-0228-sound-mixer-graph-continuation.md`: record active CPAL adapter milestone, touched modules, coordination warnings, and validation evidence.

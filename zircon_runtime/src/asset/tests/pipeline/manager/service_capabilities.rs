@@ -4,7 +4,9 @@ use super::*;
 fn asset_manager_service_reports_importer_capabilities_before_and_after_project_open() {
     let root = unique_temp_project_root("asset_manager_importer_capabilities");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),

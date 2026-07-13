@@ -1,20 +1,21 @@
+use zircon_editor::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, ComponentDrawerDescriptor, EditorMenuItemDescriptor,
-};
-use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use zircon_editor::core::editor_extension::{ComponentDrawerDescriptor, EditorMenuItemDescriptor};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportTargetPlatform, plugin::PluginDistributionManifest,
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::capability::{CAPABILITY, PLUGIN_ID};
 use crate::extension_ids::{
@@ -137,23 +138,26 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
     let validate = operation("animation_graph.authoring.validate");
     let compile = operation("animation_graph.authoring.compile");
     EditorAuthoringContributionBatch {
-        operations: vec![
-            EditorOperationDescriptor::new(open_graph.clone(), "Open Animation Graph")
+        commands: vec![
+            EditorCommandDescriptor::pending_operation(open_graph.clone(), "Open Animation Graph")
                 .with_menu_path("Plugins/Animation Graph/Open Graph")
                 .with_payload_schema_id("animation_graph.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(
+            EditorCommandDescriptor::pending_operation(
                 open_state_machine.clone(),
                 "Open Animation State Machine",
             )
             .with_menu_path("Plugins/Animation Graph/Open State Machine")
             .with_payload_schema_id("animation_graph.open_state_machine.v1")
             .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(validate.clone(), "Validate Animation Graph")
-                .with_menu_path("Plugins/Animation Graph/Validate")
-                .with_payload_schema_id("animation_graph.validate.v1")
-                .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(compile.clone(), "Compile Animation Graph")
+            EditorCommandDescriptor::pending_operation(
+                validate.clone(),
+                "Validate Animation Graph",
+            )
+            .with_menu_path("Plugins/Animation Graph/Validate")
+            .with_payload_schema_id("animation_graph.validate.v1")
+            .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::pending_operation(compile.clone(), "Compile Animation Graph")
                 .with_menu_path("Plugins/Animation Graph/Compile")
                 .with_payload_schema_id("animation_graph.compile.v1")
                 .with_required_capabilities([CAPABILITY]),
@@ -167,25 +171,25 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
             menu_item("Plugins/Animation Graph/Validate", &validate),
             menu_item("Plugins/Animation Graph/Compile", &compile),
         ],
-        asset_editors: vec![
-            AssetEditorDescriptor::new(
-                "animation.graph",
-                ANIMATION_GRAPH_VIEW_ID,
-                "Animation Graph",
-                open_graph.clone(),
-            )
-            .with_required_capabilities([CAPABILITY]),
-            AssetEditorDescriptor::new(
-                "animation.state_machine",
-                ANIMATION_GRAPH_VIEW_ID,
-                "Animation State Machine",
-                open_state_machine,
-            )
-            .with_required_capabilities([CAPABILITY]),
+        asset_type_contributions: vec![
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
+                ResourceKind::AnimationGraph,
+            ))
+            .with_toolkit(
+                AssetToolkitDescriptor::new(ANIMATION_GRAPH_VIEW_ID, open_graph.clone())
+                    .with_required_capabilities([CAPABILITY]),
+            ),
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
+                ResourceKind::AnimationStateMachine,
+            ))
+            .with_toolkit(
+                AssetToolkitDescriptor::new(ANIMATION_GRAPH_VIEW_ID, open_state_machine)
+                    .with_required_capabilities([CAPABILITY]),
+            ),
         ],
         graph_editors: vec![
             GraphEditorDescriptor::new(
-                "animation.graph",
+                AssetTypeId::from_resource_kind(ResourceKind::AnimationGraph),
                 ANIMATION_GRAPH_VIEW_ID,
                 "Animation Graph",
                 open_graph,
@@ -194,7 +198,7 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
             .with_compile_operation(compile.clone())
             .with_required_capabilities([CAPABILITY]),
             GraphEditorDescriptor::new(
-                "animation.state_machine",
+                AssetTypeId::from_resource_kind(ResourceKind::AnimationStateMachine),
                 ANIMATION_GRAPH_VIEW_ID,
                 "Animation State Machine",
                 operation("animation_graph.authoring.open_state_machine"),
@@ -221,28 +225,39 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
 }
 
 fn animation_graph_palette() -> GraphNodePaletteDescriptor {
-    GraphNodePaletteDescriptor::new("animation_graph.palette.graph", "animation.graph")
-        .with_node(
-            GraphNodeDescriptor::new("clip", "Clip", "Playback")
-                .with_output(GraphPinDescriptor::new("pose", "pose")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("blend", "Blend", "Blend")
-                .with_input(GraphPinDescriptor::new("a", "pose").required(true))
-                .with_input(GraphPinDescriptor::new("b", "pose").required(true))
-                .with_output(GraphPinDescriptor::new("pose", "pose")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("output", "Output", "Output")
-                .with_input(GraphPinDescriptor::new("pose", "pose").required(true)),
-        )
-        .with_required_capabilities([CAPABILITY])
+    GraphNodePaletteDescriptor::new(
+        "animation_graph.palette.graph",
+        AssetTypeId::from_resource_kind(ResourceKind::AnimationGraph),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("clip", "Clip", "Playback")
+            .with_output(GraphPinDescriptor::new("pose", "pose")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("blend", "Blend", "Blend")
+            .with_input(GraphPinDescriptor::new("a", "pose").required(true))
+            .with_input(GraphPinDescriptor::new("b", "pose").required(true))
+            .with_output(GraphPinDescriptor::new("pose", "pose")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("blend_space_1d", "Blend Space 1D", "Blend Space")
+            .with_output(GraphPinDescriptor::new("pose", "pose")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("blend_space_2d", "Blend Space 2D", "Blend Space")
+            .with_output(GraphPinDescriptor::new("pose", "pose")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("output", "Output", "Output")
+            .with_input(GraphPinDescriptor::new("pose", "pose").required(true)),
+    )
+    .with_required_capabilities([CAPABILITY])
 }
 
 fn animation_state_machine_palette() -> GraphNodePaletteDescriptor {
     GraphNodePaletteDescriptor::new(
         "animation_graph.palette.state_machine",
-        "animation.state_machine",
+        AssetTypeId::from_resource_kind(ResourceKind::AnimationStateMachine),
     )
     .with_node(GraphNodeDescriptor::new("state", "State", "State"))
     .with_node(GraphNodeDescriptor::new(

@@ -1,0 +1,5 @@
+name = "Shared Future Project"
+format_version = 3
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["assets"]
+library_version = 1

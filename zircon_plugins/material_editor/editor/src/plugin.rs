@@ -1,21 +1,23 @@
+use zircon_editor::core::asset::{
+    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
+};
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodeDescriptor,
-    GraphNodePaletteDescriptor, GraphPinDescriptor,
+    GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, EditorExtensionRegistry, EditorMenuItemDescriptor,
-};
-use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use zircon_editor::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportTargetPlatform, plugin::PluginDistributionManifest,
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::capability::{CAPABILITY, PLUGIN_ID};
 use crate::extension_ids::{
@@ -136,28 +138,28 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
     let preview = operation("material_editor.graph.preview");
     let create = operation("material_editor.graph.create");
     EditorAuthoringContributionBatch {
-        operations: vec![
-            EditorOperationDescriptor::new(open_graph.clone(), "Open Material Graph")
+        commands: vec![
+            EditorCommandDescriptor::pending_operation(open_graph.clone(), "Open Material Graph")
                 .with_menu_path("Plugins/Material Editor/Open Graph")
                 .with_payload_schema_id("material_editor.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(open_material.clone(), "Open Material")
+            EditorCommandDescriptor::pending_operation(open_material.clone(), "Open Material")
                 .with_menu_path("Plugins/Material Editor/Open Material")
                 .with_payload_schema_id("material_editor.open_material.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(validate.clone(), "Validate Material Graph")
+            EditorCommandDescriptor::pending_operation(validate.clone(), "Validate Material Graph")
                 .with_menu_path("Plugins/Material Editor/Validate Graph")
                 .with_payload_schema_id("material_editor.validate_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(compile.clone(), "Compile Material Graph")
+            EditorCommandDescriptor::pending_operation(compile.clone(), "Compile Material Graph")
                 .with_menu_path("Plugins/Material Editor/Compile Graph")
                 .with_payload_schema_id("material_editor.compile_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(preview.clone(), "Preview Material Graph")
+            EditorCommandDescriptor::pending_operation(preview.clone(), "Preview Material Graph")
                 .with_menu_path("Plugins/Material Editor/Preview Graph")
                 .with_payload_schema_id("material_editor.preview_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(create.clone(), "Create Material Graph")
+            EditorCommandDescriptor::pending_operation(create.clone(), "Create Material Graph")
                 .with_menu_path("Plugins/Material Editor/Create Graph")
                 .with_payload_schema_id("material_editor.create_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
@@ -170,24 +172,33 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
             menu_item("Plugins/Material Editor/Preview Graph", &preview),
             menu_item("Plugins/Material Editor/Create Graph", &create),
         ],
-        asset_editors: vec![
-            AssetEditorDescriptor::new(
-                "material.graph",
-                MATERIAL_EDITOR_VIEW_ID,
-                "Material Graph",
-                open_graph.clone(),
+        asset_type_contributions: vec![
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(
+                ResourceKind::MaterialGraph,
+            ))
+            .with_toolkit(
+                AssetToolkitDescriptor::new(MATERIAL_EDITOR_VIEW_ID, open_graph.clone())
+                    .with_required_capabilities([CAPABILITY]),
             )
-            .with_required_capabilities([CAPABILITY]),
-            AssetEditorDescriptor::new(
-                "material",
-                MATERIAL_EDITOR_VIEW_ID,
-                "Material",
-                open_material,
-            )
-            .with_required_capabilities([CAPABILITY]),
+            .with_creation_template(
+                AssetCreationTemplateDescriptor::new(
+                    "material_editor.template.graph",
+                    "Material Graph",
+                    create,
+                )
+                .with_default_document(
+                    "plugins://material_editor/templates/default_material_graph.toml",
+                )
+                .with_required_capabilities([CAPABILITY]),
+            ),
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Material))
+                .with_toolkit(
+                    AssetToolkitDescriptor::new(MATERIAL_EDITOR_VIEW_ID, open_material)
+                        .with_required_capabilities([CAPABILITY]),
+                ),
         ],
         graph_editors: vec![GraphEditorDescriptor::new(
-            "material.graph",
+            AssetTypeId::from_resource_kind(ResourceKind::MaterialGraph),
             MATERIAL_EDITOR_VIEW_ID,
             "Material Graph",
             open_graph,
@@ -196,49 +207,44 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
         .with_compile_operation(compile)
         .with_required_capabilities([CAPABILITY])],
         graph_node_palettes: vec![material_node_palette()],
-        asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(
-            "material_editor.template.graph",
-            "Material Graph",
-            "material.graph",
-            create,
-        )
-        .with_default_document("plugins://material_editor/templates/default_material_graph.toml")
-        .with_required_capabilities([CAPABILITY])],
         ..Default::default()
     }
 }
 
 fn material_node_palette() -> GraphNodePaletteDescriptor {
-    GraphNodePaletteDescriptor::new("material_editor.palette", "material.graph")
-        .with_node(
-            GraphNodeDescriptor::new("output", "Output", "Material")
-                .with_input(GraphPinDescriptor::new("base_color", "vec4").required(true)),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("texture_sample", "Texture Sample", "Texture")
-                .with_output(GraphPinDescriptor::new("color", "vec4")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("scalar_parameter", "Scalar Parameter", "Parameter")
-                .with_output(GraphPinDescriptor::new("value", "float")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("vector_parameter", "Vector Parameter", "Parameter")
-                .with_output(GraphPinDescriptor::new("value", "vec4")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("add", "Add", "Math")
-                .with_input(GraphPinDescriptor::new("a", "float").required(true))
-                .with_input(GraphPinDescriptor::new("b", "float").required(true))
-                .with_output(GraphPinDescriptor::new("value", "float")),
-        )
-        .with_node(
-            GraphNodeDescriptor::new("multiply", "Multiply", "Math")
-                .with_input(GraphPinDescriptor::new("a", "float").required(true))
-                .with_input(GraphPinDescriptor::new("b", "float").required(true))
-                .with_output(GraphPinDescriptor::new("value", "float")),
-        )
-        .with_required_capabilities([CAPABILITY])
+    GraphNodePaletteDescriptor::new(
+        "material_editor.palette",
+        AssetTypeId::from_resource_kind(ResourceKind::MaterialGraph),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("output", "Output", "Material")
+            .with_input(GraphPinDescriptor::new("base_color", "vec4").required(true)),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("texture_sample", "Texture Sample", "Texture")
+            .with_output(GraphPinDescriptor::new("color", "vec4")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("scalar_parameter", "Scalar Parameter", "Parameter")
+            .with_output(GraphPinDescriptor::new("value", "float")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("vector_parameter", "Vector Parameter", "Parameter")
+            .with_output(GraphPinDescriptor::new("value", "vec4")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("add", "Add", "Math")
+            .with_input(GraphPinDescriptor::new("a", "float").required(true))
+            .with_input(GraphPinDescriptor::new("b", "float").required(true))
+            .with_output(GraphPinDescriptor::new("value", "float")),
+    )
+    .with_node(
+        GraphNodeDescriptor::new("multiply", "Multiply", "Math")
+            .with_input(GraphPinDescriptor::new("a", "float").required(true))
+            .with_input(GraphPinDescriptor::new("b", "float").required(true))
+            .with_output(GraphPinDescriptor::new("value", "float")),
+    )
+    .with_required_capabilities([CAPABILITY])
 }
 
 fn operation(path: &str) -> EditorOperationPath {

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::asset::NavMeshAsset;
 use crate::core::framework::render::{
     OverlayLineSegment, OverlayPickShape, SceneGizmoKind,
     SceneGizmoOverlayExtract as SceneGizmoOverlay,
@@ -17,30 +16,6 @@ pub struct NavigationGizmoSnapshot {
 }
 
 impl NavigationGizmoSnapshot {
-    pub fn from_nav_mesh_asset(asset: &NavMeshAsset) -> Self {
-        Self {
-            triangles: asset
-                .debug_triangles()
-                .into_iter()
-                .map(|triangle| NavigationGizmoTriangle {
-                    vertices: triangle.vertices,
-                    area: triangle.area,
-                    tile: triangle.tile,
-                })
-                .collect(),
-            off_mesh_links: asset
-                .off_mesh_links
-                .iter()
-                .map(|link| NavigationGizmoLink {
-                    start: link.start,
-                    end: link.end,
-                    area: link.area,
-                    bidirectional: link.bidirectional,
-                })
-                .collect(),
-        }
-    }
-
     pub fn to_scene_gizmo_overlay(&self, owner: EntityId, selected: bool) -> SceneGizmoOverlay {
         let mut lines = Vec::new();
         for triangle in &self.triangles {

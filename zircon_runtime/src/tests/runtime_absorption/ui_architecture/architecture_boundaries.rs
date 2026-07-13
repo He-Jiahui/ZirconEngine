@@ -3,19 +3,27 @@ use super::support::{
     rust_files_under, top_level_entry_names,
 };
 
+const RUNTIME_09_STATUS: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md")
+);
+const RUNTIME_INDEX_STATUS: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+);
+
 #[test]
 fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
 
     for required_anchor in [
         "runtime_09_m0_ui_architecture_static_passed",
         "Module Boundary Map",
-        "`ui/` top-level entries: 18",
-        "`surface/` entries: 20",
+        "`ui/` top-level entries: 19",
+        "`surface/` entries: 23",
         "No M0 blocker-level owner inversion",
         "completed_static_passed",
     ] {
@@ -30,7 +38,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let ui_entries = top_level_entry_names("zircon_runtime/src/ui", false);
     assert_eq!(
         ui_entries.len(),
-        18,
+        19,
         "Runtime 09 M0 architecture doc must be refreshed when ui/ top-level entries change"
     );
     for required_entry in [
@@ -42,6 +50,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
         "icon_atlas",
         "layout",
         "module.rs",
+        "platform_input",
         "prelude.rs",
         "public_runtime_frame.rs",
         "style.rs",
@@ -62,7 +71,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let surface_entries = top_level_entry_names("zircon_runtime/src/ui/surface", true);
     assert_eq!(
         surface_entries.len(),
-        20,
+        23,
         "Runtime 09 M0 architecture doc must be refreshed when surface/ entries change"
     );
     for required_entry in [
@@ -83,10 +92,8 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
 #[test]
 fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
     let all_ui_files = rust_files_under("zircon_runtime/src/ui");
     let production_ui_files = all_ui_files
         .iter()
@@ -142,10 +149,8 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
 #[test]
 fn runtime_09_v2_verdict_matches_runtime_and_interface_modules() {
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
     let runtime_v2_mod = read_repo_file("zircon_runtime/src/ui/v2/mod.rs");
     let interface_v2_mod = read_repo_file("zircon_runtime_interface/src/ui/v2/mod.rs");
 
@@ -216,10 +221,8 @@ fn runtime_09_taffy_layout_pass_order_uses_bridge_authority() {
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
     let layout_pass_doc = include_str!("../../../../../docs/zircon_runtime/ui/layout/pass.md");
     let v2_doc = include_str!("../../../../../docs/zircon_runtime/ui/v2.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
     let status_anchor = "runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending";
     let dto_anchor = "runtime_09_m2_1_style_mapping_remains_taffy_dto_adapter";
 
@@ -324,10 +327,8 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
         read_repo_file("zircon_runtime/src/ui/tests/scroll_virtualization.rs");
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");
     let layout_pass_doc = include_str!("../../../../../docs/zircon_runtime/ui/layout/pass.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
     let status_anchor =
         "runtime_09_m2_2_virtualization_scroll_boundary_static_passed_cargo_pending";
 
@@ -412,10 +413,8 @@ fn runtime_09_template_pipeline_boundary_records_compile_instance_validate_autho
         include_str!("../../../../../docs/zircon_runtime/ui/template/pipeline.md");
     let shared_template_doc =
         include_str!("../../../../../docs/ui-and-layout/shared-ui-template-runtime.md");
-    let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = RUNTIME_09_STATUS;
+    let runtime_index = RUNTIME_INDEX_STATUS;
     let generated_boundary_doc =
         include_str!("../../../../../docs/engine-architecture/generated-code-boundary.md");
     let status_anchor =

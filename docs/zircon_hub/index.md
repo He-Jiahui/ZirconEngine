@@ -34,30 +34,30 @@ related_code:
   - zircon_hub/tests/project_page_copy_contract.rs
   - zircon_hub/tests/project_quick_actions_contract.rs
   - zircon_hub/src/main.rs
-  - zircon_hub/src/app/mod.rs
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/asset_catalog.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/learn_catalog.rs
-  - zircon_hub/src/app/runtime/plugin_catalog.rs
-  - zircon_hub/src/app/runtime/root_paths.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/source_engine_paths.rs
-  - zircon_hub/src/app/runtime/window_controls.rs
-  - zircon_hub/src/app/runtime/team_overview.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/assets.rs
-  - zircon_hub/src/app/view_model/cloud.rs
-  - zircon_hub/src/app/view_model/learn.rs
-  - zircon_hub/src/app/view_model/media.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/team.rs
-  - zircon_hub/src/app/localization.rs
-  - zircon_hub/src/app/quick_action.rs
+  - zircon_hub/src/tauri_app/mod.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/projects
+  - zircon_hub/src/assets/catalog.rs
+  - zircon_hub/src/process/folder_picker.rs
+  - zircon_hub/src/learn/catalog.rs
+  - zircon_hub/src/plugins/catalog.rs
+  - zircon_hub/src/settings/paths.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/engines/source_engine_paths.rs
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/display.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model
+  - zircon_hub/src/tauri_app/view_model/quick_actions.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/tauri_app/runtime_state/quick_actions.rs
   - zircon_hub/src/state/mod.rs
   - zircon_hub/src/state/navigation.rs
   - zircon_hub/src/state/project_view.rs
@@ -92,40 +92,40 @@ related_code:
   - zircon_hub/src/settings/mod.rs
   - zircon_hub/src/process/mod.rs
   - zircon_hub/src/process/folder_picker.rs
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/components.slint
-  - zircon_hub/ui/tokens.slint
-  - zircon_hub/ui/material_bridge.slint
-  - zircon_hub/ui/layout.slint
-  - zircon_hub/ui/surfaces.slint
-  - zircon_hub/ui/inputs.slint
-  - zircon_hub/ui/shell_header_components.slint
-  - zircon_hub/ui/shell_header_popup_components.slint
-  - zircon_hub/ui/shell_sidebar_components.slint
-  - zircon_hub/ui/shell_page_components.slint
-  - zircon_hub/ui/navigation.slint
-  - zircon_hub/ui/data_display.slint
-  - zircon_hub/ui/overlays.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/editor.slint
-  - zircon_hub/ui/editor_page_components.slint
-  - zircon_hub/ui/builds.slint
-  - zircon_hub/ui/builds_page_components.slint
-  - zircon_hub/ui/assets.slint
-  - zircon_hub/ui/cloud.slint
-  - zircon_hub/ui/learn.slint
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/team.slint
-  - zircon_hub/ui/settings.slint
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/theme/tokens.ts
+  - zircon_hub/web/src/theme/muiTheme.ts
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/inputs
+  - zircon_hub/web/src/components/shell/TopBar.tsx
+  - zircon_hub/web/src/components/overlays
+  - zircon_hub/web/src/components/shell/NavigationDrawer.tsx
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/shell/NavigationDrawer.tsx
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/components/overlays
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/pages
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/TeamPage.tsx
+  - zircon_hub/web/src/pages/SettingsPage.tsx
   - zircon_hub/assets/brand/zircon-mark.svg
   - zircon_hub/assets/icons/nav/projects.svg
   - zircon_hub/assets/icons/nav/editor.svg
@@ -178,28 +178,28 @@ related_code:
 implementation_files:
   - zircon_hub/Cargo.toml
   - zircon_hub/build.rs
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/asset_catalog.rs
-  - zircon_hub/src/app/runtime/folder_picker.rs
-  - zircon_hub/src/app/runtime/learn_catalog.rs
-  - zircon_hub/src/app/runtime/plugin_catalog.rs
-  - zircon_hub/src/app/runtime/root_paths.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/source_engine_paths.rs
-  - zircon_hub/src/app/runtime/window_controls.rs
-  - zircon_hub/src/app/runtime/team_overview.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/assets.rs
-  - zircon_hub/src/app/view_model/cloud.rs
-  - zircon_hub/src/app/view_model/learn.rs
-  - zircon_hub/src/app/view_model/media.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/team.rs
-  - zircon_hub/src/app/localization.rs
-  - zircon_hub/src/app/quick_action.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/projects
+  - zircon_hub/src/assets/catalog.rs
+  - zircon_hub/src/process/folder_picker.rs
+  - zircon_hub/src/learn/catalog.rs
+  - zircon_hub/src/plugins/catalog.rs
+  - zircon_hub/src/settings/paths.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/engines/source_engine_paths.rs
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/display.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/quick_actions.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/tauri_app/view_model/localized.rs
+  - zircon_hub/src/tauri_app/runtime_state/quick_actions.rs
   - zircon_hub/tests/ui_contract.rs
   - zircon_hub/tests/ui_global_rules_contract.rs
   - zircon_hub/tests/ui_material_usage_contract.rs
@@ -230,40 +230,40 @@ implementation_files:
   - zircon_hub/src/state/navigation.rs
   - zircon_hub/src/state/project_view.rs
   - zircon_hub/src/state/scope.rs
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/components.slint
-  - zircon_hub/ui/tokens.slint
-  - zircon_hub/ui/material_bridge.slint
-  - zircon_hub/ui/layout.slint
-  - zircon_hub/ui/surfaces.slint
-  - zircon_hub/ui/inputs.slint
-  - zircon_hub/ui/shell_header_components.slint
-  - zircon_hub/ui/shell_header_popup_components.slint
-  - zircon_hub/ui/shell_sidebar_components.slint
-  - zircon_hub/ui/shell_page_components.slint
-  - zircon_hub/ui/navigation.slint
-  - zircon_hub/ui/data_display.slint
-  - zircon_hub/ui/overlays.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/ui/project_dashboard.slint
-  - zircon_hub/ui/project_new_page.slint
-  - zircon_hub/ui/project_browser_page.slint
-  - zircon_hub/ui/project_detail_page.slint
-  - zircon_hub/ui/project_detail_components.slint
-  - zircon_hub/ui/project_browser_components.slint
-  - zircon_hub/ui/project_page_components.slint
-  - zircon_hub/ui/project_pages.slint
-  - zircon_hub/ui/editor.slint
-  - zircon_hub/ui/editor_page_components.slint
-  - zircon_hub/ui/builds.slint
-  - zircon_hub/ui/builds_page_components.slint
-  - zircon_hub/ui/assets.slint
-  - zircon_hub/ui/cloud.slint
-  - zircon_hub/ui/learn.slint
-  - zircon_hub/ui/plugins.slint
-  - zircon_hub/ui/team.slint
-  - zircon_hub/ui/settings.slint
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/theme/tokens.ts
+  - zircon_hub/web/src/theme/muiTheme.ts
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/inputs
+  - zircon_hub/web/src/components/shell/TopBar.tsx
+  - zircon_hub/web/src/components/overlays
+  - zircon_hub/web/src/components/shell/NavigationDrawer.tsx
+  - zircon_hub/web/src/components/shell
+  - zircon_hub/web/src/components/shell/NavigationDrawer.tsx
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/components/overlays
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
+  - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
+  - zircon_hub/web/src/pages/ProjectDetailPage.tsx
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/components/data
+  - zircon_hub/web/src/pages
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/CloudPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/CatalogPage.tsx
+  - zircon_hub/web/src/pages/TeamPage.tsx
+  - zircon_hub/web/src/pages/SettingsPage.tsx
   - zircon_hub/assets/brand/zircon-mark.svg
   - zircon_hub/assets/icons/nav/projects.svg
   - zircon_hub/assets/icons/nav/editor.svg
@@ -690,6 +690,8 @@ doc_type: category-index
 
 # Zircon Hub
 
+> 2026-07-12 hard cut：Hub 当前产品架构是 Rust Tauri command/runtime-state backend + React/MUI web frontend。`zircon_hub/src/app/**` 与 `zircon_hub/ui/*.slint` 已全部退休，不是兼容入口；后端唯一 owner 为 `src/tauri_app` 及 `src/{assets,learn,plugins,projects,settings,state,team}`，页面与控件唯一 owner 为 `web/src/{pages,components,theme}`。本文后续出现的 Slint 里程碑叙述只保留历史决策上下文，不能覆盖本段当前权威边界。
+
 `zircon_hub` is the standalone desktop launcher for ZirconEngine. It is a top-level workspace package, but it is not an engine runtime module and does not register with `zircon_runtime` lifecycle services.
 
 The Hub owns a real Slint desktop shell with a UnityHub-style layout: a frameless top-level window, a self-drawn title bar, a full navigation rail, a Projects dashboard, an Editor/source-engine page, an Assets catalog page, a Plugins catalog page, a local package readiness page, a local Team page, a Learn documentation page, a Builds page for the source build pipeline, and Settings. Slint is intentionally confined to this package; editor UI remains the Rust-owned retained host and does not regain Slint business UI paths.
@@ -697,24 +699,24 @@ The Hub owns a real Slint desktop shell with a UnityHub-style layout: a frameles
 ## Ownership
 
 - `zircon_hub/src/app` initializes Slint, binds callbacks, and projects Rust state into the window.
-- `zircon_hub/src/app/runtime/project_workspace.rs` owns Projects workspace subpage actions, including template selection, project-engine binding, pin/remove/delete flows, and project metadata persistence. Its selected-project scoped refresh gate compares previous and current paths through `project_paths_match`, so a selected project canonicalized from an alias does not force unnecessary Assets/Learn/Plugins/Team refreshes while real project changes still clear stale scoped views. These callbacks stay under the app runtime implementation so richer Projects shell interactions do not widen the public Hub API.
+- `zircon_hub/src/projects` owns Projects workspace subpage actions, including template selection, project-engine binding, pin/remove/delete flows, and project metadata persistence. Its selected-project scoped refresh gate compares previous and current paths through `project_paths_match`, so a selected project canonicalized from an alias does not force unnecessary Assets/Learn/Plugins/Team refreshes while real project changes still clear stale scoped views. These callbacks stay under the app runtime implementation so richer Projects shell interactions do not widen the public Hub API.
 - `docs/zircon_hub/projects/lifecycle-workflows.md` is the focused module document for the Projects lifecycle gate. It records the action model, create/import/template validation, Dashboard/Browser/Detail projection, editor launch targeting, and Hub-scoped validation commands that sit behind this index overview.
 - `docs/zircon_hub/pages/actionable-pages.md` is the focused workflow document for the actionable workspace pages gate. It records the selected-project and Source Engine scope rules for Builds, Editor, Assets, Plugins, Learn, Team, Cloud/Packages, and Settings, plus the Hub-scoped validation evidence for the split `hub-pages` milestone.
 - `docs/zircon_hub/pages/settings-status.md` is the focused module document for the Settings status page. It records the snapshot-derived Settings status rows, row action identifiers, disabled reasons, and save/register callback boundary used by the `hub-pages-settings-status` milestone.
-- `zircon_hub/src/app/runtime/asset_catalog.rs` refreshes the runtime asset catalog from the selected project, recent project roots, and source-checkout roots whenever projects or source engines change.
-- `zircon_hub/src/app/runtime/folder_picker.rs` owns runtime folder-browse dispatch for project roots, project locations, source checkouts, staged output, and local device install targets.
-- `zircon_hub/src/app/runtime/learn_catalog.rs` refreshes the local Learn catalog from the selected project's documentation first, then source-checkout and repository documentation roots, and opens selected resource files through the system file opener.
-- `zircon_hub/src/app/runtime/plugin_catalog.rs` refreshes selected-project plugin manifests and engine plugin manifests as separate Project/Engine scopes for the Plugins page.
-- `zircon_hub/src/app/runtime/root_paths.rs` owns the shared source/current/compiled-root fallback list for Assets, Plugins, Learn, and Team refreshes. It deduplicates root candidates through `project_filesystem_path_key` instead of direct `PathBuf` equality, while `learn_catalog.rs` inserts selected-project docs before shared documentation roots and `team_overview.rs` pushes the selected project root first before adding shared development roots.
-- `zircon_hub/src/app/runtime/source_scoped_views.rs` owns the single runtime refresh entrypoint for Source Engine scoped page data. Startup, Source Engine selection/removal, settings save, Source/output folder selection, and build startup after registering settings all route through this helper so Assets, Learn, Plugins, and Team stay in sync with the same active source context instead of repeating four page refresh calls in each callback.
-- `zircon_hub/src/app/runtime/source_engine_paths.rs` owns Source Engine ID generation, display-name fallback, and source path de-duplication for `register_source_engine_from_settings`. Engine IDs now hash the same `project_filesystem_path_key` used by selected-project scanners, so saved settings, active engine records, and bound project metadata migrate consistently when a source checkout is reached through slash, case, trailing-slash, or canonical-path aliases.
-- `zircon_hub/src/app/runtime/team_overview.rs` refreshes the local Team overview from the selected project first, then the active source checkout, current working directory, and compile-time workspace root.
-- `zircon_hub/src/app/runtime/window_controls.rs` owns frameless-window behavior: startup geometry restore, normal-window geometry capture, minimize/maximize/close callbacks, title-bar dragging, and double-click maximize persistence.
-- `zircon_hub/src/app/view_model.rs` converts runtime snapshots into Slint navigation, source-engine, settings, header/status, build-history, and operation-timeline data models. Its `view_model/projects.rs`, `view_model/assets.rs`, `view_model/cloud.rs`, `view_model/learn.rs`, `view_model/plugins.rs`, `view_model/quick_actions.rs`, and `view_model/team.rs` children own page-specific row projection for Projects, assets, local package readiness, Learn resources, Quick Actions, plugins, and local Git team data. `view_model/projects.rs` keeps `ProjectDetailData` tied to `selected_project_path`: without a selected project it returns an explicit unavailable no-selection row. `view_model/quick_actions.rs` resolves project actions from the selected project first and only promotes the newest recent project when `selected_project_path` is empty; if a stored selection no longer matches a recent project, it projects no usable target instead of silently switching projects. Build is only enabled when that resolved target has a valid Hub metadata binding to an installed Source Engine, while Package, Install, and Open Editor use the same target boundary. Quick Action labels use `project_paths_match`, so visible copy follows the same normalized target as the runtime action. When the no-selection fallback promotes the latest recent project or activates a project's bound Source Engine, `project_workspace.rs` refreshes the selected-project scoped Assets, Plugins, and Team data before the next snapshot is projected.
-- `zircon_hub/src/app/view_model/learn.rs` preserves selected-project documentation rows ahead of Source Engine rows and localizes each row's source label before Slint renders Learn metadata.
-- `zircon_hub/src/app/view_model/media.rs` owns the Hub static SVG image lookup layer. It resolves bundled navigation, quick-action, status, and fallback project-cover assets under `zircon_hub/assets` and preserves the existing real-project cover lookup before falling back to bundled cover art.
-- `zircon_hub/src/app/localization.rs` owns the first Hub UI string table for English and Chinese. The view-model layer uses it for navigation, page titles, quick actions, source-engine status, configuration health, header pills, relative time labels, and the Slint `UiTextData` bundle.
-- `zircon_hub/src/app/quick_action.rs` owns the stable quick-action identifiers used by the Slint shell and Rust dispatcher.
+- `zircon_hub/src/assets/catalog.rs` refreshes the runtime asset catalog from the selected project, recent project roots, and source-checkout roots whenever projects or source engines change.
+- `zircon_hub/src/process/folder_picker.rs` owns runtime folder-browse dispatch for project roots, project locations, source checkouts, staged output, and local device install targets.
+- `zircon_hub/src/learn/catalog.rs` refreshes the local Learn catalog from the selected project's documentation first, then source-checkout and repository documentation roots, and opens selected resource files through the system file opener.
+- `zircon_hub/src/plugins/catalog.rs` refreshes selected-project plugin manifests and engine plugin manifests as separate Project/Engine scopes for the Plugins page.
+- `zircon_hub/src/settings/paths.rs` owns the shared source/current/compiled-root fallback list for Assets, Plugins, Learn, and Team refreshes. It deduplicates root candidates through `project_filesystem_path_key` instead of direct `PathBuf` equality, while `learn_catalog.rs` inserts selected-project docs before shared documentation roots and `team_overview.rs` pushes the selected project root first before adding shared development roots.
+- `zircon_hub/src/tauri_app/runtime_state/scoped_views.rs` owns the single runtime refresh entrypoint for Source Engine scoped page data. Startup, Source Engine selection/removal, settings save, Source/output folder selection, and build startup after registering settings all route through this helper so Assets, Learn, Plugins, and Team stay in sync with the same active source context instead of repeating four page refresh calls in each callback.
+- `zircon_hub/src/engines/source_engine_paths.rs` owns Source Engine ID generation, display-name fallback, and source path de-duplication for `register_source_engine_from_settings`. Engine IDs now hash the same `project_filesystem_path_key` used by selected-project scanners, so saved settings, active engine records, and bound project metadata migrate consistently when a source checkout is reached through slash, case, trailing-slash, or canonical-path aliases.
+- `zircon_hub/src/team` refreshes the local Team overview from the selected project first, then the active source checkout, current working directory, and compile-time workspace root.
+- `zircon_hub/src/tauri_app/commands.rs` owns frameless-window behavior: startup geometry restore, normal-window geometry capture, minimize/maximize/close callbacks, title-bar dragging, and double-click maximize persistence.
+- `zircon_hub/src/tauri_app/view_model.rs` converts runtime snapshots into Slint navigation, source-engine, settings, header/status, build-history, and operation-timeline data models. Its `view_model/projects.rs`, `view_model/assets.rs`, `view_model/cloud.rs`, `view_model/learn.rs`, `view_model/plugins.rs`, `view_model/quick_actions.rs`, and `view_model/team.rs` children own page-specific row projection for Projects, assets, local package readiness, Learn resources, Quick Actions, plugins, and local Git team data. `view_model/projects.rs` keeps `ProjectDetailData` tied to `selected_project_path`: without a selected project it returns an explicit unavailable no-selection row. `view_model/quick_actions.rs` resolves project actions from the selected project first and only promotes the newest recent project when `selected_project_path` is empty; if a stored selection no longer matches a recent project, it projects no usable target instead of silently switching projects. Build is only enabled when that resolved target has a valid Hub metadata binding to an installed Source Engine, while Package, Install, and Open Editor use the same target boundary. Quick Action labels use `project_paths_match`, so visible copy follows the same normalized target as the runtime action. When the no-selection fallback promotes the latest recent project or activates a project's bound Source Engine, `project_workspace.rs` refreshes the selected-project scoped Assets, Plugins, and Team data before the next snapshot is projected.
+- `zircon_hub/src/tauri_app/view_model/catalog.rs` preserves selected-project documentation rows ahead of Source Engine rows and localizes each row's source label before Slint renders Learn metadata.
+- `zircon_hub/src/tauri_app/view_model/display.rs` owns the Hub static SVG image lookup layer. It resolves bundled navigation, quick-action, status, and fallback project-cover assets under `zircon_hub/assets` and preserves the existing real-project cover lookup before falling back to bundled cover art.
+- `zircon_hub/src/tauri_app/view_model/localized.rs` owns the first Hub UI string table for English and Chinese. The view-model layer uses it for navigation, page titles, quick actions, source-engine status, configuration health, header pills, relative time labels, and the Slint `UiTextData` bundle.
+- `zircon_hub/src/tauri_app/runtime_state/quick_actions.rs` owns the stable quick-action identifiers used by the Slint shell and Rust dispatcher.
 - `zircon_hub/src/state` stores the selected page, project filter mode, project sort mode, project view mode, search query, task status snapshot, and persistent action history used by the app layer. `TaskStatus` now carries severity and an optional recovery hint beside its label/detail/running fields. Runtime actions project warnings and errors with the recovery text folded into the bottom status detail, while the header status pills count actual `TaskSeverity::Error` states instead of matching a fragile label string. `HubActionRecord` keeps the newest build/open/package/install/open-output outcomes with target, recovery, command-line, output directory, and child-process id when a spawned Editor is involved; each end-to-end action path records through `record_action_and_persist` or an equivalent persist call before returning, so open-output, package, install, editor-launch, and build records survive restart even when the action fails before the generic task-status layer can render recovery text. Project create/open launch success records are written only after the project metadata/recent-project persistence step succeeds, preventing a restart from showing a successful recoverable launch entry if saving the selected project failed. Package and install selection, stale-project, validation, and copy/install failures also write failed `PackageProject` or `InstallProject` records with recovery hints and output targets before returning the `HubError`. The records round-trip through Hub TOML config so recovery context survives restart and feed the Operation Timeline row model for diagnostics. `HubPage` now covers Projects, Editor, Assets, Builds, Plugins, Cloud, Team, Learn, and Settings; the stable Cloud route presents as Packages in navigation and localized page title, and its fallback subtitle uses local packages, installs, and reserved service slots instead of account-connection wording. That keeps the page aligned with its offline contract, while the Team fallback subtitle uses local Git identity/recent-contributor wording instead of membership/collaboration settings.
 - `zircon_hub/src/projects` owns recent-project records, Hub-owned project metadata keys, normalized project path matching, project creation templates, project root validation, project cover discovery, Windows recycle-bin delete command construction, local project package staging, local device-folder installation, and Editor recent sync. The `project_paths_match` helper reuses the metadata key normalization so selected-project workflows tolerate slash style, trailing slash, and Windows drive-letter casing differences consistently, including when persisted Windows-style paths are inspected in non-Windows validation environments. The `project_filesystem_path_key` helper layers canonicalization over the same metadata-key rule for scoped scanners and Source Engine registration, so Assets, Plugins, Learn, Team, and engine settings do not each keep a private slash/case path key.
 - `zircon_hub/src/projects/install_receipt.rs` is the local install receipt writer used by device-folder installs. It records the installed file list, total byte count, per-file SHA-256, and a Hub-side `content_download_manifest` shape with download id, resource id, chunks, byte ranges, chunk hashes, file URLs, mirror list, and range-resume flags. This keeps the Hub install result ready for the 07 content-download protocol without adding a Hub dependency or mutating lockfiles.
@@ -730,14 +732,14 @@ The Hub owns a real Slint desktop shell with a UnityHub-style layout: a frameles
 - `zircon_hub/src/process/folder_picker.rs` owns Hub folder selection integration. The current implementation uses the Windows system folder browser through PowerShell/WinForms and returns a clear unavailable status on non-Windows platforms until a cross-platform picker is added.
 - `zircon_hub/build.rs` registers the repository-local Slint Material UI template at `dev/material-rust-template/material-1.0/material.slint` as the `@material` Slint library path. It generates the compiled Slint `app.rs` into Cargo's `OUT_DIR` and creates that output directory before writing, so fresh or invalidated target directories cannot fail UI generation with a missing generated-file path. Hub keeps Slint as the renderer and does not embed HTML/CSS, but the reusable UI entrypoint now imports the real template rather than recreating a separate clone.
 - `zircon_hub/ui/theme.slint` installs the Zircon Material palette at Slint initialization time. It keeps Material component behavior and metrics from the local template while overriding the template's default blue primary scheme with the Hub reference's teal/dark visual language.
-- `zircon_hub/ui/components.slint` is now only the reusable Hub UI entrypoint. Implementation is split into `tokens.slint`, `material_bridge.slint`, `layout.slint`, `surfaces.slint`, `inputs.slint`, focused `shell_*_components.slint` modules, `navigation.slint`, `data_display.slint`, and `overlays.slint`; the former `shell.slint` compatibility note has been deleted so shell ownership is direct. The bridge directly re-exports selected `@material` layout, card, button, input, navigation, list, progress, tab, tooltip, and style primitives so pages can use one public module while component ownership follows the Material-style categories documented in `docs/zircon_hub/ui/responsive-component-system.md`.
-- `zircon_hub/ui/surfaces.slint` keeps the public `HubPanel`/`HubCard` API but now backs those Hub surfaces with the imported Material template `ElevatedCard` and `OutlinedCard` primitives. Zircon-specific panel variants still provide the dark border, tint, hover, and status colors above that template base. `PanelSlot` now composes `ResponsiveSlot` with a Material-backed `HubPanel` plus a padded stretch `VerticalLayout`, so workspace pages can express panel basis/grow/min-width and child semantics without repeating panel body boilerplate. The panel hover layer sits behind `@children` and is enabled only for interactive variants so default Material-backed panels do not swallow nested row, button, or input clicks. `PanelHeader` keeps its Hub-facing right action slot, but the action is now an imported Material `OutlineButton` instead of a hand-painted rectangle plus `TouchArea`; its title text and `StatusBanner` titles now use imported Material `MaterialText` typography instead of raw `Text` font bindings. Hub keeps its public `Badge`/`StatusBadge` tone shell instead of importing the conflicting template `Badge` name, while badge label typography is delegated to the imported Material `MaterialText` component.
-- `zircon_hub/ui/shared.slint` keeps Hub `PillButton`, Hub `IconButton`, `WindowButton`, header `StatusPill`, expanded-navigation `NavButton`, `FieldLabel`, and `MutedText` as stable public APIs, but those wrappers now use imported Material template primitives internally: `FilledButton`, `OutlineButton`, `FilledIconButton`, `OutlineIconButton`, template `IconButton`, `ActionChip`, `StateLayerArea`, and `MaterialText`. `PillButton` owns the atom-level preferred width and clipping boundary needed by Material text buttons inside compact responsive headers, Hub `IconButton` clips the Material icon button to the requested atom size in dense rows and centers fallback icons with nested layouts instead of absolute `x`/`y` offsets, `WindowButton` uses the template inline icon metric for centered title-bar controls, `StatusPill` keeps the Hub status/tone shell while Material owns the chip icon/text body, `NavButton` keeps Hub page ids while its Hub-owned expanded row shell applies tokenized active/focus/disabled state around a Material `StateLayerArea` body and MaterialText label, and Hub text labels delegate font metrics to `MaterialTypography` through `MaterialText`. Hub pages still express primary, secondary, active, inactive, text, icon, label, and muted copy through the existing semantic controls while Material owns the button/chip/state-layer/text pointer behavior, disabled state, ripple/state layer, typography metrics, and accessibility surface.
-- `zircon_hub/ui/inputs.slint` now exposes `SearchBox` as a Hub-stable wrapper around the imported Material template `SearchBar`, while `HubTextField` remains the Hub form wrapper around Material `TextField`. Toolbar search uses the Material search atom with a leading search icon, visible placeholder prompt, and `HubTokens.input-field` height instead of hand-painting a local input or using `TextField` label text as a toolbar placeholder. Settings uses `HubTextField` for toolchain executables, build jobs, and default paths; Editor uses it for active engine name, source checkout, and staged output; Projects New Project uses it for project name and location. Editable Hub form pages no longer directly depend on `std-widgets` `LineEdit`, and toolbar search no longer directly embeds `TextInput`. `HubTokens.input-field` owns the Material field height and `HubTokens.input-width` owns the preferred input width at the atom layer. The same file now routes Hub `SegmentButton` through the imported Material `SegmentedButton`, routes Hub `ToolbarSelect` through Material `OutlineButton` plus `PopupMenu`, and routes Hub `DropDownButton` through Material `OutlineButton`/`TonalButton`, while keeping the existing Hub-facing value/callback contracts. `ToolbarSelect` also keeps an unclipped root plus tokenized popup width and offset anchoring so compact toolbar menus remain visible instead of being clipped inside the select button.
-- Focused shell component modules own the Hub chrome: `shell_header_components.slint` owns the top header body, window buttons, control slots, and drag regions while importing the Source Engine picker from `shell_header_popup_components.slint`; `shell_header_popup_components.slint` owns `HeaderEngineSelector` and `HeaderEngineOption`; `shell_sidebar_components.slint` owns the nav sidebar and engine/project status panel; `shell_page_components.slint` owns the page title/action band and bottom status bar. The source-engine popup rows now use imported Material `ListTile` rows so engine title/status/avatar alignment and row interaction come from the template rather than a custom full-row `TouchArea`; the popup heading/count, brand title/subtitle, local-user initials/name, nav engine-status title, current-project label, and update label now use Material `MaterialText` instead of raw `Text` font bindings. `HubTopHeader` receives `ProjectDetailData` and shows the selected project as the brand subtitle when available while keeping the Source Engine selector beside it. `app.slint` derives the tight/minimal title-bar flags from the shared `ResponsiveState` primitive and passes them into `HubTopHeader`, so the header consumes semantic state instead of local `root.width < ...` comparisons. `HubNavSidebar` receives `ProjectDetailData` beside `SourceEngineData`, so the expanded lower status card shows both active engine state and the current selected-project title before the update action. `HubPageHeader` receives `ProjectDetailData`, `SourceEngineData`, compact state, and tokenized context-badge width from `app.slint`; non-Projects pages show selected-project and active Source Engine badges beside the page title actions, while Projects keeps Import/New as the primary title-band actions. The page title and non-Projects task label also use Material `MaterialText` styles. The bottom status bar receives the same context, so wide layouts show the current task plus compact selected-project and active Source Engine badges without deriving layout from the status bar's resolved width; compact widths keep the task detail first and hide the badges before they can overlap. Its task detail also uses Material `MaterialText`, keeping shell typography on the imported template. The sidebar collapse control uses imported Material `StateLayerArea`, keeping direct `TouchArea` usage reserved for frameless-window dragging. `zircon_hub/ui/app.slint` keeps the Rust-facing `HubWindow` property/callback contract, consumes `ResponsiveState` for window breakpoints, mounts selected pages inside the shared `Fill` slot whose primitive owns child fill layout, and routes shell/page content through stretched layout regions instead of drawing those regions inline, assigning each page `width: parent.width`/`height: parent.height`, or subtracting header height by hand.
-- `zircon_hub/ui/app.slint` also exposes the Rust-facing operation timeline model through `operation-timeline` and `operation-timeline-count`, matching the `OperationTimelineRowData` struct in `shared.slint` plus the shared `OperationTimelineRow` and `OperationTimelinePanel` in `data_display.slint`. `components.slint` re-exports that shared panel so Builds and Settings render persisted action history without a page-to-page import.
-- `zircon_hub/ui/navigation.slint` now uses the imported Material template `NavigationRail` for the collapsed 80px navigation rail. The existing `NavItemData` projection still owns page ids and active state, while `view_model.rs` derives Material `NavigationItem` rows from the same model for template rendering. Expanded navigation stays on the Hub row-style `NavButton` list because the template rail is icon-first and the template drawer is wider than the Hub sidebar contract; each expanded row keeps Hub token geometry and uses Material `StateLayerArea` plus MaterialText for interaction and label rendering.
-- `zircon_hub/ui/project_dashboard.slint` owns the Projects dashboard toolbar, project card flow, Recent Projects panel, Quick Actions panel, and Material `ScrollView` dashboard/quick-action scroll surfaces. `ProjectCardData` now carries localized card display labels (`modified-label`, `pinned-label`, `missing-label`) from `zircon_hub/src/app/view_model/projects.rs`, so repeated card delegates read the current `card` model instead of reaching back to page-level `UiTextData` through a Slint repeater. `zircon_hub/ui/project_new_page.slint` owns the New Project page shell, responsive flex sizing, height/scroll budgets, and settings/summary/template data/callback forwarding. `zircon_hub/ui/project_browser_page.slint` owns the Project Browser page shell, toolbar, result-panel sizing, and inner list scroll state; `project_browser_components.slint` owns Browser-specific filter/sort selects, `ProjectBrowserRow`, and `ProjectBrowserResultsPanel` with the list header, `PanelListViewport`, row delegates, and empty results block. `zircon_hub/ui/project_detail_page.slint` owns the Project Detail page shell, detail/action `PanelSlot` columns, cover section, guarded delete flow, and Detail wrapper call sites; `project_detail_components.slint` owns Detail-specific action buttons, status strip, info section, and Source Engine binding section. `zircon_hub/ui/project_page_components.slint` owns the shared Projects secondary-page header, `ProjectCreateSettingsPanel`, `ProjectCreateCompactSummaryPanel`, `ProjectTemplateRailPanel`, summary rows, engine/template rows, create form wrappers, and re-exported Browser component surface, while `project_pages.slint` is now only the stable secondary-page aggregate that re-exports New, Browser, and Detail. Visible title/meta/summary labels route through Material `MaterialText` instead of page-local `Text` font bindings. `zircon_hub/ui/projects.slint` stays as the Projects subpage router, inherits the shared `Fill` slot behavior, and forwards data/callbacks to dashboard, browser, new-project, and detail components without per-subpage `width: parent.width` / `height: parent.height` bindings.
+- `zircon_hub/web/src/components` is now only the reusable Hub UI entrypoint. Implementation is split into `tokens.slint`, `material_bridge.slint`, `layout.slint`, `surfaces.slint`, `inputs.slint`, focused `shell_*_components.slint` modules, `navigation.slint`, `data_display.slint`, and `overlays.slint`; the former `shell.slint` compatibility note has been deleted so shell ownership is direct. The bridge directly re-exports selected `@material` layout, card, button, input, navigation, list, progress, tab, tooltip, and style primitives so pages can use one public module while component ownership follows the Material-style categories documented in `docs/zircon_hub/ui/responsive-component-system.md`.
+- `zircon_hub/web/src/components/shell` keeps the public `HubPanel`/`HubCard` API but now backs those Hub surfaces with the imported Material template `ElevatedCard` and `OutlinedCard` primitives. Zircon-specific panel variants still provide the dark border, tint, hover, and status colors above that template base. `PanelSlot` now composes `ResponsiveSlot` with a Material-backed `HubPanel` plus a padded stretch `VerticalLayout`, so workspace pages can express panel basis/grow/min-width and child semantics without repeating panel body boilerplate. The panel hover layer sits behind `@children` and is enabled only for interactive variants so default Material-backed panels do not swallow nested row, button, or input clicks. `PanelHeader` keeps its Hub-facing right action slot, but the action is now an imported Material `OutlineButton` instead of a hand-painted rectangle plus `TouchArea`; its title text and `StatusBanner` titles now use imported Material `MaterialText` typography instead of raw `Text` font bindings. Hub keeps its public `Badge`/`StatusBadge` tone shell instead of importing the conflicting template `Badge` name, while badge label typography is delegated to the imported Material `MaterialText` component.
+- `zircon_hub/web/src/components` keeps Hub `PillButton`, Hub `IconButton`, `WindowButton`, header `StatusPill`, expanded-navigation `NavButton`, `FieldLabel`, and `MutedText` as stable public APIs, but those wrappers now use imported Material template primitives internally: `FilledButton`, `OutlineButton`, `FilledIconButton`, `OutlineIconButton`, template `IconButton`, `ActionChip`, `StateLayerArea`, and `MaterialText`. `PillButton` owns the atom-level preferred width and clipping boundary needed by Material text buttons inside compact responsive headers, Hub `IconButton` clips the Material icon button to the requested atom size in dense rows and centers fallback icons with nested layouts instead of absolute `x`/`y` offsets, `WindowButton` uses the template inline icon metric for centered title-bar controls, `StatusPill` keeps the Hub status/tone shell while Material owns the chip icon/text body, `NavButton` keeps Hub page ids while its Hub-owned expanded row shell applies tokenized active/focus/disabled state around a Material `StateLayerArea` body and MaterialText label, and Hub text labels delegate font metrics to `MaterialTypography` through `MaterialText`. Hub pages still express primary, secondary, active, inactive, text, icon, label, and muted copy through the existing semantic controls while Material owns the button/chip/state-layer/text pointer behavior, disabled state, ripple/state layer, typography metrics, and accessibility surface.
+- `zircon_hub/web/src/components/inputs` now exposes `SearchBox` as a Hub-stable wrapper around the imported Material template `SearchBar`, while `HubTextField` remains the Hub form wrapper around Material `TextField`. Toolbar search uses the Material search atom with a leading search icon, visible placeholder prompt, and `HubTokens.input-field` height instead of hand-painting a local input or using `TextField` label text as a toolbar placeholder. Settings uses `HubTextField` for toolchain executables, build jobs, and default paths; Editor uses it for active engine name, source checkout, and staged output; Projects New Project uses it for project name and location. Editable Hub form pages no longer directly depend on `std-widgets` `LineEdit`, and toolbar search no longer directly embeds `TextInput`. `HubTokens.input-field` owns the Material field height and `HubTokens.input-width` owns the preferred input width at the atom layer. The same file now routes Hub `SegmentButton` through the imported Material `SegmentedButton`, routes Hub `ToolbarSelect` through Material `OutlineButton` plus `PopupMenu`, and routes Hub `DropDownButton` through Material `OutlineButton`/`TonalButton`, while keeping the existing Hub-facing value/callback contracts. `ToolbarSelect` also keeps an unclipped root plus tokenized popup width and offset anchoring so compact toolbar menus remain visible instead of being clipped inside the select button.
+- Focused shell component modules own the Hub chrome: `shell_header_components.slint` owns the top header body, window buttons, control slots, and drag regions while importing the Source Engine picker from `shell_header_popup_components.slint`; `shell_header_popup_components.slint` owns `HeaderEngineSelector` and `HeaderEngineOption`; `shell_sidebar_components.slint` owns the nav sidebar and engine/project status panel; `shell_page_components.slint` owns the page title/action band and bottom status bar. The source-engine popup rows now use imported Material `ListTile` rows so engine title/status/avatar alignment and row interaction come from the template rather than a custom full-row `TouchArea`; the popup heading/count, brand title/subtitle, local-user initials/name, nav engine-status title, current-project label, and update label now use Material `MaterialText` instead of raw `Text` font bindings. `HubTopHeader` receives `ProjectDetailData` and shows the selected project as the brand subtitle when available while keeping the Source Engine selector beside it. `app.slint` derives the tight/minimal title-bar flags from the shared `ResponsiveState` primitive and passes them into `HubTopHeader`, so the header consumes semantic state instead of local `root.width < ...` comparisons. `HubNavSidebar` receives `ProjectDetailData` beside `SourceEngineData`, so the expanded lower status card shows both active engine state and the current selected-project title before the update action. `HubPageHeader` receives `ProjectDetailData`, `SourceEngineData`, compact state, and tokenized context-badge width from `app.slint`; non-Projects pages show selected-project and active Source Engine badges beside the page title actions, while Projects keeps Import/New as the primary title-band actions. The page title and non-Projects task label also use Material `MaterialText` styles. The bottom status bar receives the same context, so wide layouts show the current task plus compact selected-project and active Source Engine badges without deriving layout from the status bar's resolved width; compact widths keep the task detail first and hide the badges before they can overlap. Its task detail also uses Material `MaterialText`, keeping shell typography on the imported template. The sidebar collapse control uses imported Material `StateLayerArea`, keeping direct `TouchArea` usage reserved for frameless-window dragging. `zircon_hub/web/src/App.tsx` keeps the Rust-facing `HubWindow` property/callback contract, consumes `ResponsiveState` for window breakpoints, mounts selected pages inside the shared `Fill` slot whose primitive owns child fill layout, and routes shell/page content through stretched layout regions instead of drawing those regions inline, assigning each page `width: parent.width`/`height: parent.height`, or subtracting header height by hand.
+- `zircon_hub/web/src/App.tsx` also exposes the Rust-facing operation timeline model through `operation-timeline` and `operation-timeline-count`, matching the `OperationTimelineRowData` struct in `shared.slint` plus the shared `OperationTimelineRow` and `OperationTimelinePanel` in `data_display.slint`. `components.slint` re-exports that shared panel so Builds and Settings render persisted action history without a page-to-page import.
+- `zircon_hub/web/src/components/shell/NavigationDrawer.tsx` now uses the imported Material template `NavigationRail` for the collapsed 80px navigation rail. The existing `NavItemData` projection still owns page ids and active state, while `view_model.rs` derives Material `NavigationItem` rows from the same model for template rendering. Expanded navigation stays on the Hub row-style `NavButton` list because the template rail is icon-first and the template drawer is wider than the Hub sidebar contract; each expanded row keeps Hub token geometry and uses Material `StateLayerArea` plus MaterialText for interaction and label rendering.
+- `zircon_hub/web/src/pages/ProjectsDashboard.tsx` owns the Projects dashboard toolbar, project card flow, Recent Projects panel, Quick Actions panel, and Material `ScrollView` dashboard/quick-action scroll surfaces. `ProjectCardData` now carries localized card display labels (`modified-label`, `pinned-label`, `missing-label`) from `zircon_hub/src/tauri_app/view_model`, so repeated card delegates read the current `card` model instead of reaching back to page-level `UiTextData` through a Slint repeater. `zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx` owns the New Project page shell, responsive flex sizing, height/scroll budgets, and settings/summary/template data/callback forwarding. `zircon_hub/web/src/pages/ProjectBrowserPage.tsx` owns the Project Browser page shell, toolbar, result-panel sizing, and inner list scroll state; `project_browser_components.slint` owns Browser-specific filter/sort selects, `ProjectBrowserRow`, and `ProjectBrowserResultsPanel` with the list header, `PanelListViewport`, row delegates, and empty results block. `zircon_hub/web/src/pages/ProjectDetailPage.tsx` owns the Project Detail page shell, detail/action `PanelSlot` columns, cover section, guarded delete flow, and Detail wrapper call sites; `project_detail_components.slint` owns Detail-specific action buttons, status strip, info section, and Source Engine binding section. `zircon_hub/web/src/components/data` owns the shared Projects secondary-page header, `ProjectCreateSettingsPanel`, `ProjectCreateCompactSummaryPanel`, `ProjectTemplateRailPanel`, summary rows, engine/template rows, create form wrappers, and re-exported Browser component surface, while `project_pages.slint` is now only the stable secondary-page aggregate that re-exports New, Browser, and Detail. Visible title/meta/summary labels route through Material `MaterialText` instead of page-local `Text` font bindings. `zircon_hub/web/src/pages/ProjectsDashboard.tsx` stays as the Projects subpage router, inherits the shared `Fill` slot behavior, and forwards data/callbacks to dashboard, browser, new-project, and detail components without per-subpage `width: parent.width` / `height: parent.height` bindings.
 
 ## Shell Layout And Data Projection
 
@@ -798,7 +800,7 @@ The Projects dashboard uses Slint `FlexboxLayout` for the upper project-card flo
 
 The Recent Projects panel keeps the `View All Projects` action in the header's right action slot. The action now renders through `PanelHeader`'s Material `OutlineButton` slot inside `DashboardRecentProjectsPanel` and navigates to the wider `ProjectBrowserPage`; it no longer expands dashboard cards and no longer shares behavior with Show More. The Recent Projects and Quick Actions dashboard panels now use typed `PanelSlot` components, so their Material-backed panel shell, padded body, table/list body, and empty-state wiring are shared through the dashboard component module while the dashboard page keeps only basis/grow/min-width, row-height inputs, data forwarding, and callbacks. The dashboard list projection is named Pinned Projects when pinned metadata exists, and otherwise falls back to Recent Projects, with the title localized through the Rust view-model language path. Project cards surface pinned and missing status badges next to the project title when those Hub metadata states apply. The compact dashboard row count is projected separately from the raw recent-project count, so pinned-only dashboards keep empty-state and scroll math aligned with the actual rows. Dashboard project cards and compact table rows keep their selected/background shell in Hub code but delegate whole-card/whole-row hover, press, and click feedback to Material `StateLayerArea`. The browser subpage uses the same Pinned/Recent title source and a loose selector row with cover/icon, path, version badge, bound source engine, last-opened label, missing/pinned badges, and a dedicated detail action. Bound engine labels come from per-project metadata only: unbound projects show localized `No Source Engine`/`Unbound`, and stale bindings show localized `Source Engine unavailable`/`Unavailable` instead of borrowing the active engine version. The browser row body uses the same Material state-layer path for row selection, so project selectors no longer need separate thumbnail/body/full-row `TouchArea` layers. Browser row meta stays close to the project title/path instead of being stretched into sparse table columns, while the trailing detail button remains a separate right-aligned control and is the only browser-row transition into Project Detail.
 
-The dedicated `zircon_hub/ui/project_new_page.slint` `ProjectNewPage` places core project settings in the main panel: project name, target location, Source Engine selection, a live create summary, validation status through the create button state, and the create command. The name/location inputs use `HubTextField`, so the new-project form shares the same imported Material `TextField` atom and `HubTokens.input-field` height as Settings and Editor. Source Engine and template choices use imported Material `ListTile` rows, with Hub badges and selected-state borders layered around the template row behavior. The summary resolves the final project root from the editable name/location fields and displays create readiness, so the central panel remains the primary project-setup surface instead of leaving an empty form area; its label/value typography now goes through Material `MaterialText`. New Project creation is enabled only when the selected Source Engine id still matches a registered engine record, and the runtime revalidates that engine before launching the Editor create-project command. The default Source Engine choice follows the active Source context only while the form has no valid explicit choice or was still tracking the previous active engine, so selecting another valid engine in the form is preserved across unrelated active-engine switches. Templates are a right-side selection rail rather than the primary visual area. The first implemented template is `Renderable Empty`, which maps to the existing Editor launch contract `--create-project --template renderable-empty`; placeholder 2D, 3D, and sample templates are visible but disabled until real creation paths exist. `ProjectNewPage`, `ProjectBrowserPage`, and `ProjectDetailPage` now inherit `PageScrollSurface` directly, so page padding, content width, and content height stay on the semantic page root while the dedicated Browser page keeps a separate `browser-scroll-y` for the inner list viewport. New Project's settings panel routes through `ProjectCreateSettingsPanel`, compact stacked summary routes through `ProjectCreateCompactSummaryPanel`, and the template rail routes through `ProjectTemplateRailPanel`, all in `project_page_components.slint`; `project_new_page.slint` no longer directly imports or calls `PanelSlot`. The page keeps semantic basis, growth, minimum width, height/list-height, row-height, scroll, data, localized copy, and callback forwarding; the settings component owns the Material-backed panel shell, `PanelHeader`, `ProjectCreateField` rows, `ProjectEngineChoiceList`, create action row, and desktop summary, the compact summary component owns the stacked summary panel shell, and the template component owns its panel shell, header/count badge, `PanelListViewport`, and repeated `TemplateChoiceRow` delegates. Page titles, panel labels, source-engine empty states, template availability labels, summary labels, and create actions are fed from `UiTextData`, so English and Chinese language modes use the same Projects secondary-page structure.
+The dedicated `zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx` `ProjectNewPage` places core project settings in the main panel: project name, target location, Source Engine selection, a live create summary, validation status through the create button state, and the create command. The name/location inputs use `HubTextField`, so the new-project form shares the same imported Material `TextField` atom and `HubTokens.input-field` height as Settings and Editor. Source Engine and template choices use imported Material `ListTile` rows, with Hub badges and selected-state borders layered around the template row behavior. The summary resolves the final project root from the editable name/location fields and displays create readiness, so the central panel remains the primary project-setup surface instead of leaving an empty form area; its label/value typography now goes through Material `MaterialText`. New Project creation is enabled only when the selected Source Engine id still matches a registered engine record, and the runtime revalidates that engine before launching the Editor create-project command. The default Source Engine choice follows the active Source context only while the form has no valid explicit choice or was still tracking the previous active engine, so selecting another valid engine in the form is preserved across unrelated active-engine switches. Templates are a right-side selection rail rather than the primary visual area. The first implemented template is `Renderable Empty`, which maps to the existing Editor launch contract `--create-project --template renderable-empty`; placeholder 2D, 3D, and sample templates are visible but disabled until real creation paths exist. `ProjectNewPage`, `ProjectBrowserPage`, and `ProjectDetailPage` now inherit `PageScrollSurface` directly, so page padding, content width, and content height stay on the semantic page root while the dedicated Browser page keeps a separate `browser-scroll-y` for the inner list viewport. New Project's settings panel routes through `ProjectCreateSettingsPanel`, compact stacked summary routes through `ProjectCreateCompactSummaryPanel`, and the template rail routes through `ProjectTemplateRailPanel`, all in `project_page_components.slint`; `project_new_page.slint` no longer directly imports or calls `PanelSlot`. The page keeps semantic basis, growth, minimum width, height/list-height, row-height, scroll, data, localized copy, and callback forwarding; the settings component owns the Material-backed panel shell, `PanelHeader`, `ProjectCreateField` rows, `ProjectEngineChoiceList`, create action row, and desktop summary, the compact summary component owns the stacked summary panel shell, and the template component owns its panel shell, header/count badge, `PanelListViewport`, and repeated `TemplateChoiceRow` delegates. Page titles, panel labels, source-engine empty states, template availability labels, summary labels, and create actions are fed from `UiTextData`, so English and Chinese language modes use the same Projects secondary-page structure.
 
 Projects secondary pages share a `PageHeader` whose height is passed from each page's row token, so the back button, title, subtitle, and Material `MaterialText` title style scale together. New Project, Browser, and Detail page roots now inherit `PageScrollSurface` directly and use inherited `content-width` for content-relative breakpoints instead of a local `root.width - page-pad * 2` subtraction, while their form/list/detail height budgets consume inherited `content-height` instead of repeating viewport-height-minus-padding formulas in each page. New Project stack ratios, Browser toolbar search/select ratios, and Detail cover/badge/main-side/action-stack ratios are named `HubTokens` entries instead of direct page-local content-width/content-height fractions. The New Project and Detail pages choose their two-column-to-stacked breakpoint from available content width relative to their row/action height instead of a fixed window width; their standard panels are `PanelSlot`-backed `FlexboxLayout` children, preserving the `ResponsiveSlot` sizing boundary while removing repeated page-local `HubPanel` and padded `VerticalLayout` shells. The Project Browser toolbar derives its wrap threshold and two-row height from the toolbar control token, keeping search, filter, and sort controls aligned on wide windows while allowing a wrapped toolbar on narrow windows; those toolbar items still route basis/grow/shrink through `ResponsiveSlot`. Browser's result list now routes through `ProjectBrowserResultsPanel`: the page keeps `browser-scroll-y`, list height, row height, row gap, data forwarding, and navigation callbacks, while the component owns the `HubPanel`, `PanelHeader`, Material `PanelListViewport`, repeated `ProjectBrowserRow` delegates, and centered `EmptyStateBlock`. This keeps list scrolling separate from page scrolling while moving row-width binding to the visible viewport into the component module. Filter and sort selectors pass Material `MenuItem` rows into `ToolbarSelect`, while the legacy option-id array remains the dispatch map for `all`, `existing`, `missing`, `last-modified`, and `name`. Project Browser row title, engine label, and modified label also use Material `MaterialText`, keeping row typography on the imported template while Hub still owns row selection, cover, badges, and the separate detail affordance.
 

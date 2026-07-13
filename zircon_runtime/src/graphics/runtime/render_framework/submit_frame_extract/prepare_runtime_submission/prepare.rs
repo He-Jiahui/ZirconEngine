@@ -70,6 +70,8 @@ fn prepare_hybrid_gi_runtime(
         context.scene_directional_lights(),
         context.scene_point_lights(),
         context.scene_spot_lights(),
+        context.scene_baked_lighting(),
+        context.scene_has_baked_probe_grid(),
         context.hybrid_gi_update_plan(),
         context.predicted_generation(),
     );

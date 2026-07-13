@@ -53,24 +53,21 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
             drawer.component_type() == PARTICLE_SYSTEM_COMPONENT_TYPE
                 && drawer.controller() == PARTICLES_COMPONENT_DRAWER_ID
         }));
-    assert!(registration
+    let particle_type = registration
         .extensions
-        .asset_editors()
-        .iter()
-        .any(|editor| {
-            editor.asset_kind() == PARTICLES_SYSTEM_ASSET_KIND
-                && editor.view_id() == PARTICLES_AUTHORING_VIEW_ID
-        }));
-    assert!(registration
-        .extensions
-        .asset_creation_templates()
-        .iter()
-        .any(|template| {
-            template.id() == PARTICLES_CPU_SPRITE_TEMPLATE_ID
-                && template.asset_kind() == PARTICLES_SYSTEM_ASSET_KIND
-                && template.default_document() == Some(PARTICLES_CPU_SPRITE_TEMPLATE_DOCUMENT)
-                && template.operation() == &create_asset
-        }));
+        .asset_type_contributions()
+        .into_iter()
+        .find(|contribution| contribution.asset_type().as_str() == PARTICLES_SYSTEM_ASSET_KIND)
+        .expect("particle system asset type contribution");
+    assert_eq!(
+        particle_type.toolkit().unwrap().view_id(),
+        PARTICLES_AUTHORING_VIEW_ID
+    );
+    assert!(particle_type.creation_templates().iter().any(|template| {
+        template.id() == PARTICLES_CPU_SPRITE_TEMPLATE_ID
+            && template.default_document() == Some(PARTICLES_CPU_SPRITE_TEMPLATE_DOCUMENT)
+            && template.operation() == &create_asset
+    }));
     assert!(registration
         .extensions
         .menu_items()
@@ -83,19 +80,19 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.particles.preview.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.particles.authoring.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.particles.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.particles.preview.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.particles.preview.open"));
 
     let create_asset_descriptor = registration
         .extensions
-        .operations()
-        .descriptor(&create_asset)
+        .commands()
+        .command(&create_asset)
         .expect("create CPU sprite asset operation should be registered");
     assert_eq!(
         create_asset_descriptor.payload_schema_id(),
@@ -166,8 +163,8 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
         let operation = operation(path);
         let descriptor = registration
             .extensions
-            .operations()
-            .descriptor(&operation)
+            .commands()
+            .command(&operation)
             .unwrap_or_else(|| panic!("operation {path} should be registered"));
         assert!(!descriptor.callable_from_remote());
 

@@ -116,15 +116,15 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
     let window_close = UiWindowEvent::window_close(metadata);
 
     assert_eq!(cursor_moved.window_id().unwrap().0, "editor.main");
-    assert_eq!(cursor_moved.impact().input_state_dirty, true);
-    assert_eq!(cursor_left.impact().clears_hover, true);
-    assert_eq!(cursor_left.impact().requests_redraw, true);
-    assert_eq!(scale_factor.impact().layout_metrics_dirty, true);
-    assert_eq!(scale_factor.impact().input_state_dirty, false);
-    assert_eq!(scale_factor.impact().requests_redraw, false);
-    assert_eq!(scale_factor.impact().clears_hover, false);
-    assert_eq!(resized.impact().layout_metrics_dirty, true);
-    assert_eq!(resized.impact().requests_redraw, true);
+    assert!(cursor_moved.impact().input_state_dirty);
+    assert!(cursor_left.impact().clears_hover);
+    assert!(cursor_left.impact().requests_redraw);
+    assert!(scale_factor.impact().layout_metrics_dirty);
+    assert!(!scale_factor.impact().input_state_dirty);
+    assert!(!scale_factor.impact().requests_redraw);
+    assert!(!scale_factor.impact().clears_hover);
+    assert!(resized.impact().layout_metrics_dirty);
+    assert!(resized.impact().requests_redraw);
     assert!(matches!(
         size_changed.kind,
         UiWindowEventKind::Resized { metrics }
@@ -132,16 +132,16 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
                 && metrics.physical_size == UiWindowPixelSize::new(1600, 900)
                 && metrics.scale_factor == 2.0
     ));
-    assert_eq!(size_changed.impact().layout_metrics_dirty, true);
-    assert_eq!(size_changed.impact().requests_redraw, true);
-    assert_eq!(moved.impact().input_state_dirty, false);
+    assert!(size_changed.impact().layout_metrics_dirty);
+    assert!(size_changed.impact().requests_redraw);
+    assert!(!moved.impact().input_state_dirty);
     assert!(matches!(
         moved_window.kind,
         UiWindowEventKind::Moved { position }
             if position == UiWindowPixelPosition::new(18, 36)
     ));
     assert_eq!(moved_window.impact(), moved.impact());
-    assert_eq!(focused.impact().input_state_dirty, true);
+    assert!(focused.impact().input_state_dirty);
     assert!(matches!(
         window_focused.kind,
         UiWindowEventKind::Focused { focused: true }
@@ -180,7 +180,7 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
     assert_eq!(deactivated.impact(), focused.impact());
     assert_eq!(app_active.impact(), focused.impact());
     assert_eq!(app_inactive.impact(), focused.impact());
-    assert_eq!(redraw.impact().requests_redraw, true);
+    assert!(redraw.impact().requests_redraw);
     assert!(matches!(
         os_paint.kind,
         UiWindowEventKind::RequestRedraw {
@@ -193,7 +193,7 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
             reason: UiWindowRedrawReason::Paint
         }
     ));
-    assert_eq!(os_paint.impact().requests_redraw, true);
+    assert!(os_paint.impact().requests_redraw);
     assert_eq!(resizing_window.impact(), os_paint.impact());
     assert!(matches!(
         non_client_action.kind,
@@ -223,7 +223,7 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
     assert_eq!(maximize_action.impact(), UiWindowEventImpact::clean());
     assert_eq!(restore_action.impact(), UiWindowEventImpact::clean());
     assert_eq!(window_menu_action.impact(), UiWindowEventImpact::clean());
-    assert_eq!(close.impact().close_requested, true);
+    assert!(close.impact().close_requested);
     assert_eq!(window_close.impact(), close.impact());
     assert!(matches!(
         window_close.kind,
@@ -314,7 +314,7 @@ fn ui_window_input_pump_accepts_platform_input_events_through_normalization() {
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
                 && ime.cursor_range == Some(UiTextByteRange::new(1, 4))
-                && ime.delete_surrounding == None
+                && ime.delete_surrounding.is_none()
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
                 && ime.metadata.device_id == Some(UiDeviceId::new(9))
                 && ime.metadata.synthetic
@@ -615,10 +615,10 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.modifiers.shift, true);
-            assert_eq!(pointer.metadata.modifiers.alt, true);
-            assert_eq!(pointer.metadata.modifiers.caps_lock, true);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.modifiers.shift);
+            assert!(pointer.metadata.modifiers.alt);
+            assert!(pointer.metadata.modifiers.caps_lock);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Scroll);
             assert_eq!(pointer.event.button, Some(UiPointerButton::Middle));
             assert_eq!(pointer.event.scroll_delta, -42.0);
@@ -641,7 +641,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Move);
             assert_eq!(pointer.event.button, None);
             assert_eq!(pointer.event.point, UiPoint::new(8.0, 9.0));
@@ -658,9 +658,9 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(11))
                 && pointer.metadata.pointer_source == UiPointerSource::Pen
                 && pointer.event.kind == UiPointerEventKind::Move
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(9.0, 10.0)
-                && pointer.precise_scroll == None
+                && pointer.precise_scroll.is_none()
     ));
     assert!(matches!(
         cursor_left,
@@ -671,9 +671,9 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(11))
                 && pointer.metadata.pointer_source == UiPointerSource::Pen
                 && pointer.event.kind == UiPointerEventKind::Cancel
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(11.0, 13.0)
-                && pointer.precise_scroll == None
+                && pointer.precise_scroll.is_none()
     ));
     assert!(matches!(
         mouse_capture_lost,
@@ -684,9 +684,9 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(11))
                 && pointer.metadata.pointer_source == UiPointerSource::Pen
                 && pointer.event.kind == UiPointerEventKind::Cancel
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(17.0, 19.0)
-                && pointer.precise_scroll == None
+                && pointer.precise_scroll.is_none()
     ));
 
     match mouse_wheel {
@@ -696,7 +696,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Scroll);
             assert_eq!(pointer.event.button, None);
             assert_eq!(pointer.event.point, UiPoint::new(12.0, 18.0));
@@ -716,7 +716,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Scroll);
             assert_eq!(pointer.event.point, UiPoint::new(15.0, 21.0));
             assert_eq!(pointer.event.scroll_delta, -2.5);
@@ -733,7 +733,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(motion.metadata.window_id, Some(metadata.window_id.clone()));
             assert_eq!(motion.metadata.user_id, Some(UiUserId::new(3)));
             assert_eq!(motion.metadata.device_id, Some(UiDeviceId::new(9)));
-            assert_eq!(motion.metadata.synthetic, true);
+            assert!(motion.metadata.synthetic);
             assert_eq!(motion.delta_x, -3.5);
             assert_eq!(motion.delta_y, 2.25);
         }
@@ -747,7 +747,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Down);
             assert_eq!(pointer.event.button, Some(UiPointerButton::Primary));
             assert_eq!(pointer.event.point, UiPoint::new(10.0, 12.0));
@@ -764,7 +764,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Up);
             assert_eq!(pointer.event.button, Some(UiPointerButton::Primary));
             assert_eq!(pointer.event.point, UiPoint::new(10.0, 12.0));
@@ -781,7 +781,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             assert_eq!(pointer.metadata.device_id, Some(UiDeviceId::new(9)));
             assert_eq!(pointer.metadata.pointer_id, Some(UiPointerId::new(11)));
             assert_eq!(pointer.metadata.pointer_source, UiPointerSource::Pen);
-            assert_eq!(pointer.metadata.synthetic, true);
+            assert!(pointer.metadata.synthetic);
             assert_eq!(pointer.event.kind, UiPointerEventKind::Up);
             assert_eq!(pointer.event.button, Some(UiPointerButton::Primary));
             assert_eq!(pointer.event.point, UiPoint::new(14.0, 16.0));
@@ -826,7 +826,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
                 && keyboard.scan_code == Some(30)
                 && keyboard.physical_key == "KeyA"
                 && keyboard.logical_key == "A"
-                && keyboard.text == None
+                && keyboard.text.is_none()
                 && keyboard.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -834,7 +834,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Keyboard(keyboard)
             if keyboard.state == UiKeyboardInputState::Repeated
                 && keyboard.key_code == u32::from('A')
-                && keyboard.scan_code == None
+                && keyboard.scan_code.is_none()
                 && keyboard.physical_key == "Character"
                 && keyboard.logical_key == "A"
                 && keyboard.text.as_deref() == Some("A")
@@ -845,10 +845,10 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Keyboard(keyboard)
             if keyboard.state == UiKeyboardInputState::Pressed
                 && keyboard.key_code == 0
-                && keyboard.scan_code == None
+                && keyboard.scan_code.is_none()
                 && keyboard.physical_key == "Virtual_Accept"
                 && keyboard.logical_key == "Virtual_Accept"
-                && keyboard.text == None
+                && keyboard.text.is_none()
                 && keyboard.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -856,10 +856,10 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Keyboard(keyboard)
             if keyboard.state == UiKeyboardInputState::Repeated
                 && keyboard.key_code == 0
-                && keyboard.scan_code == None
+                && keyboard.scan_code.is_none()
                 && keyboard.physical_key == "Gamepad_DPad_Right"
                 && keyboard.logical_key == "Gamepad_DPad_Right"
-                && keyboard.text == None
+                && keyboard.text.is_none()
                 && keyboard.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -867,10 +867,10 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Keyboard(keyboard)
             if keyboard.state == UiKeyboardInputState::Released
                 && keyboard.key_code == 0
-                && keyboard.scan_code == None
+                && keyboard.scan_code.is_none()
                 && keyboard.physical_key == "Virtual_Back"
                 && keyboard.logical_key == "Virtual_Back"
-                && keyboard.text == None
+                && keyboard.text.is_none()
                 && keyboard.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -902,8 +902,8 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Ime(ime)
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
-                && ime.cursor_range == None
-                && ime.delete_surrounding == None
+                && ime.cursor_range.is_none()
+                && ime.delete_surrounding.is_none()
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -912,7 +912,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "draft"
                 && ime.cursor_range == Some(UiTextByteRange::new(2, 5))
-                && ime.delete_surrounding == None
+                && ime.delete_surrounding.is_none()
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -920,7 +920,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Ime(ime)
             if ime.kind == UiImeInputEventKind::DeleteSurrounding
                 && ime.text.is_empty()
-                && ime.cursor_range == None
+                && ime.cursor_range.is_none()
                 && ime.delete_surrounding == Some(UiImeDeleteSurrounding::new(3, 1))
                 && ime.metadata.window_id == Some(metadata.window_id.clone())
     ));
@@ -947,7 +947,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if pointer.metadata.pointer_source == UiPointerSource::Touch
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(79))
                 && pointer.event.kind == UiPointerEventKind::Move
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(8.0, 12.0)
     ));
     assert!(matches!(
@@ -956,7 +956,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if pointer.metadata.pointer_source == UiPointerSource::Touch
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(82))
                 && pointer.event.kind == UiPointerEventKind::Move
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(14.0, 18.0)
     ));
     assert!(matches!(
@@ -965,7 +965,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if pointer.metadata.pointer_source == UiPointerSource::Touch
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(83))
                 && pointer.event.kind == UiPointerEventKind::Move
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(16.0, 20.0)
     ));
     assert!(matches!(
@@ -983,7 +983,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if pointer.metadata.pointer_source == UiPointerSource::Touch
                 && pointer.metadata.pointer_id == Some(UiPointerId::new(81))
                 && pointer.event.kind == UiPointerEventKind::Cancel
-                && pointer.event.button == None
+                && pointer.event.button.is_none()
                 && pointer.event.point == UiPoint::new(12.0, 16.0)
     ));
     assert!(matches!(
@@ -1086,7 +1086,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
             if popup.kind == UiPopupInputEventKind::CloseRequested
                 && popup.popup_id == "main.edit"
                 && popup.owner == Some(UiNodeId::new(45))
-                && popup.anchor == None
+                && popup.anchor.is_none()
                 && popup.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -1094,8 +1094,8 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::Popup(popup)
             if popup.kind == UiPopupInputEventKind::Dismissed
                 && popup.popup_id == "main.edit"
-                && popup.owner == None
-                && popup.anchor == None
+                && popup.owner.is_none()
+                && popup.anchor.is_none()
                 && popup.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(
@@ -1127,7 +1127,7 @@ fn ui_window_platform_input_normalizes_generic_application_style_events() {
         UiInputEvent::TooltipTimer(tooltip)
             if tooltip.kind == UiTooltipTimerInputEventKind::Canceled
                 && tooltip.tooltip_id == "main.file.tooltip"
-                && tooltip.owner == None
+                && tooltip.owner.is_none()
                 && tooltip.metadata.window_id == Some(metadata.window_id.clone())
     ));
     assert!(matches!(

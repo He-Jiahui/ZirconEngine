@@ -9,6 +9,7 @@ use crate::graphics::text::atlas::{
     GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasPageKey, GlyphAtlasPageSpec,
     GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
+use crate::graphics::text::font::FontDatabase;
 use crate::graphics::text::parallel::raster_pool::{
     TextRasterWorkerPool, TextRasterWorkerPoolOptions,
 };

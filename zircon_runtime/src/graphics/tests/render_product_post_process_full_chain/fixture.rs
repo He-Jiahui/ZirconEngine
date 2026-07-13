@@ -100,6 +100,7 @@ pub(super) fn full_chain_product_extract(
                         direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                         color: Vec3::ONE,
                         intensity: 1.4,
+                        mobility: crate::core::framework::scene::Mobility::Dynamic,
                         shadow: None,
                     },
                 ],

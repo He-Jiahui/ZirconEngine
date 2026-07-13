@@ -29,7 +29,7 @@ fn assert_expected_files_exist(runtime_root: &std::path::Path) {
 }
 
 fn assert_system_stage_contract() {
-    let system_stage = include_str!("../../../scene/ecs/system_stage.rs");
+    let system_stage = include_str!("../../../core/framework/scene/system_stage.rs");
     for stage_anchor in [
         "pub const COUNT: usize = 9;",
         "pub const ORDER: [Self; Self::COUNT]",

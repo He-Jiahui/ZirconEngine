@@ -1,13 +1,11 @@
 use std::fs;
 
-use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::template::{UiAssetKind, UiNodeDefinitionKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION};
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
-use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::support::*;
 
@@ -20,10 +18,7 @@ fn editor_manager_opens_selected_ui_asset_reference_in_new_editor_instance() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let widget_path = project_root
         .join("assets")
@@ -122,10 +117,7 @@ fn editor_manager_activates_selected_ui_asset_reference_from_hierarchy() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let widget_path = project_root
         .join("assets")
@@ -221,10 +213,7 @@ fn editor_manager_activates_selected_ui_asset_reference_from_preview() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let widget_path = project_root
         .join("assets")
@@ -387,10 +376,7 @@ fn editor_manager_converts_selected_ui_asset_node_to_reference_from_palette_sele
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let widget_path = project_root
         .join("assets")
@@ -608,10 +594,7 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")
@@ -743,10 +726,7 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let layout_path = project_root
         .join("assets")

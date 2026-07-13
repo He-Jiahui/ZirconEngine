@@ -7,7 +7,7 @@ use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 pub(crate) struct EditorSessionState {
     pub(crate) layout: WorkbenchLayout,
     pub(crate) open_view_instances: BTreeMap<ViewInstanceId, ViewInstance>,
-    pub(crate) active_center_tab: Option<ViewInstanceId>,
+    pub(crate) focused_view: Option<ViewInstanceId>,
     pub(crate) active_drawers: Vec<ActivityDrawerSlot>,
 }
 
@@ -16,7 +16,7 @@ impl Default for EditorSessionState {
         Self {
             layout: WorkbenchLayout::default(),
             open_view_instances: BTreeMap::new(),
-            active_center_tab: None,
+            focused_view: None,
             active_drawers: Vec::new(),
         }
     }

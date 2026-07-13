@@ -10,13 +10,11 @@ related_code:
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - examples/vampire/zircon-project.toml
-  - zircon_plugins/*/plugin.toml
-  - zircon_plugins/*/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
-  - zircon_plugins/asset_importers/*/plugin.toml
+  - zircon_plugins/asset_importers
   - zircon_plugins/opus_importer/plugin.toml
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
-  - zircon_plugins/asset_importers/model/runtime/src/registration.rs
+  - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
@@ -56,7 +54,7 @@ tests:
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/first_party_runtime_catalog/src/lib.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs: passed 2026-06-22
   - static generated manifest header scan over non-native zircon_plugins/*/plugin.toml: 30/30 passed 2026-06-22
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_static_plugin_manifest_is_generated --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-ds7-0622 --message-format short --color never -- --test-threads=1: timed out after 1200s on 2026-06-22; not counted as passing
-  - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/asset_importers/audio/runtime/src/lib.rs zircon_plugins/asset_importers/texture/runtime/src/lib.rs zircon_plugins/asset_importers/model/runtime/src/registration.rs zircon_plugins/asset_importers/model/runtime/src/tests/registration.rs zircon_plugins/first_party_runtime_catalog/src/lib.rs: passed 2026-06-22
+  - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/asset_importers/audio/runtime/src/lib.rs zircon_plugins/asset_importers/texture/runtime/src/lib.rs zircon_plugins/asset_importers/model/runtime/src/plugin.rs zircon_plugins/asset_importers/model/runtime/src/tests/registration.rs zircon_plugins/first_party_runtime_catalog/src/lib.rs: passed 2026-06-22
   - static generated manifest header scan over non-native zircon_plugins/**/plugin.toml: 36/36 passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_audio_runtime -p zircon_plugin_asset_importer_texture_runtime -p zircon_plugin_asset_importer_model_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-missing-manifests-0622 --message-format short --color never: passed 2026-06-22 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_static_plugin_manifest_is_generated --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-missing-manifests-0622 --message-format short --color never -- --test-threads=1: 1 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings

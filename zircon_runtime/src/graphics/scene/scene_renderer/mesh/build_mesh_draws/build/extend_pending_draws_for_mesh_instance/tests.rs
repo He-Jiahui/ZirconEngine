@@ -11,7 +11,7 @@ use crate::asset::{
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::Vec3;
-use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
 #[test]
 fn morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback() {
@@ -44,10 +44,10 @@ fn morph_shape_signature_tracks_mesh_and_weights() {
 
 #[test]
 fn skinned_gpu_source_candidate_requires_palette() {
-    let uniform = SkinnedMeshJointPaletteUniform::from_matrices(&[])
+    let storage = SkinnedMeshJointPaletteStorage::from_matrices(&[])
         .expect("empty palette should fit the fixed skinned ABI");
 
-    assert!(skinned_gpu_source_candidate_available(Some(&uniform)));
+    assert!(skinned_gpu_source_candidate_available(Some(&storage)));
     assert!(
         !skinned_gpu_source_candidate_available(None),
         "a source mesh is not enough without a shader-visible palette"
@@ -59,11 +59,11 @@ fn direct_skinned_gpu_source_uses_prepared_mesh_when_morph_payload_is_available(
     let Some(source_mesh) = test_gpu_mesh() else {
         return;
     };
-    let uniform = SkinnedMeshJointPaletteUniform::from_matrices(&[])
+    let storage = SkinnedMeshJointPaletteStorage::from_matrices(&[])
         .expect("empty palette should fit the fixed skinned ABI");
 
     let source = direct_skinned_gpu_source(
-        Some(&uniform),
+        Some(&storage),
         crate::core::resource::ResourceId::from_stable_label("mesh-gpu-morph"),
         source_mesh.clone(),
         test_primitive(),
@@ -87,11 +87,11 @@ fn direct_skinned_gpu_source_keeps_cpu_morphed_fallback_without_morph_payload() 
     let Some(source_mesh) = test_gpu_mesh() else {
         return;
     };
-    let uniform = SkinnedMeshJointPaletteUniform::from_matrices(&[])
+    let storage = SkinnedMeshJointPaletteStorage::from_matrices(&[])
         .expect("empty palette should fit the fixed skinned ABI");
 
     let source = direct_skinned_gpu_source(
-        Some(&uniform),
+        Some(&storage),
         crate::core::resource::ResourceId::from_stable_label("mesh-cpu-morph"),
         source_mesh,
         test_primitive(),

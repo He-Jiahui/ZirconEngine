@@ -1,12 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetImportError, AssetUri, DataAsset, ImportedAsset,
-    MaterialGraphAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
-    PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset, TexturePayload,
-    TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
+    AssetImportError, AssetUri, DataAsset, ImportedAsset, MaterialGraphAsset, ModelAsset,
+    PhysicsMaterialAsset, PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
+    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
 };
+use crate::core::framework::animation::{
+    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
+    AnimationStateMachineAsset,
+};
+use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
 mod font;

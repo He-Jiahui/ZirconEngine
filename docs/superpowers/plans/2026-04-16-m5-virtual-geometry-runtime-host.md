@@ -1,31 +1,29 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/graphics/runtime/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/server/create_viewport/mod.rs
-  - zircon_graphics/src/runtime/server/viewport_record/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_render_server/src/types.rs
+  - zircon_runtime/src/graphics/runtime/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/core/framework/render
 plan_sources:
   - user: 2026-04-16 continue M5 Virtual Geometry runtime host slice
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-preprocess.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
   - cargo test -p zircon_graphics virtual_geometry_runtime_state_tracks_page_table_and_request_sink --locked
   - cargo test -p zircon_graphics virtual_geometry_runtime_state_deduplicates_requests_and_reuses_evicted_slots --locked
   - cargo test -p zircon_graphics headless_wgpu_server_capability_gate_blocks_m5_flagship_opt_in_features --locked

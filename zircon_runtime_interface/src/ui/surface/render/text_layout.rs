@@ -5,6 +5,7 @@ use super::{
     UiTextWritingMode,
 };
 use crate::ui::layout::UiFrame;
+use crate::ui::style::UiRgbaColor;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiTextRange {
@@ -26,8 +27,20 @@ pub struct UiResolvedTextLayout {
     pub measured_height: f32,
     pub source_range: UiTextRange,
     pub lines: Vec<UiResolvedTextLine>,
+    /// Resolved non-glyph boxes such as rich-table cell backgrounds and borders.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub boxes: Vec<UiResolvedTextBox>,
     pub overflow_clipped: bool,
     pub editable: Option<UiEditableTextState>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UiResolvedTextBox {
+    pub range: UiTextRange,
+    pub frame: UiFrame,
+    pub background_color: Option<UiRgbaColor>,
+    pub border_color: Option<UiRgbaColor>,
+    pub border_width: f32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

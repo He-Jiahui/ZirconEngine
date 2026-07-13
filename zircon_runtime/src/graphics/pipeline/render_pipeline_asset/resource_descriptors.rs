@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPostProcessTextureFormat,
-    COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT, EXPOSURE_BUFFER_WORD_COUNT,
-    EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    FroxelGridQuality, OitBufferPlan, PostProcessGraphResourceNames, RenderFrameExtract,
+    RenderPostProcessTextureFormat, COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT,
+    EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
     INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, TONEMAPPED_SDR_FORMAT,
 };
 use crate::core::math::UVec2;
@@ -29,6 +29,24 @@ pub(super) fn texture_desc_for(
         )
         .with_dimension(TextureDimension::D3)
         .with_depth(COLOR_LUT_SIZE_DEFAULT);
+    }
+
+    if is_volumetric_froxel_resource(name) {
+        let [width, height, depth] = extract.lighting.advanced_lighting.froxel_dimensions(
+            FroxelGridQuality::from_shader_quality(options.shader_quality),
+        );
+        return TextureDesc::new(
+            name,
+            width,
+            height,
+            TextureFormat::Rgba16Float,
+            TextureUsage::SAMPLED
+                | TextureUsage::STORAGE
+                | TextureUsage::COPY_SRC
+                | TextureUsage::COPY_DST,
+        )
+        .with_dimension(TextureDimension::D3)
+        .with_depth(depth);
     }
 
     let view_size = if name == PostProcessGraphResourceNames::UPSCALED
@@ -80,6 +98,26 @@ pub(super) fn buffer_desc_for(
     let view_size = extract.view.effective_render_size();
     let pixel_count = u64::from(view_size.x.max(1)) * u64::from(view_size.y.max(1));
     let inferred_size_bytes = match name {
+        PostProcessGraphResourceNames::OIT_LAYERS => {
+            let plan = OitBufferPlan::for_view(
+                [view_size.x, view_size.y],
+                extract.lighting.advanced_lighting.oit.unwrap_or_default(),
+            );
+            plan.layer_buffer_size_bytes
+        }
+        PostProcessGraphResourceNames::OIT_COUNTS => {
+            let plan = OitBufferPlan::for_view(
+                [view_size.x, view_size.y],
+                extract.lighting.advanced_lighting.oit.unwrap_or_default(),
+            );
+            plan.count_buffer_size_bytes
+        }
+        PostProcessGraphResourceNames::SSS_TILE_LIST => {
+            let tile_width = view_size.x.max(1).div_ceil(8);
+            let tile_height = view_size.y.max(1).div_ceil(8);
+            u64::from(tile_width) * u64::from(tile_height) * 8
+        }
+        PostProcessGraphResourceNames::SSS_INDIRECT_ARGS => 16,
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
             LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES as u64
         }
@@ -98,6 +136,9 @@ pub(super) fn buffer_desc_for(
     let usage = match name {
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
             BufferUsage::UNIFORM | BufferUsage::COPY_DST
+        }
+        PostProcessGraphResourceNames::SSS_INDIRECT_ARGS => {
+            BufferUsage::STORAGE | BufferUsage::INDIRECT | BufferUsage::COPY_DST
         }
         _ => BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
     };
@@ -149,7 +190,10 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
             Some(post_process_intermediate_hdr_format())
         }
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
-        | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION => {
+        | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION
+        | PostProcessGraphResourceNames::SSS_DIFFUSE
+        | PostProcessGraphResourceNames::SSS_SPECULAR
+        | PostProcessGraphResourceNames::SSS_SCATTERED => {
             Some(post_process_high_quality_hdr_format())
         }
         _ => None,
@@ -226,6 +270,18 @@ fn is_single_sample_graph_product(name: &str) -> bool {
         name,
         PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
             | PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
+            | PostProcessGraphResourceNames::SSS_DIFFUSE
+            | PostProcessGraphResourceNames::SSS_SPECULAR
+            | PostProcessGraphResourceNames::SSS_SCATTERED
+    )
+}
+
+fn is_volumetric_froxel_resource(name: &str) -> bool {
+    matches!(
+        name,
+        PostProcessGraphResourceNames::VOLUMETRIC_MEDIA
+            | PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING
+            | PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED
     )
 }
 

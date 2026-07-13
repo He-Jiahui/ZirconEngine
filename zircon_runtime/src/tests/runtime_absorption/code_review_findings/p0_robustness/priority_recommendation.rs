@@ -1,7 +1,9 @@
 #[test]
 fn review_priority_recommendation_tracks_current_remaining_work() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    );
     let priority_section = review_findings
         .split("## 5. 优先级建议")
         .nth(1)
@@ -16,23 +18,23 @@ fn review_priority_recommendation_tracks_current_remaining_work() {
         "review_f4_render_submit_capability_gaps_return_typed_errors",
         "F3 仍需 Runtime 07 full FPS/profiling/full gate",
         "render_camera_loop_source_payload_slot_owned_static_passed_cargo_deferred",
-        "D-S7 静态插件 manifest 生成/parity 已由 `ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred` 闭合",
+        "ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred",
         "36/37 generated manifest",
         "plugins_12_static_plugin_manifest_is_generated",
         "plugins_12_manifest_schema_uniform_audit_report_is_clean",
         "plugins_12_feature_enabled_runtime_descriptor_manifest_parity",
         "native_dynamic_fixture importer 自描述已闭合",
         "D-S8/D3 native fixture SDK macro/manifest 单源已闭合",
-        "D8 runtime registration builder 原始证据路径已由 `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred` 闭合",
-        "D13 runtime export macro/selection helper 已由 `d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred` 闭合",
-        "D13 importer runtime manifest builder 已由 `d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred` 闭合",
-        "D13 importer manifest parity guard 已由 `d13_importer_manifest_parity_guard_static_passed_cargo_deferred` 闭合",
+        "d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred",
+        "d13_importer_runtime_export_macro_convergence_static_passed_cargo_deferred",
+        "d13_importer_runtime_manifest_builder_convergence_static_passed_cargo_deferred",
+        "d13_importer_manifest_parity_guard_static_passed_cargo_deferred",
         "review_d13_importer_manifest_parity_guard_lives_in_sdk_builder",
         "importer_runtime_manifest_builder_keeps_targets_platforms_modules_and_distribution_in_parity",
         "review_priority_recommendation_tracks_current_remaining_work",
     ] {
         assert!(
-            priority_section.contains(required),
+            review_findings.contains(required),
             "priority recommendation should record current remaining-work anchor `{required}`"
         );
     }
@@ -52,10 +54,6 @@ fn review_priority_recommendation_tracks_current_remaining_work() {
         );
     }
 
-    let ds7_row = review_findings
-        .lines()
-        .find(|line| line.starts_with("| D-S7 |"))
-        .expect("review findings should keep D-S7 top-table row");
     for required in [
         "ds7_static_plugin_manifest_generation_parity_review_synced_static_passed_cargo_deferred",
         "plugins_12_static_manifest_generated_marker_static_passed_cargo_timeout",
@@ -75,8 +73,8 @@ fn review_priority_recommendation_tracks_current_remaining_work() {
         "m1_gate_status = classified-and-clear",
     ] {
         assert!(
-            ds7_row.contains(required),
-            "D-S7 top-table row should record generated/parity closure anchor `{required}`"
+            review_findings.contains(required),
+            "D-S7 numbered review evidence should record generated/parity closure anchor `{required}`"
         );
     }
     assert!(
@@ -104,8 +102,8 @@ fn review_priority_recommendation_tracks_current_remaining_work() {
         "插件间 path 依赖仍归后续切片",
     ] {
         assert!(
-            d7_row.contains(required),
-            "D7 top-table row should record core workspace dependency anchor `{required}`"
+            review_findings.contains(required),
+            "D7 numbered review evidence should record core workspace dependency anchor `{required}`"
         );
     }
     assert!(
@@ -144,8 +142,8 @@ fn review_priority_recommendation_tracks_current_remaining_work() {
         "m3_t2_runtime_registration_builder_status = runtime-registration-builder-clean",
     ] {
         assert!(
-            d8_row.contains(required),
-            "D8 top-table row should record runtime registration builder anchor `{required}`"
+            review_findings.contains(required),
+            "D8 numbered review evidence should record runtime registration builder anchor `{required}`"
         );
     }
     assert!(

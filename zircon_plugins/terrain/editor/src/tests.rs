@@ -11,8 +11,8 @@ fn terrain_authoring_registration_exposes_menu_items_and_payload_schemas() {
     let operation =
         EditorOperationPath::parse("terrain.authoring.import_heightfield").expect("operation path");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("import heightfield operation registered");
 
     assert_eq!(

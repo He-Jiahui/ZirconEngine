@@ -1,18 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/indirect_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/indirect_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/types/virtual_geometry_prepare/frame.rs
-  - zircon_graphics/src/types/virtual_geometry_prepare/indirect_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/build_virtual_geometry_cluster_raster_draws.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/virtual_geometry_cluster_raster_draw.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_prepare/indirect_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_mesh_sources/build_virtual_geometry_cluster_raster_draws.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/virtual_geometry_cluster_raster_draw.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-17 continue M5
   - user: 2026-04-17 Virtual Geometry still needs visibility-owned unified indirect / deeper cluster raster / residency-manager cascade
@@ -20,8 +20,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-slot-aware-indirect-compaction.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-page-table-residency-cascade.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separate_indirect_draws
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_prepare_render
   - cargo test -p zircon_graphics --offline --locked virtual_geometry

@@ -7,7 +7,7 @@ pub(in crate::tests::optional_feature_manifest) struct StaticOptionalFeatureMani
     pub(in crate::tests::optional_feature_manifest::support) owner_plugin_id: String,
     pub(in crate::tests::optional_feature_manifest::support) capabilities: Vec<String>,
     pub(in crate::tests::optional_feature_manifest::support) default_packaging:
-        Vec<zircon_runtime::plugin::ExportPackagingStrategy>,
+        Vec<zircon_runtime::core::framework::project::ExportPackagingStrategy>,
     pub(in crate::tests::optional_feature_manifest::support) enabled_by_default: bool,
     pub(in crate::tests::optional_feature_manifest::support) dependencies:
         Vec<OptionalFeatureDependencySignature>,

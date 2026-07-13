@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "a43b17a2-b075-4fa5-9daf-fa7fecee0b11"
 url = "res://models/kenney_graveyard/coffin.glb"
 asset_kind = "Model"
@@ -8,7 +8,7 @@ artifact_locator = "lib://models/30e835a1-0b15-17bb-6905-e6b3806381b5.zasset"
 importer_id = "gltf_importer.gltf"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670020000
-source_hash = "046b6482caf2e7d4"
+source_digest = "046b6482caf2e7d4"
 preview_state = "ready"
 importer_version = 2
 migration_summary = ""
@@ -24,6 +24,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Node1",
     "res://models/kenney_graveyard/coffin.glb#Scene0",
 ]
+tags = []
 
 [import_settings]
 
@@ -44,6 +45,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Node1",
     "res://models/kenney_graveyard/coffin.glb#Scene0",
 ]
+tags = []
 
 [[entries]]
 uuid = "c2336e9b-a5bd-482a-a8ba-23ad65a17f9f"
@@ -51,6 +53,7 @@ url = "res://models/kenney_graveyard/coffin.glb#Texture0"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/48b32900-9535-48c2-e5dd-b0b6ca75dd99.zasset"
 dependencies = []
+tags = []
 
 [[entries]]
 uuid = "3ea7aa58-832b-46da-9c4d-32f4bef2150b"
@@ -58,6 +61,7 @@ url = "res://models/kenney_graveyard/coffin.glb#DefaultMaterial"
 asset_kind = "Material"
 artifact_locator = "lib://materials/50379954-6e93-7538-3d8b-e461598ab12d.zasset"
 dependencies = ["res://shaders/default_pbr"]
+tags = []
 
 [[entries]]
 uuid = "3909d64b-06e3-4401-b109-ca17ae8ff8cb"
@@ -68,6 +72,7 @@ dependencies = [
     "res://shaders/default_pbr",
     "res://models/kenney_graveyard/coffin.glb#Texture0",
 ]
+tags = []
 
 [[entries]]
 uuid = "805f6536-ddd8-499b-a946-299b8c87c13a"
@@ -78,6 +83,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Mesh0/Primitive0",
     "res://models/kenney_graveyard/coffin.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "2f1c2b08-5ae2-4707-acb5-af7d4235ecc3"
@@ -85,6 +91,7 @@ url = "res://models/kenney_graveyard/coffin.glb#Mesh0/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/184bb7b5-2515-073b-7180-a7fa1153a519.zasset"
 dependencies = ["res://models/kenney_graveyard/coffin.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "d1aa03d4-f92c-4723-8aae-d7e9341dde4c"
@@ -95,6 +102,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0",
     "res://models/kenney_graveyard/coffin.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "c9279956-9b6c-4fb6-a367-d98cc3c8f77b"
@@ -102,6 +110,7 @@ url = "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0"
 asset_kind = "Mesh"
 artifact_locator = "lib://meshes/1ddb89bf-3730-3bd4-0c5b-92ffe28e935b.zasset"
 dependencies = ["res://models/kenney_graveyard/coffin.glb#Material0"]
+tags = []
 
 [[entries]]
 uuid = "8e6a0355-5a8b-4e50-a4a2-858de8d9bb06"
@@ -117,6 +126,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Mesh1",
     "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0",
 ]
+tags = []
 
 [[entries]]
 uuid = "3669adb2-0be7-41a7-8050-7f3106c444b8"
@@ -129,6 +139,7 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0",
     "res://models/kenney_graveyard/coffin.glb#Material0",
 ]
+tags = []
 
 [[entries]]
 uuid = "81176816-a339-4abb-90e5-a6ba46eaafa4"
@@ -144,3 +155,4 @@ dependencies = [
     "res://models/kenney_graveyard/coffin.glb#Mesh1",
     "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0",
 ]
+tags = []

@@ -13,6 +13,7 @@ use crate::core::framework::render::{
     ViewportCameraSnapshot, VolumeShapeExtract,
 };
 use crate::core::math::{Transform, Vec3};
+use crate::core::resource::{AssetReference, ResourceLocator};
 use crate::scene::components::{
     CameraComponent, ColliderComponent, ColliderShape, MeshRenderer, NodeKind,
     PostProcessSettingsComponent, PostProcessVolumeComponent,
@@ -450,6 +451,49 @@ fn local_capsule_post_process_volume_is_not_projected_to_planned_extract() {
         resolved_post_process_settings(&extract).bloom,
         RenderBloomSettings::default()
     );
+}
+
+#[test]
+fn local_physics_only_collider_shapes_are_not_silently_downgraded_to_volume_shapes() {
+    let mesh = AssetReference::from_locator(
+        ResourceLocator::parse("res://physics/post_process_test.physics_mesh").unwrap(),
+    );
+    let shapes = [
+        ColliderShape::Cylinder {
+            radius: 1.0,
+            half_height: 1.0,
+        },
+        ColliderShape::ConvexHull {
+            points: vec![Vec3::ZERO, Vec3::X, Vec3::Y, Vec3::Z],
+        },
+        ColliderShape::TriangleMesh { mesh: mesh.clone() },
+        ColliderShape::HeightField {
+            resolution: [2, 2],
+            heights: mesh,
+        },
+        ColliderShape::Compound {
+            children: vec![(
+                Transform::default(),
+                Box::new(ColliderShape::Sphere { radius: 0.5 }),
+            )],
+        },
+    ];
+
+    for (index, shape) in shapes.into_iter().enumerate() {
+        let mut world = World::empty();
+        spawn_camera_on_layer(&mut world, 0b0010);
+        spawn_local_volume(&mut world, 0b0010, Vec3::ZERO, 1.0, 1.0, Some(shape));
+
+        let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+            RenderWorldSnapshotHandle::new(900 + index as u64),
+            SceneViewportExtractRequest::default(),
+        ));
+
+        assert!(
+            extract.post_process.volumes.is_empty(),
+            "physics-only collider shape {index} must remain explicitly unsupported by the box/sphere volume extract contract"
+        );
+    }
 }
 
 #[test]

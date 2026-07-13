@@ -2,12 +2,13 @@ use zircon_plugin_animation_runtime::{
     AnimationAssetRevision, AnimationClipEvaluator, AnimationEvaluationError,
     AnimationTransformChannel,
 };
-use zircon_runtime::asset::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::AnimationManager;
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationInterpolationAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetReference, AssetUri,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationManager;
 use zircon_runtime::core::math::Vec3;
 use zircon_runtime::core::resource::ResourceId;
 use zircon_runtime::core::resource::{

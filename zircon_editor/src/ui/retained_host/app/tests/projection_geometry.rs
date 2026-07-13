@@ -141,7 +141,10 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
     let (tab_index, tab_x, point_x, point_y, tab_width) = {
         let mut host = harness.host.borrow_mut();
         let chrome = host.runtime.chrome_snapshot();
-        let model = WorkbenchViewModel::build(&chrome);
+        let model = WorkbenchViewModel::build(
+            &crate::core::commands::EditorCommandRegistry::default_workbench(),
+            &chrome,
+        );
         let tab_index = model
             .document_tabs
             .iter()
@@ -220,7 +223,10 @@ fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
     let (tab_x, point_x, point_y, tab_width) = {
         let mut host = harness.host.borrow_mut();
         let chrome = host.runtime.chrome_snapshot();
-        let model = WorkbenchViewModel::build(&chrome);
+        let model = WorkbenchViewModel::build(
+            &crate::core::commands::EditorCommandRegistry::default_workbench(),
+            &chrome,
+        );
         let shared_shell_frame = host
             .template_bridge
             .control_frame("UiHostWindowRoot")
@@ -259,7 +265,10 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
     let (point_x, point_y) = {
         let mut host = harness.host.borrow_mut();
         let chrome = host.runtime.chrome_snapshot();
-        let model = WorkbenchViewModel::build(&chrome);
+        let model = WorkbenchViewModel::build(
+            &crate::core::commands::EditorCommandRegistry::default_workbench(),
+            &chrome,
+        );
         let shared_activity_rail = host
             .template_bridge
             .control_frame("ActivityRailRoot")

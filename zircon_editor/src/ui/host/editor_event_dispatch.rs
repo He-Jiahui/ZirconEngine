@@ -1,3 +1,6 @@
+use crate::core::commands::{
+    EditorCommandDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
+};
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
     EditorEventListenerControlRequest, EditorEventListenerControlResponse, EditorEventRecord,
@@ -5,15 +8,12 @@ use crate::core::editor_event::{
 };
 use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationInvocation, EditorOperationPath,
-    EditorOperationSource, EditorOperationStackEntry,
+    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
 use crate::ui::host::EditorHostEventController;
-use crate::ui::host::{EditorCommandAction, EditorCommandDispatchError, EditorCommandRegistry};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
-use crate::ui::workbench::model::operation_path_for_menu_action;
 use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
@@ -41,55 +41,38 @@ impl EditorHostEventController {
         &self,
         source: EditorEventSource,
         event: EditorEvent,
-        operation: Option<(EditorOperationPath, String, bool, Value, Option<String>)>,
+        operation: Option<(EditorOperationPath, String, Value, Option<String>)>,
     ) -> Result<EditorEventRecord, String> {
         let stamp = self.context().events().begin_event();
         let undo_policy = undo_policy_for_event(&event);
         let registry_operation = if operation.is_none() {
-            let operations = self.operations().lock();
+            let operations = self.commands().lock();
             operations
-                .registry
                 .descriptor_for_event(&event)
                 .cloned()
-                .or_else(|| dynamic_operation_for_event(&operations.registry, &event))
+                .or_else(|| dynamic_operation_for_event(&operations, &event))
         } else {
             None
         };
-        let (
-            operation_id,
-            operation_display_name,
-            operation_arguments,
-            operation_group,
-            explicit_stack_entry,
-        ) = match operation {
-            Some((operation_id, operation_display_name, undoable, arguments, group)) => {
-                let stack_entry = undoable.then(|| {
-                    (
-                        operation_id.clone(),
-                        operation_display_name.clone(),
-                        group.clone(),
-                    )
-                });
-                (
+        let (operation_id, operation_display_name, operation_arguments, operation_group) =
+            match operation {
+                Some((operation_id, operation_display_name, arguments, group)) => (
                     Some(operation_id.to_string()),
                     Some(operation_display_name),
                     operation_arguments_for_record(arguments),
                     group,
-                    stack_entry,
-                )
-            }
-            None => (
-                registry_operation
-                    .as_ref()
-                    .map(|descriptor| descriptor.path().to_string()),
-                registry_operation
-                    .as_ref()
-                    .map(|descriptor| descriptor.display_name().to_string()),
-                None,
-                None,
-                None,
-            ),
-        };
+                ),
+                None => (
+                    registry_operation
+                        .as_ref()
+                        .map(|descriptor| descriptor.id().to_string()),
+                    registry_operation
+                        .as_ref()
+                        .map(|descriptor| descriptor.display_name().to_string()),
+                    None,
+                    None,
+                ),
+            };
 
         let execution = match execute_event(self, &event) {
             Ok(outcome) => outcome,
@@ -137,36 +120,6 @@ impl EditorHostEventController {
                 execution.changed(),
             )),
         };
-        let mut operations = self.operations().lock();
-        if let Some((operation_id, display_name, operation_group)) = explicit_stack_entry {
-            operations.stack.record(
-                EditorOperationStackEntry::new(
-                    operation_id,
-                    display_name,
-                    record.source.clone(),
-                    record.sequence.0,
-                )
-                .with_operation_group(operation_group),
-            );
-        } else if execution.changed()
-            && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Undo))
-        {
-            operations.stack.move_undo_to_redo();
-        } else if execution.changed()
-            && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Redo))
-        {
-            operations.stack.move_redo_to_undo();
-        } else if let Some(descriptor) = registry_operation.as_ref() {
-            if descriptor.undoable().is_some() && record.result.error.is_none() {
-                operations.stack.record(EditorOperationStackEntry::new(
-                    descriptor.path().clone(),
-                    descriptor.display_name().to_string(),
-                    record.source.clone(),
-                    record.sequence.0,
-                ));
-            }
-        }
-        drop(operations);
         self.refresh_workbench_for_effects(execution.effects());
         self.context().events().record(record.clone());
         Ok(record)
@@ -174,15 +127,15 @@ impl EditorHostEventController {
 }
 
 fn dynamic_operation_for_event(
-    registry: &crate::core::editor_operation::EditorOperationRegistry,
+    registry: &EditorCommandRegistry,
     event: &EditorEvent,
-) -> Option<EditorOperationDescriptor> {
+) -> Option<EditorCommandDescriptor> {
     let path = match event {
         EditorEvent::Inspector(_) => "inspector.field.apply_batch",
         _ => return None,
     };
     let path = EditorOperationPath::parse(path).ok()?;
-    registry.descriptor(&path).cloned()
+    registry.command(path.as_str()).cloned()
 }
 
 fn operation_arguments_for_record(arguments: Value) -> Option<Value> {
@@ -217,7 +170,11 @@ impl EditorEventDispatcher for EditorHostEventController {
         if let Some(record) = self.dispatch_operation_binding(&binding, source.clone())? {
             return Ok(record);
         }
-        let event = normalize_editor_event_binding(&binding)?;
+        let context = self.context().command_eval().snapshot();
+        let event = {
+            let commands = self.commands().lock();
+            normalize_editor_event_binding(&binding, &commands, &context)?
+        };
         self.dispatch_normalized_event(source, event)
     }
 
@@ -276,30 +233,19 @@ impl EditorHostEventController {
         command_id: &str,
         source: EditorEventSource,
     ) -> Result<EditorEventRecord, String> {
-        let registry = EditorCommandRegistry::default_workbench();
-        let descriptor = registry.command(command_id).ok_or_else(|| {
+        let command_id = {
+            let commands = self.commands().lock();
+            commands
+                .command(command_id)
+                .map(|command| command.id().clone())
+        }
+        .ok_or_else(|| {
             EditorCommandDispatchError::UnknownCommand(command_id.to_string()).to_string()
         })?;
-
-        match descriptor.action() {
-            EditorCommandAction::Menu(action) => {
-                if let Some(operation_id) = operation_path_for_menu_action(action) {
-                    return self.invoke_operation(
-                        operation_source_for_event_source(source),
-                        EditorOperationInvocation::new(operation_id),
-                    );
-                }
-                self.dispatch_normalized_event(source, EditorEvent::WorkbenchMenu(action.clone()))
-            }
-            EditorCommandAction::Operation(operation_id) => self.invoke_operation(
-                operation_source_for_event_source(source),
-                EditorOperationInvocation::new(operation_id.clone()),
-            ),
-            EditorCommandAction::OpenCommandPalette => self.dispatch_normalized_event(
-                source,
-                EditorEvent::Transient(EditorEventTransient::OpenCommandPalette),
-            ),
-        }
+        self.invoke_operation(
+            operation_source_for_event_source(source),
+            EditorOperationInvocation::new(command_id),
+        )
     }
 
     fn record_material_component_lab_feedback(

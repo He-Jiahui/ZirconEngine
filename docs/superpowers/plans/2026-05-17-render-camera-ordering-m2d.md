@@ -5,17 +5,17 @@ related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/tests.rs
   - docs/zircon_runtime/core/framework/render/camera.md
-  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/tests.rs
   - docs/zircon_runtime/core/framework/render/camera.md
-  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 plan_sources:
   - user: 2026-05-17 continue Bevy-level rendering completion after M2C-A
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
-  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
   - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras

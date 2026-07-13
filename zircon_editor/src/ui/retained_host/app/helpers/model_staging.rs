@@ -1,14 +1,16 @@
 use super::super::*;
 use std::fs;
 use std::path::Path;
+use zircon_runtime::asset::AssetImportError;
 
 pub(crate) fn stage_model_source(
-    paths: &ProjectPaths,
+    project: &ProjectManager,
     source: &Path,
 ) -> Result<(ResourceLocator, String), String> {
-    if let Ok(relative) = source.strip_prefix(paths.assets_root()) {
-        let uri = asset_uri_from_relative_path(relative)?;
-        return Ok((uri, source.to_string_lossy().into_owned()));
+    match project.project_uri_for_source_path(source) {
+        Ok(uri) => return Ok((uri, source.to_string_lossy().into_owned())),
+        Err(AssetImportError::SourceOutsideProjectAssetRoots { .. }) => {}
+        Err(error) => return Err(error.to_string()),
     }
 
     let extension = source
@@ -18,15 +20,19 @@ pub(crate) fn stage_model_source(
         .to_ascii_lowercase();
     if extension == "gltf" {
         return Err(
-            "External .gltf import is not supported yet; copy the model folder into Project/assets or use .glb".to_string(),
+            "External .gltf import is not supported yet; copy the model folder into a configured project asset root or use .glb".to_string(),
         );
     }
 
-    let destination = paths.assets_root().join("models").join(
-        source
-            .file_name()
-            .ok_or_else(|| format!("model path has no file name: {}", source.display()))?,
-    );
+    let destination = project
+        .primary_project_asset_root()
+        .map_err(|error| error.to_string())?
+        .join("models")
+        .join(
+            source
+                .file_name()
+                .ok_or_else(|| format!("model path has no file name: {}", source.display()))?,
+        );
     if let Some(parent) = destination.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }

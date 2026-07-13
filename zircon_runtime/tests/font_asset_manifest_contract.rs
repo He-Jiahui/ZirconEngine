@@ -191,7 +191,9 @@ fn font_manifest_rejects_absolute_source_paths() {
 fn project_font_manifest_resolves_through_project_asset_manager() {
     let temp = TempDirGuard::new("zircon-project-font-manifest");
     let paths = ProjectPaths::from_root(&temp.path).expect("project paths should build");
-    paths.ensure_layout().expect("project layout should exist");
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .expect("project layout should exist");
     ProjectManifest::new(
         "FontSandbox",
         AssetUri::parse("res://fonts/project.font.toml").expect("startup uri should parse"),
@@ -200,7 +202,9 @@ fn project_font_manifest_resolves_through_project_asset_manager() {
     .save(paths.manifest_path())
     .expect("project manifest should save");
 
-    let font_dir = paths.assets_root().join("fonts");
+    let font_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("fonts");
     fs::create_dir_all(&font_dir).expect("font dir should exist");
     let project_font = font_dir.join("project.ttf");
     fs::copy(default_font_path(), &project_font).expect("font fixture should copy");

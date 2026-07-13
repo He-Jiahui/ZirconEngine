@@ -1,6 +1,5 @@
 use super::editor_session_mode::EditorSessionMode;
-use super::new_project_draft::NewProjectDraft;
-use super::recent_project_entry::RecentProjectEntry;
+use crate::core::project::{NewProjectDraft, RecentProjectEntry};
 use crate::ui::workbench::project::EditorProjectDocument;
 
 #[derive(Clone, Debug, PartialEq)]

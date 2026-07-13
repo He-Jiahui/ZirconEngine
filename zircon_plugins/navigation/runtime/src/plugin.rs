@@ -5,16 +5,20 @@ use crate::{
     module_descriptor, navigation_component_descriptors, navigation_event_catalog,
     navigation_plugin_options, NavRepathBudget, NAVIGATION_MODULE_NAME, PLUGIN_ID,
 };
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::navigation::{
-    NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationError, OffMeshTraverseEvent,
+    NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationDebugCapture, NavigationError,
+    OffMeshTraverseEvent,
 };
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::scene::{
+    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+};
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const NAVIGATION_DIST_CRATE_NAME: &str = "zircon_plugin_navigation_dist";
 pub const NAVIGATION_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_navigation_runtime_entry_v3";
@@ -119,14 +123,18 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             event("navigation.events.off_mesh_traverse"),
         )?;
         registry.register_resource(owner, NavRepathBudget::default)?;
+        registry.register_resource(owner, NavigationDebugCapture::default)?;
         registry
             .register_runtime_scene_system(
                 owner,
                 NAVIGATION_AGENT_TICK_SYSTEM,
                 zircon_runtime::scene::SystemStage::Update,
                 |context| {
-                    let manager =
-                        zircon_runtime::core::manager::resolve_navigation_manager(context.core)?;
+                    let manager = context
+                        .core
+                        .resolve_driver::<SceneNavigationRuntimeHandle>(
+                            SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+                        )?;
                     context
                         .level
                         .with_world_mut(|world| -> Result<NavAgentTickReport, NavigationError> {

@@ -12,8 +12,6 @@ fn runtime_15_m3_child_group_moved_rows_root_inventory_is_child_owned() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     assert_contains_all(
         "M3 child-group moved-row guard mounts root inventory children",
@@ -45,7 +43,6 @@ fn runtime_15_m3_child_group_moved_rows_root_inventory_is_child_owned() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         (
             "status-output Runtime 15 M3 production support status-doc rows",
             status_rows.as_str(),

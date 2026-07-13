@@ -26,26 +26,22 @@ impl ZrPackDedupTable {
 }
 
 pub fn zrpack_content_hash(bytes: &[u8]) -> [u8; 32] {
-    let mut hash = [0u8; 32];
-    for (index, seed) in ZRPACK_HASH_SEEDS.iter().enumerate() {
-        let value = fnv1a64(bytes, *seed);
-        hash[index * 8..index * 8 + 8].copy_from_slice(&value.to_le_bytes());
-    }
-    hash
+    *blake3::hash(bytes).as_bytes()
 }
 
-const ZRPACK_HASH_SEEDS: [u64; 4] = [
-    0xcbf2_9ce4_8422_2325,
-    0x9ae1_6a3b_2f90_404f,
-    0x6eed_0e9d_a4d9_4a4f,
-    0xace5_929a_d4d9_8f13,
-];
+#[cfg(test)]
+mod tests {
+    use super::zrpack_content_hash;
 
-fn fnv1a64(bytes: &[u8], seed: u64) -> u64 {
-    let mut hash = seed;
-    for byte in bytes {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100_0000_01b3);
+    #[test]
+    fn zrpack_content_hash_matches_blake3_empty_input_vector() {
+        assert_eq!(
+            zrpack_content_hash(b""),
+            [
+                0xaf, 0x13, 0x49, 0xb9, 0xf5, 0xf9, 0xa1, 0xa6, 0xa0, 0x40, 0x4d, 0xea, 0x36, 0xdc,
+                0xc9, 0x49, 0x9b, 0xcb, 0x25, 0xc9, 0xad, 0xc1, 0x12, 0xb7, 0xcc, 0x9a, 0x93, 0xca,
+                0xe4, 0x1f, 0x32, 0x62,
+            ]
+        );
     }
-    hash
 }

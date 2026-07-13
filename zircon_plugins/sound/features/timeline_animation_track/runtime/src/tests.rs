@@ -23,7 +23,7 @@ fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
     assert_eq!(distribution.forms, vec!["dist"]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(distribution.dist_crate, DIST_CRATE_NAME);
@@ -36,9 +36,9 @@ fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
     assert_eq!(
         report.manifest.default_packaging,
         vec![
-            zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate,
-            zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed,
-            zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
+            zircon_runtime::core::framework::project::ExportPackagingStrategy::SourceTemplate,
+            zircon_runtime::core::framework::project::ExportPackagingStrategy::LibraryEmbed,
+            zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic,
         ]
     );
     assert!(report
@@ -71,12 +71,12 @@ fn timeline_feature_provider_manifest_matches_sound_owner_contract() {
         module.name == "sound.timeline_animation_track.dist"
             && module.kind == zircon_runtime::plugin::PluginModuleKind::Native
             && module.crate_name == DIST_CRATE_NAME
+            && module.target_modes.contains(
+                &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            )
             && module
                 .target_modes
-                .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime)
-            && module
-                .target_modes
-                .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost)
+                .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost)
             && module
                 .capabilities
                 .contains(&RUNTIME_CAPABILITY.to_string())

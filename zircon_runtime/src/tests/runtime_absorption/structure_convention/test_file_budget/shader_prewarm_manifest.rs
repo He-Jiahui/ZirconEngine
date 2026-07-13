@@ -177,8 +177,6 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_doc =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     for (label, source) in [
         ("status rows", status_rows.as_str()),
         ("Runtime 15 plan", runtime_15_plan.as_str()),
@@ -186,7 +184,6 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

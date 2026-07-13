@@ -182,8 +182,9 @@ fn mobility_static_parent_preflight_uses_direct_parent_branch() {
         validate_mobility_change.contains("if let Some(parent) = self.parent_of(entity)")
             && validate_mobility_change
                 .contains("if self.mobility(parent) == Some(Mobility::Dynamic)")
-            && validate_mobility_change
-                .contains("\"cannot make node {entity} Static under Dynamic parent\"")
+            && validate_mobility_change.contains("SceneError::StaticMobilityUnderDynamicParent")
+            && validate_mobility_change.contains("entity,")
+            && validate_mobility_change.contains("parent,")
             && !validate_mobility_change.contains(".is_some_and("),
         "mobility validation must use a direct parent branch for Static-under-Dynamic preflight"
     );

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationChannelValueAsset, AnimationClipAsset, AnimationSkeletonAsset,
 };
 use zircon_runtime::core::framework::animation::{

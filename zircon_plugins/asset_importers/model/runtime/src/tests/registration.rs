@@ -38,13 +38,13 @@ fn model_asset_importer_package_manifest_declares_dist_contract() {
         .as_ref()
         .expect("model importer package exposes dist metadata");
 
-    assert!(manifest
-        .default_packaging
-        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.default_packaging.contains(
+        &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+    ));
     assert_eq!(distribution.forms, vec!["dist"]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(
@@ -68,10 +68,10 @@ fn model_asset_importer_package_manifest_declares_dist_contract() {
     assert_eq!(dist_module.crate_name, MODEL_ASSET_IMPORTER_DIST_CRATE_NAME);
     assert!(dist_module
         .target_modes
-        .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime));
     assert!(dist_module
         .target_modes
-        .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
     assert!(dist_module
         .capabilities
         .contains(&MESH_IMPORTER_CAPABILITY.to_string()));

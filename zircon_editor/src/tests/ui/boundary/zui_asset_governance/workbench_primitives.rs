@@ -405,7 +405,6 @@ const COMMAND_PALETTE_REQUIRED_PROPS: &[&str] = &[
     "commands",
     "filtered_commands",
     "recent_commands",
-    "disabled_commands",
     "selected_command_id",
     "focused_index",
     "keyboard_navigation",

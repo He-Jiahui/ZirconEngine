@@ -12,27 +12,18 @@ mod parent_absence;
 #[path = "ownership/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_DELEGATION_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/delegation.rs";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/parent_absence.rs";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_ENTRY_POINTS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/entry_points.rs";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/budgets.rs";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/status_mirrors.rs";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_SLICE: &str =
-    "Runtime 15 M3 code review findings direct assertions child-ownership guard folder-backed split";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS: &str =
-    "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_DELEGATION_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/delegation.rs";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/parent_absence.rs";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_ENTRY_POINTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/entry_points.rs";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/budgets.rs";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/status_mirrors.rs";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_SLICE: &str = "Runtime 15 M3 code review findings direct assertions child-ownership guard folder-backed split";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS: &str = "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_static_passed_cargo_deferred";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_DATE: &str = "2026-07-04";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_GUARD: &str =
     "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_is_folder_backed";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_GUARD: &str =
-    "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_status_is_current";
-pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGET_GUARD: &str =
-    "runtime_15_code_review_findings_direct_assertions_child_ownership_children_line_budgets_are_current";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_GUARD: &str = "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_status_is_current";
+pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGET_GUARD: &str = "runtime_15_code_review_findings_direct_assertions_child_ownership_children_line_budgets_are_current";
 
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
     (

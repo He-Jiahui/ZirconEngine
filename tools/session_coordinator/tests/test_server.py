@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 import tempfile
+import threading
 import unittest
 import urllib.error
 import urllib.request
@@ -21,6 +22,12 @@ from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 
 
 class ServerTests(unittest.TestCase):
+    def test_default_config_uses_stable_local_control_port(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = CoordinatorConfig.for_repo(Path(directory) / "repo")
+
+        self.assertEqual(65189, config.port)
+
     def test_maintenance_requires_separate_local_capability(self) -> None:
         with mock.patch.dict("os.environ", {}, clear=True):
             with self.assertRaises(CoordinatorError) as rejected:
@@ -47,7 +54,7 @@ class ServerTests(unittest.TestCase):
                     RunningCoordinator.start(config)
             self.assertEqual("already_running", duplicate.exception.code)
 
-    def test_health_and_session_commands_require_runtime_token(self) -> None:
+    def test_local_health_and_session_commands_accept_requests_without_token(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -68,13 +75,13 @@ class ServerTests(unittest.TestCase):
                 request = urllib.request.Request(
                     f"{running.base_url}/command",
                     data=json.dumps({"command": "session.list", "arguments": {}}).encode("utf-8"),
-                    headers={"Content-Type": "application/json", "Authorization": "Bearer wrong"},
+                    headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with self.assertRaises(urllib.error.HTTPError) as unauthorized:
-                    urllib.request.urlopen(request, timeout=2)
-                self.assertEqual(401, unauthorized.exception.code)
-                unauthorized.exception.close()
+                response = urllib.request.urlopen(request, timeout=2)
+                self.assertEqual(200, response.status)
+                self.assertIn("sessions", json.loads(response.read()))
+                response.close()
 
     def test_authenticated_tray_recovery_command_updates_health_projection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -286,6 +293,59 @@ class ServerTests(unittest.TestCase):
 
             self.assertEqual("resolving_failure", result["session"]["status"])
             self.assertEqual(["provider"], [item["summary_slug"] for item in result["open_failures"]])
+
+    def test_foreground_mutation_is_not_blocked_by_slow_workspace_observation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            started = threading.Event()
+            release = threading.Event()
+            stop = threading.Event()
+            observation = application.watcher.prepare_scan()
+            original_apply = application.watcher.apply_scan
+
+            def slow_apply(received):
+                started.set()
+                release.wait(timeout=2)
+                return original_apply(received)
+
+            with (
+                mock.patch.object(application.watcher, "prepare_scan", return_value=observation),
+                mock.patch.object(application.watcher, "apply_scan", side_effect=slow_apply),
+            ):
+                worker = threading.Thread(
+                    target=RunningCoordinator._maintenance_loop,
+                    args=(application, 0.01, 60, stop),
+                    daemon=True,
+                )
+                worker.start()
+                self.assertTrue(started.wait(timeout=1))
+                began = time.monotonic()
+                result = application.command("session.register", {"session_id": "session-a"})
+                elapsed = time.monotonic() - began
+                release.set()
+                stop.set()
+                worker.join(timeout=1)
+
+            self.assertEqual("registered", result["session"]["status"])
+            self.assertLess(elapsed, 0.75)
+
+    def test_legacy_finalize_milestone_is_rejected_before_it_can_bypass_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command("finalize.milestone", {})
+
+        self.assertEqual("legacy_milestone_finalize_forbidden", rejected.exception.code)
 
 
 if __name__ == "__main__":

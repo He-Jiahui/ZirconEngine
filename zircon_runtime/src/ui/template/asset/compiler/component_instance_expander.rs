@@ -37,13 +37,15 @@ impl UiDocumentCompiler {
 
         validate_slot_mounts(component_name, component, &instance_node.children)?;
 
+        let component_tokens = super::value_normalizer::compose_tokens(tokens, &document.tokens);
         let component_params =
-            resolve_component_params(component, &instance_node.params, tokens, params);
-
+            resolve_component_params(component, &instance_node.params, &component_tokens, params);
+        let slot_placeholder_attributes =
+            component_slot_placeholder_attributes(component, &component_tokens, &component_params);
         let mut fills = BTreeMap::new();
         for child in &instance_node.children {
             let mount_name = child.mount.clone().unwrap_or_default();
-            let expanded = self.expand_node(
+            let mut expanded = self.expand_node(
                 caller_document,
                 &child.node,
                 caller_tokens,
@@ -51,13 +53,15 @@ impl UiDocumentCompiler {
                 None,
                 artifacts,
             )?;
+            if let Some(placeholder_attributes) = slot_placeholder_attributes.get(&mount_name) {
+                apply_slot_placeholder_attributes(&mut expanded, placeholder_attributes);
+            }
             fills
                 .entry(mount_name)
                 .or_insert_with(Vec::new)
                 .extend(apply_child_mount(expanded, child, tokens, params));
         }
 
-        let component_tokens = super::value_normalizer::compose_tokens(tokens, &document.tokens);
         let mut roots = self.expand_node(
             document,
             &component.root,
@@ -140,6 +144,57 @@ fn decorate_component_root(
         params,
     );
     apply_instance_contract_overrides(root, instance_node);
+}
+
+/// Captures the layout contract authored on each component slot placeholder.
+/// Mounted children replace the placeholder during expansion, so its own
+/// parent-slot sizing must be transferred before the placeholder disappears.
+fn component_slot_placeholder_attributes(
+    component: &UiComponentDefinition,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+) -> BTreeMap<String, BTreeMap<String, Value>> {
+    let mut attributes = BTreeMap::new();
+    collect_slot_placeholder_attributes(&component.root, tokens, params, &mut attributes);
+    attributes
+}
+
+fn collect_slot_placeholder_attributes(
+    node: &UiNodeDefinition,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+    attributes: &mut BTreeMap<String, BTreeMap<String, Value>>,
+) {
+    if node.kind == zircon_runtime_interface::ui::template::UiNodeDefinitionKind::Slot {
+        if let Some(slot_name) = node.slot_name.as_deref() {
+            let mut slot_attributes = BTreeMap::new();
+            if let Some(layout) = &node.layout {
+                let layout = resolve_value_map(layout, tokens, params);
+                slot_attributes.insert(
+                    "layout".to_string(),
+                    Value::Table(layout.into_iter().collect()),
+                );
+                normalize_layout(&mut slot_attributes);
+            }
+            if !slot_attributes.is_empty() {
+                attributes.insert(slot_name.to_string(), slot_attributes);
+            }
+        }
+    }
+    for child in &node.children {
+        collect_slot_placeholder_attributes(&child.node, tokens, params, attributes);
+    }
+}
+
+fn apply_slot_placeholder_attributes(
+    nodes: &mut [UiTemplateNode],
+    placeholder_attributes: &BTreeMap<String, Value>,
+) {
+    for node in nodes {
+        let mut inherited = placeholder_attributes.clone();
+        merge_value_maps(&mut inherited, &node.slot_attributes);
+        node.slot_attributes = inherited;
+    }
 }
 
 fn merge_instance_props_override(

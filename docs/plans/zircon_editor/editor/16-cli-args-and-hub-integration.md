@@ -21,6 +21,9 @@ status: planned
 
 # 16 控制台入口参数与 zircon_hub 交互
 
+- 失败交接（`open / 待 M2 统一命令框架修复`）：[`16/failure-2026-07-11-migrate-assets-commandlet-registry.md`](16/failure-2026-07-11-migrate-assets-commandlet-registry.md)
+- fixed 已修复：[command-registry-hard-cut-cli](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)
+
 ## 参照证据（dev/）
 
 **godot 编辑器 CLI 全形态**（`dev/godot/main/main.cpp` 实测行号）：
@@ -45,7 +48,7 @@ status: planned
 
 **GUI 参数已有**（:154-261）：`--project / --builtin-view / --create-project / --project-name / --location / --template`，折算 `EditorGuiStartupRequest::{OpenProject{project_path}, OpenBuiltinView{descriptor_id}, CreateProject(NewProjectDraft)}`（`gui_startup_request.rs:6-9`）。
 
-**无头操作参数已有**——v1 计划设想的 commandlet 雏形实际存在（:313-361）：`--operation / --args / --operation-group / --list-operations / --operation-stack / --headless`，折算 `EditorCliOperationRequest`，直连 `EditorOperationRegistry`（08 计划将并入命令注册表，`callable_from_remote: bool` 字段即其门禁）。
+**无头操作参数已有**——v1 计划设想的 commandlet 雏形实际存在：`--operation / --args / --operation-group / --list-operations / --operation-history / --headless`，折算 `EditorCliOperationRequest`，通过 `EditorHostEventController` 进入操作控制面；history factory 就绪前返回 `OperationHistoryPendingFactory`，`callable_from_remote: bool` 继续作为远程调用门禁。
 
 **runtime 侧参数**：`--project / --runtime-session-profile / --log-level / --log-filter`（`runtime_session_args.rs:37-52`）。
 
@@ -126,3 +129,9 @@ zircon_runtime_interface/src/hub_protocol/   # 信箱 JSON DTO（11 壳，双端
 - headless 下编辑器模块链的 Graphics/UI 依赖是最大不确定项——M2 前置会签；最坏情形 commandlet 走 runtime `Headless` profile + 编辑器核心服务子集（context/commands/jobs/asset），工作台族模块不激活，能力缺失的命令退出码 3 诚实拒绝。
 - 文件信箱协议的实时性（hub 等待轮询间隔）与锁心跳的进程崩溃窗口：轮询 250ms/心跳 2s/判死 6s 初值，实测调参记状态节。
 - `--operation` 族与 `--run` 并存的退役时点：M2 记债，待外部脚本迁移证据（hub/CI 无引用）后删除——硬切换纪律，不长期双轨。
+
+## 产出记录与时间
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M1/M2 | 命令注册表硬切后的 CLI 宿主与历史请求迁移 | `已修复-目标行为门通过` | 2026-07-12 | [`08/fixed-2026-07-12-command-registry-hard-cut-cli.md`](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)：入口已迁到 `EditorHostEventController` 和 Context 唯一 registry，旧 `--operation-stack`/`QueryOperationStack` 零残留；`--operation-history` 在 history factory 未安装时诚实透传 `OperationHistoryPendingFactory`。目标测试 14/14 通过；聚合 profile 门剩余 `RichTable*` E0432 属于并发 Runtime Text。 |

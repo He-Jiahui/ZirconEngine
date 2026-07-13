@@ -106,7 +106,7 @@ pub enum EnvironmentIblSourceStagingError {
 /// dimensions are 2:1. Other image formats can opt in with `environment_ibl = true`.
 pub fn stage_environment_ibl_source(
     context: &AssetImportContext,
-    library_root: impl AsRef<Path>,
+    cache_root: impl AsRef<Path>,
 ) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
     let mode = environment_ibl_import_mode(context)?;
     if mode == EnvironmentIblImportMode::Disabled || !mode.applies_to(context) {
@@ -129,14 +129,15 @@ pub fn stage_environment_ibl_source(
 
     let natural_face_size = source_cubemap_face_size_from_equirect_height(image.height);
     let face_size = requested_face_size(context, natural_face_size)?;
-    let source_hash = source_hash_words(&context.source_bytes);
+    let source_mip_count = source_cubemap_mip_count(face_size);
+    let source_hash = source_hash_words(&context.source_bytes, face_size, source_mip_count);
     let request = IblBakeArtifactRequest::new(
         IblBakeKey::source_cubemap(source_revision(&context.source_bytes), source_hash),
         face_size,
-        source_cubemap_mip_count(face_size),
+        source_mip_count,
     )
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
-    let store = IblSourceCubemapStagingStore::new(library_root.as_ref());
+    let store = IblSourceCubemapStagingStore::new(cache_root.as_ref());
     let source_zcube_path = store.source_cubemap_path(&request);
     let asset_derived_path = store.asset_derived_store().asset_derived_path(&request);
 
@@ -173,7 +174,7 @@ pub fn stage_environment_ibl_source(
 /// Convert a cmft-style DDS/KTX source cubemap into Zircon source and derived artifacts.
 pub fn stage_external_source_cubemap_texture(
     texture: &TextureAsset,
-    library_root: impl AsRef<Path>,
+    cache_root: impl AsRef<Path>,
 ) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
     let Some(info) = external_source_cubemap_container_info(texture)
         .map_err(EnvironmentIblSourceStagingError::ExternalContainer)?
@@ -184,12 +185,15 @@ pub fn stage_external_source_cubemap_texture(
         return Ok(EnvironmentIblSourceStagingReport::skipped());
     };
     let request = IblBakeArtifactRequest::new(
-        IblBakeKey::source_cubemap(source_revision(bytes), source_hash_words(bytes)),
+        IblBakeKey::source_cubemap(
+            source_revision(bytes),
+            source_hash_words(bytes, info.face_size, info.mip_count),
+        ),
         info.face_size,
         info.mip_count,
     )
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
-    let store = IblSourceCubemapStagingStore::new(library_root.as_ref());
+    let store = IblSourceCubemapStagingStore::new(cache_root.as_ref());
     let source_zcube_path = store.source_cubemap_path(&request);
     let asset_derived_path = store.asset_derived_store().asset_derived_path(&request);
 
@@ -381,8 +385,12 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-fn source_hash_words(bytes: &[u8]) -> [u32; 4] {
-    let digest = blake3::hash(bytes);
+fn source_hash_words(bytes: &[u8], face_size: u32, mip_count: u32) -> [u32; 4] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(bytes);
+    hasher.update(&face_size.to_le_bytes());
+    hasher.update(&mip_count.to_le_bytes());
+    let digest = hasher.finalize();
     let bytes = digest.as_bytes();
     std::array::from_fn(|index| {
         let offset = index * 4;
@@ -402,4 +410,22 @@ fn source_revision(bytes: &[u8]) -> u64 {
             .expect("eight-byte source revision"),
     )
     .max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::source_hash_words;
+
+    #[test]
+    fn environment_source_hash_tracks_imported_cubemap_layout() {
+        let source = b"same HDR source bytes";
+        assert_ne!(
+            source_hash_words(source, 64, 7),
+            source_hash_words(source, 128, 8)
+        );
+        assert_eq!(
+            source_hash_words(source, 256, 9),
+            source_hash_words(source, 256, 9)
+        );
+    }
 }

@@ -17,10 +17,10 @@ pub(super) fn material_demo_view_descriptor() -> ViewDescriptor {
         ViewContentKind::UiComponentShowcase,
     ))
     .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "editor.window.material_demo",
+        "res://ui/editor/material_demo_window.zui",
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "editor.window.material_demo",
+        "res://ui/editor/material_demo_window.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,

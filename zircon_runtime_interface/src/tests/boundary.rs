@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 const ALLOWED_DEPENDENCIES: &[&str] = &[
     "glam",
+    "semver",
     "serde",
     "serde_json",
     "thiserror",
@@ -11,6 +12,8 @@ const ALLOWED_DEPENDENCIES: &[&str] = &[
     "unicode-segmentation",
     "uuid",
 ];
+
+const ALLOWED_DEV_DEPENDENCIES: &[&str] = &["bincode"];
 
 const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "#[path",
@@ -60,12 +63,22 @@ fn manifest_dependencies_stay_contract_only() {
         unexpected.is_empty(),
         "zircon_runtime_interface may only depend on contract/serialization crates; unexpected dependencies: {unexpected:?}"
     );
-    for table in ["build-dependencies", "dev-dependencies"] {
-        assert!(
-            manifest.get(table).is_none(),
-            "zircon_runtime_interface must not grow a `{table}` table without an explicit boundary review"
-        );
-    }
+    assert!(
+        manifest.get("build-dependencies").is_none(),
+        "zircon_runtime_interface must not grow build dependencies without an explicit boundary review"
+    );
+    let allowed_dev: BTreeSet<_> = ALLOWED_DEV_DEPENDENCIES.iter().copied().collect();
+    let actual_dev: BTreeSet<_> = manifest
+        .get("dev-dependencies")
+        .and_then(toml::Value::as_table)
+        .into_iter()
+        .flat_map(|dependencies| dependencies.keys().map(String::as_str))
+        .collect();
+    let unexpected_dev: Vec<_> = actual_dev.difference(&allowed_dev).copied().collect();
+    assert!(
+        unexpected_dev.is_empty(),
+        "zircon_runtime_interface dev dependencies require explicit boundary review; unexpected: {unexpected_dev:?}"
+    );
 }
 
 #[test]
@@ -76,6 +89,9 @@ fn production_source_does_not_include_or_import_implementation_crates() {
     for source in sources {
         let text = std::fs::read_to_string(&source).expect("read interface source");
         for needle in FORBIDDEN_SOURCE_NEEDLES {
+            if template_pack_embedding_is_reviewed(&source, needle) {
+                continue;
+            }
             if text.contains(needle) {
                 violations.push(format!(
                     "{} contains forbidden boundary marker `{needle}`",
@@ -90,6 +106,11 @@ fn production_source_does_not_include_or_import_implementation_crates() {
         "zircon_runtime_interface source must stay ABI/DTO/serialization-only:\n{}",
         violations.join("\n")
     );
+}
+
+fn template_pack_embedding_is_reviewed(source: &Path, needle: &str) -> bool {
+    needle == "include_bytes!("
+        && relative_to_manifest(source) == Path::new("src/project/template_pack/embedded.rs")
 }
 
 #[test]

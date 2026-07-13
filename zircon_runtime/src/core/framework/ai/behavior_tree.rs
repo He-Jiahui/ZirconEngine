@@ -15,6 +15,21 @@ pub enum AiBehaviorNodeKind {
     Subtree,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+/// Controls which active behavior-tree branch a blackboard observer may interrupt.
+pub enum AiBehaviorAbortPolicy {
+    #[default]
+    /// Observe nothing and never interrupt because of this decorator.
+    None,
+    /// Interrupt only this decorator's currently active branch when its condition fails.
+    Self_,
+    /// Interrupt a lower-priority selector branch when this condition becomes true.
+    LowerPriority,
+    /// Apply both self and lower-priority interruption rules.
+    Both,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AiBehaviorNodeParameterValue {
@@ -128,6 +143,9 @@ pub struct AiBehaviorNodeDescriptor {
     pub children: Vec<String>,
     #[serde(default)]
     pub parameters: Vec<AiBehaviorNodeParameter>,
+    #[serde(default)]
+    /// Blackboard observer interruption policy for this node.
+    pub abort_policy: AiBehaviorAbortPolicy,
 }
 
 impl AiBehaviorNodeDescriptor {
@@ -143,6 +161,7 @@ impl AiBehaviorNodeDescriptor {
             display_name: display_name.into(),
             children: Vec::new(),
             parameters: Vec::new(),
+            abort_policy: AiBehaviorAbortPolicy::None,
         }
     }
 
@@ -163,6 +182,12 @@ impl AiBehaviorNodeDescriptor {
     ) -> Self {
         self.parameters
             .push(AiBehaviorNodeParameter::new(key, value));
+        self
+    }
+
+    /// Assigns the node's blackboard observer interruption policy.
+    pub fn with_abort_policy(mut self, policy: AiBehaviorAbortPolicy) -> Self {
+        self.abort_policy = policy;
         self
     }
 }

@@ -17,6 +17,12 @@ pub enum ShaderPrewarmArgsError {
 
 #[derive(Debug, Error)]
 pub enum ShaderPrewarmAssetScanError {
+    #[error("failed to inspect shader prewarm asset registry below {path:?}: {source}")]
+    InspectAssetRegistry {
+        path: std::path::PathBuf,
+        #[source]
+        source: zircon_runtime::asset::AssetRegistryError,
+    },
     #[error("failed to read shader prewarm asset root {path:?}: {source}")]
     ReadAssetRoot {
         path: std::path::PathBuf,
@@ -63,7 +69,7 @@ pub enum ShaderPrewarmAssetScanError {
     ParseZMaterial {
         path: std::path::PathBuf,
         #[source]
-        source: toml::de::Error,
+        source: zircon_runtime::asset::assets::ProjectDocumentError,
     },
     #[error("shader source {path:?} has no runtime WGSL payload")]
     EmptyShaderSource { path: std::path::PathBuf },

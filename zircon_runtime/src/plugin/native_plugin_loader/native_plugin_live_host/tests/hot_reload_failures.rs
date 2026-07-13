@@ -48,7 +48,11 @@ fn hot_reload_missing_symbol_after_reload_rolls_back_to_previous_instance() {
 
 #[test]
 fn hot_reload_state_restore_failure_rolls_back_and_reports() {
-    restored_payloads().lock().unwrap().clear();
+    let _fixture_guard = hot_reload_payload_fixture_lock();
+    restored_payloads()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clear();
     let host = NativePluginLiveHost::default();
     {
         let mut loaded = lock_loaded_native_plugins(&host.loaded)
@@ -89,7 +93,10 @@ fn hot_reload_state_restore_failure_rolls_back_and_reports() {
     );
     assert!(error.contains("rolled back to the previously loaded runtime native package"));
     assert_eq!(
-        restored_payloads().lock().unwrap().as_slice(),
+        restored_payloads()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_slice(),
         &[b"state:physics".to_vec(), b"state:physics".to_vec()]
     );
     assert_eq!(

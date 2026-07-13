@@ -1,74 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::asset::AssetTypeId;
 use crate::core::editor_operation::EditorOperationPath;
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AssetCreationTemplateDescriptor {
-    id: String,
-    display_name: String,
-    asset_kind: String,
-    operation: EditorOperationPath,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    default_document: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_capabilities: Vec<String>,
-}
-
-impl AssetCreationTemplateDescriptor {
-    pub fn new(
-        id: impl Into<String>,
-        display_name: impl Into<String>,
-        asset_kind: impl Into<String>,
-        operation: EditorOperationPath,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            display_name: display_name.into(),
-            asset_kind: asset_kind.into(),
-            operation,
-            default_document: None,
-            required_capabilities: Vec::new(),
-        }
-    }
-
-    pub fn with_default_document(mut self, document: impl Into<String>) -> Self {
-        self.default_document = Some(document.into());
-        self
-    }
-
-    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        push_capabilities(&mut self.required_capabilities, capabilities);
-        self
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-
-    pub fn asset_kind(&self) -> &str {
-        &self.asset_kind
-    }
-
-    pub fn operation(&self) -> &EditorOperationPath {
-        &self.operation
-    }
-
-    pub fn default_document(&self) -> Option<&str> {
-        self.default_document.as_deref()
-    }
-
-    pub fn required_capabilities(&self) -> &[String] {
-        &self.required_capabilities
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ViewportToolModeDescriptor {
@@ -76,6 +9,8 @@ pub struct ViewportToolModeDescriptor {
     display_name: String,
     view_id: String,
     activate_operation: EditorOperationPath,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    overlay_provider_id: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     required_capabilities: Vec<String>,
 }
@@ -92,8 +27,14 @@ impl ViewportToolModeDescriptor {
             display_name: display_name.into(),
             view_id: view_id.into(),
             activate_operation,
+            overlay_provider_id: None,
             required_capabilities: Vec::new(),
         }
+    }
+
+    pub fn with_overlay_provider_id(mut self, provider_id: impl Into<String>) -> Self {
+        self.overlay_provider_id = Some(provider_id.into());
+        self
     }
 
     pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
@@ -119,6 +60,10 @@ impl ViewportToolModeDescriptor {
 
     pub fn activate_operation(&self) -> &EditorOperationPath {
         &self.activate_operation
+    }
+
+    pub fn overlay_provider_id(&self) -> Option<&str> {
+        self.overlay_provider_id.as_deref()
     }
 
     pub fn required_capabilities(&self) -> &[String] {
@@ -221,7 +166,7 @@ impl GraphNodeDescriptor {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GraphNodePaletteDescriptor {
     id: String,
-    asset_kind: String,
+    asset_type: AssetTypeId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     nodes: Vec<GraphNodeDescriptor>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -229,10 +174,10 @@ pub struct GraphNodePaletteDescriptor {
 }
 
 impl GraphNodePaletteDescriptor {
-    pub fn new(id: impl Into<String>, asset_kind: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<String>, asset_type: AssetTypeId) -> Self {
         Self {
             id: id.into(),
-            asset_kind: asset_kind.into(),
+            asset_type,
             nodes: Vec::new(),
             required_capabilities: Vec::new(),
         }
@@ -256,8 +201,8 @@ impl GraphNodePaletteDescriptor {
         &self.id
     }
 
-    pub fn asset_kind(&self) -> &str {
-        &self.asset_kind
+    pub fn asset_type(&self) -> &AssetTypeId {
+        &self.asset_type
     }
 
     pub fn nodes(&self) -> &[GraphNodeDescriptor] {
@@ -271,7 +216,7 @@ impl GraphNodePaletteDescriptor {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GraphEditorDescriptor {
-    asset_kind: String,
+    asset_type: AssetTypeId,
     view_id: String,
     display_name: String,
     open_operation: EditorOperationPath,
@@ -284,14 +229,14 @@ pub struct GraphEditorDescriptor {
 
 impl GraphEditorDescriptor {
     pub fn new(
-        asset_kind: impl Into<String>,
+        asset_type: AssetTypeId,
         view_id: impl Into<String>,
         display_name: impl Into<String>,
         open_operation: EditorOperationPath,
         validate_operation: EditorOperationPath,
     ) -> Self {
         Self {
-            asset_kind: asset_kind.into(),
+            asset_type,
             view_id: view_id.into(),
             display_name: display_name.into(),
             open_operation,
@@ -315,8 +260,8 @@ impl GraphEditorDescriptor {
         self
     }
 
-    pub fn asset_kind(&self) -> &str {
-        &self.asset_kind
+    pub fn asset_type(&self) -> &AssetTypeId {
+        &self.asset_type
     }
 
     pub fn view_id(&self) -> &str {
@@ -395,7 +340,7 @@ impl TimelineTrackDescriptor {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimelineEditorDescriptor {
-    asset_kind: String,
+    asset_type: AssetTypeId,
     view_id: String,
     display_name: String,
     open_operation: EditorOperationPath,
@@ -407,13 +352,13 @@ pub struct TimelineEditorDescriptor {
 
 impl TimelineEditorDescriptor {
     pub fn new(
-        asset_kind: impl Into<String>,
+        asset_type: AssetTypeId,
         view_id: impl Into<String>,
         display_name: impl Into<String>,
         open_operation: EditorOperationPath,
     ) -> Self {
         Self {
-            asset_kind: asset_kind.into(),
+            asset_type,
             view_id: view_id.into(),
             display_name: display_name.into(),
             open_operation,
@@ -438,8 +383,8 @@ impl TimelineEditorDescriptor {
         self
     }
 
-    pub fn asset_kind(&self) -> &str {
-        &self.asset_kind
+    pub fn asset_type(&self) -> &AssetTypeId {
+        &self.asset_type
     }
 
     pub fn view_id(&self) -> &str {

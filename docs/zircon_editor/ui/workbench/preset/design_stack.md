@@ -14,7 +14,7 @@ related_code:
   - zircon_editor/src/ui/workbench/preset/panel_preset.rs
   - zircon_editor/src/ui/workbench/preset/shell_preset.rs
   - zircon_editor/src/ui/workbench/mod.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation.rs
+  - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs

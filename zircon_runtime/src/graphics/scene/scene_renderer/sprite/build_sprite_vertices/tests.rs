@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
-    CameraRenderDescriptor, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteAnchor, RenderSpriteAtlasRegion,
-    RenderSpriteImageMode, RenderSpriteScalingMode, RenderSpriteSliceBorder,
-    RenderSpriteSliceScaleMode, RenderSpriteSlicer, RenderWorldSnapshotHandle, SpriteExtract,
-    ViewportCameraSnapshot,
+    CameraRenderDescriptor, CorePipelineKind, FallbackSkyboxKind, PreviewEnvironmentExtract,
+    ProjectionMode, RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode,
+    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteAnchor,
+    RenderSpriteAtlasRegion, RenderSpriteImageMode, RenderSpriteScalingMode,
+    RenderSpriteSliceBorder, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
+    RenderWorldSnapshotHandle, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -30,6 +30,7 @@ fn build_sprite_vertices_filters_sprites_by_selected_camera_layers() {
 
     let mut camera = ViewportCameraSnapshot::default();
     camera.projection_mode = ProjectionMode::Orthographic;
+    camera.core_pipeline = CorePipelineKind::Core2d;
     let mut descriptor = CameraRenderDescriptor::from_camera_payload(Some(7), camera.clone());
     descriptor.culling_mask = RenderLayerSet::layer(40);
     let mut extract = empty_sprite_extract(camera, vec![hidden, visible]);

@@ -2,12 +2,12 @@ use std::sync::{Arc, Mutex};
 
 use super::super::*;
 use super::fixtures::RecordedPlugin;
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{BridgeError, BridgeOwnerTransitionMode, PluginInterface};
+use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
 use crate::core::runtime::ServiceObject;
 use crate::core::{CoreError, LifecycleState, ServiceKind, StartupMode};
 use crate::plugin::{
-    BridgeOwnerTransitionMode, ExportPackagingStrategy, PluginDependencyManifest,
-    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    PluginDependencyManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
     RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
@@ -56,7 +56,7 @@ fn plugin_resolution_builds_plugin_context_instead_of_passing_only_core_handle()
 }
 
 #[test]
-fn core_runtime_applies_plugin_bridge_lifecycle_events() {
+fn plugin_bridge_lifecycle_state_applies_explicit_provider_events() {
     let mut physics_extensions = RuntimeExtensionRegistry::default();
     let owner = physics_extensions
         .intern_plugin_module("physics.runtime")
@@ -81,17 +81,9 @@ fn core_runtime_applies_plugin_bridge_lifecycle_events() {
     let bridge = state
         .bridge_table()
         .resolve_weak::<dyn CoreRuntimePhysicsQuery>();
-    let runtime = CoreRuntime::new();
     let disable_event = RuntimePluginBridgeLifecycleEvent::disable_provider("physics");
 
-    assert!(runtime
-        .apply_plugin_bridge_lifecycle_event(disable_event.clone())
-        .is_none());
-    runtime.install_plugin_bridge_lifecycle_state(state);
-
-    let disable = runtime
-        .apply_plugin_bridge_lifecycle_event(disable_event)
-        .expect("installed bridge lifecycle state should handle provider events");
+    let disable = state.apply_provider_lifecycle_event(disable_event);
     let RuntimePluginBridgeLifecycleOutcome::Applied(disable_report) = disable else {
         panic!("optional bridge dependent should not block disable");
     };
@@ -102,16 +94,11 @@ fn core_runtime_applies_plugin_bridge_lifecycle_events() {
         Err(BridgeError::NotEnabled)
     );
 
-    let activate = runtime
-        .handle()
-        .apply_plugin_bridge_lifecycle_event(RuntimePluginBridgeLifecycleEvent::activate_provider(
-            "physics",
-        ))
-        .expect("handle should share the runtime bridge lifecycle state");
+    let activate = state.apply_provider_lifecycle_event(
+        RuntimePluginBridgeLifecycleEvent::activate_provider("physics"),
+    );
     assert!(activate.is_applied());
     assert_eq!(bridge.call(|provider| provider.query_count()), Ok(7));
-    assert!(runtime.clear_plugin_bridge_lifecycle_state().is_some());
-    assert!(runtime.plugin_bridge_lifecycle_state().is_none());
 }
 
 #[test]
@@ -139,7 +126,7 @@ fn core_runtime_module_deactivation_drives_plugin_bridge_lifecycle() {
     runtime
         .register_module(ModuleDescriptor::new("physics.runtime", "physics runtime"))
         .unwrap();
-    runtime.install_plugin_bridge_lifecycle_state(state.clone());
+    runtime.install_runtime_module_lifecycle_observer(Arc::new(state.clone()));
 
     assert_eq!(bridge.call(|provider| provider.query_count()), Ok(7));
 
@@ -196,11 +183,11 @@ fn core_runtime_module_deactivation_rejects_strong_bridge_dependents_before_unlo
         .register_module(ModuleDescriptor::new("physics.runtime", "physics runtime"))
         .unwrap();
     runtime.activate_module("physics.runtime").unwrap();
-    runtime.install_plugin_bridge_lifecycle_state(state);
+    runtime.install_runtime_module_lifecycle_observer(Arc::new(state));
 
     let error = runtime.deactivate_module("physics.runtime").unwrap_err();
 
-    let CoreError::PluginBridgeLifecycleBlocked(detail) = error else {
+    let CoreError::RuntimeModuleLifecycleBlocked(detail) = error else {
         panic!("strong bridge dependents should block module deactivation");
     };
     assert!(detail.contains("bridge.provider_lifecycle_blocked"));

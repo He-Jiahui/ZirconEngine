@@ -1,17 +1,20 @@
-use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use zircon_runtime::asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-    SceneMobilityAsset, TransformAsset,
-};
-use zircon_runtime::core::math::{Vec2, Vec3};
+use zircon_runtime::asset::{AlphaMode, AssetUri};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+
+#[path = "hybrid_gi_scene_prepare_material_fixtures/project_documents.rs"]
+mod project_documents;
+
+use project_documents::{
+    write_material_asset, write_material_asset_with_capture_options,
+    write_material_asset_with_surface, write_material_asset_with_textures, write_scene_asset,
+    write_solid_ppm, write_triangle_model,
+};
 
 pub(super) struct MaterialTextureCaptureTestAssets {
     pub(super) asset_manager: Arc<ProjectAssetManager>,
@@ -46,39 +49,46 @@ pub(super) fn material_capture_test_assets() -> (
 ) {
     let root = unique_temp_project_root("hybrid_gi_scene_prepare_material_capture");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
+    let manifest = ProjectManifest::new(
         "HybridGiScenePrepareMaterialCapture",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
+    );
+    paths.ensure_layout(&manifest.asset_roots).unwrap();
+    let asset_root = manifest.primary_asset_root().unwrap().clone();
+    manifest.save(paths.manifest_path()).unwrap();
 
     write_triangle_model(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("models")
             .join("triangle.model.toml"),
     );
     write_material_asset(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("black.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [0.0, 0.0, 0.0],
     );
     write_material_asset(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("emissive.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [1.0, 0.2, 0.1],
     );
     write_scene_asset(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        &asset_root,
+        paths
+            .asset_root(&asset_root)
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/black.zmaterial",
     );
 
@@ -101,24 +111,26 @@ pub(super) fn material_surface_response_test_assets() -> (
 ) {
     let root = unique_temp_project_root("hybrid_gi_scene_prepare_surface_response");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
+    let manifest = ProjectManifest::new(
         "HybridGiScenePrepareSurfaceResponse",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
+    );
+    paths.ensure_layout(&manifest.asset_roots).unwrap();
+    let asset_root = manifest.primary_asset_root().unwrap().clone();
+    manifest.save(paths.manifest_path()).unwrap();
 
     write_triangle_model(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("models")
             .join("triangle.model.toml"),
     );
     write_material_asset_with_surface(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("smooth_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -127,8 +139,9 @@ pub(super) fn material_surface_response_test_assets() -> (
         0.05,
     );
     write_material_asset_with_surface(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("rough_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -137,8 +150,9 @@ pub(super) fn material_surface_response_test_assets() -> (
         0.95,
     );
     write_material_asset_with_surface(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("dielectric_red.zmaterial"),
         [1.0, 0.2, 0.1, 1.0],
@@ -147,8 +161,9 @@ pub(super) fn material_surface_response_test_assets() -> (
         0.2,
     );
     write_material_asset_with_surface(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("metallic_red.zmaterial"),
         [1.0, 0.2, 0.1, 1.0],
@@ -157,7 +172,11 @@ pub(super) fn material_surface_response_test_assets() -> (
         0.2,
     );
     write_scene_asset(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        &asset_root,
+        paths
+            .asset_root(&asset_root)
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/smooth_white.zmaterial",
     );
 
@@ -186,86 +205,97 @@ pub(super) fn material_surface_response_test_assets() -> (
 pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTestAssets {
     let root = unique_temp_project_root("hybrid_gi_scene_prepare_texture_capture");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
+    let manifest = ProjectManifest::new(
         "HybridGiScenePrepareTextureCapture",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
+    );
+    paths.ensure_layout(&manifest.asset_roots).unwrap();
+    let asset_root = manifest.primary_asset_root().unwrap().clone();
+    manifest.save(paths.manifest_path()).unwrap();
 
     write_triangle_model(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("models")
             .join("triangle.model.toml"),
     );
     write_solid_ppm(
-        paths.assets_root().join("textures").join("base_red.ppm"),
+        paths
+            .asset_root(&asset_root)
+            .join("textures")
+            .join("base_red.ppm"),
         [255, 24, 16, 255],
     );
     write_solid_ppm(
-        paths.assets_root().join("textures").join("base_blue.ppm"),
+        paths
+            .asset_root(&asset_root)
+            .join("textures")
+            .join("base_blue.ppm"),
         [24, 32, 255, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("emissive_warm.ppm"),
         [255, 96, 24, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("emissive_cool.ppm"),
         [24, 96, 255, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("mr_rough_dielectric.ppm"),
         [0, 240, 16, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("mr_smooth_metallic.ppm"),
         [0, 16, 240, 255],
     );
     write_solid_ppm(
-        paths.assets_root().join("textures").join("normal_flat.ppm"),
+        paths
+            .asset_root(&asset_root)
+            .join("textures")
+            .join("normal_flat.ppm"),
         [128, 128, 255, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("normal_tilted.ppm"),
         [255, 128, 128, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("occlusion_open.ppm"),
         [255, 255, 255, 255],
     );
     write_solid_ppm(
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("textures")
             .join("occlusion_blocked.ppm"),
         [32, 32, 32, 255],
     );
 
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("base_red_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -279,8 +309,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("base_blue_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -294,8 +325,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("emissive_warm_texture.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
@@ -309,8 +341,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("emissive_cool_texture.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
@@ -324,8 +357,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("rough_dielectric_texture.zmaterial"),
         [1.0, 0.25, 0.1, 1.0],
@@ -339,8 +373,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("smooth_metallic_texture.zmaterial"),
         [1.0, 0.25, 0.1, 1.0],
@@ -354,8 +389,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("flat_normal_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -369,8 +405,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("tilted_normal_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -384,8 +421,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("open_occlusion_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -399,8 +437,9 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         Some("res://textures/occlusion_open.ppm"),
     );
     write_material_asset_with_textures(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("blocked_occlusion_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -414,7 +453,11 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         Some("res://textures/occlusion_blocked.ppm"),
     );
     write_scene_asset(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        &asset_root,
+        paths
+            .asset_root(&asset_root)
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/base_red_texture.zmaterial",
     );
 
@@ -468,24 +511,26 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
 pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCaptureTestAssets {
     let root = unique_temp_project_root("hybrid_gi_scene_prepare_visibility_capture");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
+    let manifest = ProjectManifest::new(
         "HybridGiScenePrepareVisibilityCapture",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
+    );
+    paths.ensure_layout(&manifest.asset_roots).unwrap();
+    let asset_root = manifest.primary_asset_root().unwrap().clone();
+    manifest.save(paths.manifest_path()).unwrap();
 
     write_triangle_model(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("models")
             .join("triangle.model.toml"),
     );
     write_material_asset_with_capture_options(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("single_sided_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -501,8 +546,9 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         false,
     );
     write_material_asset_with_capture_options(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("double_sided_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -518,8 +564,9 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         true,
     );
     write_material_asset_with_capture_options(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("opaque_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
@@ -535,8 +582,9 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         false,
     );
     write_material_asset_with_capture_options(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("masked_cutout_white.zmaterial"),
         [1.0, 1.0, 1.0, 0.2],
@@ -552,8 +600,9 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         false,
     );
     write_material_asset_with_capture_options(
+        &asset_root,
         paths
-            .assets_root()
+            .asset_root(&asset_root)
             .join("materials")
             .join("blended_white.zmaterial"),
         [1.0, 1.0, 1.0, 0.2],
@@ -569,7 +618,11 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         false,
     );
     write_scene_asset(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        &asset_root,
+        paths
+            .asset_root(&asset_root)
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/opaque_white.zmaterial",
     );
 
@@ -628,232 +681,4 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("zircon_hybrid_gi_{label}_{unique}"))
-}
-
-fn write_material_asset(path: PathBuf, base_color: [f32; 4], emissive: [f32; 3]) {
-    write_material_asset_with_surface(path, base_color, emissive, 0.0, 1.0);
-}
-
-fn write_material_asset_with_surface(
-    path: PathBuf,
-    base_color: [f32; 4],
-    emissive: [f32; 3],
-    metallic: f32,
-    roughness: f32,
-) {
-    write_material_asset_with_textures(
-        path, base_color, emissive, metallic, roughness, None, None, None, None, None,
-    );
-}
-
-fn write_material_asset_with_textures(
-    path: PathBuf,
-    base_color: [f32; 4],
-    emissive: [f32; 3],
-    metallic: f32,
-    roughness: f32,
-    base_color_texture: Option<&str>,
-    metallic_roughness_texture: Option<&str>,
-    emissive_texture: Option<&str>,
-    normal_texture: Option<&str>,
-    occlusion_texture: Option<&str>,
-) {
-    write_material_asset_with_capture_options(
-        path,
-        base_color,
-        emissive,
-        metallic,
-        roughness,
-        base_color_texture,
-        metallic_roughness_texture,
-        emissive_texture,
-        normal_texture,
-        occlusion_texture,
-        AlphaMode::Opaque,
-        false,
-    );
-}
-
-#[allow(clippy::too_many_arguments)]
-fn write_material_asset_with_capture_options(
-    path: PathBuf,
-    base_color: [f32; 4],
-    emissive: [f32; 3],
-    metallic: f32,
-    roughness: f32,
-    base_color_texture: Option<&str>,
-    metallic_roughness_texture: Option<&str>,
-    emissive_texture: Option<&str>,
-    normal_texture: Option<&str>,
-    occlusion_texture: Option<&str>,
-    alpha_mode: AlphaMode,
-    double_sided: bool,
-) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    let material = MaterialAsset {
-        name: Some("HybridGiScenePrepare".to_string()),
-        shader: asset_reference("builtin://shader/pbr.wgsl"),
-        parent: None,
-        options: Default::default(),
-        queue: None,
-        base_color,
-        base_color_texture: base_color_texture.map(asset_reference),
-        normal_texture: normal_texture.map(asset_reference),
-        metallic,
-        roughness,
-        metallic_roughness_texture: metallic_roughness_texture.map(asset_reference),
-        occlusion_texture: occlusion_texture.map(asset_reference),
-        emissive,
-        emissive_texture: emissive_texture.map(asset_reference),
-        alpha_mode,
-        double_sided,
-        property_values: Default::default(),
-        texture_slots: Default::default(),
-        validation_diagnostics: Vec::new(),
-    };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
-}
-
-fn write_solid_ppm(path: PathBuf, rgba: [u8; 4]) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(
-        path,
-        format!(
-            "P3\n2 2\n255\n{} {} {}\n{} {} {}\n{} {} {}\n{} {} {}\n",
-            rgba[0],
-            rgba[1],
-            rgba[2],
-            rgba[0],
-            rgba[1],
-            rgba[2],
-            rgba[0],
-            rgba[1],
-            rgba[2],
-            rgba[0],
-            rgba[1],
-            rgba[2]
-        ),
-    )
-    .unwrap();
-}
-
-fn write_triangle_model(path: PathBuf) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    let model = ModelAsset {
-        uri: AssetUri::parse("res://models/triangle.model.toml").unwrap(),
-        primitives: vec![ModelPrimitiveAsset {
-            vertices: vec![
-                MeshVertex::new(Vec3::ZERO, Vec3::Z, Vec2::ZERO),
-                MeshVertex::new(Vec3::X, Vec3::Z, Vec2::X),
-                MeshVertex::new(Vec3::Y, Vec3::Z, Vec2::Y),
-            ],
-            indices: vec![0, 1, 2],
-            mesh: None,
-            virtual_geometry: None,
-        }],
-    };
-    fs::write(path, model.to_toml_string().unwrap()).unwrap();
-}
-
-fn write_scene_asset(path: PathBuf, material_uri: &str) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    let scene = SceneAsset {
-        entities: vec![
-            SceneEntityAsset {
-                entity: 1,
-                name: "Camera".to_string(),
-                parent: None,
-                transform: TransformAsset {
-                    translation: [0.0, 2.0, 5.0],
-                    rotation: [0.0, 0.0, 0.0, 1.0],
-                    scale: [1.0, 1.0, 1.0],
-                },
-                active: true,
-                render_layer_mask: 0x0000_0001,
-                mobility: SceneMobilityAsset::Dynamic,
-                camera: Some(SceneCameraAsset {
-                    fov_y_radians: 1.0471976,
-                    z_near: 0.1,
-                    z_far: 200.0,
-                    ..SceneCameraAsset::default()
-                }),
-                mesh: None,
-                ambient_light: None,
-                directional_light: None,
-                point_light: None,
-                rect_light: None,
-                spot_light: None,
-                post_process_volume: None,
-                rigid_body: None,
-                collider: None,
-                joint: None,
-                animation_skeleton: None,
-                animation_player: None,
-                animation_sequence_player: None,
-                animation_graph_player: None,
-                animation_state_machine_player: None,
-                terrain: None,
-                tilemap: None,
-                prefab_instance: None,
-                script_bindings: Vec::new(),
-            },
-            SceneEntityAsset {
-                entity: 2,
-                name: "Triangle".to_string(),
-                parent: None,
-                transform: TransformAsset {
-                    translation: [0.0, 0.0, 0.0],
-                    rotation: [0.0, 0.0, 0.0, 1.0],
-                    scale: [1.0, 1.0, 1.0],
-                },
-                active: true,
-                render_layer_mask: 0x0000_0001,
-                mobility: SceneMobilityAsset::Dynamic,
-                camera: None,
-                mesh: Some(SceneMeshInstanceAsset {
-                    model: asset_reference("res://models/triangle.model.toml"),
-                    mesh: None,
-                    material: asset_reference(material_uri),
-                    render_queue: 0,
-                    material_queue: 0,
-                    order_in_layer: 0,
-                    depth_bias: 0.0,
-                    morph_weights: Vec::new(),
-                    primitives: Vec::new(),
-                    lods: Vec::new(),
-                }),
-                ambient_light: None,
-                directional_light: None,
-                point_light: None,
-                rect_light: None,
-                spot_light: None,
-                post_process_volume: None,
-                rigid_body: None,
-                collider: None,
-                joint: None,
-                animation_skeleton: None,
-                animation_player: None,
-                animation_sequence_player: None,
-                animation_graph_player: None,
-                animation_state_machine_player: None,
-                terrain: None,
-                tilemap: None,
-                prefab_instance: None,
-                script_bindings: Vec::new(),
-            },
-        ],
-    };
-    fs::write(path, scene.to_toml_string().unwrap()).unwrap();
-}
-
-fn asset_reference(uri: &str) -> AssetReference {
-    AssetReference::from_locator(AssetUri::parse(uri).unwrap())
 }

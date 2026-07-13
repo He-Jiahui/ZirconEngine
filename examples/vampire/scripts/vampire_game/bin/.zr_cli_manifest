@@ -1,9 +1,10 @@
-zr_cli_manifest_v2
+zr_cli_manifest_v3
 module main
 hash 79ad13d7608fa0ed
 zro_hash f5ddb242ad1a0bd3
 zro E:\Git\ZirconEngine\examples\vampire\scripts\vampire_game\bin\main.zro
 zri E:\Git\ZirconEngine\examples\vampire\scripts\vampire_game\bin\main.zri
+aot_c E:\Git\ZirconEngine\examples\vampire\scripts\vampire_game\bin\aot_c\src\main.c
 imports 1
 import zr.zircon.gameplay
 end

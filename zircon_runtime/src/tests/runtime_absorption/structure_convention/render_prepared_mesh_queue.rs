@@ -52,8 +52,6 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
     let mesh_pass_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pass.md");
     let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let current_session_doc =
-        read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "prepared queue parent keeps production stats owner surface",
@@ -309,7 +307,6 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
         ("mesh pipeline cache doc", mesh_pipeline_cache_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("current render session doc", current_session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -331,7 +328,6 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
         ("mesh pipeline cache doc", mesh_pipeline_cache_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("current render session doc", current_session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

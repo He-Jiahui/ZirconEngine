@@ -44,10 +44,23 @@ fn section_title_metrics_project_from_host_metrics() {
     let title_metrics = section_title_metrics_from_host(METRICS);
     let glyph_metrics = section_title_glyph_metrics_from_host(METRICS);
 
-    assert_eq!(title_metrics.font_size, 13.0);
-    assert_eq!(title_metrics.line_height, 15.6);
+    assert_eq!(title_metrics.font_size, METRICS.font_body);
+    assert_eq!(
+        title_metrics.line_height,
+        METRICS.line_height(METRICS.font_body)
+    );
     assert_eq!(title_metrics.text_left, 8.0);
     assert_eq!(title_metrics.strong_offset_x, 0.5);
-    assert_eq!(glyph_metrics.icon_size, 14.0);
+    assert_eq!(title_metrics.separator_height, 1.0);
+    assert_eq!(glyph_metrics.icon_size, METRICS.font_body);
     assert_eq!(glyph_metrics.icon_gap, 8.0);
+}
+
+#[test]
+fn section_title_surface_projects_unreal_header_palette() {
+    let host = current_host_palette();
+    let palette = section_title_palette_from_host(host);
+
+    assert_eq!(palette.header_surface, host.surface_pressed);
+    assert_eq!(palette.separator, host.separator_soft);
 }

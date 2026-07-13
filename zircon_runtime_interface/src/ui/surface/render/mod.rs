@@ -10,6 +10,7 @@ mod list;
 mod paint;
 mod parity;
 mod resolved_style;
+mod text_effects;
 mod text_geometry;
 mod text_language;
 mod text_layout;
@@ -49,16 +50,22 @@ pub use parity::{
     UiRendererParitySnapshot, UiRendererParityStats,
 };
 pub use resolved_style::UiResolvedStyle;
+pub use text_effects::{
+    UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,
+    UiTextShadowEffect, MAX_TEXT_EFFECT_EXTENT_PX,
+};
 pub use text_language::normalize_ui_text_language_tag;
-pub use text_layout::{UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange};
+pub use text_layout::{
+    UiResolvedTextBox, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange,
+};
 pub use text_shape::{
     UiShapedGlyph, UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText,
     UiShapedTextCluster, UiShapedTextLine, UiTextPaint, UiTextPaintDecoration,
     UiTextPaintDecorationKind, UiTextPaintRun, UiTextRunPaintStyle,
 };
 pub use typography::{
-    UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextRunKind, UiTextWrap,
-    UiTextWritingMode,
+    resolve_ui_text_render_mode, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow,
+    UiTextRenderMode, UiTextRunKind, UiTextWrap, UiTextWritingMode,
 };
 pub use visual_asset_ref::UiVisualAssetRef;
 pub use visualizer::{

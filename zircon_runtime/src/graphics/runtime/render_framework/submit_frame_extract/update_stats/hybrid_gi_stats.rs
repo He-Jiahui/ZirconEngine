@@ -53,6 +53,7 @@ pub(super) fn update_hybrid_gi_stats(
     state.stats.last_hybrid_gi_voxel_invalidated_clipmap_count =
         hybrid_gi_stats.voxel_invalidated_clipmap_count();
     state.stats.last_hybrid_gi_payload_source = context.hybrid_gi_payload_source();
+    state.stats.last_hybrid_gi_resolved_settings = hybrid_gi_stats.resolved_settings();
 }
 
 pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
@@ -80,4 +81,5 @@ pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
     state.stats.last_hybrid_gi_voxel_dirty_clipmap_count = 0;
     state.stats.last_hybrid_gi_voxel_invalidated_clipmap_count = 0;
     state.stats.last_hybrid_gi_payload_source = RenderHybridGiPayloadSource::None;
+    state.stats.last_hybrid_gi_resolved_settings = None;
 }

@@ -6,14 +6,14 @@ use zircon_runtime::asset::{
     SpriteAtlasUvRect,
 };
 
-use super::super::{resolve_editor_sprite_atlas_image, ATLAS_LIBRARY_DIR};
+use super::super::{resolve_editor_sprite_atlas_image, ATLAS_CACHE_DIR};
 use super::support::unique_temp_root;
 
 #[test]
 fn resolver_reads_project_library_atlas_artifacts_for_template_icon() {
     let root = unique_temp_root("sprite_atlas_resolver_project_library");
     let asset_path = root.join("assets").join("icons").join("search.png");
-    let atlas_dir = root.join("library").join(ATLAS_LIBRARY_DIR);
+    let atlas_dir = root.join(".zircon").join("cache").join(ATLAS_CACHE_DIR);
     fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
     fs::create_dir_all(&atlas_dir).unwrap();
     fs::write(&asset_path, b"source image placeholder").unwrap();

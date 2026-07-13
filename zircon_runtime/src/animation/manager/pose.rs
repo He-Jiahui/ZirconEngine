@@ -1,4 +1,4 @@
-use crate::asset::{
+use crate::core::framework::animation::{
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationSkeletonAsset,
     AnimationSkeletonBoneAsset,
 };

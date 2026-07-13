@@ -16,9 +16,11 @@ fn review_f5_asset_meta_uses_typed_error() {
     for required in [
         "pub type AssetMetaResult<T> = std::result::Result<T, AssetMetaError>;",
         "pub enum AssetMetaError",
-        "UnsupportedFormatVersion { found: u32, supported: u32 }",
-        "fn migrate_to_current(&mut self) -> AssetMetaResult<()>",
-        "asset_meta_migration_reports_typed_future_version_error",
+        "UnsupportedOldFormatVersion { found: u32, minimum: u32 }",
+        "UnsupportedFutureFormatVersion { found: u32, supported: u32 }",
+        "RetiredSourceHashField",
+        "fn validate_current(&self) -> AssetMetaResult<()>",
+        "asset_meta_validation_reports_typed_future_version_error",
     ] {
         assert!(
             meta.contains(required),
@@ -39,7 +41,8 @@ fn review_f5_asset_meta_uses_typed_error() {
         "F5 asset meta typed errors",
         "runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred",
         "review_f5_asset_meta_uses_typed_error",
-        "AssetMetaError::UnsupportedFormatVersion",
+        "UnsupportedOldFormatVersion",
+        "UnsupportedFutureFormatVersion",
         "asset/project/meta.rs",
     ] {
         assert!(

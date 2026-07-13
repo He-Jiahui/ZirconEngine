@@ -2,24 +2,8 @@ use super::MirrorDocsSources;
 
 pub(super) fn load() -> MirrorDocsSources {
     MirrorDocsSources {
-        runtime_07_plan: include_str!(
-            "../../../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
-        ),
-        runtime_index: include_str!(
-            "../../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-        ),
-        hotspot_doc: include_str!(
-            "../../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md"
-        ),
-        dynamic_session_doc: include_str!(
-            "../../../../../../../../docs/zircon_runtime/dynamic_api/session.md"
-        ),
-        ecs_doc: include_str!("../../../../../../../../docs/zircon_runtime/scene/ecs.md"),
-        interface_doc: include_str!(
-            "../../../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-        ),
-        architecture_review: include_str!(
-            "../../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
+        runtime_07_archive: include_str!(
+            "../../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
         ),
         audit_script: include_str!(
             "../../../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py"

@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/time.rs
+  - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/framework/time/mod.rs
@@ -17,7 +17,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/time/virtual_clock.rs
   - zircon_runtime/src/core/framework/time/fixed.rs
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
-  - zircon_runtime/src/core/time.rs
+  - zircon_runtime/src/core/runtime/time.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md

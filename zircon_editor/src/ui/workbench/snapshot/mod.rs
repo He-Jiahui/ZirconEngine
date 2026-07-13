@@ -7,9 +7,9 @@ mod workbench;
 #[allow(unused_imports)]
 pub use super::startup::{NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot};
 pub use asset::{
-    AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSubassetSnapshot, AssetSurfaceMode, AssetUtilityTab, AssetViewMode,
-    AssetWorkspaceSnapshot,
+    AssetFolderSnapshot, AssetItemSnapshot, AssetOperationProjectionSnapshot,
+    AssetReferenceSnapshot, AssetSelectionSnapshot, AssetSubassetSnapshot, AssetSurfaceMode,
+    AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
 };
 pub use data::{
     EditorBridgeDiagnosticsSnapshot, EditorBridgeDiagnosticsSummarySnapshot,

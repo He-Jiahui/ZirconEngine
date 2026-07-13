@@ -1,4 +1,5 @@
-use crate::asset::AssetReference;
+use crate::asset::assets::ProjectDocumentError;
+use crate::asset::{AssetReference, ReferenceResolutionError};
 use crate::core::resource::ResourceId;
 use serde::{Deserialize, Serialize};
 
@@ -14,10 +15,36 @@ pub struct SceneAsset {
 }
 
 impl SceneAsset {
+    pub fn to_project_toml_string(
+        &self,
+        resolver: impl FnMut(
+            &AssetReference,
+        ) -> Result<
+            zircon_runtime_interface::project::PersistedAssetReference,
+            ReferenceResolutionError,
+        >,
+    ) -> Result<String, ProjectDocumentError> {
+        let document = crate::asset::assets::project_document::serialize_scene(self, resolver)?;
+        crate::asset::assets::project_document::validate_scene(&document)?;
+        Ok(document)
+    }
+
+    pub fn from_project_toml_str(
+        document: &str,
+        resolver: impl FnMut(
+            &zircon_runtime_interface::project::PersistedAssetReference,
+        ) -> Result<AssetReference, ReferenceResolutionError>,
+    ) -> Result<Self, ProjectDocumentError> {
+        crate::asset::assets::project_document::validate_scene(document)?;
+        crate::asset::assets::project_document::deserialize_scene(document, resolver)
+    }
+
+    #[cfg(test)]
     pub fn from_toml_str(document: &str) -> Result<Self, toml::de::Error> {
         toml::from_str(document)
     }
 
+    #[cfg(test)]
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(self)
     }

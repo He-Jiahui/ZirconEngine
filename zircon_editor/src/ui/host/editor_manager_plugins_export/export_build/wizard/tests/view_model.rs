@@ -1,13 +1,13 @@
 use std::sync::mpsc::channel;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
 use super::support::*;
 
 #[test]
 fn export_wizard_view_model_projects_plan_stage_rows_and_controls() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -26,10 +26,10 @@ fn export_wizard_view_model_projects_plan_stage_rows_and_controls() {
     assert_eq!(controls.missing_input_count, 0);
 
     let rows = view_model.stage_rows();
-    assert_eq!(rows.len(), export_pipeline_stages().len());
+    assert_eq!(rows.len(), ExportStage::ALL.len());
     let validate = rows
         .iter()
-        .find(|row| row.stage == ExportPipelineStage::Validate)
+        .find(|row| row.stage == ExportStage::Validate)
         .expect("Validate row should exist");
     assert_eq!(validate.stage_id, "validate");
     assert_eq!(validate.label, "Validate");
@@ -43,7 +43,7 @@ fn export_wizard_view_model_projects_plan_stage_rows_and_controls() {
 
 #[test]
 fn export_wizard_view_model_reports_missing_inputs_before_start() {
-    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -58,19 +58,19 @@ fn export_wizard_view_model_reports_missing_inputs_before_start() {
     let rows = view_model.stage_rows();
     let cook_assets = rows
         .iter()
-        .find(|row| row.stage == ExportPipelineStage::CookAssets)
+        .find(|row| row.stage == ExportStage::CookAssets)
         .expect("CookAssets row should exist");
     assert_eq!(cook_assets.missing_inputs, vec!["source_asset_manifest"]);
     let platform_bundle = rows
         .iter()
-        .find(|row| row.stage == ExportPipelineStage::PlatformBundle)
+        .find(|row| row.stage == ExportStage::PlatformBundle)
         .expect("PlatformBundle row should exist");
     assert_eq!(platform_bundle.missing_inputs, vec!["host_executable"]);
 }
 
 #[test]
 fn export_wizard_view_model_drains_job_events_into_terminal_rows() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -115,10 +115,11 @@ fn export_wizard_view_model_drains_job_events_into_terminal_rows() {
     assert!(rows
         .iter()
         .all(|row| row.progress_kind == ExportStageProgressKind::Passed));
-    assert!(rows.iter().all(|row| row
-        .report_path
-        .as_deref()
-        .is_some_and(|path| path.ends_with("report.json"))));
+    assert!(rows.iter().all(|row| {
+        row.report_path
+            .as_deref()
+            .is_some_and(|path| path.ends_with("report.json"))
+    }));
 }
 
 #[test]
@@ -165,7 +166,7 @@ fn export_wizard_panel_template_state_projects_template_slots() {
             .expect("stage rows slot should exist")
             .entries
             .len(),
-        export_pipeline_stages().len()
+        ExportStage::ALL.len()
     );
     assert!(state
         .slot(ExportWizardPanelSlotKind::MissingInputs)
@@ -192,7 +193,7 @@ fn export_wizard_panel_template_state_projects_template_slots() {
 
 #[test]
 fn export_wizard_panel_template_state_reports_missing_inputs() {
-    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

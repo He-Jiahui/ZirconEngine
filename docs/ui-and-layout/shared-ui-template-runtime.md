@@ -4,13 +4,13 @@ related_code:
   - zircon_runtime/assets/fonts/FiraMono-subset.ttf
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/asset/project/manager/asset_kind.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
@@ -37,7 +37,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
@@ -76,7 +76,6 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/document.rs
   - zircon_runtime/src/ui/template/loader.rs
   - zircon_runtime/src/ui/template/validate.rs
   - zircon_runtime/src/ui/template/instance.rs
@@ -88,7 +87,7 @@ related_code:
   - zircon_runtime/src/ui/tree/node/mod.rs
   - zircon_runtime/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
@@ -101,7 +100,7 @@ related_code:
   - zircon_runtime/src/ui/tests/layout_slots.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_editor/src/ui/template/mod.rs
   - zircon_editor/src/ui/template/registry.rs
@@ -113,8 +112,8 @@ related_code:
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/retained_host/app/welcome_session.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
@@ -135,37 +134,35 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
   - zircon_editor/assets/ui/editor/material_demo_window.zui
   - zircon_editor/assets/ui/editor/welcome.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/layout.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/components/workbench
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/surface.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml
-  - zircon_editor/assets/ui/editor/console.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.ui.toml
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/theme/editor_base.ui.toml
-  - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/theme/editor_base.zui
+  - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.zui
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.zui
   - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.zui
@@ -177,9 +174,7 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
-  - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
@@ -203,9 +198,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_resize.rs
@@ -221,8 +216,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
@@ -234,10 +227,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/activity_rail.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
   - zircon_editor/build.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
@@ -255,13 +247,13 @@ implementation_files:
   - zircon_runtime/assets/fonts/FiraMono-subset.ttf
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/asset/project/manager/asset_kind.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
@@ -288,7 +280,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
@@ -330,7 +322,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/document.rs
   - zircon_runtime/src/ui/template/loader.rs
   - zircon_runtime/src/ui/template/validate.rs
   - zircon_runtime/src/ui/template/instance.rs
@@ -338,7 +329,7 @@ implementation_files:
   - zircon_runtime/src/ui/tree/node/mod.rs
   - zircon_runtime/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
@@ -347,13 +338,7 @@ implementation_files:
   - zircon_runtime/src/ui/tests/template.rs
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/asset_prototype_store.rs
-  - cargo test -p zircon_runtime --lib template_tree_builder_preserves_parent_owned_slot_contracts --locked --target-dir E:\zircon-build\targets\ui-template-slot-contract
   - zircon_runtime/src/ui/tests/layout_slots.rs
-  - cargo test -p zircon_runtime --lib layout_slots --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-slot-layout-consumption
-  - cargo test -p zircon_runtime --lib shared_core --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation --message-format short --color never -- --nocapture (M3 WrapBox/template responsive contract: passed with 39 passed, 0 failed)
-  - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation --message-format short --color never (M3 WrapBox/template responsive contract: passed)
-  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M3 final global template asset conformance: passed with 2 passed, 0 failed, 1071 filtered out)
-  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 global Material token/class/runtime surface conformance: passed with existing warning noise)
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_editor/src/ui/template_runtime/mod.rs
@@ -364,12 +349,11 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/retained_host/app/welcome_session.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
@@ -383,34 +367,33 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - zircon_editor/assets/ui/editor/material_demo_window.zui
   - zircon_editor/assets/ui/editor/welcome.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/layout.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/components/workbench
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/surface.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
-  - zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_popup.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_status_bar.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml
-  - zircon_editor/assets/ui/editor/console.ui.toml
-  - zircon_editor/assets/ui/editor/inspector.ui.toml
-  - zircon_editor/assets/ui/editor/hierarchy.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/animation_editor.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.ui.toml
-  - zircon_editor/assets/ui/editor/assets_activity.ui.toml
-  - zircon_editor/assets/ui/editor/welcome.ui.toml
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
+  - zircon_editor/assets/ui/editor/console.zui
+  - zircon_editor/assets/ui/editor/inspector.zui
+  - zircon_editor/assets/ui/editor/hierarchy.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/animation_editor.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/material_components
+  - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+  - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
@@ -430,7 +413,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
@@ -438,7 +421,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_editor/build.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
@@ -449,8 +432,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
@@ -463,10 +444,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/activity_rail.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
 plan_sources:
   - user: 2026-04-15 按自定义 TOML 描述文件运行时构建 Slint 树并严格服从 Shared Layout 契约
@@ -504,6 +484,12 @@ plan_sources:
   - docs/superpowers/plans/2026-04-29-ui-cutover-move-first.md
   - docs/superpowers/plans/2026-04-29-slint-fence-ui-toml-cutover.md
 tests:
+  - cargo test -p zircon_runtime --lib template_tree_builder_preserves_parent_owned_slot_contracts --locked --target-dir E:\zircon-build\targets\ui-template-slot-contract
+  - cargo test -p zircon_runtime --lib layout_slots --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-slot-layout-consumption
+  - cargo test -p zircon_runtime --lib shared_core --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation --message-format short --color never -- --nocapture (M3 WrapBox/template responsive contract: passed with 39 passed, 0 failed)
+  - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation --message-format short --color never (M3 WrapBox/template responsive contract: passed)
+  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M3 final global template asset conformance: passed with 2 passed, 0 failed, 1071 filtered out)
+  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 global Material token/class/runtime surface conformance: passed with existing warning noise)
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/ui/tests/template.rs
   - zircon_runtime/src/ui/tests/asset_component_reference_layout.rs
@@ -556,7 +542,7 @@ tests:
   - cargo test -p zircon_runtime --lib template_tree_builder_preserves_canvas_free_slot_placement_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-canvas-free-slot-contract
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/asset.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
@@ -572,10 +558,9 @@ tests:
   - zircon_editor/src/tests/host/retained_animation_template_body.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/retained_window/activity_rail_template_boundary.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/floating_window_source.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/workbench/template_bridge.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_window/native_mode.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_tab_drag/surface_contract.rs
@@ -656,7 +641,6 @@ tests:
   - cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1
   - cargo test -p zircon_editor --lib host_menu_chrome_projects_hovered_or_open_menu_state_into_template_highlight --locked --jobs 1
   - cargo test -p zircon_editor --lib workbench_chrome_projection_uses_user_requested_asset_paths --locked --jobs 1
-  - cargo test -p zircon_editor --lib retained_menu_pointer --locked --jobs 1
   - cargo test -p zircon_editor --lib workbench_chrome_heights_are_loaded_from_toml_assets_not_scene_constants --locked --jobs 1
   - cargo test -p zircon_editor --lib host_menu_chrome_uses_projected_template_control_frames_for_menu_hit_areas --locked --jobs 1
   - cargo test -p zircon_editor --lib menu_popup_nodes_project_absolute_rows_beyond_authored_slots --locked --jobs 1
@@ -666,7 +650,6 @@ tests:
   - cargo test -p zircon_editor --lib host_menu_chrome_keeps_popup_panel_fixed_while_virtual_rows_scroll --locked --jobs 1
   - cargo test -p zircon_editor --lib menu_popup_projection_mutes_disabled_item_labels --locked --jobs 1
   - cargo test -p zircon_editor --lib capture_scrolled_window_popup_visual_artifact --locked --jobs 1 -- --ignored
-  - visual screenshot: target/visual-layout/editor-window-20260429-window-popup-scrolled-900x620.png
   - cargo test -p zircon_editor --lib host_status_bar_visuals_come_from_ui_toml_template_nodes --locked --jobs 1
   - cargo test -p zircon_editor --lib host_floating_window_headers_use_projected_template_nodes --locked --jobs 1
   - cargo test -p zircon_editor --lib native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root --locked --jobs 1
@@ -694,10 +677,7 @@ tests:
   - cargo test -p zircon_editor --lib --locked template_runtime --offline
   - cargo test -p zircon_editor --lib --locked retained_hierarchy_template_body --offline
   - cargo test -p zircon_editor --lib --locked retained_animation_template_body --offline
-  - cargo test -p zircon_editor --lib generic_host_layout_paths --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never
-  - cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never
   - cargo test -p zircon_editor --lib builtin_pane_body_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --nocapture
-  - cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short
   - cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short
   - cargo fmt --all
@@ -726,7 +706,7 @@ editor host 这一侧也已经同步收口：
 
 - [`EditorTemplateRegistry`](../../zircon_editor/src/ui/template/registry.rs) 只存 `UiCompiledDocument`
 - [`runtime_host.rs`](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 的生产态只接受 `UiAssetDocument`
-- builtin host 文档 [`zircon_editor/assets/ui/editor/host/*.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 已改写成 tree asset authority，并继续留在 crate `src/` 之外
+- builtin host 文档 [`zircon_editor/assets/ui/editor/host/*.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.zui) 已改写成 tree asset authority，并继续留在 crate `src/` 之外
 - `UiTemplateDocument` / `UiTemplateLoader` 仅保留在 shared template 单元测试和历史 fixture 转换测试中，不再是 editor production runtime 的 fallback authority
 
 这意味着这一层当前负责的是“资产语义真源 + shared tree 首段落点 + 显式 layout 合同落点”，但仍然不负责 editor docking 业务、host callback ABI 或宿主专属状态机。真正的布局、命中、焦点和 route 权威仍然在 `UiTree` / `UiSurface` / shared layout contract。
@@ -747,7 +727,7 @@ Runtime layout pass 现在已经开始消费这条 slot contract 的最小安全
 
 - [`EditorTemplateRegistry`](../../zircon_editor/src/ui/template/registry.rs) 删除 `UiTemplateDocument` 存储分支，只保留 `UiCompiledDocument`
 - [`EditorUiHostRuntime::register_document_source(...)`](../../zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs) 只走 `parse_ui_asset_document_source(...)`，生产态不再回退到 `UiTemplateLoader`
-- builtin host 文件 [`workbench_shell.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml)、[`workbench_drawer_source.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml)、[`floating_window_source.ui.toml`](../../zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml)、[`scene_viewport_toolbar.ui.toml`](../../zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml)、[`asset_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml)、[`pane_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml)、[`startup_welcome_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml)、[`inspector_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml) 都已经改成 tree-shaped `UiAssetDocument`
+- builtin host 文件 [`workbench_shell.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.zui)、[`workbench_drawer_source.ui.toml`](../../zircon_editor/assets/ui/editor/components/workbench)、[`floating_window_source.ui.toml`](../../zircon_editor/assets/ui/editor/host/floating_window_source.zui)、[`scene_viewport_toolbar.ui.toml`](../../zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui)、[`asset_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/asset_surface_controls.zui)、[`pane_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/pane_surface_controls.zui)、[`startup_welcome_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml)、[`inspector_surface_controls.ui.toml`](../../zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui) 都已经改成 tree-shaped `UiAssetDocument`
 - 历史 template/flat fixture 转换只允许留在 runtime test support 与 editor test support，不再允许回流进 production runtime 或 formal public template surface
 
 当前本地验证直接锁住了这条边界：
@@ -806,10 +786,10 @@ The Material demo is now a builtin template-runtime document instead of only a r
 
 当前合同如下：
 
-- [`hierarchy_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml) 保留 `SelectionCommand.SelectSceneNode` route，并把树主体声明成 `hierarchy_tree_slot`；Rust-owned host contract 只继续承载已有 tree native slot 与 pointer bridge。
-- [`animation_sequence_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml) 保留 `AnimationCommand.ScrubTimeline` route，并把 timeline 主体声明成根级 `animation_timeline_slot`。
-- [`animation_graph_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml) 保留 `AnimationCommand.AddGraphNode` route，并把 graph canvas 主体声明成根级 `animation_graph_canvas_slot`。
-- [`module_plugins_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml) 保留 `DockCommand.FocusView` route，并把 plugin list 主体声明成根级 `module_plugin_list_slot`；对应的 `ModulePluginsPaneBody/FocusModulePlugins` binding 由 [`template_bindings.rs`](../../zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs) 注册到 `editor.module_plugins#1`。
+- [`hierarchy_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/hierarchy_body.zui) 保留 `SelectionCommand.SelectSceneNode` route，并把树主体声明成 `hierarchy_tree_slot`；Rust-owned host contract 只继续承载已有 tree native slot 与 pointer bridge。
+- [`animation_sequence_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_sequence_body.zui) 保留 `AnimationCommand.ScrubTimeline` route，并把 timeline 主体声明成根级 `animation_timeline_slot`。
+- [`animation_graph_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/animation_graph_body.zui) 保留 `AnimationCommand.AddGraphNode` route，并把 graph canvas 主体声明成根级 `animation_graph_canvas_slot`。
+- [`module_plugins_body.ui.toml`](../../zircon_editor/assets/ui/editor/host/module_plugins_body.zui) 保留 `DockCommand.FocusView` route，并把 plugin list 主体声明成根级 `module_plugin_list_slot`；对应的 `ModulePluginsPaneBody/FocusModulePlugins` binding 由 [`template_bindings.rs`](../../zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs) 注册到 `editor.module_plugins#1`。
 - [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs) 现在对 hierarchy/animation 优先读取 `PanePresentation.body`，调用 `EditorUiHostRuntime::project_pane_body(...)` 注入 payload 与 hybrid slot anchor，再把 payload 还原成 Rust-owned host contract/native view 所需的 rows、track、parameter、node、state 和 transition 数据。
 - [`apply_presentation.rs`](../../zircon_editor/src/ui/retained_host/ui/apply_presentation.rs) 会把每个 dock/floating pane 的可见内容尺寸传给转换层，让 template body projection 至少拥有宿主 content bounds；dock/window 生命周期和 native pointer bridge 不在这一层重写。
 - former pane body Slint sources are no longer active assets, test inputs, or migration references for this path; current pane body truth continues from `.ui.toml -> PanePresentation -> host projection` and consumes stable control id / anchor id while hierarchy tree、timeline、graph canvas 和 plugin list 的细交互留给对应 native slot。
@@ -829,11 +809,11 @@ Task 10 的 host-side cleanup 把 [`PaneData`](../../zircon_editor/src/ui/layout
 
 Task 8 的文档收口基于当前 hard fence 状态，而不是早期 plan 中的临时 moved `.slint` 目标：active [`zircon_editor/ui`](../../zircon_editor/ui) tree 现在必须保持 0 个 `.slint` 文件，former deleted Slint copies 也不再是实现、测试或迁移参考源。
 
-当前 editor host authority 链路是：[`zircon_editor/assets/ui/editor/**/*.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) -> shared `UiAssetLoader` / `UiDocumentCompiler` / `UiTemplateSurfaceBuilder` -> `PanePresentation` / `ViewTemplateNodeData` -> [`zircon_editor::ui::retained_host::host_contract`](../../zircon_editor/src/ui/retained_host/host_contract/mod.rs)。[`zircon_editor/build.rs`](../../zircon_editor/build.rs) 不再运行 `slint_build`、不再 staging migration Slint trees 到 `OUT_DIR`，[`retained_host/mod.rs`](../../zircon_editor/src/ui/retained_host/mod.rs) 也不再调用 `slint::include_modules!()`；former generated DTO/callback seam 由 [`host_contract/window.rs`](../../zircon_editor/src/ui/retained_host/host_contract/window.rs)、[`host_contract/globals.rs`](../../zircon_editor/src/ui/retained_host/host_contract/globals.rs) 和 [`host_contract/data/**`](../../zircon_editor/src/ui/retained_host/host_contract/data/mod.rs) 承接。
+当前 editor host authority 链路是：[`zircon_editor/assets/ui/editor/**/*.ui.toml`](../../zircon_editor/assets/ui/editor/host/workbench_shell.zui) -> shared `UiAssetLoader` / `UiDocumentCompiler` / `UiTemplateSurfaceBuilder` -> `PanePresentation` / `ViewTemplateNodeData` -> [`zircon_editor::ui::retained_host::host_contract`](../../zircon_editor/src/ui/retained_host/host_contract/mod.rs)。[`zircon_editor/build.rs`](../../zircon_editor/build.rs) 不再运行 `slint_build`、不再 staging migration Slint trees 到 `OUT_DIR`，[`retained_host/mod.rs`](../../zircon_editor/src/ui/retained_host/mod.rs) 也不再调用 `slint::include_modules!()`；former generated DTO/callback seam 由 [`host_contract/window.rs`](../../zircon_editor/src/ui/retained_host/host_contract/window.rs)、[`host_contract/globals.rs`](../../zircon_editor/src/ui/retained_host/host_contract/globals.rs) 和 [`host_contract/data/**`](../../zircon_editor/src/ui/retained_host/host_contract/data/mod.rs) 承接。
 
 Rust projection owner 在本次 DTO cutover 中仍是 [`src/ui/layouts/windows/workbench_host_window`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/mod.rs)，而不是 plan 早期样例里的 `host_window` move target。`generic_host_layout_paths` 因此同时守住两件事：active `zircon_editor/ui` 无 `.slint` 源，以及当前 Rust host projection seam 继续存在，避免新代码为了“补回入口”而恢复 `ui/workbench.slint`、`temp/slint-migration/**`、generated Slint include 或 `as slint_ui` 兼容别名。
 
-Runtime 侧的 cutover 不需要 editor host 的 Slint bootstrap：[`RuntimeUiManager`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs) 从 runtime fixture `.v2.ui.toml` 通过 `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> ui::v2::surface_tree` 构建 owned `UiSurface`，输入事件通过 shared surface dispatch，`build_frame()` 只把 `UiRenderExtract` 交给 graphics。`runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces` 已覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList` 和 `QuestLogDialog` 五个 runtime fixtures；`render_framework_submits_all_builtin_runtime_ui_fixtures` 继续覆盖这些 fixture 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。
+Runtime 侧不需要 editor host 的 Slint bootstrap。当前 [`RuntimeUiManager`](../../zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs) 已硬切为 test-support 验证器，而不是 product runtime API；它从 runtime `.zui` fixtures 经 `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> ui::v2::surface_tree` 构建 owned `UiSurface`，再把 `UiRenderExtract` 交给 graphics。`runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces` 覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList` 和 `QuestLogDialog` 五个 fixtures；`render_framework_submits_all_builtin_runtime_ui_fixtures` 继续验证这些 fixture 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。生产侧直接消费共享 UI surface/frame contract，不保留旧 `ui/runtime_ui` manager facade。
 
 ## Runtime Typography Metadata
 
@@ -884,7 +864,7 @@ text_render_mode = "sdf"
 
 SDF 路径现在还有一个 renderer-local atlas/cache planning owner：[`sdf_atlas.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs)。shared template runtime 仍然只写 `text_render_mode = "sdf"`、`font`、`font_family` 和字号这些中性样式字段；进入 graphics 后，`ScreenSpaceUiSdfAtlas` 会把 resolved SDF text batches 收敛成 glyph slot plan。slot key 包含 glyph、font asset、font family 和字号，因此不同字体或字号的同一字符不会在后续专用 SDF atlas 中错误共用 cache entry；atlas rect 按 key 排序分配，空白字符只保留 advance，不会占用 atlas slot。
 
-SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`sdf_text.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl) 在 UI pass 内 alpha blend 输出。真实字体轮廓由 renderer-local [`sdf_font_bake.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 封装 `fontsdf` 完成：它通过既有 `.font.toml` manifest 解析字体源、为非空白 glyph bake 单通道 SDF alpha、为 whitespace 只保留 advance，并把 glyph metrics/advance/bearing 交回 quad planner。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；template runtime 仍然不暴露 GPU atlas、SDF crate 或 shader 细节。
+SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`zr_text_sdf.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl) 在 UI pass 内 alpha blend 输出。真实字体轮廓由 renderer-local [`sdf_font_bake.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 封装 `fontsdf` 完成：它通过既有 `.font.toml` manifest 解析字体源、为非空白 glyph bake 单通道 SDF alpha、为 whitespace 只保留 advance，并把 glyph metrics/advance/bearing 交回 quad planner。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；template runtime 仍然不暴露 GPU atlas、SDF crate 或 shader 细节。
 
 普通文本渲染兼容性由 `ResolvedScreenSpaceUiTextBatches` 负责守住。`Native` 批次和解析为 `Native` 的 `Auto` 批次只进入 normal glyphon backend；`Sdf` 批次和解析为 `Sdf` 的 `Auto` 批次进入 SDF atlas owner 与 GPU SDF renderer。这个 routing contract 让专用 SDF shader 不会误把普通文本迁到 SDF cache，也不会让 SDF atlas state 污染 native-only frame。
 
@@ -1016,7 +996,7 @@ root = { component = "UiHostToolbar", children = [
 - binding 引用保留稳定命名空间
 - 运行时实例展开后不会丢掉这些 binding ref
 
-仓库里这组 builtin host 模板资产现在已经放在 [workbench_shell.ui.toml](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml)。它先覆盖 workbench shell 的复合装配骨架：
+仓库里这组 builtin host 模板资产现在已经放在 [workbench_shell.ui.toml](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui)。它先覆盖 workbench shell 的复合装配骨架：
 
 - `WorkbenchShell`
 - `MenuBar`
@@ -1221,7 +1201,7 @@ The current M3 global surface conformance harness also reads import graphs and r
 
 `zircon_editor` 这一轮又把 shared template runtime 的 builtin root 文档身份往 generic host 边界推进了一步：
 
-- builtin root host 模板现在只以 `ui.host_window` 注册；旧 workbench shell document alias、测试 re-export 和重复 builtin document entry 已删除，同一份 [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 不再被双身份注册
+- builtin root host 模板现在只以 `ui.host_window` 注册；旧 workbench shell document alias、测试 re-export 和重复 builtin document entry 已删除，同一份 [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 不再被双身份注册
 - `UiHostWindow` 相关 component descriptor 也同步改成指向 `ui.host_window`
 - `editor_ui_host_runtime_registers_only_generic_host_window_document_id` 会验证 runtime projection 和 shared surface tree id 都走 `ui.host_window`，`builtin_host_runtime_exposes_only_generic_host_window_document_id` 会守住 `template_runtime` 与对应测试不再恢复旧 alias 常量或旧 literal
 - `EditorUiHostRuntime` 新增 generic `load_builtin_host_templates()`，把“加载一组 builtin host template”与“加载 workbench shell”两个概念拆开
@@ -1235,14 +1215,14 @@ The current M3 global surface conformance harness also reads import graphs and r
 - former `HostMenuChrome` 的业务 menu row 已经从 Slint 硬编码迁到 Rust-owned [`HostMenuChromeData.menus`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs)，由 [`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 从 `WorkbenchViewModel.menu_bar` 投影 `HostMenuChromeMenuData` / `HostMenuChromeItemData`
 - menu pointer layout 同步接收同一份 `MenuBarModel`，让 popup 可见 rows 与 `HostMenuPointerLayout.menus` 的 hit-test/action rows 不再各自维护一套硬编码业务列表；Window menu 仍在 projection 中追加 preset save/load rows，保持现有 `SavePreset.*` / `LoadPreset.*` action contract
 - `HostMenuChrome` 的六个 top-level menu button frame 现在由 `workbench_menu_chrome.ui.toml` 的 `MenuSlot*` frame 投影成 `HostChromeControlFrameData`；popup anchor 和 menu pointer hit-test 共用这些 TOML frame，不再保留 Slint/Rust 侧的 button width/gap/height 常量
-- `HostMenuChrome` 的 popup row 视觉也已经切到 [`workbench_menu_popup.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_menu_popup.ui.toml)：[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 先把 `HostMenuChromeMenuData.items` 投影为 `popup_nodes`，Rust-owned host projection 只用 `TemplatePane` 渲染这些节点并保留整窗透明 pointer 转发，不再用 `MenuItemRow`/`VerticalLayout` 手画业务菜单项。Window menu 超过 16 个 `.ui.toml` authored row slots 时，[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 会把 `MenuPopupItemRow*` / label / shortcut slots 当作 TOML row stencil 投影成 absolute control id；`TemplatePane` 再按 `UiHostContext.menu_state.window_menu_scroll_px` 和 popup viewport height cull offscreen rows，所以 row 16+ 的 visual control id、hover highlight 和 pointer/action item index 保持同一套 absolute row 语义。
+- `HostMenuChrome` 的 popup row 视觉也已经切到 [`workbench_menu_popup.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_menu_popup.zui)：[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 先把 `HostMenuChromeMenuData.items` 投影为 `popup_nodes`，Rust-owned host projection 只用 `TemplatePane` 渲染这些节点并保留整窗透明 pointer 转发，不再用 `MenuItemRow`/`VerticalLayout` 手画业务菜单项。Window menu 超过 16 个 `.ui.toml` authored row slots 时，[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 会把 `MenuPopupItemRow*` / label / shortcut slots 当作 TOML row stencil 投影成 absolute control id；`TemplatePane` 再按 `UiHostContext.menu_state.window_menu_scroll_px` 和 popup viewport height cull offscreen rows，所以 row 16+ 的 visual control id、hover highlight 和 pointer/action item index 保持同一套 absolute row 语义。
 - 2026-04-29 post-review overflow hardening 继续保持 popup panel 视觉来自 TOML：`TemplatePane` 新增 `fixed_control_id` / `fixed_y_offset`，Window menu 滚动时只让 item rows 随 content offset 滚动，`WorkbenchMenuPopupPanel` 用同一份 TOML node counter-scroll 留在 viewport 外框位置；`chrome_template_projection.rs` 同步把 `HostMenuChromeItemData.enabled == false` 投影成 label/shortcut `text_tone = "muted"`，让 disabled row 的视觉状态和 pointer dispatch 的 disabled 状态一致；Window popup scroll 后 `HostMenuPointerBridge` 还会重新 dispatch 当前 pointer `Move`，让 hover row index 立即从新的 scroll offset 下重新求值。
-- Host shell chrome 的视觉尺寸权威已经继续从 `.slint` 迁到 root `.ui.toml`：[`workbench_menu_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml)、[`workbench_page_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml)、[`workbench_dock_header.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml)、[`workbench_status_bar.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_status_bar.ui.toml) 和 [`workbench_activity_rail.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml) 现在描述顶部菜单、Workbench/Page tab、dock header、floating window header、status bar 和 side activity rail 的 label/frame/font/spacing；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 负责把这些 asset 经过 shared `UiTemplateSurfaceBuilder` / layout pass 投影成 `ViewTemplateNodeData`、`HostChromeControlFrameData` 和 `HostChromeTabData`
+- Host shell chrome 的视觉尺寸权威已经继续从 `.slint` 迁到 root `.ui.toml`：[`workbench_menu_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_menu_chrome.zui)、[`workbench_page_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_page_chrome.zui)、[`workbench_dock_header.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_dock_header.zui)、[`workbench_status_bar.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_status_bar.zui) 和 [`workbench_activity_rail.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_activity_rail.zui) 现在描述顶部菜单、Workbench/Page tab、dock header、floating window header、status bar 和 side activity rail 的 label/frame/font/spacing；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 负责把这些 asset 经过 shared `UiTemplateSurfaceBuilder` / layout pass 投影成 `ViewTemplateNodeData`、`HostChromeControlFrameData` 和 `HostChromeTabData`
 - former host Slint files are no longer active assets or test references: their last active responsibilities have been replaced by `TemplatePane` nodes plus Rust-owned transparent input forwarding; current Rust-owned host contract continues to expose the callback/DTO surface, while input frame、activity rail visual、status text 和 floating header chrome visual 不再由 Slint button/chip/text 控件手写
 - `HostPageChrome` 的透明 page-tab hitbox 现在把 tab frame 和 pointer fact 转成相对 `page_data.tab_row_frame` 的坐标再发给 `host_page_pointer_clicked`；`HostPagePointerBridge` 仍负责叠加 strip frame，因此 retained adapter 不会把 top chrome/page strip origin 重复加一次
-- 2026-04-29 追加修正：[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 把 `HostPageStripRoot` 作为 `WorkbenchMenuBarRoot` 与 `WorkbenchBody` 之间的真实 vertical band，而不是隐藏的 overlay marker；current follow-up below supersedes the older metric-only boundary that was used before the menu and activity rail sizes converged.
-- 2026-05-09 root-shell geometry follow-up：[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 现在以 `24px` menu bar、`32px` `HostPageStripRoot`、`1px` separator、`24px` status bar 和 `44px` activity rail 作为当前 frame authority；因此 `WorkbenchBody` / activity rail / document host 的 top boundary 是 `57px`，1280x720 的 document frame 是 `44,57,1236,639`，960x540 的 document frame 是 `44,57,916,459`。`floating_window_source.ui.toml` 已同步把 dedicated floating source 的 top spacer 和 rail width 收敛到同一 `57px` / `44px` frame authority；drawer source 在 standalone fallback 中仍可用旧 metric estimate，但 `BuiltinHostWindowTemplateBridge` 会在真实 workbench projection 中用 `WorkbenchBody` 与 `StatusBarRoot` anchors 重算 drawer source frame。
-- [`workbench_page_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml) 的 `WorkbenchPageBar` 已从 24px 提升到 32px，page tab hitbox 同步为 108x30；当前 Rust-owned `HostPageChromeData` 的 fallback `host_bar_height_px` 也同步为 32px，避免首帧/空数据状态短暂回落到旧高度；[`WorkbenchChromeMetrics`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/autolayout/workbench_chrome_metrics.rs) 的 `host_bar_height` 与 `status_bar_height` 也和这条 shell/template contract 对齐，避免 asset 视觉尺寸和 Rust fallback geometry 再次分叉
+- 2026-04-29 追加修正：[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 把 `HostPageStripRoot` 作为 `WorkbenchMenuBarRoot` 与 `WorkbenchBody` 之间的真实 vertical band，而不是隐藏的 overlay marker；current follow-up below supersedes the older metric-only boundary that was used before the menu and activity rail sizes converged.
+- 2026-05-09 root-shell geometry follow-up：[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 现在以 `24px` menu bar、`32px` `HostPageStripRoot`、`1px` separator、`24px` status bar 和 `44px` activity rail 作为当前 frame authority；因此 `WorkbenchBody` / activity rail / document host 的 top boundary 是 `57px`，1280x720 的 document frame 是 `44,57,1236,639`，960x540 的 document frame 是 `44,57,916,459`。`floating_window_source.ui.toml` 已同步把 dedicated floating source 的 top spacer 和 rail width 收敛到同一 `57px` / `44px` frame authority；drawer source 在 standalone fallback 中仍可用旧 metric estimate，但 `BuiltinHostWindowTemplateBridge` 会在真实 workbench projection 中用 `WorkbenchBody` 与 `StatusBarRoot` anchors 重算 drawer source frame。
+- [`workbench_page_chrome.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_page_chrome.zui) 的 `WorkbenchPageBar` 已从 24px 提升到 32px，page tab hitbox 同步为 108x30；当前 Rust-owned `HostPageChromeData` 的 fallback `host_bar_height_px` 也同步为 32px，避免首帧/空数据状态短暂回落到旧高度；[`WorkbenchChromeMetrics`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/autolayout/workbench_chrome_metrics.rs) 的 `host_bar_height` 与 `status_bar_height` 也和这条 shell/template contract 对齐，避免 asset 视觉尺寸和 Rust fallback geometry 再次分叉
 - 2026-05-06 menu shell 继续向 Slate-like 数据和命中路径收敛：`MenuItemModel` 支持 branch/leaf tree，extension menu 按 `EditorOperationDescriptor.menu_path` / `EditorMenuItemDescriptor.path` 插入多级路径，当前 native popup renderer 仍用 flattened rows 作为兼容显示层，但 `HostMenuPointerLayout.menus` 和 `HostMenuChromeData.items` 来自同一棵菜单模型。`popup_layout.rs` 会按 shell frame clamp popup x/y，高度超出时保留滚动 viewport；`HostMenuPointerBridge` 不再只允许 Window menu 滚动，所有打开的菜单都能通过统一 popup scroll state 重新计算 hover/item route。Rust-owned painter 还直接绘制 projected top-level menu labels，防止 template text 丢失时任务栏不可见。
 - 2026-05-06 operation dispatch follow-up keeps that flattened display layer from becoming a second menu authority: branch rows are disabled breadcrumb labels, leaf rows preserve either legacy `MenuAction` ids or `EditorOperationPath` ids, and shared menu pointer clicks dispatch extension operation payloads through the runtime operation stack instead of trying to parse them as old menu actions.
 - 2026-05-07 M4 menu overflow follow-up keeps popup hit geometry in the shared pointer bridge instead of adding a new host hit table. `HostMenuPointerLayout.menu_overflow_mode` defaults to `Auto`; when explicitly set to `MenuOverflowMode::MultiColumn`, `popup_layout.rs` computes a bounded `PopupGridLayout`, caps width/height to the host shell, clamps the popup after its multi-column width is known, and `host_menu_pointer_bridge_rebuild_surface.rs` places rows by column while retaining absolute action indices. The focused module contract is documented in [`docs/zircon_editor/ui/retained_host/menu_pointer/mod.md`](../zircon_editor/ui/retained_host/menu_pointer/mod.md).
@@ -1255,7 +1235,7 @@ The current M3 global surface conformance harness also reads import graphs and r
 - Rust root shell frames DTO 也已经从 `BuiltinWorkbenchRootShellFrames` / `workbench_body_frame` 收口为 `BuiltinHostRootShellFrames` / `host_body_frame`
 - Rust builtin host projection builder 也已经从 `build_builtin_workbench_host_projection` 收口为 `build_builtin_host_window_projection`
 - Rust drawer source bridge 也已经从 `BuiltinWorkbenchDrawerSource*` / `build_builtin_workbench_drawer_source_surface` 收口为 `BuiltinHostDrawerSource*` / `build_builtin_host_drawer_source_surface`
-- 2026-04-29 drawer source projection 又把 compact bottom drawer height limit 下沉到 shared drawer-source layout：[`workbench_drawer_source/layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench_drawer_source/layout.rs) 在 host projection 消费前就对 bottom drawer frame 做同一套 compact clamp，因此 root host、host window bridge 和 zeroed legacy geometry 路径都消费同一份 shared frame truth，而不是分别在上层重算 bottom/center extents
+- 2026-04-29 drawer source projection 又把 compact bottom drawer height limit 下沉到 shared drawer-source layout：[`workbench_drawer_source/layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs) 在 host projection 消费前就对 bottom drawer frame 做同一套 compact clamp，因此 root host、host window bridge 和 zeroed legacy geometry 路径都消费同一份 shared frame truth，而不是分别在上层重算 bottom/center extents
 - 2026-05-09 drawer/floating source validation 继续锁住这条权威链：`workbench_projection`、`drawer_source_projection`、`floating_window_source`、`shared_surface`、`retained_host_page_pointer`、`retained_activity_rail_pointer` 和 `retained_callback_dispatch::workbench::template_bridge` focused tests 都按 current `.ui.toml` frame authority 通过；其中 `OpenProject` 是 `76x24`，`ResetLayout` 是 `96x24`，不再回到旧的 `120x32` host-template expectation。
 - 2026-05-10 retained/template performance follow-up keeps drawer-source and floating-window source bridges on long-lived bridge-owned `UiSurface` values. `BuiltinHostDrawerSourceTemplateBridge` now uses `rebuild_builtin_host_drawer_source_surface(...)` / `rebuild_builtin_host_drawer_source_surface_with_anchors(...)` for all recompute paths instead of replacing the surface after construction. `workbench_drawer_source/layout.rs` mutates the existing tree constraints/visibility, marks roots layout dirty so shell-size-only recomputes still pass through shared incremental layout, and then calls `UiSurface::rebuild_dirty(shell_size)`. `BuiltinFloatingWindowSourceTemplateBridge` follows the same retained-surface pattern through `rebuild_builtin_floating_window_source_surface(...)`. The reuse tests compare stable node ids and render command counts and additionally require a positive `render_command_reused_count`, so a fresh surface rebuild cannot satisfy the reuse guard just by deterministically allocating the same node ids.
 - 2026-05-09 retained SVG / Material / full-lib validation 继续锁住 template runtime 到 Rust-owned host 的当前状态：focused SVG checks covered `preview_loader_rasterizes_svg_icon_candidates`, `runtime_svg_icon_pixels_follow_requested_target_size`, `template_svg_icon_pixels_follow_requested_target_size`, `native_host_painter_draws_template_svg_image_pixels`, and `rust_owned_host_painter_resolves_runtime_svg_image_assets`; Material/root-shell focused checks covered `pane_body_documents`, `inspector_surface`, `workbench_projection_cutover`, `component_adapter`, `workbench::reflection::action_dispatch`, and `ui::retained_host::ui::tests::component_showcase`. The full redirected serial editor-lib gate `cargo test -p zircon_editor --lib --locked --target-dir target\codex-shared-a -- --test-threads=1` passed with `1162 passed; 0 failed; 4 ignored` after classifying earlier visible timeout stops as command-budget artifacts. A fresh recheck also passed `native_root_menu_pointer_click_dispatches_shared_menu_action_in_real_host` in 14.05s after compile, then passed the full redirected serial editor-lib gate again with `1162 passed; 0 failed; 4 ignored; finished in 2126.68s`.
@@ -1305,11 +1285,11 @@ Post-review guard hardening 又把 `generic_host_boundary.rs` 的 source guard �
 
 最终 review 还指出 enabled shortcut text-tone 被 disabled-state helper 误覆盖成 `default`，会破坏 `workbench_menu_popup.ui.toml` 对 shortcut 的 muted 视觉权威。随后把 `menu_popup_nodes_project_absolute_rows_beyond_authored_slots` 扩成 RED，确认 `MenuPopupItemShortcut16` 从 `muted` 变成 `default`；GREEN 后只在 `!item.enabled` 时覆盖 label/shortcut 为 `muted`，enabled shortcut 保留 TOML-authored tone。复跑该 focused test、`retained_menu_pointer`、`generic_host_boundary`、`cargo check -p zircon_editor --lib` 和 `rustfmt --edition 2021 --check` 均通过。
 
-2026-04-29 status bar cutover 继续削掉 host scene 中 former deleted-Slint-shell visual authority：新增 [`workbench_status_bar.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_status_bar.ui.toml) 定义 `WorkbenchStatusBarRoot`、separator、panel、primary/secondary/viewport labels；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 通过 `status_bar_nodes(...)` 把 `HostStatusBarData.status_primary/status_secondary/viewport_label` 覆盖进 template labels。当前 status bar visual authority 是 `.ui.toml` asset + Rust-owned host projection；deleted Slint copy is non-authoritative and is not a render/test source. TDD 证据：`host_status_bar_visuals_come_from_ui_toml_template_nodes` 先在缺少 `workbench_status_bar.ui.toml` 时 RED，GREEN 后 standalone source guard 通过；随后 `cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 32 passed / 0 failed / 874 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过。
+2026-04-29 status bar cutover 继续削掉 host scene 中 former deleted-Slint-shell visual authority：新增 [`workbench_status_bar.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_status_bar.zui) 定义 `WorkbenchStatusBarRoot`、separator、panel、primary/secondary/viewport labels；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 通过 `status_bar_nodes(...)` 把 `HostStatusBarData.status_primary/status_secondary/viewport_label` 覆盖进 template labels。当前 status bar visual authority 是 `.ui.toml` asset + Rust-owned host projection；deleted Slint copy is non-authoritative and is not a render/test source. TDD 证据：`host_status_bar_visuals_come_from_ui_toml_template_nodes` 先在缺少 `workbench_status_bar.ui.toml` 时 RED，GREEN 后 standalone source guard 通过；随后 `cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 32 passed / 0 failed / 874 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过。
 
-2026-04-29 floating window header cutover 继续复用 dock header template seam：[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 新增 `floating_window_header_nodes(...)`，把 floating window tab titles 和 window title 覆盖进 [`workbench_dock_header.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml) 的 `DockTab*` / `DockSubtitle` stencil；[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 再把 `header_nodes`、`header_frame` 和 `tab_frames` 写入每个 `FloatingWindowData`。当前 floating header authority 是 `workbench_dock_header.ui.toml` + Rust-owned host projection/input forwarding；deleted floating-window Slint copies are non-authoritative. TDD 证据：`host_floating_window_headers_use_projected_template_nodes` 先在缺少 `floating_window_header_nodes` 时 RED，GREEN 后 standalone source guard 通过；随后 `cargo test -p zircon_editor --lib host_floating_window_headers_use_projected_template_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 906 filtered out，`cargo test -p zircon_editor --lib native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 906 filtered out，`cargo test -p zircon_editor --lib retained_tab_drag --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 35 passed / 0 failed / 872 filtered out，最终格式后复跑 `cargo test -p zircon_editor --lib retained_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 41 passed / 0 failed / 866 filtered out，`cargo test -p zircon_editor --lib retained_tab_drag --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 35 passed / 0 failed / 872 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过；触及 Rust 文件的 `rustfmt --edition 2021 --check` 通过，targeted `git diff --check` 仅报告 Windows LF-to-CRLF 提示。
+2026-04-29 floating window header cutover 继续复用 dock header template seam：[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 新增 `floating_window_header_nodes(...)`，把 floating window tab titles 和 window title 覆盖进 [`workbench_dock_header.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_dock_header.zui) 的 `DockTab*` / `DockSubtitle` stencil；[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 再把 `header_nodes`、`header_frame` 和 `tab_frames` 写入每个 `FloatingWindowData`。当前 floating header authority 是 `workbench_dock_header.ui.toml` + Rust-owned host projection/input forwarding；deleted floating-window Slint copies are non-authoritative. TDD 证据：`host_floating_window_headers_use_projected_template_nodes` 先在缺少 `floating_window_header_nodes` 时 RED，GREEN 后 standalone source guard 通过；随后 `cargo test -p zircon_editor --lib host_floating_window_headers_use_projected_template_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 906 filtered out，`cargo test -p zircon_editor --lib native_floating_window_mode_forwards_tabs_header_and_pane_callbacks_to_root --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 906 filtered out，`cargo test -p zircon_editor --lib retained_tab_drag --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 35 passed / 0 failed / 872 filtered out，最终格式后复跑 `cargo test -p zircon_editor --lib retained_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 41 passed / 0 failed / 866 filtered out，`cargo test -p zircon_editor --lib retained_tab_drag --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 35 passed / 0 failed / 872 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过；触及 Rust 文件的 `rustfmt --edition 2021 --check` 通过，targeted `git diff --check` 仅报告 Windows LF-to-CRLF 提示。
 
-2026-04-29 side activity rail cutover 继续削掉 side dock 中 former deleted-Slint-shell visual authority：新增 [`workbench_activity_rail.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml) 定义 `ActivityRailPanel`、两行 `ActivityRailButton*` stencil 和 `ActivityRailButtonLabel*` label stencil；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 新增 `activity_rail_nodes(...)`、`activity_rail_button_frames(...)` 和 `activity_rail_active_control_id(...)`，把 side dock tabs 投影为 absolute rail control ids、active inset surface variant 和 active highlighted label；[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 把这些 rail nodes/frame/id 写入 left/right `HostSideDockSurfaceData`。当前 side rail visual/frame authority 是 `workbench_activity_rail.ui.toml` + Rust-owned host projection；deleted side-dock Slint copy is non-authoritative. TDD 证据：`host_side_activity_rails_use_projected_template_nodes` 先在缺少 `workbench_activity_rail.ui.toml` 时 RED，随后又暴露 helper 名称残留 `RailButton` 的 guard failure；GREEN 后 standalone source guard 通过，`cargo test -p zircon_editor --lib host_side_activity_rails_use_projected_template_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 907 filtered out，`cargo test -p zircon_editor --lib retained_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 42 passed / 0 failed / 866 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过；触及 Rust 文件 `rustfmt --edition 2021 --check` 通过，targeted `git diff --check` 仅报告 LF-to-CRLF warning。
+2026-04-29 side activity rail cutover 继续削掉 side dock 中 former deleted-Slint-shell visual authority：新增 [`workbench_activity_rail.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_activity_rail.zui) 定义 `ActivityRailPanel`、两行 `ActivityRailButton*` stencil 和 `ActivityRailButtonLabel*` label stencil；[`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) 新增 `activity_rail_nodes(...)`、`activity_rail_button_frames(...)` 和 `activity_rail_active_control_id(...)`，把 side dock tabs 投影为 absolute rail control ids、active inset surface variant 和 active highlighted label；[`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 把这些 rail nodes/frame/id 写入 left/right `HostSideDockSurfaceData`。当前 side rail visual/frame authority 是 `workbench_activity_rail.ui.toml` + Rust-owned host projection；deleted side-dock Slint copy is non-authoritative. TDD 证据：`host_side_activity_rails_use_projected_template_nodes` 先在缺少 `workbench_activity_rail.ui.toml` 时 RED，随后又暴露 helper 名称残留 `RailButton` 的 guard failure；GREEN 后 standalone source guard 通过，`cargo test -p zircon_editor --lib host_side_activity_rails_use_projected_template_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 1 passed / 0 failed / 907 filtered out，`cargo test -p zircon_editor --lib retained_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short -- --test-threads=1 --nocapture` 通过 42 passed / 0 failed / 866 filtered out，`cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-statusbar-ui-toml --message-format short --color never` 通过；触及 Rust 文件 `rustfmt --edition 2021 --check` 通过，targeted `git diff --check` 仅报告 LF-to-CRLF warning。
 
 2026-04-29 后续 editor/template closeout 把 stale Slint/template expectations 与 drawer shared-source projection 收口到当前 shared truth：document tab/native floating source guards 改为检查 `UiHostContext` generic callbacks，repository snapshot 跟随 `workbench_shell.ui.toml` 的真实 root children，welcome mount 和 floating-window projection 断言改为消费 shared pane/source frame，drawer source bottom compaction 则在 shared `workbench_drawer_source/layout.rs` 里完成。最新 broad editor lib 复跑在 `D:\cargo-targets\zircon-render-plugin-final` 通过 `cargo test -p zircon_editor --lib --locked --jobs 1 --color never -- --test-threads=1`，结果 906 passed / 0 failed / 1 ignored；同一延续的 Runtime UI suite 通过 `cargo test -p zircon_runtime --lib ui::tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`，结果 126 passed / 0 failed，并覆盖 `render_extract_uses_label_when_schema_text_default_is_empty` 的 shared text/label fallback。
 
@@ -1329,7 +1309,7 @@ Post-review guard hardening 又把 `generic_host_boundary.rs` 的 source guard �
 
 这样 shared template runtime 对外暴露的默认 root 入口已经不再是 workbench 业务名；旧 builtin host document alias 已删除，`workbench` 只剩资产文件名、业务域名和未迁完的 editor shell 子结构，而不是 root document identity。后续继续做 `Generic host boundary` 时，就可以在不改 shared runtime 主入口命名的前提下，逐步削掉 former Slint business shell 和 builtin projection 里的业务壳结构。
 
-2026-05-05 Material meta component support extends the shared template runtime rule for reference components: bindings authored on a component instance are now appended to the expanded component root. This keeps TOML meta components usable as real controls instead of visual-only wrappers, because a reference such as `material_meta_components.ui.toml#MaterialButton` can own the showcase row's `Click` route after expansion. Related code: [`component_instance_expander.rs`](/E:/Git/ZirconEngine/zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs), [`material_meta_components.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/material_meta_components.ui.toml), and [`component_showcase.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.ui.toml). Focused regression coverage lives in `ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets`, which now asserts imported widget references preserve instance-authored bindings.
+2026-05-05 Material meta component support extends the shared template runtime rule for reference components: bindings authored on a component instance are now appended to the expanded component root. This keeps TOML meta components usable as real controls instead of visual-only wrappers, because a reference such as `material_meta_components.ui.toml#MaterialButton` can own the showcase row's `Click` route after expansion. Related code: [`component_instance_expander.rs`](/E:/Git/ZirconEngine/zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs), [`material_meta_components.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/material_components), and [`component_showcase.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.zui). Focused regression coverage lives in `ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets`, which now asserts imported widget references preserve instance-authored bindings.
 
 2026-05-06 Material export coverage extends that same reference-component contract from a first slice to the full material primitive set. The TOML authority now declares the retained Material primitive set as `Material*` components and maps it onto existing Runtime UI controls where possible: buttons and menu items to `Button`, line edits to `InputField`/`TextField`, selection widgets to `ComboBox`/`ToggleButton`/`Checkbox`, scroll/table widgets to `ScrollableBox`/`VirtualList`, and popup widgets to `ContextActionMenu`. This keeps the shared compiler and host projection path generic: adding a Material-flavored button or table row is now a TOML asset change, not a new Rust coordinate or widget shim. Static coverage is locked by `material_meta_components_cover_retained_material_exports`, and projection coverage is extended in `component_showcase_projection_carries_runtime_component_semantics`.
 

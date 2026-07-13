@@ -6,7 +6,7 @@ pub(crate) const PARALLEL_FAILURE_POLICY_PARAMETER_KEY: &str = "failure_policy";
 pub(crate) const BLACKBOARD_KEY_PARAMETER_KEY: &str = "blackboard_key";
 pub(crate) const BLACKBOARD_EXISTS_PARAMETER_KEY: &str = "exists";
 pub(crate) const BLACKBOARD_INVERT_PARAMETER_KEY: &str = "invert";
-pub(crate) const SUBTREE_TARGET_PARAMETER_KEY: &str = "behavior_tree";
+pub(crate) use crate::behavior_tree::SUBTREE_TARGET_PARAMETER_KEY;
 pub(crate) const PERCEPTION_SENSE_PARAMETER_KEY: &str = "perception_sense";
 pub(crate) const PERCEPTION_SOURCE_PARAMETER_KEY: &str = "perception_source";
 pub(crate) const PERCEPTION_MIN_STRENGTH_PARAMETER_KEY: &str = "perception_min_strength";

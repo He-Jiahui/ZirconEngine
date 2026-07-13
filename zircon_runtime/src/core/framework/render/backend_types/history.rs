@@ -67,6 +67,7 @@ pub struct RenderHistoryCopyReport {
     pub screen_space_reflection_copied: bool,
     pub hzb_furthest_copied: bool,
     pub exposure_copied: bool,
+    pub volumetric_scattering_copied: bool,
 }
 
 impl RenderHistoryCopyReport {
@@ -80,6 +81,7 @@ impl RenderHistoryCopyReport {
         screen_space_reflection_copied: bool,
         hzb_furthest_copied: bool,
         exposure_copied: bool,
+        volumetric_scattering_copied: bool,
     ) -> Self {
         Self {
             history_target_present,
@@ -91,13 +93,15 @@ impl RenderHistoryCopyReport {
                 + ambient_occlusion_copied as usize
                 + screen_space_reflection_copied as usize
                 + hzb_furthest_copied as usize
-                + exposure_copied as usize,
+                + exposure_copied as usize
+                + volumetric_scattering_copied as usize,
             scene_color_copied,
             global_illumination_copied,
             ambient_occlusion_copied,
             screen_space_reflection_copied,
             hzb_furthest_copied,
             exposure_copied,
+            volumetric_scattering_copied,
         }
     }
 }

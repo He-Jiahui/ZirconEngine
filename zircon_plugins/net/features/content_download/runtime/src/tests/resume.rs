@@ -4,6 +4,8 @@ use zircon_runtime::core::framework::net::{
 
 use crate::net_content_download_runtime_manager;
 
+use super::support::zrpack_hash;
+
 #[test]
 fn content_download_manager_fails_resumed_http_range_without_existing_prefix() {
     let manager = net_content_download_runtime_manager();
@@ -14,7 +16,7 @@ fn content_download_manager_fails_resumed_http_range_without_existing_prefix() {
             "http://127.0.0.1:9/missing",
             0,
             8,
-            "hash",
+            zrpack_hash(b"hash"),
         )
         .with_resume_from_byte(4),
     );
@@ -41,14 +43,14 @@ fn interrupted_download_resumes_from_bitmap() {
             "https://cdn.example/chunk-0",
             0,
             4,
-            "hash-0",
+            zrpack_hash(b"hash-0"),
         ))
         .with_chunk(NetDownloadChunk::new(
             "chunk-1",
             "https://cdn.example/chunk-1",
             4,
             4,
-            "hash-1",
+            zrpack_hash(b"hash-1"),
         ));
 
     manager.queue_manifest(manifest);

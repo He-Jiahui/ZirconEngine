@@ -304,7 +304,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
   - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/presentation_cache.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
   - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/sync.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
@@ -638,7 +638,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
   - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/presentation_cache.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
   - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/sync.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs

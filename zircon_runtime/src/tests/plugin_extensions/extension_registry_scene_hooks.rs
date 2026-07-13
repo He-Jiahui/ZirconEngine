@@ -1,9 +1,10 @@
 use crate::core::CoreError;
-use crate::plugin::{
-    RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
-    SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
-};
+use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::SystemStage;
+use crate::scene::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
+};
 use std::time::Duration;
 
 #[test]
@@ -190,9 +191,11 @@ fn level_tick_dispatches_installed_scene_hooks_in_schedule_order() {
             "pre-update",
         ))
         .expect("pre-update hook contribution");
-    runtime
-        .install_scene_runtime_hooks(&registry)
-        .expect("install scene hooks into core runtime");
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .expect("install scene hooks into core runtime");
 
     let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
@@ -240,9 +243,11 @@ fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
             "fixed-post-update",
         ))
         .expect("fixed post-update hook contribution");
-    runtime
-        .install_scene_runtime_hooks(&registry)
-        .expect("install fixed scene hooks into core runtime");
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .expect("install fixed scene hooks into core runtime");
 
     let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
     let advance = runtime.advance_time_by(Duration::from_millis(25), 8);
@@ -281,9 +286,11 @@ fn level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained() {
             "fixed-update",
         ))
         .expect("fixed update hook contribution");
-    runtime
-        .install_scene_runtime_hooks(&registry)
-        .expect("install fixed scene hooks into core runtime");
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .expect("install fixed scene hooks into core runtime");
 
     let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
     let advance = runtime.advance_time_by(Duration::from_millis(5), 8);
@@ -314,9 +321,11 @@ fn level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance() {
             "fixed-update",
         ))
         .expect("fixed update hook contribution");
-    runtime
-        .install_scene_runtime_hooks(&registry)
-        .expect("install fixed scene hooks into core runtime");
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .expect("install fixed scene hooks into core runtime");
 
     let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
     let advance = runtime.advance_time_by(Duration::from_millis(50), 3);

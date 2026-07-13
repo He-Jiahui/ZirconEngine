@@ -12,10 +12,12 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     runtime
-        .register_document_file("ui.host_window.file", template_path)
+        .register_document_file("test://ui/host-window-file", template_path)
         .unwrap();
 
-    let projection = runtime.project_document("ui.host_window.file").unwrap();
+    let projection = runtime
+        .project_document("test://ui/host-window-file")
+        .unwrap();
     assert_eq!(projection.root.component, "UiHostWindow");
     assert_eq!(projection.root.children.len(), 4);
     assert_eq!(projection.root.children[0].component, "VerticalGroup");

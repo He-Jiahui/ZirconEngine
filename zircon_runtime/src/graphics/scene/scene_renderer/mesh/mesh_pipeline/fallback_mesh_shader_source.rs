@@ -5,6 +5,10 @@ pub(crate) const FALLBACK_MESH_SHADER: &str = concat!(
     "\n",
     include_str!("../../shadow/shaders/zr_shadow.wgsl"),
     "\n",
+    include_str!("../../../../shader/wgsl/zr_volumetric.wgsl"),
+    "\n",
+    include_str!("../../../../shader/wgsl/zr_lightmap.wgsl"),
+    "\n",
     include_str!("../shaders/fallback_mesh.wgsl"),
     "\n",
     include_str!("../../../../shader/wgsl/zr_environment.wgsl")
@@ -24,9 +28,10 @@ mod tests {
             FALLBACK_MESH_SHADER.contains("@group(3) @binding(2) var<storage, read> zr_light_data")
         );
         assert!(FALLBACK_MESH_SHADER
-            .contains("@group(3) @binding(3) var<uniform> zr_skinned_joint_palette"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette"));
+            .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette"
+        ));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_world_from_local(instance_index: u32)"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_gpu_scene_light_count() -> u32"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_skinned_joint_count() -> u32"));
@@ -96,6 +101,35 @@ mod tests {
     }
 
     #[test]
+    fn fallback_mesh_shader_applies_integrated_volumetric_lighting() {
+        for expected in [
+            "@group(1) @binding(25) var<uniform> zr_volumetric_apply_params",
+            "@group(1) @binding(26) var zr_volumetric_integrated: texture_3d<f32>;",
+            "@group(1) @binding(27) var zr_volumetric_sampler: sampler;",
+            "fn zr_volumetric_apply(",
+            "zr_volumetric_apply(shaded, input.clip_position.xy, input.clip_position.z)",
+        ] {
+            assert!(
+                FALLBACK_MESH_SHADER.contains(expected),
+                "fallback mesh shader should use volumetric contract `{expected}`"
+            );
+        }
+    }
+
+    #[test]
+    fn fallback_mesh_shader_consumes_baked_lightmap_or_probe_indirect() {
+        for expected in [
+            "@group(1) @binding(23) var<storage, read> zr_light_probe_grid",
+            "@group(1) @binding(24) var zr_lightmap_atlas: texture_2d_array<f32>;",
+            "@group(1) @binding(28) var zr_lightmap_sampler: sampler;",
+            "fn zr_lightmap_baked_irradiance(",
+            "zr_lightmap_baked_irradiance(",
+        ] {
+            assert!(FALLBACK_MESH_SHADER.contains(expected));
+        }
+    }
+
+    #[test]
     fn fallback_mesh_shader_is_valid_wgsl() {
         let module = naga::front::wgsl::parse_str(FALLBACK_MESH_SHADER)
             .unwrap_or_else(|error| panic!("{}", error.emit_to_string(FALLBACK_MESH_SHADER)));
@@ -130,8 +164,10 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER
             .contains("let direct_lights = gpu_light_lighting(input.clip_position.xy"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_pbr_indirect"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_is_realtime_ibl"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_procedural_sky_color"));
         assert!(FALLBACK_MESH_SHADER.contains("scene.environment_sample_params.x"));
-        assert!(FALLBACK_MESH_SHADER.contains("scene.environment_sh9[0].rgb"));
+        assert!(FALLBACK_MESH_SHADER.contains("zr_environment_sh9.coefficients[0].rgb"));
         assert!(FALLBACK_MESH_SHADER.contains("override ZR_ENV_DIFFUSE_IEM: bool = false;"));
         assert!(FALLBACK_MESH_SHADER
             .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"));
@@ -145,6 +181,8 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"
         ));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;"));
         assert!(FALLBACK_MESH_SHADER
             .contains("@group(1) @binding(16) var<storage, read> zr_env_probes"));
         assert!(FALLBACK_MESH_SHADER
@@ -169,8 +207,9 @@ mod tests {
         assert!(
             FALLBACK_MESH_SHADER.contains("let environment_lights = zr_environment_pbr_indirect(")
         );
-        assert!(FALLBACK_MESH_SHADER
-            .contains("let lit = diffuse_color * ambient + direct_lights + environment_lights;"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "let lit = diffuse_color * ambient + direct_lights + environment_lights + baked_indirect;"
+        ));
         assert!(!FALLBACK_MESH_SHADER.contains("for (var i = 0u; i < light_count; i = i + 1u)"));
         assert!(!FALLBACK_MESH_SHADER.contains("point_light_position_range"));
         assert!(!FALLBACK_MESH_SHADER.contains("point_light_color_intensity"));
@@ -305,7 +344,8 @@ mod tests {
             "return shade_blinn_phong_light_vector(light_vector, radiance, world_normal, material, diffuse_color);",
             "return shade_standard_pbr_light_vector(light_vector, radiance, world_normal, material, diffuse_color);",
             "material.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID",
-            "return vec4<f32>(material.albedo.rgb + material.emissive, material.albedo.a);",
+            "let shaded = material.albedo.rgb + material.emissive;",
+            "zr_volumetric_apply(shaded, input.clip_position.xy, input.clip_position.z)",
         ] {
             assert!(
                 FALLBACK_MESH_SHADER.contains(expected),
@@ -318,14 +358,14 @@ mod tests {
 
     #[test]
     fn fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag() {
-        assert!(FALLBACK_MESH_SHADER.contains("struct ZrSkinnedJointPaletteUniform"));
+        assert!(FALLBACK_MESH_SHADER.contains("struct ZrSkinnedJointPaletteStorage"));
         assert!(FALLBACK_MESH_SHADER.contains("joint_matrices: array<mat4x4<f32>, 256>"));
         assert!(FALLBACK_MESH_SHADER.contains("params: vec4<u32>"));
         assert!(FALLBACK_MESH_SHADER.contains(
-            "@group(3) @binding(3) var<uniform> zr_skinned_joint_palette: ZrSkinnedJointPaletteUniform;"
+            "@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette: ZrSkinnedJointPaletteStorage;"
         ));
         assert!(FALLBACK_MESH_SHADER.contains(
-            "@group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteUniform;"
+            "@group(3) @binding(4) var<storage, read> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteStorage;"
         ));
         assert!(FALLBACK_MESH_SHADER
             .contains("fn zr_skinned_joint_matrix(joint_index: u32) -> mat4x4<f32>"));

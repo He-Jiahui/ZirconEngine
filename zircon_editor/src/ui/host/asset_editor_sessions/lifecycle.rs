@@ -2,6 +2,7 @@ use std::fs;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
+use crate::core::asset::AssetToolkitOpenRoute;
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorPanePresentation, UiAssetEditorReflectionModel,
     UiAssetEditorRoute, UiAssetEditorShellState,
@@ -100,28 +101,42 @@ impl EditorUiHost {
         &self,
         instance: &ViewInstance,
     ) -> Result<(), EditorError> {
-        let route: UiAssetEditorRoute =
-            if let Ok(route) = serde_json::from_value(instance.serializable_payload.clone()) {
-                route
-            } else if let Some(asset_id) = instance
+        let has_toolkit_route_shape = instance.serializable_payload.get("asset_locator").is_some()
+            || instance
                 .serializable_payload
-                .get("path")
-                .and_then(|value| value.as_str())
-            {
-                let source_path = self.resolve_ui_asset_path(asset_id)?;
-                let source = fs::read_to_string(&source_path)
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-                ui_asset_editor_route_from_source(asset_id, &source, UiAssetEditorMode::Design)
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?
-            } else {
-                return Err(EditorError::UiAsset(format!(
-                    "invalid ui asset route for {}",
-                    instance.instance_id.0
-                )));
-            };
-        let source_path = self.resolve_ui_asset_path(&route.asset_id)?;
-        let source = fs::read_to_string(&source_path)
+                .get("open_operation")
+                .is_some();
+        let (route, source_path, source) = if has_toolkit_route_shape {
+            let toolkit_route: AssetToolkitOpenRoute =
+                serde_json::from_value(instance.serializable_payload.clone()).map_err(|error| {
+                    EditorError::UiAsset(format!(
+                        "invalid asset toolkit route for {}: {error}",
+                        instance.instance_id.0
+                    ))
+                })?;
+            let source_path = self.resolve_asset_locator_path(toolkit_route.asset_locator())?;
+            let source = fs::read_to_string(&source_path)
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+            let route = ui_asset_editor_route_from_source(
+                toolkit_route.asset_locator().to_string(),
+                &source,
+                UiAssetEditorMode::Design,
+            )
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+            (route, source_path, source)
+        } else {
+            let route: UiAssetEditorRoute =
+                serde_json::from_value(instance.serializable_payload.clone()).map_err(|error| {
+                    EditorError::UiAsset(format!(
+                        "invalid ui asset route for {}: {error}",
+                        instance.instance_id.0
+                    ))
+                })?;
+            let source_path = self.resolve_ui_asset_path(&route.asset_id)?;
+            let source = fs::read_to_string(&source_path)
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+            (route, source_path, source)
+        };
         let preview_size = preview_size_for_preset(route.preview_preset);
         let session =
             build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)

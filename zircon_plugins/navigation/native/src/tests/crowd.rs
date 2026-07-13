@@ -1,5 +1,5 @@
-use zircon_runtime::asset::{NavMeshAreaCostAsset, NavMeshAsset};
 use zircon_runtime::core::framework::navigation::NavMeshAgentDescriptor;
+use zircon_runtime::core::framework::navigation::{NavMeshAreaCostAsset, NavMeshAsset};
 
 use crate::{RecastCrowd, RecastCrowdConfig};
 

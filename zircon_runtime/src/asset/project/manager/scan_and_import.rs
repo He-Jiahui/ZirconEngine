@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::core::framework::render::{
     shader_project_namespace_from_name, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
@@ -6,10 +6,11 @@ use crate::core::framework::render::{
 use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
 
 use crate::asset::project::{AssetMetaEntry, PreviewState};
+use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{
     stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    ImportedAsset, ImportedAssetEntry,
+    ImportedAsset,
 };
 
 use super::{
@@ -17,28 +18,81 @@ use super::{
     ProjectManager,
 };
 
+mod dependency_resolution;
+mod metadata;
 mod shader_import_dependencies;
 mod sources;
 
+use self::dependency_resolution::{
+    dependencies_for_entry, merge_handwritten_dependencies_into_meta, resolve_imported_dependencies,
+};
+use self::metadata::{
+    apply_importer_metadata, asset_id_for_meta_entry, clear_schema_migration_metadata,
+    config_hash_for_settings, entry_uuid_for_import_entry, existing_entry_tags_for_source,
+    existing_entry_uuids_for_source, failed_entries_for_source, importer_contract_matches,
+    remap_meta_entry_urls_to_source, validate_import_entries,
+};
 use self::sources::{source_bytes_for_import, source_mtime_unix_ms_for_import, AssetImportSource};
 
 impl ProjectManager {
     pub fn scan_and_import(&mut self) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        self.scan_and_import_with_registry_update(
+            None,
+            crate::asset::project::meta_io::AtomicWriteFault::None,
+        )
+    }
+
+    pub fn scan_and_import_watch_changes(
+        &mut self,
+        changes: &[crate::asset::watch::AssetChange],
+    ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        self.scan_and_import_with_registry_update(
+            Some(changes),
+            crate::asset::project::meta_io::AtomicWriteFault::None,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn scan_and_import_watch_changes_with_registry_fault(
+        &mut self,
+        changes: &[crate::asset::watch::AssetChange],
+        fault: crate::asset::project::meta_io::AtomicWriteFault,
+    ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        self.scan_and_import_with_registry_update(Some(changes), fault)
+    }
+
+    fn scan_and_import_with_registry_update(
+        &mut self,
+        watch_changes: Option<&[crate::asset::watch::AssetChange]>,
+        registry_fault: crate::asset::project::meta_io::AtomicWriteFault,
+    ) -> Result<Vec<ResourceRecord>, AssetImportError> {
         let sources = self.collect_import_sources()?;
+        let asset_roots = self.registry_scan_roots();
+        let registry_root = self.paths.registry_root().to_path_buf();
+        // Normalize duplicated sidecar identities before resource ids are derived from them.
+        let duplicate_diagnostics = self
+            .asset_registry
+            .prepare_duplicate_guids(&asset_roots, watch_changes)?;
+        let project_roots = self
+            .manifest
+            .asset_roots
+            .iter()
+            .cloned()
+            .zip(self.package_assets.project_roots().iter().cloned())
+            .collect::<Vec<_>>();
+        let import_registry = std::sync::Arc::new(self.reference_resolution_registry(&sources)?);
+        let project_roots = std::sync::Arc::new(project_roots);
 
         let mut registry = ResourceRegistry::default();
-        let mut asset_ids_by_uuid = HashMap::new();
-        let mut asset_uuids_by_id = HashMap::new();
         let mut dependencies_by_id = HashMap::new();
         let mut shader_import_paths = HashMap::new();
         let mut imported = Vec::with_capacity(sources.len());
-        self.asset_urls_by_uuid.clear();
 
         for source in sources {
             let file = source.path.clone();
             let uri = source.uri.clone();
             let source_bytes = source_bytes_for_import(&source)?;
-            let source_hash = hash_bytes(&source_bytes);
+            let source_digest = hash_bytes(&source_bytes);
             let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
             let descriptor = self.importer.descriptor_for_source(&file).ok();
             let fallback_kind = descriptor
@@ -56,14 +110,15 @@ impl ProjectManager {
             let config_hash = config_hash_for_settings(&import_settings);
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
             let import_context =
-                AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings);
+                AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings)
+                    .with_project_resolver(import_registry.clone(), project_roots.clone());
 
             if let Some(metadata) = self.restore_imported_artifact(
                 &source,
                 &mut meta,
                 meta_exists,
                 &previous_meta,
-                source_hash.clone(),
+                source_digest.clone(),
                 source_mtime_unix_ms,
                 config_hash.clone(),
                 descriptor.as_ref(),
@@ -76,10 +131,16 @@ impl ProjectManager {
                     .and_then(|entry| entry.artifact_locator.as_ref())
                     .map(|locator| self.artifact_store.read(&self.paths, locator))
                     .transpose()?;
+                if let Some(asset) = restored_root_asset.as_ref() {
+                    merge_handwritten_dependencies_into_meta(&mut meta, asset);
+                    if meta != previous_meta {
+                        meta.save(&source.meta_path)?;
+                    }
+                }
                 stage_environment_ibl_import(
                     &import_context,
                     restored_root_asset.as_ref(),
-                    self.paths.library_root(),
+                    self.paths.cache_root(),
                 )?;
                 for record in metadata {
                     let asset_id = record.id();
@@ -88,13 +149,6 @@ impl ProjectManager {
                         dependencies_for_entry(&meta, record.primary_locator()),
                     );
                     registry.upsert(record.clone());
-                    register_record_identity(
-                        &mut asset_ids_by_uuid,
-                        &mut asset_uuids_by_id,
-                        &mut self.asset_urls_by_uuid,
-                        &meta,
-                        &record,
-                    );
                     imported.push(record);
                 }
                 continue;
@@ -107,7 +161,7 @@ impl ProjectManager {
                         stage_environment_ibl_import(
                             &import_context,
                             outcome.root_entry().map(|entry| &entry.asset),
-                            self.paths.library_root(),
+                            self.paths.cache_root(),
                         )
                     });
                     match validation {
@@ -122,7 +176,7 @@ impl ProjectManager {
                                 &mut meta,
                                 meta_exists,
                                 &previous_meta,
-                                source_hash.clone(),
+                                source_digest.clone(),
                                 source_mtime_unix_ms,
                                 config_hash,
                                 descriptor.as_ref(),
@@ -134,7 +188,7 @@ impl ProjectManager {
                             &mut meta,
                             meta_exists,
                             &previous_meta,
-                            source_hash.clone(),
+                            source_digest.clone(),
                             source_mtime_unix_ms,
                             config_hash,
                             descriptor.as_ref(),
@@ -149,7 +203,7 @@ impl ProjectManager {
                     &mut meta,
                     meta_exists,
                     &previous_meta,
-                    source_hash.clone(),
+                    source_digest.clone(),
                     source_mtime_unix_ms,
                     config_hash,
                     descriptor.as_ref(),
@@ -165,13 +219,6 @@ impl ProjectManager {
                     dependencies_for_entry(&meta, record.primary_locator()),
                 );
                 registry.upsert(record.clone());
-                register_record_identity(
-                    &mut asset_ids_by_uuid,
-                    &mut asset_uuids_by_id,
-                    &mut self.asset_urls_by_uuid,
-                    &meta,
-                    &record,
-                );
                 imported.push(record);
             }
         }
@@ -184,9 +231,20 @@ impl ProjectManager {
         )?;
         resolve_imported_dependencies(&mut registry, &mut imported, &dependencies_by_id);
 
+        let mut asset_registry = self.asset_registry.clone();
+        if let Some(changes) = watch_changes {
+            asset_registry.apply_watch_changes_with_atomic_fault(
+                &asset_roots,
+                &registry_root,
+                changes,
+                registry_fault,
+            )?;
+        } else {
+            asset_registry.rebuild_after_import(&asset_roots, &registry_root)?;
+        }
+        asset_registry.replace_duplicate_diagnostics(duplicate_diagnostics);
         self.registry = registry;
-        self.asset_ids_by_uuid = asset_ids_by_uuid;
-        self.asset_uuids_by_id = asset_uuids_by_id;
+        self.asset_registry = asset_registry;
         Ok(imported)
     }
 
@@ -205,6 +263,27 @@ impl ProjectManager {
         settings
     }
 
+    fn reference_resolution_registry(
+        &self,
+        sources: &[AssetImportSource],
+    ) -> Result<AssetRegistryIndex, AssetImportError> {
+        for source in sources {
+            if source.meta_path.exists() {
+                continue;
+            }
+            let fallback_kind = self
+                .importer
+                .descriptor_for_source(&source.path)
+                .map(|descriptor| descriptor.output_kind)
+                .unwrap_or(AssetKind::Data);
+            let meta = load_or_create_meta(&source.meta_path, &source.uri, fallback_kind)?;
+            meta.save(&source.meta_path)?;
+        }
+        Ok(AssetRegistryIndex::inspect_project(
+            self.package_assets.project_roots(),
+        )?)
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn restore_imported_artifact(
         &self,
@@ -212,7 +291,7 @@ impl ProjectManager {
         meta: &mut crate::asset::project::AssetMetaDocument,
         meta_exists: bool,
         previous_meta: &crate::asset::project::AssetMetaDocument,
-        source_hash: String,
+        source_digest: String,
         source_mtime_unix_ms: u64,
         config_hash: String,
         descriptor: Option<&AssetImporterDescriptor>,
@@ -220,7 +299,7 @@ impl ProjectManager {
     ) -> Result<Option<Vec<ResourceRecord>>, AssetImportError> {
         let uri = &source.uri;
         if meta.preview_state != PreviewState::Ready
-            || meta.source_hash != source_hash
+            || meta.source_digest != source_digest
             || meta.config_hash != config_hash
             || !importer_contract_matches(meta, descriptor)
         {
@@ -237,9 +316,17 @@ impl ProjectManager {
                 asset_kind: meta.asset_kind,
                 artifact_locator: Some(artifact_uri),
                 dependencies: meta.dependencies.clone(),
+                tags: meta.tags.clone(),
             }];
         }
         remap_meta_entry_urls_to_source(meta, uri);
+        if let Some(root) = meta
+            .entries
+            .iter_mut()
+            .find(|entry| entry.url.label().is_none())
+        {
+            root.tags = meta.tags.clone();
+        }
 
         for entry in &meta.entries {
             let Some(artifact_uri) = &entry.artifact_locator else {
@@ -271,7 +358,7 @@ impl ProjectManager {
                     let entry_asset_id = asset_id_for_meta_entry(entry);
                     let mut record =
                         ResourceRecord::new(entry_asset_id, entry.asset_kind, entry.url.clone())
-                            .with_source_hash(source_hash.clone())
+                            .with_source_hash(source_digest.clone())
                             .with_importer_id(meta.importer_id.clone())
                             .with_importer_version(meta.importer_version)
                             .with_config_hash(config_hash.clone())
@@ -292,12 +379,15 @@ impl ProjectManager {
         meta: &mut crate::asset::project::AssetMetaDocument,
         meta_exists: bool,
         previous_meta: &crate::asset::project::AssetMetaDocument,
-        source_hash: String,
+        source_digest: String,
         source_mtime_unix_ms: u64,
         config_hash: String,
         descriptor: Option<&AssetImporterDescriptor>,
-        outcome: AssetImportOutcome,
+        mut outcome: AssetImportOutcome,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        crate::asset::registry::dependency_extractors::append_handwritten_dependencies(
+            &mut outcome,
+        );
         let uri = &source.uri;
         let root_entry = outcome.root_entry().ok_or_else(|| {
             AssetImportError::Parse(format!("importer did not return a root entry for {uri}"))
@@ -318,13 +408,14 @@ impl ProjectManager {
         meta.artifact_locator = None;
         meta.dependencies = root_entry.dependencies.clone();
         meta.config_hash = config_hash.clone();
-        meta.source_hash = source_hash.clone();
+        meta.source_digest = source_digest.clone();
         meta.source_mtime_unix_ms = source_mtime_unix_ms;
         meta.preview_state = PreviewState::Ready;
 
         let mut entries = Vec::with_capacity(outcome.entries.len());
         let mut records = Vec::with_capacity(outcome.entries.len());
         let existing_entry_uuids = existing_entry_uuids_for_source(previous_meta, uri);
+        let existing_entry_tags = existing_entry_tags_for_source(previous_meta, uri);
         for entry in outcome.entries {
             let entry_kind = asset_kind(&entry.asset);
             let entry_uuid = entry_uuid_for_import_entry(meta.uuid, &existing_entry_uuids, &entry);
@@ -343,10 +434,18 @@ impl ProjectManager {
                 asset_kind: entry_kind,
                 artifact_locator: Some(artifact_uri.clone()),
                 dependencies: entry.dependencies.clone(),
+                tags: if entry.locator.label().is_none() {
+                    meta.tags.clone()
+                } else {
+                    existing_entry_tags
+                        .get(&entry.locator)
+                        .cloned()
+                        .unwrap_or_default()
+                },
             });
             records.push(
                 ResourceRecord::new(entry_asset_id, entry_kind, entry.locator)
-                    .with_source_hash(source_hash.clone())
+                    .with_source_hash(source_digest.clone())
                     .with_importer_id(meta.importer_id.clone())
                     .with_importer_version(meta.importer_version)
                     .with_config_hash(config_hash.clone())
@@ -370,7 +469,7 @@ impl ProjectManager {
         meta: &mut crate::asset::project::AssetMetaDocument,
         meta_exists: bool,
         previous_meta: &crate::asset::project::AssetMetaDocument,
-        source_hash: String,
+        source_digest: String,
         source_mtime_unix_ms: u64,
         config_hash: String,
         descriptor: Option<&AssetImporterDescriptor>,
@@ -389,7 +488,7 @@ impl ProjectManager {
         meta.dependencies.clear();
         meta.entries = failed_entries_for_source(previous_meta, meta.uuid, uri, kind);
         meta.config_hash = config_hash.clone();
-        meta.source_hash = source_hash.clone();
+        meta.source_digest = source_digest.clone();
         meta.source_mtime_unix_ms = source_mtime_unix_ms;
         meta.preview_state = PreviewState::Error;
         if !meta_exists || meta != previous_meta {
@@ -397,7 +496,7 @@ impl ProjectManager {
         }
 
         Ok(vec![ResourceRecord::new(asset_id, kind, uri.clone())
-            .with_source_hash(source_hash)
+            .with_source_hash(source_digest)
             .with_importer_id(meta.importer_id.clone())
             .with_importer_version(meta.importer_version)
             .with_config_hash(config_hash)
@@ -411,16 +510,16 @@ impl ProjectManager {
 fn stage_environment_ibl_import(
     context: &AssetImportContext,
     imported_asset: Option<&ImportedAsset>,
-    library_root: &std::path::Path,
+    cache_root: &std::path::Path,
 ) -> Result<(), AssetImportError> {
-    stage_environment_ibl_source(context, library_root).map_err(|error| {
+    stage_environment_ibl_source(context, cache_root).map_err(|error| {
         AssetImportError::Parse(format!(
             "stage environment IBL source {}: {error}",
             context.source_path.display()
         ))
     })?;
     if let Some(ImportedAsset::Texture(texture)) = imported_asset {
-        stage_external_source_cubemap_texture(texture, library_root).map_err(|error| {
+        stage_external_source_cubemap_texture(texture, cache_root).map_err(|error| {
             AssetImportError::Parse(format!(
                 "stage environment IBL source {}: {error}",
                 context.source_path.display()
@@ -461,250 +560,4 @@ fn append_shader_import_path_conflict_diagnostics(
     } else {
         seen_import_paths.insert(import_path, root_entry.locator.clone());
     }
-}
-
-fn clear_schema_migration_metadata(meta: &mut crate::asset::project::AssetMetaDocument) {
-    meta.source_schema_version = None;
-    meta.target_schema_version = None;
-    meta.migration_summary.clear();
-}
-
-fn apply_importer_metadata(
-    meta: &mut crate::asset::project::AssetMetaDocument,
-    descriptor: Option<&AssetImporterDescriptor>,
-) {
-    if let Some(descriptor) = descriptor {
-        meta.importer_id = descriptor.id.clone();
-        meta.importer_version = descriptor.importer_version;
-    } else {
-        meta.importer_id.clear();
-        meta.importer_version = 0;
-    }
-}
-
-#[derive(Default)]
-struct ResolvedDependencies {
-    dependency_ids: Vec<AssetId>,
-    diagnostics: Vec<ResourceDiagnostic>,
-}
-
-fn resolve_dependencies(
-    dependencies: &[crate::asset::AssetUri],
-    registry: &ResourceRegistry,
-) -> ResolvedDependencies {
-    let mut resolved = ResolvedDependencies::default();
-    for dependency in dependencies {
-        if let Some(record) = registry.get_by_locator(dependency) {
-            if !resolved.dependency_ids.contains(&record.id()) {
-                resolved.dependency_ids.push(record.id());
-            }
-        } else {
-            resolved.diagnostics.push(ResourceDiagnostic::error(format!(
-                "unresolved asset dependency {dependency}"
-            )));
-        }
-    }
-    resolved
-}
-
-fn resolve_imported_dependencies(
-    registry: &mut ResourceRegistry,
-    imported: &mut [ResourceRecord],
-    dependencies_by_id: &HashMap<AssetId, Vec<crate::asset::AssetUri>>,
-) {
-    let resolved_by_id = dependencies_by_id
-        .iter()
-        .map(|(id, dependencies)| (*id, resolve_dependencies(dependencies, registry)))
-        .collect::<HashMap<_, _>>();
-
-    for record in imported.iter_mut() {
-        apply_resolved_dependencies(record, &resolved_by_id);
-        registry.upsert(record.clone());
-    }
-}
-
-fn apply_resolved_dependencies(
-    record: &mut ResourceRecord,
-    resolved_by_id: &HashMap<AssetId, ResolvedDependencies>,
-) {
-    let Some(resolved) = resolved_by_id.get(&record.id()) else {
-        return;
-    };
-    record.dependency_ids = resolved.dependency_ids.clone();
-    record
-        .diagnostics
-        .extend(resolved.diagnostics.iter().cloned());
-}
-
-fn dependencies_for_entry(
-    meta: &crate::asset::project::AssetMetaDocument,
-    locator: &crate::asset::AssetUri,
-) -> Vec<crate::asset::AssetUri> {
-    meta.entries
-        .iter()
-        .find(|entry| &entry.url == locator)
-        .map(|entry| entry.dependencies.clone())
-        .unwrap_or_else(|| meta.dependencies.clone())
-}
-
-fn asset_id_for_meta_entry(entry: &AssetMetaEntry) -> AssetId {
-    AssetId::from_asset_uuid(entry.uuid)
-}
-
-fn validate_import_entries(
-    source_uri: &crate::asset::AssetUri,
-    outcome: &AssetImportOutcome,
-) -> Result<(), AssetImportError> {
-    if outcome.entries.is_empty() {
-        return Err(AssetImportError::Parse(format!(
-            "importer did not return any asset entries for {source_uri}"
-        )));
-    }
-
-    let mut labels = HashSet::new();
-    let mut root_count = 0;
-    for entry in &outcome.entries {
-        if entry.locator.scheme() != source_uri.scheme()
-            || entry.locator.path() != source_uri.path()
-        {
-            return Err(AssetImportError::Parse(format!(
-                "imported asset entry locator {} does not belong to source {source_uri}",
-                entry.locator
-            )));
-        }
-        match entry.locator.label() {
-            Some(label) => {
-                if !labels.insert(label.to_string()) {
-                    return Err(AssetImportError::DuplicateAssetLabel {
-                        source_uri: source_uri.clone(),
-                        label: label.to_string(),
-                    });
-                }
-            }
-            None => root_count += 1,
-        }
-    }
-    if root_count != 1 {
-        return Err(AssetImportError::Parse(format!(
-            "importer returned {root_count} root entries for {source_uri}; expected exactly one"
-        )));
-    }
-    Ok(())
-}
-
-fn existing_entry_uuids_for_source(
-    meta: &crate::asset::project::AssetMetaDocument,
-    source_uri: &crate::asset::AssetUri,
-) -> HashMap<crate::asset::AssetUri, crate::asset::AssetUuid> {
-    meta.entries
-        .iter()
-        .map(|entry| (entry_url_for_source(&entry.url, source_uri), entry.uuid))
-        .collect()
-}
-
-fn failed_entries_for_source(
-    previous_meta: &crate::asset::project::AssetMetaDocument,
-    root_uuid: crate::asset::AssetUuid,
-    source_uri: &crate::asset::AssetUri,
-    root_kind: AssetKind,
-) -> Vec<AssetMetaEntry> {
-    if previous_meta.entries.is_empty() {
-        return Vec::new();
-    }
-
-    previous_meta
-        .entries
-        .iter()
-        .map(|entry| AssetMetaEntry {
-            uuid: if entry.url.label().is_none() {
-                root_uuid
-            } else {
-                entry.uuid
-            },
-            url: entry_url_for_source(&entry.url, source_uri),
-            asset_kind: if entry.url.label().is_none() {
-                root_kind
-            } else {
-                entry.asset_kind
-            },
-            artifact_locator: None,
-            dependencies: entry.dependencies.clone(),
-        })
-        .collect()
-}
-
-fn remap_meta_entry_urls_to_source(
-    meta: &mut crate::asset::project::AssetMetaDocument,
-    source_uri: &crate::asset::AssetUri,
-) {
-    for entry in &mut meta.entries {
-        entry.url = entry_url_for_source(&entry.url, source_uri);
-    }
-}
-
-fn entry_url_for_source(
-    entry_url: &crate::asset::AssetUri,
-    source_uri: &crate::asset::AssetUri,
-) -> crate::asset::AssetUri {
-    if entry_url.label().is_none() {
-        source_uri.clone()
-    } else {
-        crate::asset::AssetUri::new(
-            source_uri.scheme(),
-            source_uri.path().to_string(),
-            entry_url.label().map(ToOwned::to_owned),
-        )
-        .expect("source URI with existing entry label should be a valid asset URI")
-    }
-}
-
-fn entry_uuid_for_import_entry(
-    root_uuid: crate::asset::AssetUuid,
-    existing_entry_uuids: &HashMap<crate::asset::AssetUri, crate::asset::AssetUuid>,
-    entry: &ImportedAssetEntry,
-) -> crate::asset::AssetUuid {
-    if entry.locator.label().is_none() {
-        root_uuid
-    } else {
-        existing_entry_uuids
-            .get(&entry.locator)
-            .copied()
-            .unwrap_or_else(crate::asset::AssetUuid::new)
-    }
-}
-
-fn register_record_identity(
-    asset_ids_by_uuid: &mut HashMap<crate::asset::AssetUuid, AssetId>,
-    asset_uuids_by_id: &mut HashMap<AssetId, crate::asset::AssetUuid>,
-    asset_urls_by_uuid: &mut HashMap<crate::asset::AssetUuid, crate::asset::AssetUri>,
-    meta: &crate::asset::project::AssetMetaDocument,
-    record: &ResourceRecord,
-) {
-    let uuid = meta
-        .entries
-        .iter()
-        .find(|entry| entry.url == *record.primary_locator())
-        .map(|entry| entry.uuid)
-        .unwrap_or(meta.uuid);
-    asset_ids_by_uuid.insert(uuid, record.id());
-    asset_uuids_by_id.insert(record.id(), uuid);
-    asset_urls_by_uuid.insert(uuid, record.primary_locator().clone());
-}
-
-fn importer_contract_matches(
-    meta: &crate::asset::project::AssetMetaDocument,
-    descriptor: Option<&AssetImporterDescriptor>,
-) -> bool {
-    descriptor
-        .map(|descriptor| {
-            meta.importer_id == descriptor.id
-                && meta.importer_version == descriptor.importer_version
-        })
-        .unwrap_or_else(|| !meta.importer_id.is_empty())
-}
-
-fn config_hash_for_settings(settings: &toml::Table) -> String {
-    toml::to_string(settings)
-        .map(|document| hash_bytes(document.as_bytes()))
-        .unwrap_or_default()
 }

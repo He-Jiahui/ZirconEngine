@@ -11,8 +11,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/workbench/layout/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/core/editor_event/host_adapter.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
@@ -20,10 +20,10 @@ related_code:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
@@ -37,14 +37,14 @@ implementation_files:
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
@@ -60,7 +60,7 @@ tests:
   - zircon_editor/src/tests/ui/activity/window_descriptor.rs
   - zircon_editor/src/tests/ui/activity/route.rs
   - zircon_editor/src/lib.rs
-  - zircon_scene/src/lib.rs
+  - zircon_runtime/src/scene/mod.rs
   - cargo test -p zircon_editor --lib --locked tests::ui::activity
   - cargo test -p zircon_editor -- --nocapture
   - cargo test -p zircon_app -- --nocapture
@@ -129,22 +129,22 @@ doc_type: category-index
 - `zircon_editor/src/ui/retained_host/ui.rs`
 - `zircon_editor/src/ui/host/mod.rs`
 - `zircon_editor/src/ui/host/module.rs`
-- `zircon_editor/src/core/editor_event/host_adapter.rs`
-- `zircon_editor/src/core/editing/state/mod.rs`
+- `zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs`
+- `zircon_editor/src/core/editing/intent.rs`
 - `zircon_editor/src/ui/binding/mod.rs`
 - `zircon_editor/src/ui/asset_editor/mod.rs`
 - `zircon_editor/src/ui/workbench/project/mod.rs`
 - `zircon_editor/src/ui/workbench/snapshot/mod.rs`
 - `zircon_editor/src/ui/workbench/view/mod.rs`
-- `zircon_scene/src/components.rs`
-- `zircon_scene/src/world/render.rs`
-- `zircon_graphics/src/scene/resources/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
-- `zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml`
+- `zircon_runtime/src/scene/components`
+- `zircon_runtime/src/scene/world/render.rs`
+- `zircon_runtime/src/graphics/scene/resources/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs`
+- `zircon_editor/assets/ui/editor/host/workbench_shell.zui`
 - `zircon_editor/src/ui/retained_host/host_contract/window.rs`
-- `zircon_scene/src/world/mod.rs`
+- `zircon_runtime/src/scene/world/mod.rs`
 
 ## Current Scope
 

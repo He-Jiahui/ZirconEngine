@@ -1,15 +1,15 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 plan_sources:
   - user: 2026-04-19 scene-driven screen-probe hierarchy / RT hybrid lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_pending_probe_gpu_irradiance_uses_requested_lineage_runtime_source_without_trace_schedule -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_pending_probe_gpu_irradiance_inherits_requested_nonresident_ancestor_runtime_source_without_trace_schedule -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_runtime_source -- --nocapture

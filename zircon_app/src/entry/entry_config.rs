@@ -1,15 +1,16 @@
 use super::entry_profile::EntryProfile;
 use zircon_runtime::{
-    builtin::{RuntimePluginId, RuntimeTargetMode},
+    builtin::RuntimePluginId,
+    core::framework::project::ExportProfile,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection,
+    core::framework::project::RuntimeProfileId,
     core::framework::{
+        platform::RuntimeTargetMode,
         render::{RenderProductFeature, RenderProfileBundle},
         window::WindowDescriptor,
     },
-    plugin::ExportProfile,
-    plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection,
     plugin::RuntimeProfileDescriptor,
-    plugin::RuntimeProfileId,
 };
 
 #[derive(Clone, Debug, PartialEq)]

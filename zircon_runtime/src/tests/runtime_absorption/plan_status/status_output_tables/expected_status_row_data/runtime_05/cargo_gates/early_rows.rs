@@ -5,7 +5,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 05 cargo-gates early Runtime 03 split",
         &[
             "cargo_gates/early/runtime_03.rs",
-            "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
+            "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
             "early.rs",
             "plan-status support files 14/14",
         ],
@@ -59,7 +59,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 05 cargo-gates early Runtime 07 split",
         &[
             "cargo_gates/early/runtime_07.rs",
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
+            "runtime_07_performance_hotpath_records_completed_authoritative_validation",
             "early.rs",
             "plan-status support files 14/14",
         ],

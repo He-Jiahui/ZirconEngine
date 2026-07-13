@@ -24,7 +24,7 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
@@ -278,7 +278,7 @@ related_code:
   - zircon_plugins/sound/editor/audio_listener.drawer.zui
   - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
@@ -309,7 +309,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
@@ -559,7 +559,7 @@ implementation_files:
   - zircon_plugins/sound/editor/audio_listener.drawer.zui
   - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests/dynamic_events.rs
+  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_plugins/sound/runtime/src/tests/dsp_state.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs

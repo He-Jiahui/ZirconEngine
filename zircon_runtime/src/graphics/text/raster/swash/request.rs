@@ -4,10 +4,12 @@ use ::glyphon::cosmic_text::{CacheKey as GlyphonCacheKey, CacheKeyFlags as Glyph
 use ::swash::scale::{Source as SwashSource, StrikeWith};
 use ::swash::zeno::{Angle, Format as SwashRenderFormat, Transform as SwashTransform};
 
+use crate::core::framework::render::VariationCoords;
+
 const SWASH_RASTER_SOURCE_CAPACITY: usize = 3;
 const FAKE_ITALIC_SKEW_DEGREES: f32 = 14.0;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SwashRasterRequest {
     pub(crate) face_index: usize,
     pub(crate) glyph_id: u16,
@@ -16,7 +18,7 @@ pub(crate) struct SwashRasterRequest {
     pub(crate) offset: Vec2,
     pub(crate) render_format: SwashRenderFormat,
     pub(crate) fake_italic: bool,
-    pub(crate) variation_weight: Option<u16>,
+    pub(crate) variations: VariationCoords,
     sources: [SwashRasterSource; SWASH_RASTER_SOURCE_CAPACITY],
     source_count: usize,
 }
@@ -36,7 +38,7 @@ impl SwashRasterRequest {
             offset: Vec2::ZERO,
             render_format: SwashRenderFormat::Alpha,
             fake_italic: false,
-            variation_weight: None,
+            variations: VariationCoords::default(),
             sources: [SwashRasterSource::AlphaOutline; SWASH_RASTER_SOURCE_CAPACITY],
             source_count: 1,
         }
@@ -56,7 +58,7 @@ impl SwashRasterRequest {
             offset: Vec2::ZERO,
             render_format: SwashRenderFormat::Subpixel,
             fake_italic: false,
-            variation_weight: None,
+            variations: VariationCoords::default(),
             sources: [SwashRasterSource::SubpixelOutline; SWASH_RASTER_SOURCE_CAPACITY],
             source_count: 1,
         }
@@ -73,7 +75,10 @@ impl SwashRasterRequest {
             offset: glyphon_cache_key_offset(cache_key),
             render_format: SwashRenderFormat::Alpha,
             fake_italic: cache_key.flags.contains(GlyphonCacheKeyFlags::FAKE_ITALIC),
-            variation_weight: Some(cache_key.font_weight.0),
+            variations: VariationCoords(vec![(
+                u32::from_be_bytes(*b"wght"),
+                f32::from(cache_key.font_weight.0),
+            )]),
             sources: [
                 SwashRasterSource::ColorOutline { palette_index: 0 },
                 SwashRasterSource::ColorBitmap(SwashBitmapStrike::BestFit),
@@ -87,7 +92,12 @@ impl SwashRasterRequest {
         &self.sources[..self.source_count]
     }
 
-    pub(super) fn swash_sources(self) -> [SwashSource; SWASH_RASTER_SOURCE_CAPACITY] {
+    pub(crate) fn with_variations(mut self, variations: VariationCoords) -> Self {
+        self.variations = variations;
+        self
+    }
+
+    pub(super) fn swash_sources(&self) -> [SwashSource; SWASH_RASTER_SOURCE_CAPACITY] {
         [
             self.sources[0].to_swash_source(),
             self.sources[1].to_swash_source(),
@@ -95,15 +105,15 @@ impl SwashRasterRequest {
         ]
     }
 
-    pub(super) fn source_count(self) -> usize {
+    pub(super) fn source_count(&self) -> usize {
         self.source_count
     }
 
-    pub(super) fn primary_source(self) -> SwashRasterSource {
+    pub(super) fn primary_source(&self) -> SwashRasterSource {
         self.sources[0]
     }
 
-    pub(super) fn fake_italic_transform(self) -> Option<SwashTransform> {
+    pub(super) fn fake_italic_transform(&self) -> Option<SwashTransform> {
         self.fake_italic.then(|| {
             SwashTransform::skew(
                 Angle::from_degrees(FAKE_ITALIC_SKEW_DEGREES),
@@ -112,12 +122,20 @@ impl SwashRasterRequest {
         })
     }
 
-    pub(super) fn validate(self) -> Result<(), SwashRasterError> {
+    pub(super) fn validate(&self) -> Result<(), SwashRasterError> {
         if !self.px_size.is_finite() || self.px_size <= 0.0 {
             return Err(SwashRasterError::InvalidPxSize);
         }
         if !self.offset.x.is_finite() || !self.offset.y.is_finite() {
             return Err(SwashRasterError::InvalidOffset);
+        }
+        if self
+            .variations
+            .0
+            .iter()
+            .any(|(_, value)| !value.is_finite())
+        {
+            return Err(SwashRasterError::InvalidVariationCoordinate);
         }
 
         Ok(())

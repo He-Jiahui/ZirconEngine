@@ -84,7 +84,7 @@ mod tests {
                 .current_project_manager()
                 .expect("project")
                 .paths()
-                .runtime_cache_root(),
+                .cache_root(),
         );
         store
             .write_runtime_cache(&blob_for_request(&request))
@@ -126,7 +126,9 @@ mod tests {
 
     fn project_asset_manager_with_root(root: &PathBuf) -> ProjectAssetManager {
         let paths = ProjectPaths::from_root(root).expect("project paths");
-        paths.ensure_layout().expect("project layout");
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .expect("project layout");
         ProjectManifest::new(
             "ibl-compile-options",
             AssetUri::parse("res://scenes/main.scene.toml").expect("default scene uri"),
@@ -180,16 +182,16 @@ mod tests {
     ) -> IblBakeArtifactBlob {
         let descriptor = IblBakeArtifactDescriptor::current(
             request.bake_key(),
-            request.face_size(),
-            request.mip_count(),
+            request.pmrem_face_size(),
+            request.pmrem_mip_count(),
             request.required_contents(),
         );
         let readback = IblBakeArtifactReadbackSections::new(descriptor)
             .with_pmrem_rgba16f_bytes(vec![
                 0;
                 crate::core::framework::render::source_cubemap_sample_count(
-                    request.face_size(),
-                    request.mip_count(),
+                    request.pmrem_face_size(),
+                    request.pmrem_mip_count(),
                 )
                     * IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES
             ])

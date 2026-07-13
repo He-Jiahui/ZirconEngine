@@ -7,8 +7,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/scene/anti_alias/fxaa.rs
-  - zircon_runtime/src/graphics/scene/anti_alias/smaa.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/smaa.rs
 implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs

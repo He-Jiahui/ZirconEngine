@@ -3,6 +3,7 @@ use super::super::build_export_wizard_panel::{
 };
 use super::*;
 use crate::ui::host::{
+    export_wizard_pipeline_plan, ExportWizardPanelViewModel, ExportWizardPipelineOptions,
     DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_STAGE_ROWS_SLOT,
     DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
 };
@@ -12,6 +13,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, BuildExportTargetViewData, PaneContentSize, PaneData,
     PaneNativeBodyData,
 };
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
 #[test]
 fn build_export_pane_projects_desktop_target_rows() {
@@ -36,6 +38,7 @@ fn build_export_pane_projects_desktop_target_rows() {
         native_body: PaneNativeBodyData {
             build_export: BuildExportPaneViewData {
                 targets: model_rc(vec![BuildExportTargetViewData {
+                    preset_name: "desktop_windows".into(),
                     profile_name: "desktop_windows".into(),
                     platform: "Windows".into(),
                     target_mode: "ClientRuntime".into(),
@@ -140,6 +143,7 @@ fn build_export_running_target_projects_cancel_action() {
         native_body: PaneNativeBodyData {
             build_export: BuildExportPaneViewData {
                 targets: model_rc(vec![BuildExportTargetViewData {
+                    preset_name: "desktop_linux".into(),
                     profile_name: "desktop_linux".into(),
                     platform: "Linux".into(),
                     target_mode: "ClientRuntime".into(),
@@ -212,13 +216,25 @@ fn build_export_empty_diagnostics_still_projects_diagnostics_node() {
 
 #[test]
 fn build_export_wizard_panel_nodes_project_retained_export_wizard_panel() {
-    let pane = build_export_pane_fixture(vec![build_export_target_fixture(
+    let mut pane = build_export_pane_fixture(vec![build_export_target_fixture(
         "desktop_windows",
         "Windows",
         "Ready",
         "native plugin package ready",
         false,
     )]);
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
+        "desktop_windows",
+        "zircon-project.toml",
+        "zircon-export",
+    );
+    options.source_asset_manifest = Some("assets/source-assets.json".to_string());
+    options.host_executable = Some("zircon-export/host/ZirconRuntime.exe".to_string());
+    let plan = export_wizard_pipeline_plan(options);
+    pane.native_body.build_export.wizard_view_model = Some(ExportWizardPanelViewModel::from_plan(
+        "build-export-retained-ready",
+        &plan,
+    ));
     let nodes = build_export_wizard_panel_nodes(
         &pane.native_body.build_export,
         PaneContentSize::new(960.0, 420.0),
@@ -280,7 +296,7 @@ fn build_export_wizard_panel_nodes_project_retained_export_wizard_panel() {
 }
 
 #[test]
-fn build_export_wizard_panel_nodes_respect_target_strategy_list() {
+fn build_export_wizard_panel_uses_typed_plan_instead_of_target_summary_text() {
     let mut target = build_export_target_fixture(
         "browser_webgpu",
         "WebGPU",
@@ -288,9 +304,22 @@ fn build_export_wizard_panel_nodes_respect_target_strategy_list() {
         "browser export plan ready",
         false,
     );
-    target.strategies = "SourceTemplate, LibraryEmbed".into();
-    target.native_dynamic_packages = "0".into();
-    let pane = build_export_pane_fixture(vec![target]);
+    target.strategies = "NativeDynamic".into();
+    target.native_dynamic_packages = "1".into();
+    let mut pane = build_export_pane_fixture(vec![target]);
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
+        "browser_webgpu",
+        "zircon-project.toml",
+        "zircon-export",
+    )
+    .with_strategies([ExportPackagingStrategy::SourceTemplate]);
+    options.source_asset_manifest = Some("assets/source-assets.json".to_string());
+    options.host_executable = Some("zircon-export/host/ZirconRuntime.exe".to_string());
+    let plan = export_wizard_pipeline_plan(options);
+    pane.native_body.build_export.wizard_view_model = Some(ExportWizardPanelViewModel::from_plan(
+        "build-export-retained-source",
+        &plan,
+    ));
     let nodes = build_export_wizard_panel_nodes(
         &pane.native_body.build_export,
         PaneContentSize::new(960.0, 420.0),
@@ -309,6 +338,9 @@ fn build_export_wizard_panel_nodes_respect_target_strategy_list() {
         .iter()
         .any(|node| node.text.as_str().contains("SourceTemplate")));
     assert!(stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("Report")));
+    assert!(!stage_rows
         .iter()
         .any(|node| node.text.as_str().contains("PlatformBundle")));
     assert!(!stage_rows
@@ -386,6 +418,7 @@ fn build_export_target_fixture(
     fatal: bool,
 ) -> BuildExportTargetViewData {
     BuildExportTargetViewData {
+        preset_name: profile_name.into(),
         profile_name: profile_name.into(),
         platform: platform.into(),
         target_mode: "ClientRuntime".into(),

@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_sample_grid.zui"
+version = 2
+display_name = "Workbench Sample Grid"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchSampleGrid]
+root = "root"
+default_classes = ["workbench-sample-grid", "workbench-primitive"]
+
+[nodes.root]
+component = "Canvas"
+control_id = "WorkbenchSampleGridRoot"
+classes = ["workbench-sample-grid"]
+props = { component_variant = "sample-grid", x_axis_label = "Horizontal", y_axis_label = "Vertical", x_min = 0.0, x_max = 1.0, y_min = 0.0, y_max = 1.0, x_ticks = [0.0, 0.25, 0.5, 0.75, 1.0], y_ticks = [0.0, 0.25, 0.5, 0.75, 1.0], sample_points = [], input_interactive = false, input_clickable = false, input_focusable = false }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

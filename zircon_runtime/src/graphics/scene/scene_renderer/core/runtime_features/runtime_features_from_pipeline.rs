@@ -65,7 +65,7 @@ mod tests {
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
     };
-    use crate::render_graph::QueueLane;
+    use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
     use crate::scene::world::World;
 
     use super::runtime_features_from_pipeline;
@@ -294,6 +294,10 @@ mod tests {
                         QueueLane::AsyncCompute,
                     )
                     .with_executor_id("plugin.ssao.runtime-flag")
+                    .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                        "ssao-evaluate",
+                        [8, 8, 1],
+                    ))
                     .read_texture("scene-depth")
                     .write_storage_external_texture(
                         PostProcessGraphResourceNames::AMBIENT_OCCLUSION,

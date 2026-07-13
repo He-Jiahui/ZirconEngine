@@ -4,7 +4,8 @@ use crate::graphics::text::atlas::{
 };
 
 use super::sdf_atlas::{
-    sdf_atlas_layer_count, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, SdfAtlasRect,
+    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
+    SdfAtlasRect,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -112,11 +113,7 @@ pub(super) fn sdf_atlas_upload_commands(
                 Some(dirty_page.dirty_rect.into()),
                 page_source_byte_len,
             )?;
-            offset_upload_command_for_source_layer(
-                &mut command,
-                page_source_byte_len,
-                source_byte_len,
-            )?;
+            offset_upload_command_for_source_page(&mut command, atlas_plan, source_byte_len)?;
             Some(command)
         })
         .collect()
@@ -143,18 +140,27 @@ fn sdf_page_source_byte_len(page: &GlyphAtlasPageSpec) -> Option<usize> {
     usize::try_from(byte_len).ok()
 }
 
-fn offset_upload_command_for_source_layer(
+fn offset_upload_command_for_source_page(
     command: &mut SdfAtlasUploadCommand,
-    page_source_byte_len: usize,
+    atlas_plan: &SdfAtlasPlan,
     source_byte_len: usize,
 ) -> Option<()> {
-    let layer_offset =
-        u64::from(command.page_key.page_index).checked_mul(page_source_byte_len as u64)?;
-    let page_end = layer_offset.checked_add(page_source_byte_len as u64)?;
-    if page_end > source_byte_len as u64 {
+    let mut source_offset = 0usize;
+    let mut target_page_byte_len = None;
+    for page_key in distance_field_atlas_page_keys(atlas_plan) {
+        let page = sdf_atlas_page_spec_for_key(atlas_plan, page_key);
+        let page_byte_len = sdf_page_source_byte_len(&page)?;
+        if page_key == command.page_key {
+            target_page_byte_len = Some(page_byte_len);
+            break;
+        }
+        source_offset = source_offset.checked_add(page_byte_len)?;
+    }
+    let page_end = source_offset.checked_add(target_page_byte_len?)?;
+    if page_end > source_byte_len {
         return None;
     }
-    command.source_offset = command.source_offset.checked_add(layer_offset)?;
+    command.source_offset = command.source_offset.checked_add(source_offset as u64)?;
     Some(())
 }
 
@@ -168,9 +174,9 @@ fn sdf_upload_dirty_pages(
         return Vec::new();
     }
     if atlas_resized {
-        return (0..sdf_atlas_layer_count(atlas_plan))
-            .map(|page_index| {
-                let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index);
+        return distance_field_atlas_page_keys(atlas_plan)
+            .into_iter()
+            .map(|page_key| {
                 let page = sdf_atlas_page_spec_for_key(atlas_plan, page_key);
                 SdfAtlasUploadPageReport {
                     page_key,
@@ -194,10 +200,13 @@ fn sdf_upload_dirty_pages(
 }
 
 fn sdf_upload_page_report(page: &SdfAtlasDirtyPageReport) -> SdfAtlasUploadPageReport {
+    let bytes_per_pixel = page.page_key.format.storage_format().bytes_per_pixel() as usize;
     SdfAtlasUploadPageReport {
         page_key: page.page_key,
         dirty_rect: page.dirty_rect,
-        byte_len: page.dirty_rect.width as usize * page.dirty_rect.height as usize,
+        byte_len: page.dirty_rect.width as usize
+            * page.dirty_rect.height as usize
+            * bytes_per_pixel,
     }
 }
 

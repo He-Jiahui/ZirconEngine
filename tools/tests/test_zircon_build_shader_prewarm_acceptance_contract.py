@@ -322,7 +322,7 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
     def test_acceptance_contract_rejects_runtime_fallback_layout_drift(self):
         config = _FakePrewarmConfig()
         config.shader_prewarm_cache_root_override = (
-            Path("stage") / "ZirconEngine" / ".zircon-cache" / "shader_variants"
+            Path("stage") / "ZirconEngine" / ".zircon/cache" / "shader_variants"
         )
 
         with self.assertRaisesRegex(

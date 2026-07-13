@@ -55,7 +55,9 @@ impl FontAssetRenderStrategy {
             Some(UiTextRenderMode::Native) if !allow_native => {
                 allow_sdf.then_some(UiTextRenderMode::Sdf)
             }
-            Some(UiTextRenderMode::Sdf) if !allow_sdf => {
+            Some(UiTextRenderMode::Sdf | UiTextRenderMode::Msdf | UiTextRenderMode::Mtsdf)
+                if !allow_sdf =>
+            {
                 allow_native.then_some(UiTextRenderMode::Native)
             }
             Some(UiTextRenderMode::Auto) => match (allow_native, allow_sdf) {

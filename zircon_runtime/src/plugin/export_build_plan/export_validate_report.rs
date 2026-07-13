@@ -1,31 +1,20 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::{
     ExportBuildPlan, ExportGeneratedFile, LibraryEmbedCompileHostPlan,
     NativeDynamicPackageExportPlan, SourceTemplateBuildValidationPlan,
 };
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::{
-    ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform, RuntimePluginAvailabilityReport,
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{
+    ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform,
 };
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub enum ExportPipelineStage {
-    Validate,
-    SourceTemplate,
-    NativeDynamic,
-    CompileHost,
-    CookAssets,
-    Pack,
-    PlatformBundle,
-    Report,
-}
+use crate::plugin::RuntimePluginAvailabilityReport;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExportValidateReport {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub project_manifest: String,
     pub profile: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -83,7 +72,7 @@ impl ExportValidateReport {
     ) -> Self {
         let fatal_diagnostics = dedupe(plan.effective_fatal_diagnostics());
         Self {
-            stage: ExportPipelineStage::Validate,
+            stage: ExportStage::Validate,
             project_manifest: project_manifest.into(),
             profile: plan.profile.name.clone(),
             stage_output,
@@ -105,7 +94,7 @@ impl ExportValidateReport {
     ) -> Self {
         let diagnostic = diagnostic.into();
         Self {
-            stage: ExportPipelineStage::Validate,
+            stage: ExportStage::Validate,
             project_manifest: project_manifest.into(),
             profile: profile.into(),
             stage_output,

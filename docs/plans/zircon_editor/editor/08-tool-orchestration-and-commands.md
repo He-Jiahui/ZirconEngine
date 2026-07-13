@@ -1,7 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/commands/registry.rs
-  - zircon_editor/src/ui/host/commands/keymap.rs
+  - zircon_editor/src/core/commands/registry.rs
+  - zircon_editor/src/core/commands/registry_handle.rs
+  - zircon_editor/src/core/commands/keymap.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/module.rs
@@ -14,10 +15,21 @@ plan_sources:
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/zircon_editor/editor/06-ui-extension-framework.md
-status: planned
+status: in_progress
 ---
 
 # 08 工具管理调度 / 命令系统 / 命令面板
+
+- fixed 已修复：[command-registry-hard-cut-cli](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)
+- open 待修复：[EditorOperationPath 反序列化绕过 canonical parse](08/failure-2026-07-14-editor-operation-path-deserialize-validation-bypass.md)
+- 跨计划失败交接（`open / Editor04 接管 Building/Play 权威状态投影`）：[`04/failure-2026-07-12-command-eval-play-state-projection.md`](04/failure-2026-07-12-command-eval-play-state-projection.md)
+- 跨计划失败交接（`open / Editor05 接管 SceneModeId/SelectionModel 权威投影`）：[`05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md`](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)
+- 跨计划失败交接（`open / Editor07 接管 focused document kind 权威投影`）：[`07/failure-2026-07-12-command-eval-focused-document-projection.md`](07/failure-2026-07-12-command-eval-focused-document-projection.md)
+- M1 全量行为门失败交接（`open / Editor10 接管项目与资产引用回归`）：[`10/failure-2026-07-12-project-asset-reference-full-gate-regressions.md`](10/failure-2026-07-12-project-asset-reference-full-gate-regressions.md)
+- M1 全量行为门失败交接（`open / Editor12 接管插件扩展校验回归`）：[`12/failure-2026-07-12-plugin-extension-validation-regressions.md`](12/failure-2026-07-12-plugin-extension-validation-regressions.md)
+- fixed 已修复：[editor-full-gate-thread-exhaustion](08/fixed-2026-07-14-editor-full-gate-thread-exhaustion.md)
+- fixed 已修复：[rigid-body-sleep-policy-consumer-cutover](08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)
+- fixed 已修复：[realtime-ibl-option-then-type-errors](08/fixed-2026-07-12-realtime-ibl-option-then-type-errors.md)
 
 ## 参照证据（dev/）
 
@@ -53,7 +65,7 @@ pub struct EditorCommandRegistry { commands: Vec<EditorCommandDescriptor>, by_id
 
 ### 操作层与 CLI
 
-`EditorOperationDescriptor` 字段（03 已核）：`menu_path/payload_schema_id/callable_from_remote/required_capabilities` 声明先进于消费。CLI `--operation/--args/--operation-group/--list-operations/--operation-stack/--headless`（`entry_runner/editor.rs:313-361`）直连 `EditorOperationRegistry`——**无头调用面已存在**。
+`EditorOperationDescriptor` 字段（03 已核）：`menu_path/payload_schema_id/callable_from_remote/required_capabilities` 声明先进于消费。CLI `--operation/--args/--operation-group/--list-operations/--operation-history/--headless` 通过 `EditorHostEventController` 进入操作控制面；history factory 就绪前返回 `OperationHistoryPendingFactory`，不伪造空栈——**无头调用面已存在**。
 
 ### 缺口（重新定界）
 
@@ -181,3 +193,12 @@ impl ToolScheduler {
 - `CommandAction::Emit` 依赖 01 类型化载荷已落地；01 未完时以 `Custom` 过渡记债。
 - `CommandAction::Menu` 变体的存废：菜单合流后若全部菜单动作可折算 Emit/Operation 则删除该变体（M2 清点裁决记状态节）；不预判。
 - when 谓词不给插件自定义（序列化限制）：插件组合内建谓词，不足场景走 `Capability` 自定义能力名兜底——契约注释声明。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-07-12 | M1 / Editor16 CLI 命令注册表硬切回传 | 已修复-目标行为门通过-全量门仍由外部失败阻断 | `zircon_app` 已删除 `EditorEventRuntime`、`QueryOperationStack` 与 `--operation-stack`，改由 `EditorHostEventController` 复用 `EditorManager.context().commands()` 唯一注册表；CLI 硬切为 `--operation-history` / `QueryOperationHistory`，factory 未就绪时保留 `OperationHistoryPendingFactory` 类型化失败。App 旧符号扫描为 0，`cargo +nightly fmt --all -- --check` 通过，`target-editor-host` 的 `editor_cli_operation_` 目标测试 14/14 通过；回传记录见 [fixed artifact](08/fixed-2026-07-12-command-registry-hard-cut-cli.md)。六 profile 聚合复跑仍仅被并发 Runtime Text 的 `RichTable*` 导出缺失阻断，不归属本修复。 |
+| 2026-07-12 | M1 / 切片 1.2：类型化 when 与统一求值环境 | 实现完成-规格质量复审通过-静态门通过-生产状态投影待 Editor04/05/07 接管-Cargo 行为门待 M1 测试阶段 | 新增结构化 `WhenClause`、`CommandEvalCtx`、`DocumentKind`、`PlayModePredicate` 与唯一 `CommandEvalSnapshotHandle`；headless 不适用谓词采用三态求值，嵌套 `Not` 不会把缺失交互状态伪造成 true。菜单、扩展菜单、命令面板、UI binding、Remote/CLI list 与 invoke 统一读取同一 registry/context；Remote/CLI 列表同时执行 `callable_from_remote && headless when`，palette 对 `when=false` 直接隐藏并删除旧 `disabled_commands` 旁路。扩展菜单 capability 在注册时原子折叠进本次真实 pending command descriptor，retained-ID-only/serde 伪所有权返回 typed error 且不污染 registry/shell/manager。独立规格复审 `SPEC APPROVED`，独立质量复审 `QUALITY APPROVED`；范围 `rustfmt --check`、`git diff --check` 与旧 `EditorCommandContext/EditorCommandEnablement/with_enablement/enabled_route/operation_capability_error` 扫描通过。真实 Building/Play、SceneModeId/SelectionModel、focused document kind 权威投影不属于本切片，已分别写入并双向链接 [Editor04](04/failure-2026-07-12-command-eval-play-state-projection.md)、[Editor05](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)、[Editor07](07/failure-2026-07-12-command-eval-focused-document-projection.md) 的 open failure 计划；未用 project-open、按钮或 view id 猜测状态，亦不声明 Cargo 行为门通过。 |
+- fixed 已修复：[editor-full-gate-thread-exhaustion](08/fixed-2026-07-14-editor-full-gate-thread-exhaustion.md)
+- fixed 已修复：[rigid-body-sleep-policy-consumer-cutover](08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)

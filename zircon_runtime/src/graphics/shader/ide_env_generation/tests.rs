@@ -18,7 +18,9 @@ use super::*;
 fn shader_ide_env_writes_module_map_stubs_and_generated_material() {
     let root = unique_temp_project_root("shader_ide_env_module_map");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Ide Sandbox",
         AssetUri::parse("res://shaders/hero").unwrap(),
@@ -90,7 +92,9 @@ fn shader_ide_env_writes_module_map_stubs_and_generated_material() {
 fn shader_ide_env_writes_default_preview_and_segments_when_variants_enabled() {
     let root = unique_temp_project_root("shader_ide_env_preview");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Ide Sandbox",
         AssetUri::parse("res://shaders/hero").unwrap(),
@@ -141,7 +145,9 @@ fn shader_ide_env_writes_default_preview_and_segments_when_variants_enabled() {
 fn shader_ide_env_writes_non_default_preview_variants_with_option_bits() {
     let root = unique_temp_project_root("shader_ide_env_non_default_preview");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Ide Sandbox",
         AssetUri::parse("res://shaders/hero").unwrap(),
@@ -189,7 +195,9 @@ fn shader_ide_env_writes_non_default_preview_variants_with_option_bits() {
 fn shader_ide_env_batches_preview_matrix_for_all_surface_shaders() {
     let root = unique_temp_project_root("shader_ide_env_preview_matrix");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Ide Sandbox",
         AssetUri::parse("res://shaders/hero").unwrap(),
@@ -291,7 +299,9 @@ fn shader_ide_env_rejects_duplicate_preview_variant_names() {
 fn shader_ide_env_rewrites_only_changed_module_stub_and_map() {
     let root = unique_temp_project_root("shader_ide_env_incremental");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Shader Ide Sandbox",
         AssetUri::parse("res://shaders/hero").unwrap(),
@@ -326,7 +336,7 @@ fn shader_ide_env_rewrites_only_changed_module_stub_and_map() {
     std::thread::sleep(Duration::from_millis(1100));
     fs::write(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("shared")
             .join("shared.wgsl"),
@@ -465,13 +475,19 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
 
 pub(crate) fn write_surface_shader_package(paths: &ProjectPaths) {
     let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
-    let shader_meta_path = paths.assets_root().join("shaders").join("hero.zmeta");
+    let shader_meta_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("hero.zmeta");
     let mut shader_meta = AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
     shader_meta.unit = AssetSourceUnit::Compound;
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("hero");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("hero");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("hero.zshader"),
@@ -509,13 +525,19 @@ return surface;
 
 pub(crate) fn write_include_shader_package(paths: &ProjectPaths) {
     let shader_uri = AssetUri::parse("res://shaders/shared").unwrap();
-    let shader_meta_path = paths.assets_root().join("shaders").join("shared.zmeta");
+    let shader_meta_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("shared.zmeta");
     let mut shader_meta = AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
     shader_meta.unit = AssetSourceUnit::Compound;
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("shared");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("shared");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("shared.zshader"),
@@ -554,7 +576,7 @@ fn write_named_option_surface_shader_package(
 ) {
     let shader_uri = AssetUri::parse(uri).unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join(format!("{stem}.zmeta"));
     let mut shader_meta = AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
@@ -562,7 +584,10 @@ fn write_named_option_surface_shader_package(
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join(stem);
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join(stem);
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join(format!("{stem}.zshader")),

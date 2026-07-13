@@ -14,17 +14,7 @@ const LEGACY_GUARD: &str =
     "runtime_15_runtime_07_artifact_render_diagnostics_guard_child_owner_split";
 
 pub(super) fn assert_artifact_render_diagnostics_split_docs(sources: &SplitLayoutSources) {
-    for (label, source) in [
-        ("Runtime 15 plan", sources.runtime_15_plan),
-        ("Runtime index", sources.runtime_index),
-        ("review findings", sources.review_findings),
-        ("structure convention", sources.structure_convention),
-        ("module convention doc", sources.module_doc),
-        ("Runtime 07 plan", sources.runtime_07_plan),
-        ("hotspot inventory doc", sources.hotspot_doc),
-        ("status-output row data", sources.status_rows),
-        ("session note", sources.session_note),
-    ] {
+    for (label, source) in [("Runtime 07 numbered archive", sources.runtime_07_archive)] {
         assert_contains_all(
             label,
             source,
@@ -38,28 +28,7 @@ pub(super) fn assert_artifact_render_diagnostics_split_docs(sources: &SplitLayou
         );
     }
 
-    assert_contains_all(
-        "status-output status slice",
-        sources.status_slice,
-        &[SLICE, STATUS],
-    );
-    assert_contains_all(
-        "status-output date slice",
-        sources.date_slice,
-        &[SLICE, "2026-07-06"],
-    );
-
-    for (label, source) in [
-        ("Runtime 15 plan", sources.runtime_15_plan),
-        ("Runtime index", sources.runtime_index),
-        ("review findings", sources.review_findings),
-        ("structure convention", sources.structure_convention),
-        ("module convention doc", sources.module_doc),
-        ("Runtime 07 plan", sources.runtime_07_plan),
-        ("hotspot inventory doc", sources.hotspot_doc),
-        ("status-output row data", sources.status_rows),
-        ("session note", sources.session_note),
-    ] {
+    for (label, source) in [("Runtime 07 numbered archive", sources.runtime_07_archive)] {
         assert_contains_all(
             label,
             source,

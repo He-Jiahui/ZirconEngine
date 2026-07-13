@@ -12,6 +12,7 @@ use super::super::super::paint_frame::HostRgbaFrame;
 use super::hierarchy::hierarchy_viewport_frame;
 use asset::{
     activity_asset_content_viewport_and_extent, asset_tree_row_count, asset_tree_viewport_frame,
+    browser_asset_content_viewport_and_extent,
 };
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer) use paint::draw_vertical_scrollbar;
 
@@ -95,6 +96,28 @@ pub(super) fn draw_activity_asset_content_scrollbar(
         interaction.activity_asset_content_scroll_px,
         content_extent,
         interaction.activity_asset_content_hovered_index >= 0,
+    )
+}
+
+pub(super) fn draw_browser_asset_content_scrollbar(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    let Some((viewport, content_extent)) =
+        browser_asset_content_viewport_and_extent(&pane.asset_browser.nodes, body)
+    else {
+        return false;
+    };
+    draw_vertical_scrollbar(
+        frame,
+        &viewport,
+        clip,
+        interaction.browser_asset_content_scroll_px,
+        content_extent,
+        interaction.browser_asset_content_hovered_index >= 0,
     )
 }
 

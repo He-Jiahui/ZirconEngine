@@ -283,7 +283,7 @@ default = "white"
 fn write_compound_shader_meta(paths: &ProjectPaths, shader_uri: &str, shader_name: &str) {
     let uri = AssetUri::parse(shader_uri).unwrap();
     let meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join(format!("{shader_name}.zmeta"));
     let mut meta = AssetMetaDocument::new(AssetUuid::new(), uri, AssetKind::Shader);

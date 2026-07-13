@@ -1,13 +1,16 @@
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime_interface::export::ExportStage;
 
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportPipelineStage,
-    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ExportValidateReport,
-    plugin::LibraryEmbedCompileHostTarget, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
+    plugin::ExportValidateReport, plugin::LibraryEmbedCompileHostTarget,
+    plugin::RuntimePluginCatalog,
 };
 
 #[path = "export_build_plan/catalog_projection.rs"]

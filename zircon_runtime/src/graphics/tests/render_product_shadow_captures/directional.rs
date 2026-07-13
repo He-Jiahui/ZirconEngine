@@ -457,6 +457,7 @@ fn directional_shadow_capture_extract_with_shadow_settings(
                     direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 0.8,
+                    mobility: crate::core::framework::scene::Mobility::Dynamic,
                     shadow: Some(shadow_settings),
                 }],
                 point_lights: Vec::new(),

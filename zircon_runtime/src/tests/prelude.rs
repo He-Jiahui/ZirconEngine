@@ -1,4 +1,6 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::RuntimeProfileId;
+use crate::plugin::{PluginMaturity, RuntimeCoreProfile, RuntimeProfileDescriptor};
 use crate::prelude::*;
 
 #[test]
@@ -17,7 +19,7 @@ fn runtime_prelude_exports_core_lifecycle_and_module_contracts() {
 }
 
 #[test]
-fn runtime_prelude_exports_time_diagnostics_log_and_runtime_profile_types() {
+fn runtime_prelude_exports_time_diagnostics_and_explicit_profile_contracts_compose() {
     let mut real_time = Time::<Real>::default();
     real_time.advance_by(std::time::Duration::from_millis(16));
     let mut virtual_time = Time::<Virtual>::default();
@@ -39,15 +41,6 @@ fn runtime_prelude_exports_time_diagnostics_log_and_runtime_profile_types() {
         Some("hz"),
         ["frame"],
     );
-    let log_filter = DiagnosticLogFilter::parse("debug").unwrap();
-    let formatted_diagnostics = format_diagnostic_store_snapshot(&diagnostics.snapshot());
-    let mut diagnostic_log_schedule =
-        DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT);
-    let diagnostic_log_settings = DiagnosticLogSettings::new("prelude")
-        .with_location(DiagnosticLogLocation::LocalFirst)
-        .with_console_enabled(true)
-        .with_file_enabled(false);
-    let _log_settings: LogSettings = diagnostic_log_settings.clone();
     let profile = RuntimeProfileDescriptor::for_id(RuntimeProfileId::Client3d);
     let minimal_core_profile = RuntimeCoreProfile::minimal();
 
@@ -63,13 +56,41 @@ fn runtime_prelude_exports_time_diagnostics_log_and_runtime_profile_types() {
     assert_eq!(TIME_FIXED_STEPS_DIAGNOSTIC, "time.fixed_steps");
     assert_eq!(TIME_FRAME_TIME_DIAGNOSTIC, "time.frame_time");
     assert_eq!(TIME_FPS_DIAGNOSTIC, "time.fps");
+    assert_eq!(diagnostics.snapshot().series.len(), 1);
+    assert_eq!(profile.id, RuntimeProfileId::Client3d);
+    assert_eq!(profile.minimum_maturity, PluginMaturity::Beta);
+    assert!(minimal_core_profile
+        .required_capabilities
+        .contains(&"runtime.core.tasks".to_string()));
+}
+
+#[cfg(feature = "diagnostic-log")]
+#[test]
+fn runtime_prelude_exports_diagnostic_log_contracts_when_enabled() {
+    let mut diagnostics = DiagnosticStore::default();
+    diagnostics.record(
+        DiagnosticPath::from("frame/fps"),
+        1,
+        60.0,
+        Some("hz"),
+        ["frame"],
+    );
+    let log_filter = DiagnosticLogFilter::parse("debug").unwrap();
+    let formatted_diagnostics = format_diagnostic_store_snapshot(&diagnostics.snapshot());
+    let mut diagnostic_log_schedule =
+        DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT);
+    let diagnostic_log_settings = DiagnosticLogSettings::new("prelude")
+        .with_location(DiagnosticLogLocation::LocalFirst)
+        .with_console_enabled(true)
+        .with_file_enabled(false);
+    let _log_settings: LogSettings = diagnostic_log_settings.clone();
+
     assert_eq!(DIAGNOSTIC_LOG_FILTER_ENV, "ZIRCON_LOG_FILTER");
     assert_eq!(DIAGNOSTIC_LOG_ENV, "ZIRCON_LOG");
     assert_eq!(RUST_LOG_ENV, "RUST_LOG");
     assert!(diagnostic_log_settings
         .format_diagnostics()
         .contains("diagnostic_log.file_enabled=false"));
-    assert_eq!(diagnostics.snapshot().series.len(), 1);
     assert!(formatted_diagnostics
         .iter()
         .any(|line| line.starts_with("frame/fps: 60.000000hz")));
@@ -79,11 +100,6 @@ fn runtime_prelude_exports_time_diagnostics_log_and_runtime_profile_types() {
     );
     assert!(diagnostic_log_schedule.tick(std::time::Duration::from_secs(1)));
     assert!(log_filter.allows(DiagnosticLogLevel::Error));
-    assert_eq!(profile.id, RuntimeProfileId::Client3d);
-    assert_eq!(profile.minimum_maturity, PluginMaturity::Beta);
-    assert!(minimal_core_profile
-        .required_capabilities
-        .contains(&"runtime.core.tasks".to_string()));
 }
 
 #[test]
@@ -297,6 +313,7 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
 }
 
 #[test]
+#[cfg(all(feature = "graphics", feature = "ui"))]
 fn runtime_prelude_exports_asset_scene_ui_and_graphics_contracts() {
     #[derive(Clone, Debug)]
     struct PreludeComponent;

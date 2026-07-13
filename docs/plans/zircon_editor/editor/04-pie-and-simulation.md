@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_editor/src/core/editor_event/runtime/editor_runtime_play_mode_backend.rs
+  - zircon_editor/src/core/play/bridge.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime_interface/src/runtime_api/api_table.rs
   - zircon_runtime/src/scene/level_system.rs
-  - zircon_runtime/src/plugin/native
+  - zircon_runtime/src/plugin/native.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/bin/runtime_preview.rs
 reference_sources:
@@ -25,6 +25,8 @@ status: planned
 ---
 
 # 04 PIE 模拟运行
+
+- 来自 Editor08 的失败交接（`open / Building/Play 权威状态投影`）：[`04/failure-2026-07-12-command-eval-play-state-projection.md`](04/failure-2026-07-12-command-eval-play-state-projection.md)
 
 本计划落地 00 §6 的「Edit/Play 状态」权威 `PlaySessionController`，并定义 **Unity 式运行时编辑**：Playing 期间 hierarchy/inspector 与运行世界实时同步，可直接编辑运行世界（改动随 PIE 副本在退出时整体丢弃），运行时 spawn 的实体实时进 hierarchy。执行前置提醒（index「取证口径」）：UE PIE 内部流程证据为头文件级，动工前宜再读 `Editor/UnrealEd/Private/PlayLevel.cpp` 深核。
 
@@ -297,3 +299,9 @@ PIE 视口拖 gizmo → 05 工具（play 域）→ TransactionScope(PlaySession)
 - **hierarchy 面板规模上限**：02 以 5k 节点为设计目标，弹幕类 gameplay 可能数万实体——节流 + `subtree_hash` diff 之外，若实测仍超帧预算，降级方案为 play 域 hierarchy 仅展开路径按需查询（`Subtree` watch 只挂已展开节点）；实测证据记状态节。
 - **`EntityId` 注入稳定性被否**：若序列化往返不能保 id 且映射表方案实施成本高，则双域选中映射与「保留运行时更改」按名称+路径弱锚降级（准确性打折，明示于命令提示）；裁决记 M2 状态节。
 - **live edit 与 02 值级通道的时序耦合**：02 组件值级 change-tick 明确不在其本期，play 域 inspector 靠节奏拉取兜底——若 03 提交事件通道（02 风险节预告）先行落地，M3 切片 3.3 改订阅制并删除轮询路径，执行时依 02/03 实际进度取舍。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-07-12 | Editor08 M1.2 失败移交：`CommandEvalCtx` Building/Play 权威投影 | 待修复（open） | Editor08 已落地类型化 `PlayMode` when 谓词，但当前 Chrome 投影只能从 `EditorSessionMode::{Welcome,Project,Playing}` 生成 `Edit/Playing`，无法表达 `Building`，也尚未以本计划 `PlaySessionController` 为权威源；修复要求与静态复现证据见 [failure 交接](04/failure-2026-07-12-command-eval-play-state-projection.md)。本行仅登记待修复，不声明本计划完成。 |

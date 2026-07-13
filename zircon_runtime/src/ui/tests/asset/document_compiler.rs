@@ -141,6 +141,127 @@ fn ui_document_compiler_expands_imported_widget_references_and_applies_styleshee
 }
 
 #[test]
+fn component_slot_placeholder_layout_survives_into_mounted_child_slot_contract() {
+    let row_asset = UiAssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "widget"
+id = "ui.common.property_row"
+version = 2
+display_name = "Property Row"
+
+[tokens]
+value_slot_stretch = "Stretch"
+
+[components.PropertyRow]
+root = "root"
+slots = { value = { multiple = false } }
+
+[components.PropertyRow.params.value_height]
+type = "number"
+default = 28.0
+
+[nodes.root]
+kind = "native"
+type = "HorizontalBox"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [{ child = "name" }, { child = "value_slot" }]
+
+[nodes.name]
+kind = "native"
+type = "Container"
+layout = { width = { min = 60.0, preferred = 105.0, max = 105.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.value_slot]
+kind = "slot"
+slot_name = "value"
+layout = { width = { stretch = "$value_slot_stretch" }, height = { min = "$param.value_height", preferred = "$param.value_height", max = "$param.value_height", stretch = "Fixed" } }
+"#,
+    )
+    .unwrap();
+    let layout_asset = UiAssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "layout"
+id = "editor.property_row_test"
+version = 2
+display_name = "Property Row Test"
+
+[imports]
+widgets = ["asset://ui/common/property_row.ui#PropertyRow"]
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "reference"
+component_ref = "asset://ui/common/property_row.ui#PropertyRow"
+control_id = "PropertyRowHost"
+params = { value_height = 30.0 }
+children = [{ child = "field", mount = "value", slot = { layout = { width = { weight = 2.0 } } } }]
+
+[nodes.field]
+kind = "native"
+type = "TextField"
+control_id = "PropertyValueField"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+"#,
+    )
+    .unwrap();
+
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_widget_import("asset://ui/common/property_row.ui#PropertyRow", row_asset)
+        .unwrap();
+    let compiled = compiler.compile(&layout_asset).unwrap();
+    let instance = compiled.into_template_instance();
+    let value_field = instance
+        .root
+        .children
+        .iter()
+        .find(|child| child.control_id.as_deref() == Some("PropertyValueField"))
+        .expect("value field should replace the component slot placeholder");
+
+    assert_eq!(
+        value_field
+            .slot_attributes
+            .get("layout")
+            .and_then(|layout| layout.get("width"))
+            .and_then(|width| width.get("stretch"))
+            .and_then(Value::as_str),
+        Some("Stretch")
+    );
+    assert_eq!(
+        value_field
+            .slot_attributes
+            .get("layout")
+            .and_then(|layout| layout.get("height"))
+            .and_then(|height| height.get("min"))
+            .and_then(Value::as_float),
+        Some(30.0)
+    );
+    assert_eq!(
+        value_field
+            .slot_attributes
+            .get("layout")
+            .and_then(|layout| layout.get("height"))
+            .and_then(|height| height.get("preferred"))
+            .and_then(Value::as_float),
+        Some(30.0)
+    );
+    assert_eq!(
+        value_field
+            .slot_attributes
+            .get("layout")
+            .and_then(|layout| layout.get("width"))
+            .and_then(|width| width.get("weight"))
+            .and_then(Value::as_float),
+        Some(2.0),
+        "caller-authored mount leaves must override resolved placeholder defaults"
+    );
+}
+
+#[test]
 fn ui_asset_loader_materializes_recursive_tree_authority_in_memory() {
     let document = UiAssetLoader::load_toml_str(LAYOUT_ASSET_TOML).unwrap();
     let root = document.root.as_ref().expect("layout root");

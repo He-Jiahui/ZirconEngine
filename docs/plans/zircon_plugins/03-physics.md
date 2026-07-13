@@ -3,7 +3,9 @@
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
 > 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/physics/runtime.md`
 > 参考实现：Godot `servers/physics_3d`（PhysicsServer3D body/shape/joint/area API 形态）、Jolt 官方 Samples（约束族与 ragdoll）
-> 最新进度（2026-07-11）：M1 已完成。M1-T1 backend trait/builtin 收编、M1-T2 双系统锚点、M1-T3 Jolt 原生 shape/body/step，以及 M1-T4 change detection/有界命令缓冲均已验收。最终 WSL 回归为 feature-on 46/46、feature-off 43/43；M2 刚体与形状族为下一里程碑。
+> 最新进度（2026-07-12）：M1 已完成；M2-T1 形状五变体、共享 Runtime 消费者收敛、builtin typed Unsupported，以及 Jolt Cylinder/ConvexHull/Compound/资源型 TriangleMesh/HeightField 映射均已验收。Windows Jolt 插件库 21/21、Runtime collider 消费者 10/10、mesh DTO 1/1；M2-T2 MassProperties/CCD/SleepPolicy/BodyType 运行期切换为下一切片。
+- fixed 已修复：[collider-shape-consumer-exhaustiveness](../zircon_editor/editor/01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md)
+- fixed 已修复：[rigid-body-sleep-policy-consumer-cutover](../zircon_editor/editor/08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)
 
 ## 1. 目标
 
@@ -243,7 +245,7 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_ru
 | 纯软件降级后端形态 | `dev/godot/modules/godot_physics_3d/` | builtin 后端能力边界划定的参照 |
 | ragdoll/骨骼物理 | `dev/UnrealEngine/Engine/Source/Runtime/Engine/`（PhysicsEngine 子目录，PhysicsAsset 形态）与 `dev/godot/modules/jolt_physics/` 的关节实现 | 骨骼 → body/constraint 映射、Animated/Simulated 切换的速度初始化 |
 
-## 9. 状态与产出记录
+## 产出记录与时间
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
@@ -252,3 +254,5 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_ru
 | M1-T2 | `physics.step` / `physics.sync_to_scene` 双系统锚点 | `plugins_03_m1_t2_dual_physics_system_anchors_wsl_40_of_40_passed` | 2026-07-10 | 注册入口硬切为复数 `register_runtime_systems`；`physics.step` 位于 FixedUpdate、`physics.sync_to_scene` 位于 FixedPostUpdate，二者同属 `physics.main`。后者把同步快照中的 active body 位姿、刚体类型、质量、速度、阻尼、重力、休眠与轴锁真实回写 scene。有效 TDD RED 运行 1 项并因缺少 sync 锚点失败；GREEN 物理库测试 8/8、既有管理器契约回归 32/32。验收见 `tests/acceptance/plugins-03-physics-system-anchors.md`。M1-T4 仍 open。 |
 | M1-T3 | `joltc-sys` 原生 shape/body/step 后端 | `plugins_03_m1_t3_joltc_native_backend_wsl_feature_43_of_43_default_41_of_41_windows_2_of_2_passed` | 2026-07-11 | `backend-jolt` 接入可选 `joltc-sys 0.3.1+Jolt-5.0.0`；`backend/jolt/**` 分离层过滤、转换、native world 与 trait runtime owner，manager 为每个 scene world 持有持久原生 world，支持 Box/Sphere/Capsule body 创建、命令应用、step 与 active-state 回写。选择器在 feature-on 时报告 Ready 并执行 Jolt，feature-off 时明确 Unavailable，两个路径均不静默回落 builtin。TDD backend RED 仅缺 Jolt owner；manager RED 两项均因 backend 未激活失败。WSL nightly locked/offline feature-on 完整 43/43、默认 feature-off 41/41；Windows MSVC 在配置 `LIBCLANG_PATH` 后原生后端 2/2；插件结构审计违规 0。原生 query/event/constraint 与 M1-T4 change detection/命令缓冲未在本行认领；验收见 `tests/acceptance/plugins-03-physics-jolt-backend.md`。 |
 | M1-T4 | change detection + manager command buffer | `plugins_03_m1_t4_change_detection_command_buffer_wsl_feature_46_of_46_default_43_of_43_passed` | 2026-07-11 | `manager/change_detection.rs` 以每实体已提交快照区分无变化、可命令更新与需要重建的结构变化；`manager/command_buffer.rs` 提供按 world/entity 定位的公开 typed 命令、非有限输入拒绝和每 world 4,096 项有界队列。Builtin/Jolt 都只在下一次真实 FixedUpdate drain；Jolt 先按当前 generation handle 对账，再按提交顺序应用命令，active readback 同步基线避免下一步重复下发。TDD RED 分别锁定缺失 change-detection owner 和缺失命令 API；GREEN 锚点 `unchanged_bodies_skip_sync`、`force_applied_outside_fixed_update_lands_next_step` 及 Jolt queued-force 均通过。WSL nightly locked/offline feature-on 12+34=46/46、默认 feature-off 10+33=43/43；生产 manager panic/allow 扫描 0，插件结构审计违规 0。验收见 `tests/acceptance/plugins-03-physics-change-detection-command-buffer.md`。 |
+| M2-T1 | 形状五变体、共享消费者与 Jolt 资源型 mesh 映射 | `plugins_03_m2_t1_shape_family_windows_jolt_21_of_21_runtime_10_of_10_mesh_1_of_1_passed` | 2026-07-12 | 中立/scene 契约补齐 Cylinder、ConvexHull、TriangleMesh、HeightField、递归 Compound；asset cache、project IO、属性读写、render post-process 与 Navigation bake 同步穷举。Builtin 对 mesh/heightfield/compound 返回 typed Unsupported；Jolt 原生映射 Cylinder/ConvexHull/Compound，并通过 `PhysicsMeshAsset` 注册表解析 TriangleMesh/HeightField，后两者递归强制 static body。Windows managed Jolt check 通过，feature-on 插件库 21/21；Runtime collider 消费者 10/10，mesh DTO 1/1；scoped diff 检查通过。全仓结构审计在并发超大工作树中 120 秒超时，未误记为通过；新增/拆分生产 owner 最大 476 行。详见 `03/2026-07-12-physics-m2-shape-family-output-records.md`。 |
+- fixed 已修复：[rigid-body-sleep-policy-consumer-cutover](../zircon_editor/editor/08/fixed-2026-07-12-rigid-body-sleep-policy-consumer-cutover.md)

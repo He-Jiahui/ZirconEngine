@@ -1,13 +1,15 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::windows::workbench_host_window::{PaneContentSize, PaneData, PanePayload};
+use crate::ui::layouts::windows::workbench_host_window::{
+    PaneContentSize, PaneData, PanePayload, RuntimeDiagnosticsPanePayload,
+};
 use crate::ui::retained_host as host_contract;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
-    surface::{UiDebugOverlayPrimitive, UiSurfaceFrame},
+    surface::UiSurfaceFrame,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -25,12 +27,7 @@ pub(crate) fn to_host_contract_runtime_diagnostics_pane_from_host_pane(
 
     host_contract::RuntimeDiagnosticsPaneData {
         nodes: model_rc(nodes),
-        overlay_primitives: model_rc(
-            runtime_debug_reflector_overlay_primitives(data)
-                .into_iter()
-                .map(|primitive| to_host_contract_ui_debug_overlay_primitive(&primitive))
-                .collect(),
-        ),
+        overlay_primitives: model_rc(Vec::new()),
         preserve_payload_debug_reflector: runtime_debug_reflector_has_active_payload_snapshot(data),
     }
 }
@@ -57,13 +54,7 @@ pub(crate) fn refresh_runtime_diagnostics_debug_reflector_from_body_surface(
     let nodes = runtime_debug_reflector_nodes_from_model(&template_nodes, &reflector, content_size);
 
     pane.runtime_diagnostics.nodes = model_rc(nodes);
-    pane.runtime_diagnostics.overlay_primitives = model_rc(
-        snapshot
-            .overlay_primitives
-            .into_iter()
-            .map(|primitive| to_host_contract_ui_debug_overlay_primitive(&primitive))
-            .collect(),
-    );
+    pane.runtime_diagnostics.overlay_primitives = model_rc(Vec::new());
     true
 }
 
@@ -138,18 +129,6 @@ fn runtime_diagnostics_debug_surface_frame(
     surface.surface_frame()
 }
 
-fn runtime_debug_reflector_overlay_primitives(data: &PaneData) -> Vec<UiDebugOverlayPrimitive> {
-    data.pane_presentation
-        .as_ref()
-        .and_then(|presentation| match &presentation.body.payload {
-            PanePayload::RuntimeDiagnosticsV1(payload) => {
-                Some(payload.ui_debug_reflector_overlay_primitives.clone())
-            }
-            _ => None,
-        })
-        .unwrap_or_default()
-}
-
 fn runtime_debug_reflector_has_active_payload_snapshot(data: &PaneData) -> bool {
     data.pane_presentation
         .as_ref()
@@ -160,27 +139,6 @@ fn runtime_debug_reflector_has_active_payload_snapshot(data: &PaneData) -> bool 
             _ => None,
         })
         .unwrap_or(false)
-}
-
-pub(crate) fn to_host_contract_ui_debug_overlay_primitive(
-    primitive: &UiDebugOverlayPrimitive,
-) -> host_contract::UiDebugOverlayPrimitiveData {
-    host_contract::UiDebugOverlayPrimitiveData {
-        kind: primitive.kind,
-        node_id: primitive
-            .node_id
-            .map(|node_id| node_id.0.to_string())
-            .unwrap_or_default()
-            .into(),
-        frame: host_contract::FrameRect {
-            x: primitive.frame.x,
-            y: primitive.frame.y,
-            width: primitive.frame.width,
-            height: primitive.frame.height,
-        },
-        label: primitive.label.clone().unwrap_or_default().into(),
-        severity: primitive.severity.clone().unwrap_or_default().into(),
-    }
 }
 
 fn runtime_diagnostics_template_projection(
@@ -228,8 +186,11 @@ fn runtime_debug_reflector_nodes(
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
+    let status_lines = runtime_diagnostics_status_lines(payload);
     runtime_debug_reflector_nodes_from_parts(
         template_nodes,
+        Some(payload.summary.as_str()),
+        &status_lines,
         payload.ui_debug_reflector_summary.as_str(),
         payload.ui_debug_reflector_export_status.as_str(),
         &details,
@@ -258,6 +219,8 @@ fn runtime_debug_reflector_nodes_from_model(
     let section_lines = reflector.section_display_lines();
     runtime_debug_reflector_nodes_from_parts(
         template_nodes,
+        None,
+        &[],
         reflector.summary.title.as_str(),
         reflector.summary.export_status.as_str(),
         &reflector.details,
@@ -269,7 +232,9 @@ fn runtime_debug_reflector_nodes_from_model(
 
 fn runtime_debug_reflector_nodes_from_parts(
     template_nodes: &[host_contract::TemplatePaneNodeData],
-    summary: &str,
+    runtime_summary: Option<&str>,
+    runtime_status_lines: &[String],
+    reflector_summary: &str,
     export_status: &str,
     details: &[String],
     section_lines: &[String],
@@ -286,16 +251,44 @@ fn runtime_debug_reflector_nodes_from_parts(
             width: content_size.width.max(0.0),
             height: (content_size.height - 72.0).max(0.0),
         });
-    let mut nodes = template_text_nodes_from_parts(template_nodes, summary, export_status, details);
+    let mut nodes = template_text_nodes_from_parts(template_nodes, runtime_summary);
     let mut y = section.y + REFLECTOR_SECTION_PADDING;
     let x = section.x + REFLECTOR_SECTION_PADDING;
     let width = (section.width - REFLECTOR_SECTION_PADDING * 2.0).max(0.0);
 
+    let existing_status_bottom = nodes
+        .iter()
+        .filter(|node| {
+            node.node_id
+                .as_str()
+                .starts_with("runtime_diagnostics_status_")
+        })
+        .map(|node| node.frame.y + node.frame.height)
+        .fold(y, f32::max);
+    if existing_status_bottom > y {
+        y = existing_status_bottom + REFLECTOR_LINE_GAP;
+    }
+
+    for (index, status) in runtime_status_lines.iter().enumerate() {
+        push_label(
+            &mut nodes,
+            "runtime_diagnostics_status_",
+            format!("{index}"),
+            format!("RuntimeDiagnosticsStatus.{index}"),
+            status,
+            x,
+            &mut y,
+            width,
+            index >= 4,
+        );
+    }
+
     push_label(
         &mut nodes,
+        "runtime_debug_reflector_",
         "summary",
         "UiDebugReflectorSummaryText",
-        summary,
+        reflector_summary,
         x,
         &mut y,
         width,
@@ -303,6 +296,7 @@ fn runtime_debug_reflector_nodes_from_parts(
     );
     push_label(
         &mut nodes,
+        "runtime_debug_reflector_",
         "export",
         "UiDebugReflectorExportStatusText",
         export_status,
@@ -315,6 +309,7 @@ fn runtime_debug_reflector_nodes_from_parts(
     for (index, detail) in details.iter().enumerate() {
         push_label(
             &mut nodes,
+            "runtime_debug_reflector_",
             format!("detail_{index}"),
             format!("UiDebugReflectorDetail.{index}"),
             detail,
@@ -328,6 +323,7 @@ fn runtime_debug_reflector_nodes_from_parts(
     for (index, section_line) in section_lines.iter().enumerate() {
         push_label(
             &mut nodes,
+            "runtime_debug_reflector_",
             format!("section_{index}"),
             format!("UiDebugReflectorSection.{index}"),
             section_line,
@@ -341,6 +337,7 @@ fn runtime_debug_reflector_nodes_from_parts(
     for (index, text) in node_labels.iter().enumerate() {
         push_label(
             &mut nodes,
+            "runtime_debug_reflector_",
             format!("node_{index}"),
             format!("UiDebugReflectorNode.{index}"),
             text,
@@ -370,25 +367,17 @@ fn runtime_diagnostics_existing_template_nodes(
 
 fn template_text_nodes_from_parts(
     template_nodes: &[host_contract::TemplatePaneNodeData],
-    summary: &str,
-    export_status: &str,
-    details: &[String],
+    runtime_summary: Option<&str>,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     template_nodes
         .iter()
         .cloned()
         .map(|mut node| {
             match node.control_id.as_str() {
-                "UiDebugReflectorSummary" => {
-                    node.text = summary.into();
-                }
-                "UiDebugReflectorExportStatus" => {
-                    node.text = export_status.into();
-                    node.text_tone = "muted".into();
-                }
-                "UiDebugReflectorDetail" => {
-                    node.text = details.first().cloned().unwrap_or_default().into();
-                    node.text_tone = "muted".into();
+                "RuntimeDiagnosticsSummary" => {
+                    if let Some(summary) = runtime_summary {
+                        node.text = summary.into();
+                    }
                 }
                 _ => {}
             }
@@ -399,6 +388,7 @@ fn template_text_nodes_from_parts(
 
 fn push_label(
     nodes: &mut Vec<host_contract::TemplatePaneNodeData>,
+    node_prefix: &str,
     node_suffix: impl Into<String>,
     control_id: impl Into<String>,
     text: &str,
@@ -412,7 +402,7 @@ fn push_label(
     }
 
     let mut node = host_contract::TemplatePaneNodeData {
-        node_id: format!("runtime_debug_reflector_{}", node_suffix.into()).into(),
+        node_id: format!("{node_prefix}{}", node_suffix.into()).into(),
         control_id: control_id.into().into(),
         role: "Label".into(),
         text: text.to_string().into(),
@@ -429,4 +419,41 @@ fn push_label(
     }
     nodes.push(node);
     *y += REFLECTOR_LINE_HEIGHT + REFLECTOR_LINE_GAP;
+}
+
+fn runtime_diagnostics_status_lines(payload: &RuntimeDiagnosticsPanePayload) -> Vec<String> {
+    const HYBRID_GI_PRIORITY_PREFIXES: [&str; 4] = [
+        "Hybrid GI effective:",
+        "Hybrid GI budgets:",
+        "Hybrid GI fallback:",
+        "Hybrid GI active probes:",
+    ];
+
+    let mut lines = Vec::new();
+    for prefix in HYBRID_GI_PRIORITY_PREFIXES {
+        lines.extend(
+            payload
+                .detail_items
+                .iter()
+                .filter(|item| item.starts_with(prefix))
+                .cloned(),
+        );
+    }
+    lines.extend([
+        payload.render_status.clone(),
+        payload.physics_status.clone(),
+        payload.animation_status.clone(),
+    ]);
+    lines.extend(
+        payload
+            .detail_items
+            .iter()
+            .filter(|item| {
+                !HYBRID_GI_PRIORITY_PREFIXES
+                    .iter()
+                    .any(|prefix| item.starts_with(prefix))
+            })
+            .cloned(),
+    );
+    lines
 }

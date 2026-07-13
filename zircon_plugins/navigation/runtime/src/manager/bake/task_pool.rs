@@ -2,7 +2,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use zircon_plugin_navigation_recast::{merge_tiled_assets, RecastTiledBakePlan};
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeDiagnostic, NavMeshBakeReport, NavMeshBakeRequest, NavigationError,
     NavigationErrorKind,

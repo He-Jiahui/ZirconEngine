@@ -33,6 +33,7 @@ pub(crate) fn to_host_contract_template_node(
 ) -> host_contract::TemplatePaneNodeData {
     host_contract::TemplatePaneNodeData {
         node_id: data.node_id.clone(),
+        parent_node_id: SharedString::default(),
         control_id: data.control_id.clone(),
         role: data.role.clone(),
         text: data.text.clone(),
@@ -69,6 +70,9 @@ pub(crate) fn to_host_contract_template_node(
         has_preview_image: data.has_preview_image,
         preview_image: data.preview_image.clone(),
         vector_components: ModelRc::default(),
+        sample_grid: host_contract::TemplatePaneSampleGridData::default(),
+        timeline_strip: host_contract::TemplatePaneTimelineStripData::default(),
+        weight_heatmap: host_contract::TemplatePaneWeightHeatmapData::default(),
         validation_level: "".into(),
         validation_message: "".into(),
         popup_open: data.popup_open,

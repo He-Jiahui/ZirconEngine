@@ -1,5 +1,6 @@
 mod bootstrap_and_startup;
 mod minimal_host_contract;
+mod runtime_lifecycle;
 mod structure_split;
 mod support;
 mod ui_asset_binding_and_tree;

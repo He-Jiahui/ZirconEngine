@@ -28,6 +28,9 @@ impl ViewProjectionMatrixPair {
 }
 
 fn projection_from_camera(camera: &ViewportCameraSnapshot, viewport_size: UVec2) -> Mat4 {
+    if let Some(projection) = camera.projection_override {
+        return projection;
+    }
     let aspect = aspect_ratio_from_viewport_size(viewport_size);
     match camera.projection_mode {
         ProjectionMode::Perspective => Mat4::perspective_rh(

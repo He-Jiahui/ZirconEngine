@@ -1,89 +1,88 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel, Receiver};
-use std::sync::Arc;
-use std::thread::{spawn, JoinHandle};
+mod completion;
+mod job;
+mod poll;
 
-use super::{
-    run_export_wizard_job, ExportWizardCancelSignal, ExportWizardCommandRunner,
-    ExportWizardJobEvent, ExportWizardJobSnapshot, ExportWizardPipelinePlan,
+use std::sync::mpsc::{channel, Receiver};
+
+use crate::core::jobs::{
+    CancellationToken, EditorJobSpec, EditorJobSystem, JobCategory, JobSubmitError, JobTicket,
 };
 
-#[derive(Clone, Debug)]
-pub struct ExportWizardJobHandle {
-    pub job_id: String,
-    cancel_requested: Arc<AtomicBool>,
-}
+pub use self::completion::ExportWizardJobCompletion;
+use self::job::ExportWizardEditorJob;
+pub(super) use self::poll::ExportWizardJobPoll;
+use super::{
+    ExportWizardCommandRunner, ExportWizardJobEvent, ExportWizardJobSnapshot,
+    ExportWizardPipelinePlan,
+};
 
-impl ExportWizardJobHandle {
-    pub fn request_cancel(&self) {
-        self.cancel_requested.store(true, Ordering::SeqCst);
-    }
-
-    pub fn is_cancel_requested(&self) -> bool {
-        self.cancel_requested.load(Ordering::SeqCst)
-    }
-}
-
+/// Owns the export domain event stream and the typed ticket submitted to the editor job service.
 pub struct ExportWizardJobController {
-    handle: ExportWizardJobHandle,
+    jobs: EditorJobSystem,
+    job_id: String,
+    cancel: CancellationToken,
     events: Receiver<ExportWizardJobEvent>,
-    worker: JoinHandle<ExportWizardJobSnapshot>,
+    ticket: JobTicket<ExportWizardJobSnapshot>,
 }
 
 impl ExportWizardJobController {
-    pub fn spawn(
+    pub fn submit(
+        jobs: &EditorJobSystem,
         job_id: impl Into<String>,
         plan: ExportWizardPipelinePlan,
-        mut runner: impl ExportWizardCommandRunner + Send + 'static,
-    ) -> Self {
+        runner: impl ExportWizardCommandRunner + Send + 'static,
+    ) -> Result<Self, JobSubmitError> {
         let job_id = job_id.into();
-        let cancel_requested = Arc::new(AtomicBool::new(false));
-        let handle = ExportWizardJobHandle {
-            job_id: job_id.clone(),
-            cancel_requested: Arc::clone(&cancel_requested),
-        };
-        let cancel_signal = ExportWizardSharedCancelSignal {
-            cancel_requested: Arc::clone(&cancel_requested),
-        };
+        let cancel = CancellationToken::default();
         let (event_sender, events) = channel();
-        let worker = spawn(move || {
-            run_export_wizard_job(job_id, &plan, &mut runner, &cancel_signal, &mut |event| {
-                let _ = event_sender.send(event);
-            })
-        });
-        Self {
-            handle,
+        let spec =
+            EditorJobSpec::new(job_id.clone(), JobCategory::Export).with_cancel(cancel.clone());
+        let ticket = jobs.submit(
+            spec,
+            ExportWizardEditorJob::new(job_id.clone(), plan, runner, event_sender),
+        )?;
+        Ok(Self {
+            jobs: jobs.clone(),
+            job_id,
+            cancel,
             events,
-            worker,
-        }
+            ticket,
+        })
     }
 
-    pub fn handle(&self) -> &ExportWizardJobHandle {
-        &self.handle
+    pub fn job_id(&self) -> &str {
+        &self.job_id
     }
 
     pub fn request_cancel(&self) {
-        self.handle.request_cancel();
+        self.cancel.cancel();
+        let _ = self.jobs.cancel(self.ticket.id());
+    }
+
+    pub fn is_cancel_requested(&self) -> bool {
+        self.cancel.is_cancelled()
     }
 
     pub fn events(&self) -> &Receiver<ExportWizardJobEvent> {
         &self.events
     }
 
-    pub fn finish(self) -> Result<ExportWizardJobSnapshot, String> {
-        self.worker
-            .join()
-            .map_err(|_| format!("export wizard job {} worker panicked", self.handle.job_id))
+    pub(super) fn poll(&self) -> ExportWizardJobPoll {
+        match self.ticket.try_take() {
+            None => ExportWizardJobPoll::Pending,
+            Some(result) => {
+                let events = self.events.try_iter().collect();
+                match result {
+                    Ok(snapshot) => ExportWizardJobPoll::Completed { events, snapshot },
+                    Err(error) => ExportWizardJobPoll::Failed { events, error },
+                }
+            }
+        }
     }
-}
 
-#[derive(Clone, Debug)]
-struct ExportWizardSharedCancelSignal {
-    cancel_requested: Arc<AtomicBool>,
-}
-
-impl ExportWizardCancelSignal for ExportWizardSharedCancelSignal {
-    fn is_cancel_requested(&self) -> bool {
-        self.cancel_requested.load(Ordering::SeqCst)
+    pub fn finish(self) -> ExportWizardJobCompletion {
+        let result = self.ticket.wait();
+        let events = self.events.try_iter().collect();
+        ExportWizardJobCompletion { events, result }
     }
 }

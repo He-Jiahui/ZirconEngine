@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use image::{imageops::FilterType, DynamicImage, ImageBuffer, ImageFormat, Rgba};
 
+use crate::core::asset::ThumbnailPlaceholderPalette;
 use zircon_runtime::asset::AssetUuid;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -27,8 +28,8 @@ pub struct PreviewCache {
 }
 
 impl PreviewCache {
-    pub fn new(library_root: impl AsRef<Path>) -> Result<Self, std::io::Error> {
-        let root = library_root.as_ref().join("editor-previews");
+    pub fn new(cache_root: impl AsRef<Path>) -> Result<Self, std::io::Error> {
+        let root = cache_root.as_ref().join("editor-previews");
         fs::create_dir_all(&root)?;
         Ok(Self { root })
     }
@@ -54,7 +55,7 @@ impl PreviewCache {
     pub fn write_kind_placeholder(
         &self,
         key: &PreviewArtifactKey,
-        colors: PreviewPalette,
+        colors: ThumbnailPlaceholderPalette,
     ) -> Result<PathBuf, std::io::Error> {
         let mut image = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(256, 160);
         for (x, y, pixel) in image.enumerate_pixels_mut() {
@@ -89,14 +90,6 @@ impl PreviewCache {
             .map_err(invalid_data)?;
         Ok(path)
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PreviewPalette {
-    pub primary: [u8; 4],
-    pub secondary: [u8; 4],
-    pub accent: [u8; 4],
-    pub banner: [u8; 4],
 }
 
 #[derive(Clone, Debug, Default)]

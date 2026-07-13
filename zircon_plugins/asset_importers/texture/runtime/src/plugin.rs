@@ -3,12 +3,12 @@ use zircon_plugin_sdk::{
     ImporterRuntimeManifestBuilder,
 };
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportTargetPlatform;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimePlugin,
-    RuntimePluginDescriptor,
+    PluginModuleManifest, PluginPackageManifest, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::{
     CONTAINER_IMPORTER_CAPABILITY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CAPABILITIES,

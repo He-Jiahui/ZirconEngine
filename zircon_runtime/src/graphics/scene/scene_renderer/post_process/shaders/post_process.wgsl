@@ -4,6 +4,7 @@ struct PostProcessParams {
     feature_flags: vec4<u32>,
     lighting_flags: vec4<u32>,
     hybrid_gi_counts: vec4<u32>,
+    hybrid_gi_source_ledger: vec4<u32>,
     anti_alias: vec4<u32>,
     blends: vec4<f32>,
     grading: vec4<f32>,
@@ -95,6 +96,9 @@ const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_BASE: f32 = 0.05;
 const HYBRID_GI_HISTORY_CONFIDENCE_BLEND_RANGE: f32 = 1.0;
 const HYBRID_GI_HISTORY_BLEND_MAX: f32 = 0.45;
 const HYBRID_GI_HISTORY_SIGNATURE_SCALE: f32 = 255.0;
+const HYBRID_GI_SOURCE_FULL_DYNAMIC: u32 = 1u;
+const HYBRID_GI_SOURCE_BAKED_BASELINE: u32 = 2u;
+const HYBRID_GI_SOURCE_DYNAMIC_DELTA: u32 = 4u;
 const DOF_BOKEH_SAMPLE_COUNT: u32 = 12u;
 const DOF_BOKEH_RING_SAMPLE_COUNT: u32 = 6u;
 const DOF_MAX_FINAL_PASS_RADIUS: f32 = 12.0;
@@ -130,6 +134,14 @@ fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
 
 fn color_luminance(color: vec3<f32>) -> f32 {
     return dot(color, vec3<f32>(0.299, 0.587, 0.114));
+}
+
+fn hybrid_gi_probe_source_is_valid(source_mask: u32) -> bool {
+    let has_full_dynamic = (source_mask & HYBRID_GI_SOURCE_FULL_DYNAMIC) != 0u;
+    let has_baked_baseline = (source_mask & HYBRID_GI_SOURCE_BAKED_BASELINE) != 0u;
+    let has_dynamic_delta = (source_mask & HYBRID_GI_SOURCE_DYNAMIC_DELTA) != 0u;
+    return (has_full_dynamic && !has_baked_baseline && !has_dynamic_delta)
+        || (!has_full_dynamic && has_dynamic_delta);
 }
 
 fn viewport_size() -> vec2<u32> {
@@ -734,6 +746,10 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             let probe_radius = max(probe.screen_uv_and_radius.z, 0.0001);
             let budget_weight = probe.screen_uv_and_radius.w;
             let hierarchy_resolve_weight = probe.irradiance_and_intensity.w;
+            let probe_source_mask = u32(round(probe.temporal_signature_and_padding.z));
+            let probe_dynamic_weight =
+                clamp(probe.temporal_signature_and_padding.w, 0.0, 1.0)
+                * select(0.0, 1.0, hybrid_gi_probe_source_is_valid(probe_source_mask));
             let distance_to_probe = distance(uv, probe_uv);
             let falloff = max(1.0 - distance_to_probe / probe_radius, 0.0);
             var trace_support = 1.0;
@@ -802,14 +818,19 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             indirect_light_history_support =
                 max(indirect_light_history_support, probe_history_support);
             let probe_weight =
-                falloff * falloff * budget_weight * hierarchy_resolve_weight * trace_support;
+                falloff * falloff * budget_weight * hierarchy_resolve_weight * trace_support
+                * probe_dynamic_weight;
             gi_light = gi_light + probe_irradiance * probe_weight;
         }
 
         let probe_count = max(f32(params.hybrid_gi_counts.x), 1.0);
+        let source_ledger_valid = params.hybrid_gi_source_ledger.w != 0u;
+        let dynamic_source_weight =
+            f32(params.hybrid_gi_source_ledger.z) / 255.0 * select(0.0, 1.0, source_ledger_valid);
         indirect_light =
             (gi_light / probe_count)
-            * params.hybrid_gi_color_and_intensity.w;
+            * params.hybrid_gi_color_and_intensity.w
+            * dynamic_source_weight;
         if (params.hybrid_gi_counts.w != 0u) {
             let current_frame_lighting_sample =
                 textureLoad(history_global_illumination_tex, coord_i32, 0);
@@ -819,7 +840,9 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             indirect_light =
                 mix(
                     indirect_light,
-                    current_frame_lighting_sample.rgb * params.hybrid_gi_color_and_intensity.w,
+                    current_frame_lighting_sample.rgb
+                        * params.hybrid_gi_color_and_intensity.w
+                        * dynamic_source_weight,
                     current_frame_blend
                 );
         }

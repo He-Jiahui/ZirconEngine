@@ -3,9 +3,8 @@ use std::hash::{Hash, Hasher};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiTextAlign,
-        UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode, UiTextWrap,
-        UiTextWritingMode,
+        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat,
+        UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
     },
 };
 
@@ -34,8 +33,7 @@ pub(crate) struct UiTextStyleKey {
     pub text_direction: UiTextDirection,
     pub text_writing_mode: UiTextWritingMode,
     pub text_overflow: UiTextOverflowKey,
-    pub rich_text: bool,
-    pub text_render_mode: UiTextRenderMode,
+    pub rich_text_format: UiRichTextFormat,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -80,8 +78,7 @@ impl UiTextStyleKey {
             text_direction: style.text_direction,
             text_writing_mode: style.text_writing_mode,
             text_overflow: UiTextOverflowKey::from(style.text_overflow),
-            rich_text: style.rich_text,
-            text_render_mode: style.text_render_mode,
+            rich_text_format: style.rich_text_format,
         }
     }
 }
@@ -205,6 +202,7 @@ fn resolve_text_layout_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
     #[test]
     fn style_key_encodes_clamp_overflow_float_bits() {
@@ -278,5 +276,18 @@ mod tests {
         style.text_writing_mode = UiTextWritingMode::VerticalRl;
 
         assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn style_key_ignores_text_render_mode() {
+        let mut style = UiResolvedStyle {
+            text_render_mode: UiTextRenderMode::Native,
+            ..UiResolvedStyle::default()
+        };
+        let native = UiTextStyleKey::from_style(&style);
+
+        style.text_render_mode = UiTextRenderMode::Sdf;
+
+        assert_eq!(native, UiTextStyleKey::from_style(&style));
     }
 }

@@ -59,13 +59,13 @@ mod tests {
             .as_ref()
             .expect("texture importer package exposes dist metadata");
 
-        assert!(manifest
-            .default_packaging
-            .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+        assert!(manifest.default_packaging.contains(
+            &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+        ));
         assert_eq!(distribution.forms, vec!["dist"]);
         assert_eq!(
             distribution.default_packaging,
-            vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+            vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
         );
         assert_eq!(distribution.abi_version, Some(3));
         assert_eq!(
@@ -90,12 +90,12 @@ mod tests {
             dist_module.crate_name,
             TEXTURE_ASSET_IMPORTER_DIST_CRATE_NAME
         );
+        assert!(dist_module.target_modes.contains(
+            &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
+        ));
         assert!(dist_module
             .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
-        assert!(dist_module
-            .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
         assert!(!dist_module
             .capabilities
             .contains(&CONTAINER_IMPORTER_CAPABILITY.to_string()));

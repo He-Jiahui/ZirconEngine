@@ -3,20 +3,20 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{
+    BridgeDiagnostics, BridgeDiagnosticsSnapshot, BridgeError, BridgeInterfaceStatus,
+    BridgeInvocationTable, BridgeOwnerTransitionMode, InterfaceSlot, PluginInterface, StrongBridge,
+};
 use crate::plugin::extension_registry::PluginModuleId;
 use crate::plugin::RuntimeExtensionRegistryError;
 
-use super::diagnostics::{BridgeDiagnostics, BridgeDiagnosticsSnapshot};
-use super::interface_id::InterfaceSlot;
-use super::strong::StrongBridge;
 use super::weak::WeakBridge;
 
 mod reports;
 
 pub use self::reports::{
-    BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeInterfaceStatus,
-    BridgeOwnerTransitionMode, BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary,
+    BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeOwnerTransitionReport,
+    BridgeTableDiagnosticsSummary,
 };
 
 #[derive(Clone)]
@@ -548,6 +548,25 @@ impl FrozenBridgeTable {
             affected_slots,
             snapshots,
         }
+    }
+}
+
+impl BridgeInvocationTable for FrozenBridgeTable {
+    fn resolve_interface_slot(&self, interface_id: &str) -> Option<InterfaceSlot> {
+        self.resolve_slot(interface_id)
+    }
+
+    fn interface_status_at(&self, slot: InterfaceSlot) -> BridgeInterfaceStatus {
+        self.interface_snapshot(slot)
+            .map_or(BridgeInterfaceStatus::Absent, |snapshot| snapshot.status)
+    }
+
+    fn record_enabled_call(&self, slot: InterfaceSlot) {
+        FrozenBridgeTable::record_enabled_call(self, slot);
+    }
+
+    fn record_not_enabled_call(&self, slot: InterfaceSlot) {
+        FrozenBridgeTable::record_not_enabled_call(self, slot);
     }
 }
 

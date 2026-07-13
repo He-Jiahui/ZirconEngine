@@ -5,8 +5,6 @@ use std::path::{Path, PathBuf};
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
 
-pub(super) const BUILTIN_ZUI_ASSET_ID_ALIASES: &[(&str, &str)] = &[];
-
 pub(super) fn editor_asset_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
@@ -134,26 +132,10 @@ pub(super) fn split_import_fragment(import: &str) -> (&str, Option<&str>) {
         })
 }
 
-pub(super) fn builtin_zui_asset_id_alias_for(locator: &str) -> Option<&'static str> {
-    BUILTIN_ZUI_ASSET_ID_ALIASES
-        .iter()
-        .find_map(|(alias_locator, asset_id)| (*alias_locator == locator).then_some(*asset_id))
-}
-
-pub(super) fn builtin_zui_asset_id_alias_locator_for(asset_id: &str) -> Option<&'static str> {
-    BUILTIN_ZUI_ASSET_ID_ALIASES
-        .iter()
-        .find_map(|(locator, alias_asset_id)| (*alias_asset_id == asset_id).then_some(*locator))
-}
-
 pub(super) fn zui_component_import_path(
     asset_id: &str,
     asset_roots: &[PathBuf],
 ) -> Option<PathBuf> {
-    if let Some(locator) = builtin_zui_asset_id_alias_locator_for(asset_id) {
-        return resolve_res_locator(locator, asset_roots);
-    }
-
     asset_id
         .to_ascii_lowercase()
         .contains(".zui")
@@ -163,7 +145,6 @@ pub(super) fn zui_component_import_path(
 
 pub(super) fn is_zui_component_import_asset_id(asset_id: &str) -> bool {
     asset_id.to_ascii_lowercase().contains(".zui")
-        || builtin_zui_asset_id_alias_locator_for(asset_id).is_some()
 }
 
 pub(super) fn is_component_directory_path(asset_root: &Path, path: &Path) -> bool {
@@ -199,30 +180,7 @@ pub(super) fn pascal_case_file_stem(path: &Path) -> String {
         .collect()
 }
 
-pub(super) fn production_widget_import_asset_ids(asset_roots: &[PathBuf]) -> BTreeSet<String> {
-    let mut asset_ids = BTreeSet::new();
-    for asset_root in asset_roots {
-        for path in collect_ui_root_document_files(&asset_root.join("ui")) {
-            let document = load_zui_document(&path);
-
-            for import in &document.imports.widgets {
-                let asset_id = import
-                    .split_once('#')
-                    .map_or(import.as_str(), |(asset_id, _)| asset_id)
-                    .trim();
-                if !asset_id.is_empty() {
-                    asset_ids.insert(asset_id.to_string());
-                }
-            }
-        }
-    }
-    asset_ids
-}
-
 fn zui_import_locator_for(asset_id: &str) -> Option<String> {
-    if let Some(locator) = builtin_zui_asset_id_alias_locator_for(asset_id) {
-        return Some(locator.to_string());
-    }
     asset_id
         .to_ascii_lowercase()
         .contains(".zui")

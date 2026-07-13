@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
   - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
+  - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
@@ -34,12 +35,14 @@ related_code:
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
+  - zircon_runtime/src/ui/tests/text_pipeline/measure_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
@@ -49,8 +52,8 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
 implementation_files:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/candidate_line.rs
@@ -58,6 +61,7 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
   - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
+  - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
@@ -70,10 +74,12 @@ implementation_files:
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
+  - zircon_runtime/src/ui/tests/text_pipeline/measure_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
@@ -81,8 +87,8 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
 plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
@@ -93,7 +99,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/layout_engine/tests.rs zircon_runtime/src/ui/text/layout_engine/tests/*.rs (2026-07-03 layout_engine private tests owner split: passed)
   - docs/tests/runtime/text/runtime_text_layout_engine_tests_owner_split_preview_20260703.png (2026-07-03 layout_engine private tests owner split visual proof: inspected; SHA256 30B7801223DECD6797C6262138ABAEBDB5A9576EA97C866577B498992B1EE223; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
   - docs/tests/runtime/text/runtime_text_layout_engine_tests_owner_split_validation_20260703.log (2026-07-03 layout_engine private tests owner split validation log: SHA256 F29A7E76D57A473EE1F9563A2D878FE2583709675CDA2F15912D57BB697C8D3D; focused Cargo deferred because external cargo/rustc lanes were active)
-  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection slice: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection slice: passed)
   - cargo test -p zircon_runtime sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-vertical --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection focused test: passed 1/1)
   - docs/tests/runtime/text/runtime_text_vertical_rl_sdf_vertex_projection_preview_20260702.png (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection visual proof: inspected; SHA256 86C7CEA59DBAB17A63B6FB61C2FF72C591B4E7216439FE0AABF97C793E5BC1C1; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
   - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/text_geometry.rs zircon_runtime_interface/src/tests/render_contracts.rs (2026-07-01 LB-M4 vertical_rl edit decoration render-contract slice: passed)
@@ -136,7 +142,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/layout/line_break/greedy.rs zircon_runtime/src/graphics/text/layout/line_break/mod.rs zircon_runtime/src/graphics/text/layout/mod.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs (2026-06-30 LB-M2 greedy wrap decision owner split: passed)
   - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-greedy-wrap-decision --message-format short --color never --quiet (2026-06-30 LB-M2 greedy wrap decision owner split: passed with existing warnings only)
   - docs/tests/runtime/text/runtime_text_greedy_wrap_decision_owner_preview_20260630.png (2026-06-30 LB-M2 greedy wrap decision owner visual proof: inspected; SHA256 C8CA68364812DC5C93D47ED2861131ABF0FAD4A258ED45E021D7644C2EF78278; repo target and E:\cargo-targets same-name match count 0)
-  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/ui/tests/text_layout.rs zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-06-30 LB-M2 WordSmart wrap contract entry: passed)
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-06-30 LB-M2 WordSmart wrap contract entry: passed)
   - cargo check -p zircon_runtime_interface --lib --tests --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-interface --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart interface contract: passed)
   - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-runtime --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart runtime contract: passed with existing warnings only)
   - cargo test -p zircon_runtime word_smart --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-runtime --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 LB-M2 WordSmart focused runtime tests: timed out after 904s during Windows lib-test compile/link with no Rust diagnostics; matching cargo/rustc processes stopped; not counted as passing)
@@ -184,7 +190,7 @@ tests:
   - zircon_runtime/src/ui/text/layout_engine/tests.rs
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - cargo test -p zircon_runtime --lib style_key_encodes_clamp_overflow_float_bits --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-text-0630-interface-key --message-format short --color never -- --nocapture (2026-06-30: blocked by existing runtime test harness compile/timeout issues; test remains in source)
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - cargo test -p zircon_runtime --lib ui::text::layout_engine --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-ui-text-grapheme-layout" --message-format short --color never -- --nocapture
@@ -206,6 +212,8 @@ doc_type: module-detail
 
 As of the 2026-07-01 LB-M4 slice, `UiTextWritingMode::VerticalRl` is a writing-mode contract rather than a text-direction alias. Horizontal text remains the default. Vertical resolved layout is delegated to `layout_engine/vertical.rs`; each `UiResolvedTextLine` record is a semantic column, y is the main advance axis, and columns are placed from right to left. The shaped-text DTO carries the same writing mode so vertical glyph frames advance on y and ASCII glyphs can be marked `Cw90` while broader font-orientation parity remains a later slice.
 
+The 2026-07-13 LB-M5 paragraph slice keeps BBCode paragraph policy writing-mode neutral. `paragraph_layout.rs` is the single owner of override merging, indent-level clamping, list-prefix measurement, and first/continuation constraints. Horizontal layout maps that logical scalar to x/width; VerticalRl maps it to y/height, while `vertical.rs` continues to own shaped columns and right-to-left x placement. Paragraph Left/Start, Center, and Right/End therefore map to physical top, center, and bottom without parser, interface, or renderer branches. Vertical rich-inline-object plus paragraph composition remains an explicit follow-up in `rich_inline_vertical.rs`, because its object metrics cannot be replaced by the generic text wrapper.
+
 The follow-up vertical geometry slice keeps those same resolved column records as the source of editing geometry. `hit_test.rs` selects a `VerticalRl` column by x before using y midpoint and resolved `glyph_advances` to return the source byte offset. `geometry.rs` projects caret and selection ranges along y and emits horizontal 1px bars. The TextInput IME context consumes that caret frame for `SetCursorArea`, so candidate anchoring no longer inherits the old horizontal caret shape when a resolved vertical layout is available.
 
 The render-contract edit decoration slice carries the same rule into `zircon_runtime_interface/src/ui/surface/render/text_geometry.rs`. `UiTextPaintDecoration` now branches on `UiResolvedTextLayout.writing_mode`: vertical selections cover the column width over the selected y span, composition underline becomes a right-edge side rule, and caret decorations become horizontal bars. That keeps neutral paint DTOs consistent before the platform painter or editor retained-host path consumes them.
@@ -219,6 +227,7 @@ The active owner split is:
 - `layout_engine.rs` owns public crate-private entrypoints, top-level `layout_text(...)` orchestration, clip/horizontal overflow application, visual-order handoff, and resolved-line assembly.
 - `direction.rs` owns explicit/Auto/Mixed paragraph base direction resolution and the strong LTR/RTL helpers used by visual ordering.
 - `line_box.rs` owns measured/tab-aligned grapheme advances, Justify eligibility, line width clamping, logical Start/End x alignment, and the minimum fallback text advance.
+- `paragraph_layout.rs` owns merged rich-block overrides, bounded indent/list-prefix extents, and the writing-mode-neutral first/continuation constraint policy projected to line width or column height.
 - `wrapping.rs` owns source-run wrapping orchestration, newline preservation, Word chunk consumption, WordSmart chunk selection through the shared smart owner, Glyph fallback appending, and leading grapheme continuation while consuming line-fit checks from `graphics/text/layout/line_break/greedy.rs`.
 - `candidate_line.rs` owns mutable candidate line text, source/visual ranges, resolved runs, pending break suffixes, and trailing wrap-space mutation.
 - `ellipsis.rs` owns clipped-line merge and projection of shared overflow segments back into UI resolved runs.
@@ -253,6 +262,8 @@ The old fixed half-em advance scaffold has been replaced by shared measured adva
 ## Resolved Layout Cache Key
 
 `resolved_layout.rs` owns the style cache key used by the text layout cache. Public typography can expose expressive values such as `UiTextOverflow::ClampFontSize { min_px, max_px }`, but the cache key must remain `Eq` so resolved layouts can be compared and reused deterministically. The 2026-06-30 guard introduces a private `UiTextOverflowKey` that maps overflow variants into cache-key-safe values and stores clamp bounds through their `f32::to_bits()` representation. This keeps the public interface ergonomic while preventing f32 equality from leaking into the cache key contract.
+
+The 2026-07-13 SM-M5 identity cut removes `text_render_mode` from `UiTextStyleKey`. Native and SDF both consume `UiSharedTextShaper`; raster selection cannot change resolved frames, source ranges, advances, or line breaks and therefore must not split persistent or same-frame layout caches. The render mode remains on `UiResolvedStyle` for `UiTextShaperSelection` diagnostics and screen-space Native/SDF batch routing. Exact tests prove one key/one cache entry across both modes, compare horizontal plus VerticalRl batch frames/source ranges/advances, and cover Latin/CJK/mixed/RTL at the 23.5px bitmap and 24px SDF policy boundary. The current horizontal mixed-paragraph renderer acceptance gate also renders Native and SDF side by side into a real 1080×1690 WGPU framebuffer, requires pixels in both regions, and checks their bounding-box tolerance; the accepted PNG lives under `docs/tests/runtime/text`, never a Cargo target.
 
 ## Grapheme Boundary Scaffold
 

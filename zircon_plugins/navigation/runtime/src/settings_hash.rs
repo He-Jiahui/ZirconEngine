@@ -1,5 +1,5 @@
-use zircon_runtime::asset::NavigationSettingsAsset;
 use zircon_runtime::core::framework::navigation::NavMeshSurfaceDescriptor;
+use zircon_runtime::core::framework::navigation::NavigationSettingsAsset;
 use zircon_runtime::core::math::Real;
 
 const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;

@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/dynamic_api/session.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - examples/vampire/zircon-project.toml
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/materials/player_blood.zmaterial
@@ -19,14 +19,14 @@ related_code:
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/data/enemy_behavior_tree.toml
   - zircon_runtime/src/script/vm/gameplay_host.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
 implementation_files:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/dynamic_api/session.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/materials/player_blood.zmaterial
   - examples/vampire/assets/materials/pale_bone.zmaterial
@@ -39,7 +39,7 @@ implementation_files:
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/data/enemy_behavior_tree.toml
   - zircon_runtime/src/script/vm/gameplay_host.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
 plan_sources:
   - user: 2026-06-09 build and visually verify the examples/vampire third-person roguelite scene
   - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md

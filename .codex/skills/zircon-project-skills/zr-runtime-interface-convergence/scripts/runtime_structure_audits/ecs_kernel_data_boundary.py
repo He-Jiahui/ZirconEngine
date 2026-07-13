@@ -182,7 +182,7 @@ def ecs_kernel_data_boundary_audit(root: Path) -> dict[str, object]:
         for file_name in (
             "zircon_runtime/src/scene/ecs/resource/mod.rs",
             "zircon_runtime/src/scene/ecs/resource/id.rs",
-            "zircon_runtime/src/scene/ecs/resource/marker.rs",
+            "zircon_runtime/src/core/framework/scene/resource.rs",
             "zircon_runtime/src/scene/ecs/resource/registry.rs",
         )
         if (root / file_name).exists()

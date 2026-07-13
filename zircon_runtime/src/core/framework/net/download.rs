@@ -8,7 +8,7 @@ pub struct NetDownloadChunk {
     pub url: String,
     pub byte_offset: u64,
     pub byte_len: u64,
-    pub sha256: String,
+    pub content_hash: [u8; 32],
     pub resume_from_byte: Option<u64>,
     pub allow_range_resume: bool,
 }
@@ -19,14 +19,14 @@ impl NetDownloadChunk {
         url: impl Into<String>,
         byte_offset: u64,
         byte_len: u64,
-        sha256: impl Into<String>,
+        content_hash: [u8; 32],
     ) -> Self {
         Self {
             id: id.into(),
             url: url.into(),
             byte_offset,
             byte_len,
-            sha256: sha256.into(),
+            content_hash,
             resume_from_byte: None,
             allow_range_resume: false,
         }

@@ -25,7 +25,9 @@ use zircon_runtime::scene::components::{
     ColliderComponent, ColliderShape, JointComponent, JointKind, NodeKind, RigidBodyComponent,
     RigidBodyType,
 };
-use zircon_runtime::scene::{create_default_level, LevelSystem, SCENE_MODULE_NAME};
+use zircon_runtime::scene::{
+    create_default_level, install_world_runtime_extension_plan, LevelSystem, SCENE_MODULE_NAME,
+};
 
 const TEST_MAX_FIXED_STEPS: u32 = 4;
 const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
@@ -46,9 +48,8 @@ fn create_runtime_with_scene_and_physics() -> CoreRuntime {
         .module(PLUGIN_RUNTIME_MODULE_NAME)
         .unwrap();
     register_runtime_systems(&mut module).unwrap();
-    runtime
-        .install_world_runtime_extensions(&extensions)
-        .unwrap();
+    let plan = extensions.world_runtime_extension_plan().unwrap();
+    install_world_runtime_extension_plan(&runtime.handle(), plan).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     runtime.activate_module(PHYSICS_MODULE_NAME).unwrap();

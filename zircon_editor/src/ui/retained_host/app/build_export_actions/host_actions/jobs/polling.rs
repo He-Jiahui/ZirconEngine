@@ -20,7 +20,6 @@ impl RetainedEditorHost {
             ));
             changed = true;
         }
-        self.sync_desktop_export_status_task();
         if changed {
             self.mark_layout_dirty();
         }

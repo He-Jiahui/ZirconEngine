@@ -6,7 +6,7 @@ fn gesture_event_capabilities_declare_feature_gate_and_missing_host_paths() {
 
     let default_desktop = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Macos,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(
         default_desktop.gesture_events,
@@ -19,7 +19,7 @@ fn gesture_event_capabilities_declare_feature_gate_and_missing_host_paths() {
 
     let macos = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Macos,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(
         macos.gesture_events,
@@ -30,7 +30,7 @@ fn gesture_event_capabilities_declare_feature_gate_and_missing_host_paths() {
 
     let ios = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Ios,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(
         ios.gesture_events,
@@ -41,7 +41,7 @@ fn gesture_event_capabilities_declare_feature_gate_and_missing_host_paths() {
 
     let windows = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Windows,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(
         windows.gesture_events,
@@ -52,7 +52,7 @@ fn gesture_event_capabilities_declare_feature_gate_and_missing_host_paths() {
 
     let browser = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Wasm,
-        crate::builtin::RuntimeTargetMode::ClientRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     );
     assert_eq!(
         browser.gesture_events,

@@ -26,7 +26,9 @@ use pbr_matrix::{
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     let root = unique_temp_project_root("graphics_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsSandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -35,15 +37,36 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_valid_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("pbr.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
     write_material(
-        paths.assets_root().join("materials").join("grid.zmaterial"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("materials")
+            .join("grid.zmaterial"),
         "res://shaders/pbr.wgsl",
     );
     write_scene(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/grid.zmaterial",
     );
 
@@ -161,7 +184,9 @@ fn export_example_vampire_scene_png() {
 fn export_runtime_shader_material_sphere_png() {
     let root = unique_temp_project_root("graphics_material_sphere");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsMaterialSphere",
         AssetUri::parse("res://scenes/material_sphere.scene.toml").unwrap(),
@@ -170,20 +195,23 @@ fn export_runtime_shader_material_sphere_png() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("material_sphere");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("material_sphere");
     write_compound_shader_meta(&paths, "res://shaders/material_sphere", "material_sphere");
     write_material_sphere_zshader(shader_dir.join("material_sphere.zshader"));
     write_material_sphere_wgsl(shader_dir.join("material_sphere.wgsl"));
     write_solid_png(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("textures")
             .join("sphere_albedo.png"),
         [255, 226, 196, 255],
     );
     write_uv_sphere_obj(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("material_sphere.obj"),
         32,
@@ -191,7 +219,7 @@ fn export_runtime_shader_material_sphere_png() {
     );
     write_material_with_base_color_and_texture(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("material_sphere.zmaterial"),
         "res://shaders/material_sphere",
@@ -200,7 +228,7 @@ fn export_runtime_shader_material_sphere_png() {
     );
     write_material_sphere_scene(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("scenes")
             .join("material_sphere.scene.toml"),
         "res://materials/material_sphere.zmaterial",
@@ -309,7 +337,9 @@ fn export_runtime_shader_pbr_real_hdri_reflection_png() {
 fn export_runtime_render_ibl_cache_second_launch_dispatch_zero_png() {
     let root = unique_temp_project_root("graphics_ibl_cache_second_launch");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     write_pbr_matrix_project(&paths, "GraphicsIblCacheSecondLaunch");
 
     let environment =
@@ -445,7 +475,9 @@ fn export_runtime_render_ibl_cache_second_launch_dispatch_zero_png() {
 fn directory_project_material_shader_drives_pipeline_color_output() {
     let root = unique_temp_project_root("graphics_shader_pipeline");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsShaderPipeline",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -454,18 +486,36 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_flat_green_wgsl(paths.assets_root().join("shaders").join("flat_green.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_flat_green_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_scene(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/flat_green.zmaterial",
     );
 
@@ -509,7 +559,9 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
 fn wire_only_mode_reduces_filled_surface_pixels() {
     let root = unique_temp_project_root("graphics_wire_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "GraphicsWireOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -518,15 +570,36 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_flat_green_wgsl(paths.assets_root().join("shaders").join("flat_green.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_flat_green_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
     write_material(
-        paths.assets_root().join("materials").join("grid.zmaterial"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("materials")
+            .join("grid.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_scene(
-        paths.assets_root().join("scenes").join("main.scene.toml"),
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
         "res://materials/grid.zmaterial",
     );
 

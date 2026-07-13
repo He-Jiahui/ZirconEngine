@@ -20,6 +20,7 @@ use zircon_runtime_interface::math::UVec2;
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -51,7 +52,7 @@ fn generated_bottom_pane() -> crate::ui::layouts::windows::workbench_host_window
     let chrome = chrome_fixture();
     let body = build_pane_body_presentation(
         &PaneBodySpec::new(
-            "pane.generated_bottom.body",
+            "res://ui/editor/host/generated_bottom_body.zui",
             PanePayloadKind::GeneratedBottomV1,
             PaneRouteNamespace::Dock,
             PaneInteractionMode::TemplateOnly,

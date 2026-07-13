@@ -11,13 +11,15 @@ pub(crate) const GPU_PRIMITIVE_DATA_FIRST_INSTANCE_INDEX_OFFSET: usize = 68;
 pub(crate) const GPU_PRIMITIVE_DATA_INSTANCE_COUNT_OFFSET: usize = 72;
 pub(crate) const GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET: usize = 76;
 
-pub(crate) const GPU_INSTANCE_DATA_STRIDE: usize = 144;
+pub(crate) const GPU_INSTANCE_DATA_STRIDE: usize = 176;
 pub(crate) const GPU_INSTANCE_DATA_WORLD_FROM_LOCAL_OFFSET: usize = 0;
 pub(crate) const GPU_INSTANCE_DATA_PREV_WORLD_FROM_LOCAL_OFFSET: usize = 64;
 pub(crate) const GPU_INSTANCE_DATA_PRIMITIVE_INDEX_OFFSET: usize = 128;
 pub(crate) const GPU_INSTANCE_DATA_FLAGS_OFFSET: usize = 132;
 pub(crate) const GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET: usize = 136;
 pub(crate) const GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET: usize = 140;
+pub(crate) const GPU_INSTANCE_DATA_LIGHTMAP_UV_RECT_OFFSET: usize = 144;
+pub(crate) const GPU_INSTANCE_DATA_LIGHTMAP_PARAMS_OFFSET: usize = 160;
 
 pub(crate) const GPU_MORPH_PAYLOAD_STRIDE: usize = 16;
 pub(crate) const GPU_MORPH_DELTA_STRIDE: usize = 16;
@@ -80,6 +82,8 @@ pub(crate) struct GpuInstanceData {
     pub(crate) flags: u32,
     pub(crate) payload_slot: u32,
     pub(crate) morph_payload_slot: u32,
+    pub(crate) lightmap_uv_rect: [f32; 4],
+    pub(crate) lightmap_params: [u32; 4],
 }
 
 impl GpuInstanceData {
@@ -92,6 +96,20 @@ impl GpuInstanceData {
             morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
             ..Self::default()
         }
+    }
+
+    pub(crate) fn set_lightmap(
+        &mut self,
+        slot: crate::core::framework::render::LightmapInstanceSlot,
+        light_set_generation: u64,
+    ) {
+        self.lightmap_uv_rect = slot.uv_rect.to_array();
+        self.lightmap_params = [
+            slot.atlas_page,
+            1,
+            light_set_generation as u32,
+            (light_set_generation >> 32) as u32,
+        ];
     }
 }
 
@@ -287,6 +305,14 @@ mod tests {
             offset_of!(GpuInstanceData, morph_payload_slot),
             GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET
         );
+        assert_eq!(
+            offset_of!(GpuInstanceData, lightmap_uv_rect),
+            GPU_INSTANCE_DATA_LIGHTMAP_UV_RECT_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuInstanceData, lightmap_params),
+            GPU_INSTANCE_DATA_LIGHTMAP_PARAMS_OFFSET
+        );
 
         assert_eq!(size_of::<GpuMorphPayload>(), GPU_MORPH_PAYLOAD_STRIDE);
         assert_eq!(size_of::<GpuMorphDelta>(), GPU_MORPH_DELTA_STRIDE);
@@ -316,5 +342,19 @@ mod tests {
             size_of::<GpuVirtualGeometryClusterWord>(),
             GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE
         );
+    }
+
+    #[test]
+    fn render_gpu_scene_lightmap_slot_preserves_uv_page_and_generation() {
+        let mut instance = GpuInstanceData::default();
+        let slot = crate::core::framework::render::LightmapInstanceSlot {
+            atlas_page: 7,
+            uv_rect: glam::Vec4::new(0.25, 0.5, 0.125, 0.25),
+        };
+
+        instance.set_lightmap(slot, 0x0123_4567_89ab_cdef);
+
+        assert_eq!(instance.lightmap_uv_rect, [0.25, 0.5, 0.125, 0.25]);
+        assert_eq!(instance.lightmap_params, [7, 1, 0x89ab_cdef, 0x0123_4567]);
     }
 }

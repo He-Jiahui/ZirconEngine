@@ -26,6 +26,7 @@ pub use image_decode::{
 };
 pub use ingest::AssetImporter;
 pub use native::{
+    NativeAssetImportCommandHost, NativeAssetImportCommandReport, NativeAssetImportCommandStatus,
     NativeAssetImportEntryMetadata, NativeAssetImportRequestMetadata,
     NativeAssetImportResponseMetadata, NativeAssetImporterHandler,
 };

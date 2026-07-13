@@ -14,7 +14,7 @@ RUNTIME_03_SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/session/menu.rs",
     "zircon_runtime/src/scene/level_system.rs",
     "zircon_runtime/src/scene/module/world_driver.rs",
-    "zircon_runtime/src/scene/ecs/system_stage.rs",
+    "zircon_runtime/src/core/framework/scene/system_stage.rs",
     "zircon_runtime/src/scene/ecs/schedule_stage_plan.rs",
     "zircon_runtime/src/scene/ecs/schedule_runner.rs",
     "zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs",

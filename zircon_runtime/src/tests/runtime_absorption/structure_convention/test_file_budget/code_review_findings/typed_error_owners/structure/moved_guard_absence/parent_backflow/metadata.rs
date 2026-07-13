@@ -9,8 +9,7 @@ pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_STATUS_CURRENT_
 
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_CHILD_SPLIT: &str =
     "Runtime 15 M3 typed-error moved-guard absence parent-backflow child split";
-pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_STATUS: &str =
-    "runtime_15_typed_error_moved_guard_absence_parent_backflow_child_split_static_passed_cargo_deferred";
+pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_STATUS: &str = "runtime_15_typed_error_moved_guard_absence_parent_backflow_child_split_static_passed_cargo_deferred";
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_DATE: &str = "2026-07-05";
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_CHILD_OWNERSHIP_GUARD: &str =
     "runtime_15_typed_error_moved_guard_absence_parent_backflow_is_child_backed";

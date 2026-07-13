@@ -303,6 +303,7 @@ fn sdf_draw_plan_preserves_subpixel_glyph_advance_spacing() {
         atlas_bitmap_height: 12,
         visible: true,
         screen_px_range: sdf_screen_px_range(12.0, SdfBakeParams::default()),
+        atlas_px_range: SdfBakeParams::default().spread_px_f32(),
     };
     let first = horizontal_sdf_glyph_frame(line_frame.x + 0.2, 20.75, &glyph);
     let second = horizontal_sdf_glyph_frame(line_frame.x + 7.7, 20.75, &glyph);
@@ -432,6 +433,7 @@ fn sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis() {
             atlas_bitmap_height: a.bitmap_height,
             visible: true,
             screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
+            atlas_px_range: SdfBakeParams::default().spread_px_f32(),
         },
         text.frame.y,
         a.advance.max(0.0),
@@ -500,6 +502,7 @@ fn sdf_vertical_sideways_glyph_swaps_bitmap_frame_axes() {
         atlas_bitmap_height: 12,
         visible: true,
         screen_px_range: 4.0,
+        atlas_px_range: 8.0,
     };
 
     let frame = vertical_sdf_glyph_frame(&text, &glyph, 8.0, 16.0, ShapedGlyphRotation::Cw90);
@@ -526,10 +529,12 @@ fn sdf_vertical_shaped_frame_consumes_backend_origin_offsets() {
         atlas_bitmap_height: 24,
         visible: true,
         screen_px_range: 4.0,
+        atlas_px_range: 8.0,
     };
     let shaped = ScreenSpaceUiShapedGlyph {
         glyph_id: 321,
         font_id: None,
+        font_instance_id: None,
         source_scalar: '。',
         source_range: UiTextRange {
             start: 0,

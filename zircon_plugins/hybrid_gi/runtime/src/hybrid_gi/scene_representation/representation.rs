@@ -1,24 +1,31 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, render_mesh_transform_revision,
-    RenderDirectionalLightSnapshot, RenderHybridGiDebugView, RenderHybridGiExtract,
-    RenderHybridGiQuality, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
-    RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, LightmapConsumeContract,
+    RenderDirectionalLightSnapshot, RenderHybridGiCompositePolicy, RenderHybridGiDebugView,
+    RenderHybridGiExtract, RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
+    RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderLayerSet, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::input_set::HybridGiInputSet;
+use super::participation::{HybridGiParticipationState, HybridGiSurfaceParticipation};
 use super::radiance_cache_state::HybridGiRadianceCacheState;
 use super::screen_probe_state::HybridGiScreenProbeState;
+use super::source_ledger::HybridGiSourceLedger;
 use super::surface_cache_state::HybridGiSurfaceCacheState;
 use super::voxel_scene_state::HybridGiVoxelSceneState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct HybridGiSceneRepresentationSettings {
     enabled: bool,
+    mode: RenderHybridGiMode,
+    effective_mode: RenderHybridGiMode,
+    profile: RenderHybridGiProfile,
+    fallback_reason: Option<RenderHybridGiFallbackReason>,
     quality: RenderHybridGiQuality,
     trace_budget: u32,
     card_budget: u32,
@@ -38,12 +45,28 @@ impl HybridGiSceneRepresentationSettings {
     pub(crate) fn voxel_budget(&self) -> u32 {
         self.voxel_budget
     }
+
+    pub(crate) fn mode(&self) -> RenderHybridGiMode {
+        self.effective_mode
+    }
+
+    pub(crate) fn profile(&self) -> RenderHybridGiProfile {
+        self.profile
+    }
+
+    pub(crate) fn fallback_reason(&self) -> Option<RenderHybridGiFallbackReason> {
+        self.fallback_reason
+    }
 }
 
 impl Default for HybridGiSceneRepresentationSettings {
     fn default() -> Self {
         Self {
             enabled: false,
+            mode: RenderHybridGiMode::DynamicOnly,
+            effective_mode: RenderHybridGiMode::DynamicOnly,
+            profile: RenderHybridGiProfile::Custom,
+            fallback_reason: None,
             quality: RenderHybridGiQuality::Medium,
             trace_budget: 0,
             card_budget: 0,
@@ -56,6 +79,7 @@ impl Default for HybridGiSceneRepresentationSettings {
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct HybridGiCardDescriptor {
     card_id: u32,
+    stable_instance_key: u64,
     mesh: RenderMeshSnapshot,
     bounds_center: zircon_runtime::core::math::Vec3,
     bounds_radius: f32,
@@ -70,6 +94,7 @@ impl HybridGiCardDescriptor {
     ) -> Self {
         Self {
             card_id,
+            stable_instance_key: mesh.stable_instance_key,
             mesh,
             bounds_center,
             bounds_radius,
@@ -82,6 +107,10 @@ impl HybridGiCardDescriptor {
 
     pub(super) fn mesh(&self) -> &RenderMeshSnapshot {
         &self.mesh
+    }
+
+    pub(super) fn stable_instance_key(&self) -> u64 {
+        self.stable_instance_key
     }
 
     pub(super) fn bounds_center(&self) -> zircon_runtime::core::math::Vec3 {
@@ -133,6 +162,9 @@ impl HybridGiCardCaptureRequest {
 pub(in crate::hybrid_gi) struct HybridGiSceneScreenProbeRuntimeDescriptor {
     probe_id: u32,
     slot: u32,
+    stable_instance_key: u64,
+    source_mask: u32,
+    dynamic_weight_q8: u8,
     bounds_center: Vec3,
     bounds_radius: f32,
     ray_budget: u32,
@@ -146,6 +178,18 @@ impl HybridGiSceneScreenProbeRuntimeDescriptor {
 
     pub(in crate::hybrid_gi) fn slot(&self) -> u32 {
         self.slot
+    }
+
+    pub(in crate::hybrid_gi) fn stable_instance_key(&self) -> u64 {
+        self.stable_instance_key
+    }
+
+    pub(in crate::hybrid_gi) fn source_mask(&self) -> u32 {
+        self.source_mask
+    }
+
+    pub(in crate::hybrid_gi) fn dynamic_weight_q8(&self) -> u8 {
+        self.dynamic_weight_q8
     }
 
     pub(in crate::hybrid_gi) fn bounds_center(&self) -> Vec3 {
@@ -175,6 +219,8 @@ pub(crate) struct HybridGiSceneRepresentation {
     radiance_cache: HybridGiRadianceCacheState,
     voxel_scene: HybridGiVoxelSceneState,
     inputs: HybridGiInputSet,
+    participation: HybridGiParticipationState,
+    source_ledger: HybridGiSourceLedger,
     directional_lights: Vec<RenderDirectionalLightSnapshot>,
     point_lights: Vec<RenderPointLightSnapshot>,
     spot_lights: Vec<RenderSpotLightSnapshot>,
@@ -191,6 +237,8 @@ impl Default for HybridGiSceneRepresentation {
             radiance_cache: HybridGiRadianceCacheState::default(),
             voxel_scene: HybridGiVoxelSceneState::default(),
             inputs: HybridGiInputSet::deferred(),
+            participation: HybridGiParticipationState::default(),
+            source_ledger: HybridGiSourceLedger::default(),
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
@@ -257,6 +305,14 @@ impl HybridGiSceneRepresentation {
             .map(|(slot, probe)| HybridGiSceneScreenProbeRuntimeDescriptor {
                 probe_id: probe.probe_id(),
                 slot: slot as u32,
+                stable_instance_key: probe.stable_instance_key(),
+                source_mask: self
+                    .source_ledger
+                    .surface_source_mask(probe.stable_instance_key())
+                    .unwrap_or_default(),
+                dynamic_weight_q8: self
+                    .source_ledger
+                    .surface_dynamic_weight_q8(probe.stable_instance_key()),
                 bounds_center: probe.bounds_center(),
                 bounds_radius: probe.bounds_radius(),
                 ray_budget: probe.ray_budget(),
@@ -276,12 +332,17 @@ impl HybridGiSceneRepresentation {
     }
 
     pub(crate) fn apply_extract(&mut self, extract: &RenderHybridGiExtract) {
+        let resolved = extract.resolved_settings(true);
         self.settings = HybridGiSceneRepresentationSettings {
             enabled: extract.enabled,
-            quality: extract.quality,
-            trace_budget: extract.trace_budget,
-            card_budget: extract.card_budget,
-            voxel_budget: extract.voxel_budget,
+            mode: resolved.mode,
+            effective_mode: resolved.mode,
+            profile: resolved.profile,
+            fallback_reason: resolved.fallback_reason,
+            quality: resolved.quality,
+            trace_budget: resolved.trace_budget,
+            card_budget: resolved.card_budget,
+            voxel_budget: resolved.voxel_budget,
             debug_view: extract.debug_view,
         };
         self.inputs = HybridGiInputSet::deferred();
@@ -294,10 +355,63 @@ impl HybridGiSceneRepresentation {
         point_lights: &[RenderPointLightSnapshot],
         spot_lights: &[RenderSpotLightSnapshot],
     ) {
+        self.synchronize_scene_with_baked(
+            meshes,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            None,
+            false,
+        );
+    }
+
+    pub(crate) fn synchronize_scene_with_baked(
+        &mut self,
+        meshes: &[RenderMeshSnapshot],
+        directional_lights: &[RenderDirectionalLightSnapshot],
+        point_lights: &[RenderPointLightSnapshot],
+        spot_lights: &[RenderSpotLightSnapshot],
+        baked_lighting: Option<&LightmapConsumeContract>,
+        has_baked_probe_grid: bool,
+    ) {
+        self.settings.effective_mode = if self.settings.mode
+            == RenderHybridGiMode::BakedStaticDynamic
+            && baked_lighting.is_none()
+        {
+            self.settings.fallback_reason =
+                Some(RenderHybridGiFallbackReason::BakedLightingUnavailable);
+            RenderHybridGiMode::DynamicOnly
+        } else {
+            self.settings.fallback_reason = None;
+            self.settings.mode
+        };
+        self.participation.synchronize(
+            self.settings.effective_mode,
+            meshes,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            baked_lighting,
+            has_baked_probe_grid,
+        );
+        self.source_ledger
+            .synchronize(self.settings.effective_mode, &self.participation);
         let cards = build_card_descriptors(meshes);
-        let directional_lights = sorted_directional_lights(directional_lights);
-        let point_lights = sorted_point_lights(point_lights);
-        let spot_lights = sorted_spot_lights(spot_lights);
+        let dynamic_delta_only = self.settings.effective_mode
+            == RenderHybridGiMode::BakedStaticDynamic
+            && baked_lighting.is_some();
+        let directional_lights = sorted_directional_lights(directional_lights)
+            .into_iter()
+            .filter(|light| !dynamic_delta_only || light.mobility == Mobility::Dynamic)
+            .collect::<Vec<_>>();
+        let point_lights = sorted_point_lights(point_lights)
+            .into_iter()
+            .filter(|light| !dynamic_delta_only || light.mobility == Mobility::Dynamic)
+            .collect::<Vec<_>>();
+        let spot_lights = sorted_spot_lights(spot_lights)
+            .into_iter()
+            .filter(|light| !dynamic_delta_only || light.mobility == Mobility::Dynamic)
+            .collect::<Vec<_>>();
         let cards_changed = self.cards != cards;
         let lights_changed = self.directional_lights != directional_lights
             || self.point_lights != point_lights
@@ -339,6 +453,53 @@ impl HybridGiSceneRepresentation {
         self.directional_lights = directional_lights;
         self.point_lights = point_lights;
         self.spot_lights = spot_lights;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn participation_epoch(&self) -> u64 {
+        self.participation.participation_epoch()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn baked_light_set_generation(&self) -> Option<u64> {
+        self.participation.light_set_generation()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn surface_participation(
+        &self,
+        stable_instance_key: u64,
+    ) -> Option<HybridGiSurfaceParticipation> {
+        self.participation.surface(stable_instance_key)
+    }
+
+    pub(crate) fn composite_policy(&self) -> RenderHybridGiCompositePolicy {
+        self.source_ledger.composite_policy()
+    }
+
+    pub(crate) fn resolved_settings(&self) -> RenderHybridGiResolvedSettings {
+        RenderHybridGiResolvedSettings {
+            mode: self.settings.effective_mode,
+            profile: self.settings.profile,
+            quality: self.settings.quality,
+            trace_budget: self.settings.trace_budget,
+            card_budget: self.settings.card_budget,
+            voxel_budget: self.settings.voxel_budget,
+            fallback_reason: self.settings.fallback_reason,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn surface_source_mask(&self, stable_instance_key: u64) -> Option<u32> {
+        self.source_ledger.surface_source_mask(stable_instance_key)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn directional_light_ids(&self) -> Vec<u64> {
+        self.directional_lights
+            .iter()
+            .map(|light| light.light_id)
+            .collect()
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -419,19 +580,37 @@ impl HybridGiSceneRepresentation {
 }
 
 fn build_card_descriptors(meshes: &[RenderMeshSnapshot]) -> Vec<HybridGiCardDescriptor> {
-    let mut cards = BTreeMap::new();
-    for mesh in meshes {
-        cards.insert(
-            mesh.node_id as u32,
+    let mut meshes = meshes.to_vec();
+    meshes.sort_by_key(|mesh| mesh.stable_instance_key);
+    let mut used_card_ids = BTreeSet::new();
+    meshes
+        .into_iter()
+        .map(|mesh| {
+            let card_id = unique_card_id(&mesh, &used_card_ids);
+            used_card_ids.insert(card_id);
             HybridGiCardDescriptor::new(
-                mesh.node_id as u32,
+                card_id,
                 mesh.clone(),
                 mesh.transform.translation,
-                card_bounds_radius(mesh),
-            ),
-        );
+                card_bounds_radius(&mesh),
+            )
+        })
+        .collect()
+}
+
+fn unique_card_id(mesh: &RenderMeshSnapshot, used_card_ids: &BTreeSet<u32>) -> u32 {
+    let preferred = mesh.node_id as u32;
+    if !used_card_ids.contains(&preferred) {
+        return preferred;
     }
-    cards.into_values().collect()
+
+    let mut candidate = (mesh.stable_instance_key as u32)
+        ^ ((mesh.stable_instance_key >> 32) as u32).rotate_left(13)
+        ^ 0x8000_0000;
+    while used_card_ids.contains(&candidate) {
+        candidate = candidate.wrapping_add(0x9E37_79B9);
+    }
+    candidate
 }
 
 fn card_bounds_radius(mesh: &RenderMeshSnapshot) -> f32 {

@@ -50,6 +50,12 @@ pub(super) const SOURCE_AUTHORING_TOKENS: &[&str] = &[
     "ViewportCameraSnapshot",
 ];
 
+pub(super) const SERIALIZED_AUTHORING_SURFACES: &[&str] =
+    &["versioned dynamic scene JSON", "versioned reflected JSON"];
+
+// `schema_id` identifies a neutral wire contract; it is not editor authoring state.
+pub(super) const SERIALIZATION_HEADER_TOKEN_EXEMPTIONS: &[&str] = &["schema_id"];
+
 pub(super) fn assert_text_excludes_authoring_tokens(label: &str, text: &str, tokens: &[&str]) {
     if let Some(token) = first_authoring_token(text, tokens) {
         panic!("{label} must not contain editor authoring token {token}");
@@ -72,6 +78,14 @@ fn authoring_boundary_guard_fails_on_representative_tokens() {
 fn authoring_token_tables_stay_sorted_and_deduplicated() {
     assert_sorted_and_deduplicated("serialized", SERIALIZED_AUTHORING_TOKENS);
     assert_sorted_and_deduplicated("source", SOURCE_AUTHORING_TOKENS);
+    assert_sorted_and_deduplicated("serialized surfaces", SERIALIZED_AUTHORING_SURFACES);
+    assert_sorted_and_deduplicated(
+        "serialization header exemptions",
+        SERIALIZATION_HEADER_TOKEN_EXEMPTIONS,
+    );
+    assert!(SERIALIZED_AUTHORING_SURFACES.contains(&"versioned dynamic scene JSON"));
+    assert!(SERIALIZED_AUTHORING_SURFACES.contains(&"versioned reflected JSON"));
+    assert!(SERIALIZATION_HEADER_TOKEN_EXEMPTIONS.contains(&"schema_id"));
 }
 
 fn assert_sorted_and_deduplicated(label: &str, tokens: &[&str]) {

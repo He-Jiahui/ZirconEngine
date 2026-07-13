@@ -1,6 +1,6 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset};
 use zircon_runtime::core::framework::navigation::NavQueryFilter;
 use zircon_runtime::core::framework::navigation::AREA_WALKABLE;
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavMeshLinkAsset};
 use zircon_runtime::core::math::Real;
 
 use super::geometry::{

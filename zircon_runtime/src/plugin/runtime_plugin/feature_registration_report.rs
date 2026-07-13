@@ -1,6 +1,5 @@
-use crate::plugin::{
-    PluginFeatureBundleManifest, ProjectPluginFeatureSelection, RuntimeExtensionRegistry,
-};
+use crate::core::framework::project::ProjectPluginFeatureSelection;
+use crate::plugin::{PluginFeatureBundleManifest, RuntimeExtensionRegistry};
 
 mod feature;
 mod native;

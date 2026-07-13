@@ -5,7 +5,7 @@ use crate::process::FolderPickerRequest;
 use crate::projects::{
     create_project, merge_recent_projects, metadata_for_path_mut, normalize_project_root,
     project_metadata_key, project_paths_match, prune_empty_metadata, validate_project_root,
-    CreateProjectRequest, ProjectTemplate, ProjectValidation, RecentProject,
+    CreateProjectError, CreateProjectRequest, ProjectTemplate, ProjectValidation, RecentProject,
 };
 use crate::state::{
     EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
@@ -66,9 +66,10 @@ impl HubRuntimeSession {
         let report = match create_project(&request) {
             Ok(report) => report,
             Err(error) => {
+                let target_not_empty = matches!(&error, CreateProjectError::TargetNotEmpty { .. });
                 let detail = error.to_string();
                 let detail_message = create_project_error_message(&detail);
-                let recovery = if detail == "Target directory must be empty" {
+                let recovery = if target_not_empty {
                     HubMessage::new(HubMessageId::Project(
                         ProjectMessageId::ExistingFolderUseImport,
                     ))
@@ -90,7 +91,6 @@ impl HubRuntimeSession {
 
         let project_root = report.project_root.clone();
         if let Err(error) = self.remember_lifecycle_project(
-            payload.name.clone(),
             project_root.clone(),
             engine_id,
             Some(template.id().to_string()),
@@ -214,12 +214,7 @@ impl HubRuntimeSession {
                 Some(existing) => (recent_project_display_name(&existing), existing.path),
                 None => (project_display_name_from_path(&project_root), project_root),
             };
-        self.remember_lifecycle_project(
-            display_name.clone(),
-            project_root.clone(),
-            engine_id,
-            None,
-        )?;
+        self.remember_lifecycle_project(project_root.clone(), engine_id, None)?;
         self.push_lifecycle_record(
             HubActionKind::ImportProject,
             HubActionStatus::Success,
@@ -383,7 +378,6 @@ impl HubRuntimeSession {
 
     fn remember_lifecycle_project(
         &mut self,
-        display_name: String,
         project_root: PathBuf,
         engine_id: Option<String>,
         template_id: Option<String>,
@@ -395,7 +389,7 @@ impl HubRuntimeSession {
         self.selected_project_path = Some(project_root.clone());
         self.pending_delete_project_path = None;
         self.config.recent_projects = merge_recent_projects(
-            std::iter::once(RecentProject::with_now(display_name, project_root.clone())),
+            std::iter::once(RecentProject::with_now(project_root.clone())?),
             self.config.recent_projects.clone(),
         );
         let metadata = metadata_for_path_mut(&mut self.config.project_metadata, &project_root);
@@ -462,10 +456,7 @@ impl HubRuntimeSession {
                     .iter()
                     .find(|target| project_paths_match(&selected_path, target))
                 {
-                    return Ok(RecentProject::with_now(
-                        project_display_name_from_path(Path::new(target)),
-                        PathBuf::from(target),
-                    ));
+                    return RecentProject::with_now(PathBuf::from(target));
                 }
             }
             if let Some(target) = targets.first() {
@@ -481,10 +472,7 @@ impl HubRuntimeSession {
         let Some(path) = self.selected_project_path.clone() else {
             return Err(HubError::message("Select a project first"));
         };
-        Ok(RecentProject::with_now(
-            project_display_name_from_path(&path),
-            path,
-        ))
+        RecentProject::with_now(path)
     }
 
     fn resolve_pending_delete_project(
@@ -496,9 +484,8 @@ impl HubRuntimeSession {
         let project = if targets.is_empty() {
             if let Some(path) = self.pending_delete_project_path.clone() {
                 self.find_recent_project(&path.to_string_lossy())
-                    .unwrap_or_else(|| {
-                        RecentProject::with_now(project_display_name_from_path(&path), path)
-                    })
+                    .map(Ok)
+                    .unwrap_or_else(|| RecentProject::with_now(path))?
             } else {
                 self.resolve_action_project(None, None)?
             }

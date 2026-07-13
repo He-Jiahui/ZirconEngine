@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_pending_pages.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_pending_pages.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/consume_feedback.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_pending_pages.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_pending_pages.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 plan_sources:
   - user: 2026-04-19 把 current + recent confirmed frontier truth 再继续压进更深的 completion/page-table/residency 归并点
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_feedback_completion_carries_recent_frontier_truth_into_reconnected_ancestor_after_descendant_leaves_residency -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_frontier_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline --locked page_table -- --nocapture

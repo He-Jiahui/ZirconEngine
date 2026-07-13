@@ -713,19 +713,34 @@ def _write_compile_host_report(
 ) -> None:
     report_dir = out / "stages" / "compile_host"
     report_dir.mkdir(parents=True, exist_ok=True)
+    staged_root = report_dir / "staged"
+    engine_root = staged_root / "ZirconEngine"
+    staged_host = engine_root / "zircon_hub.exe"
     if host_value is None:
-        host_executable.parent.mkdir(parents=True, exist_ok=True)
-        if not host_executable.exists():
-            host_executable.write_text("host placeholder", encoding="utf-8")
-    compile_host_plan = _compile_host_plan()
+        staged_host.parent.mkdir(parents=True, exist_ok=True)
+        if not staged_host.exists():
+            staged_host.write_text("host placeholder", encoding="utf-8")
     report: dict[str, object] = {
         "stage": "CompileHost",
         "fatal": False,
         "diagnostics": [],
-        "command": list(compile_host_plan["command"]),
+        "command": [
+            "python",
+            "tools/zircon_build.py",
+            "--targets",
+            "hub,editor,runtime",
+            "--out",
+            str(staged_root),
+            "--mode",
+            "release",
+            "--runtime-features",
+            "target-client",
+            "--cargo",
+            "cargo",
+        ],
         "exit_code": 0,
-        "host_executable": str(host_executable) if host_value is None else host_value,
-        "link_plan": _compile_host_link_plan(),
+        "host_executable": str(staged_host) if host_value is None else host_value,
+        "staged_engine_root": str(engine_root),
         "stdout_lines": [],
         "stderr_lines": [],
     }

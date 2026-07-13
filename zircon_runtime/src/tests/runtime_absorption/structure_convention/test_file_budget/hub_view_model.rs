@@ -1,8 +1,7 @@
 use super::{assert_contains_all, read_repo};
 
 const SLICE: &str = "Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split";
-const STATUS: &str =
-    "runtime_15_support_hub_view_model_quick_actions_tests_child_owner_split_static_passed_cargo_deferred";
+const STATUS: &str = "runtime_15_support_hub_view_model_quick_actions_tests_child_owner_split_static_passed_cargo_deferred";
 const DATE: &str = "2026-06-27";
 const GUARD: &str = "runtime_15_support_hub_view_model_quick_actions_tests_are_child_owners";
 const VIEW_MODEL: &str = "zircon_hub/src/tauri_app/view_model.rs";

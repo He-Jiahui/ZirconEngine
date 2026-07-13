@@ -74,7 +74,7 @@ fn runtime_15_script_host_ledger_guard_is_folder_backed() {
     }
 
     let row_data = include_str!(
-        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs"
+        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/structure_guard_rows.rs"
     );
     assert_contains_all(
         "module-convention row data records script host ledger guard split",
@@ -90,36 +90,30 @@ fn runtime_15_script_host_ledger_guard_is_folder_backed() {
     );
 
     let status_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route status map", status_map, &[SLICE, STATUS]);
 
     let date_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route date map", date_map, &[SLICE, "2026-07-05"]);
 
+    #[rustfmt::skip]
+    let numbered_records = concat!(
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+    );
+    assert_contains_all(
+        "numbered output records",
+        numbered_records,
+        &[SLICE, STATUS, GUARD, CHILD_PATHS[5], FRAMEWORKS_STATUS],
+    );
     for (label, source) in [
-        (
-            "Runtime 13 subplan",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"),
-        ),
-        (
-            "Runtime 15 subplan",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
-            "engine code structure convention",
-            include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
-        ),
-        (
-            "engine code review findings",
-            include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        ),
         (
             "module convention doc",
             include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
@@ -131,15 +125,6 @@ fn runtime_15_script_host_ledger_guard_is_folder_backed() {
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);
     }
-
-    let frameworks = include_str!(
-        "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
-    );
-    assert_contains_all(
-        "frameworks plan records script host ledger guard split",
-        frameworks,
-        &[SLICE, STATUS, FRAMEWORKS_STATUS, GUARD],
-    );
 }
 
 fn assert_contains_all(label: &str, source: &str, needles: &[&str]) {

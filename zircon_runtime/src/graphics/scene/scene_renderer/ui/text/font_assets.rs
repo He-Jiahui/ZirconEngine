@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
 use glyphon::FontSystem;
-use zircon_runtime_interface::ui::surface::UiTextRenderMode;
+use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextRenderMode};
 
 use super::super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
 use super::DEFAULT_FONT_ASSET;
 use crate::asset::ProjectAssetManager;
 use crate::graphics::text::font::publish_shared_font_database;
 use crate::graphics::text::font::FontDatabase;
-use crate::ui::text::shaper::resolve_text_render_mode;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct LoadedUiFontAsset {
@@ -39,7 +38,7 @@ pub(super) fn effective_text_render_mode(
     requested_mode: UiTextRenderMode,
     font_asset: Option<&LoadedUiFontAsset>,
 ) -> UiTextRenderMode {
-    resolve_text_render_mode(
+    resolve_ui_text_render_mode(
         requested_mode,
         font_asset.and_then(|asset| asset.render_mode),
     )

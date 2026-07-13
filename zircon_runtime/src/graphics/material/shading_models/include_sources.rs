@@ -39,21 +39,27 @@ impl ShadingModelIncludeSourceSet {
             .iter()
             .filter(|descriptor| descriptor.id.is_plugin_range())
         {
-            set.forward.push(resolve_include_source(
-                asset_manager,
-                &shader_records,
-                &descriptor.forward_include,
-            )?);
-            set.gbuffer.push(resolve_include_source(
-                asset_manager,
-                &shader_records,
-                &descriptor.gbuffer_encode_include,
-            )?);
-            set.deferred.push(resolve_include_source(
-                asset_manager,
-                &shader_records,
-                &descriptor.deferred_include,
-            )?);
+            if !runtime_owns_include(IncludePass::Forward, &descriptor.forward_include) {
+                set.forward.push(resolve_include_source(
+                    asset_manager,
+                    &shader_records,
+                    &descriptor.forward_include,
+                )?);
+            }
+            if !runtime_owns_include(IncludePass::GBuffer, &descriptor.gbuffer_encode_include) {
+                set.gbuffer.push(resolve_include_source(
+                    asset_manager,
+                    &shader_records,
+                    &descriptor.gbuffer_encode_include,
+                )?);
+            }
+            if !runtime_owns_include(IncludePass::Deferred, &descriptor.deferred_include) {
+                set.deferred.push(resolve_include_source(
+                    asset_manager,
+                    &shader_records,
+                    &descriptor.deferred_include,
+                )?);
+            }
         }
         Ok(set)
     }
@@ -68,6 +74,31 @@ impl ShadingModelIncludeSourceSet {
 
     pub(crate) fn deferred(&self) -> &[ShadingModelIncludeSource] {
         &self.deferred
+    }
+}
+
+#[derive(Clone, Copy)]
+enum IncludePass {
+    Forward,
+    GBuffer,
+    Deferred,
+}
+
+fn runtime_owns_include(pass: IncludePass, token: &str) -> bool {
+    let token = normalize_include_token(token);
+    match pass {
+        IncludePass::Forward => token == "zr_shading_standard_pbr",
+        IncludePass::GBuffer => matches!(
+            token.as_str(),
+            "zr_gbuffer_encode_standard_pbr" | "zr_gbuffer_encode_subsurface"
+        ),
+        IncludePass::Deferred => matches!(
+            token.as_str(),
+            "zr_shade_deferred_standard_pbr"
+                | "zr_shade_deferred_blinn_phong"
+                | "zr_shade_deferred_unlit"
+                | "zr_shade_deferred_subsurface"
+        ),
     }
 }
 
@@ -342,6 +373,27 @@ mod tests {
             )],
         )
         .expect("builtin descriptor should not require project WGSL assets");
+
+        assert!(set.forward().is_empty());
+        assert!(set.gbuffer().is_empty());
+        assert!(set.deferred().is_empty());
+    }
+
+    #[test]
+    fn plugin_descriptor_may_reuse_runtime_owned_subsurface_includes() {
+        let asset_manager = ProjectAssetManager::default();
+        let set = ShadingModelIncludeSourceSet::from_project_asset_manager(
+            &asset_manager,
+            &[ShadingModelDescriptor::new(
+                ShadingModelId::new(16),
+                "custom:subsurface",
+                "zr_shading_standard_pbr.wgsl",
+                "zr_gbuffer_encode_subsurface.wgsl",
+                "zr_shade_deferred_subsurface.wgsl",
+                GBufferChannelMask::standard_lit(),
+            )],
+        )
+        .expect("runtime-owned plugin includes should not require project shader assets");
 
         assert!(set.forward().is_empty());
         assert!(set.gbuffer().is_empty());

@@ -5,8 +5,8 @@ related_code:
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/platform/mod.rs
-  - zircon_plugins/mod.rs
-  - zircon_plugins/navigation/mod.rs
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_editor/src/lib.rs
@@ -21,9 +21,9 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/platform/module.rs
-  - zircon_plugins/mod.rs
-  - zircon_plugins/registration.rs
-  - zircon_plugins/navigation/module.rs
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/plugin_sdk/src/registration.rs
+  - zircon_plugins/navigation/runtime/src/plugin.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
   - zircon_editor/src/lib.rs
@@ -57,6 +57,8 @@ doc_type: module-detail
 ---
 
 # Workspace Root Rules And Hard Cutover
+
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../plans/zircon_runtime/frameworks/development-conventions.md)；本文保留 workspace 硬切主题的细节论证与执行上下文，不再作为并列规则源。
 
 ## Purpose
 

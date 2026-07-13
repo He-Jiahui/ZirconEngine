@@ -1,4 +1,4 @@
-use crate::plugin::ExportProfile;
+use crate::core::framework::project::ExportProfile;
 
 use self::{browser::browser_host_files, mobile::mobile_host_files};
 use super::ExportGeneratedFile;
@@ -12,18 +12,26 @@ pub(super) fn platform_host_files(
 ) -> Vec<ExportGeneratedFile> {
     let policy = profile.target_platform.policy();
     match policy.host_kind {
-        crate::plugin::ExportPlatformHostKind::Desktop => vec![ExportGeneratedFile {
-            path: "src/main.rs".to_string(),
-            purpose: "generated desktop runtime entry point".to_string(),
-            contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
-        }],
-        crate::plugin::ExportPlatformHostKind::Headless => vec![ExportGeneratedFile {
-            path: "src/main.rs".to_string(),
-            purpose: "generated headless runtime entry point".to_string(),
-            contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
-        }],
-        crate::plugin::ExportPlatformHostKind::MobileApp => mobile_host_files(profile),
-        crate::plugin::ExportPlatformHostKind::Browser => browser_host_files(profile),
+        crate::core::framework::project::ExportPlatformHostKind::Desktop => {
+            vec![ExportGeneratedFile {
+                path: "src/main.rs".to_string(),
+                purpose: "generated desktop runtime entry point".to_string(),
+                contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
+            }]
+        }
+        crate::core::framework::project::ExportPlatformHostKind::Headless => {
+            vec![ExportGeneratedFile {
+                path: "src/main.rs".to_string(),
+                purpose: "generated headless runtime entry point".to_string(),
+                contents: super::main_template::main_template(profile, has_native_dynamic_plugins),
+            }]
+        }
+        crate::core::framework::project::ExportPlatformHostKind::MobileApp => {
+            mobile_host_files(profile)
+        }
+        crate::core::framework::project::ExportPlatformHostKind::Browser => {
+            browser_host_files(profile)
+        }
     }
 }
 

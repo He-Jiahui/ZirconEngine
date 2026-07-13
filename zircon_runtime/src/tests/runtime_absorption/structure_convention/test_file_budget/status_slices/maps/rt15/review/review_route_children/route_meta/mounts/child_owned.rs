@@ -37,7 +37,9 @@ fn runtime_15_review_guard_expected_slice_route_metadata_is_child_owned() {
 
     assert_contains_all(
         "review-route children own moved declarations",
-        &format!("{children}\n{source_children}\n{route_metadata_source_children}\n{guard_body_children}"),
+        &format!(
+            "{children}\n{source_children}\n{route_metadata_source_children}\n{guard_body_children}"
+        ),
         &[
             "const STATUS_SUPPORT_EXPECTED_SLICE_ROWS",
             "fn read_status_support_expected_slice_rows",

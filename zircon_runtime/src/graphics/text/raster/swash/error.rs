@@ -8,6 +8,7 @@ pub(crate) enum SwashRasterError {
     },
     InvalidPxSize,
     InvalidOffset,
+    InvalidVariationCoordinate,
     MissingGlyphImage {
         glyph_id: u16,
         source: SwashRasterSource,

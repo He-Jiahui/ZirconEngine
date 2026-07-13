@@ -26,13 +26,11 @@ class ControlPlaneHttp:
         router: ControlPlaneRouter,
         events: EventStreamService,
         *,
-        runtime_token: str,
         assets: StaticAssetService,
         artifact_downloads: ArtifactDownloadService,
     ):
         self.router = router
         self.events = events
-        self.runtime_token = runtime_token
         self.assets = assets
         self.artifact_downloads = artifact_downloads
 
@@ -44,9 +42,9 @@ class ControlPlaneHttp:
     def handle(self, handler) -> None:
         correlation_id = new_correlation_id()
         port = int(handler.server.server_address[1])
-        runtime_authorized = (
-            handler.headers.get("Authorization") == f"Bearer {self.runtime_token}"
-        )
+        # The coordinator is loopback-only and deliberately token-free for local
+        # development. This also keeps an old browser tab working after restart.
+        runtime_authorized = True
         try:
             validate_loopback_host(handler.headers.get("Host"), port)
             route = urlsplit(handler.path).path

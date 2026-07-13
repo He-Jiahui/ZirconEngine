@@ -350,7 +350,7 @@ fn builtin_host_runtime_exposes_only_generic_host_window_document_id() {
 
     assert!(
         violations.is_empty(),
-        "builtin host template registration must expose the generic `ui.host_window` document id without preserving the legacy workbench shell alias:\n{}",
+        "builtin host template registration must expose the generic `res://ui/editor/host/workbench_shell.zui` document id without preserving the legacy workbench shell alias:\n{}",
         violations.join("\n")
     );
 }

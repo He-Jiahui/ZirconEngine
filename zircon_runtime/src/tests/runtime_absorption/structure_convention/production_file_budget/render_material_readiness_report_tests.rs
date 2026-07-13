@@ -6,7 +6,8 @@ fn runtime_15_render_material_readiness_report_tests_are_child_owner() {
     let tests = read_runtime_src("core/framework/render/material/readiness_report/tests.rs");
 
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let material_doc = read_repo("docs/zircon_runtime/core/framework/render/material.md");

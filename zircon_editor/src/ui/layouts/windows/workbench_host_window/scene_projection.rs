@@ -13,6 +13,7 @@ use super::chrome_template_projection::{
     status_bar_nodes, surface_metrics_from_chrome_assets, MENU_SLOT_COUNT,
 };
 use super::*;
+use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::asset_editor::ui_asset_editor_node_projection;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::common::model_rc;
@@ -23,7 +24,7 @@ use crate::ui::layouts::views::console_pane_nodes;
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::layouts::views::project_overview_pane_data;
-use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel};
+use crate::ui::workbench::event::menu_item_binding;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const DEFAULT_PRESET_NAME: &str = "rider";
@@ -503,7 +504,7 @@ fn host_menu_chrome_item(item: &MenuItemModel) -> HostMenuChromeItemData {
 }
 
 fn menu_item_action_id(item: &MenuItemModel) -> SharedString {
-    match item.binding.payload() {
+    match menu_item_binding(item).payload() {
         EditorUiBindingPayload::MenuAction { action_id } => action_id.as_str().into(),
         EditorUiBindingPayload::EditorCommand { command_id } => command_id.as_str().into(),
         EditorUiBindingPayload::EditorOperation { operation_id, .. } => {

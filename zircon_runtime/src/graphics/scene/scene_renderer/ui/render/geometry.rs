@@ -23,11 +23,11 @@ impl ScreenSpaceUiVertex {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct ScreenSpaceUiScissor {
-    pub(super) x: u32,
-    pub(super) y: u32,
-    pub(super) width: u32,
-    pub(super) height: u32,
+pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiScissor {
+    pub(in crate::graphics::scene::scene_renderer::ui) x: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) y: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) width: u32,
+    pub(in crate::graphics::scene::scene_renderer::ui) height: u32,
 }
 
 pub(super) fn push_rect(
@@ -73,7 +73,54 @@ pub(super) fn push_rect(
     ]);
 }
 
-pub(super) fn frame_to_scissor(frame: UiFrame) -> Option<ScreenSpaceUiScissor> {
+pub(super) fn push_border(
+    vertices: &mut Vec<ScreenSpaceUiVertex>,
+    frame: UiFrame,
+    border_width: f32,
+    color: [f32; 4],
+    viewport: UiFrame,
+) {
+    let width = border_width
+        .min(frame.width * 0.5)
+        .min(frame.height * 0.5)
+        .max(1.0);
+
+    push_rect(
+        vertices,
+        UiFrame::new(frame.x, frame.y, frame.width, width),
+        color,
+        viewport,
+    );
+    push_rect(
+        vertices,
+        UiFrame::new(frame.x, frame.bottom() - width, frame.width, width),
+        color,
+        viewport,
+    );
+    if frame.height > width * 2.0 {
+        push_rect(
+            vertices,
+            UiFrame::new(frame.x, frame.y + width, width, frame.height - width * 2.0),
+            color,
+            viewport,
+        );
+        push_rect(
+            vertices,
+            UiFrame::new(
+                frame.right() - width,
+                frame.y + width,
+                width,
+                frame.height - width * 2.0,
+            ),
+            color,
+            viewport,
+        );
+    }
+}
+
+pub(in crate::graphics::scene::scene_renderer::ui) fn frame_to_scissor(
+    frame: UiFrame,
+) -> Option<ScreenSpaceUiScissor> {
     let x = frame.x.max(0.0).floor() as u32;
     let y = frame.y.max(0.0).floor() as u32;
     let width = frame.width.max(0.0).ceil() as u32;

@@ -13,8 +13,7 @@ mod row_data_status;
 #[path = "plugin_importer_rows/status_mirrors.rs"]
 mod status_mirrors;
 
-const PLUGIN_IMPORTER_STATUS_OUTPUT_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows.rs";
+const PLUGIN_IMPORTER_STATUS_OUTPUT_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows.rs";
 const PLUGIN_IMPORTER_STATUS_OUTPUT_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
     (
         "budgets",

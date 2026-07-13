@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::core::framework::render::{IblBakeArtifactRequest, PostProcessStackDescriptor};
+use crate::core::framework::render::{
+    IblBakeArtifactRequest, PostProcessStackDescriptor, ShaderQualityTier,
+};
 use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -12,6 +14,7 @@ pub struct RenderPipelineCompileOptions {
     pub allow_async_compute: bool,
     pub enable_hzb_occlusion_culling: bool,
     pub graph_msaa_sample_count: Option<u32>,
+    pub shader_quality: ShaderQualityTier,
     pub post_process_stack: Option<PostProcessStackDescriptor>,
     pub environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
 }

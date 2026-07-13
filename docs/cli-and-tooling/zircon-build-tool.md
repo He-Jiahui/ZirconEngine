@@ -2,6 +2,8 @@
 related_code:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
+  - tools/zircon_build_config.py
+  - tools/zircon_build_font_sdf.py
   - tools/zircon_build_asset_staging.py
   - tools/zircon_build_plugin_assets.py
   - tools/zircon_build_plugin_manifest_contract.py
@@ -17,6 +19,7 @@ related_code:
   - tools/zircon_build_shader_prewarm_acceptance.py
   - tools/zircon_build_shader_prewarm_written_variants.py
   - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_font_sdf.py
   - tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py
@@ -45,7 +48,7 @@ related_code:
   - zircon_runtime/src/diagnostic_log/timestamp.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -171,7 +174,7 @@ implementation_files:
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -1420,7 +1423,7 @@ forwards a serialized `ResourceRecord` array, or a JSON object with a
 `resources`/`records` array, to `zircon_shader_prewarm --resource-registry`.
 Asset-root resource registry revision overlay is owned by
 `bin/zircon_shader_prewarm/manifest/resource_registry.rs`: matching shader
-records override `.zmeta.source_hash`-derived revisions with the live
+records override `.zmeta.source_digest`-derived revisions with the live
 `ResourceRecord.revision`, while unmatched raw sources keep content-hash
 revisions. The focused wiring guard is
 `runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired`, the
@@ -1432,7 +1435,7 @@ Built-in fallback and
 `builtin://shader/pbr.wgsl` material references use the standard-material
 template builder for each requested geometry source; custom scanned shader
 payloads remain raw WGSL requests. Runtime lookup checks the writable
-`.zircon-cache/shader_variants` cache first and then the staged
+`.zircon/cache/shader_variants` cache first and then the staged
 `cache/shader_variants` payload, so packaged prewarm entries can satisfy the
 first matching shader-module lookup.
 
@@ -1605,6 +1608,37 @@ adapter milestone first. That adapter must convert the plugin's runtime/editor
 registration data into stable DTOs or C ABI records and must not move Rust-only
 types, references, or host-owned objects across a dynamic library boundary.
 
+## Font SDF Artifact Target
+
+`--targets font-sdf` is a build-only target for versioned Runtime text distance-field artifacts. It requires `--font-sdf-manifest`; it does not stage an executable payload and it does not infer a font asset UUID from a path. The manifest is the authoritative association between a project font asset, its `.zmeta` UUID, a cache root, bake parameters, and a glyph selection.
+
+```json
+{
+  "format_version": 1,
+  "bakes": [
+    {
+      "font": "zircon_runtime/assets/fonts/FiraSans-Regular.ttf",
+      "cache_root": "E:/builds/zircon-font-cache",
+      "asset_guid": "12345678-90ab-4cde-8f01-234567890abc",
+      "face_index": 0,
+      "mode": "msdf",
+      "codepoints": ["U+0020-U+007E", "U+4E2D"],
+      "page_size": 1024,
+      "bake_em_px": 48,
+      "spread_px_milli": 8000
+    }
+  ]
+}
+```
+
+Each bake selects exactly one of `all_cmap: true` or a non-empty `codepoints` list. A codepoint entry is either one Unicode scalar (`U+0041`) or an inclusive range (`U+0041-U+005A`). The Python owner expands ranges in scalar order and deduplicates them. The feature-gated `zircon_font_sdf_bake` Rust binary then decodes the selected font face, deduplicates cmap aliases by glyph id, invokes the shared Runtime fdsm generator, packs the existing R8/RGBA storage formats, and atomically writes one embedded-page `.zsdf` file under `cache_root`.
+
+```powershell
+python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\manifests\font-sdf.json --out E:\builds\zircon-text
+```
+
+The Cargo target stays beneath the build tool's managed targets root (`<out>/targets/font-sdf`). Generated `.zsdf` files belong beneath the manifest's project/library cache root, never beneath repository `target/` or the visual framebuffer evidence directory. The binary format and runtime fallback contract are documented in `docs/zircon_runtime/graphics/text/offline-sdf.md`.
+
 ## Validation Scope
 
 Use these fast checks for script changes:
@@ -1620,6 +1654,8 @@ python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mo
 python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --dry-run
 python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
 python tools/zircon_build.py --targets runtime --plugins virtual_geometry --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
+cargo check -q -p zircon_runtime --bin zircon_font_sdf_bake --no-default-features --features font-sdf-build-tool --target-dir E:\cargo-targets\zircon-font-sdf-bin
+python -m unittest tools.tests.test_zircon_build_font_sdf -v
 cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir E:\cargo-targets\zircon-shader-prewarm-bin
 ```
 

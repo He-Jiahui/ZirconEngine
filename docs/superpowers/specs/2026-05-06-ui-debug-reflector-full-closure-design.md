@@ -8,10 +8,10 @@ related_code:
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/tests/diagnostics.rs
-  - zircon_editor/src/ui/slint_host/app/invalidation.rs
-  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
 implementation_files:
@@ -22,9 +22,9 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
-  - zircon_editor/src/ui/slint_host/app/invalidation.rs
-  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
 plan_sources:
   - user: 2026-05-06 完善调试工具，参照 dev 下虚幻源码
   - user-provided: Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
@@ -39,7 +39,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/diagnostics.rs
   - zircon_runtime/src/ui/tests/hit_grid.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - cargo test -p zircon_runtime --lib diagnostics --locked
   - cargo test -p zircon_runtime --lib hit_grid --locked
   - cargo test -p zircon_editor --lib native_host_contract --locked

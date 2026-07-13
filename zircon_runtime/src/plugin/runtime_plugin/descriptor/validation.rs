@@ -8,7 +8,7 @@ use super::super::{
     },
     RuntimePlugin,
 };
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_descriptor(
     plugin: &dyn RuntimePlugin,

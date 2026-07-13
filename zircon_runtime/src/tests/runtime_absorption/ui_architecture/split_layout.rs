@@ -22,13 +22,22 @@ const SESSION_NOTE: &str = include_str!(
     "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
 );
 const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests.rs"
+    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_platform_rows.rs"
 );
 const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
 );
 const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
+);
+#[rustfmt::skip]
+const NUMBERED_STATUS_RECORDS: &str = concat!(
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
 );
 
 #[test]
@@ -148,6 +157,8 @@ fn assert_docs_and_status_mirror_split() {
         assert!(
             source.contains(
                 "runtime_15_ui_architecture_route_owner_split_static_passed_cargo_deferred"
+            ) || NUMBERED_STATUS_RECORDS.contains(
+                "runtime_15_ui_architecture_route_owner_split_static_passed_cargo_deferred"
             ),
             "{label} should mirror the ui_architecture route-owner split status"
         );
@@ -167,7 +178,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 plan",
-        FRAMEWORKS_02_PLAN,
+        NUMBERED_STATUS_RECORDS,
         &[
             "frameworks_02_m3_ui_architecture_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 ui-architecture route-owner split",

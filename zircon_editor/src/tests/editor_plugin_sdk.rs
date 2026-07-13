@@ -1,11 +1,12 @@
+use crate::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
+use crate::core::commands::EditorCommandDescriptor;
 use std::cell::RefCell;
 
 use zircon_runtime::plugin::PluginPackageManifest;
+use zircon_runtime_interface::resource::ResourceKind;
 
-use crate::core::editor_extension::{
-    AssetEditorDescriptor, AssetImporterDescriptor, EditorExtensionRegistry,
-};
-use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use crate::core::editor_extension::{AssetImporterDescriptor, EditorExtensionRegistry};
+use crate::core::editor_operation::EditorOperationPath;
 use crate::core::editor_plugin::{
     EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor, EditorPluginRegistrationReport,
 };
@@ -43,6 +44,15 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
         "example plugins should aggregate without diagnostics: {:?}",
         extension_report.diagnostics
     );
+    let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
+    let model_definition = extension_report
+        .asset_types
+        .get(&model_type)
+        .expect("model asset type definition");
+    assert_eq!(
+        model_definition.toolkit().unwrap().view_id(),
+        "sdk.example.asset_inspector"
+    );
     let registry = extension_report.registry;
     assert!(registry
         .views()
@@ -55,11 +65,6 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
             |importer| importer.id() == "sdk.example.asset.model_importer"
                 && importer.source_extensions() == ["glb".to_string(), "gltf".to_string()]
         ));
-    assert!(registry
-        .asset_editors()
-        .iter()
-        .any(|editor| editor.asset_kind() == "Model"
-            && editor.view_id() == "sdk.example.asset_inspector"));
     assert!(registry
         .component_drawers()
         .iter()
@@ -102,9 +107,10 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
             &self,
             registry: &mut EditorExtensionRegistry,
         ) -> Result<(), crate::core::editor_extension::EditorExtensionRegistryError> {
-            let operation_path = EditorOperationPath::parse("sdk.failure.open")
-                .map_err(crate::core::editor_extension::EditorExtensionRegistryError::Operation)?;
-            registry.register_operation(EditorOperationDescriptor::new(
+            let operation_path = EditorOperationPath::parse("sdk.failure.open").map_err(
+                crate::core::editor_extension::EditorExtensionRegistryError::OperationPath,
+            )?;
+            registry.register_command(EditorCommandDescriptor::pending_operation(
                 operation_path,
                 "Open Failure Panel",
             ))
@@ -144,8 +150,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
         .any(|diagnostic| diagnostic.contains("simulated enable failure")));
     assert!(report
         .extensions
-        .operations()
-        .descriptor(&EditorOperationPath::parse("sdk.failure.open").unwrap())
+        .pending_command(&EditorOperationPath::parse("sdk.failure.open").unwrap())
         .is_some());
     assert_eq!(report.lifecycle.records().len(), 2);
 }
@@ -282,13 +287,13 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
 
     let mut registry = EditorExtensionRegistry::default();
     registry
-        .register_operation(EditorOperationDescriptor::new(
+        .register_command(EditorCommandDescriptor::pending_operation(
             import_operation.clone(),
             "Import Model",
         ))
         .unwrap();
     registry
-        .register_operation(EditorOperationDescriptor::new(
+        .register_command(EditorCommandDescriptor::pending_operation(
             open_operation.clone(),
             "Open Model Inspector",
         ))
@@ -303,7 +308,7 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
             .with_source_extension(".GLB")
             .with_source_extension("gltf")
             .with_source_extension("glb")
-            .with_output_kind("Model")
+            .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::Model))
             .with_required_capabilities([
                 "editor.extension.asset_authoring",
                 "editor.extension.asset_authoring",
@@ -311,14 +316,12 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
         )
         .unwrap();
     registry
-        .register_asset_editor(
-            AssetEditorDescriptor::new(
-                "Model",
-                "sdk.asset.model_inspector",
-                "SDK Model Inspector",
-                open_operation,
-            )
-            .with_required_capabilities(["editor.extension.asset_authoring"]),
+        .register_asset_type_contribution(
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Model))
+                .with_toolkit(
+                    AssetToolkitDescriptor::new("sdk.asset.model_inspector", open_operation)
+                        .with_required_capabilities(["editor.extension.asset_authoring"]),
+                ),
         )
         .unwrap();
 
@@ -327,12 +330,18 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
         importer.source_extensions(),
         &["glb".to_string(), "gltf".to_string()]
     );
-    assert_eq!(importer.output_kind(), Some("Model"));
+    assert_eq!(
+        importer.output_type().map(AssetTypeId::as_str),
+        Some("model")
+    );
     assert_eq!(
         importer.required_capabilities(),
         &["editor.extension.asset_authoring".to_string()]
     );
-    assert_eq!(registry.asset_editors()[0].asset_kind(), "Model");
+    assert_eq!(
+        registry.asset_type_contributions()[0].asset_type(),
+        &AssetTypeId::from_resource_kind(ResourceKind::Model)
+    );
 }
 
 #[test]
@@ -393,13 +402,13 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let open_operation = EditorOperationPath::parse("sdk.asset.open_model_inspector").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_operation(EditorOperationDescriptor::new(
+        .register_command(EditorCommandDescriptor::pending_operation(
             import_operation.clone(),
             "Import Model",
         ))
         .unwrap();
     extension
-        .register_operation(EditorOperationDescriptor::new(
+        .register_command(EditorCommandDescriptor::pending_operation(
             open_operation.clone(),
             "Open Model Inspector",
         ))
@@ -412,16 +421,17 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
                 import_operation,
             )
             .with_source_extensions(["glb", "gltf"])
-            .with_output_kind("Model"),
+            .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::Model)),
         )
         .unwrap();
     extension
-        .register_asset_editor(AssetEditorDescriptor::new(
-            "Model",
-            "sdk.asset.model_inspector",
-            "SDK Model Inspector",
-            open_operation,
-        ))
+        .register_asset_type_contribution(
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Model))
+                .with_toolkit(AssetToolkitDescriptor::new(
+                    "sdk.asset.model_inspector",
+                    open_operation,
+                )),
+        )
         .unwrap();
 
     runtime
@@ -432,7 +442,13 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
         .runtime
         .asset_importers_for_extension(".glb")
         .is_empty());
-    assert!(runtime.runtime.asset_editor_descriptor("Model").is_none());
+    let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
+    assert!(runtime
+        .runtime
+        .asset_type_definition(&model_type)
+        .unwrap()
+        .toolkit()
+        .is_none());
 
     let manager = runtime
         .core
@@ -446,9 +462,12 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let importers = runtime.runtime.asset_importers_for_extension("GLB");
     assert_eq!(importers.len(), 1);
     assert_eq!(importers[0].id(), "sdk.asset.model_importer");
-    let editor = runtime
+    let definition = runtime
         .runtime
-        .asset_editor_descriptor("Model")
-        .expect("asset editor should be visible after capability is enabled");
-    assert_eq!(editor.view_id(), "sdk.asset.model_inspector");
+        .asset_type_definition(&model_type)
+        .expect("asset type should be visible after capability is enabled");
+    assert_eq!(
+        definition.toolkit().unwrap().view_id(),
+        "sdk.asset.model_inspector"
+    );
 }

@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，不要中途确认，优先推进更深的 residency-manager cascade
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-page-table-residency-cascade.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_ignores_duplicate_gpu_page_assignments_after_first_unique_completion -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

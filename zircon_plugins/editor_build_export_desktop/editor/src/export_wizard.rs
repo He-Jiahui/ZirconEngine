@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use zircon_editor::ExportStageProgressKind;
 
@@ -99,7 +99,7 @@ pub struct ExportWizardRegionDescriptor {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageDescriptor {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub stage_id: &'static str,
     pub label: &'static str,
     pub report_path: &'static str,
@@ -112,7 +112,7 @@ pub struct ExportWizardReportViewDescriptor {
     pub label: &'static str,
     pub template_id: &'static str,
     pub template_document: &'static str,
-    pub required_stage: ExportPipelineStage,
+    pub required_stage: ExportStage,
     pub summary_entry_keys: &'static [&'static str],
     pub template_control_ids: &'static [&'static str],
 }
@@ -127,7 +127,7 @@ pub struct ExportWizardDescriptor {
 }
 
 impl ExportWizardDescriptor {
-    pub fn stage(&self, stage: ExportPipelineStage) -> Option<&ExportWizardStageDescriptor> {
+    pub fn stage(&self, stage: ExportStage) -> Option<&ExportWizardStageDescriptor> {
         self.stages
             .iter()
             .find(|descriptor| descriptor.stage == stage)
@@ -160,34 +160,26 @@ pub fn export_wizard_descriptor() -> ExportWizardDescriptor {
             },
         ],
         stages: vec![
-            stage_descriptor(ExportPipelineStage::Validate, "validate", "Validate"),
+            stage_descriptor(ExportStage::Validate, "validate", "Validate"),
             stage_descriptor(
-                ExportPipelineStage::SourceTemplate,
+                ExportStage::SourceTemplate,
                 "source_template",
                 "Source Template",
             ),
             stage_descriptor(
-                ExportPipelineStage::NativeDynamic,
+                ExportStage::NativeDynamic,
                 "native_dynamic",
                 "Native Dynamic",
             ),
+            stage_descriptor(ExportStage::CompileHost, "compile_host", "Compile Host"),
+            stage_descriptor(ExportStage::CookAssets, "cook_assets", "Cook Assets"),
+            stage_descriptor(ExportStage::Pack, "pack", "Pack"),
             stage_descriptor(
-                ExportPipelineStage::CompileHost,
-                "compile_host",
-                "Compile Host",
-            ),
-            stage_descriptor(
-                ExportPipelineStage::CookAssets,
-                "cook_assets",
-                "Cook Assets",
-            ),
-            stage_descriptor(ExportPipelineStage::Pack, "pack", "Pack"),
-            stage_descriptor(
-                ExportPipelineStage::PlatformBundle,
+                ExportStage::PlatformBundle,
                 "platform_bundle",
                 "Platform Bundle",
             ),
-            stage_descriptor(ExportPipelineStage::Report, "report", "Report"),
+            stage_descriptor(ExportStage::Report, "report", "Report"),
         ],
         report_views: vec![
             ExportWizardReportViewDescriptor {
@@ -195,7 +187,7 @@ pub fn export_wizard_descriptor() -> ExportWizardDescriptor {
                 label: "SourceTemplate Report",
                 template_id: SOURCE_TEMPLATE_REPORT_ID,
                 template_document: SOURCE_TEMPLATE_REPORT_DOCUMENT,
-                required_stage: ExportPipelineStage::SourceTemplate,
+                required_stage: ExportStage::SourceTemplate,
                 summary_entry_keys: SOURCE_TEMPLATE_REPORT_SUMMARY_ENTRY_KEYS,
                 template_control_ids: SOURCE_TEMPLATE_REPORT_TEMPLATE_CONTROL_IDS,
             },
@@ -204,7 +196,7 @@ pub fn export_wizard_descriptor() -> ExportWizardDescriptor {
                 label: "LibraryEmbed Report",
                 template_id: LIBRARY_EMBED_REPORT_ID,
                 template_document: LIBRARY_EMBED_REPORT_DOCUMENT,
-                required_stage: ExportPipelineStage::CompileHost,
+                required_stage: ExportStage::CompileHost,
                 summary_entry_keys: LIBRARY_EMBED_REPORT_SUMMARY_ENTRY_KEYS,
                 template_control_ids: LIBRARY_EMBED_REPORT_TEMPLATE_CONTROL_IDS,
             },
@@ -213,7 +205,7 @@ pub fn export_wizard_descriptor() -> ExportWizardDescriptor {
                 label: "NativeDynamic Report",
                 template_id: NATIVE_DYNAMIC_REPORT_ID,
                 template_document: NATIVE_DYNAMIC_REPORT_DOCUMENT,
-                required_stage: ExportPipelineStage::NativeDynamic,
+                required_stage: ExportStage::NativeDynamic,
                 summary_entry_keys: NATIVE_DYNAMIC_REPORT_SUMMARY_ENTRY_KEYS,
                 template_control_ids: NATIVE_DYNAMIC_REPORT_TEMPLATE_CONTROL_IDS,
             },
@@ -231,7 +223,7 @@ pub fn stage_progress_kinds() -> [ExportStageProgressKind; 4] {
 }
 
 fn stage_descriptor(
-    stage: ExportPipelineStage,
+    stage: ExportStage,
     stage_id: &'static str,
     label: &'static str,
 ) -> ExportWizardStageDescriptor {

@@ -7,6 +7,7 @@ description = "Editor shell, tools, and Rust-owned workbench UI host contracts."
 build = "build.rs"
 
 [dependencies]
+blake3.workspace = true
 crossbeam-channel.workspace = true
 fontdb = "0.23.0"
 fontdue = "0.9.3"
@@ -26,6 +27,9 @@ unicode-segmentation = "1.13.2"
 winit.workspace = true
 zircon_runtime = { path = "../zircon_runtime" }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys.workspace = true
 
 [dev-dependencies]
 crossbeam-channel.workspace = true

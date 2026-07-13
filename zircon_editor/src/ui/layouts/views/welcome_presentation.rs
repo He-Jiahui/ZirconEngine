@@ -1,5 +1,5 @@
+use crate::core::project::RecentProjectValidation;
 use crate::ui::layouts::common::model_rc;
-use crate::ui::workbench::startup::RecentProjectValidation;
 use crate::ui::workbench::startup::WelcomePaneSnapshot;
 
 use super::{NewProjectFormData, RecentProjectData, WelcomePaneData, WelcomePresentation};

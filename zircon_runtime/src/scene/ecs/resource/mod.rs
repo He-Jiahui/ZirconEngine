@@ -1,7 +1,6 @@
 mod id;
-mod marker;
 mod registry;
 
+pub use crate::core::framework::scene::SceneResource as Resource;
 pub use id::ResourceId;
-pub use marker::Resource;
 pub use registry::{ResourceDescriptor, ResourceRegistry};

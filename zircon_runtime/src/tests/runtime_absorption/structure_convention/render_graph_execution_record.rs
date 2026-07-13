@@ -8,6 +8,9 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
     let compute_workload = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs",
     );
+    let compute_workload_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+    );
     let tests = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs",
     );
@@ -64,6 +67,12 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
             "pub enum RenderGraphComputeWorkloadAuditStatus",
             "pub struct RenderGraphComputeWorkloadAuditRecord",
             "pub(super) fn matched_or_mismatched",
+        ],
+    );
+    assert_contains_all(
+        "compute workload tests child owns compute dispatch/audit coverage",
+        &compute_workload_tests,
+        &[
             "fn execution_record_tracks_compute_dispatch_metadata",
             "fn execution_record_audits_planned_compute_workloads_against_dispatches",
             "fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches",
@@ -96,6 +105,11 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
             "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs",
             tests.as_str(),
             430,
+        ),
+        (
+            "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+            compute_workload_tests.as_str(),
+            500,
         ),
     ] {
         let line_count = source.lines().count();

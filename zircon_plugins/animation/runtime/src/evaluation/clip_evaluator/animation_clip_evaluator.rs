@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 
 use crossbeam_channel::Receiver;
 use zircon_runtime::core::framework::animation::AnimationPoseBone;
@@ -10,6 +11,7 @@ use super::cache_policy::{
 };
 use super::AnimationClipEvaluatorStats;
 use crate::AnimationEvaluationDiagnostic;
+use crate::SkeletonTargetTable;
 
 pub(super) type EvaluationDiagnosticKey = (ResourceId, u64, ResourceId, u64, String);
 
@@ -92,6 +94,12 @@ impl AnimationClipEvaluator {
         self.skeletons
             .get(&skeleton_id)
             .map(|cached| cached.bind_pose.as_ref())
+    }
+
+    pub(crate) fn target_table(&self, skeleton_id: ResourceId) -> Option<Arc<SkeletonTargetTable>> {
+        self.skeletons
+            .get(&skeleton_id)
+            .map(|cached| Arc::clone(&cached.targets))
     }
 
     pub(super) fn invalidate_changed_resources(&mut self) {

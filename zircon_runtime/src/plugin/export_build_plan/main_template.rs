@@ -1,4 +1,4 @@
-use crate::plugin::ExportProfile;
+use crate::core::framework::project::ExportProfile;
 
 pub(super) fn main_template(_profile: &ExportProfile, has_native_dynamic_plugins: bool) -> String {
     if has_native_dynamic_plugins {

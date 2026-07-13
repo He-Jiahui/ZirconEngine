@@ -1222,6 +1222,8 @@ status: in_progress
 
 # 引擎级代码结构与模块接口规范（Engine Code Structure & Module Interface Convention）
 
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](zircon_runtime/frameworks/development-conventions.md)；本文保留代码结构主题的细节论证与执行上下文，不再作为并列规则源。
+
 ## 产出记录迁移说明
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
@@ -1456,6 +1458,11 @@ asset_importers/model/runtime/
 
 Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有结构规范、接口约定与当前现状概述。
 
+## 2026-07-13 M4 behavior postprocess tests owner split hard-cut note
+
+- M4 behavior postprocess tests owner split 继续执行 §4 单一规则：`graphics/tests/m4_behavior_layers.rs` 只保留 shared fixture、offline-bake coverage 与 child mounts，`graphics/tests/m4_behavior_layers/postprocess.rs` 持有 bloom/color-grading 产品测试。
+- 守卫 `runtime_15_m4_behavior_postprocess_tests_are_child_owner` 锁定父/子 800 行预算；旧测试或 helper 不得回流父文件。具体状态与验证证据只由 Plan09 / Render 编号归档持有，本总览不复制 machine status token。
+
 ## 2026-07-10 Runtime Text UAX#9 line-owner hard cut note
 
 - The existing Runtime 15 visual-order child-owner split remains intact: `ui/text/layout_engine/visual_order.rs` is still the narrow adapter owned below `layout_engine.rs` and is now 178 lines.
@@ -1481,3 +1488,34 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - The slice introduced no production `allow(dead_code)`: deleting the bridge also deleted its newly orphaned cluster resolver/source helper, restoring the existing 416-warning library baseline.
 - Follow-up fallback/diagnostic reporting did not grow the renderer root past its soft budget: `text/prepare_report.rs` now owns prepare/raster/missing-glyph report DTO aggregation, and `text.rs` is back to 777 orchestration lines; the structure guard rejects moving those declarations back into the parent.
 - Run language remains a backend-neutral field on `zircon_runtime_interface::UiResolvedStyle`; normalized layout/shaped cache identity stays in their cache owners, while SDF locale identity stays in `sdf_atlas.rs`. `render.rs` and `text.rs` only propagate the value and do not become a second locale-policy owner.
+
+## 2026-07-11 Runtime Text screen-space font initialization note
+
+- System-font policy remains owned by `graphics/text/font`: the screen-space renderer invokes the narrow `initialize_screen_space_ui_font_system(...)` boundary and does not duplicate `fontdb` enumeration, family tables, or platform-font constants.
+- The fix adds no Editor-only font route, compatibility module, root facade, or test glyph injection. Runtime and Editor consume the same `FontDatabase -> glyphon FontSystem` synchronization path.
+- The Windows lower regression remains in the existing folder-backed `scene_renderer/ui/text/tests.rs` owner, so production `text.rs` retains orchestration rather than accumulating test fixtures or platform assertions.
+- The real HUD framebuffer gate passes after the same bounded 24-frame async-text settle policy used by the Runtime product test; waiting policy stays in test/product validation rather than becoming a production rendering bypass.
+
+## 2026-07-11 Runtime Text rich parser owner split note
+
+- Rich-text contracts stay backend-neutral under `core/framework/render/text/rich.rs`; parsing and security policy are not leaked into UI DTO roots or scene-renderer owners.
+- `graphics/text/rich/parser.rs` remains the orchestration owner, while BBCode, decorator registration, and controlled HTML rules are separate folder children. `html_subset.rs` and `parser.rs` remain below 500 lines each (current parser 434), avoiding another oversized parser root.
+- `ui/text/rich_text.rs` remains a narrow Markdown compatibility adapter over the shared parser; it does not retain a second parser or compatibility implementation.
+- Grapheme boundary policy is applied once after markup stripping, and the three layout regressions were updated to assert whole-cluster runs rather than preserving a half-cluster legacy shape.
+- Image/link parsing stays in the same HTML/BBCode leaf owners and uses the existing neutral `InlineObjectRef`/`LinkRef` contracts; no UI-local duplicate resource parser was added.
+- No HTML/CSS crate, script bridge, network loader, root facade, re-export shim, or production `allow(dead_code)` was introduced. `LayoutItem::Inline` remains explicitly open rather than hiding an unused metric helper in production.
+
+## 2026-07-11 Runtime Text rich inline-layout owner note
+
+- `graphics/text/layout/rich.rs` is the narrow 03 owner for rich run-to-item projection and inline baseline metrics; parser policy remains under `graphics/text/rich`, and the UI/scene renderer roots do not duplicate its ascent/descent rules.
+- Backend-neutral `LayoutItem`, `LaidOutLine`, and `LaidOutText` stay under `core/framework/render/text/rich.rs`. The owner records actual emitted item counts, so rejected source ranges cannot leave stale line indices.
+- Text run origins are projected from the enlarged rich-line baseline instead of remaining pinned to `y=0`; Baseline/Center/Top/Bottom image modes share one metric conversion path.
+- The child owner is under 300 lines and adds no compatibility facade, production `allow(dead_code)`, production panic/unwrap/expect, backend type, or duplicated renderer policy. UI resolved-layout/image-batch/link-hit integration remains explicitly open rather than being represented as a completed render path.
+- The next integration cut keeps responsibilities leaf-owned: `ui/text/layout_engine/rich_inline.rs` projects the admitted single-line inline subset, while `scene_renderer/ui/render/rich_text.rs` owns renderer-side range/style/placement interpretation. The public style contract hard-cuts the Markdown-only boolean to `UiRichTextFormat`; no bool-to-format compatibility field or second parser survives.
+- The renderer consumes the shared `LaidOutText` placement and never submits U+FFFC as a glyph batch. Image runs now route through folder-backed `scene_renderer/ui/image.rs`; the general color-quad pipeline and text renderer do not absorb texture bindings or WGSL sampling policy.
+- UI texture preparation remains under the existing `ResourceStreamer`: `resources/ui_texture.rs` resolves locator-stable IDs against imported UUID-backed records, rejects non-D2/non-single-layer payloads, and returns the existing fallback on failure. No second GPU texture cache, asset loader, renderer-root resource map, or interface-level WGPU type was added.
+- The leaf sizes remain bounded (`resources/ui_texture.rs` 139 lines, `scene_renderer/ui/image.rs` 259 lines). Rich run planning and placement now live in `scene_renderer/ui/render/rich_text.rs` (197 lines), which keeps the renderer root at 794 lines rather than the stale 866-line count; the real product framebuffer gate—not a policy diagram—proves both texture sampling and ellipsis-retained inline placement. Concrete evidence remains in the Text07 numbered archive.
+- Vertical rich layout is split by responsibility: `graphics/text/layout/rich_vertical.rs` owns main/cross-axis metrics and wrap ranges, while `ui/text/layout_engine/rich_inline_vertical.rs` only projects those metrics through the shared VerticalRl column-capacity/placement and ellipsis owners. Object height advances y, object width expands the column; no second Unicode orientation, BiDi, texture loader, or renderer-local layout policy was introduced.
+- The vertical addition keeps the production leaves bounded (`rich_vertical.rs` 322 lines, `rich_inline_vertical.rs` 239, `render/rich_text.rs` 236). Renderer rich tests moved to `render/tests/rich_inline.rs` (216 lines), leaving the test root at 779; product command builders moved to a 151-line child, leaving the integration root at 771. The renderer production root remains 794 lines.
+- BBCode block alignment stays in the same leaf-owned chain: `graphics/text/rich/parser.rs` emits neutral `ParagraphOverride` ranges, while `ui/text/layout_engine.rs` only projects effective per-line alignment. No center/right parser or markup-range policy is duplicated in UI or renderer, and the rich parser remains below the oversized-file threshold.
+- Rich-link input stays folder-backed: `ui/text/rich_text/link_hit.rs` owns caret-affinity/range resolution, `ui/surface/input/rich_link.rs` owns pointer admission, and `ui/surface/input/effect/link.rs` owns scheme/owner validation. `pointer.rs` only invokes the leaf after normal routing; the public interface carries neutral effect/host-request DTOs, with no browser backend or network dependency crossing E8.

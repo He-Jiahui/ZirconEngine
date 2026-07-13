@@ -7,7 +7,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred",
             "asset/tests/assets/artifact_store.rs",
             "asset/tests/assets/artifact_store/binary_payloads.rs",
-            "asset/tests/assets/artifact_store/library_assets.rs",
+            "asset/tests/assets/artifact_store/artifact_cache_assets.rs",
             "runtime_15_asset_artifact_store_tests_are_folder_backed",
         ],
     ),

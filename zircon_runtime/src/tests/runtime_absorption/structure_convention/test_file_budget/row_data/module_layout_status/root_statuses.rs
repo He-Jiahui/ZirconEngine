@@ -6,8 +6,7 @@ pub(super) const ROW_DATA_GUARD_NAME: &str =
     "runtime_15_status_output_row_data_guard_child_owner_split";
 pub(super) const HISTORICAL_STATUS_NAME: &str =
     "Runtime 15 M3 status output row-data module-layout status-doc guard child-owner split";
-pub(super) const HISTORICAL_STATUS_ID: &str =
-    "runtime_15_status_output_row_data_module_layout_status_docs_child_owner_split_static_passed_cargo_deferred";
+pub(super) const HISTORICAL_STATUS_ID: &str = "runtime_15_status_output_row_data_module_layout_status_docs_child_owner_split_static_passed_cargo_deferred";
 pub(super) const HISTORICAL_GUARD_NAME: &str =
     "runtime_15_status_output_row_data_module_layout_status_docs_are_child_owner";
 pub(super) const FOLDER_BACKED_STATUS_NAME: &str =

@@ -3,6 +3,10 @@ related_code:
   - .github/workflows/ci.yml
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - tools/plugin_structure_audits/capability.py
+  - tools/check_conventions.py
+  - tools/check-conventions.ps1
+  - tools/tests/test_check_conventions.py
+  - docs/cli-and-tooling/check-conventions.md
   - Cargo.toml
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
@@ -13,6 +17,8 @@ plan_sources:
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/non-network-server-naming-m1.md
   - docs/engine-architecture/generated-code-boundary.md
+last_refined: 2026-07-13
+status: in_progress
 ---
 
 # 06 · 开发规范总纲与守卫机制
@@ -59,7 +65,7 @@ plan_sources:
 
 实现切片：总纲落稿于 `docs/plans/zircon_runtime/frameworks/development-conventions.md`（**已于 2026-07-02 完成**，含 GEN/RT/ED/PL/IF/WF 分域规则与守卫勾稽）；剩余切片：被收编文档头部加"权威已移至总纲，本文保留细节"勾稽行（不删原文档，避免破坏既有引用网）；`docs/engine-architecture/index.md` 收录指向；C5 代码质量章（GEN-Q 组）评审定稿。
 
-测试阶段：docs-only；验收证据 = 总纲入库（已完成）+ 8 份来源文档勾稽行 + `docs/engine-architecture/index.md` 收录。
+测试阶段：docs-only；验收证据 = 总纲入库（已完成）+ 7 份 §1/§3 来源文档勾稽行 + 用户指定优先的 `engine-code-review-findings-2026-06.md` 补充审查勾稽 + `docs/engine-architecture/index.md` 收录。原“8 份”计数把没有独立落盘文档的 milestone-first 流程规则也计入来源，现按 §3 实际列出的 7 份文件校正；补充审查文档作为优先路由单独计入，不虚构 milestone-first 第 8 份文档。
 
 ### M1 CI 基础门（G3 部分 + G7）
 
@@ -67,7 +73,7 @@ plan_sources:
 
 测试阶段：
 - 分支上 CI 全绿一轮（fmt/clippy 存量违规同批清理，interface/app 体量小可控）；
-- 验收证据：workflow 截图/日志 + check-conventions 脚本文档化（CLAUDE.md 命令段）。
+- 验收证据：workflow 截图/日志 + check-conventions 脚本文档化（tracked `docs/cli-and-tooling/check-conventions.md`；本地忽略的 `CLAUDE.md` 命令段仅作为工作区便利入口，不充当入库证据）。
 
 ### M2 结构守卫统一入口（G1/G2）
 
@@ -88,3 +94,14 @@ plan_sources:
 - **守卫误伤节奏**：milestone-first 政策优先——守卫跑在 CI 与里程碑测试阶段，不强加到每个实现切片；本地 check-conventions 是自助工具不是强制钩子。
 - **存量 clippy 债务**：绝不一次性 `-D warnings` 全仓；allowlist 递减制并把名单进度记录在本文件状态表。
 - **规范双源漂移**：总纲生效后，规则修改只允许改总纲并同步守卫；来源文档只保留细节论证。守卫 G7 顺带检查总纲勾稽表的守卫 ID 有效性。
+
+## 7. 状态与产出记录
+
+- fixed 已修复：[scene-test-support-file-budget](06/fixed-2026-07-13-scene-test-support-file-budget.md)
+- fixed 已修复：[rustfmt-path-attributed-typed-canvas](06/fixed-2026-07-13-rustfmt-path-attributed-typed-canvas.md)
+- fixed 已修复：[workbench-projection-file-budget-regression](06/fixed-2026-07-13-workbench-projection-file-budget-regression.md)
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 产出记录：[`06/2026-07-12-development-conventions-and-guardrails-output-records.md`](06/2026-07-12-development-conventions-and-guardrails-output-records.md)、[`06/2026-07-13-development-conventions-and-guardrails-output-records.md`](06/2026-07-13-development-conventions-and-guardrails-output-records.md)
+- 当前状态：M0 已完成。M1 进行中：本地聚合工具、模块文档、契约测试与 CI 单一入口已落地，历史全库 fmt、G7 与首批 Runtime Interface/App scoped clippy 通过证据由编号归档持有；`--no-deps` 明确只提升首批包的 lint，Runtime 依赖债务保留给 M3 渐进收紧，不使用 allowlist。优先结构/评审守卫已有 current Runtime binary 完整验收，Editor Workbench projection 预算 fixed 回迁，Render OIT limit 与 build-mesh-draws lightmap sync 锚均硬切到当前事实。2026-07-13 已将 6 份 Runtime text/graphics/UI 文档中的 16 条退役 SDF owner 机器路径硬切到唯一现存 owner，旧路径检索为 0；最新 G7 为 958 documents / 64,957 paths / 9 missing（Runtime 0、Editor 8、Plugins 1），故当前 G7 真实状态仍为 RED。剩余项属于其他并发 dirty owner，待其同步后必须原命令复验；真实分支 CI 也尚无实际执行证据，因此不声明 M1 或计划 06 完成。精确计数、命令输出和历史切片只由上述编号归档持有。

@@ -2,7 +2,7 @@ use std::error::Error;
 
 use super::super::super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
-use crate::ui::workbench::startup::NewProjectDraft;
+use crate::core::project::NewProjectDraft;
 
 pub(super) fn resolve_editor_startup_session(
     editor_manager: &EditorManager,

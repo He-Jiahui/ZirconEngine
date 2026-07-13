@@ -2,8 +2,9 @@ use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
     normalize_ui_text_language_tag, UiEditableTextState, UiRenderCommandKind, UiResolvedStyle,
-    UiTextAlign, UiTextCaret, UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange,
-    UiTextRenderMode, UiTextSelection, UiTextWrap, UiTextWritingMode, UiVisualAssetRef,
+    UiRichTextFormat, UiTextAlign, UiTextCaret, UiTextComposition, UiTextDirection, UiTextOverflow,
+    UiTextRange, UiTextRenderMode, UiTextSelection, UiTextWrap, UiTextWritingMode,
+    UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
@@ -95,7 +96,10 @@ pub(in crate::ui::surface) fn resolve_style(
             .and_then(parse_text_writing_mode)
             .unwrap_or_default(),
         text_overflow: resolve_text_overflow(metadata),
-        rich_text: resolve_style_bool(metadata, "rich_text").unwrap_or(false),
+        rich_text_format: resolve_style_table_string(metadata, "font", "rich_text_format")
+            .or_else(|| resolve_style_string(metadata, "rich_text_format"))
+            .and_then(parse_rich_text_format)
+            .unwrap_or_default(),
         text_render_mode: resolve_style_table_string(metadata, "font", "render_mode")
             .or_else(|| resolve_style_string(metadata, "text_render_mode"))
             .and_then(parse_text_render_mode)
@@ -500,12 +504,6 @@ fn resolve_style_number(metadata: Option<&UiTemplateNodeMetadata>, key: &str) ->
         .and_then(value_as_f32)
 }
 
-fn resolve_style_bool(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<bool> {
-    metadata
-        .and_then(|metadata| style_value(metadata, key))
-        .and_then(Value::as_bool)
-}
-
 fn resolve_style_table_number(
     metadata: Option<&UiTemplateNodeMetadata>,
     table_key: &str,
@@ -596,6 +594,18 @@ fn parse_text_render_mode(value: &str) -> Option<UiTextRenderMode> {
         "auto" | "default" => Some(UiTextRenderMode::Auto),
         "native" | "glyphon" => Some(UiTextRenderMode::Native),
         "sdf" => Some(UiTextRenderMode::Sdf),
+        "msdf" => Some(UiTextRenderMode::Msdf),
+        "mtsdf" => Some(UiTextRenderMode::Mtsdf),
+        _ => None,
+    }
+}
+
+fn parse_rich_text_format(value: &str) -> Option<UiRichTextFormat> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "plain" => Some(UiRichTextFormat::Plain),
+        "markdown" => Some(UiRichTextFormat::Markdown),
+        "bbcode" | "bb_code" | "bb-code" => Some(UiRichTextFormat::BbCode),
+        "html" => Some(UiRichTextFormat::Html),
         _ => None,
     }
 }
@@ -759,5 +769,27 @@ language = "zh-Hans-CN"
         let style = resolve_style(Some(&metadata));
 
         assert_eq!(style.language.as_deref(), Some("zh-hans-cn"));
+    }
+
+    #[test]
+    fn resolve_style_selects_explicit_rich_text_format() {
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+rich_text_format = "html"
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            resolve_style(Some(&metadata)).rich_text_format,
+            UiRichTextFormat::Html
+        );
+        assert_eq!(
+            resolve_style(None).rich_text_format,
+            UiRichTextFormat::Plain
+        );
     }
 }

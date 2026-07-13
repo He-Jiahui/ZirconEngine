@@ -16,6 +16,10 @@ impl EditorManager {
         self.host.current_view_instances()
     }
 
+    pub fn current_focused_view(&self) -> Option<ViewInstanceId> {
+        self.host.current_focused_view()
+    }
+
     pub fn update_view_instance_metadata(
         &self,
         instance_id: &ViewInstanceId,

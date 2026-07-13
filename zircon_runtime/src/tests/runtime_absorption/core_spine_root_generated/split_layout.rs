@@ -134,7 +134,10 @@ fn assert_docs_and_status_mirror_split() {
     for (label, source) in [
         ("Runtime 15 output archive", RUNTIME_15_PLAN),
         ("runtime-index output archive", RUNTIME_INDEX),
-        ("structure-convention output archive", STRUCTURE_CONVENTION_PLAN),
+        (
+            "structure-convention output archive",
+            STRUCTURE_CONVENTION_PLAN,
+        ),
         ("review-findings output archive", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("Frameworks 02 output archive", FRAMEWORKS_02_PLAN),

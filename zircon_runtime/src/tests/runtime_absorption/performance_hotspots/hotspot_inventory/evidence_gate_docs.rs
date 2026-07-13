@@ -2,6 +2,7 @@ use super::sources::HotspotInventorySources;
 
 pub(super) fn assert_evidence_gate_docs(sources: &HotspotInventorySources) {
     let runtime_07_plan = sources.runtime_07_plan;
+    let runtime_07_archive = sources.runtime_07_archive;
     let runtime_index = sources.runtime_index;
     let hotspot_doc = sources.hotspot_doc;
     let animation_doc = sources.animation_doc;
@@ -15,12 +16,13 @@ pub(super) fn assert_evidence_gate_docs(sources: &HotspotInventorySources) {
     for required_plan_anchor in [
         "M1 | 1.3 热点清单",
         "hotspot_inventory.md",
-        "inventory_scaffold_static_passed_pending_authoritative_values",
+        "authoritative_inventory_completed",
         "无权威 runtime 数值不得进入 M2",
         "render 计划 02/04",
     ] {
         assert!(
             runtime_07_plan.contains(required_plan_anchor)
+                || runtime_07_archive.contains(required_plan_anchor)
                 || runtime_index.contains(required_plan_anchor),
             "Runtime 07 plan/index should record hotspot inventory anchor `{required_plan_anchor}`"
         );
@@ -35,7 +37,8 @@ pub(super) fn assert_evidence_gate_docs(sources: &HotspotInventorySources) {
         "Evidence Gate",
         "No Runtime 07 M2 optimization slice may start from an unmeasured suspicion",
         "Authoritative Top List",
-        "Pending authoritative runtime sample",
+        "9.521868%",
+        "EcsFramePerformanceDiagnostics::publish(...)",
         "Render-Plan Diversions",
         "vkCmdCopyBuffer",
         "Runtime 07 M2 is not allowed to fix render submission",

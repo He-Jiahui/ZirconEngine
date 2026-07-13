@@ -64,7 +64,7 @@ impl VmPluginInstance for MockVmPluginInstance {
         });
         let mut calls = mock_call_log_from_state(&self.state)?;
         calls.push(event);
-        self.state.bytes = serde_json::to_vec(&calls).map_err(|error| {
+        self.state.payload = serde_json::to_vec(&calls).map_err(|error| {
             VmError::Operation(format!("mock vm call log encode failed: {error}"))
         })?;
         Ok(Some(ScriptHostValue::Null))
@@ -72,9 +72,9 @@ impl VmPluginInstance for MockVmPluginInstance {
 }
 
 fn mock_call_log_from_state(state: &VmStateBlob) -> Result<Vec<serde_json::Value>, VmError> {
-    if state.bytes.is_empty() {
+    if state.payload.is_empty() {
         return Ok(Vec::new());
     }
-    serde_json::from_slice(&state.bytes)
+    serde_json::from_slice(&state.payload)
         .map_err(|error| VmError::Operation(format!("mock vm call log decode failed: {error}")))
 }

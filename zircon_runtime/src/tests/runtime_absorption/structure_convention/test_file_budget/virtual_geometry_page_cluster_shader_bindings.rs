@@ -1,9 +1,7 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred";
-const CARGO_WRAPPER_STATUS: &str =
-    "render_plan08_virtual_geometry_page_cluster_shader_bindings_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred";
+const CARGO_WRAPPER_STATUS: &str = "render_plan08_virtual_geometry_page_cluster_shader_bindings_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired() {
@@ -28,12 +26,14 @@ fn runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired() {
     let package_manifest_tests =
         read_runtime_src("tests/plugin_extensions/package_manifest_declarations.rs");
     let build_tool_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
     let virtual_geometry_descriptor_sources =
         format!("{virtual_geometry_plugin}{virtual_geometry_static_manifest}");
     let gpu_scene_sources = format!("{gpu_scene_binding}{gpu_scene_runtime}");
@@ -134,7 +134,6 @@ fn runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired() {
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

@@ -1,10 +1,13 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use zircon_runtime_interface::export::ExportStage;
+use zircon_runtime_interface::export::{ExportPreset, ExportTargetMode};
 
-use super::{export_pipeline_stage_report_name, ExportWizardStageArtifactPath};
+use super::ExportWizardStageArtifactPath;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardPipelineStageCommand {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub program: String,
     pub working_dir: Option<String>,
     pub args: Vec<String>,
@@ -12,6 +15,37 @@ pub struct ExportWizardPipelineStageCommand {
     pub produced_artifacts: Vec<ExportWizardStageArtifactPath>,
     pub expected_stdout_keys: Vec<&'static str>,
     pub missing_inputs: Vec<&'static str>,
+    pub core_projection: Option<ExportWizardCoreStageProjection>,
+    pub native_program: Option<OsString>,
+    pub native_args: Option<Vec<OsString>>,
+    pub native_working_dir: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExportWizardCoreStageProjection {
+    CompileHost {
+        report_path: String,
+        profile: String,
+        host_path: String,
+        preset: ExportPreset,
+        repo_root: String,
+        build_output_root: String,
+        python: String,
+        cargo: String,
+        locked: bool,
+        dry_run: bool,
+    },
+    PlatformBundle {
+        build_output_root: String,
+        target_mode: ExportTargetMode,
+        dry_run: bool,
+        preset: ExportPreset,
+        repo_root: String,
+        python: String,
+        cargo: String,
+        locked: bool,
+        report_path: String,
+    },
 }
 
 impl ExportWizardPipelineStageCommand {
@@ -36,7 +70,7 @@ impl ExportWizardPipelineStageCommand {
     pub fn stdout_banner(&self, profile: &str) -> String {
         format!(
             "zircon_export stage={} profile={profile}",
-            export_pipeline_stage_report_name(self.stage)
+            self.stage.report_name()
         )
     }
 }

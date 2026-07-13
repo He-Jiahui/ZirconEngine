@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "zircon_app",
+    "zircon_reflect_derive",
     "zircon_runtime",
     "zircon_runtime/reflection_macros",
     "zircon_editor",
@@ -36,8 +37,10 @@ tracing = "0.1.44"
 uuid = { version = "1.23.1", features = ["v4", "serde"] }
 wgpu = "29.0.1"
 winit = { version = "0.31.0-beta.2", default-features = false }
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 zircon_editor = { path = "zircon_editor" }
 zircon_plugin_sdk = { path = "zircon_plugins/plugin_sdk", default-features = false }
+zircon_reflect_derive = { path = "zircon_reflect_derive" }
 zircon_runtime = { path = "zircon_runtime", default-features = false }
 zircon_runtime_interface = { path = "zircon_runtime_interface" }
 

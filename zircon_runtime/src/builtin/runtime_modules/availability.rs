@@ -1,9 +1,10 @@
+use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::plugin::{
-    ProjectPluginManifest, RuntimePluginAvailabilityReport, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport, RuntimeProfileDescriptor, RuntimeProfileId,
+    RuntimePluginAvailabilityReport, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    RuntimeProfileDescriptor,
 };
 
-use super::ids::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(super) fn runtime_profile_availability(
     profile: &RuntimeProfileDescriptor,

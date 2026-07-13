@@ -1,4 +1,4 @@
-use zircon_runtime::asset::AnimationChannelAsset;
+use zircon_runtime::core::framework::animation::AnimationChannelAsset;
 
 use super::TargetSlot;
 

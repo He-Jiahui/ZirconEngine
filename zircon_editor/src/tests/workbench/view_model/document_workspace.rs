@@ -11,7 +11,10 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     let left_top = model
         .drawer_ring
@@ -114,7 +117,10 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     let left_top = model
         .tool_windows
@@ -291,7 +297,10 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
 
 #[test]
 fn view_menu_operation_paths_route_plugin_manager_and_build_export() {
-    let model = WorkbenchViewModel::build(&default_preview_fixture().build_chrome());
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &default_preview_fixture().build_chrome(),
+    );
     let view_menu = model
         .menu_bar
         .menus
@@ -355,7 +364,10 @@ fn project_empty_state_remains_the_same_when_docked_to_the_right() {
     right_top.mode = ActivityDrawerMode::Pinned;
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     let project_tab = model
         .tool_windows
@@ -380,7 +392,10 @@ fn scene_empty_state_actions_expose_typed_menu_bindings() {
     fixture.editor.scene_entries.clear();
     fixture.editor.project_open = true;
 
-    let model = WorkbenchViewModel::build(&fixture.build_chrome());
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &fixture.build_chrome(),
+    );
     let scene_tab = model
         .document_tabs
         .iter()

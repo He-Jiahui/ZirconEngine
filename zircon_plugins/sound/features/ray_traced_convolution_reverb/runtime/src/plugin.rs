@@ -1,7 +1,7 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginFeatureBundleManifest,
-    PluginModuleManifest,
+    PluginDistributionManifest, PluginFeatureBundleManifest, PluginModuleManifest,
 };
 
 use crate::capability::{

@@ -13,8 +13,6 @@ fn runtime_15_code_review_findings_status_docs_status_anchors_are_folder_backed(
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let required = [
         status_anchors::STATUS_DOC_STATUS_ANCHORS_FOLDER_BACKED_SPLIT_NAME,
         status_anchors::STATUS_DOC_STATUS_ANCHORS_FOLDER_BACKED_SPLIT_ID,
@@ -50,7 +48,6 @@ fn runtime_15_code_review_findings_status_docs_status_anchors_are_folder_backed(
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("runtime implementation session", session_note.as_str()),
     ] {
         assert_contains_all(label, source, &required);
     }
@@ -68,8 +65,6 @@ fn runtime_15_code_review_findings_status_docs_status_anchor_guard_folder_backed
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let required = [
         STATUS_DOC_STATUS_ANCHOR_GUARD_FOLDER_BACKED_SLICE,
         STATUS_DOC_STATUS_ANCHOR_GUARD_FOLDER_BACKED_STATUS,
@@ -92,7 +87,6 @@ fn runtime_15_code_review_findings_status_docs_status_anchor_guard_folder_backed
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("runtime implementation session", session_note.as_str()),
     ] {
         assert_contains_all(label, source, &required);
     }

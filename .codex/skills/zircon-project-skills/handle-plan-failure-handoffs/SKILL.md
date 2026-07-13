@@ -11,6 +11,10 @@ Route cross-plan failures to the numbered child plan that owns the lowest shared
 
 Read `references/handoff-template.md` before creating or closing a handoff.
 
+## Failure Priority Gate
+
+An open `failure-*.md` in the registered fixing child plan is the first executable item. Set the Session to `resolving_failure`, claim only the diagnostic/fix scope, and complete architectural repair, upward validation, and `failure return` before starting any normal fixing-plan slice. The originating plan may continue only slices that do not depend on the failed contract.
+
 ## Start-of-Session Priority
 
 Before normal feature work, scan the current numbered child-plan directory for `failure-*.md`.
@@ -61,6 +65,7 @@ Treat every reported naming, provenance, placement, duplicate, or link error as 
 - Missing origin/fixer plan identity
 - Stopping all source work after publishing a handoff
 - Advancing a fixing plan while its `failure-*.md` remains open
+- Treating a failure handoff as a backlog item while starting a new normal fixing-plan slice
 - Calling a fallback, alias, shim, or special case a fix
 - Copying instead of moving the fixed artifact back
 - Absolute or stale plan links

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::asset::NavMeshAsset;
+use super::NavMeshAsset;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NavMeshBakeRequest {

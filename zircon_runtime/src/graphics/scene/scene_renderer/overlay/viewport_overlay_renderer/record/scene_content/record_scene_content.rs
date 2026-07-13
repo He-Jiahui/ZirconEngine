@@ -21,7 +21,14 @@ impl ViewportOverlayRenderer {
         frame: &ViewportRenderFrame,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
     ) {
-        self.record_preview_sky(encoder, color_view, depth_view, scene_bind_group, frame);
+        self.record_preview_sky(
+            encoder,
+            device,
+            color_view,
+            depth_view,
+            scene_bind_group,
+            frame,
+        );
         self.record_meshes(
             encoder,
             device,

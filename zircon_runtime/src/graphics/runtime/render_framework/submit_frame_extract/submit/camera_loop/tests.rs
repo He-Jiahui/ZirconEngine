@@ -1,13 +1,13 @@
 use super::*;
 use crate::core::framework::render::{
     resolve_camera_sequence, resolve_camera_sequence_borrowed, CameraRenderType,
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet,
-    RenderOverlayExtract, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
-    RenderPreparedRuntimeSidebands, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportRect, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    FallbackSkyboxKind, PlanarReflectionProbeData, PlanarReflectionUpdateState, PlanarUpdateMode,
+    PreviewEnvironmentExtract, RenderCameraTarget, RenderLayerSet, RenderOverlayExtract,
+    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportRect,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::core::math::{UVec2, Vec4};
+use crate::core::math::{Mat4, UVec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::ViewportRenderFrame;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -295,6 +295,89 @@ fn camera_loop_routes_ui_to_last_base_when_no_primary_base_exists() {
             .collect::<Vec<_>>(),
         vec![false, true]
     );
+}
+
+#[test]
+fn camera_loop_inserts_first_on_demand_planar_capture_before_main_camera() {
+    let (extract, target) = planar_camera_loop_extract(PlanarUpdateMode::OnDemand);
+    let plan = camera_loop_submissions_with_planar_updates(
+        &extract,
+        &PlanarReflectionUpdateState::default(),
+    )
+    .expect("planar capture sequence");
+
+    assert_eq!(plan.planar_probe_ids, vec![41]);
+    assert_eq!(plan.submissions.len(), 2);
+    assert!(matches!(
+        plan.submissions[0].camera.target,
+        RenderCameraTarget::Texture(found) if found == target
+    ));
+    assert_eq!(plan.submissions[1].camera.entity, Some(7));
+}
+
+#[test]
+fn camera_loop_skips_captured_on_demand_probe_but_keeps_every_frame_probe() {
+    let (on_demand, _) = planar_camera_loop_extract(PlanarUpdateMode::OnDemand);
+    let mut updates = PlanarReflectionUpdateState::default();
+    updates.mark_captured(41);
+    let skipped = camera_loop_submissions_with_planar_updates(&on_demand, &updates)
+        .expect("on-demand main camera sequence");
+    assert!(skipped.planar_probe_ids.is_empty());
+    assert_eq!(skipped.submissions.len(), 1);
+
+    let (every_frame, target) = planar_camera_loop_extract(PlanarUpdateMode::EveryFrame);
+    let captured_every_frame = camera_loop_submissions_with_planar_updates(&every_frame, &updates)
+        .expect("every-frame planar sequence");
+    assert_eq!(captured_every_frame.planar_probe_ids, vec![41]);
+    assert!(matches!(
+        captured_every_frame.submissions[0].camera.target,
+        RenderCameraTarget::Texture(found) if found == target
+    ));
+}
+
+#[test]
+fn camera_loop_dirty_request_recaptures_on_demand_probe() {
+    let (extract, _) = planar_camera_loop_extract(PlanarUpdateMode::OnDemand);
+    let mut updates = PlanarReflectionUpdateState::default();
+    updates.mark_captured(41);
+    updates.mark_dirty(41);
+
+    let plan = camera_loop_submissions_with_planar_updates(&extract, &updates)
+        .expect("dirty planar sequence");
+    assert_eq!(plan.planar_probe_ids, vec![41]);
+    assert_eq!(plan.submissions.len(), 2);
+}
+
+fn planar_camera_loop_extract(
+    update: PlanarUpdateMode,
+) -> (RenderFrameExtract, ResourceHandle<TextureMarker>) {
+    let target = ResourceHandle::new(ResourceId::from_stable_label(
+        "tests/camera-loop/planar-capture",
+    ));
+    let main = descriptor(
+        5,
+        7,
+        CameraRenderType::Base,
+        RenderCameraTarget::PrimarySurface,
+    );
+    let mut extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(71),
+        empty_scene_snapshot(),
+    );
+    extract.view = extract.view.with_cameras(vec![main]);
+    extract.view.scene_camera_entity = Some(7);
+    extract.lighting.advanced_lighting.planar_probes = vec![PlanarReflectionProbeData {
+        probe_id: 41,
+        plane_transform: Mat4::IDENTITY,
+        local_reference_position: Vec3::ZERO,
+        bounds_min: Vec3::splat(-4.0),
+        bounds_max: Vec3::splat(4.0),
+        resolution: 512,
+        update,
+        capture_target: Some(target),
+        layer_mask: RenderLayerSet::default(),
+    }];
+    (extract, target)
 }
 
 #[test]

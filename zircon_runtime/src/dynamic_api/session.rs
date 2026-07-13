@@ -10,7 +10,6 @@ use zircon_runtime_interface::{
     ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use crate::builtin::{runtime_modules_for_target, RuntimeTargetMode};
 use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::framework::input::InputManager;
 use crate::core::framework::render::RenderViewportSurfaceDescriptor;
@@ -23,6 +22,7 @@ use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::NodeKind;
 use crate::scene::LevelSystem;
 use crate::scene::{DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue};
+use crate::{builtin::runtime_modules_for_target, core::framework::platform::RuntimeTargetMode};
 
 use super::camera_controller::RuntimeCameraController;
 use super::frame::{
@@ -336,9 +336,10 @@ impl RuntimeDynamicSession {
         modules
             .modules
             .push(Arc::new(crate::animation::AnimationModule));
-        if !modules.errors.is_empty() {
+        let fatal_diagnostics = modules.fatal_messages();
+        if !fatal_diagnostics.is_empty() {
             return Err(RuntimeDynamicSessionError::ModuleDiscovery {
-                message: modules.errors.join("; "),
+                message: fatal_diagnostics.join("; "),
             });
         }
         write_log(
@@ -700,28 +701,31 @@ fn install_builtin_scene_runtime_hooks(runtime: &CoreRuntime) -> RuntimeDynamicS
         &mut extensions,
         crate::script::script_scene_update_hook_registration(),
     )?;
-    runtime
-        .install_scene_runtime_hooks(&extensions)
-        .map_err(
-            |source| RuntimeDynamicSessionError::RuntimeExtensionRegistryStep {
-                step: "install scene runtime hooks",
-                source,
-            },
-        )
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        extensions.scene_hooks().iter().cloned(),
+    )
+    .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+        step: "install scene runtime hooks",
+        source,
+    })
 }
 
 fn register_missing_scene_hook(
     runtime: &CoreRuntime,
     extensions: &mut RuntimeExtensionRegistry,
-    registration: crate::plugin::SceneRuntimeHookRegistration,
+    registration: crate::scene::SceneRuntimeHookRegistration,
 ) -> RuntimeDynamicSessionResult<()> {
     let descriptor = registration.descriptor();
     let hook = descriptor.id.clone();
-    let already_installed = runtime
-        .handle()
-        .scene_runtime_hooks_for_stage(descriptor.stage)
-        .iter()
-        .any(|hook| hook.descriptor().id == descriptor.id);
+    let already_installed =
+        crate::scene::scene_runtime_hooks_for_stage(&runtime.handle(), descriptor.stage)
+            .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                step: "query installed scene runtime hooks",
+                source,
+            })?
+            .iter()
+            .any(|hook| hook.descriptor().id == descriptor.id);
     if already_installed {
         return Ok(());
     }

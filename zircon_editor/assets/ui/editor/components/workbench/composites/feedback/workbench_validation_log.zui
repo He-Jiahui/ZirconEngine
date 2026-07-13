@@ -1,0 +1,118 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui"
+version = 2
+display_name = "Workbench Validation Log"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader",
+  "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+]
+styles = []
+
+[components.WorkbenchValidationLog]
+root = "validation_log_root"
+default_classes = ["workbench-panel", "workbench-surface-inset", "workbench-composite"]
+
+[nodes.validation_log_root]
+component = "VerticalGroup"
+control_id = "WorkbenchValidationLogRoot"
+classes = ["workbench-panel", "workbench-surface-inset"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "validation_log_header" }, { node = "validation_log_filters" }, { node = "validation_log_info_axes" }, { node = "validation_log_warning" }, { node = "validation_log_info_range" }, { node = "validation_log_info_duplicates" }, { node = "validation_log_fill" }, { node = "validation_log_footer" }]
+
+[nodes.validation_log_header]
+component = "WorkbenchPanelHeader"
+control_id = "WorkbenchValidationLogHeader"
+layout = { width = { stretch = "Stretch" } }
+children = [{ node = "validation_log_title", slot = { name = "title" } }]
+
+[nodes.validation_log_title]
+component = "WorkbenchCaption"
+control_id = "WorkbenchValidationLogTitle"
+props = { text = "VALIDATION LOG" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.validation_log_filters]
+component = "HorizontalGroup"
+control_id = "WorkbenchValidationLogFilters"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "validation_log_all" }, { node = "validation_log_errors" }, { node = "validation_log_warnings" }, { node = "validation_log_infos" }, { node = "validation_log_filters_fill" }]
+
+[nodes.validation_log_all]
+component = "WorkbenchButton"
+control_id = "WorkbenchValidationLogAll"
+props = { text = "All", button_variant = "text", button_color = "secondary", selected = true }
+layout = { width = { min = 38.0, preferred = 44.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_errors]
+component = "WorkbenchButton"
+control_id = "WorkbenchValidationLogErrors"
+props = { text = "E 0", button_variant = "text", button_color = "secondary", validation_level = "error" }
+layout = { width = { min = 36.0, preferred = 42.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_warnings]
+component = "WorkbenchButton"
+control_id = "WorkbenchValidationLogWarnings"
+props = { text = "W 1", button_variant = "text", button_color = "secondary", validation_level = "warning" }
+layout = { width = { min = 36.0, preferred = 42.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_infos]
+component = "WorkbenchButton"
+control_id = "WorkbenchValidationLogInfos"
+props = { text = "I 2", button_variant = "text", button_color = "secondary", validation_level = "info" }
+layout = { width = { min = 36.0, preferred = 42.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_filters_fill]
+component = "Container"
+control_id = "WorkbenchValidationLogFiltersFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_info_axes]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchValidationLogInfoAxesRow"
+props = { text = "[Info] Blend space axes are valid.", validation_level = "info" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 24.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.validation_log_warning]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchValidationLogWarningRow"
+props = { text = "[Warning] 1 sample missing.", validation_level = "warning" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 24.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.validation_log_info_range]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchValidationLogInfoRangeRow"
+props = { text = "[Info] Samples are within axis range.", validation_level = "info" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 24.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.validation_log_info_duplicates]
+component = "WorkbenchStatusItem"
+control_id = "WorkbenchValidationLogInfoDuplicatesRow"
+props = { text = "[Info] No duplicate samples found.", validation_level = "info" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 24.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.validation_log_fill]
+component = "Container"
+control_id = "WorkbenchValidationLogFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_footer]
+component = "HorizontalGroup"
+control_id = "WorkbenchValidationLogFooter"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "validation_log_footer_fill" }, { node = "validation_log_clear" }]
+
+[nodes.validation_log_footer_fill]
+component = "Container"
+control_id = "WorkbenchValidationLogFooterFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.validation_log_clear]
+component = "WorkbenchButton"
+control_id = "WorkbenchValidationLogClear"
+props = { text = "Clear", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 50.0, preferred = 58.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

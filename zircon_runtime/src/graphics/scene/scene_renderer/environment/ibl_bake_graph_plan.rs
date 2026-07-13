@@ -89,7 +89,7 @@ pub(in crate::graphics) fn append_ibl_bake_artifact_graph_plan(
         let texture = builder.create_texture(pmrem_texture_desc(request));
         builder.mark_readback(RenderGraphResource::TransientTexture(texture))?;
         let mut previous_pmrem_pass = None;
-        for mip_level in 0..request.mip_count() {
+        for mip_level in 0..request.pmrem_mip_count() {
             let workload = pmrem_workload(request, mip_level);
             let pass = builder.add_pass_with_executor(
                 ibl_bake_pmrem_pass_name(mip_level),
@@ -172,14 +172,14 @@ pub(in crate::graphics) fn ibl_bake_pmrem_mip_from_pass_name(pass_name: &str) ->
 fn pmrem_texture_desc(request: &IblBakeArtifactRequest) -> TextureDesc {
     TextureDesc::new(
         IBL_BAKE_PMREM_RESOURCE,
-        request.face_size(),
-        request.face_size(),
+        request.pmrem_face_size(),
+        request.pmrem_face_size(),
         TextureFormat::Rgba16Float,
         TextureUsage::STORAGE | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
     )
     .with_dimension(TextureDimension::Cube)
     .with_depth(CUBE_FACE_COUNT)
-    .with_mip_levels(request.mip_count())
+    .with_mip_levels(request.pmrem_mip_count())
 }
 
 fn sh9_buffer_desc() -> BufferDesc {
@@ -203,7 +203,7 @@ fn irradiance_cube_texture_desc() -> TextureDesc {
 }
 
 fn pmrem_workload(request: &IblBakeArtifactRequest, mip_level: u32) -> RenderGraphComputeWorkload {
-    let mip_size = pmrem_mip_size(request.face_size(), mip_level);
+    let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
     RenderGraphComputeWorkload::fixed(
         IBL_BAKE_PMREM_PIPELINE_LABEL,
         IBL_BAKE_WORKGROUP_SIZE,
@@ -416,7 +416,9 @@ mod tests {
             RenderGraphResourceDesc::Texture(desc) => {
                 assert_eq!(desc.dimension, TextureDimension::Cube);
                 assert_eq!(desc.depth, 6);
-                assert_eq!(desc.mip_levels, 7);
+                assert_eq!(desc.width, 128);
+                assert_eq!(desc.height, 128);
+                assert_eq!(desc.mip_levels, 8);
                 assert!(desc.usage.contains(TextureUsage::STORAGE));
                 assert!(desc.usage.contains(TextureUsage::COPY_SRC));
             }

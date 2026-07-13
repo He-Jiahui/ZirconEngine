@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
-    NavAgentWritebackMode, NavDesiredVelocity, NavMeshAgentDescriptor, NavigationManager,
-    NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NavAgentWritebackMode, NavDesiredVelocity, NavMeshAgentDescriptor, NavigationDebugCapture,
+    NavigationManager, NAV_DESIRED_VELOCITY_COMPONENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
@@ -31,6 +31,41 @@ fn repath_budget_caps_queries_per_frame() {
     manager.tick_world_agents(&mut world, 0.1).unwrap();
 
     assert_eq!(world.resource::<NavRepathBudget>().queries_used, 2);
+}
+
+#[test]
+fn agent_tick_event_payload_contains_typed_editor_debug_state() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = crowd_world();
+    manager
+        .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
+        .unwrap();
+    let entity = spawn_agent(
+        &mut world,
+        Vec3::new(-3.0, 0.0, 0.0),
+        [3.0, 0.0, 0.0],
+        NavAgentWritebackMode::Transform,
+    );
+
+    let disabled = manager.tick_world_agents(&mut world, 0.1).unwrap();
+    assert!(disabled.debug_agents.is_empty());
+    world.insert_resource(NavigationDebugCapture { enabled: true });
+    let report = manager.tick_world_agents(&mut world, 0.1).unwrap();
+    let debug = report
+        .debug_agents
+        .iter()
+        .find(|debug| debug.entity == entity)
+        .expect("runtime tick report publishes typed agent debug state");
+    assert_eq!(debug.destination, Some([3.0, 0.0, 0.0]));
+    assert!(!debug.path.is_empty());
+    assert!(debug.path_status.is_some());
+    assert_ne!(debug.avoidance_velocity, [0.0; 3]);
+
+    let round_trip = serde_json::from_value::<
+        zircon_runtime::core::framework::navigation::NavAgentTickReport,
+    >(serde_json::to_value(&report).unwrap())
+    .unwrap();
+    assert_eq!(round_trip.debug_agents, report.debug_agents);
 }
 
 #[test]

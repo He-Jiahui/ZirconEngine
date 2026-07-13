@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::framework::render::render_mesh_stable_instance_key;
+use crate::core::framework::render::{render_mesh_stable_instance_key, LightmapConsumeContract};
+use crate::core::framework::scene::Mobility;
 use crate::core::math::RenderVec4;
 use crate::graphics::scene::gpu_scene::{
     GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GpuSceneUploadReport,
@@ -27,6 +28,7 @@ pub(super) fn sync_gpu_scene_pending_draws(
     queue: &wgpu::Queue,
     gpu_scene: &mut GpuScene,
     pending_draws: &mut [PendingMeshDraw],
+    lightmaps: Option<&LightmapConsumeContract>,
 ) -> (GpuSceneUploadReport, HashMap<u64, SyncedGpuSceneEntry>) {
     let mut live_keys = HashSet::new();
     let mut entries = HashMap::new();
@@ -73,6 +75,8 @@ pub(super) fn sync_gpu_scene_pending_draws(
                 pending_draw,
                 entry,
                 previous_model_matrix,
+                stable_instance_key,
+                lightmaps,
             )],
         );
         gpu_scene.set_transform_revision(stable_instance_key, pending_draw.transform_revision);
@@ -126,9 +130,11 @@ fn instance_data_for_pending_draw(
     pending_draw: &PendingMeshDraw,
     entry: GpuSceneEntry,
     previous_model_matrix: [[f32; 4]; 4],
+    stable_instance_key: u64,
+    lightmaps: Option<&LightmapConsumeContract>,
 ) -> GpuInstanceData {
     let payload_slot = virtual_geometry_payload_slot_for_pending_draw(pending_draw);
-    GpuInstanceData {
+    let mut instance = GpuInstanceData {
         world_from_local: pending_draw.model_matrix,
         prev_world_from_local: previous_model_matrix,
         primitive_index: entry.primitive_index,
@@ -137,7 +143,20 @@ fn instance_data_for_pending_draw(
         morph_payload_slot: pending_draw
             .morph_payload_slot
             .unwrap_or(GPU_SCENE_INVALID_PAYLOAD_SLOT),
+        lightmap_uv_rect: [0.0; 4],
+        lightmap_params: [0; 4],
+    };
+    if let Some((contract, slot)) = lightmaps
+        .filter(|_| pending_draw.mobility == Mobility::Static)
+        .and_then(|contract| {
+            contract
+                .slot_for_instance(stable_instance_key)
+                .map(|slot| (contract, slot))
+        })
+    {
+        instance.set_lightmap(slot, contract.light_set_generation);
     }
+    instance
 }
 
 fn virtual_geometry_payload_slot_for_pending_draw(pending_draw: &PendingMeshDraw) -> u32 {

@@ -134,8 +134,8 @@ fn bridge_performance_baseline_vm_bridge_callbacks_capture_resolved_slot() {
     let bridge_host_source = include_str!("../../script/vm/host/bridge_host_module.rs");
     let module_registration = source_between(
         bridge_host_source,
-        "pub fn register_bridge_host_module(",
-        "pub fn register_bridge_host_module_from_manifest(",
+        "pub fn register_bridge_host_module<Table>(",
+        "fn function_descriptor(",
     );
     let function_callback = source_between(
         bridge_host_source,
@@ -144,7 +144,7 @@ fn bridge_performance_baseline_vm_bridge_callbacks_capture_resolved_slot() {
     );
     let enabled_check = source_after(bridge_host_source, "fn ensure_bridge_enabled(");
 
-    assert!(module_registration.contains(".resolve_slot(method.interface_id())"));
+    assert!(module_registration.contains(".resolve_interface_slot(method.interface_id())"));
     assert!(module_registration
         .contains("callbacks.push(function_callback(bridge_table.clone(), slot, method));"));
     assert!(function_callback
@@ -152,7 +152,7 @@ fn bridge_performance_baseline_vm_bridge_callbacks_capture_resolved_slot() {
     assert!(function_callback.contains("interface_slot: slot"));
     assert!(function_callback.contains("method_slot: method.method_slot"));
     assert!(!function_callback.contains(".resolve_slot("));
-    assert!(enabled_check.contains("bridge_table.interface_snapshot(slot)"));
+    assert!(enabled_check.contains("bridge_table.interface_status_at(slot)"));
     assert!(!enabled_check.contains("interface_snapshot_by_id"));
 }
 

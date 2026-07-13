@@ -20,7 +20,10 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
 
     let harness = EventRuntimeHarness::new("zircon_retained_drawer_header_pointer_toggle");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let left_top_key = "left";
     let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
@@ -97,7 +100,10 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
     let harness =
         EventRuntimeHarness::new("zircon_retained_drawer_header_pointer_bottom_runtime_diag");
     let chrome = harness.runtime.chrome_snapshot();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let bottom_key = "bottom";
     let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))

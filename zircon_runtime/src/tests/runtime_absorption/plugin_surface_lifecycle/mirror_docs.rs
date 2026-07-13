@@ -42,7 +42,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-07-01"),
+        plan_doc.contains("last_refined: 2026-07-10"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
@@ -121,12 +121,23 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "export_build_plan should not reference retired native ABI V1/V2 symbols"
     );
 
-    let mirror_docs = [
-        ("Runtime 06 plan", plan_doc),
-        (
-            "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+    let runtime_06_status = concat!(
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
         ),
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md"
+        )
+    );
+    let runtime_index_status = concat!(
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        )
+    );
+    let mirror_docs = [
+        ("Runtime 06 status", runtime_06_status),
+        ("runtime index status", runtime_index_status),
         (
             "native plugin boundary",
             include_str!("../../../../../docs/engine-architecture/native-plugin-boundary.md"),

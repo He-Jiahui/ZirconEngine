@@ -80,6 +80,22 @@ macro_rules! assert_include_token {
     };
 }
 
+#[test]
+fn forward_material_template_applies_integrated_volumetric_lighting() {
+    let static_mesh = builtin_geometry_source_descriptor(GEOMETRY_SOURCE_ID_STATIC_MESH)
+        .expect("static mesh geometry source");
+    let assembly = assemble_material_shader_template(material_template_request(
+        static_mesh,
+        ShaderPassType::Forward,
+    ))
+    .expect("forward material shader template should assemble");
+
+    assert_include_token!(assembly, "zr_volumetric.wgsl");
+    assert!(assembly
+        .wgsl_source
+        .contains("zr_volumetric_apply(shaded + baked_indirect, input.clip_position.xy, input.clip_position.z)"));
+}
+
 macro_rules! assert_missing_include_token {
     ($assembly:expr, $token:expr) => {
         assert!(!has_include_token(&($assembly).include_tokens, $token));
@@ -124,6 +140,7 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
     assert_include_token!(static_assembly, "zr_scene_runtime.wgsl");
     assert_include_token!(static_assembly, "zr_gpu_scene.wgsl");
     assert_include_token!(static_assembly, "zr_environment.wgsl");
+    assert_missing_include_token!(static_assembly, "zr_oit.wgsl");
     assert_include_token!(skinned_assembly, "zr_geometry_skinned.wgsl");
     assert!(static_assembly
         .wgsl_source
@@ -134,6 +151,8 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
     assert!(static_assembly.wgsl_source.contains("fn zr_fs_main("));
     assert!(static_assembly.wgsl_source.contains("fn vs_main("));
     assert!(static_assembly.wgsl_source.contains("fn fs_main("));
+    assert!(!static_assembly.wgsl_source.contains("fn fs_oit("));
+    assert!(!static_assembly.wgsl_source.contains("oit_draw("));
     assert!(static_assembly
         .wgsl_source
         .contains("return zr_vs_main_impl(v, instance_index);"));
@@ -160,7 +179,7 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
         .contains("zr_skinned_joint_matrix(v.joints.x)"));
     assert!(skinned_assembly
         .wgsl_source
-        .contains("@group(3) @binding(3) var<uniform> zr_skinned_joint_palette"));
+        .contains("@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette"));
     assert!(!skinned_assembly
         .wgsl_source
         .contains("@group(3) @binding(1) var<storage, read> zr_joint_palette"));
@@ -285,6 +304,16 @@ fn render_shader_template_validates_standard_material_wgsl_with_naga() {
     let validation = validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("assembled standard material WGSL should validate");
 
+    for expected in [
+        "// include: zr_lightmap.wgsl",
+        "@group(1) @binding(23) var<storage, read> zr_light_probe_grid",
+        "@group(1) @binding(24) var zr_lightmap_atlas: texture_2d_array<f32>;",
+        "@group(1) @binding(28) var zr_lightmap_sampler: sampler;",
+        "zr_lightmap_baked_irradiance(",
+    ] {
+        assert!(assembly.wgsl_source.contains(expected));
+    }
+
     for expected in ["zr_vs_main", "vs_main", "zr_fs_main", "fs_main"] {
         assert!(
             validation
@@ -294,6 +323,31 @@ fn render_shader_template_validates_standard_material_wgsl_with_naga() {
             "assembled standard material WGSL should expose `{expected}`"
         );
     }
+}
+
+#[test]
+fn render_deferred_gbuffer_template_validates_baked_indirect_output() {
+    let material = standard_material_descriptor();
+    let surface_source = standard_material_surface_source(&material);
+    let assembly = assemble_deferred_gbuffer_shader_template(
+        DeferredGBufferShaderTemplateRequest::new(
+            static_mesh_descriptor(),
+            surface_source.source,
+            surface_source.entry_point,
+        )
+        .with_features(surface_source.features),
+    )
+    .expect("standard deferred GBuffer template assembly");
+
+    for expected in [
+        "// include: zr_lightmap.wgsl",
+        "let baked_indirect = diffuse_color",
+        "output.emissive = vec4<f32>(output.emissive.rgb + baked_indirect",
+    ] {
+        assert!(assembly.wgsl_source.contains(expected));
+    }
+    validate_material_shader_template_wgsl(&assembly.wgsl_source)
+        .expect("deferred GBuffer lightmap WGSL should validate");
 }
 
 #[test]
@@ -597,6 +651,7 @@ fn standard_material_descriptor() -> StandardMaterialDescriptor {
         material_queue: 0,
         depth_bias: 0.0,
         taa_reactive_mask_strength: 0.0,
+        subsurface_profile_index: 0,
         fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
     }
 }

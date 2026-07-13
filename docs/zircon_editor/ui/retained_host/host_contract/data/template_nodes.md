@@ -39,10 +39,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
@@ -90,7 +90,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
@@ -105,7 +105,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md
 tests:
   - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - build_export_wizard_panel_nodes_project_retained_export_wizard_panel
   - build_export_wizard_surface_action_maps_panel_buttons_to_session_actions
   - desktop_export_wizard_sessions_project_view_model_after_generate_plan
@@ -121,8 +121,8 @@ tests:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs inline unit tests
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup text-search keyboard baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup Home/End keyboard boundary baseline)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 touched DragOverlay Workbench/native Rust files (2026-06-15: passed after M3.S4 DragOverlay Workbench/native parity baseline)
@@ -254,6 +254,12 @@ Projection accepts both retained names and source-compatible names. `pane_compon
 ## Hit Testing
 
 `host_contract/surface_hit_test/template_node.rs` reconstructs a temporary surface for template-node hit testing. When a `TemplatePaneNodeData` row has a clip frame, the reconstructed `UiTreeNode.layout_cache.clip_frame` is seeded before `surface.rebuild()`. The shared hit grid then rejects pointer hits outside the same effective clip used by painting.
+
+## Native Parent Identity
+
+`TemplatePaneNodeData.parent_node_id` carries the nearest projected ancestor that also owns a native control id. `workbench_window_projection.rs` walks the retained parent chain and skips component-expansion wrappers that do not enter the native DTO. The walk is cycle guarded and produces an empty id when no projected ancestor exists.
+
+This identity is structural rather than visual: adaptive frame and clip values still come from the arranged shared surface. Native painters use the parent chain only to select owned subtrees such as an activated extension workspace; they must not infer ancestry from node-id prefixes, control-id naming conventions, or absolute pixel rectangles.
 
 ## Authoring Contract
 

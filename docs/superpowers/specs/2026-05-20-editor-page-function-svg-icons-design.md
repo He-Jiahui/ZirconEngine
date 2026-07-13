@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/assets/icons/editor_pages/console_profiler/logs/log-info.svg
   - zircon_editor/assets/icons/editor_pages/build_plugins/build/build.svg
 implementation_files:
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - docs/zircon_editor/assets/editor-page-function-svg-resources.md
 plan_sources:
   - user: 2026-05-20 generate more Editor SVG icons, reference Fyrox, Unity, Unreal main and secondary editor interfaces

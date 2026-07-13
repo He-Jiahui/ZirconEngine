@@ -12,20 +12,14 @@ mod review_mounts;
 #[path = "parent_mounts/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_DELEGATION_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/delegation.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_REVIEW_MOUNTS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/review_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_FOLDER_BACKED_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/folder_backed.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_OWNERSHIP_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/child_ownership.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/status_mirrors.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_DELEGATION_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/delegation.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_REVIEW_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/review_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_FOLDER_BACKED_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/folder_backed.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/child_ownership.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/status_mirrors.rs";
 pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_SLICE: &str =
     "Runtime 15 M3 plugin-importer D13 SDK parent-mount guard child split";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_STATUS: &str =
-    "runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_child_split_static_passed_cargo_deferred";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_STATUS: &str = "runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_child_split_static_passed_cargo_deferred";
 pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_DATE: &str = "2026-07-05";
 pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_GUARD: &str =
     "runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_is_child_backed";

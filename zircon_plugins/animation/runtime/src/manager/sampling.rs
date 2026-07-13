@@ -1,4 +1,4 @@
-use zircon_runtime::asset::AnimationChannelValueAsset;
+use zircon_runtime::core::framework::animation::AnimationChannelValueAsset;
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::math::{Quat, Real, Vec3};
 

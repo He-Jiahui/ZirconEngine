@@ -6,8 +6,10 @@ fn review_f5_zshader_v2_replaces_user_shader_definitions() {
     let import_shader_package =
         include_str!("../../../../../asset/importer/ingest/import_shader_package.rs");
     let shader_tests = include_str!("../../../../../asset/tests/assets/shader_readiness.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
     );
@@ -48,7 +50,7 @@ fn review_f5_zshader_v2_replaces_user_shader_definitions() {
         "ZShaderV2Error",
         "ZShaderOptionDocument",
         "ShaderOptionAsset",
-        "legacy user-authored pipeline layout and shader_defs fields are removed",
+        "removed user-authored pipeline layout and shader_defs fields must be migrated",
     ] {
         assert!(
             shader_mod.contains(required)

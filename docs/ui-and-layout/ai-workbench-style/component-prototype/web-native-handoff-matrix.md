@@ -1,18 +1,18 @@
 ---
 related_code:
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/atoms.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/collections.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/surfaces.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/module-components.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/modules.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/components/inputs/atoms.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/components/data/collections.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/components/surfaces/surfaces.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/shared
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/modules.js
   - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/component-lab/module.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/extension-blueprints.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/extension-surfaces.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/extension-modules.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/extension-handoff.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/reference-samples.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/action-paths.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/routes.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-blueprints.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-surfaces.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-modules.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-handoff.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/foundation/reference-samples.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/foundation/action-paths.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/routing/routes.js
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui
@@ -121,7 +121,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs
@@ -166,7 +166,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/extract.rs
 implementation_files:
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/action-paths.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/foundation/action-paths.js
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-action-naming-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-interaction-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs
@@ -175,7 +175,7 @@ implementation_files:
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-generated-bottom-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
   - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/component-lab/module.js
-  - docs/ui-and-layout/ai-workbench-style/component-prototype/extension-handoff.js
+  - docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-handoff.js
   - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui

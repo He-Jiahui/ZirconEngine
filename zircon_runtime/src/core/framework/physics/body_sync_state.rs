@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::physics::{
+    PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
+};
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Real, Transform};
 
@@ -11,12 +14,14 @@ pub struct PhysicsBodySyncState {
     pub body_type: PhysicsBodyType,
     pub transform: Transform,
     pub mass: Real,
+    pub mass_properties: PhysicsMassProperties,
     pub linear_velocity: [Real; 3],
     pub angular_velocity: [Real; 3],
     pub linear_damping: Real,
     pub angular_damping: Real,
     pub gravity_scale: Real,
-    pub can_sleep: bool,
+    pub ccd_mode: PhysicsCcdMode,
+    pub sleep_policy: PhysicsSleepPolicy,
     pub lock_translation: [bool; 3],
     pub lock_rotation: [bool; 3],
 }

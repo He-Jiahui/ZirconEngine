@@ -1,6 +1,8 @@
 use crate::off_mesh_connections::collect_off_mesh_connections;
 use zircon_plugin_navigation_recast::{RecastBakeInput, RecastBakeMeshInput, RecastTiledBakeInput};
-use zircon_runtime::asset::{NavMeshAreaCostAsset, NavMeshAsset, NavigationSettingsAsset};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAreaCostAsset, NavMeshAsset, NavigationSettingsAsset,
+};
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeDiagnostic, NavMeshBakeDiagnosticSeverity, NavMeshSurfaceDescriptor, NavigationError,
 };

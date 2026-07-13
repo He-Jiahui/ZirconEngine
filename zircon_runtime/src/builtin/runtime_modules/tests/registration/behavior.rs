@@ -3,12 +3,15 @@ use crate::builtin::{
     runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports, RuntimePluginId,
-    RuntimeTargetMode,
+};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{
+    ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
 };
 use crate::core::sort_module_activation_order;
 use crate::plugin::{
-    PluginModuleManifest, PluginPackageManifest, ProjectPluginManifest, ProjectPluginSelection,
-    RuntimePluginAvailabilityCategory, RuntimePluginRegistrationReport, RuntimeProfileId,
+    PluginModuleManifest, PluginPackageManifest, RuntimePluginAvailabilityCategory,
+    RuntimePluginRegistrationReport,
 };
 
 use super::super::support::{availability_contains, linked_runtime_registration};
@@ -64,7 +67,32 @@ fn target_linked_plugin_report_surfaces_structured_availability() {
         RuntimePluginId::VirtualGeometry
     ));
     assert!(!report.runtime_plugin_availability.has_missing_required());
-    assert!(report.effective_required_missing().is_empty());
+    assert!(report.required_missing().is_empty());
+}
+
+#[cfg(feature = "ui")]
+#[test]
+fn target_module_loading_does_not_treat_selection_spelling_as_provider_identity() {
+    let mut selection = ProjectPluginSelection::runtime_plugin(RuntimePluginId::Ui, true, true);
+    selection.id = "UI".to_string();
+    let manifest = ProjectPluginManifest {
+        selections: vec![selection],
+    };
+
+    let report = runtime_modules_for_target_with_linked_plugins(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&manifest),
+        ["UI"],
+    );
+
+    assert!(report.runtime_plugin_availability.contains(
+        RuntimePluginAvailabilityCategory::Available,
+        RuntimePluginId::Ui
+    ));
+    assert!(report
+        .modules
+        .iter()
+        .any(|module| module.module_name() == crate::ui::UI_MODULE_NAME));
 }
 
 #[test]
@@ -105,11 +133,11 @@ fn target_native_dynamic_registration_report_preserves_availability_category() {
         RuntimePluginAvailabilityCategory::Linked,
         RuntimePluginId::VirtualGeometry
     ));
-    assert!(report.effective_required_missing().is_empty());
+    assert!(report.required_missing().is_empty());
 }
 
 #[test]
-fn target_required_missing_is_deduped_between_legacy_and_structured_reports() {
+fn target_required_missing_has_one_structured_availability_owner() {
     let manifest = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::VirtualGeometry,
@@ -122,17 +150,17 @@ fn target_required_missing_is_deduped_between_legacy_and_structured_reports() {
         Some(&manifest),
         std::iter::empty::<String>(),
     );
-    let missing = report.effective_required_missing();
+    let missing = report.required_missing();
 
     assert_eq!(
         missing
             .iter()
-            .filter(|entry| entry.id == RuntimePluginId::VirtualGeometry)
+            .filter(|entry| entry.runtime_id == RuntimePluginId::VirtualGeometry)
             .count(),
         1
     );
     assert!(report
-        .effective_errors()
+        .fatal_messages()
         .iter()
         .any(|diagnostic| diagnostic.contains("required runtime plugin VirtualGeometry")));
 }
@@ -155,9 +183,9 @@ fn runtime_profile_plugin_and_feature_bootstrap_uses_profile_availability() {
         RuntimePluginId::Sound
     ));
     assert!(!report
-        .effective_required_missing()
+        .required_missing()
         .iter()
-        .any(|missing| missing.id == RuntimePluginId::Sound));
+        .any(|missing| missing.runtime_id == RuntimePluginId::Sound));
 }
 
 #[test]
@@ -201,7 +229,7 @@ fn target_runtime_modules_follow_descriptor_activation_order() {
     assert!(
         !report.has_fatal_diagnostics(),
         "server runtime module selection should sort cleanly: {:?}",
-        report.effective_errors()
+        report.fatal_messages()
     );
 
     let module_names = report

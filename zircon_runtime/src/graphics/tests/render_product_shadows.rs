@@ -130,6 +130,7 @@ fn render_product_csm_directional() {
             direction: Vec3::new(0.0, -1.0, -1.0),
             color: Vec3::ONE,
             intensity: 2.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow_settings(ShadowResolutionTier::T1024)),
         }],
         ..LightingExtract::default()
@@ -297,6 +298,7 @@ fn product_spot_light(index: u64) -> RenderSpotLightSnapshot {
         range: 12.0,
         inner_angle_radians: 0.25,
         outer_angle_radians: 0.5,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: Some(shadow_settings(ShadowResolutionTier::T512)),
     }
 }

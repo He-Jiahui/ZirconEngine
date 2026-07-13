@@ -7,7 +7,7 @@ pub(crate) struct ProjectOverviewData {
     pub project_name: SharedString,
     pub project_root: SharedString,
     pub assets_root: SharedString,
-    pub library_root: SharedString,
+    pub cache_root: SharedString,
     pub default_scene_uri: SharedString,
     pub catalog_revision: SharedString,
     pub folder_count: SharedString,

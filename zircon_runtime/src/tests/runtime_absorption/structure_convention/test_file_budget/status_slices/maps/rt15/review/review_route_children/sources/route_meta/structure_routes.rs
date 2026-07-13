@@ -1,5 +1,4 @@
-pub(in super::super::super) const REVIEW_ROUTE_METADATA_ROUTE_PATH: &str =
-    "structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_metadata.rs";
+pub(in super::super::super) const REVIEW_ROUTE_METADATA_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_metadata.rs";
 pub(in super::super::super) const REVIEW_ROUTE_METADATA_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/route_mounts.rs",

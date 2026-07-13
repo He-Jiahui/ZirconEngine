@@ -11,10 +11,8 @@ mod status_support_rows;
 #[path = "budgets/typed_error_rows.rs"]
 mod typed_error_rows;
 
-const REVIEW_GUARD_ROW_DATA_BUDGETS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/budgets.rs";
-const REVIEW_GUARD_ROW_DATA_BUDGET_CHILD_ROOT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/budgets";
+const REVIEW_GUARD_ROW_DATA_BUDGETS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/budgets.rs";
+const REVIEW_GUARD_ROW_DATA_BUDGET_CHILD_ROOT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/budgets";
 const REVIEW_GUARD_ROW_DATA_BUDGET_CHILDREN: &[&str] = &[
     "delegation",
     "folder_backed",

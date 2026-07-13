@@ -17,7 +17,7 @@ impl RetainedEditorHost {
 
         self.focus_callback_source_window();
         let envelope = UiComponentEventEnvelope::new(
-            "inspector.surface_controls",
+            "res://ui/editor/host/inspector_surface_controls.zui",
             control_id,
             UiComponentBindingTarget::inspector("entity://selected", field_id.clone()),
             UiComponentEvent::ValueChanged {

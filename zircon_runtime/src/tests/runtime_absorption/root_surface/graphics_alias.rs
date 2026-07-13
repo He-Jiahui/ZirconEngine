@@ -1,4 +1,4 @@
-use super::inventory::{LIB_RS, ROOT_SURFACE_DOC, RUNTIME_02_PLAN, RUNTIME_INDEX};
+use super::inventory::{LIB_RS, ROOT_SURFACE_DOC, RUNTIME_02_OUTPUT_RECORDS};
 
 #[test]
 fn graphics_alias_debt_is_removed_from_runtime_root() {
@@ -29,19 +29,8 @@ fn graphics_alias_debt_is_removed_from_runtime_root() {
         "crate-visible graphics alias debt 0/0",
     ] {
         assert!(
-            RUNTIME_02_PLAN.contains(required_plan_anchor),
-            "Runtime 02 plan must document root-surface guard anchor `{required_plan_anchor}`"
-        );
-    }
-    for required_index_anchor in [
-        "Runtime 02 root graphics alias block removal",
-        "graphics_alias_block_removed_static_passed_cargo_pending",
-        "root_surface.md",
-        "crate-visible graphics alias debt 0/0",
-    ] {
-        assert!(
-            RUNTIME_INDEX.contains(required_index_anchor),
-            "runtime index must document root-surface guard anchor `{required_index_anchor}`"
+            RUNTIME_02_OUTPUT_RECORDS.contains(required_plan_anchor),
+            "Runtime 02 output records must document root-surface guard anchor `{required_plan_anchor}`"
         );
     }
 }
@@ -98,19 +87,8 @@ fn graphics_type_alias_debt_symbols_are_only_available_through_graphics_namespac
         "crate-visible graphics alias debt 0/0",
     ] {
         assert!(
-            RUNTIME_02_PLAN.contains(required_plan_anchor),
-            "Runtime 02 plan must document M3/M3.2 alias cutover anchor `{required_plan_anchor}`"
-        );
-    }
-
-    for required_index_anchor in [
-        "graphics_alias_block_removed_static_passed_cargo_pending",
-        "Runtime 02 root graphics alias block removal",
-        "crate-visible graphics alias debt 0/0",
-    ] {
-        assert!(
-            RUNTIME_INDEX.contains(required_index_anchor),
-            "runtime index must document M3/M3.2 alias cutover anchor `{required_index_anchor}`"
+            RUNTIME_02_OUTPUT_RECORDS.contains(required_plan_anchor),
+            "Runtime 02 output records must document M3/M3.2 alias cutover anchor `{required_plan_anchor}`"
         );
     }
 }

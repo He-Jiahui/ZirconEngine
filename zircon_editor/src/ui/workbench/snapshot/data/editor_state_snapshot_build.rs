@@ -26,7 +26,7 @@ impl EditorState {
         let (scene_entries, inspector) = self
             .world
             .try_with_world(|scene| {
-                let selected = scene.inspect_world(selected).focused_entity;
+                let selected = selected.filter(|entity| scene.contains_entity(*entity));
                 let inspector = selected.map(|id| InspectorSnapshot {
                     id,
                     name: self.name_field.clone(),

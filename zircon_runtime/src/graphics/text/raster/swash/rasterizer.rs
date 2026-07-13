@@ -37,13 +37,14 @@ impl SwashRasterizer {
             .builder(font)
             .size(request.px_size)
             .hint(request.hint);
-        if let Some(weight) = request.variation_weight {
-            if let Some(variation) = font.variations().find_by_tag(swash_weight_axis_tag()) {
-                scaler_builder = scaler_builder.variations(std::iter::once(SwashSetting {
-                    tag: swash_weight_axis_tag(),
-                    value: f32::from(weight).clamp(variation.min_value(), variation.max_value()),
+        if !request.variations.0.is_empty() {
+            scaler_builder =
+                scaler_builder.variations(request.variations.0.iter().map(|(tag, value)| {
+                    SwashSetting {
+                        tag: SwashTag::from_be_bytes(tag.to_be_bytes()),
+                        value: *value,
+                    }
                 }));
-            }
         }
         let mut scaler = scaler_builder.build();
 
@@ -90,10 +91,6 @@ impl SwashRasterizer {
             SwashRasterRequest::subpixel_outline(face_index, glyph_id, px_size, hint),
         )
     }
-}
-
-fn swash_weight_axis_tag() -> SwashTag {
-    SwashTag::from_be_bytes(*b"wght")
 }
 
 impl Default for SwashRasterizer {

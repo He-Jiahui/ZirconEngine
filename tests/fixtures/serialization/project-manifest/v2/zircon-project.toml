@@ -1,0 +1,7 @@
+name = "Shared Current Project"
+format_version = 2
+engine_version_req = ">=0.1.0, <0.2.0"
+default_scene = "res://world/start.scene.toml"
+asset_roots = ["game-assets", "shared-assets"]
+settings = "config/project-settings.toml"
+library_version = 5

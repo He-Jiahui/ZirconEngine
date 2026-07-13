@@ -55,7 +55,7 @@ related_code:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/workbench.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
@@ -75,7 +75,6 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership_markdown.py
-  - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -90,6 +89,8 @@ doc_type: milestone-detail
 ---
 
 # Large File Ownership M1 Gate
+
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../plans/zircon_runtime/frameworks/development-conventions.md)；本文保留大文件 owner gate 的细节论证与执行上下文，不再作为并列规则源。
 
 ## Purpose
 
@@ -123,7 +124,7 @@ The classification means the current production Rust workspace has no files at o
 
 The 2026-06-21 renderer split keeps the ownership gate as data first: `large_file_ownership.py` owns owner classification, hotspot summary, migration-debt, and risk data at 223 lines, while `large_file_ownership_markdown.py` owns hotspot, ownership-class, and ownership-gate Markdown rendering at 73 lines. The current direct probe reports no production Rust files at or above the 1000-line threshold and therefore a `classified-and-clear` gate.
 
-The 2026-07-01 owner-budget sync records 0 current hotspots while preserving the historical migration trail below. The former single-file animation asset module was cut into the folder-backed `zircon_runtime/src/asset/assets/animation/{mod,binary,channel,clip,graph,reference,sequence,skeleton,state_machine}.rs` owner set, the former single-file scene asset module was cut into `zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs`, scene project I/O was split into `zircon_runtime/src/scene/world/project_io/{camera,physics,post_process,references,script,transform}.rs`, dynamic-session event routing was split into `zircon_runtime/src/dynamic_api/session/events.rs`, the script gameplay host was split into `zircon_runtime/src/script/vm/gameplay_host/{combat,components,input,lifecycle,navigation,script_bindings,transform,values}.rs`, artifact cache payload JSON/Mesh/TOML wire owners were split into `zircon_runtime/src/asset/artifact/cache_payload/{json_value,mesh,toml_value}.rs`, render product diagnostics were split into `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs`, virtual geometry debug snapshot DTOs were split into `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/{bvh_visualization,cpu_reference,cull_input,execution,node_and_cluster_cull,snapshot,sources}.rs`, and the navigation fallback runtime was split into `zircon_runtime/src/navigation/runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs`. The current gate fact is that `hotspot_count = 0`, `large_file_migration_debt_count = 0`, `classification_count = 0`, and `unclassified_hotspot_count = 0`; Runtime 07 M2 optimization work still needs its separate extract, ECS query, profiling, and FPS evidence before promotion.
+The 2026-07-01 owner-budget sync records 0 current hotspots while preserving the historical migration trail below. The former single-file animation asset module was cut into the folder-backed `zircon_runtime/src/core/framework/animation/asset/{mod,binary,channel,clip,graph,reference,sequence,skeleton,state_machine}.rs` owner set, the former single-file scene asset module was cut into `zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs`, scene project I/O was split into `zircon_runtime/src/scene/world/project_io/{camera,physics,post_process,references,script,transform}.rs`, dynamic-session event routing was split into `zircon_runtime/src/dynamic_api/session/events.rs`, the script gameplay host was split into `zircon_runtime/src/script/vm/gameplay_host/{combat,components,input,lifecycle,navigation,script_bindings,transform,values}.rs`, artifact cache payload JSON/Mesh/TOML wire owners were split into `zircon_runtime/src/asset/artifact/cache_payload/{json_value,mesh,toml_value}.rs`, render product diagnostics were split into `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs`, virtual geometry debug snapshot DTOs were split into `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/{bvh_visualization,cpu_reference,cull_input,execution,node_and_cluster_cull,snapshot,sources}.rs`, and the navigation fallback runtime was split into `zircon_runtime/src/navigation/runtime/{baked_mesh,world_scan,avoidance,state,math,tests}.rs`. The current gate fact is that `hotspot_count = 0`, `large_file_migration_debt_count = 0`, `classification_count = 0`, and `unclassified_hotspot_count = 0`; Runtime 07 M2 optimization work still needs its separate extract, ECS query, profiling, and FPS evidence before promotion.
 
 The 2026-06-24 Runtime 15 M4 render-stats product diagnostics test owner split keeps the production recorder owner set above intact and moves product diagnostics tests into `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests.rs` plus `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/{camera_targets,visibility_hzb_light,mesh_gpu_scene}.rs`. Status: `runtime_15_render_stats_product_diagnostics_tests_owner_split_static_passed_cargo_deferred_active_editor_lane`; guard: `runtime_15_render_stats_product_diagnostics_tests_are_child_owners`. This removes inline-test pressure from `product.rs` without changing product diagnostic paths, `RenderStats` projection, or the large-file ownership gate shape.
 

@@ -8,8 +8,6 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_folder_backed_status_is_current
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = format!(
         "{}\n{}\n{}",
         read_runtime_src(REVIEW_GUARD_ROWS),
@@ -39,7 +37,6 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_folder_backed_status_is_current
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(
@@ -94,7 +91,6 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_folder_backed_status_is_current
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(label, source, &source_status_anchors);

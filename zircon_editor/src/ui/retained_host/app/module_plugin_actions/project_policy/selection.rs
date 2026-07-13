@@ -5,7 +5,7 @@ pub(in crate::ui::retained_host::app::module_plugin_actions) fn current_native_a
     project_root: &std::path::Path,
     manifest: &ProjectManifest,
     plugin_id: &str,
-) -> Result<zircon_runtime::plugin::ProjectPluginSelection, String> {
+) -> Result<zircon_runtime::core::framework::project::ProjectPluginSelection, String> {
     editor_manager
         .complete_native_aware_project_plugin_manifest(project_root, manifest)
         .plugins

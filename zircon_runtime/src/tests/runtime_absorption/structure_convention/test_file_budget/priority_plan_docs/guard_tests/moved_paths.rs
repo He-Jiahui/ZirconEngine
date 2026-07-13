@@ -21,8 +21,7 @@ const MOVED_MIRROR_SLICE: &str =
 const MOVED_MIRROR_STATUS: &str =
     "runtime_15_priority_plan_docs_moved_mirror_full_inventory_sync_static_passed_cargo_deferred";
 const MOVED_MIRROR_GUARD: &str = "runtime_15_priority_plan_docs_moved_mirror_names_full_inventory";
-const MOVED_MIRROR_GUARD_PATH: &str =
-    "priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory";
+const MOVED_MIRROR_GUARD_PATH: &str = "priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory";
 
 #[test]
 fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
@@ -32,8 +31,6 @@ fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = priority_plan_doc_owner_row_source();
     let status_map = priority_plan_doc_status_map_source();
     let date_map = priority_plan_doc_date_map_source();
@@ -44,7 +41,6 @@ fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(
@@ -91,8 +87,6 @@ fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = priority_plan_doc_owner_row_source();
     let status_map = priority_plan_doc_status_map_source();
     let date_map = priority_plan_doc_date_map_source();
@@ -103,7 +97,6 @@ fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

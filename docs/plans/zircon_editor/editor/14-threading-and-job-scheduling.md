@@ -1,11 +1,17 @@
 ---
 related_code:
+  - zircon_editor/src/core/jobs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue
+  - zircon_editor/src/ui/retained_host/viewport
 reference_sources:
   - dev/bevy/crates/bevy_tasks/src/usages.rs
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs
@@ -13,7 +19,46 @@ reference_sources:
 plan_sources:
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
-status: planned
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
+implementation_files:
+  - zircon_editor/src/core/jobs/system/mod.rs
+  - zircon_editor/src/core/jobs/system/pending.rs
+  - zircon_editor/src/core/jobs/system/state.rs
+  - zircon_editor/src/core/jobs/test_support.rs
+  - zircon_editor/src/core/jobs/cancellation_token.rs
+  - zircon_editor/src/core/jobs/ticket.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support/output_capture.rs
+  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/ui/host/export_process_support/child_guard.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/updates.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
+  - zircon_editor/src/ui/retained_host/viewport/bind_jobs.rs
+  - zircon_editor/src/ui/retained_host/viewport/render_framework_resolve_job.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_drop.rs
+tests:
+  - zircon_editor/src/core/jobs/tests/scheduling_contract.rs
+  - zircon_editor/src/core/jobs/tests/pump_contract.rs
+  - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
+  - zircon_editor/src/ui/host/export_cargo_process.rs
+  - zircon_editor/src/ui/host/export_process_support/output_capture.rs
+  - zircon_editor/src/ui/host/export_process_support/process_tree.rs
+  - zircon_editor/src/ui/host/export_process_support/child_guard.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_job_tests.rs
+doc_type: implementation-plan
+status: in_progress
 ---
 
 # 14 多线程调度管理
@@ -47,7 +92,7 @@ JobScheduler::{ spawn(task), schedule(task) -> JobHandle,
 
 另有 `parallel_for`（数据并行）、`report/diagnostics`（任务观测）、`thread_assignment`（`TaskPoolThreadAssignmentPolicy` + `TaskPoolOptions`，:2-25——优先级映射的会签对象即此二型）、资产侧 `pipeline/worker_pool.rs` 专池（`request/completion_receiver` 通道，09 已核）。签名复核（2026-07-05）：`spawn/install/join` 在 `pool.rs:52-60`，`schedule/schedule_after` 在 `job_scheduler.rs:51-65`，`JobScheduler` 亦自带 `install/join`（:121-125）。
 
-**编辑器侧几乎无自管线程**（好于 v1 计划假设）：Grep `std::thread::spawn` 于 `zircon_editor/src` **仅 1 处命中**——`export_build/wizard/controller.rs:49`：
+**编辑器侧自管线程当前源码复核（2026-07-11）**：最初取证时 `std::thread::spawn` 仅命中 `export_build/wizard/controller.rs`；M2 开始前复核发现 wizard process stdout/stderr reader、retained build-export queue worker 与 `export_cargo_process.rs` pipe reader，共 4 个 `thread::spawn` owner。M2.2 零命中守卫评审又识别出 `retained_host/viewport/viewport_state.rs` 通过 `std::thread::Builder::spawn` 隐藏的第 5 个 owner。五处全部归 M2 散点收编，不再沿用“仅 1 处”或只扫描直接 spawn 的过期结论：
 
 ```rust
 // ExportWizardJobController (controller.rs:27-78)
@@ -59,7 +104,7 @@ pub struct ExportWizardJobController {
 // spawn() / handle() / request_cancel() / events() / finish() -> Result<Snapshot>
 ```
 
-——这是一套**手工实现的 job 协议**（取消信号/事件流/结果快照），形状正确但绕开了 runtime `JobScheduler`。
+——这些都是**手工实现的 job/reader 协议**（取消信号/事件流/结果快照/JoinHandle），形状正确但绕开了 runtime `JobScheduler`。M2 必须把可调度工作迁入 `EditorJobSystem`；子进程管道并发读取若仍需专用阻塞 reader，也必须由门面提交并以 typed ticket 收口，不保留裸 `thread::spawn`。
 
 **缺口**：编辑器无统一 job 门面（导出向导的取消/事件/快照协议是孤例，导入、缩略图、编译、registry 扫描各计划将各造一套）；无类别/互斥/优先级层（`JobScheduler` 有依赖无类别）；无主线程回流约定（UE GameThread 寻址的对应物）；无进度中心数据源；关停无收尾协议。
 
@@ -71,7 +116,7 @@ pub struct ExportWizardJobController {
 pub struct EditorJobSpec {
     pub label: String,
     pub category: JobCategory,        // Import/Compile/Thumbnail/Export/Index/Play/Misc
-    pub priority: JobPriority,        // Interactive/Normal/Background（映射 thread_assignment）
+    pub priority: JobPriority,        // Interactive/Normal/Background（Editor 准入顺序）
     pub mutex_group: Option<MutexGroup>,   // 如 script_artifacts（13）、同 path 导入（09）
     pub cancel: CancellationToken,    // ExportWizard 的 Arc<AtomicBool> 协议泛化
     pub after: Vec<JobId>,            // 直通 JobScheduler::schedule_after 既有能力
@@ -86,7 +131,7 @@ impl EditorJobSystem {
 ```
 
 2. **主线程回流约定**（UE 显式寻址直译）：job 完成/失败/进度一律折算 `EditorMessagePayload::Job(JobEvent)` 入 01 bus，主循环 drain 应用——`JobCtx` 不提供任何 UI/EditorContext 访问（类型层：job 闭包只捕获 `Send` 数据）；`JobTicket` 双态取结果：完成消息通知（推）或 `try_take()`（拉），一源两用。
-3. **类别配额与互斥**：类别→并发上限表（Thumbnail≤2、Import≤worker_pool 宽度、Export=1…，设置化 17）；`MutexGroup` 内串行（`schedule_after` 链式实现）；`Interactive` 优先级经 `thread_assignment` 既有策略映射，防后台风暴挤压帧循环（与 runtime/03 帧预算口径对齐）。
+3. **类别配额与互斥**：类别→并发上限表（Thumbnail≤2、Import≤worker_pool 宽度、Export=1…，设置化 17）；`MutexGroup` 内串行（`schedule_after` 链式实现）；`Interactive/Normal/Background` 是 Editor 准入队列的逻辑优先级，满额类别释放许可后按该顺序选择下一任务，防后台队列持续插队。当前 runtime `thread_assignment` 只有线程数 min/max/percent，没有任务/线程优先级枚举，M1 不伪造不存在的直接映射；是否申请独立 Background pool 由 M3 压测与 runtime/03 会签决定。
 4. **散点收编**：`ExportWizardJobController` 迁为 `EditorJobSystem` 首个客户（其取消/事件/快照协议即门面协议的验证原型，迁移后删除手工线程）；09 导入、10 registry 扫描、13 编译、缩略图、04 Play 子进程监视全部经门面（Play 监视为 `JobCategory::Play` 的长驻 job）。
 5. **进度中心与收尾**：活跃 job 数据源 `{label, category, progress: Option<(u32,String)>, cancellable}`（状态栏/任务面板消费）；关停协议：`shutdown(deadline)` → 停收新 job → 广播取消 → 等待至 deadline → 记录未竟 job 清单（17 崩溃恢复衔接）。
 
@@ -101,11 +146,14 @@ impl EditorJobSystem {
 ```
 zircon_editor/src/core/jobs/
   mod.rs
-  system.rs        # EditorJobSystem：submit/配额/互斥/关停
-  spec.rs          # EditorJobSpec/JobCategory/JobPriority/CancellationToken
+  system/          # EditorJobSystem：submit/准入状态/待执行任务
+  spec.rs          # EditorJobSpec
+  category.rs      # JobCategory/JobPriority
+  cancellation_token.rs
   ticket.rs        # JobTicket 推拉双态
   pump.rs          # bus 回流泵（JobEvent 折算）
-  progress.rs      # 进度中心数据源
+  event.rs         # 可序列化 JobEvent 消息族
+  progress.rs      # M3 进度中心数据源
 ```
 
 `EditorContext`（01）持 `jobs: EditorJobSystem` 服务位。
@@ -118,7 +166,7 @@ zircon_editor/src/core/jobs/
 | after 依赖 | `schedule_after(dependencies, task)` | 直通（既有能力，零新建） |
 | MutexGroup | 同上 | 组内前 job 的 handle 作后 job 依赖（链式） |
 | 类别配额 | 无 | 门面层许可计数（信号量语义），满则排队 |
-| 优先级 | `thread_assignment` 策略 | descriptor 映射，会签确认现策略枚举 |
+| 优先级 | runtime 当前无任务优先级；`thread_assignment` 仅分配线程数 | Editor 类别准入队列按 Interactive→Normal→Background 选取；不宣称 OS/worker priority |
 | 取消 | 无内核支持 | `CancellationToken`（AtomicBool）+ job 内检查点协作式取消 |
 
 ### 深度测试
@@ -129,14 +177,14 @@ zircon_editor/src/core/jobs/
 
 ### M1 门面与回流泵
 
-- 切片 1.1：`core/jobs/` 五文件；submit/配额/互斥/after 映射 `JobScheduler`；`CancellationToken` 协议。
+- 切片 1.1：`core/jobs/` 文件夹模块；submit/配额/互斥/after 映射 `JobScheduler`；`CancellationToken` 协议。
 - 切片 1.2：`pump.rs` 回流泵接 01 bus（`JobEvent` 消息族）；`JobTicket` 推拉双态；Send 约束的类型层验证（编译失败测试：trybuild 或 doc-test 断言非 Send 捕获不过编译）。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（夹具矩阵全绿）+ `cargo test -p zircon_runtime --lib --locked`（tasks 内核消费不回归）。更新 `docs/zircon_editor/core/jobs.md`。
 
 ### M2 散点收编
 
 - 切片 2.1：`ExportWizardJobController` 迁门面（协议对齐：`ExportWizardJobEvent`→进度序列、`request_cancel`→token、`finish`→ticket），删除 `controller.rs:49` 手工 spawn；导出既有测试迁移。
-- 切片 2.2：`std::thread::spawn` 守卫测试（zircon_editor 全 crate Grep 断言零命中，白名单空——当前仅 1 处即将删除，守卫防复发）。
+- 切片 2.2：迁移 M2 当前源码复核发现的其余四类线程 owner（wizard/Cargo pipe readers、retained export queue worker、viewport render-framework resolver），随后落裸线程守卫测试（zircon_editor 全 crate 的 direct/Builder/import alias 零命中、白名单空，守卫防复发）。
 - 测试阶段：导出向导既有流程测试全过 + 守卫测试落地；手验导出向导取消/进度 UI 无回归。
 
 ### M3 进度中心与收尾协议
@@ -150,4 +198,19 @@ zircon_editor/src/core/jobs/
 
 - 与 runtime 帧调度共享 `TaskPool` 的干扰：若压测显示后台类别侵蚀帧预算，为 Background 优先级申请独立 `TaskPoolDescriptor{ kind }` 池（pools.rs 多池机制既有，属配置非内核改动）——证据驱动，决策记状态节。
 - 协作式取消对不可中断步骤（外部进程等待、单次大文件读）的语义：取消=尽力 + 结果丢弃 + job 标记 `CancelledLate`，契约文档明示。
-- `thread_assignment` 现策略枚举与三级优先级的映射需 runtime tasks owner 会签（M1 前置确认项）。
+- 2026-07-11 前置复核确认 `TaskPoolThreadAssignmentPolicy` 只有 `min_threads/max_threads/percent`，不存在三级优先级映射；M1 采用编辑器准入顺序。若 M3 压测证明不足，按上一条风险向 runtime/03 提案，不在 Editor 复制线程池或伪造优先级。
+
+## 产出记录与时间
+
+请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+当前状态：M1 局部门禁已通过；M2 线程 owner 硬切、guard 范围和 Editor scheduler 所有权修复已实现；M3.1 唯一进度事实源与 retained UI 只读入口、M3.2 关停 deadline/未竟清单、M3.3 1000 个后台缩略图任务基线夹具均已完成，M3 受管 Windows 局部门禁 36/36 通过，风暴精确命令连续两次各 1/1 通过且 release wall-clock 均值相对偏差 6.607579%。最新 full harness 的 5547-thread 最低根因已进一步证实为 Runtime02 service registry 与 `EditorUiHost.core` 的强 `CoreHandle` 自拥有环；Runtime11 的三池 + asset worker 双预算改为等待生命周期环修复后的独立复测项。本计划不以 test-only 小池、共享业务 Runtime 或分区替代全量门。
+
+- 产出归档：[2026-07-12-thread-ownership-and-resource-gates.md](14/2026-07-12-thread-ownership-and-resource-gates.md)
+- fixed 已修复：[editor-full-gate-thread-exhaustion](08/fixed-2026-07-14-editor-full-gate-thread-exhaustion.md)
+- 最低共享层交接（`open / Runtime11 任务资源与 asset worker 预算`）：[editor-full-harness-runtime-thread-budget](../../zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)
+- fixed 已修复：[service-corehandle-retention-cycle](14/fixed-2026-07-14-service-corehandle-retention-cycle.md)
+- fixed 已修复：[componentized-workspace-test-export](14/fixed-2026-07-12-componentized-workspace-test-export.md)
+- fixed 已修复：[component-registry-typed-contract-test](14/fixed-2026-07-12-component-registry-typed-contract-test.md)
+- fixed 已修复：[export-build-string-error-boundary](14/fixed-2026-07-12-export-build-string-error-boundary.md)
+- fixed 已修复：[animation-state-machine-infallible-conversion](14/fixed-2026-07-11-animation-state-machine-infallible-conversion.md)

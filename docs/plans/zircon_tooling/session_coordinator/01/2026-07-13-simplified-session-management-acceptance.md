@@ -5,6 +5,9 @@
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | M6 | 简化 Session 管理可用化 | `completed` | 2026-07-13 | 用户明确将范围收敛为“简单管理 Session”，不再要求复杂工程门禁。生产 daemon 已滚动到 PID `32712` / instance `fec522a1f0fc4e2a9e13c0744221fffe`；网页、托盘、Hook 与持久日志均已启用。 |
+| M6 | 本机控制中心固定端口与免令牌访问 | `completed` | 2026-07-13 | 服务改为固定监听 `127.0.0.1:65189`，本机 HTTP 控制请求不再校验 bearer token；`test_default_config_uses_stable_local_control_port`、`test_local_health_and_session_commands_accept_requests_without_token` 与 `test_direct_browser_session_query_accepts_no_bearer_or_cookie` 已通过。 |
+| M6 | Cargo 实时基线与历史隔离 | `completed` | 2026-07-13 | 控制快照为每个磁盘现存 Cargo 目录仅投影最新记录；实时面板只使用该投影。历史删除/失败记录不再计入 `可复用池`、`用后即删`、`待清理`、`清理失败`，并由 `test_validation_lifecycle_summary_counts_only_existing_latest_targets` 覆盖。 |
+| M6 | Failure Priority Gate 技能收敛 | `completed` | 2026-07-14 | `cross-session-coordination`、`handle-plan-failure-handoffs`、`continuous-milestone-execution` 与里程碑策略统一规定：修复计划发现适用 failure 后必须进入 `resolving_failure`，在 `failure return` 前不得启动普通切片；来源计划仅可继续无依赖切片。三份修改技能已通过 `quick_validate.py`。 |
 
 ## 最终可用范围
 

@@ -720,7 +720,7 @@ pub(super) fn wait_for_dirty_bake(
 }
 
 fn tile_signature(
-    asset: &zircon_runtime::asset::NavMeshAsset,
+    asset: &zircon_runtime::core::framework::navigation::NavMeshAsset,
     tile_id: u32,
 ) -> Vec<([[u32; 3]; 3], u8)> {
     let mut signature = asset

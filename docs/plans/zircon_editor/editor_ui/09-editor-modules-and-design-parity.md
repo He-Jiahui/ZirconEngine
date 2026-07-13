@@ -10,7 +10,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
   - zircon_editor/src/ui/asset_editor/replay_workspace.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/assets/ui/editor/components/workbench/modules/core
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
@@ -54,7 +54,7 @@ status: planned
 | view registry | `zircon_editor/src/ui/workbench/view/` | view_descriptor(+builder)、view_registry(+instance mutation)、dock_policy、pane_template_spec（08 已核实） |
 | core module `.zui` workspace | `assets/ui/editor/components/workbench/modules/core/` | index（module_workspace、additional_module_workspaces）、assets（assets_workspace）、ui（hud_workspace）、gameplay（ability/effect/tags）、rendering（material/render/vfx）、ai——共 11 个 |
 | 批次 1 面板表面 | `assets/.../workbench/shell/` | scene_tree_panel、inspector_panel、viewport_panel（08 区域承载） |
-| pane 数据转换 | `zircon_editor/src/ui/retained_host/ui/pane_data_conversion.rs` | hierarchy/inspector/console/asset browser 的基础数据投影 |
+| pane 数据转换 | `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs` | hierarchy/inspector/console/asset browser 的基础数据投影 |
 
 ### 2.2 真实缺口
 

@@ -1,38 +1,37 @@
 ---
 related_code:
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_framework/src/render/camera.rs
-  - zircon_framework/src/render/frame_extract.rs
-  - zircon_framework/src/render/overlay.rs
-  - zircon_framework/src/render/scene_extract.rs
-  - zircon_scene/src/world/render.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/overlay.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/scene/world/render.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_graphics/src/scene/mod.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - zircon_graphics/src/tests/scene_overlay.rs
-  - zircon_scene/tests/render_frame_extract.rs
-  - zircon_scene/tests/viewport_packet.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/shaders/icon.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/scene_overlay.rs
+  - zircon_runtime/src/scene/tests
+  - zircon_runtime/src/scene/tests
   - zircon_editor/build.rs
-  - zircon_editor/src/builtin_assets.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -45,47 +44,46 @@ related_code:
   - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/ui/workbench/fixture/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/editing/viewport.rs
 implementation_files:
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_framework/src/render/camera.rs
-  - zircon_framework/src/render/frame_extract.rs
-  - zircon_framework/src/render/overlay.rs
-  - zircon_framework/src/render/scene_extract.rs
-  - zircon_scene/src/world/render.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/overlay.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/scene/world/render.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_graphics/src/scene/mod.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/shaders/icon.wgsl
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/tests/scene_overlay.rs
-  - zircon_scene/tests/render_frame_extract.rs
-  - zircon_scene/tests/viewport_packet.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/shaders/icon.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/tests/scene_overlay.rs
+  - zircon_runtime/src/scene/tests
+  - zircon_runtime/src/scene/tests
   - zircon_editor/build.rs
-  - zircon_editor/src/builtin_assets.rs
   - zircon_editor/src/ui/binding/mod.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -98,23 +96,23 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
-  - zircon_editor/src/core/editor_event/runtime.rs
+  - zircon_editor/src/core/editor_event/mod.rs
   - zircon_editor/src/ui/workbench/fixture/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 plan_sources:
   - user: 2026-04-15 Scene Viewport Gizmos/Handle/Overlay 规范化方案
   - user: 2026-04-15 Section 1-4 最终规格与 proposed_plan 收束
   - user: 2026-04-15 PLEASE IMPLEMENT THIS PLAN
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_scene/tests/viewport_packet.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - zircon_graphics/src/tests/scene_overlay.rs
+  - zircon_runtime/src/scene/tests
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/scene_overlay.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
@@ -157,30 +155,29 @@ doc_type: module-detail
 
 ## Related Files
 
-- `zircon_scene/src/components/mod.rs`
-- `zircon_framework/src/render/camera.rs`
-- `zircon_scene/src/world/render.rs`
+- `zircon_runtime/src/scene/components/mod.rs`
+- `zircon_runtime/src/core/framework/render/camera.rs`
+- `zircon_runtime/src/scene/world/render.rs`
 - `zircon_editor/src/scene/viewport/render_packet.rs`
 - `zircon_editor/src/scene/viewport/edit_mode_projection/build.rs`
-- `zircon_graphics/src/scene/resources/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
-- `zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
+- `zircon_runtime/src/graphics/scene/resources/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/passes/*.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/icons/*.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/shaders/*.wgsl`
-- `zircon_graphics/src/scene/scene_renderer/primitives/mod.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs`
 - `zircon_editor/build.rs`
-- `zircon_editor/src/builtin_assets.rs`
 - `zircon_editor/src/ui/binding/mod.rs`
-- `zircon_editor/src/core/editing/state/mod.rs`
+- `zircon_editor/src/core/editing/intent.rs`
 - `zircon_editor/src/scene/viewport/controller/mod.rs`
 - `zircon_editor/src/scene/viewport/handles/mod.rs`
 - `zircon_editor/src/scene/viewport/pointer/mod.rs`
 - `zircon_editor/src/scene/viewport/projection.rs`
 - `zircon_editor/src/ui/binding_dispatch/mod.rs`
-- `zircon_editor/src/core/editor_event/runtime.rs`
+- `zircon_editor/src/core/editor_event/mod.rs`
 - `zircon_editor/src/ui/workbench/reflection/mod.rs`
 - `zircon_editor/src/ui/retained_host/viewport/mod.rs`
 
@@ -208,7 +205,7 @@ doc_type: module-detail
 
 同一轮继续推进到 graphics 侧之后，`DisplayMode`、`ProjectionMode`、`ViewportCameraSnapshot`、`RenderFrameExtract`、`RenderSceneSnapshot`、`ViewportIconId`、`OverlayBillboardIcon`、`OverlayLineSegment`、`OverlayWireShape`、`HandleElementExtract` 等剩余 render/overlay DTO 也已经全部由 `zircon_framework::render` 直接提供；`zircon_graphics` 生产代码里的 scene 语义入口也已切到 `zircon_framework::scene`，`zircon_scene` 在 graphics crate 内只剩 tests fixture 依赖。
 
-继续收尾到 `zircon_scene` 自身之后，`SceneGizmoKind`、`OverlayWireShape`、`RenderFrameExtract`、`RenderWorldSnapshotHandle` 这批 crate-local tests 先前还在通过 `zircon_scene` 根级入口取值的 render 类型也已经切到 `zircon_framework::render`；`zircon_scene/src/lib.rs` 不再保留这组 framework-owned render re-export。
+继续收尾到 `zircon_scene` 自身之后，`SceneGizmoKind`、`OverlayWireShape`、`RenderFrameExtract`、`RenderWorldSnapshotHandle` 这批 crate-local tests 先前还在通过 `zircon_scene` 根级入口取值的 render 类型也已经切到 `zircon_framework::render`；`zircon_runtime/src/scene/mod.rs` 不再保留这组 framework-owned render re-export。
 
 `ViewportCommand` 不再只有 pointer 输入；toolbar、右上角方向、显示切换、snap、preview、Gizmos 开关都走同一套 typed payload。
 
@@ -385,8 +382,7 @@ Scene 视图里的 orbit/pan/zoom、orthographic size、方向对齐都属于 ed
 
 viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
-- `zircon_editor/build.rs` 生成 `viewport_gizmo_icon_manifest.rs`
-- `zircon_editor/src/builtin_assets.rs` 把 `ViewportIconId -> &'static [u8]` 固化成 typed source
+- `zircon_editor/build.rs` 生成 `viewport_gizmo_icon_manifest.rs`，并通过生成的 `viewport_gizmo_icon_bytes(...)` 把 `ViewportIconId -> &'static [u8]` 固化成 typed source；旧 `src/builtin_assets.rs` 已删除
 - `RetainedViewportController` 通过 resolved render framework 消费 editor viewport extract，scene gizmo icon identity 继续由 `ViewportIconId` 随 packet 交给 runtime graphics
 - `zircon_runtime::graphics` 的 `SceneGizmoPass` 通过 crate-private `ViewportIconSource` + `ViewportIconAtlas` 懒加载纹理 icon
 
@@ -483,18 +479,18 @@ Scene edit-mode hierarchy and stats projection reads `World::node_records()` so 
 
 ### Scene
 
-- `zircon_scene/tests/viewport_packet.rs`
+- `zircon_runtime/src/scene/tests`
   - renderable selection highlight
   - camera / directional light scene gizmo extraction
   - grid / preview / gizmo visibility packet mapping
   - 当前已切成 runtime-owned 断言：`cargo test -p zircon_scene --test viewport_packet --locked --target-dir target/codex-shared-b` 通过，并固定 runtime world 不再生成 selection / grid / scene gizmo overlay，只保留基础 preview / display packet
-- `zircon_scene/tests/render_frame_extract.rs`
+- `zircon_runtime/src/scene/tests`
   - 已改为直接从 `zircon_framework::render` 导入 `RenderFrameExtract` / `RenderWorldSnapshotHandle`
   - `cargo test -p zircon_scene --test render_frame_extract --locked --target-dir target/codex-shared-b` 通过
 
 ### Graphics
 
-- `zircon_graphics/src/tests/project_render.rs`
+- `zircon_runtime/src/graphics/tests/project_render.rs`
   - scene + gizmo overlay 出图
   - shader pipeline color 输出
   - `WireOnly` 抑制 shaded fill
@@ -502,7 +498,7 @@ Scene edit-mode hierarchy and stats projection reads `World::node_records()` so 
   - 当前 graphics import ownership cutover 编译通过
 - `cargo test -p zircon_graphics --lib project_render --locked --target-dir target/codex-shared-b`
   - 当前 project render baseline 在直接消费 `zircon_framework::render` 后仍保持 7 个断言通过
-- `zircon_graphics/src/tests/scene_overlay.rs`
+- `zircon_runtime/src/graphics/tests/scene_overlay.rs`
   - `ViewportOverlayRenderer` pass 顺序固定为规格要求的 7 段
 
 ### Editor UI / Editor Runtime

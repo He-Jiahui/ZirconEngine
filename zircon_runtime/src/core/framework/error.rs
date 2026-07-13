@@ -67,12 +67,26 @@ pub enum CoreError {
     ModuleDependencyCycle { path: Vec<String> },
     #[error("module ready timeout for {module} after {budget:?}")]
     ModuleReadyTimeout { module: String, budget: Duration },
+    #[error("module activation failed: {activation}; cleanup also failed: {cleanup}")]
+    ModuleActivationRollback {
+        activation: Box<CoreError>,
+        cleanup: Box<CoreError>,
+    },
+    #[error(
+        "module batch activation failed: {activation}; cleanup failures: {cleanup_failures:?}"
+    )]
+    ModuleBatchActivationRollback {
+        activation: Box<CoreError>,
+        cleanup_failures: Vec<(String, CoreError)>,
+    },
     #[error("service initialization failed for {0}: {1}")]
     Initialization(String, String),
+    #[error("runtime is no longer available")]
+    RuntimeUnavailable,
     #[error("service unload blocked for {0}; still referenced by {1:?}")]
     UnloadBlocked(String, Vec<String>),
-    #[error("plugin bridge lifecycle blocked: {0}")]
-    PluginBridgeLifecycleBlocked(String),
+    #[error("runtime module lifecycle observer blocked deactivation: {0}")]
+    RuntimeModuleLifecycleBlocked(String),
     #[error("service downcast failed for {0}")]
     ServiceDowncast(String),
     #[error("missing resource record for locator {locator}")]
@@ -83,4 +97,30 @@ pub enum CoreError {
     MissingConfig(String),
     #[error("config parse failed for {0}: {1}")]
     ConfigParse(String, String),
+}
+
+impl CoreError {
+    pub(crate) fn module_activation_failed(activation: Self, cleanup: Option<Self>) -> Self {
+        match cleanup {
+            Some(cleanup) => Self::ModuleActivationRollback {
+                activation: Box::new(activation),
+                cleanup: Box::new(cleanup),
+            },
+            None => activation,
+        }
+    }
+
+    pub(crate) fn module_batch_activation_failed(
+        activation: Self,
+        cleanup_failures: Vec<(String, Self)>,
+    ) -> Self {
+        if cleanup_failures.is_empty() {
+            activation
+        } else {
+            Self::ModuleBatchActivationRollback {
+                activation: Box::new(activation),
+                cleanup_failures,
+            }
+        }
+    }
 }

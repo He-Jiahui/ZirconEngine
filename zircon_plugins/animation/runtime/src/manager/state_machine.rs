@@ -1,4 +1,6 @@
-use zircon_runtime::asset::{AnimationConditionOperatorAsset, AnimationStateMachineAsset};
+use zircon_runtime::core::framework::animation::{
+    AnimationConditionOperatorAsset, AnimationStateMachineAsset,
+};
 use zircon_runtime::core::framework::animation::{
     AnimationParameterMap, AnimationParameterValue, AnimationStateMachineEvaluation,
 };
@@ -56,7 +58,7 @@ pub(super) fn evaluate_state_machine(
             .states
             .iter()
             .find(|state| state.name == state_name)
-            .map(|state| state.graph.clone())
+            .and_then(|state| state.kind.graph_reference().cloned())
     });
 
     AnimationStateMachineEvaluation {
@@ -70,7 +72,7 @@ pub(super) fn evaluate_state_machine(
 
 fn condition_matches(
     parameters: &AnimationParameterMap,
-    condition: &zircon_runtime::asset::AnimationTransitionConditionAsset,
+    condition: &zircon_runtime::core::framework::animation::AnimationTransitionConditionAsset,
 ) -> bool {
     let Some(current) = parameters.get(&condition.parameter) else {
         return false;

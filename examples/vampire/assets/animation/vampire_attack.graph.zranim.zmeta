@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "3c596238-7766-4599-a25e-357f240ec161"
 url = "res://animation/vampire_attack.graph.zranim"
 asset_kind = "AnimationGraph"
@@ -8,7 +8,7 @@ artifact_locator = "lib://animation/graphs/9139265c-2084-e44c-20fd-ea04e5469ad5.
 importer_id = "zircon.builtin.animation.zranim.graph"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781063478869
-source_hash = "917905ec4d3899d0"
+source_digest = "917905ec4d3899d0"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

@@ -1,191 +1,6 @@
 use super::*;
 
 #[test]
-fn operation_stack_moves_entries_across_undo_and_redo_operations() {
-    use crate::core::editor_operation::{
-        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
-        EditorOperationSource,
-    };
-
-    let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_stack_undo_redo");
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("scene.node.create_cube").unwrap(),
-            ),
-        )
-        .expect("create cube operation");
-    assert_eq!(runtime.runtime.operation_stack().undo_stack().len(), 1);
-    assert!(runtime.runtime.operation_stack().redo_stack().is_empty());
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("edit.history.undo").unwrap(),
-            ),
-        )
-        .expect("undo operation");
-    let stack_after_undo = runtime.runtime.operation_stack();
-    assert!(
-        stack_after_undo.undo_stack().is_empty(),
-        "undo command should consume the previous undoable operation instead of adding itself"
-    );
-    assert_eq!(stack_after_undo.redo_stack().len(), 1);
-    assert_eq!(
-        stack_after_undo.redo_stack()[0].operation_id.as_str(),
-        "scene.node.create_cube"
-    );
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("edit.history.redo").unwrap(),
-            ),
-        )
-        .expect("redo operation");
-    let stack_after_redo = runtime.runtime.operation_stack();
-    assert_eq!(stack_after_redo.undo_stack().len(), 1);
-    assert!(stack_after_redo.redo_stack().is_empty());
-    assert_eq!(
-        stack_after_redo.undo_stack()[0].operation_id.as_str(),
-        "scene.node.create_cube"
-    );
-
-    let response = runtime
-        .runtime
-        .handle_operation_control_request(EditorOperationControlRequest::QueryOperationStack);
-    let value = response.value.as_ref().expect("stack value");
-    assert_eq!(
-        value["undo_stack"][0]["operation_id"].as_str(),
-        Some("scene.node.create_cube")
-    );
-    assert_eq!(value["redo_stack"].as_array().expect("redo stack").len(), 0);
-}
-
-#[test]
-fn operation_stack_merges_continuous_invocations_with_same_operation_group() {
-    use crate::core::editor_operation::{
-        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
-        EditorOperationSource,
-    };
-
-    let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_group_stack");
-    let operation_path = EditorOperationPath::parse("scene.node.create_cube").unwrap();
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::UiBinding,
-            EditorOperationInvocation::new(operation_path.clone())
-                .with_operation_group("Viewport.TransformDrag.42"),
-        )
-        .expect("first grouped operation");
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::UiBinding,
-            EditorOperationInvocation::new(operation_path)
-                .with_operation_group("Viewport.TransformDrag.42"),
-        )
-        .expect("second grouped operation");
-
-    assert_eq!(
-        runtime.runtime.journal().records().len(),
-        2,
-        "each grouped dispatch remains independently journaled"
-    );
-    let stack = runtime.runtime.operation_stack();
-    assert_eq!(
-        stack.undo_stack().len(),
-        1,
-        "continuous operations in the same group collapse to one history entry"
-    );
-    assert_eq!(
-        stack.undo_stack()[0].operation_id.as_str(),
-        "scene.node.create_cube"
-    );
-    assert_eq!(
-        stack.undo_stack()[0].operation_group.as_deref(),
-        Some("Viewport.TransformDrag.42")
-    );
-    assert_eq!(
-        stack.undo_stack()[0].sequence,
-        2,
-        "merged stack entry points at the latest grouped dispatch"
-    );
-
-    let response = runtime
-        .runtime
-        .handle_operation_control_request(EditorOperationControlRequest::QueryOperationStack);
-    let value = response.value.as_ref().expect("stack value");
-    assert_eq!(
-        value["undo_stack"][0]["operation_group"].as_str(),
-        Some("Viewport.TransformDrag.42")
-    );
-}
-
-#[test]
-fn operation_stack_preserves_original_source_across_undo_and_redo() {
-    use crate::core::editor_operation::{
-        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
-    };
-
-    let _guard = env_lock().lock().unwrap();
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_stack_source");
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Cli,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("scene.node.create_cube").unwrap(),
-            ),
-        )
-        .expect("cli create cube operation");
-    assert_eq!(
-        runtime.runtime.operation_stack().undo_stack()[0].source,
-        EditorEventSource::Cli
-    );
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("edit.history.undo").unwrap(),
-            ),
-        )
-        .expect("undo operation");
-    assert_eq!(
-        runtime.runtime.operation_stack().redo_stack()[0].source,
-        EditorEventSource::Cli
-    );
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("edit.history.redo").unwrap(),
-            ),
-        )
-        .expect("redo operation");
-    assert_eq!(
-        runtime.runtime.operation_stack().undo_stack()[0].source,
-        EditorEventSource::Cli
-    );
-}
-
-#[test]
 fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity() {
     use std::path::Path;
     use std::sync::{Arc, Mutex};
@@ -253,7 +68,6 @@ fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity()
         runtime.runtime.editor_snapshot().session_mode,
         crate::ui::workbench::startup::EditorSessionMode::Project
     );
-    assert!(runtime.runtime.operation_stack().undo_stack().is_empty());
     assert_eq!(
         backend.calls.lock().unwrap().as_slice(),
         ["enter:true".to_string(), "exit".to_string()]
@@ -266,9 +80,12 @@ fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
     use std::sync::Arc;
 
     use crate::core::play::{EditorRuntimePlayModeBackend, EditorRuntimePlayModeBackendReport};
+    use zircon_runtime::core::framework::bridge::{
+        BridgeDiagnosticsSnapshot, BridgeInterfaceStatus, InterfaceSlot,
+    };
     use zircon_runtime::plugin::{
-        BridgeDiagnosticsMatrix, BridgeDiagnosticsSnapshot, BridgeInterfaceSnapshot,
-        BridgeInterfaceStatus, BridgeTableDiagnosticsSummary, InterfaceSlot, PluginModuleId,
+        BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeTableDiagnosticsSummary,
+        PluginModuleId,
     };
 
     struct BridgeMatrixBackend;
@@ -352,11 +169,7 @@ fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
 }
 
 #[test]
-fn inspector_field_apply_batch_records_undoable_operation_stack_entry() {
-    use crate::core::editor_operation::{
-        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
-    };
-
+fn inspector_field_apply_batch_records_operation_identity_without_synthetic_history() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_inspector_operation_stack");
 
@@ -387,26 +200,10 @@ fn inspector_field_apply_batch_records_undoable_operation_stack_entry() {
         "Operation Cube"
     );
     assert_eq!(
-        runtime.runtime.operation_stack().undo_stack()[0]
+        runtime.runtime.journal().records()[0]
             .operation_id
-            .as_str(),
-        "inspector.field.apply_batch"
-    );
-
-    runtime
-        .runtime
-        .invoke_operation(
-            EditorOperationSource::Menu,
-            EditorOperationInvocation::new(
-                EditorOperationPath::parse("edit.history.undo").unwrap(),
-            ),
-        )
-        .expect("undo inspector apply batch");
-    let stack_after_undo = runtime.runtime.operation_stack();
-    assert!(stack_after_undo.undo_stack().is_empty());
-    assert_eq!(
-        stack_after_undo.redo_stack()[0].operation_id.as_str(),
-        "inspector.field.apply_batch"
+            .as_deref(),
+        Some("inspector.field.apply_batch")
     );
 }
 

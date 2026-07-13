@@ -17,18 +17,24 @@ use super::super::sdf_char_run::sdf_scalar_is_invisible_format;
 use super::super::sdf_font_bake::{
     scale_sdf_metrics_for_display, SdfAtlasBake, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
 };
-use super::super::sdf_params::SdfBakeParams;
 use super::super::text_pixel_snap::{text_frame_device_origin, text_glyph_device_frame};
+use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable, PartialEq)]
 pub(super) struct ScreenSpaceUiSdfVertex {
-    pub(super) position: [f32; 2],
+    pub(super) position: [f32; 4],
     pub(super) uv: [f32; 2],
     pub(super) color: [f32; 4],
     pub(super) screen_px_range: f32,
+    pub(super) atlas_px_range: f32,
     pub(super) page_index: u32,
+    pub(super) decode_mode: u32,
+    pub(super) primitive_kind: u32,
 }
+
+pub(super) const SDF_TEXT_PRIMITIVE_GLYPH: u32 = 0;
+pub(super) const SDF_TEXT_PRIMITIVE_SOLID: u32 = 1;
 
 #[derive(Clone, Copy)]
 pub(super) struct SdfUvRect {
@@ -38,14 +44,22 @@ pub(super) struct SdfUvRect {
     pub(super) y1: f32,
 }
 
+pub(super) struct SdfVertexPlan {
+    pub(super) vertices: Vec<ScreenSpaceUiSdfVertex>,
+    pub(super) text_ranges: Vec<Range<u32>>,
+}
+
 impl ScreenSpaceUiSdfVertex {
     pub(super) fn layout() -> wgpu::VertexBufferLayout<'static> {
-        const ATTRIBUTES: [wgpu::VertexAttribute; 5] = wgpu::vertex_attr_array![
-            0 => Float32x2,
+        const ATTRIBUTES: [wgpu::VertexAttribute; 8] = wgpu::vertex_attr_array![
+            0 => Float32x4,
             1 => Float32x2,
             2 => Float32x4,
             3 => Float32,
-            4 => Uint32
+            4 => Float32,
+            5 => Uint32,
+            6 => Uint32,
+            7 => Uint32
         ];
 
         wgpu::VertexBufferLayout {
@@ -65,6 +79,27 @@ pub(super) fn build_sdf_vertices(
     asset_manager: &ProjectAssetManager,
     viewport_size: UVec2,
 ) -> Vec<ScreenSpaceUiSdfVertex> {
+    build_sdf_vertex_plan(
+        texts,
+        plan,
+        atlas_bake,
+        font_bake,
+        font_database,
+        asset_manager,
+        viewport_size,
+    )
+    .vertices
+}
+
+pub(super) fn build_sdf_vertex_plan(
+    texts: &[ScreenSpaceUiTextBatch],
+    plan: &SdfAtlasPlan,
+    atlas_bake: &SdfAtlasBake,
+    font_bake: &mut SdfFontBakeCache,
+    font_database: &mut FontDatabase,
+    asset_manager: &ProjectAssetManager,
+    viewport_size: UVec2,
+) -> SdfVertexPlan {
     let viewport = UiFrame::new(
         0.0,
         0.0,
@@ -72,33 +107,63 @@ pub(super) fn build_sdf_vertices(
         viewport_size.y.max(1) as f32,
     );
     let mut vertices = Vec::new();
-    for (text, run) in texts.iter().zip(plan.runs.iter()) {
-        let Some(mut clip) = text.frame.intersection(viewport) else {
-            continue;
-        };
-        if let Some(clip_frame) = text.clip_frame {
-            let Some(clipped) = clip.intersection(clip_frame) else {
-                continue;
+    let mut text_ranges = Vec::with_capacity(texts.len());
+    for (index, text) in texts.iter().enumerate() {
+        let start = vertices.len() as u32;
+        if let (Some(run), Some(text_frame_clip)) =
+            (plan.runs.get(index), text.frame.intersection(viewport))
+        {
+            let has_effect_extent = text.text_effects.outline.is_some()
+                || text.text_effects.shadow.is_some()
+                || text.text_effects.glow.is_some();
+            let clip = if has_effect_extent {
+                viewport
+            } else {
+                text_frame_clip
             };
-            clip = clipped;
+            let clip_visible = text
+                .clip_frame
+                .map_or(Some(clip), |clip_frame| clip.intersection(clip_frame));
+            if let Some(clipped) = clip_visible {
+                let glyphs = resolve_run_glyphs(
+                    text,
+                    run,
+                    plan,
+                    atlas_bake,
+                    font_bake,
+                    font_database,
+                    asset_manager,
+                );
+                if matches!(text.writing_mode, UiTextWritingMode::VerticalRl) {
+                    push_vertical_sdf_text_vertices(
+                        &mut vertices,
+                        text,
+                        glyphs,
+                        plan,
+                        clipped,
+                        viewport,
+                    );
+                } else {
+                    push_horizontal_sdf_text_vertices(
+                        &mut vertices,
+                        text,
+                        glyphs,
+                        plan,
+                        clipped,
+                        viewport,
+                    );
+                }
+            }
         }
-
-        let glyphs = resolve_run_glyphs(
-            text,
-            run,
-            plan,
-            atlas_bake,
-            font_bake,
-            font_database,
-            asset_manager,
-        );
-        if matches!(text.writing_mode, UiTextWritingMode::VerticalRl) {
-            push_vertical_sdf_text_vertices(&mut vertices, text, glyphs, plan, clip, viewport);
-        } else {
-            push_horizontal_sdf_text_vertices(&mut vertices, text, glyphs, plan, clip, viewport);
+        if let Some(transform) = text.clip_transform {
+            transform_sdf_vertices(&mut vertices[start as usize..], transform);
         }
+        text_ranges.push(start..vertices.len() as u32);
     }
-    vertices
+    SdfVertexPlan {
+        vertices,
+        text_ranges,
+    }
 }
 
 fn push_horizontal_sdf_text_vertices(
@@ -148,7 +213,9 @@ fn push_horizontal_sdf_text_vertices(
             atlas_uv_rect(slot.rect, plan.atlas_size, &glyph),
             text.color,
             glyph.screen_px_range,
+            glyph.atlas_px_range,
             slot.page_key.page_index,
+            slot.key.bake_params.mode,
             ShapedGlyphRotation::None,
         );
         cursor_x += advance;
@@ -230,7 +297,9 @@ fn push_vertical_sdf_text_vertices(
             atlas_uv_rect(slot.rect, plan.atlas_size, &glyph),
             text.color,
             glyph.screen_px_range,
+            glyph.atlas_px_range,
             slot.page_key.page_index,
+            slot.key.bake_params.mode,
             rotation,
         );
         cursor_y += advance;
@@ -269,7 +338,9 @@ fn push_vertical_shaped_sdf_text_vertices(
             atlas_uv_rect(slot.rect, plan.atlas_size, &glyph),
             text.color,
             glyph.screen_px_range,
+            glyph.atlas_px_range,
             slot.page_key.page_index,
+            slot.key.bake_params.mode,
             shaped.rotation,
         );
         cursor_y += advance;
@@ -332,6 +403,7 @@ pub(super) struct RunGlyph {
     pub(super) atlas_bitmap_height: u32,
     pub(super) visible: bool,
     pub(super) screen_px_range: f32,
+    pub(super) atlas_px_range: f32,
 }
 
 fn resolve_run_glyphs(
@@ -382,6 +454,7 @@ fn run_glyph_from_bake(
         atlas_bitmap_height: baked.metrics.bitmap_height,
         visible: baked.visible,
         screen_px_range: sdf_screen_px_range(display_px, bake_params),
+        atlas_px_range: bake_params.spread_px_f32(),
     }
 }
 
@@ -400,6 +473,7 @@ fn measured_run_glyph(
             atlas_bitmap_height: 0,
             visible: false,
             screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
+            atlas_px_range: SdfBakeParams::default().spread_px_f32(),
         };
     }
 
@@ -419,6 +493,7 @@ fn measured_run_glyph(
         atlas_bitmap_height: 0,
         visible: false,
         screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
+        atlas_px_range: SdfBakeParams::default().spread_px_f32(),
     }
 }
 
@@ -502,7 +577,9 @@ fn push_clipped_glyph_quad(
     uv: SdfUvRect,
     color: [f32; 4],
     screen_px_range: f32,
+    atlas_px_range: f32,
     page_index: u32,
+    mode: SdfMode,
     rotation: ShapedGlyphRotation,
 ) {
     let Some(clipped) = frame
@@ -526,48 +603,116 @@ fn push_clipped_glyph_quad(
 
     vertices.extend_from_slice(&[
         ScreenSpaceUiSdfVertex {
-            position: [x0, y0],
+            position: clip_position(x0, y0),
             uv: uv_top_left,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
         ScreenSpaceUiSdfVertex {
-            position: [x1, y0],
+            position: clip_position(x1, y0),
             uv: uv_top_right,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
         ScreenSpaceUiSdfVertex {
-            position: [x1, y1],
+            position: clip_position(x1, y1),
             uv: uv_bottom_right,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
         ScreenSpaceUiSdfVertex {
-            position: [x0, y0],
+            position: clip_position(x0, y0),
             uv: uv_top_left,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
         ScreenSpaceUiSdfVertex {
-            position: [x1, y1],
+            position: clip_position(x1, y1),
             uv: uv_bottom_right,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
         ScreenSpaceUiSdfVertex {
-            position: [x0, y1],
+            position: clip_position(x0, y1),
             uv: uv_bottom_left,
             color,
             screen_px_range,
+            atlas_px_range,
             page_index,
+            decode_mode: mode.shader_discriminant(),
+            primitive_kind: SDF_TEXT_PRIMITIVE_GLYPH,
         },
     ]);
+}
+
+pub(super) fn push_clipped_solid_quad(
+    vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
+    frame: UiFrame,
+    clip: UiFrame,
+    viewport: UiFrame,
+    color: [f32; 4],
+) {
+    let Some(clipped) = frame
+        .intersection(clip)
+        .and_then(|frame| frame.intersection(viewport))
+    else {
+        return;
+    };
+    let x0 = pixel_to_ndc_x(clipped.x, viewport.width);
+    let x1 = pixel_to_ndc_x(clipped.right(), viewport.width);
+    let y0 = pixel_to_ndc_y(clipped.y, viewport.height);
+    let y1 = pixel_to_ndc_y(clipped.bottom(), viewport.height);
+    let vertex = |position: [f32; 2]| ScreenSpaceUiSdfVertex {
+        position: clip_position(position[0], position[1]),
+        uv: [0.0, 0.0],
+        color,
+        screen_px_range: 1.0,
+        atlas_px_range: 1.0,
+        page_index: 0,
+        decode_mode: SdfMode::Sdf.shader_discriminant(),
+        primitive_kind: SDF_TEXT_PRIMITIVE_SOLID,
+    };
+    vertices.extend_from_slice(&[
+        vertex([x0, y0]),
+        vertex([x1, y0]),
+        vertex([x1, y1]),
+        vertex([x0, y0]),
+        vertex([x1, y1]),
+        vertex([x0, y1]),
+    ]);
+}
+
+pub(super) fn transform_sdf_vertices(
+    vertices: &mut [ScreenSpaceUiSdfVertex],
+    transform: super::super::render::text_projection::ScreenSpaceUiTextClipTransform,
+) {
+    for vertex in vertices {
+        vertex.position = transform.transform_clip_position(vertex.position);
+    }
+}
+
+fn clip_position(x: f32, y: f32) -> [f32; 4] {
+    [x, y, 0.0, 1.0]
 }
 
 pub(super) fn sdf_uv_at_destination(
@@ -593,3 +738,4 @@ pub(super) fn pixel_to_ndc_x(x: f32, width: f32) -> f32 {
 pub(super) fn pixel_to_ndc_y(y: f32, height: f32) -> f32 {
     1.0 - (y / height.max(1.0)) * 2.0
 }
+use std::ops::Range;

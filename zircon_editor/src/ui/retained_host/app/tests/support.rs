@@ -10,6 +10,7 @@ pub(super) use crate::core::editor_event::{
     LayoutCommand as EventLayoutCommand, MainPageId as EventMainPageId, MenuAction,
     ViewInstanceId as EventViewInstanceId,
 };
+pub(super) use crate::core::project::{RecentProjectEntry, RecentProjectValidation};
 pub(super) use crate::scene::viewport::{DisplayMode, ViewOrientation};
 pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
@@ -20,9 +21,7 @@ pub(super) use crate::ui::workbench::autolayout::ShellFrame;
 pub(super) use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId,
 };
-pub(super) use crate::ui::workbench::startup::{
-    EditorSessionMode, RecentProjectEntry, RecentProjectValidation,
-};
+pub(super) use crate::ui::workbench::startup::EditorSessionMode;
 pub(super) use crate::ui::workbench::state::EditorState;
 pub(super) use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 pub(super) use winit::event::{ElementState, KeyEvent};
@@ -209,14 +208,14 @@ impl ChildWindowHostHarness {
     }
 
     pub(super) fn stage_missing_recent_project(&self, path: &str, display_name: &str) {
-        self.host
-            .borrow()
-            .editor_manager
-            .update_recent_project(path, display_name)
-            .expect("recent project should be staged");
         let mut host = self.host.borrow_mut();
         host.startup_session.recent_projects = vec![RecentProjectEntry {
-            display_name: display_name.to_string(),
+            summary: zircon_runtime_interface::project::ProjectManifestSummary {
+                name: display_name.to_string(),
+                engine_version_req: None,
+                default_scene: "res://scenes/main.scene.toml".to_string(),
+                format_version: 2,
+            },
             path: path.to_string(),
             last_opened_unix_ms: 1,
             validation: RecentProjectValidation::Missing,

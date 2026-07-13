@@ -158,6 +158,27 @@ fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
             "Hybrid GI active probes: {}",
             stats.last_hybrid_gi_active_probe_count
         ));
+        if let Some(settings) = stats.last_hybrid_gi_resolved_settings {
+            items.push(format!(
+                "Hybrid GI effective: profile={}, mode={}, quality={}",
+                settings.profile.label(),
+                settings.mode.label(),
+                settings.quality.label()
+            ));
+            items.push(format!(
+                "Hybrid GI budgets: trace={}, cards={}, voxels={}",
+                settings.trace_budget, settings.card_budget, settings.voxel_budget
+            ));
+            items.push(format!(
+                "Hybrid GI fallback: {}",
+                settings
+                    .fallback_reason
+                    .map(|reason| reason.label())
+                    .unwrap_or("none")
+            ));
+        } else {
+            items.push("Hybrid GI effective: unavailable".to_string());
+        }
         items.push(format!(
             "Virtual Geometry visible clusters: {}",
             stats.last_virtual_geometry_visible_cluster_count
@@ -193,4 +214,49 @@ fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
         items.push(format!("Profiling over-budget frames: {over_budget}"));
     }
     items
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::core::diagnostics::{RuntimeDiagnosticsSnapshot, RuntimeRenderDiagnostics};
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
+        RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderStats,
+    };
+
+    use super::detail_items;
+
+    #[test]
+    fn hybrid_gi_details_show_effective_profile_budgets_and_structured_fallback() {
+        let diagnostics = RuntimeDiagnosticsSnapshot {
+            render: RuntimeRenderDiagnostics {
+                available: true,
+                stats: Some(RenderStats {
+                    last_hybrid_gi_active_probe_count: 4,
+                    last_hybrid_gi_resolved_settings: Some(RenderHybridGiResolvedSettings {
+                        mode: RenderHybridGiMode::DynamicOnly,
+                        profile: RenderHybridGiProfile::IndoorStatic,
+                        quality: RenderHybridGiQuality::High,
+                        trace_budget: 64,
+                        card_budget: 256,
+                        voxel_budget: 64,
+                        fallback_reason: Some(
+                            RenderHybridGiFallbackReason::BakedLightingUnavailable,
+                        ),
+                    }),
+                    ..RenderStats::default()
+                }),
+                ..RuntimeRenderDiagnostics::default()
+            },
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+
+        let items = detail_items(&diagnostics);
+        assert!(items.contains(
+            &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
+                .to_string()
+        ));
+        assert!(items.contains(&"Hybrid GI budgets: trace=64, cards=256, voxels=64".to_string()));
+        assert!(items.contains(&"Hybrid GI fallback: baked-lighting-unavailable".to_string()));
+    }
 }

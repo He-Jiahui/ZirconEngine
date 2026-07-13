@@ -1,4 +1,5 @@
-use crate::plugin::{PluginFeatureBundleManifest, ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::plugin::PluginFeatureBundleManifest;
 
 use super::super::super::feature_registration_report::project_selection_from_feature_manifest;
 use super::super::feature_definitions::FeatureDefinition;

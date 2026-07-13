@@ -8,13 +8,160 @@ use crate::asset::{
 };
 use crate::core::resource::ResourceState;
 use crate::plugin::PluginPackageManifest;
+use zircon_runtime_interface::project::RelPath;
+
+#[test]
+fn project_manager_open_registers_default_and_explicit_ordered_project_roots() {
+    let default_root = unique_temp_project_root("project_default_roots");
+    let default_paths = ProjectPaths::from_root(&default_root).unwrap();
+    ProjectManifest::new(
+        "DefaultRoots",
+        AssetUri::parse("res://data/project.json").unwrap(),
+        1,
+    )
+    .save(default_paths.manifest_path())
+    .unwrap();
+
+    let default_manager = ProjectManager::open(&default_root).unwrap();
+    assert_eq!(
+        default_manager.package_assets().project_roots(),
+        &[default_root.join("assets")]
+    );
+
+    let explicit_root = unique_temp_project_root("project_explicit_roots");
+    let explicit_paths = ProjectPaths::from_root(&explicit_root).unwrap();
+    let mut manifest = ProjectManifest::new(
+        "ExplicitRoots",
+        AssetUri::parse("res://data/project.json").unwrap(),
+        1,
+    );
+    manifest.asset_roots = vec![
+        RelPath::parse("game-assets").unwrap(),
+        RelPath::parse("shared-assets").unwrap(),
+    ];
+    manifest.save(explicit_paths.manifest_path()).unwrap();
+
+    let explicit_manager = ProjectManager::open(&explicit_root).unwrap();
+    assert_eq!(
+        explicit_manager.package_assets().project_roots(),
+        &[
+            explicit_root.join("game-assets"),
+            explicit_root.join("shared-assets")
+        ]
+    );
+
+    let _ = fs::remove_dir_all(default_root);
+    let _ = fs::remove_dir_all(explicit_root);
+}
+
+#[test]
+fn multiple_project_roots_scan_distinct_res_uris_and_reject_collisions() {
+    let root = unique_temp_project_root("project_multi_root_scan");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let mut manifest = ProjectManifest::new(
+        "MultiRoot",
+        AssetUri::parse("res://scenes/main.json").unwrap(),
+        1,
+    );
+    manifest.asset_roots = vec![
+        RelPath::parse("game-assets").unwrap(),
+        RelPath::parse("shared-assets").unwrap(),
+    ];
+    manifest.save(paths.manifest_path()).unwrap();
+    fs::create_dir_all(root.join("game-assets/scenes")).unwrap();
+    fs::create_dir_all(root.join("shared-assets/data")).unwrap();
+    fs::write(root.join("game-assets/scenes/main.json"), "{}").unwrap();
+    fs::write(root.join("shared-assets/data/shared.json"), "{}").unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    let records = manager.scan_and_import().unwrap();
+    assert!(records.iter().any(|record| {
+        record.primary_locator() == &AssetUri::parse("res://scenes/main.json").unwrap()
+    }));
+    assert!(records.iter().any(|record| {
+        record.primary_locator() == &AssetUri::parse("res://data/shared.json").unwrap()
+    }));
+    let shared_uri = AssetUri::parse("res://data/shared.json").unwrap();
+    assert_eq!(
+        manager.source_path_for_uri(&shared_uri).unwrap(),
+        root.join("shared-assets/data/shared.json")
+    );
+    let new_uri = AssetUri::parse("res://generated/new.json").unwrap();
+    assert!(matches!(
+        manager.source_path_for_uri(&new_uri),
+        Err(AssetImportError::MissingProjectAssetUri { .. })
+    ));
+    assert_eq!(
+        manager
+            .primary_project_source_path_for_uri(&new_uri)
+            .unwrap(),
+        root.join("game-assets/generated/new.json")
+    );
+
+    fs::create_dir_all(root.join("shared-assets/scenes")).unwrap();
+    fs::write(root.join("shared-assets/scenes/main.json"), "{}").unwrap();
+    let error = manager.scan_and_import().unwrap_err();
+    assert!(matches!(
+        error,
+        AssetImportError::DuplicateProjectAssetUri { uri, first, second }
+            if uri == AssetUri::parse("res://scenes/main.json").unwrap()
+                && first != second
+    ));
+    assert!(matches!(
+        manager.source_path_for_uri(&AssetUri::parse("res://scenes/main.json").unwrap()),
+        Err(AssetImportError::AmbiguousProjectAssetUri { paths, .. }) if paths.len() == 2
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_root_registration_rejects_a_canonical_symlink_escape() {
+    let root = unique_temp_project_root("project_root_symlink_escape");
+    let outside = unique_temp_project_root("project_root_symlink_outside");
+    fs::create_dir_all(&root).unwrap();
+    fs::create_dir_all(&outside).unwrap();
+    let linked = root.join("linked-assets");
+    if !create_directory_symlink(&outside, &linked) {
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(outside);
+        return;
+    }
+    let mut registry = crate::asset::project::PackageAssetRegistry::default();
+    let error = registry
+        .register_project_roots(&root, &[RelPath::parse("linked-assets").unwrap()])
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        AssetImportError::CanonicalProjectAssetRootEscape { .. }
+    ));
+    let _ = fs::remove_file(linked);
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(outside);
+}
+
+#[cfg(unix)]
+fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) -> bool {
+    std::os::unix::fs::symlink(target, link).is_ok()
+}
+
+#[cfg(windows)]
+fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) -> bool {
+    match std::os::windows::fs::symlink_dir(target, link) {
+        Ok(()) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+        Err(error) => panic!("create directory symlink fixture failed: {error}"),
+    }
+}
 
 #[test]
 fn project_manager_registers_direct_package_asset_root() {
     let root = unique_temp_project_root("project_manager_direct_package_root");
     let package_assets_root = unique_temp_project_root("direct_navigation_assets");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "DirectPackageSandbox",
         AssetUri::parse("res://data/project.json").unwrap(),
@@ -58,7 +205,9 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
     let root = unique_temp_project_root("project_manager_package_multi_asset");
     let package_root = unique_temp_project_root("package_multi_asset_root");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "PackageMultiSandbox",
         AssetUri::parse("res://data/project.json").unwrap(),
@@ -82,7 +231,11 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
 
     let mut manager = ProjectManager::open(&root).unwrap();
     manager
-        .register_package_manifest_asset_roots(&package_manifest, &package_root)
+        .register_package_asset_roots(
+            package_manifest.package_id(),
+            package_manifest.asset_roots_or_default(),
+            &package_root,
+        )
         .unwrap();
     manager
         .register_asset_importer(multi_asset_importer())
@@ -116,12 +269,16 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
     );
     assert_ne!(root_record.id(), texture_record.id());
     assert_eq!(
-        manager.asset_id_for_uri(&texture_uri),
-        Some(texture_record.id())
+        manager
+            .asset_registry()
+            .resolve_asset_id_by_path(&texture_uri),
+        Ok(texture_record.id())
     );
     assert_eq!(
-        manager.asset_id_for_reference(texture_entry.uuid, &texture_uri),
-        Some(texture_record.id())
+        manager
+            .asset_registry()
+            .resolve_asset_id_for_reference(texture_entry.uuid, &texture_uri),
+        Ok(texture_record.id())
     );
 
     match manager.load_artifact(&texture_uri).unwrap() {
@@ -144,7 +301,11 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
 
     let mut restarted = ProjectManager::open(&root).unwrap();
     restarted
-        .register_package_manifest_asset_roots(&package_manifest, &package_root)
+        .register_package_asset_roots(
+            package_manifest.package_id(),
+            package_manifest.asset_roots_or_default(),
+            &package_root,
+        )
         .unwrap();
     restarted.scan_and_import().unwrap();
 
@@ -154,8 +315,10 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
         .expect("restored package subasset record");
     assert_eq!(restored_texture.id(), texture_record.id());
     assert_eq!(
-        restarted.asset_id_for_reference(texture_entry.uuid, &texture_uri),
-        Some(texture_record.id())
+        restarted
+            .asset_registry()
+            .resolve_asset_id_for_reference(texture_entry.uuid, &texture_uri),
+        Ok(texture_record.id())
     );
 
     let _ = fs::remove_dir_all(root);
@@ -167,7 +330,9 @@ fn package_asset_registry_rejects_invalid_manifest_roots() {
     let root = unique_temp_project_root("project_manager_invalid_package_roots");
     let package_root = unique_temp_project_root("invalid_package_root");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "InvalidPackageRootSandbox",
         AssetUri::parse("res://data/project.json").unwrap(),
@@ -177,21 +342,19 @@ fn package_asset_registry_rejects_invalid_manifest_roots() {
     .unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
-    let parent_root = PluginPackageManifest::new("navigation", "Navigation")
-        .with_package_identity("com", "zircon", "navigation")
-        .with_asset_root("../outside");
     let parent_error = manager
-        .register_package_manifest_asset_roots(&parent_root, &package_root)
+        .register_package_asset_roots("com.zircon.navigation", ["../outside"], &package_root)
         .expect_err("parent-relative package roots must be rejected");
     assert!(parent_error
         .to_string()
         .contains("must be relative and contained by the package root"));
 
-    let multi_root = PluginPackageManifest::new("navigation", "Navigation")
-        .with_package_identity("com", "zircon", "navigation")
-        .with_asset_roots(["assets", "more_assets"]);
     let multi_error = manager
-        .register_package_manifest_asset_roots(&multi_root, &package_root)
+        .register_package_asset_roots(
+            "com.zircon.navigation",
+            ["assets", "more_assets"],
+            &package_root,
+        )
         .expect_err("ambiguous package roots must be rejected");
     assert!(multi_error
         .to_string()

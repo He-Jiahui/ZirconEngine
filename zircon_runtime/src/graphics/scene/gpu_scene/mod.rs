@@ -7,6 +7,7 @@ mod prev_morph_weights;
 mod prev_skinned_palette;
 mod prev_skinned_source;
 mod prev_transform;
+mod skinned_palette_buffer_slots;
 mod update_queue;
 mod upload;
 mod virtual_geometry;

@@ -1,4 +1,5 @@
-use crate::plugin::{PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry};
+use crate::core::framework::project::ProjectPluginSelection;
+use crate::plugin::{PluginPackageManifest, RuntimeExtensionRegistry};
 
 mod native;
 mod native_package_projection;

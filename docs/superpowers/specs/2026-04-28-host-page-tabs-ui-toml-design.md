@@ -3,38 +3,30 @@ related_code:
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Zircon Editor Workbench Shell VNext.md
   - .codex/plans/全系统重构方案.md
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/ui/template_runtime/slint_adapter.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/ui/workbench/host_components.slint
-  - zircon_editor/ui/workbench/host_page_chrome.slint
-  - zircon_editor/ui/workbench/host_document_dock_surface.slint
-  - zircon_editor/ui/workbench/host_side_dock_surface.slint
-  - zircon_editor/ui/workbench/host_bottom_dock_surface.slint
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/ui/workbench/host_components.slint
-  - zircon_editor/ui/workbench/host_page_chrome.slint
-  - zircon_editor/ui/workbench/host_document_dock_surface.slint
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
 plan_sources:
   - user: 2026-04-28 Move HostMenuChrome, HostPageChrome, and dock headers to ui.toml so Slint is only the rendering adapter
@@ -55,13 +47,15 @@ doc_type: milestone-detail
 ---
 # Host Page Tabs UI TOML Design
 
+> 2026-07 hard-cut note: typed `zircon_editor/ui/workbench/*.slint` chrome 已整体退役。当前唯一 owner 是 front matter 中列出的 `.zui` chrome/shell 资产、workbench-host projection、retained-host presentation 与 retained-window 测试；下文旧 Slint 文件名只保留为迁移历史，禁止据此恢复 typed Slint facade。
+
 ## Background
 
 The Generic Host Boundary cutover is moving editor workbench structure, layout formulas, event semantics, hit testing, and route results from handwritten `.slint` into `TOML -> UiSurface -> host projection`. The previous menu chrome slice moved menu labels/items into projected data and pulled menu-button frame ABI back inside `HostMenuChrome`, but the next visible problem remains: top tabs and dock headers still encode sizing and placement in Slint or Rust constants.
 
 The current state already has the required lower layer:
 
-- `zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml` defines a host shell with `UiHostWindow`, `MenuBar`, `ActivityRail`, `DocumentHost`, `DocumentTabs`, and `StatusBar` components.
+- `zircon_editor/assets/ui/editor/host/workbench_shell.zui` defines a host shell with `UiHostWindow`, `MenuBar`, `ActivityRail`, `DocumentHost`, `DocumentTabs`, and `StatusBar` components.
 - `EditorUiHostRuntime` can load that `.ui.toml`, build a shared `UiSurface`, compute frames, and expose host-model snapshots.
 - `scene_projection.rs` still owns constants such as `TOP_BAR_HEIGHT_PX`, `HOST_BAR_HEIGHT_PX`, `PANEL_HEADER_HEIGHT_PX`, and `DOCUMENT_HEADER_HEIGHT_PX`.
 - `host_page_chrome.slint` still hardcodes tab-strip layout facts such as `x: 8px`, `y: 1px`, `spacing: 4px`, project path label dimensions, and relative pointer offsets.

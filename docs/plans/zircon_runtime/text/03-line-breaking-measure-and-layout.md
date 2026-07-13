@@ -63,7 +63,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/metrics.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/text_measure.rs
   - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
@@ -468,7 +468,7 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-11）：LB-M4 的共享 `layout_text` 已在产品 proof 中按 240px 竖排主轴把含开闭引号、句读和逗号的 CJK 文本断成两列，并由 resolved layout 产出右到左 column frames；不是测试手工拼 DTO。`vertical_rl_` 7/7 覆盖列容量/右到左 frame、命中测试、render extract 与 TextInput IME cursor rect，`text_vertical_` 17/17 含竖排禁则；`text_caret_affinity_soft_wrap_boundary` 1/1 关闭同一 source offset 的 Upstream=上一行末、Downstream=下一行首。WGPU 产品帧两列整体 changed=4114、bbox 68×240，右/左列分别 2548/1566 像素。复杂 mixed-BiDi caret/range 的产品级 source-affinity 对拍、全量精确换行/advance/bbox corpus 与平台候选窗实机仍保持 open。
+当前概述（2026-07-13）：LB-M4 的共享 `layout_text` 已在产品 proof 中把 CJK 文本断成右到左 VerticalRl columns，并关闭 soft-wrap affinity。LB-M5 的中立 `paragraph_layout` owner 现已把同一 first/continuation inset、nested/list prefix 与 paragraph align 约束投影到 VerticalRl y/height：首列 indent、continuation、Center 与 Right/End 不再被 `vertical.rs` 绕过；parser/interface/renderer 未新增 writing-mode 分支。当前源 Windows binary 的 VerticalRl contracts 为 3/3，完整 rich-block filter 为 10/10；exact formatting、scoped diff 与结构预算通过。真实 SDF/WGPU CJK paragraph proof 与 pre-render layout gates 已写入，但 exporter 在 UI render 前被并发 renderer 的 forward layout binding 25 冲突阻断，未接受 PNG；VerticalRl rich-inline object 与 paragraph constraint 的组合也保持显式 open。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

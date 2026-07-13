@@ -89,9 +89,9 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/lookup.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
@@ -107,6 +107,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/merge.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration_match.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/status.rs
   - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
@@ -152,8 +153,6 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/cargo_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
@@ -185,7 +184,7 @@ related_code:
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/src/package.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs
@@ -349,7 +348,7 @@ implementation_files:
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/src/package.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
@@ -374,7 +373,7 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
@@ -386,7 +385,7 @@ doc_type: module-detail
 
 Optional feature bundles model cross-plugin features as children of one owner plugin. The feature is shown and selected under the owner plugin, but its runtime/editor implementation can live in its own crate under `zircon_plugins/<owner>/features/<feature_slug>/...`.
 
-The compatibility mode for independent feature packages keeps the same owner-facing selection model while letting a separate package provide the implementation. A package with `package_kind = "feature_extension"` declares its exported bundles in `feature_extensions`; those bundles are projected under `owner_plugin_id` and recorded in the project selection with `provider_package_id = <feature package id>`.
+The independent-provider model keeps the owner-facing selection model while letting a separate package provide the implementation. This is the only supported external-provider architecture; there is no owner-key fallback or legacy compatibility lookup. A package with `package_kind = "feature_extension"` declares its exported bundles in `feature_extensions`; those bundles are projected under `owner_plugin_id` and recorded in the project selection with `provider_package_id = <feature package id>`.
 
 ## Rules
 
@@ -402,7 +401,11 @@ The compatibility mode for independent feature packages keeps the same owner-fac
 
 ## Runtime Flow
 
-`PluginPackageManifest.optional_features` carries owner-embedded feature bundles. `PluginPackageManifest.feature_extensions` carries independent feature-package bundles, with `package_kind = FeatureExtension` marking pure provider packages. `RuntimePluginCatalog::complete_project_manifest` mirrors both declaration forms into `ProjectPluginSelection.features` as disabled selections by default, preserving package declaration order so project manifests do not drift across runs. External projections keep the owner row but fill `provider_package_id`.
+`PluginPackageManifest.optional_features` carries owner-embedded feature bundles. `PluginPackageManifest.feature_extensions` carries independent feature-package bundles, with `package_kind = FeatureExtension` marking pure provider packages. `RuntimePluginCatalog::complete_project_manifest` mirrors both declaration forms into `ProjectPluginSelection.features` as disabled selections by default, preserving package declaration order so project manifests do not drift across runs. External projections keep the owner row but fill `provider_package_id`. Completion also materializes a disabled provider `ProjectPluginSelection` when the external provider is not already present, deriving target modes and runtime/editor crate identity from the feature modules. Dependency enablement can therefore activate the provider through the same project-selection contract instead of inventing an Editor-only registration path.
+
+Feature-definition identity follows the same hard-cut rule. `package_feature_definitions(...)` preserves an explicit `PluginFeatureBundleManifest.provider_package_id` for ordinary owner packages and defaults to the owner only when the field is absent. Consequently `feature_id@provider_package_id` is constructed once and used consistently by catalog lookup, project completion, status, and enablement; unknown providers remain structured failures rather than falling back to an owner-key alias.
+
+The 2026-07-11 Editor M1 regression closes this boundary with a real Sound feature whose owner is `sound` and provider is `sound_timeline_animation_track`. The fully qualified Editor test `editor_manager_plugin_status_lists_owner_optional_feature_dependencies` passed 1/1 in 0.12s and asserts that `sound`, `animation`, and the external provider selection are all enabled. No duplicate catalog definition, alias key, or legacy provider fallback was added.
 
 `PluginFeatureBundleManifest` carries dependency, capability, packaging, and explicit runtime/editor module rows for the feature bundle itself. Feature-bundle fixtures therefore declare executable link units through `with_runtime_module(PluginModuleManifest::runtime(...))` and `with_editor_module(PluginModuleManifest::editor(...))`; package-level crate shortcut builders remain on package/project manifest surfaces instead of being duplicated on feature bundles.
 

@@ -15,7 +15,7 @@
 - Modify `tools/zircon_build.py`: add asset root staging and file-collision checks, call staging for editor/runtime targets.
 - Create `zircon_runtime/src/asset/runtime_asset_path.rs`: runtime-owned helper for executable/dev asset path resolution.
 - Modify `zircon_runtime/src/asset/mod.rs`: export the helper.
-- Modify `zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs`: use the helper for runtime UI fixtures.
+- Modify `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs`: use the helper for runtime UI fixtures.
 - Modify `zircon_editor/src/ui/template_runtime/builtin/template_documents.rs`: use the helper for built-in editor template roots.
 - Modify `zircon_editor/src/ui/template_runtime/runtime/build_session.rs`: resolve `res://` imports through the helper.
 - Modify `zircon_editor/src/ui/asset_editor/node_projection.rs`: resolve editor UI asset paths through the helper.

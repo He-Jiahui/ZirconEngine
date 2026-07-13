@@ -4,8 +4,10 @@ pub mod shaped_run;
 pub mod shaping_service;
 
 pub use rich::{
-    InlineBaseline, InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult, RichTextFormat,
-    StyleOverride, StyledRun,
+    InlineBaseline, InlineObjectRef, LaidOutLine, LaidOutText, LayoutItem, LinkRef,
+    ParagraphOverride, RichParseResult, RichTable, RichTableCell, RichTableCellBoxStyle,
+    RichTableCellPadding, RichTableColumn, RichTextFormat, StyleOverride, StyledRun,
+    MAX_RICH_TABLE_ROW_SPAN,
 };
 pub use shaped_run::{
     normalized_open_type_features, OpenTypeFeature, ShapedGlyph, ShapedGlyphClusterFlags,

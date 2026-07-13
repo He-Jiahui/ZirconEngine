@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::{
     ExportWizardCommandOutputLine, ExportWizardCommandOutputStream, ExportWizardPipelineExecution,
@@ -21,7 +21,7 @@ pub struct ExportWizardJobSnapshot {
     pub profile: String,
     pub out: String,
     pub status: ExportWizardJobStatus,
-    pub current_stage: Option<ExportPipelineStage>,
+    pub current_stage: Option<ExportStage>,
     pub progress: ExportWizardProgressState,
     pub stages: Vec<ExportWizardStageExecution>,
     pub live_stage_outputs: Vec<ExportWizardStageOutputBuffer>,
@@ -32,7 +32,7 @@ pub struct ExportWizardJobSnapshot {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageOutputBuffer {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub stdout_lines: Vec<String>,
     pub stderr_lines: Vec<String>,
 }
@@ -57,7 +57,7 @@ impl ExportWizardJobState {
                 },
                 current_stage: None,
                 progress: ExportWizardProgressState::for_stages(
-                    plan.stages.iter().map(|command| command.stage),
+                    plan.ordered_commands().map(|command| command.stage),
                 ),
                 stages: Vec::new(),
                 live_stage_outputs: Vec::new(),
@@ -84,7 +84,7 @@ impl ExportWizardJobState {
         }
     }
 
-    pub fn begin_stage(&mut self, stage: ExportPipelineStage, progress: ExportWizardProgressState) {
+    pub fn begin_stage(&mut self, stage: ExportStage, progress: ExportWizardProgressState) {
         self.begin();
         self.snapshot.current_stage = Some(stage);
         self.snapshot.progress = progress;
@@ -92,7 +92,7 @@ impl ExportWizardJobState {
 
     pub fn record_stage_output(
         &mut self,
-        stage: ExportPipelineStage,
+        stage: ExportStage,
         output: ExportWizardCommandOutputLine,
         progress: ExportWizardProgressState,
     ) {
@@ -152,7 +152,7 @@ impl ExportWizardJobState {
 
     fn stage_output_buffer_mut(
         &mut self,
-        stage: ExportPipelineStage,
+        stage: ExportStage,
     ) -> &mut ExportWizardStageOutputBuffer {
         if let Some(index) = self
             .snapshot

@@ -7,15 +7,16 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::core::diagnostics::{DiagnosticPath, DiagnosticStore, DiagnosticStoreSnapshot};
+use crate::core::diagnostics::{
+    DiagnosticPath, DiagnosticStore, DiagnosticStoreSnapshot, RuntimeDevtoolsPluginCatalogEntry,
+};
 use crate::core::framework::channel::ChannelReceiver;
 use crate::core::framework::events::EngineEvent;
 use crate::core::framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
 use crate::core::framework::time::{Fixed, Real, Time, Virtual};
-use crate::core::CoreError;
-use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
+use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
 
 use super::config_store::ConfigStore;
 use super::events::EventBus;
@@ -46,9 +47,9 @@ impl CoreRuntime {
                 time: Default::default(),
                 diagnostics: Default::default(),
                 states: Default::default(),
-                scene_hooks: Default::default(),
-                world_extensions: Default::default(),
-                plugin_bridge_lifecycle: Default::default(),
+                scene_hook_snapshots: Default::default(),
+                devtools_plugin_catalog_entries: Default::default(),
+                runtime_module_lifecycle_observer: Default::default(),
             }),
         }
     }
@@ -135,6 +136,14 @@ impl CoreRuntime {
         self.handle().diagnostic_store_snapshot()
     }
 
+    pub fn replace_devtools_plugin_catalog_entries(
+        &self,
+        entries: Vec<RuntimeDevtoolsPluginCatalogEntry>,
+    ) {
+        self.handle()
+            .replace_devtools_plugin_catalog_entries(entries);
+    }
+
     pub fn record_diagnostic<U, T>(
         &self,
         path: impl Into<DiagnosticPath>,
@@ -215,68 +224,12 @@ impl CoreRuntime {
         self.handle().load_config(key)
     }
 
-    pub fn install_scene_runtime_hooks(
+    pub fn install_runtime_module_lifecycle_observer(
         &self,
-        extensions: &RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.handle().install_scene_runtime_hooks(extensions)
-    }
-
-    pub fn install_world_runtime_extensions(
-        &self,
-        extensions: &RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.handle().install_world_runtime_extensions(extensions)
-    }
-
-    pub fn install_plugin_bridge_lifecycle_state(
-        &self,
-        state: crate::plugin::RuntimePluginBridgeLifecycleState,
+        observer: Arc<dyn RuntimeModuleLifecycleObserver>,
     ) {
-        self.handle().install_plugin_bridge_lifecycle_state(state);
-    }
-
-    pub fn clear_plugin_bridge_lifecycle_state(
-        &self,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleState> {
-        self.handle().clear_plugin_bridge_lifecycle_state()
-    }
-
-    pub fn plugin_bridge_lifecycle_state(
-        &self,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleState> {
-        self.handle().plugin_bridge_lifecycle_state()
-    }
-
-    pub fn apply_plugin_bridge_lifecycle_event(
-        &self,
-        event: crate::plugin::RuntimePluginBridgeLifecycleEvent,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
-        self.handle().apply_plugin_bridge_lifecycle_event(event)
-    }
-
-    pub fn activate_plugin_bridge_provider_at_frame_boundary(
-        &self,
-        provider_package_id: impl Into<String>,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
         self.handle()
-            .activate_plugin_bridge_provider_at_frame_boundary(provider_package_id)
-    }
-
-    pub fn disable_plugin_bridge_provider_at_frame_boundary(
-        &self,
-        provider_package_id: impl Into<String>,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
-        self.handle()
-            .disable_plugin_bridge_provider_at_frame_boundary(provider_package_id)
-    }
-
-    pub fn deactivate_plugin_bridge_provider_at_frame_boundary(
-        &self,
-        provider_package_id: impl Into<String>,
-    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
-        self.handle()
-            .deactivate_plugin_bridge_provider_at_frame_boundary(provider_package_id)
+            .install_runtime_module_lifecycle_observer(observer);
     }
 
     pub fn init_state<T>(&self) -> StateTransitionEvent<T>

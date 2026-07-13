@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiTextAlign, UiTextOverflow, UiTextRange, UiTextWrap},
+    surface::{UiRichTextFormat, UiTextAlign, UiTextOverflow, UiTextRange, UiTextWrap},
 };
 
 use super::{ellipsis_width_for_test, layout_text, measure_text_size, test_style};
@@ -25,7 +25,7 @@ fn ellipsis_preserves_combining_mark_grapheme_boundaries() {
 #[test]
 fn ellipsis_preserves_rich_run_boundary_grapheme_clusters() {
     let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Ellipsis);
-    style.rich_text = true;
+    style.rich_text_format = UiRichTextFormat::Markdown;
 
     let layout = layout_text(
         "*a*\u{0301}bc",
@@ -37,10 +37,9 @@ fn ellipsis_preserves_rich_run_boundary_grapheme_clusters() {
     assert_eq!(layout.lines.len(), 1);
     assert!(layout.lines[0].ellipsized);
     assert_eq!(layout.lines[0].text, "a\u{0301}…");
-    assert_eq!(layout.lines[0].runs.len(), 3);
-    assert_eq!(layout.lines[0].runs[0].text, "a");
-    assert_eq!(layout.lines[0].runs[1].text, "\u{0301}");
-    assert_eq!(layout.lines[0].runs[2].text, "…");
+    assert_eq!(layout.lines[0].runs.len(), 2);
+    assert_eq!(layout.lines[0].runs[0].text, "a\u{0301}");
+    assert_eq!(layout.lines[0].runs[1].text, "…");
 }
 
 #[test]

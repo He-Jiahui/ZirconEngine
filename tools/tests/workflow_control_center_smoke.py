@@ -113,8 +113,38 @@ def _verify_controlled_actions(opener, client, base_url: str, config) -> None:
     csrf = elevated["csrfToken"]
     catalog = _browser_json(opener, base_url, "GET", "/control/v1/actions/catalog")["data"]
     red = [item for item in catalog["actions"] if item["risk"] == "red"]
-    if not red or any(item["enabled"] for item in red):
-        raise AssertionError("M3 red actions must remain visible and disabled")
+    enabled_red = {item["kind"] for item in red if item["enabled"]}
+    if enabled_red != {
+        "milestone.commit",
+        "session.complete",
+        "service.stop",
+        "service.restart",
+        "service.force_stop",
+    }:
+        raise AssertionError("the closed catalog exposed an unexpected enabled red action")
+    if not any(item["kind"] == "maintenance.cleanup" and not item["enabled"] for item in red):
+        raise AssertionError("the unimplemented maintenance action was not visibly disabled")
+    denied_red = urllib.request.Request(
+        f"{base_url}/control/v1/actions/preview",
+        data=json.dumps(
+            {"kind": "service.stop", "parameters": {"timeoutSeconds": 30}}
+        ).encode("utf-8"),
+        method="POST",
+        headers={
+            "Origin": base_url,
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrf,
+        },
+    )
+    try:
+        opener.open(denied_red, timeout=5)
+    except urllib.error.HTTPError as rejected:
+        body = json.loads(rejected.read())
+        rejected.close()
+        if (rejected.code, body["error"]["code"]) != (403, "action_permission_denied"):
+            raise
+    else:
+        raise AssertionError("operator elevation unexpectedly previewed a maintainer red action")
     preview = _browser_json(
         opener,
         base_url,
@@ -128,7 +158,7 @@ def _verify_controlled_actions(opener, client, base_url: str, config) -> None:
         base_url,
         "POST",
         f"/control/v1/actions/{preview['actionId']}/confirm",
-        {"phrase": preview["confirmationPhrase"], "reason": "M3 smoke acceptance"},
+        {"phrase": preview["confirmationPhrase"], "reason": "controlled-action smoke acceptance"},
         csrf=csrf,
     )["data"]["action"]
     if confirmed["status"] != "succeeded":
@@ -138,7 +168,7 @@ def _verify_controlled_actions(opener, client, base_url: str, config) -> None:
             "SELECT reason FROM action_approvals WHERE action_id = ?",
             (preview["actionId"],),
         ).fetchone()
-    if approval != ("M3 smoke acceptance",):
+    if approval != ("controlled-action smoke acceptance",):
         raise AssertionError("controlled action approval audit was not persisted")
 
 

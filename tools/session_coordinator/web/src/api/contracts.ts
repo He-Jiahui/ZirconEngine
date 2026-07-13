@@ -168,7 +168,16 @@ export interface CollaborationProjection {
 
 export interface ValidationProjection {
   cargoJobs: CargoJobProjection[];
+  currentCargoTargets: CargoJobProjection[];
+  artifactLifecycle: ArtifactLifecycleProjection;
   validationCopies: ValidationCopyProjection[];
+}
+
+export interface ArtifactLifecycleProjection {
+  reusablePools: number;
+  ephemeralTargets: number;
+  pendingCleanup: number;
+  failedCleanup: number;
 }
 
 export interface GitProjection { finalizeRequests: FinalizeRequestProjection[] }

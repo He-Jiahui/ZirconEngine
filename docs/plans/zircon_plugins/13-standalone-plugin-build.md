@@ -44,7 +44,7 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
@@ -440,7 +440,7 @@ related_code:
   - zircon_runtime/src/script/vm/tests/plugin_runtime.rs
   - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/fixture.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - zircon_runtime/src/asset/tests/assets/gltf_primitive_fixtures/animation.rs
   - zircon_runtime/src/asset/tests/assets/gltf_primitive_fixtures/basic.rs

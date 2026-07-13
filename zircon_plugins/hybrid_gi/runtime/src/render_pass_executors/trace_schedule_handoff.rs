@@ -184,7 +184,8 @@ mod tests {
     const VOXEL_RADIANCE_RGBA8: u32 = 0xff48_240c;
     const DEPTH_Q24_MAX: u32 = 16_777_215;
     const SCENE_WORD_COUNT: usize = 710;
-    const TRACE_WORD_COUNT: usize = 512;
+    const TRACE_WORD_COUNT: usize = 576;
+    const DEFAULT_NORMAL_CODE: u32 = 36;
 
     #[test]
     fn trace_schedule_shader_marches_main_scene_hzb_and_samples_surface_cache_radiance() {
@@ -222,7 +223,7 @@ mod tests {
         assert_eq!(words[19..22], [1, 8, 64]);
         assert_eq!(words[22], CAMERA_PACKET_MAGIC);
         assert_eq!(words[44], 64);
-        assert_eq!(words[45..49], [7, 1, 0, 0]);
+        assert_eq!(words[45..49], [8, 1, 0, 0]);
         assert_eq!(words[49], 0x1234_5678);
         assert_eq!(words[64], SURFACE_RADIANCE_RGBA8);
         assert_eq!(words[65], hit_depth_q24);
@@ -247,6 +248,7 @@ mod tests {
             words[70], 0,
             "surface-cache trace tile should carry a local support signature"
         );
+        assert_eq!(words[71], DEFAULT_NORMAL_CODE);
 
         let mut changed_radiance_scene_words = scene_words.clone();
         changed_radiance_scene_words[305] = 0xff18_3060;
@@ -293,7 +295,7 @@ mod tests {
 
         let words = run_trace_schedule_shader(&device, &queue, &scene_words, &hzb_view);
 
-        assert_eq!(words[45..49], [7, 0, 1, 1]);
+        assert_eq!(words[45..49], [8, 0, 1, 1]);
         assert_eq!(words[6], VOXEL_RADIANCE_RGBA8);
         assert_eq!(words[64], VOXEL_RADIANCE_RGBA8);
         assert_ne!(words[67] & (1 << 8), 0, "first tile should hit scene HZB");
@@ -345,6 +347,8 @@ mod tests {
         assert!(source.contains("voxel_radiance_for_world_position"));
         assert!(source.contains("TRACE_SURFACE_CACHE_HIT_FLAG"));
         assert!(source.contains("TRACE_VOXEL_FALLBACK_FLAG"));
+        assert!(source.contains("SCENE_NORMAL_CODE_SHIFT"));
+        assert!(source.contains("trace_tile_offset + 7u"));
     }
 
     fn quantize_depth_q24(depth: f32) -> u32 {
@@ -376,7 +380,7 @@ mod tests {
             scene_words[offset] = target_depth_q24;
             scene_words[offset + 1] = quantize_depth_q24(0.9);
             scene_words[offset + 2] = start_depth_q24;
-            scene_words[offset + 3] = 1 << 31;
+            scene_words[offset + 3] = (1 << 31) | (DEFAULT_NORMAL_CODE << 8);
         }
         scene_words[16] = start_depth_q24;
         scene_words[272] = CAMERA_PACKET_MAGIC;

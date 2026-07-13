@@ -5,11 +5,11 @@ fn runtime_15_render_graph_builder_compile_is_child_owner() {
     let parent = read_runtime_src("render_graph/builder.rs");
     let compile = read_runtime_src("render_graph/builder/compile.rs");
     let plan_01 = read_repo("docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let builder_doc = read_repo("docs/zircon_runtime/render_graph/builder.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "RenderGraphBuilder parent keeps authoring surface and child mount",
@@ -75,7 +75,6 @@ fn runtime_15_render_graph_builder_compile_is_child_owner() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("render graph builder doc", builder_doc.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

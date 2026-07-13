@@ -1,21 +1,21 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/runtime/virtual_geometry/test_accessors.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/residency.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/runtime/virtual_geometry/test_accessors.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/residency.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-19 让 confirmed frontier truth 在更深的 recycle / hold / reconnect 级联里继续主导
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_does_not_let_removed_hot_descendant_bias_page_table_reconnect_frontier_merge -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_test_evictions_clear_frontier_truth_before_later_reconnect_prepare -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime -- --nocapture

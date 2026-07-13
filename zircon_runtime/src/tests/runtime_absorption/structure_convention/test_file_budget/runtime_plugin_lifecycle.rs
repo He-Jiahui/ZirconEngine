@@ -5,8 +5,9 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
     let parent = read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle.rs");
     let fixtures =
         read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/lifecycle_fixtures.rs");
-    let capability_projection =
-        read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/capability_projection.rs");
+    let capability_projection = read_runtime_src(
+        "tests/plugin_extensions/runtime_plugin_lifecycle/capability_projection.rs",
+    );
     let kernel_lifecycle =
         read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/kernel_lifecycle.rs");
     let native_projection =

@@ -8,7 +8,7 @@ fn showcase_binding(
     binding_id: &str,
 ) -> crate::ui::binding::EditorUiBinding {
     runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap()
         .bindings
         .into_iter()
@@ -30,10 +30,10 @@ fn apply_showcase_binding(
 
 fn project_showcase(runtime: &EditorUiHostRuntime) -> RetainedUiHostProjection {
     let projection = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     runtime
         .build_retained_host_projection_with_surface(&projection, &surface)

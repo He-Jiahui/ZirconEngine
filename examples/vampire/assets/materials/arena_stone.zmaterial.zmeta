@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "53cf1e9d-84ac-4843-8b80-157a8be554ea"
 url = "res://materials/arena_stone.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/e0fcaf30-47ad-0169-7edf-8f1aeb59ffe1.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487868
-source_hash = "5d2abe42d1a1a8ae"
+source_digest = "5d2abe42d1a1a8ae"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

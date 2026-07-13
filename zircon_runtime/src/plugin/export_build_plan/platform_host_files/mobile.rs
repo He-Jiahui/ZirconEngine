@@ -1,4 +1,4 @@
-use crate::plugin::{ExportProfile, ExportTargetPlatform};
+use crate::core::framework::project::{ExportProfile, ExportTargetPlatform};
 
 use super::super::ExportGeneratedFile;
 use super::{

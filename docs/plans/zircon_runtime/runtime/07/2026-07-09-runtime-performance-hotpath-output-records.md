@@ -4,6 +4,15 @@
 
 ## 状态与产出记录
 
+### 2026-07-12 Runtime 07 completion overrides
+
+The current completion statuses supersede the historical pending tokens kept in
+the migrated rows below: M0.3 is `frame_spans_trace_accepted_completed`; M1.1
+is `scoped_counter_points_runtime_published_completed`; M1.2 is
+`named_assertions_behavior_accepted_completed`; M1.3 is
+`authoritative_inventory_completed`. The historical row bodies remain intact
+as chronological evidence of their earlier blocked states.
+
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
 | 横切 | ZrVM backend FPS command hard cutover | `runtime_07_backend_zr_vm_fps_command_hard_cutover_static_passed` | 2026-07-10 | Frameworks 03 已将 runtime 真实 ZrVM 后端 feature 硬切为 `backend-zr-vm`；Runtime 07 权威 Vampire FPS 验收命令同步到新 feature。`performance_hotpath_boundary` 同步以编号 Runtime 07 归档作为具体历史/owner-budget 证据输入，并把 FPS Cargo anchor 更新到当前 feature；Python regression 1/1，direct audit 为 source 46/test owner 91、`missing_doc_anchors=[]`、`missing_cargo_gate_anchors=[]`、mirror true、`risks=[]`。重新编译 standalone plan-status harness 后 48/48。该切片只修正当前计划/审计命令与产出归属，不改写历史编译旁证，也不关闭 FPS/profiling/package Cargo gate。 |
@@ -100,7 +109,9 @@
 - 迁入记录：[runtime/index.md 迁出记录](2026-07-09-runtime-index-output-records.md)
 ## 风险与协调
 
-- **硬性前置**：执行任何切片前重读 `.codex/sessions/20260611-0416-rendering-10fps-analysis.md` 最新状态——该会话仍活跃，worktree 改动是 live state，只做聚焦编辑，禁止回退。
+- **硬性前置（现行口径）**：执行任何切片前重读本编号归档与最新 Runtime 07
+  编号记录，并通过 coordinator 查询活动 graphics/runtime owner；只做聚焦编辑，禁止
+  回退。原 session-note 前置已在 2026-07-11 硬切，不再作为永久验收输入。
 - M0 依赖子计划 06 M1（ZrVM 修复）：若上游修复周期长，先用 fallback 诊断工程取"非权威"基线并显式标注局限（无 ZrVM 脚本路径），fallback 命令：去掉 `--features zr-vm-real-backend` 的同名测试（若 fallback 后端支持）或现有 `runtime_diagnostics` 测试族。
 - 与 render 计划边界：M1 计数若把热点指向 draw 提交侧（231 次 pre-draw buffer copy 属此类），移交 render 计划 02（MeshDrawCommand/上载合并），不在本计划处理。
 - profiling 构建可能与共享 `CARGO_TARGET_DIR` 的并行构建冲突（CLAUDE.md 磁盘政策：禁止并行重型构建）；M0 切片 0.2 安排在无其他构建窗口执行。
@@ -163,3 +174,7 @@ Explicit child path anchor: `tests/runtime_absorption/performance_hotspots/owner
 Explicit child path anchor: `tests/runtime_absorption/performance_hotspots/owner_budget/split_layout/route/support_routes.rs`.
 
 `Runtime 15 M3 Runtime 07 owner-budget split-layout route guard folder-backed split` / `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_static_passed_cargo_deferred` keeps `tests/runtime_absorption/performance_hotspots/owner_budget/split_layout/route.rs` as the split-layout route owner while moving parent route, support route, and split route assertions into `performance_hotspots/owner_budget/split_layout/route/{parent_route,split_route,support_routes}.rs`. The focused split guard is `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_split`. `performance_hotpath_boundary` now reports `expected_source_file_count = 46`, `expected_test_file_count = 91`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_tests = []`, `missing_docs = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, `risks = []`, and keeps `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` visible. Validation result: scoped rustfmt --check passed, Python py_compile passed, standalone performance-hotspots harness passed 27/27, direct `performance_hotpath_boundary_audit` reported `expected_test_file_count=91` with missing source/test/doc/cargo-anchor lists empty and `risks=[]`, module-path-preserving standalone plan-status `status_output_tables` passed 2/2, old-88/conflict/trailing-whitespace scans were clean, and scoped git diff --check was warning-only. This only updates static test-owner inventory; extract/ecs_query/profiling/FPS Cargo gates remain pending. Package Cargo remains deferred because `D_FREE_GB=177.38 E_FREE_GB=56.86 CARGO_PIDS=2328,32428 RUSTC_PIDS=32452`; no package Cargo pass is claimed.
+
+## 2026-07-12 Runtime 07 current package evidence
+
+`runtime_07_ecs_query_58_passed_extract_298_20_failed_fps_backend_ignored` records the fresh current-source Runtime binary result. The focused `ecs_query` filter passed 58/58. The broad `extract` filter executed 318 tests with 298 passed and 20 failed; failures include WGPU validation, pipeline/resource descriptor and unrelated asset/plugin collisions, so the extract gate remains open. The declared FPS product test is present but reports `ignored, requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR` in the default binary; it is not counted as a pass. Runtime 07 remains `in_progress`, and M2 optimization still requires authoritative runtime measurements after these correctness gates close.

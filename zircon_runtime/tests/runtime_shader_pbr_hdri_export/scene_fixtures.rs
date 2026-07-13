@@ -5,9 +5,13 @@ use zircon_runtime::asset::assets::{
     AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset,
     SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
-use zircon_runtime::asset::{AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset};
+use zircon_runtime::asset::{
+    AssetReference, AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+};
 use zircon_runtime::core::framework::render::ProjectionMode;
 use zircon_runtime::core::math::{Transform, Vec2, Vec3};
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 const SINGLE_PBR_SPHERE_CENTER: [f32; 3] = [0.0, -0.12, 0.0];
 const SINGLE_PBR_SPHERE_SCALE: [f32; 3] = [1.35, 1.35, 1.35];
@@ -114,7 +118,13 @@ pub(super) fn write_uv_sphere_model(path: PathBuf, model_uri: &str, rings: usize
             virtual_geometry: None,
         }],
     };
-    fs::write(path, model.to_toml_string().unwrap()).unwrap();
+    fs::write(
+        path,
+        model
+            .to_project_toml_string(persist_fixture_reference)
+            .unwrap(),
+    )
+    .unwrap();
 }
 
 pub(super) fn write_pbr_matrix_material(path: PathBuf, metallic: f32, smoothness: f32) {
@@ -157,7 +167,13 @@ pub(super) fn write_pbr_matrix_material(path: PathBuf, metallic: f32, smoothness
     material
         .property_values
         .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    fs::write(
+        path,
+        material
+            .to_project_toml_string(persist_fixture_reference)
+            .unwrap(),
+    )
+    .unwrap();
 }
 
 pub(super) fn write_single_pbr_material(
@@ -201,7 +217,13 @@ pub(super) fn write_single_pbr_material(
     material
         .property_values
         .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    fs::write(
+        path,
+        material
+            .to_project_toml_string(persist_fixture_reference)
+            .unwrap(),
+    )
+    .unwrap();
 }
 
 pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
@@ -285,7 +307,13 @@ pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
         }
     }
 
-    fs::write(path, SceneAsset { entities }.to_toml_string().unwrap()).unwrap();
+    fs::write(
+        path,
+        SceneAsset { entities }
+            .to_project_toml_string(persist_fixture_reference)
+            .unwrap(),
+    )
+    .unwrap();
 }
 
 pub(super) fn write_single_pbr_sphere_scene_with_camera_view(
@@ -345,7 +373,30 @@ pub(super) fn write_single_pbr_sphere_scene_with_camera_view(
         zero_intensity_key_light_entity(3, "Zero Intensity Key Light"),
     ];
 
-    fs::write(path, SceneAsset { entities }.to_toml_string().unwrap()).unwrap();
+    fs::write(
+        path,
+        SceneAsset { entities }
+            .to_project_toml_string(persist_fixture_reference)
+            .unwrap(),
+    )
+    .unwrap();
+}
+
+fn persist_fixture_reference(
+    reference: &AssetReference,
+) -> Result<PersistedAssetReference, zircon_runtime::asset::ReferenceResolutionError> {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return Ok(PersistedAssetReference::builtin(reference.locator.clone()));
+    }
+    let path_hint = RelPath::parse(format!("assets/{}", reference.locator.path()))
+        .expect("fixture project asset path");
+    let reference = AssetRef::try_new(
+        reference.uuid,
+        path_hint,
+        reference.locator.label().map(str::to_owned),
+    )
+    .expect("fixture project asset reference");
+    Ok(PersistedAssetReference::project(reference))
 }
 
 fn camera_entity(

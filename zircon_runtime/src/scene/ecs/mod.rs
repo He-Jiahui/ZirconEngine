@@ -28,8 +28,8 @@ mod storage;
 mod storage_type;
 mod system;
 mod system_set;
-mod system_stage;
 
+pub use crate::core::framework::scene::SystemStage;
 pub use archetype::{
     ArchetypeId, ArchetypeIndex, ArchetypeMove, ArchetypeRecord, ArchetypeSignature,
 };
@@ -100,7 +100,6 @@ pub use system::{
     SystemParamAccess, SystemParamConflictKind, SystemParamError, SystemState,
 };
 pub use system_set::{SystemSetId, SystemSetRegistry};
-pub use system_stage::SystemStage;
 
 pub(crate) use query::single_from_iter;
 pub(crate) use schedule_runner::SceneScheduleRunner;

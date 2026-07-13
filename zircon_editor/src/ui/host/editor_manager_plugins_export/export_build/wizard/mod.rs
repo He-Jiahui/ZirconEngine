@@ -9,11 +9,12 @@ mod plan;
 mod progress;
 mod run;
 mod session;
-mod stage;
 mod view_model;
 
-pub use command::ExportWizardPipelineStageCommand;
-pub use controller::{ExportWizardJobController, ExportWizardJobHandle};
+use super::EditorExportBuildError;
+
+pub use command::{ExportWizardCoreStageProjection, ExportWizardPipelineStageCommand};
+pub use controller::{ExportWizardJobCompletion, ExportWizardJobController};
 pub use execution::{
     execute_export_wizard_pipeline, execute_export_wizard_stage,
     execute_export_wizard_stage_with_output, execute_export_wizard_stage_with_output_and_cancel,
@@ -41,9 +42,8 @@ pub use plan::{
     export_wizard_pipeline_plan, ExportWizardPipelinePlan,
 };
 pub use progress::{
-    export_pipeline_stages, export_pipeline_stages_for_strategies, parse_export_pipeline_stage,
-    ExportStageProgressKind, ExportWizardProgressState, ExportWizardStageArtifactPath,
-    ExportWizardStageProgressSnapshot, ExportWizardStreamEvent,
+    export_pipeline_stages_for_strategies, ExportStageProgressKind, ExportWizardProgressState,
+    ExportWizardStageArtifactPath, ExportWizardStageProgressSnapshot, ExportWizardStreamEvent,
 };
 pub use run::{
     run_export_wizard_job, ExportWizardCancelSignal, ExportWizardJobEvent,
@@ -60,7 +60,6 @@ pub use session::{
     DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };
-pub use stage::{export_pipeline_stage_cli_id, export_pipeline_stage_report_name};
 pub use view_model::{
     ExportWizardControlState, ExportWizardPanelViewModel, ExportWizardStageMissingInputs,
     ExportWizardStagePlannedArtifacts, ExportWizardStageViewRow,

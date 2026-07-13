@@ -212,6 +212,7 @@ class ActionExecutor:
             ) if self.milestones is not None else {}
             return {
                 "sessionId": value.session_id,
+                "runId": imported.run_id,
                 "refreshed": True,
                 "topologyVersionId": imported.topology_version_id,
                 "versionNumber": imported.version_number,

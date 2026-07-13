@@ -24,7 +24,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/side.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/side/frames.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/viewport_toolbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/legacy.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/bar.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/geometry.rs
@@ -66,6 +66,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/dock_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/modal.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/root_template.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/resize.rs
@@ -141,7 +142,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/side.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/side/frames.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/viewport_toolbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/legacy.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/bar.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/geometry.rs
@@ -177,6 +178,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/dock_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/modal.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/root_template.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/resize.rs
@@ -426,6 +428,10 @@ The 2026-06-21 scene layer split reduced `paint_workbench_renderer/scene_layers.
 The 2026-06-21 scene overlay componentized/modal/root-template split reduced `paint_workbench_renderer/scene_layers/overlay.rs` from 76 lines to a 9-line structural re-export entry. `overlay/componentized.rs` owns componentized Workbench template detection and draw handoff, `overlay/modal.rs` owns open-menu popup and close-prompt layer ordering, and `overlay/root_template.rs` owns root-template overlay profiling plus frame bounds. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a workbench scene overlay componentized/modal/root-template ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
 The 2026-06-24 retained-host visual closure narrowed `scene_layers/overlay/componentized.rs` to componentized Workbench chrome/status clipping when real host layout frames are present. The authored `.zui` Workbench template now paints only the top chrome band and status bar clip; dock panes, document/viewport body content, resize splitters, floating windows, menus/prompts, and root-template overlays remain delegated to the existing host scene layers. This prevents the componentized template from blanketing the dock/content body while preserving the authored chrome. Validation used the componentized Workbench projection test, `cargo check -p zircon_editor --lib`, and the ignored M3 screenshot harness, which refreshed `target/visual-layout/editor-window-m3-workbench-900x620.png` and `target/visual-layout/editor-window-m3-asset-browser-900x620.png`. Visual inspection confirmed visible Project/Scene/Inspector/Console regions, no `true/false` fragments in Workbench labels, and a single Asset Browser Search field.
+
+The 2026-07-12 extension-workspace pass adds a narrow componentized content stage between legacy dock painting and resize/floating overlays. `overlay/componentized.rs` finds `WorkbenchExtensionModuleWorkspacesHost` only as the adaptive clip owner, then chooses the visible concrete `WorkbenchExtension*Workspace` whose direct projected parent is its `WorkbenchExtension*WorkspaceHost`. Only that workspace root and its descendants are selected through `TemplatePaneNodeData.parent_node_id` closure. Selection never depends on generated node-id prefixes, so component expansion may rename nodes without changing ownership. Empty Overlay sibling hosts and overlapping scene siblings cannot repaint the active workspace; focus, popup, resize, floating-window, and modal layers keep their later ordering.
+
+The previous focused regressions pass 3/3 and cover host clipping, scene-sibling exclusion, the no-host no-op path, and SearchField surface/border/glyph/text pixel diversity. A new real-asset regression adds an inactive same-frame workspace host and requires byte-identical output to the single-active-workspace baseline. Its current-source Cargo execution is blocked before the test body by the concurrent Editor14 typed `JobFailure` migration. The real Blend Space validation route writes only to `docs/tests/editor`; temporary diagnostic images must be removed after acceptance and no screenshot is accepted from a Cargo target directory.
 
 The 2026-06-20 legacy/style/text split reduced `paint_workbench_renderer.rs` from 66 lines to a 21-line structural entry. `paint_workbench_renderer/legacy.rs` is 35 lines and owns legacy fallback draw orchestration, `style.rs` is 14 lines and owns shared fallback palette constants, and `text.rs` is 7 lines and owns first-non-empty text selection. Validation used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming presentation/frame/theme imports, palette constants, legacy draw bodies, profile scopes, and text fallback body no longer live in `paint_workbench_renderer.rs`, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction, and package-level Cargo check is still waiting on unrelated `zircon_runtime` render-history compile errors.
 

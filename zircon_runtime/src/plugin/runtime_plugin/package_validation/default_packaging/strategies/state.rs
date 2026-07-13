@@ -1,4 +1,4 @@
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 pub(super) type RuntimePluginDefaultPackagingStrategyState = Vec<ExportPackagingStrategy>;
 

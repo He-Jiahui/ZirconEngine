@@ -5,10 +5,11 @@ pub(crate) fn import_scene(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_text()?;
-    let scene = SceneAsset::from_toml_str(&document)
-        .map_err(|error| AssetImportError::Parse(format!("parse scene toml: {error}")))?;
-    Ok(AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::Scene(scene),
-    ))
+    let scene = SceneAsset::from_project_toml_str(&document, |reference| {
+        context.resolve_project_asset_ref(reference)
+    })?;
+    Ok(
+        AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Scene(scene))
+            .with_reference_repairs(context.reference_repairs()),
+    )
 }

@@ -508,5 +508,9 @@ GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 insta
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
+- 当前里程碑概述：EL-M3 lightmap 与 light probe 消费已于 2026-07-13 完成；外部 bake fixture、Forward+/Deferred WGPU 数值对拍和 PNG 证据均已闭合。HGI 动态增量合成归 HGI-M4，不计入 EL-M3。
+
 - 迁入记录：[`11/2026-07-09-environment-lighting-output-records.md`](11/2026-07-09-environment-lighting-output-records.md)
-- 失败交接（`open / 待修复`）：[`11/failure-2026-07-11-reflection-probe-product-type-inference.md`](11/failure-2026-07-11-reflection-probe-product-type-inference.md)
+- fixed 已修复：[reflection-probe-product-type-inference](../text/01/fixed-2026-07-12-reflection-probe-product-type-inference.md)
+- fixed 已修复：[source-cubemap-source-texel-test-api-drift](../../zircon_editor/editor/10/fixed-2026-07-12-source-cubemap-source-texel-test-api-drift.md)
+- fixed 已修复：[lightmap-forward-bind-group-integration-compile](../../zircon_editor/editor/15/fixed-2026-07-13-lightmap-forward-bind-group-integration-compile.md)

@@ -1,6 +1,6 @@
+use crate::core::framework::bridge::{BridgeOwnerTransitionMode, InterfaceSlot};
 use crate::plugin::{
-    BridgeOwnerTransitionMode, BridgeOwnerTransitionReport, FrozenBridgeTable, InterfaceSlot,
-    PluginModuleKind, RuntimeExtensionRegistry,
+    BridgeOwnerTransitionReport, FrozenBridgeTable, PluginModuleKind, RuntimeExtensionRegistry,
 };
 
 use super::bridge_dependencies::RuntimePluginBridgeDisableBlocker;

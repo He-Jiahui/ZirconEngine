@@ -4,6 +4,8 @@ Date: 2026-07-10
 
 Status: `runtime_15_structure_convention_current_source_non_budget_guards_green_801_passed_502_budget_failures`
 
+Superseded by [2026-07-11 structure-convention budget convergence](./2026-07-11-structure-convention-current-source-budget-convergence.md), which closes the recorded 502-item budget backlog at 1303/1303.
+
 ## Scope
 
 The standalone current-source `structure_convention` harness selected all 1303 guards after the Runtime 15 current-owner, module-convention, dead-code, diagnostics, provider, facade, graphics, lock-poison, and Render evidence reconciliations.

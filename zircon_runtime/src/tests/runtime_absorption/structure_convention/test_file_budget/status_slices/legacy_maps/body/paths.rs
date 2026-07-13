@@ -1,9 +1,7 @@
 pub(super) const LEGACY_GUARD_BODY_SLICE: &str =
     "Runtime 15 M3 status-output expected-slice legacy guard body folder-backed split";
-pub(super) const LEGACY_GUARD_BODY_STATUS: &str =
-    "runtime_15_status_output_expected_slice_legacy_guard_body_folder_backed_static_passed_cargo_deferred";
-pub(super) const LEGACY_GUARD_BODY_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_status_output_expected_slice_legacy_guard_body_folder_backed_static_passed_cargo_deferred";
+pub(super) const LEGACY_GUARD_BODY_STATUS: &str = "runtime_15_status_output_expected_slice_legacy_guard_body_folder_backed_static_passed_cargo_deferred";
+pub(super) const LEGACY_GUARD_BODY_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_status_output_expected_slice_legacy_guard_body_folder_backed_static_passed_cargo_deferred";
 pub(super) const LEGACY_GUARD_BODY_GUARD: &str =
     "runtime_15_status_output_expected_slice_legacy_guard_body_is_folder_backed";
 pub(super) const LEGACY_MAPS_GUARD: &str =

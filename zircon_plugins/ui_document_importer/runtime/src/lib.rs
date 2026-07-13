@@ -45,7 +45,7 @@ pub fn import_ui_zui_document(
 mod tests {
     use super::*;
     use zircon_runtime::asset::AssetKind;
-    use zircon_runtime::plugin::ExportPackagingStrategy;
+    use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_zui_document_importer() {

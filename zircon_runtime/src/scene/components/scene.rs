@@ -7,14 +7,17 @@ use crate::core::framework::render::{
     DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::physics::{
+    PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
+};
+use crate::core::framework::scene::physics::{
     PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
-    AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,
-    ResourceHandle, ResourceId,
+    AnimationStateMachineMarker, AssetReference, MaterialMarker, MeshMarker, ModelMarker,
+    PhysicsMaterialMarker, ResourceHandle, ResourceId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +26,7 @@ use crate::scene::EntityId;
 
 mod lighting;
 mod post_process;
+mod reflection;
 
 pub use self::lighting::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
 pub use self::post_process::{PostProcessSettingsComponent, PostProcessVolumeComponent};
@@ -40,16 +44,74 @@ pub enum NodeKind {
     SpotLight,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Name(pub String);
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::Name",
+    script_visibility = "public"
+)]
+pub struct Name(
+    #[zr_reflect(name = "value", value_type_path = "String", editor_hint = "String")] pub String,
+);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    Default,
+    zircon_reflect_derive::ZrReflect,
+)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::Hierarchy",
+    serialization = "none",
+    serializable = false,
+    script_visibility = "public"
+)]
 pub struct Hierarchy {
+    #[zr_reflect(
+        value_type_path = "Entity",
+        editor_hint = "Entity",
+        serializable = false
+    )]
     pub parent: Option<EntityId>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect,
+)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::LocalTransform",
+    script_visibility = "public",
+    field(
+        name = "translation",
+        value_type_path = "Vec3",
+        editor_hint = "Vec3",
+        read = "reflection::local_transform::read_translation",
+        write = "reflection::local_transform::write_translation"
+    ),
+    field(
+        name = "rotation",
+        value_type_path = "Vec4",
+        editor_hint = "Vec4",
+        read = "reflection::local_transform::read_rotation",
+        readonly
+    ),
+    field(
+        name = "scale",
+        value_type_path = "Vec3",
+        editor_hint = "Vec3",
+        read = "reflection::local_transform::read_scale",
+        write = "reflection::local_transform::write_scale"
+    )
+)]
 pub struct LocalTransform {
+    #[zr_reflect(skip)]
     pub transform: Transform,
 }
 
@@ -83,8 +145,17 @@ impl Default for WorldTransform {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ActiveSelf(pub bool);
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect,
+)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::ActiveSelf",
+    script_visibility = "public"
+)]
+pub struct ActiveSelf(
+    #[zr_reflect(name = "value", value_type_path = "Bool", editor_hint = "Bool")] pub bool,
+);
 
 impl Default for ActiveSelf {
     fn default() -> Self {
@@ -92,8 +163,26 @@ impl Default for ActiveSelf {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ActiveInHierarchy(pub bool);
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect,
+)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::ActiveInHierarchy",
+    serialization = "none",
+    serializable = false,
+    script_visibility = "public"
+)]
+pub struct ActiveInHierarchy(
+    #[zr_reflect(
+        name = "value",
+        value_type_path = "Bool",
+        editor_hint = "Bool",
+        readonly,
+        serializable = false
+    )]
+    pub bool,
+);
 
 impl Default for ActiveInHierarchy {
     fn default() -> Self {
@@ -101,8 +190,17 @@ impl Default for ActiveInHierarchy {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RenderLayerMask(pub u32);
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect,
+)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::RenderLayerMask",
+    script_visibility = "public"
+)]
+pub struct RenderLayerMask(
+    #[zr_reflect(name = "mask", value_type_path = "Unsigned", editor_hint = "Unsigned")] pub u32,
+);
 
 impl Default for RenderLayerMask {
     fn default() -> Self {
@@ -112,36 +210,52 @@ impl Default for RenderLayerMask {
 
 pub type Active = ActiveSelf;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::CameraComponent",
+    script_visibility = "public"
+)]
 pub struct CameraComponent {
     /// Selects Core2d or Core3d without constraining perspective/orthographic projection.
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub core_pipeline: CorePipelineKind,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub projection_mode: ProjectionMode,
     #[serde(default = "default_camera_fov_y_radians")]
     pub fov_y_radians: Real,
     #[serde(default = "default_camera_ortho_size")]
+    #[zr_reflect(skip)]
     pub ortho_size: Real,
     #[serde(default = "default_camera_z_near")]
     pub z_near: Real,
     #[serde(default = "default_camera_z_far")]
     pub z_far: Real,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub target: RenderCameraTarget,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub viewport: Option<RenderViewportRect>,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub order: i32,
     #[serde(default = "default_true")]
+    #[zr_reflect(skip)]
     pub is_active: bool,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub hdr: bool,
     #[serde(default = "default_camera_exposure_ev100")]
+    #[zr_reflect(skip)]
     pub exposure_ev100: Real,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub clear_color: RenderCameraClearColor,
     #[serde(default = "default_camera_msaa_samples")]
+    #[zr_reflect(skip)]
     pub msaa_samples: u32,
 }
 
@@ -200,11 +314,34 @@ impl MeshRendererLodLevel {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::MeshRenderer",
+    script_visibility = "public"
+)]
 pub struct MeshRenderer {
+    #[zr_reflect(
+        value_type_path = "Resource",
+        editor_hint = "Resource",
+        read = "reflection::mesh_renderer::read_model",
+        readonly
+    )]
     pub model: ResourceHandle<ModelMarker>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[zr_reflect(
+        value_type_path = "Resource",
+        editor_hint = "Resource",
+        read = "reflection::mesh_renderer::read_mesh",
+        readonly
+    )]
     pub mesh: Option<ResourceHandle<MeshMarker>>,
+    #[zr_reflect(
+        value_type_path = "Resource",
+        editor_hint = "Resource",
+        read = "reflection::mesh_renderer::read_material",
+        readonly
+    )]
     pub material: ResourceHandle<MaterialMarker>,
     #[serde(default, skip_serializing_if = "is_zero_i32")]
     pub render_queue: i32,
@@ -215,18 +352,38 @@ pub struct MeshRenderer {
     #[serde(default, skip_serializing_if = "is_zero_real")]
     pub depth_bias: Real,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[zr_reflect(
+        value_type_path = "List",
+        editor_hint = "None",
+        read = "reflection::mesh_renderer::read_morph_weights",
+        readonly
+    )]
     pub morph_weights: Vec<Real>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[zr_reflect(
+        value_type_path = "List",
+        editor_hint = "None",
+        read = "reflection::mesh_renderer::read_primitives",
+        readonly
+    )]
     pub primitives: Vec<MeshRendererPrimitiveBinding>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[zr_reflect(
+        value_type_path = "List",
+        editor_hint = "None",
+        read = "reflection::mesh_renderer::read_lods",
+        readonly
+    )]
     pub lods: Vec<MeshRendererLodLevel>,
     #[serde(
         default,
         skip_serializing_if = "MaterialPropertyOverrideBlock::is_empty"
     )]
+    #[zr_reflect(skip)]
     pub material_property_overrides: MaterialPropertyOverrideBlock,
     pub tint: Vec4,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub material_alpha_mode: RenderMaterialAlphaMode,
 }
 
@@ -271,19 +428,86 @@ pub enum RigidBodyType {
     Kinematic,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::RigidBodyComponent",
+    script_visibility = "public",
+    field(
+        name = "mass_properties_mode",
+        value_type_path = "Enum",
+        editor_hint = "Enum",
+        read = "reflection::rigid_body::read_mass_properties_mode",
+        write = "reflection::rigid_body::write_mass_properties_mode"
+    ),
+    field(
+        name = "mass_density",
+        value_type_path = "Scalar",
+        editor_hint = "Scalar",
+        read = "reflection::rigid_body::read_mass_density",
+        write = "reflection::rigid_body::write_mass_density"
+    )
+)]
 pub struct RigidBodyComponent {
+    #[zr_reflect(
+        value_type_path = "Enum",
+        editor_hint = "Enum",
+        read = "reflection::rigid_body::read_body_type",
+        readonly
+    )]
     pub body_type: RigidBodyType,
     pub mass: Real,
     #[serde(default)]
+    #[zr_reflect(skip)]
+    pub mass_properties: PhysicsMassProperties,
+    #[serde(default)]
+    #[zr_reflect(
+        value_type_path = "Vec3",
+        editor_hint = "Vec3",
+        read = "reflection::rigid_body::read_linear_velocity",
+        readonly
+    )]
     pub linear_velocity: Vec3,
     #[serde(default)]
+    #[zr_reflect(
+        value_type_path = "Vec3",
+        editor_hint = "Vec3",
+        read = "reflection::rigid_body::read_angular_velocity",
+        readonly
+    )]
     pub angular_velocity: Vec3,
     pub linear_damping: Real,
     pub angular_damping: Real,
     pub gravity_scale: Real,
-    pub can_sleep: bool,
+    #[serde(default)]
+    #[zr_reflect(
+        value_type_path = "Enum",
+        editor_hint = "Enum",
+        read = "reflection::rigid_body::read_ccd_mode",
+        write = "reflection::rigid_body::write_ccd_mode"
+    )]
+    pub ccd_mode: PhysicsCcdMode,
+    #[serde(default)]
+    #[zr_reflect(
+        value_type_path = "Enum",
+        editor_hint = "Enum",
+        read = "reflection::rigid_body::read_sleep_policy",
+        write = "reflection::rigid_body::write_sleep_policy"
+    )]
+    pub sleep_policy: PhysicsSleepPolicy,
+    #[zr_reflect(
+        value_type_path = "List<Bool>",
+        editor_hint = "None",
+        read = "reflection::rigid_body::read_lock_translation",
+        readonly
+    )]
     pub lock_translation: [bool; 3],
+    #[zr_reflect(
+        value_type_path = "List<Bool>",
+        editor_hint = "None",
+        read = "reflection::rigid_body::read_lock_rotation",
+        readonly
+    )]
     pub lock_rotation: [bool; 3],
 }
 
@@ -292,12 +516,14 @@ impl Default for RigidBodyComponent {
         Self {
             body_type: RigidBodyType::Dynamic,
             mass: 1.0,
+            mass_properties: PhysicsMassProperties::default(),
             linear_velocity: Vec3::ZERO,
             angular_velocity: Vec3::ZERO,
             linear_damping: 0.0,
             angular_damping: 0.0,
             gravity_scale: 1.0,
-            can_sleep: true,
+            ccd_mode: PhysicsCcdMode::Disabled,
+            sleep_policy: PhysicsSleepPolicy::Allow,
             lock_translation: [false; 3],
             lock_rotation: [false; 3],
         }
@@ -307,9 +533,33 @@ impl Default for RigidBodyComponent {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ColliderShape {
-    Box { half_extents: Vec3 },
-    Sphere { radius: Real },
-    Capsule { radius: Real, half_height: Real },
+    Box {
+        half_extents: Vec3,
+    },
+    Sphere {
+        radius: Real,
+    },
+    Capsule {
+        radius: Real,
+        half_height: Real,
+    },
+    Cylinder {
+        radius: Real,
+        half_height: Real,
+    },
+    ConvexHull {
+        points: Vec<Vec3>,
+    },
+    TriangleMesh {
+        mesh: AssetReference,
+    },
+    HeightField {
+        resolution: [u32; 2],
+        heights: AssetReference,
+    },
+    Compound {
+        children: Vec<(Transform, Box<ColliderShape>)>,
+    },
 }
 
 impl Default for ColliderShape {

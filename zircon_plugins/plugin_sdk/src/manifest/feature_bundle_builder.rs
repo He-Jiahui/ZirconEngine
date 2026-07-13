@@ -1,7 +1,7 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
 };
 
 use super::{default_export_packaging, PluginModuleBuilder};

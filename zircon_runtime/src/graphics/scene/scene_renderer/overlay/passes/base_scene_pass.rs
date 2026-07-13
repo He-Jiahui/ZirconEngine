@@ -45,20 +45,23 @@ impl BaseScenePass {
         light_grid_params_buffer: Option<&wgpu::Buffer>,
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
     {
-        let forward_shadow_receiver_bind_group = mesh_pipelines
-            .create_forward_shadow_receiver_bind_group(
-                device,
-                shadow_atlas_resources,
-                light_grid_params_buffer,
-                light_zbins_buffer,
-                light_tile_masks_buffer,
-            );
+        let forward_shadow_receiver_bind_group = mesh_pipelines.create_forward_shading_bind_group(
+            device,
+            frame,
+            render_region,
+            shadow_atlas_resources,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            integrated_volumetric_view,
+        );
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("BaseScenePass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -135,6 +138,7 @@ impl BaseScenePass {
         light_grid_params_buffer: Option<&wgpu::Buffer>,
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats {
@@ -146,14 +150,16 @@ impl BaseScenePass {
             return MeshDrawReplayStats::default();
         }
         let transparent_sprites = prepare_transparent_sprite_draws(device, streamer, frame);
-        let forward_shadow_receiver_bind_group = mesh_pipelines
-            .create_forward_shadow_receiver_bind_group(
-                device,
-                shadow_atlas_resources,
-                light_grid_params_buffer,
-                light_zbins_buffer,
-                light_tile_masks_buffer,
-            );
+        let forward_shadow_receiver_bind_group = mesh_pipelines.create_forward_shading_bind_group(
+            device,
+            frame,
+            render_region,
+            shadow_atlas_resources,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            integrated_volumetric_view,
+        );
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("TransparentMixedScenePass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {

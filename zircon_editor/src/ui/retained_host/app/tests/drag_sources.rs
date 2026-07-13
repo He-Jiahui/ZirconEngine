@@ -5,7 +5,7 @@ use crate::ui::host::editor_asset_manager::{
 };
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::snapshot::{
-    AssetItemSnapshot, AssetReferenceSnapshot, AssetWorkspaceSnapshot,
+    AssetItemSnapshot, AssetReferenceSnapshot, AssetTypeProjectionSnapshot, AssetWorkspaceSnapshot,
 };
 use zircon_runtime::asset::project::{AssetSourceUnit, PreviewState};
 use zircon_runtime_interface::resource::ResourceKind;
@@ -126,11 +126,11 @@ fn asset_field_drop_rejects_active_scene_instance_payload() {
 
     let projection = host
         .component_showcase_runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = host
         .component_showcase_runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = host
         .component_showcase_runtime
@@ -176,11 +176,11 @@ fn instance_field_drop_rejects_active_asset_payload() {
 
     let projection = host
         .component_showcase_runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = host
         .component_showcase_runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = host
         .component_showcase_runtime
@@ -232,11 +232,11 @@ fn object_field_drop_consumes_active_object_drag_payload() {
     );
     let projection = host
         .component_showcase_runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = host
         .component_showcase_runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = host
         .component_showcase_runtime
@@ -336,6 +336,9 @@ fn asset_drag_payload_resolves_visible_asset_metadata() {
         file_name: "grid.albedo.png".to_string(),
         extension: "png".to_string(),
         kind: ResourceKind::Texture,
+        asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::Texture,
+        ),
         preview_artifact_path: String::new(),
         dirty: false,
         diagnostics: Vec::new(),
@@ -400,6 +403,9 @@ fn asset_drag_payload_resolves_reference_panel_metadata() {
         locator: "res://materials/runtime_demo.mat".to_string(),
         display_name: "Runtime Demo".to_string(),
         kind: Some(ResourceKind::Material),
+        asset_type: Some(AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::Material,
+        )),
         known_project_asset: true,
     });
     snapshot.selection.used_by.push(AssetReferenceSnapshot {
@@ -407,6 +413,9 @@ fn asset_drag_payload_resolves_reference_panel_metadata() {
         locator: "file:///vendor/texture.png".to_string(),
         display_name: "External Texture".to_string(),
         kind: Some(ResourceKind::Texture),
+        asset_type: Some(AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::Texture,
+        )),
         known_project_asset: false,
     });
 
@@ -523,7 +532,7 @@ fn asset_drag_source_catalog() -> EditorAssetCatalogSnapshotRecord {
         project_name: "Sandbox".to_string(),
         project_root: "E:/Sandbox".to_string(),
         assets_root: "E:/Sandbox/assets".to_string(),
-        library_root: "E:/Sandbox/library".to_string(),
+        cache_root: "E:/Sandbox/.zircon/cache".to_string(),
         default_scene_uri: "res://scenes/main.scene.toml".to_string(),
         catalog_revision: 1,
         folders: vec![EditorAssetFolderRecord {
@@ -545,7 +554,7 @@ fn asset_drag_source_catalog() -> EditorAssetCatalogSnapshotRecord {
             extension: "png".to_string(),
             preview_state: PreviewState::Ready,
             meta_path: "E:/Sandbox/assets/grid.albedo.png.zmeta".to_string(),
-            preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
+            preview_artifact_path: "E:/Sandbox/.zircon/cache/editor-previews/grid.png".to_string(),
             source_mtime_unix_ms: 1,
             source_hash: "grid".to_string(),
             dirty: false,
@@ -578,7 +587,8 @@ fn asset_drag_source_catalog_with_reference() -> (
         extension: "mat".to_string(),
         preview_state: PreviewState::Ready,
         meta_path: "E:/Sandbox/assets/materials/runtime_demo.mat.zmeta".to_string(),
-        preview_artifact_path: "E:/Sandbox/library/editor-previews/runtime_demo.png".to_string(),
+        preview_artifact_path: "E:/Sandbox/.zircon/cache/editor-previews/runtime_demo.png"
+            .to_string(),
         source_mtime_unix_ms: 2,
         source_hash: "runtime-demo".to_string(),
         dirty: false,
@@ -690,7 +700,6 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
                     known_project_asset: true,
                 }],
                 referenced_by: Vec::new(),
-                editor_adapter: None,
                 package_id: None,
                 unit: AssetSourceUnit::Single,
                 included_files: Vec::new(),
@@ -811,11 +820,11 @@ fn asset_browser_pointer_drop_applies_real_payload_to_showcase_asset_field() {
     );
     let projection = host
         .component_showcase_runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .unwrap();
     let surface = host
         .component_showcase_runtime
-        .build_shared_surface("editor.window.ui_component_showcase")
+        .build_shared_surface("res://ui/editor/component_showcase.zui")
         .unwrap();
     let host_projection = host
         .component_showcase_runtime

@@ -1,7 +1,6 @@
 use super::*;
 
-const STRUCTURE_SUPPORT_EXPECTED_SLICE_PARENT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure_support_expected_slice.rs";
+const STRUCTURE_SUPPORT_EXPECTED_SLICE_PARENT: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure_support_expected_slice.rs";
 const STRUCTURE_SUPPORT_EXPECTED_SLICE_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_mounts.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal_ownership.rs",

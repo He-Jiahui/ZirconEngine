@@ -9,6 +9,10 @@ pub struct RenderGraphComputeDispatchRecord {
     pub pipeline_label: String,
     pub workgroup_size: [u32; 3],
     pub dispatch_groups: [u32; 3],
+    /// False when the count is generated on GPU and consumed by an indirect
+    /// dispatch that is intentionally not read back into the frame CPU path.
+    pub dispatch_groups_known: bool,
+    pub uploaded_bytes: u64,
     pub storage_write_resources: Vec<String>,
     pub resource_accesses: Vec<RenderGraphPassResourceAccess>,
 }
@@ -28,6 +32,8 @@ impl RenderGraphComputeDispatchRecord {
             pipeline_label: pipeline_label.into(),
             workgroup_size,
             dispatch_groups,
+            dispatch_groups_known: true,
+            uploaded_bytes: 0,
             storage_write_resources,
             resource_accesses: Vec::new(),
         }
@@ -38,6 +44,16 @@ impl RenderGraphComputeDispatchRecord {
         resource_accesses: Vec<RenderGraphPassResourceAccess>,
     ) -> Self {
         self.resource_accesses = resource_accesses;
+        self
+    }
+
+    pub fn with_uploaded_bytes(mut self, uploaded_bytes: u64) -> Self {
+        self.uploaded_bytes = uploaded_bytes;
+        self
+    }
+
+    pub fn with_gpu_indirect_dispatch_groups(mut self) -> Self {
+        self.dispatch_groups_known = false;
         self
     }
 
@@ -52,6 +68,7 @@ impl RenderGraphComputeDispatchRecord {
 pub struct RenderGraphComputeWorkloadDispatchContext {
     pub viewport_size: [u32; 2],
     pub cluster_grid_size: [u32; 2],
+    pub froxel_grid_size: [u32; 3],
     pub hzb_furthest_size: [u32; 2],
     pub indirect_args_count: u32,
     pub indirect_args_dispatch_group_count: Option<u32>,
@@ -67,6 +84,7 @@ impl RenderGraphComputeWorkloadDispatchContext {
         Self {
             viewport_size: [viewport_size[0].max(1), viewport_size[1].max(1)],
             cluster_grid_size: [cluster_grid_size[0].max(1), cluster_grid_size[1].max(1)],
+            froxel_grid_size: [1, 1, 1],
             hzb_furthest_size: [hzb_furthest_size[0].max(1), hzb_furthest_size[1].max(1)],
             indirect_args_count,
             indirect_args_dispatch_group_count: None,
@@ -78,6 +96,11 @@ impl RenderGraphComputeWorkloadDispatchContext {
         self
     }
 
+    pub fn with_froxel_grid_size(mut self, froxel_grid_size: [u32; 3]) -> Self {
+        self.froxel_grid_size = froxel_grid_size.map(|extent| extent.max(1));
+        self
+    }
+
     fn expected_dispatch_groups(self, workload: &RenderGraphComputeWorkload) -> [u32; 3] {
         match &workload.dispatch_extent {
             RenderGraphComputeDispatchExtent::Viewport => {
@@ -86,6 +109,13 @@ impl RenderGraphComputeWorkloadDispatchContext {
             RenderGraphComputeDispatchExtent::ClusterGrid => {
                 dispatch_groups_for_2d_extent(self.cluster_grid_size, workload.workgroup_size)
             }
+            RenderGraphComputeDispatchExtent::FroxelGrid => {
+                dispatch_groups_for_3d_extent(self.froxel_grid_size, workload.workgroup_size)
+            }
+            RenderGraphComputeDispatchExtent::FroxelGridXy => dispatch_groups_for_2d_extent(
+                [self.froxel_grid_size[0], self.froxel_grid_size[1]],
+                workload.workgroup_size,
+            ),
             RenderGraphComputeDispatchExtent::HzbFurthest => {
                 dispatch_groups_for_2d_extent(self.hzb_furthest_size, workload.workgroup_size)
             }
@@ -124,6 +154,14 @@ fn dispatch_groups_for_2d_extent(extent: [u32; 2], workgroup_size: [u32; 3]) -> 
         dispatch_group_count(extent[0], workgroup_size[0]),
         dispatch_group_count(extent[1], workgroup_size[1]),
         dispatch_group_count(1, workgroup_size[2]),
+    ]
+}
+
+fn dispatch_groups_for_3d_extent(extent: [u32; 3], workgroup_size: [u32; 3]) -> [u32; 3] {
+    [
+        dispatch_group_count(extent[0], workgroup_size[0]),
+        dispatch_group_count(extent[1], workgroup_size[1]),
+        dispatch_group_count(extent[2], workgroup_size[2]),
     ]
 }
 
@@ -186,7 +224,8 @@ impl RenderGraphComputeWorkloadAuditRecord {
             RenderGraphComputeWorkloadAuditStatus::PipelineLabelMismatch
         } else if actual.workgroup_size != planned.workgroup_size {
             RenderGraphComputeWorkloadAuditStatus::WorkgroupSizeMismatch
-        } else if actual.dispatch_groups != planned_dispatch_groups {
+        } else if actual.dispatch_groups_known && actual.dispatch_groups != planned_dispatch_groups
+        {
             RenderGraphComputeWorkloadAuditStatus::DispatchExtentMismatch
         } else {
             RenderGraphComputeWorkloadAuditStatus::Matched
@@ -199,7 +238,9 @@ impl RenderGraphComputeWorkloadAuditRecord {
             planned_workgroup_size: Some(planned.workgroup_size),
             actual_workgroup_size: Some(actual.workgroup_size),
             planned_dispatch_groups: Some(planned_dispatch_groups),
-            actual_dispatch_groups: Some(actual.dispatch_groups),
+            actual_dispatch_groups: actual
+                .dispatch_groups_known
+                .then_some(actual.dispatch_groups),
             status,
         }
     }
@@ -232,374 +273,13 @@ impl RenderGraphComputeWorkloadAuditRecord {
             planned_workgroup_size: None,
             actual_workgroup_size: Some(actual.workgroup_size),
             planned_dispatch_groups: None,
-            actual_dispatch_groups: Some(actual.dispatch_groups),
+            actual_dispatch_groups: actual
+                .dispatch_groups_known
+                .then_some(actual.dispatch_groups),
             status: RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch,
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::render_graph::{
-        RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-        RenderGraphPassResourceAccess, RenderGraphResourceAccessKind, RenderGraphResourceKind,
-    };
-
-    use super::super::RenderGraphExecutionRecord;
-    use super::{
-        RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadAuditStatus,
-        RenderGraphComputeWorkloadDispatchContext,
-    };
-
-    fn dispatch_context() -> RenderGraphComputeWorkloadDispatchContext {
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 130)
-    }
-
-    #[test]
-    fn execution_record_tracks_compute_dispatch_metadata() {
-        let mut record = RenderGraphExecutionRecord::default();
-
-        record.push_compute_dispatch(RenderGraphComputeDispatchRecord::new(
-            "ssao-evaluate",
-            "ao.ssao-evaluate",
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            [40, 30, 1],
-            vec!["ambient-occlusion".to_string()],
-        ));
-        record.push_compute_dispatch(
-            RenderGraphComputeDispatchRecord::new(
-                "light-grid-build",
-                "lighting.light-grid",
-                "zircon-cluster-pipeline",
-                [8, 8, 1],
-                [5, 4, 1],
-                vec!["light-list".to_string()],
-            )
-            .with_resource_accesses(vec![RenderGraphPassResourceAccess {
-                name: "light-list".to_string(),
-                kind: RenderGraphResourceKind::TransientBuffer,
-                access: RenderGraphResourceAccessKind::Write,
-                attachment_ops: None,
-            }]),
-        );
-
-        assert_eq!(record.compute_dispatch_count(), 2);
-        assert_eq!(record.compute_dispatch_group_volume_total(), 1220);
-        assert_eq!(record.compute_storage_write_resource_count(), 2);
-        assert_eq!(
-            record.compute_dispatches()[0].storage_write_resources,
-            ["ambient-occlusion".to_string()]
-        );
-        assert_eq!(record.compute_dispatches()[1].resource_accesses.len(), 1);
-        assert_eq!(
-            record.compute_dispatches()[1].resource_accesses[0].access,
-            RenderGraphResourceAccessKind::Write
-        );
-    }
-
-    #[test]
-    fn execution_record_audits_planned_compute_workloads_against_dispatches() {
-        let mut record = RenderGraphExecutionRecord::default();
-        let planned = RenderGraphComputeWorkload::new(
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            RenderGraphComputeDispatchExtent::Viewport,
-        );
-        let matched = RenderGraphComputeDispatchRecord::new(
-            "ssao-evaluate",
-            "ao.ssao-evaluate",
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            [40, 30, 1],
-            vec!["ambient-occlusion".to_string()],
-        );
-        let unexpected = RenderGraphComputeDispatchRecord::new(
-            "unexpected-compute",
-            "unexpected.executor",
-            "unexpected-pipeline",
-            [4, 4, 1],
-            [1, 1, 1],
-            Vec::new(),
-        );
-
-        record.audit_compute_workload(
-            "ssao-evaluate",
-            "ao.ssao-evaluate",
-            Some(&planned),
-            dispatch_context(),
-            std::slice::from_ref(&matched),
-        );
-        record.audit_compute_workload(
-            "compute-fixed",
-            "compute.fixed",
-            Some(&RenderGraphComputeWorkload::fixed(
-                "fixed-pipeline",
-                [4, 4, 1],
-                [2, 3, 1],
-            )),
-            dispatch_context(),
-            &[RenderGraphComputeDispatchRecord::new(
-                "compute-fixed",
-                "compute.fixed",
-                "fixed-pipeline",
-                [4, 4, 1],
-                [2, 3, 1],
-                Vec::new(),
-            )],
-        );
-        record.audit_compute_workload(
-            "hzb-build",
-            "visibility.hzb-build",
-            Some(&RenderGraphComputeWorkload::hzb_furthest(
-                "zircon-hzb-build-pipeline",
-                [8, 8, 1],
-            )),
-            dispatch_context(),
-            &[RenderGraphComputeDispatchRecord::new(
-                "hzb-build",
-                "visibility.hzb-build",
-                "zircon-hzb-build-pipeline",
-                [8, 8, 1],
-                [128, 128, 1],
-                vec!["hzb-furthest".to_string()],
-            )],
-        );
-        record.audit_compute_workload(
-            "hzb-occlusion-cull",
-            "visibility.hzb-occlusion-cull",
-            Some(&RenderGraphComputeWorkload::indirect_args(
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-            )),
-            dispatch_context(),
-            &[RenderGraphComputeDispatchRecord::new(
-                "hzb-occlusion-cull",
-                "visibility.hzb-occlusion-cull",
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-                [3, 1, 1],
-                vec!["mesh.indirect-args".to_string()],
-            )],
-        );
-        record.audit_compute_workload(
-            "light-grid-build",
-            "lighting.light-grid",
-            Some(&RenderGraphComputeWorkload::new(
-                "zircon-cluster-pipeline",
-                [8, 8, 1],
-                RenderGraphComputeDispatchExtent::ClusterGrid,
-            )),
-            dispatch_context(),
-            &[],
-        );
-        record.audit_compute_workload(
-            "unexpected-compute",
-            "unexpected.executor",
-            None,
-            dispatch_context(),
-            &[unexpected],
-        );
-
-        assert_eq!(record.compute_workload_planned_count(), 5);
-        assert_eq!(record.compute_workload_matched_count(), 4);
-        assert_eq!(record.compute_workload_missing_dispatch_count(), 1);
-        assert_eq!(record.compute_workload_unexpected_dispatch_count(), 1);
-        assert_eq!(record.compute_workload_mismatch_count(), 0);
-        assert_eq!(
-            record.compute_workload_audit()[0].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-        assert_eq!(
-            record.compute_workload_audit()[1].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-        assert_eq!(
-            record.compute_workload_audit()[2].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-        assert_eq!(
-            record.compute_workload_audit()[3].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-        assert_eq!(
-            record.compute_workload_audit()[4].status,
-            RenderGraphComputeWorkloadAuditStatus::MissingDispatch
-        );
-        assert_eq!(
-            record.compute_workload_audit()[5].status,
-            RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch
-        );
-        assert_eq!(
-            record.compute_workload_audit()[0].planned_dispatch_groups,
-            Some([40, 30, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[1].planned_dispatch_groups,
-            Some([2, 3, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[2].planned_dispatch_groups,
-            Some([128, 128, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[3].planned_dispatch_groups,
-            Some([3, 1, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[4].planned_dispatch_groups,
-            Some([5, 4, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[5].actual_dispatch_groups,
-            Some([1, 1, 1])
-        );
-    }
-
-    #[test]
-    fn execution_record_audits_zero_indirect_arg_workload_as_zero_groups() {
-        let mut record = RenderGraphExecutionRecord::default();
-        let context =
-            RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 0);
-
-        record.audit_compute_workload(
-            "hzb-occlusion-cull",
-            "visibility.hzb-occlusion-cull",
-            Some(&RenderGraphComputeWorkload::indirect_args(
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-            )),
-            context,
-            &[RenderGraphComputeDispatchRecord::new(
-                "hzb-occlusion-cull",
-                "visibility.hzb-occlusion-cull",
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-                [0, 1, 1],
-                Vec::new(),
-            )],
-        );
-
-        assert_eq!(
-            record.compute_workload_audit()[0].planned_dispatch_groups,
-            Some([0, 1, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[0].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-    }
-
-    #[test]
-    fn execution_record_audits_phase_local_indirect_arg_workload_groups() {
-        let mut record = RenderGraphExecutionRecord::default();
-        let context =
-            RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 3)
-                .with_indirect_args_dispatch_group_count(3);
-
-        record.audit_compute_workload(
-            "hzb-occlusion-cull",
-            "visibility.hzb-occlusion-cull",
-            Some(&RenderGraphComputeWorkload::indirect_args(
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-            )),
-            context,
-            &[RenderGraphComputeDispatchRecord::new(
-                "hzb-occlusion-cull",
-                "visibility.hzb-occlusion-cull",
-                "zircon-hzb-occlusion-cull-pipeline",
-                [64, 1, 1],
-                [3, 1, 1],
-                Vec::new(),
-            )],
-        );
-
-        assert_eq!(
-            record.compute_workload_audit()[0].planned_dispatch_groups,
-            Some([3, 1, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[0].status,
-            RenderGraphComputeWorkloadAuditStatus::Matched
-        );
-    }
-
-    #[test]
-    fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches() {
-        let mut record = RenderGraphExecutionRecord::default();
-        let planned = RenderGraphComputeWorkload::new(
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            RenderGraphComputeDispatchExtent::Viewport,
-        );
-        let wrong_label = RenderGraphComputeDispatchRecord::new(
-            "ssao-evaluate",
-            "ao.ssao-evaluate",
-            "other-pipeline",
-            [8, 8, 1],
-            [40, 30, 1],
-            Vec::new(),
-        );
-        let wrong_workgroup = RenderGraphComputeDispatchRecord::new(
-            "ssao-evaluate-2",
-            "ao.ssao-evaluate",
-            "zircon-ssao-pipeline",
-            [16, 8, 1],
-            [40, 30, 1],
-            Vec::new(),
-        );
-        let wrong_extent = RenderGraphComputeDispatchRecord::new(
-            "ssao-evaluate-3",
-            "ao.ssao-evaluate",
-            "zircon-ssao-pipeline",
-            [8, 8, 1],
-            [39, 30, 1],
-            Vec::new(),
-        );
-
-        record.audit_compute_workload(
-            "ssao-evaluate",
-            "ao.ssao-evaluate",
-            Some(&planned),
-            dispatch_context(),
-            &[wrong_label],
-        );
-        record.audit_compute_workload(
-            "ssao-evaluate-2",
-            "ao.ssao-evaluate",
-            Some(&planned),
-            dispatch_context(),
-            &[wrong_workgroup],
-        );
-        record.audit_compute_workload(
-            "ssao-evaluate-3",
-            "ao.ssao-evaluate",
-            Some(&planned),
-            dispatch_context(),
-            &[wrong_extent],
-        );
-
-        assert_eq!(record.compute_workload_mismatch_count(), 3);
-        assert_eq!(
-            record.compute_workload_audit()[0].status,
-            RenderGraphComputeWorkloadAuditStatus::PipelineLabelMismatch
-        );
-        assert_eq!(
-            record.compute_workload_audit()[1].status,
-            RenderGraphComputeWorkloadAuditStatus::WorkgroupSizeMismatch
-        );
-        assert_eq!(
-            record.compute_workload_audit()[2].status,
-            RenderGraphComputeWorkloadAuditStatus::DispatchExtentMismatch
-        );
-        assert_eq!(
-            record.compute_workload_audit()[2].planned_dispatch_groups,
-            Some([40, 30, 1])
-        );
-        assert_eq!(
-            record.compute_workload_audit()[2].actual_dispatch_groups,
-            Some([39, 30, 1])
-        );
-    }
-}
+mod tests;

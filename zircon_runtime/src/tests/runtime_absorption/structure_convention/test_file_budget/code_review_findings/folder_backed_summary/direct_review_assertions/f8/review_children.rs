@@ -66,7 +66,9 @@ pub(super) fn assert_f8_review_children_are_folder_backed(sources: &CodeReviewFi
         "F8 descriptor privacy leaf owners keep private-field and constructor review guards",
         &[
             sources.f8_descriptor_privacy_private_fields.as_str(),
-            sources.f8_descriptor_privacy_constructor_retirement.as_str(),
+            sources
+                .f8_descriptor_privacy_constructor_retirement
+                .as_str(),
             sources.f8_descriptor_privacy_status_mirrors.as_str(),
         ]
         .join("\n"),

@@ -1,19 +1,21 @@
-use zircon_editor::core::editor_authoring_extension::AssetCreationTemplateDescriptor;
+use zircon_editor::core::asset::{
+    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
+    AssetTypePresentation, ThumbnailProviderDescriptor,
+};
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
-    EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
+    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
 };
-use zircon_editor::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationPath, UndoableEditorOperation,
-};
+use zircon_editor::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginDistributionManifest, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportTargetPlatform, plugin::PluginDistributionManifest,
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
 
 use crate::{
@@ -156,8 +158,8 @@ fn register_export_operations(
             .menu_path()
             .expect("desktop export operations are menu-backed")
             .to_string();
-        let path = operation.path().clone();
-        registry.register_operation(operation)?;
+        let path = operation.id().clone();
+        registry.register_command(operation)?;
         registry.register_menu_item(
             EditorMenuItemDescriptor::new(menu_path, path).with_required_capabilities([CAPABILITY]),
         )?;
@@ -165,7 +167,7 @@ fn register_export_operations(
     Ok(())
 }
 
-fn export_operations() -> Result<Vec<EditorOperationDescriptor>, EditorExtensionRegistryError> {
+fn export_operations() -> Result<Vec<EditorCommandDescriptor>, EditorExtensionRegistryError> {
     let generate = parse_operation(EXPORT_OPERATION_GENERATE_PLAN)?;
     let source_template = parse_operation(EXPORT_OPERATION_SOURCE_TEMPLATE)?;
     let library_embed = parse_operation(EXPORT_OPERATION_LIBRARY_EMBED)?;
@@ -175,28 +177,28 @@ fn export_operations() -> Result<Vec<EditorOperationDescriptor>, EditorExtension
     let open_profile = parse_operation(EXPORT_OPERATION_OPEN_PROFILE)?;
 
     Ok(vec![
-        EditorOperationDescriptor::new(generate, "Generate Desktop Export Plan")
+        EditorCommandDescriptor::pending_operation(generate, "Generate Desktop Export Plan")
             .with_menu_path("Project/Export/Desktop/Generate Plan")
             .with_required_capabilities([CAPABILITY]),
-        EditorOperationDescriptor::new(source_template, "Export Source Template")
+        EditorCommandDescriptor::pending_operation(source_template, "Export Source Template")
             .with_menu_path("Project/Export/Desktop/Source Template")
             .with_required_capabilities([CAPABILITY]),
-        EditorOperationDescriptor::new(library_embed, "Export Library Embed")
+        EditorCommandDescriptor::pending_operation(library_embed, "Export Library Embed")
             .with_menu_path("Project/Export/Desktop/Library Embed")
             .with_required_capabilities([CAPABILITY]),
-        EditorOperationDescriptor::new(native_dynamic, "Export Native Dynamic")
+        EditorCommandDescriptor::pending_operation(native_dynamic, "Export Native Dynamic")
             .with_menu_path("Project/Export/Desktop/Native Dynamic")
             .with_required_capabilities([CAPABILITY, NATIVE_DYNAMIC_REPORT_CAPABILITY]),
-        EditorOperationDescriptor::new(diagnostics, "Open Export Diagnostics")
+        EditorCommandDescriptor::pending_operation(diagnostics, "Open Export Diagnostics")
             .with_menu_path("Project/Export/Desktop/Diagnostics")
             .with_required_capabilities([CAPABILITY, DIAGNOSTICS_CAPABILITY]),
-        EditorOperationDescriptor::new(create_profile, "Create Desktop Export Profile")
+        EditorCommandDescriptor::pending_operation(create_profile, "Create Desktop Export Profile")
             .with_menu_path("Assets/Create/Desktop Export Profile")
             .with_undoable(UndoableEditorOperation::new(
                 "Create Desktop Export Profile",
             ))
             .with_required_capabilities([CAPABILITY]),
-        EditorOperationDescriptor::new(open_profile, "Open Desktop Export Profile")
+        EditorCommandDescriptor::pending_operation(open_profile, "Open Desktop Export Profile")
             .with_menu_path("Assets/Open/Desktop Export Profile")
             .with_required_capabilities([CAPABILITY]),
     ])
@@ -216,25 +218,32 @@ fn register_export_profile_authoring(
 ) -> Result<(), EditorExtensionRegistryError> {
     let create_profile = parse_operation(EXPORT_OPERATION_CREATE_PROFILE)?;
     let open_profile = parse_operation(EXPORT_OPERATION_OPEN_PROFILE)?;
+    let asset_type = AssetTypeId::parse(EXPORT_PROFILE_ASSET_KIND)?;
 
-    registry.register_asset_creation_template(
-        AssetCreationTemplateDescriptor::new(
-            "editor_build_export_desktop.profile",
-            "Desktop Export Profile",
-            EXPORT_PROFILE_ASSET_KIND,
-            create_profile,
+    registry.register_asset_type_contribution(
+        AssetTypeContribution::define(
+            asset_type,
+            AssetTypePresentation::new(
+                "Desktop Export Profile",
+                "EXP",
+                "asset-export-profile",
+                "asset.build",
+            ),
+            ThumbnailProviderDescriptor::Icon("asset-export-profile".to_owned()),
         )
-        .with_default_document(EXPORT_PROFILE_TEMPLATE_DOCUMENT)
-        .with_required_capabilities([CAPABILITY]),
-    )?;
-    registry.register_asset_editor(
-        AssetEditorDescriptor::new(
-            EXPORT_PROFILE_ASSET_KIND,
-            EXPORT_VIEW_ID,
-            "Desktop Export Profile",
-            open_profile,
+        .with_toolkit(
+            AssetToolkitDescriptor::new(EXPORT_VIEW_ID, open_profile)
+                .with_required_capabilities([CAPABILITY]),
         )
-        .with_required_capabilities([CAPABILITY]),
+        .with_creation_template(
+            AssetCreationTemplateDescriptor::new(
+                "editor_build_export_desktop.profile",
+                "Desktop Export Profile",
+                create_profile,
+            )
+            .with_default_document(EXPORT_PROFILE_TEMPLATE_DOCUMENT)
+            .with_required_capabilities([CAPABILITY]),
+        ),
     )?;
     registry.register_component_drawer(
         ComponentDrawerDescriptor::new(
@@ -250,5 +259,5 @@ fn register_export_profile_authoring(
 }
 
 fn parse_operation(path: &str) -> Result<EditorOperationPath, EditorExtensionRegistryError> {
-    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::Operation)
+    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::OperationPath)
 }

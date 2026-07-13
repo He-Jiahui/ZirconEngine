@@ -1,8 +1,9 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ExportPackagingStrategy;
 use crate::plugin::{
-    ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
-    RuntimePluginCatalog, RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePluginCatalog,
+    RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
 };
 
 #[test]
@@ -15,17 +16,19 @@ fn runtime_plugin_feature_registration_report_rejects_invalid_feature_ids() {
     let registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature id `soundfeature`")
-        && diagnostic.contains("dot-separated namespace")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature id `soundfeature`")
+            && diagnostic.contains("dot-separated namespace")
+    }));
 
     let mut catalog = RuntimePluginCatalog::default();
     catalog.register_feature(&feature);
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("feature id `soundfeature`")
-        && diagnostic.contains("dot-separated namespace")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("feature id `soundfeature`")
+            && diagnostic.contains("dot-separated namespace")
+    }));
 }
 
 #[test]
@@ -52,9 +55,10 @@ fn runtime_plugin_feature_registration_report_rejects_invalid_feature_owners() {
     let registration = RuntimePluginFeatureRegistrationReport::from_feature(&cross_owner);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature id `animation.timeline`")
-        && diagnostic.contains("owner_plugin_id `sound`")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature id `animation.timeline`")
+            && diagnostic.contains("owner_plugin_id `sound`")
+    }));
 }
 
 #[test]
@@ -67,12 +71,14 @@ fn runtime_plugin_feature_registration_report_rejects_malformed_owner_package_to
     let registration = RuntimePluginFeatureRegistrationReport::from_feature(&malformed_owner);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("owner_plugin_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("owner_plugin_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("owner_plugin_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("owner_plugin_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
 }
 
 #[test]
@@ -85,9 +91,10 @@ fn runtime_plugin_feature_registration_report_rejects_untrimmed_display_names() 
     let registration = RuntimePluginFeatureRegistrationReport::from_feature(&feature);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("display_name ` Sound Timeline `")
-        && diagnostic.contains("non-empty and trimmed")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("display_name ` Sound Timeline `")
+            && diagnostic.contains("non-empty and trimmed")
+    }));
 }
 
 #[test]
@@ -114,9 +121,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_capabilitie
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("capability `Runtime.Feature.Sound`")
-        && diagnostic.contains("lowercase ASCII")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("capability `Runtime.Feature.Sound`")
+            && diagnostic.contains("lowercase ASCII")
+    }));
 }
 
 #[test]
@@ -130,9 +138,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_duplicate_capabilit
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("capability `runtime.feature.sound.timeline`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("capability `runtime.feature.sound.timeline`")
+            && diagnostic.contains("unique")
+    }));
 }
 
 #[test]
@@ -148,9 +157,9 @@ fn native_runtime_plugin_feature_registration_report_rejects_empty_dependencies(
     assert!(registration.diagnostics.iter().any(
         |diagnostic| diagnostic.contains("dependencies") && diagnostic.contains("at least one")
     ));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("exactly one primary dependency")
-        && diagnostic.contains("found 0")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("exactly one primary dependency") && diagnostic.contains("found 0")
+    }));
 }
 
 #[test]
@@ -167,12 +176,14 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_dependencie
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("dependency plugin_id `Sound`")
-        && diagnostic.contains("lowercase ASCII")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("dependency capability `Runtime.Plugin.Sound`")
-        && diagnostic.contains("lowercase ASCII")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("dependency plugin_id `Sound`")
+            && diagnostic.contains("lowercase ASCII")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("dependency capability `Runtime.Plugin.Sound`")
+            && diagnostic.contains("lowercase ASCII")
+    }));
 }
 
 #[test]
@@ -189,12 +200,14 @@ fn native_runtime_plugin_feature_registration_report_rejects_malformed_dependenc
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("dependency plugin_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("dependency plugin_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("dependency plugin_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("dependency plugin_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
 }
 
 #[test]
@@ -205,12 +218,14 @@ fn native_runtime_plugin_feature_registration_report_rejects_malformed_provider_
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("provider_package_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("provider_package_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("provider_package_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("provider_package_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
 }
 
 #[test]
@@ -221,9 +236,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_untrimmed_provider_
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("provider_package_id ` sound_timeline `")
-        && diagnostic.contains("non-empty and trimmed")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("provider_package_id ` sound_timeline `")
+            && diagnostic.contains("non-empty and trimmed")
+    }));
 }
 
 #[test]
@@ -233,12 +249,14 @@ fn runtime_plugin_feature_registration_report_rejects_malformed_provider_package
         .with_provider_package_id("1sound__");
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("provider_package_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("provider_package_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("provider_package_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("provider_package_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
 }
 
 #[test]
@@ -259,9 +277,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_duplicate_dependenc
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("dependency `sound` capability `runtime.plugin.sound`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("dependency `sound` capability `runtime.plugin.sound`")
+            && diagnostic.contains("unique")
+    }));
 }
 
 #[test]
@@ -282,12 +301,13 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_primary_dep
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("primary dependency `animation`")
-        && diagnostic.contains("owner_plugin_id `sound`")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("exactly one primary dependency")
-        && diagnostic.contains("found 2")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("primary dependency `animation`")
+            && diagnostic.contains("owner_plugin_id `sound`")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("exactly one primary dependency") && diagnostic.contains("found 2")
+    }));
 }
 
 #[test]
@@ -303,12 +323,14 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_module_iden
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module name `sound.other.runtime`")
-        && diagnostic.contains("feature id `sound.timeline`")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module crate_name `zircon-plugin-sound`")
-        && diagnostic.contains("zircon_plugin_")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("module name `sound.other.runtime`")
+            && diagnostic.contains("feature id `sound.timeline`")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("module crate_name `zircon-plugin-sound`")
+            && diagnostic.contains("zircon_plugin_")
+    }));
 }
 
 #[test]
@@ -324,9 +346,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_malformed_module_cr
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module crate_name `zircon_plugin_sound__runtime`")
-        && diagnostic.contains("repeated underscores")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("module crate_name `zircon_plugin_sound__runtime`")
+            && diagnostic.contains("repeated underscores")
+    }));
 }
 
 #[test]
@@ -354,9 +377,11 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_module_capa
         .any(|diagnostic| diagnostic.contains(
             "runtime module `sound.timeline.runtime` capability `editor.feature.sound.timeline`"
         ) && diagnostic.contains("runtime.")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module `sound.timeline.runtime` capability `editor.feature.sound.timeline`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .contains("module `sound.timeline.runtime` capability `editor.feature.sound.timeline`")
+            && diagnostic.contains("unique")
+    }));
 }
 
 #[test]
@@ -383,12 +408,14 @@ fn native_runtime_plugin_feature_registration_report_rejects_invalid_module_targ
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module `sound.timeline.runtime` target_modes")
-        && diagnostic.contains("at least one")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("editor module `sound.timeline.editor` target mode ClientRuntime")
-        && diagnostic.contains("EditorHost")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("module `sound.timeline.runtime` target_modes")
+            && diagnostic.contains("at least one")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("editor module `sound.timeline.editor` target mode ClientRuntime")
+            && diagnostic.contains("EditorHost")
+    }));
 }
 
 #[test]
@@ -416,9 +443,9 @@ fn native_runtime_plugin_feature_registration_report_rejects_duplicate_module_na
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("module name `sound.timeline.runtime`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("module name `sound.timeline.runtime`") && diagnostic.contains("unique")
+    }));
 }
 
 #[test]
@@ -461,9 +488,10 @@ fn native_runtime_plugin_feature_registration_report_rejects_duplicate_default_p
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("default_packaging strategy LibraryEmbed")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("default_packaging strategy LibraryEmbed")
+            && diagnostic.contains("unique")
+    }));
 }
 
 struct FeatureManifestFixture {

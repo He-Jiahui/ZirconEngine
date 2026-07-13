@@ -1,9 +1,8 @@
+use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
     ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
 };
-use zircon_editor::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationPath, UndoableEditorOperation,
-};
+use zircon_editor::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
 use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
@@ -68,20 +67,21 @@ pub const SOUND_AUDIO_VOLUME_OPERATION_PATHS: &[&str] = &[
 pub fn register_sound_authoring_bindings(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
-    for descriptor in sound_editor_operation_descriptors() {
-        registry.register_operation(descriptor)?;
+    for descriptor in sound_editor_command_descriptors() {
+        registry.register_command(descriptor)?;
     }
     Ok(())
 }
 
-pub fn sound_editor_operation_descriptors() -> Vec<EditorOperationDescriptor> {
+pub fn sound_editor_command_descriptors() -> Vec<EditorCommandDescriptor> {
     sound_editor_operation_specs()
         .into_iter()
         .map(|spec| {
             let path = EditorOperationPath::parse(spec.path).expect("valid sound operation path");
-            let mut descriptor = EditorOperationDescriptor::new(path, spec.display_name)
-                .with_payload_schema_id(spec.payload_schema)
-                .with_required_capabilities([SOUND_AUTHORING_CAPABILITY]);
+            let mut descriptor =
+                EditorCommandDescriptor::pending_operation(path, spec.display_name)
+                    .with_payload_schema_id(spec.payload_schema)
+                    .with_required_capabilities([SOUND_AUTHORING_CAPABILITY]);
             if spec.undoable {
                 descriptor =
                     descriptor.with_undoable(UndoableEditorOperation::new(spec.display_name));

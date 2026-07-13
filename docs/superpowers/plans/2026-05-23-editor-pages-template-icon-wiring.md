@@ -15,8 +15,8 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/assets/icons/editor_pages/**
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/assets/icons/editor_pages
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
@@ -36,7 +36,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
   - docs/superpowers/plans/2026-05-23-editor-pages-template-icon-wiring.md
@@ -252,7 +252,7 @@ Close the visual-risk note from the design spec by proving the wired `editor_pag
 
 ### Implementation Slices
 
-- [x] Add retained-host painter coverage in `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs` for the unique wired `editor_pages` template icon paths at 16 x 16 px.
+- [x] Add retained-host painter coverage in `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs` for the unique wired `editor_pages` template icon paths at 16 x 16 px.
 - [x] Keep SVG inventory unchanged at 204 files and preserve all 7 `gap` rows.
 - [x] Re-export the manifest-specific runtime-profile helper APIs from `zircon_runtime/src/lib.rs` so `zircon_app` can keep using the runtime crate root for provider-aware profile selection.
 - [x] Keep the optional project manifest reusable in `zircon_app/src/entry/builtin_modules.rs` when the feature-registration resolver path needs the profile fallback manifest and later feature dependency checks still need the original optional manifest.

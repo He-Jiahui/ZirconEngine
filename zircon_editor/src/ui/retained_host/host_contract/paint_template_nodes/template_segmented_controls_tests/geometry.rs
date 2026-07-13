@@ -1,7 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::METRICS;
 use super::super::super::template_segmented_control_geometry::{
-    segment_rect, segmented_body_rect, workbench_segmented_control_metrics_from_host,
+    segment_rect, segmented_body_rect, workbench_segmented_control_metrics,
+    workbench_segmented_control_metrics_from_host,
 };
 use super::support::{frame_rect, labeled_segmented_node};
 
@@ -23,10 +24,12 @@ fn segment_rects_split_available_width_evenly() {
 fn segmented_control_offsets_group_label_body() {
     let node = labeled_segmented_node();
     let body = segmented_body_rect(&node, &frame_rect(&node.frame));
+    let metrics = workbench_segmented_control_metrics();
+    let label_block_height = metrics.segment_group_label_height + metrics.segment_group_label_gap;
 
     assert_eq!(body.x, 18.0);
-    assert_eq!(body.y, 22.0);
-    assert_eq!(body.height, 30.0);
+    assert_close(body.y, node.frame.y + label_block_height);
+    assert_close(body.height, node.frame.height - label_block_height);
 }
 
 #[test]

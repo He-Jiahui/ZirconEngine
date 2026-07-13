@@ -5,6 +5,9 @@ use crate::core::framework::navigation::{
 use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, ScriptHostValue};
 use crate::core::manager::resolve_navigation_manager;
 use crate::core::math::Vec3;
+use crate::scene::{
+    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+};
 use crate::script::current_script_runtime_call_context;
 
 use super::error::{GameplayHostError, GameplayHostResult};
@@ -58,7 +61,9 @@ pub(super) fn move_entity_with_navigation(
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let runtime = current_script_runtime_call_context()?;
     let core = runtime.core_handle()?;
-    let navigation = resolve_navigation_manager(&core).map_err(script_core_error)?;
+    let navigation = core
+        .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
+        .map_err(script_core_error)?;
     let target = runtime.level.with_world(|world| {
         world
             .world_transform(target_entity)

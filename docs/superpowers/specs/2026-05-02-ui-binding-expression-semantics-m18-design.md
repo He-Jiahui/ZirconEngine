@@ -4,13 +4,12 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
-  - zircon_runtime/src/ui/template/document.rs
-  - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/compiler/compile.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
-  - zircon_runtime/src/ui/component/descriptor/prop_schema.rs
-  - zircon_runtime/src/ui/component/value.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/prop_schema.rs
+  - zircon_runtime_interface/src/ui/component/value.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
@@ -18,7 +17,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime/src/ui/template/asset/binding/mod.rs
   - zircon_runtime/src/ui/template/asset/binding/validation.rs
-  - zircon_runtime/src/ui/template/document.rs
+  - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/compiler/compile.rs
   - zircon_runtime/tests/ui_asset_binding_contract.rs
 plan_sources:

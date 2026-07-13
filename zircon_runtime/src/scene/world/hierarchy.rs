@@ -79,6 +79,7 @@ impl World {
         }
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
+        self.advance_world_generation();
         true
     }
 

@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "05b50259-3a92-4f85-a420-bfdd91341a3c"
 url = "res://models/kenney_graveyard/Textures/colormap.png"
 asset_kind = "Texture"
@@ -8,11 +8,12 @@ artifact_locator = "lib://textures/98c738a8-4fc2-9482-1a11-3ca8bea27f50.zasset"
 importer_id = "texture_importer.image"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1760670022000
-source_hash = "39067eee3dfeb5ef"
+source_digest = "39067eee3dfeb5ef"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""
 dependencies = []
+tags = []
 
 [import_settings]
 
@@ -22,3 +23,4 @@ url = "res://models/kenney_graveyard/Textures/colormap.png"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/98c738a8-4fc2-9482-1a11-3ca8bea27f50.zasset"
 dependencies = []
+tags = []

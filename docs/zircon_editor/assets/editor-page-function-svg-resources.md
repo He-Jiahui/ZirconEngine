@@ -30,7 +30,7 @@ related_code:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
-  - zircon_editor/assets/icons/editor_pages/**
+  - zircon_editor/assets/icons/editor_pages
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui

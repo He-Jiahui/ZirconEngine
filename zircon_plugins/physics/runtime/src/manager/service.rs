@@ -108,8 +108,10 @@ impl PhysicsManager for DefaultPhysicsManager {
             .remove(&world)
             .unwrap_or_default()
     }
+}
 
-    fn tick_scene_world(
+impl DefaultPhysicsManager {
+    pub(crate) fn tick_scene_world(
         &self,
         world_handle: WorldHandle,
         world: &mut World,

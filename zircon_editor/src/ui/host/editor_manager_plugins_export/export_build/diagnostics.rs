@@ -3,7 +3,8 @@ use std::fs;
 use std::path::Path;
 
 use super::cargo_invocation::EditorExportCargoInvocation;
-use zircon_runtime::plugin::{ExportBuildPlan, ExportPlatformHostKind};
+use zircon_runtime::core::framework::project::ExportPlatformHostKind;
+use zircon_runtime::plugin::ExportBuildPlan;
 
 pub(super) fn finalize_export_diagnostics(output_root: &Path, diagnostics: &mut Vec<String>) {
     normalize_export_diagnostics(diagnostics);
@@ -45,7 +46,8 @@ pub(super) fn cargo_invocation_diagnostics(
 pub(super) fn skipped_export_cargo_build_diagnostic(plan: &ExportBuildPlan) -> String {
     match plan.platform_policy.host_kind {
         ExportPlatformHostKind::Desktop => {
-            "export cargo build skipped because no generated Cargo.toml was materialized".to_string()
+            "export cargo build skipped because no generated Cargo.toml was materialized"
+                .to_string()
         }
         ExportPlatformHostKind::MobileApp => format!(
             "export cargo build skipped because target platform {} emits a mobile host scaffold that must be built by the platform package toolchain",
@@ -56,7 +58,8 @@ pub(super) fn skipped_export_cargo_build_diagnostic(plan: &ExportBuildPlan) -> S
             plan.profile.target_platform.as_str()
         ),
         ExportPlatformHostKind::Headless => {
-            "export cargo build skipped because no generated Cargo.toml was materialized".to_string()
+            "export cargo build skipped because no generated Cargo.toml was materialized"
+                .to_string()
         }
     }
 }

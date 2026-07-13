@@ -1,11 +1,13 @@
-use zircon_editor::core::commands::EditorCommandDescriptor;
-use zircon_editor::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, ViewportToolModeDescriptor,
+use zircon_editor::core::asset::{
+    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
+    AssetTypePresentation, ThumbnailProviderDescriptor,
 };
+use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorUiTemplateDescriptor, ViewDescriptor,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
@@ -129,15 +131,7 @@ fn register_ragdoll_profile_editor(
         ),
     )?;
     let open_operation = parse_operation(&format!("view.{PHYSICS_RAGDOLL_PROFILE_VIEW_ID}.open"))?;
-    registry.register_asset_editor(
-        AssetEditorDescriptor::new(
-            RAGDOLL_PROFILE_ASSET_KIND,
-            PHYSICS_RAGDOLL_PROFILE_VIEW_ID,
-            "Ragdoll Profile",
-            open_operation,
-        )
-        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
-    )?;
+    let asset_type = AssetTypeId::parse(RAGDOLL_PROFILE_ASSET_KIND)?;
 
     let create_operation = parse_operation(PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION)?;
     registry.register_command(
@@ -151,15 +145,30 @@ fn register_ragdoll_profile_editor(
             ViewDescriptorId::new(PHYSICS_RAGDOLL_PROFILE_VIEW_ID),
         ))),
     )?;
-    registry.register_asset_creation_template(
-        AssetCreationTemplateDescriptor::new(
-            "physics.ragdoll_profile.from_skeleton",
-            "Ragdoll Profile From Skeleton",
-            RAGDOLL_PROFILE_ASSET_KIND,
-            create_operation,
+    registry.register_asset_type_contribution(
+        AssetTypeContribution::define(
+            asset_type,
+            AssetTypePresentation::new(
+                "Ragdoll Profile",
+                "RAG",
+                "asset-ragdoll-profile",
+                "asset.physics",
+            ),
+            ThumbnailProviderDescriptor::Icon("asset-ragdoll-profile".to_owned()),
         )
-        .with_default_document("plugins://physics/editor/ragdoll_profile.zui")
-        .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+        .with_toolkit(
+            AssetToolkitDescriptor::new(PHYSICS_RAGDOLL_PROFILE_VIEW_ID, open_operation)
+                .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+        )
+        .with_creation_template(
+            AssetCreationTemplateDescriptor::new(
+                "physics.ragdoll_profile.from_skeleton",
+                "Ragdoll Profile From Skeleton",
+                create_operation,
+            )
+            .with_default_document("plugins://physics/editor/ragdoll_profile.zui")
+            .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY]),
+        ),
     )
 }
 

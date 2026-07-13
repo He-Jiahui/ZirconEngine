@@ -1,7 +1,8 @@
 use crate::asset::assets::ImportedAsset;
-use crate::asset::{
+use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
+use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetImportContext, AssetImportError, AssetImportOutcome,
+    AnimationStateMachineAsset,
 };
 
 pub(crate) fn import_animation_asset(

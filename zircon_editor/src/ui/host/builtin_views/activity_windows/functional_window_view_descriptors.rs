@@ -1,3 +1,4 @@
+use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
@@ -11,6 +12,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Scene/Game",
         )
+        .with_document_kind(DocumentKind::scene())
         .with_preferred_host(PreferredHost::DocumentCenter)
         .with_default_constraints(default_constraints_for_content(ViewContentKind::Scene))
         .with_icon_key("scene-game-window"),
@@ -19,6 +21,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Prefab Editor",
         )
+        .with_document_kind(DocumentKind::prefab())
         .with_multi_instance(true)
         .with_preferred_host(PreferredHost::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
@@ -30,6 +33,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Material Editor",
         )
+        .with_document_kind(DocumentKind::material())
         .with_multi_instance(true)
         .with_preferred_host(PreferredHost::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
@@ -41,13 +45,14 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "UI Asset Editor",
         )
+        .with_document_kind(DocumentKind::ui_asset())
         .with_multi_instance(true)
         .with_preferred_host(PreferredHost::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::UiAssetEditor,
         ))
         .with_activity_window_template(ActivityWindowTemplateSpec::new(
-            "editor.window.ui_layout_editor",
+            "res://ui/editor/windows/ui_layout_editor_window.zui",
         ))
         .with_icon_key("ui-asset-editor"),
         ViewDescriptor::new(
@@ -55,6 +60,7 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
             ViewKind::ActivityWindow,
             "Animation Editor",
         )
+        .with_document_kind(DocumentKind::animation_graph())
         .with_multi_instance(true)
         .with_preferred_host(PreferredHost::FloatingWindow)
         .with_default_constraints(default_constraints_for_content(
@@ -70,7 +76,9 @@ pub(super) fn functional_window_view_descriptors() -> Vec<ViewDescriptor> {
         .with_default_constraints(default_constraints_for_content(
             ViewContentKind::AssetBrowser,
         ))
-        .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.asset"))
+        .with_activity_window_template(ActivityWindowTemplateSpec::new(
+            "res://ui/editor/windows/asset_window.zui",
+        ))
         .with_icon_key("asset-browser"),
         ViewDescriptor::new(
             ViewDescriptorId::new("editor.diagnostics_window"),

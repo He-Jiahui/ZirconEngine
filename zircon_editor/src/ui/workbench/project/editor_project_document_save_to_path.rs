@@ -17,12 +17,11 @@ impl EditorProjectDocument {
         editor_workspace: Option<&ProjectEditorWorkspace>,
     ) -> Result<(), SceneProjectError> {
         let root = project_root_path(path)?;
-        Self::ensure_runtime_assets(&root)?;
-
         let mut project = ProjectManager::open(&root)?;
         project.scan_and_import()?;
         let scene = world.to_scene_asset(&project)?;
-        let scene_path = project.source_path_for_uri(&project.manifest().default_scene)?;
+        let scene_path = project
+            .existing_or_primary_project_source_path_for_uri(&project.manifest().default_scene)?;
         if let Some(parent) = scene_path.parent() {
             if !parent.as_os_str().is_empty() {
                 fs::create_dir_all(parent)?;
@@ -31,7 +30,7 @@ impl EditorProjectDocument {
         fs::write(
             scene_path,
             scene
-                .to_toml_string()
+                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
                 .map_err(|error| invalid_data(error.to_string()))?,
         )?;
         save_editor_workspace(&root, editor_workspace)?;

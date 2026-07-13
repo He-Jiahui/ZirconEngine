@@ -209,7 +209,7 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
     assert_render_count_series(
         &snapshot.store,
         "render.hybrid_gi.voxel.invalidated_clipmap_count",
-        18.0,
+        23.0,
         &["hybrid_gi", "voxel", "invalidation"],
     );
     assert_render_bool_series(

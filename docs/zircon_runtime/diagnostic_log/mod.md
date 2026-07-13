@@ -7,9 +7,9 @@ related_code:
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
@@ -18,8 +18,8 @@ related_code:
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
 implementation_files:
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
@@ -28,9 +28,9 @@ implementation_files:
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs

@@ -17,7 +17,7 @@ fn status_chip_paints_flat_text_without_surface_or_chevron() {
         model_rc(vec![status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm")]),
     );
 
-    assert_eq!(pixel_at(&bytes, 140, 20, 20), [0, 0, 0, 255]);
+    assert_eq!(pixel_at(&bytes, 140, 12, 12), [0, 0, 0, 255]);
     assert_eq!(pixel_at(&bytes, 140, 60, 9), [0, 0, 0, 255]);
 }
 
@@ -193,9 +193,9 @@ fn status_chip_uses_shared_painter_state_priority() {
     let hovered = select_workbench_status_chip_style(&node);
     assert_eq!(
         hovered.state,
-        zircon_runtime_interface::ui::style::UiPainterResolvedState::Hovered
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Selected
     );
-    assert_eq!(hovered.background, PALETTE.surface_hover);
+    assert_eq!(hovered.background, PALETTE.surface_selected);
 
     node.pressed = true;
     let pressed = select_workbench_status_chip_style(&node);

@@ -47,8 +47,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
@@ -71,8 +71,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
@@ -131,8 +129,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
@@ -154,8 +152,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
@@ -200,7 +196,6 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs::tests::render_shadow_atlas_group1_layout_entries_match_plan_05_resource_types
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_receives_shadow_atlas_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_encodes_shading_model_and_receive_shadow_flag_into_gbuffer_material_alpha
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_receives_shadow_atlas_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_is_valid_wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha
@@ -224,7 +219,7 @@ tests:
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs::contact_shadow_wgpu_product_capture_darkens_multiple_screen_space_contact_regions
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs::tests::pluginized_rendering_feature_names_drive_runtime_post_process_flags
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::contact_shadow_runtime_flag_is_encoded_separately_from_ssao
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_contact_shadow_occlusion_texture
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_contact_shadow_occlusion_texture
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan/tests.rs::render_shadow_light_slot_assignments_patch_packed_light_contract
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
@@ -392,6 +387,8 @@ The 2026-06-14 caster/receiver source-guard slice added `mesh_visibility_states_
 The 2026-06-14 product shadow contract slice added `render_product_csm_directional` and `render_product_multi_spot_shadows`, proving the product test suite now has source coverage for directional CSM four-slot generation and at least three simultaneous spot shadow atlas slots without overlap. Validation passed `cargo fmt --all`, `cargo fmt --all -- --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-product-shadow-contracts-coremin --message-format short --color never` with existing warnings. A focused `cargo test --no-run` attempt for `render_product_multi_spot_shadows` timed out after 904 seconds during shared lib-test compilation, so no filtered test result is claimed.
 
 The 2026-06-21 directional shadow-atlas capture slice added `render_product_directional_shadow_atlas_capture_records_receiver_path` and `render_product_directional_shadow_atlas_darkens_receiver_capture`, now owned by `render_product_shadow_captures/directional.rs`. The first test renders a real WGPU Forward+ receiver/caster product frame and asserts `shadow.atlas` executor execution, atlas write count, receiver availability, non-zero caster draw count, and non-zero receiver luma in the captured frame. The second submits same-color receiver scenes with receive-shadows enabled and disabled, then proves the enabled receiver sample is visibly darker. Debugging showed slot projection and raw atlas depth were valid, so the sampler contract was corrected to `SHADOW_ATLAS_COMPARE_FUNCTION == GreaterEqual` and locked by `render_shadow_atlas_compare_function_matches_forward_depth_contract`. Validation passed `cargo test -p zircon_runtime --lib render_shadow_atlas_compare_function_matches_forward_depth_contract --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --quiet -- --test-threads=1 --nocapture`, direct exact reruns of both product tests from the latest warmed binary, and scoped `rustfmt --edition 2021 --check` for `shadow/atlas/resources.rs`, `render_product_shadow_captures.rs`, and `tests/mod.rs`.
+
+The 2026-07-12 AF-M3 compiled-scene product exposed a separate cascade recording hazard. `ShadowMapRenderer` used one scene-uniform buffer and queued one `queue.write_buffer` per atlas slot while all slot render passes were recorded into a single command encoder. At submission, the queued copies complete before the render command buffer, so every cascade could observe the final slot matrix. Each slot now owns an immutable `create_buffer_init` uniform and a matching scene bind group for the lifetime of its render pass. The comparison sampler remains `GreaterEqual`; this change only fixes per-slot matrix lifetime. The current volumetric window product passes with four caster draws and a `73.506` luma corridor-over-control contrast.
 
 The 2026-06-21 multi-spot shadow-atlas guard slice added `render_product_multi_spot_shadow_atlas_darkens_receivers_capture` and `RenderShadowExecutionReport.shadowed_light_count`. The product scene registers three spot lights, three caster meshes, and one receiver, then compares receive-shadows on/off captures by counting darkened pixels and luma/RGB deltas. Submit stats now count atlas-supported shadow-casting directional/point/spot lights instead of reusing directional ready count for the shadow report. Validation passed scoped `rustfmt` and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never`. A fresh `cargo rustc -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never -- --cfg test --emit=metadata` attempt returned -1; the captured log had no Rust error, but it also had no `Finished` line, so it is not counted as passing. The support follow-up synced four direct `RenderMeshSnapshot` fixtures in `virtual_geometry_debug_snapshot_contract.rs` with `stable_instance_key`, `transform_revision`, `mesh_lod`, and `static_state`, after which `cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-shadow-spot-0621 --message-format short --color never` passed with existing warnings. A longer lib-test `--no-run` window then passed in 18m11s and produced `zircon_runtime-c339c28ec98a5de7.exe`; direct binary execution of `render_product_multi_spot_shadow_atlas_darkens_receivers_capture --nocapture --test-threads=1` passed 1/1 in 8.60s.
 

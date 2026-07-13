@@ -2,7 +2,9 @@ use super::super::*;
 use super::*;
 
 pub(super) fn assert_structure_guard_plugin_importer_is_child_backed() {
-    let parent = read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer.rs");
+    let parent = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer.rs",
+    );
     let child_blob = plugin_importer_structure_guard_child_source_blob();
 
     assert_contains_all(

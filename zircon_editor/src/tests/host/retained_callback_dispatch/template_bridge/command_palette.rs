@@ -16,7 +16,7 @@ fn workbench_command_palette_surface_exposes_commit_route() {
     assert!(matches!(
         binding.payload(),
         EditorUiBindingPayload::EditorCommand { command_id }
-            if command_id == "editor.command_palette"
+            if command_id == "editor.command.palette"
     ));
 
     let node = bridge
@@ -44,17 +44,14 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
     let opened = bridge
         .open_command_palette(WorkbenchCommandPaletteOpenState {
             commands: UiValue::Array(vec![
-                UiValue::String("workbench.project.open|label=Open Project".to_string()),
-                UiValue::String("workbench.project.save|label=Save Project".to_string()),
+                UiValue::String("file.project.open|label=Open Project".to_string()),
+                UiValue::String("file.project.save|label=Save Project".to_string()),
             ]),
             filtered_commands: UiValue::Array(vec![
-                UiValue::String("workbench.project.open".to_string()),
-                UiValue::String("workbench.project.save".to_string()),
+                UiValue::String("file.project.open".to_string()),
+                UiValue::String("file.project.save".to_string()),
             ]),
-            disabled_commands: UiValue::Array(vec![UiValue::String(
-                "workbench.project.save".to_string(),
-            )]),
-            selected_command_id: "workbench.project.open".to_string(),
+            selected_command_id: "file.project.open".to_string(),
             focused_index: 0,
         })
         .expect("command palette should open");
@@ -68,13 +65,8 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
     assert_eq!(control_bool_attribute(&bridge, "popup_open"), Some(true));
     assert_eq!(
         control_string_list_attribute(&bridge, "filtered_commands"),
-        vec!["workbench.project.open", "workbench.project.save"]
+        vec!["file.project.open", "file.project.save"]
     );
-    assert_eq!(
-        control_string_list_attribute(&bridge, "disabled_commands"),
-        vec!["workbench.project.save"]
-    );
-
     assert!(bridge
         .close_command_palette()
         .expect("command palette should close"));
@@ -97,7 +89,7 @@ fn workbench_command_palette_commit_dispatches_editor_command() {
         &bridge,
         COMMAND_PALETTE_CONTROL_ID,
         COMMAND_PALETTE_COMMIT_BINDING_ID,
-        "workbench.project.open",
+        "file.project.open",
     )
     .expect("command palette route should be recognized")
     .expect("command palette command should dispatch");
@@ -125,7 +117,7 @@ fn workbench_command_palette_commit_can_request_palette_open() {
         &bridge,
         COMMAND_PALETTE_CONTROL_ID,
         COMMAND_PALETTE_COMMIT_BINDING_ID,
-        "editor.command_palette",
+        "editor.command.palette",
     )
     .expect("command palette route should be recognized")
     .expect("command palette command should dispatch");

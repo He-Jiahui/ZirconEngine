@@ -1,8 +1,7 @@
 use std::path::Path;
 
-use crate::ui::workbench::startup::{
-    EditorStartupSessionDocument, NewProjectDraft, RecentProjectEntry,
-};
+use crate::core::project::{NewProjectDraft, RecentProjectEntry};
+use crate::ui::workbench::startup::EditorStartupSessionDocument;
 
 use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
@@ -34,12 +33,8 @@ impl EditorManager {
         self.host.forget_recent_project(path)
     }
 
-    pub fn update_recent_project(
-        &self,
-        path: impl AsRef<Path>,
-        display_name: &str,
-    ) -> Result<(), EditorError> {
-        self.host.update_recent_project(path, display_name)
+    pub fn update_recent_project(&self, path: impl AsRef<Path>) -> Result<(), EditorError> {
+        self.host.update_recent_project(path)
     }
 
     pub(crate) fn show_welcome_page(&self) -> Result<(), EditorError> {

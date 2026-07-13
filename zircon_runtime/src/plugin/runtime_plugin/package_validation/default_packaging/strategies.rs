@@ -1,7 +1,7 @@
 mod state;
 mod uniqueness;
 
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 use self::state::new_runtime_plugin_default_packaging_strategy_state;
 use self::uniqueness::validate_runtime_plugin_default_packaging_strategy_uniqueness;

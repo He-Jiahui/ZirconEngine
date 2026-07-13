@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "279c06cf-5e2c-4713-8ef1-9a354823ba07"
 url = "res://materials/player_blood.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/b97a82da-3670-92b5-ed25-6cc0b9fcb8bc.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487932
-source_hash = "e297cb58d75445bf"
+source_digest = "e297cb58d75445bf"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

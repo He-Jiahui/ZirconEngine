@@ -1,9 +1,9 @@
 use crate::capability::{RENDERING_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES};
 use crate::{feature_manifest, module_descriptor, PLUGIN_ID, RENDERING_FEATURES};
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
-    PluginPackageManifest,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };
 
 pub const RENDERING_DIST_CRATE_NAME: &str = "zircon_plugin_rendering_dist";
@@ -74,8 +74,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     .with_category("rendering")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
     .with_target_modes([
-        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+        zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
     ])
     .with_capability(RENDERING_RUNTIME_CAPABILITY);
 

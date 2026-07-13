@@ -751,6 +751,8 @@ fn scene_representation_extract_with_card_positions(
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: RenderHybridGiQuality::High,
         trace_budget: 2,
         card_budget: 1,
@@ -768,6 +770,7 @@ fn directional_key_light(color: Vec3) -> RenderDirectionalLightSnapshot {
         direction: Vec3::new(-0.35, -0.65, -1.0).normalize_or_zero(),
         color,
         intensity: 4.0,
+        mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
         shadow: None,
     }
 }

@@ -1,24 +1,24 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/visibility/declarations/visibility_context.rs
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_draw_segment.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry 的 deeper unified indirect / cluster raster / residency-manager cascade
   - user: 2026-04-18 继续列出所有剩余 todo，作为 tasks，然后继续深入
@@ -26,8 +26,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-prepare-owned-unified-indirect-boundaries.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-page-owned-cluster-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineages_even_when_page_matches
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_preserves_visibility_owned_draw_segments_across_parent_lineages
   - cargo test -p zircon_graphics --offline --locked visibility

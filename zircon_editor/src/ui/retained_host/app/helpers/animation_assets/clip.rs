@@ -1,5 +1,6 @@
 use super::skeleton::DerivedSkeletonAsset;
-use zircon_runtime::asset::{AnimationClipAsset, AssetReference};
+use zircon_runtime::asset::AssetReference;
+use zircon_runtime::core::framework::animation::AnimationClipAsset;
 use zircon_runtime_interface::resource::ResourceLocator;
 
 mod channels;

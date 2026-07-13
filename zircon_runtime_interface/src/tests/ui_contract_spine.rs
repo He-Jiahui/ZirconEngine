@@ -388,7 +388,9 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
             value: UiValue::String("new".to_string()),
             source: UiWidgetEventSource::Pointer,
         },
-        UiWidgetEvent::TextEditChange { edit: edit.clone() },
+        UiWidgetEvent::TextEditChange {
+            edit: Box::new(edit.clone()),
+        },
         UiWidgetEvent::OpenChanged {
             target: node_id,
             open: true,

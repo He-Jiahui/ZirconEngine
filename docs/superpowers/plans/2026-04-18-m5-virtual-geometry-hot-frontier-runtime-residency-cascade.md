@@ -1,28 +1,28 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_feedback.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/consume_feedback.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/declarations/visibility_virtual_geometry_feedback.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_virtual_geometry_feedback.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/consume_feedback.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
 plan_sources:
   - user: 2026-04-18 仍然是 Virtual Geometry 更深的 split-merge frontier policy / residency-manager cascade
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-repeated-budget-collapse-frontier-hold.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_prefers_evicting_cold_page_before_recent_frontier_hot_page_during_feedback_completion -- --nocapture
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime_state_carries_recent_frontier_hot_pages_into_next_prepare_recycle_plan -- --nocapture
   - cargo test -p zircon_graphics --offline --locked visibility -- --nocapture

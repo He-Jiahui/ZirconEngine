@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use super::EditorAssetMetaDocument;
 use zircon_runtime::asset::project::{AssetMetaDocument, PreviewState};
 use zircon_runtime::asset::{AssetId, AssetKind, AssetReference, AssetUri, AssetUuid};
 
@@ -15,8 +14,6 @@ pub struct AssetCatalogRecord {
     pub extension: String,
     pub meta_path: PathBuf,
     pub meta: AssetMetaDocument,
-    pub(crate) editor_meta_path: PathBuf,
-    pub(crate) editor_meta: EditorAssetMetaDocument,
     pub source_mtime_unix_ms: u64,
     pub source_hash: String,
     pub preview_state: PreviewState,

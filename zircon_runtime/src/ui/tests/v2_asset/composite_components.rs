@@ -141,6 +141,105 @@ props = { text = "B" }
 }
 
 #[test]
+fn ui_v2_composite_component_preserves_slot_placeholder_layout_on_filled_child() {
+    let document = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/tests/property_row_slot_layout.v2.ui"
+version = 2
+
+[root]
+node = "root"
+
+[components.PropertyEditorRow]
+root = "row_root"
+slots = { value = { multiple = false } }
+
+[nodes.root]
+component = "PropertyEditorRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "field", slot = { name = "value" } }]
+
+[nodes.row_root]
+component = "PropertyRow"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "name" }, { node = "value_slot" }]
+
+[nodes.name]
+component = "Container"
+layout = { width = { min = 60.0, preferred = 105.0, max = 105.0, stretch = "Fixed" } }
+
+[nodes.value_slot]
+component = "Slot"
+props = { name = "value" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.field]
+component = "TextField"
+control_id = "PropertyValueField"
+"#,
+    )
+    .unwrap();
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let root = compiled
+        .arena
+        .node(compiled.arena.root.expect("expanded row root"))
+        .unwrap();
+    let value_mount = root
+        .children
+        .iter()
+        .find(|child| {
+            compiled
+                .arena
+                .node(child.child)
+                .is_some_and(|node| node.control_id.as_deref() == Some("PropertyValueField"))
+        })
+        .expect("filled value child should replace its slot placeholder");
+
+    assert_eq!(
+        root.layout
+            .as_ref()
+            .and_then(|layout| layout.get("container"))
+            .and_then(|container| container.get("kind"))
+            .and_then(Value::as_str),
+        Some("HorizontalBox")
+    );
+    assert_eq!(
+        value_mount
+            .slot
+            .get("layout")
+            .and_then(|layout| layout.get("width"))
+            .and_then(|width| width.get("stretch"))
+            .and_then(Value::as_str),
+        Some("Stretch")
+    );
+
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.property_row_slot_layout"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    surface.compute_layout(UiSize::new(260.0, 30.0)).unwrap();
+
+    let row_frame = surface
+        .arranged_tree
+        .get(surface.tree.roots[0])
+        .expect("expanded property row root should be arranged")
+        .frame;
+    let field_frame = surface
+        .arranged_tree
+        .get(node_id_by_control_id(&surface, "PropertyValueField"))
+        .expect("filled property editor should be arranged")
+        .frame;
+
+    assert_eq!(field_frame.x, row_frame.x + 109.0);
+    assert_eq!(field_frame.width, row_frame.width - 109.0);
+}
+
+#[test]
 fn ui_v2_composite_component_validates_declared_slots() {
     let mut document = v2_document("asset://ui/tests/slot_validation.v2.ui", "root");
     document.components.insert(

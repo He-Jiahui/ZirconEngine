@@ -540,8 +540,10 @@ render_product 对拍场景(`cargo test -p zircon_runtime render_product --locke
 
 ## 状态与产出记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`01/2026-07-09-render-graph-rdg-alignment-output-records.md`](01/2026-07-09-render-graph-rdg-alignment-output-records.md)
+- fixed 已修复：[render-framework-pipeline-registration-test-double-migration](../../zircon_editor/editor/09/fixed-2026-07-13-render-framework-pipeline-registration-test-double-migration.md)
+- fixed 已修复：[editor-viewport-resolve-job-guard-drift](../../zircon_editor/editor/09/fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)

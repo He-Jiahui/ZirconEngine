@@ -6,6 +6,7 @@ pub mod animation_editor;
 pub mod asset_editor;
 pub mod binding;
 pub mod binding_dispatch;
+pub(crate) mod component_registry;
 pub mod control;
 pub mod host;
 pub(crate) mod layouts;

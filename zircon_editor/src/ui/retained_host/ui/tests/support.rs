@@ -4,6 +4,7 @@ pub(super) use super::super::{
     apply_presentation as apply_presentation_with_module_plugins,
     apply_presentation_impl::to_host_contract_host_scene_data, pane_data_conversion,
 };
+pub(super) use crate::core::project::RecentProjectValidation;
 pub(super) use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportTool, TransformSpace, ViewOrientation,
 };
@@ -35,8 +36,7 @@ pub(super) use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, ProjectOverviewSnapshot,
 };
 pub(super) use crate::ui::workbench::startup::{
-    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation,
-    WelcomePaneSnapshot,
+    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot,
 };
 pub(super) use crate::ui::workbench::view::{
     PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PreferredHost,
@@ -57,7 +57,10 @@ pub(super) fn root_shell_fixture() -> (
 ) {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     (fixture, chrome, model, BTreeMap::new(), BTreeMap::new())
 }
 
@@ -139,8 +142,12 @@ pub(super) fn welcome_shell_fixture() -> (
         },
         vec![welcome_instance],
         descriptors,
+        None,
     );
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     (chrome, model, BTreeMap::new(), BTreeMap::new())
 }
 

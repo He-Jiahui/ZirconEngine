@@ -1,3 +1,4 @@
+use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{PreferredHost, ViewDescriptor, ViewDescriptorId, ViewKind};
@@ -8,6 +9,7 @@ pub(super) fn prefab_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Prefab Editor",
     )
+    .with_document_kind(DocumentKind::prefab())
     .with_multi_instance(true)
     .with_preferred_host(PreferredHost::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(

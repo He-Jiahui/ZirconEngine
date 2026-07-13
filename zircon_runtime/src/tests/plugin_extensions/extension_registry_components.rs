@@ -1,11 +1,12 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::plugin::{
-    ComponentTypeDescriptor, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport, UiComponentDescriptor,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    UiComponentDescriptor,
 };
 use crate::scene::{components::NodeKind, World};
 use crate::ui::component::UiComponentDescriptorRegistry;
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use zircon_runtime_interface::ui::component::{UiComponentCategory, UiSlotSchema, UiValue};
 
 #[test]
@@ -94,12 +95,13 @@ fn runtime_plugin_registration_report_validates_shadowed_manifest_component_decl
 
     let report =
         RuntimePluginCatalog::from_registration_reports([registration], []).runtime_extensions();
-    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("runtime plugin weather diagnostic")
-        && diagnostic.contains("property `coverage` must be unique")));
-    assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("runtime plugin weather diagnostic")
-        && diagnostic.contains(".zui")));
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("runtime plugin weather diagnostic")
+            && diagnostic.contains("property `coverage` must be unique")
+    }));
+    assert!(report.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("runtime plugin weather diagnostic") && diagnostic.contains(".zui")
+    }));
 }
 
 #[test]
@@ -114,12 +116,14 @@ fn native_runtime_plugin_registration_report_diagnoses_duplicate_manifest_compon
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("component type `weather.Component.CloudLayer`")
-        && diagnostic.contains("unique")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("ui component `weather.Ui.CloudLayerInspector`")
-        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("component type `weather.Component.CloudLayer`")
+            && diagnostic.contains("unique")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("ui component `weather.Ui.CloudLayerInspector`")
+            && diagnostic.contains("unique")
+    }));
     assert_eq!(registration.extensions.components().len(), 1);
     assert_eq!(registration.extensions.ui_components().len(), 1);
 }
@@ -142,14 +146,16 @@ fn native_runtime_plugin_registration_report_diagnoses_unowned_manifest_componen
     );
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("component type `storm.Component.CloudLayer`")
-        && diagnostic.contains("plugin_id `storm`")
-        && diagnostic.contains("package id `weather`")));
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("ui component `storm.Ui.CloudLayerInspector`")
-        && diagnostic.contains("plugin_id `storm`")
-        && diagnostic.contains("package id `weather`")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("component type `storm.Component.CloudLayer`")
+            && diagnostic.contains("plugin_id `storm`")
+            && diagnostic.contains("package id `weather`")
+    }));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("ui component `storm.Ui.CloudLayerInspector`")
+            && diagnostic.contains("plugin_id `storm`")
+            && diagnostic.contains("package id `weather`")
+    }));
     assert_eq!(registration.extensions.components().len(), 1);
     assert_eq!(registration.extensions.ui_components().len(), 1);
 }

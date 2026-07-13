@@ -93,12 +93,17 @@ pub(super) fn write_sample_shader_package(paths: &ProjectPaths) {
         AssetKind::Shader,
     );
     meta.unit = AssetSourceUnit::Compound;
-    meta.save(paths.assets_root().join("shaders").join("lit_sample.zmeta"))
-        .unwrap();
+    meta.save(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("lit_sample.zmeta"),
+    )
+    .unwrap();
 
     write_text(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("lit_sample")
             .join("lit.zshader"),
@@ -130,7 +135,7 @@ sampler = "linear_repeat"
     );
     write_text(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("lit_sample")
             .join("lit.wgsl"),
@@ -172,7 +177,7 @@ pub(super) fn write_default_pbr_shader_package(paths: &ProjectPaths) {
     meta.unit = AssetSourceUnit::Compound;
     meta.save(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("default_pbr.zmeta"),
     )
@@ -180,7 +185,7 @@ pub(super) fn write_default_pbr_shader_package(paths: &ProjectPaths) {
 
     write_text(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("default_pbr")
             .join("default_pbr.zshader"),
@@ -205,7 +210,7 @@ sampler = "linear_repeat"
     );
     write_text(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("default_pbr")
             .join("default_pbr.wgsl"),
@@ -276,7 +281,7 @@ pub(super) fn write_sample_material(paths: &ProjectPaths) {
     };
     write_text(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("hero_surface.zmaterial"),
         &material.to_toml_string().unwrap(),

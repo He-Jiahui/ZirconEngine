@@ -31,19 +31,16 @@ impl RetainedEditorHost {
             .asset_manager
             .current_project()
             .ok_or_else(|| "Open a project before importing models".to_string())?;
-        EditorProjectDocument::ensure_runtime_assets(&project.root_path)
-            .map_err(|error| error.to_string())?;
-
         let source = canonical_model_source_path(&chrome.mesh_import_path)?;
-        let paths =
-            ProjectPaths::from_root(&project.root_path).map_err(|error| error.to_string())?;
-        let (model_uri, display_path) = stage_model_source(&paths, &source)?;
+        let project_manager =
+            ProjectManager::open(&project.root_path).map_err(|error| error.to_string())?;
+        let (model_uri, display_path) = stage_model_source(&project_manager, &source)?;
 
         self.asset_manager
             .import_asset(&model_uri.to_string())
             .map_err(|error| error.to_string())?;
         for derived_uri in derive_animation_assets_from_model_source(
-            paths.assets_root(),
+            &project_manager,
             std::path::Path::new(&display_path),
         )? {
             self.asset_manager

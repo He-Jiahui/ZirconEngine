@@ -59,8 +59,8 @@ impl NetContentDownloadRuntimeManager {
             );
             return self.progress(download);
         }
-        let actual_sha256 = crate::manager::hash::sha256_hex(&bytes);
-        if !self.chunk_hash_matches(download, chunk_id, &actual_sha256) {
+        let actual_content_hash = zircon_runtime::asset::pack::zrpack_content_hash(&bytes);
+        if !self.chunk_hash_matches(download, chunk_id, &actual_content_hash) {
             let progress = self.mark_attempt_failed(
                 download,
                 chunk_id,
@@ -73,7 +73,7 @@ impl NetContentDownloadRuntimeManager {
             }
         } else {
             self.store_partial_chunk(download, chunk_id.to_string(), bytes);
-            self.mark_chunk_complete(download, chunk_id, &actual_sha256)
+            self.mark_chunk_complete(download, chunk_id, &actual_content_hash)
         }
     }
 

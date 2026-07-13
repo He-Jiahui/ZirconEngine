@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use zircon_runtime::asset::{AlphaMode, MaterialAsset};
+use zircon_runtime::asset::{
+    AlphaMode, AssetReference, AssetRegistryIndex, MaterialAsset, ReferenceResolutionError,
+    ZMaterialDocument,
+};
 use zircon_runtime::core::framework::render::{
     GeometrySourceDescriptor, GeometrySourceId, ShaderFeatureBits, ShaderPassType,
     ShaderQualityTier, ShaderVariantPrewarmRequest, ShadingModelId, SHADING_MODEL_ID_STANDARD_PBR,
@@ -28,6 +31,23 @@ pub(super) fn collect_material_sources(
     sources: &mut Vec<MaterialPrewarmSource>,
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
 ) -> ShaderPrewarmAssetScanResult<()> {
+    let registry =
+        AssetRegistryIndex::inspect_project(&[asset_root.to_path_buf()]).map_err(|source| {
+            ShaderPrewarmAssetScanError::InspectAssetRegistry {
+                path: asset_root.to_path_buf(),
+                source,
+            }
+        })?;
+    collect_material_sources_with_registry(root, asset_root, sources, shading_model_ids, &registry)
+}
+
+fn collect_material_sources_with_registry(
+    root: &Path,
+    asset_root: &Path,
+    sources: &mut Vec<MaterialPrewarmSource>,
+    shading_model_ids: &BTreeMap<String, ShadingModelId>,
+    registry: &AssetRegistryIndex,
+) -> ShaderPrewarmAssetScanResult<()> {
     if !root.exists() {
         return Ok(());
     }
@@ -43,7 +63,13 @@ pub(super) fn collect_material_sources(
         })?;
         let path = entry.path();
         if path.is_dir() {
-            collect_material_sources(&path, asset_root, sources, shading_model_ids)?;
+            collect_material_sources_with_registry(
+                &path,
+                asset_root,
+                sources,
+                shading_model_ids,
+                registry,
+            )?;
             continue;
         }
         if has_extension(&path, "zmaterial") {
@@ -51,6 +77,7 @@ pub(super) fn collect_material_sources(
                 asset_root,
                 &path,
                 shading_model_ids,
+                registry,
             )?);
         }
     }
@@ -123,6 +150,7 @@ fn material_source_from_zmaterial(
     asset_root: &Path,
     material_path: &Path,
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
+    registry: &AssetRegistryIndex,
 ) -> ShaderPrewarmAssetScanResult<MaterialPrewarmSource> {
     let document = fs::read_to_string(material_path).map_err(|source| {
         ShaderPrewarmAssetScanError::ReadZMaterial {
@@ -130,12 +158,45 @@ fn material_source_from_zmaterial(
             source,
         }
     })?;
-    let material = MaterialAsset::from_toml_str(&document).map_err(|source| {
-        ShaderPrewarmAssetScanError::ParseZMaterial {
-            path: material_path.to_path_buf(),
-            source,
+    let material_document = ZMaterialDocument::from_project_toml_str(&document, |reference| {
+        if let Some(locator) = reference.builtin_locator() {
+            return Ok::<_, ReferenceResolutionError>(AssetReference::from_locator(
+                locator.clone(),
+            ));
         }
+        let reference = reference
+            .project_ref()
+            .ok_or(ReferenceResolutionError::MissingPayload)?;
+        let entry = registry.entry_by_uuid(reference.guid()).ok_or(
+            ReferenceResolutionError::MissingGuid {
+                guid: reference.guid(),
+            },
+        )?;
+        let root_name = asset_root
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| ReferenceResolutionError::Registry {
+                message: format!("asset root {} has no UTF-8 root name", asset_root.display()),
+            })?;
+        let expected_path_hint = format!("{root_name}/{}", entry.path().path());
+        if entry.path().label() != reference.sub()
+            || reference.path_hint().as_str() != expected_path_hint
+        {
+            return Err(ReferenceResolutionError::Registry {
+                message: format!(
+                    "asset ref {} disagrees with registry path {}",
+                    reference.guid(),
+                    entry.path()
+                ),
+            });
+        }
+        Ok::<_, ReferenceResolutionError>(AssetReference::new(entry.uuid(), entry.path().clone()))
+    })
+    .map_err(|source| ShaderPrewarmAssetScanError::ParseZMaterial {
+        path: material_path.to_path_buf(),
+        source,
     })?;
+    let material = MaterialAsset::from_zmaterial_document(material_document);
     Ok(MaterialPrewarmSource {
         stable_label: stable_label_for_path(asset_root, material_path),
         shader_label: material.shader.locator.to_string(),

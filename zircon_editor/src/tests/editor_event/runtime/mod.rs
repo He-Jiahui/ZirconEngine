@@ -36,3 +36,4 @@ mod integration;
 mod listeners;
 mod registry;
 mod stack_play;
+mod when_evaluation;

@@ -24,7 +24,6 @@ implementation_files:
   - docs/engine-architecture/non-network-server-naming-m1.md
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/large-file-ownership-m1.md
-  - .codex/sessions/20260604-1232-runtime-architecture-review.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md

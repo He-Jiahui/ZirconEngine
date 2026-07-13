@@ -39,4 +39,4 @@ pub const EXPORT_REPORT_TEMPLATE_DOCUMENTS: &[(&str, &str)] = &[
 ];
 
 pub const EXPORT_PROFILE_COMPONENT: &str = "editor.build_export_desktop.ExportProfile";
-pub const EXPORT_PROFILE_ASSET_KIND: &str = "DesktopExportProfile";
+pub const EXPORT_PROFILE_ASSET_KIND: &str = "build.export_profile";

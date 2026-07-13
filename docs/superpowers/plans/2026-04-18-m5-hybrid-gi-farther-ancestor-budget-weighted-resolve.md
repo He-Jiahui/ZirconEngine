@@ -1,17 +1,15 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 plan_sources:
   - user: 2026-04-18 剩余更值得继续推进的主链是更完整的 screen-probe hierarchy / RT hybrid lighting
   - user: 2026-04-18 列出后续所有 tasks，把它们作为 todo，然后继续深入
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-farther-ancestor-resolve-irradiance-continuation.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_resolve_increases_child_intensity_when_farther_resident_ancestor_has_more_budget
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_resolve_render
   - cargo test -p zircon_graphics --offline --locked hybrid_gi

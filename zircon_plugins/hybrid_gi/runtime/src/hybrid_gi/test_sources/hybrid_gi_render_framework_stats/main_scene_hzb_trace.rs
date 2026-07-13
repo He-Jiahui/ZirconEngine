@@ -85,7 +85,7 @@ fn export_hybrid_gi_main_scene_hzb_surface_cache_trace_wgpu_png() {
         )
         .replace(
             "trace_1792_bytes_minimum",
-            "trace_2048_bytes_minimum_with_local_support_signature",
+            "trace_2304_bytes_minimum_with_local_support_and_normal_code",
         ),
     )
     .unwrap();

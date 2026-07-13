@@ -5,7 +5,7 @@ related_code:
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/cargo_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
@@ -18,7 +18,7 @@ implementation_files:
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/cargo_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs

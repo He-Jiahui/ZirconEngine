@@ -7,14 +7,14 @@ related_code:
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
-  - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/feedback/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/layout/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display
+  - zircon_editor/assets/ui/editor/material_components/feedback
+  - zircon_editor/assets/ui/editor/material_components/inputs
+  - zircon_editor/assets/ui/editor/material_components/layout
+  - zircon_editor/assets/ui/editor/material_components/mui_x
+  - zircon_editor/assets/ui/editor/material_components/navigation
+  - zircon_editor/assets/ui/editor/material_components/surfaces
+  - zircon_editor/assets/ui/editor/material_components/utils_lab
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/style.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation
@@ -70,27 +70,27 @@ related_code:
   - zircon_runtime/src/ui/tests/asset_mui_web_surface_child_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets/mui_icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
   - zircon_runtime/src/ui/layout/pass/material.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
@@ -197,27 +197,27 @@ implementation_files:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_web_inventory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets/mui_icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_primitives/timeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_alert.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
   - zircon_runtime/src/ui/layout/pass/material.rs

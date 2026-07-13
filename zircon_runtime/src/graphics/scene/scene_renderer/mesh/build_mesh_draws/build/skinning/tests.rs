@@ -5,14 +5,15 @@ use super::{
     skin_mesh_asset_primitive, skin_model_primitive, SkinnedMeshJointPalette,
 };
 use crate::asset::{
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetUri, MeshAsset, MeshAttributeValues,
-    MeshIndices, MeshMorphTargetAsset, MeshVertex, ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
+    ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX,
+    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
+use crate::core::framework::animation::{AnimationSkeletonAsset, AnimationSkeletonBoneAsset};
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::{Quat, Transform, Vec2, Vec3};
 use crate::graphics::scene::scene_renderer::mesh::skinning::SKINNED_MESH_MAX_JOINT_MATRICES;
@@ -56,30 +57,30 @@ fn joint_palette_reports_missing_parent_bone_reference() {
 }
 
 #[test]
-fn joint_palette_uniform_packs_gpu_matrices_and_count() {
+fn joint_palette_storage_packs_gpu_matrices_and_count() {
     let skeleton = unit_test_skeleton();
     let pose = joint_quarter_turn_pose();
     let palette = SkinnedMeshJointPalette::from_skeleton_pose(&skeleton, &pose)
         .expect("expected unit skeleton pose to produce a joint palette");
 
-    let uniform = palette
-        .to_uniform()
-        .expect("expected small palette to fit the uniform GPU ABI");
+    let storage = palette
+        .to_storage()
+        .expect("expected small palette to fit the storage GPU ABI");
 
-    assert_eq!(uniform.joint_count(), 2);
+    assert_eq!(storage.joint_count(), 2);
     assert_eq!(
-        uniform.joint_matrices()[1],
+        storage.joint_matrices()[1],
         palette.matrices()[1].to_cols_array_2d()
     );
     assert_eq!(
-        uniform.joint_matrices()[2],
+        storage.joint_matrices()[2],
         crate::core::math::Mat4::IDENTITY.to_cols_array_2d(),
         "unused joint slots stay identity so accidental zero-weight reads are neutral"
     );
 }
 
 #[test]
-fn joint_palette_uniform_rejects_current_uniform_limit_overflow() {
+fn joint_palette_storage_rejects_current_storage_limit_overflow() {
     let palette = SkinnedMeshJointPalette {
         joint_matrices: vec![
             crate::core::math::Mat4::IDENTITY;
@@ -88,24 +89,24 @@ fn joint_palette_uniform_rejects_current_uniform_limit_overflow() {
     };
 
     let error = palette
-        .to_uniform()
-        .expect_err("expected oversized palette to reject the fixed uniform ABI");
+        .to_storage()
+        .expect_err("expected oversized palette to reject the fixed storage ABI");
 
     assert!(
         error.contains("supports at most 256"),
-        "expected uniform-limit error, got {error}"
+        "expected storage-limit error, got {error}"
     );
 }
 
 #[test]
-fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit() {
+fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_storage_limit() {
     let primitive = ModelPrimitiveAsset {
         vertices: vec![MeshVertex::new(Vec3::ZERO, Vec3::X, Vec2::ZERO)],
         indices: vec![0],
         mesh: None,
         virtual_geometry: None,
     };
-    let skeleton = oversized_uniform_skeleton();
+    let skeleton = oversized_storage_skeleton();
     let pose = AnimationPoseOutput {
         source: AnimationPoseSource::Clip,
         active_state: None,
@@ -113,7 +114,7 @@ fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_unif
     };
 
     let prepared = prepare_skinned_model_primitive(&primitive, &skeleton, &pose)
-        .expect("expected oversized uniform palette to keep CPU fallback primitive");
+        .expect("expected oversized storage palette to keep CPU fallback primitive");
 
     assert_eq!(prepared.primitive.indices, vec![0]);
     assert_eq!(
@@ -121,8 +122,8 @@ fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_unif
         Vec3::ZERO.to_array()
     );
     assert!(
-        prepared.joint_palette_uniform.is_none(),
-        "oversized uniform palettes should not drop the CPU-skinned draw"
+        prepared.joint_palette_storage.is_none(),
+        "oversized storage palettes should not drop the CPU-skinned draw"
     );
 }
 
@@ -321,7 +322,7 @@ fn prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_s
         .expect("expected direct mesh morph weights to prepare CPU and shader-skinning paths");
 
     assert!(
-        prepared.joint_palette_uniform.is_some(),
+        prepared.joint_palette_storage.is_some(),
         "shader skinning needs a GPU-visible joint palette"
     );
     assert!(
@@ -358,7 +359,7 @@ fn unit_test_skeleton() -> AnimationSkeletonAsset {
     }
 }
 
-fn oversized_uniform_skeleton() -> AnimationSkeletonAsset {
+fn oversized_storage_skeleton() -> AnimationSkeletonAsset {
     AnimationSkeletonAsset {
         name: Some("oversized-uniform-skeleton".to_string()),
         bones: (0..=SKINNED_MESH_MAX_JOINT_MATRICES)

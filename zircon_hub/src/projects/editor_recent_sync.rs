@@ -19,9 +19,9 @@ struct EditorStartupSession {
     pub recent_projects: Vec<EditorRecentProjectEntry>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct EditorRecentProjectEntry {
-    pub display_name: String,
+    pub summary: zircon_runtime_interface::project::ProjectManifestSummary,
     pub path: String,
     pub last_opened_unix_ms: u64,
 }
@@ -55,12 +55,18 @@ pub fn load_editor_recent_project_session(
         recent_projects: session
             .recent_projects
             .into_iter()
-            .map(|entry| RecentProject {
-                display_name: entry.display_name,
-                path: PathBuf::from(entry.path),
-                last_opened_unix_ms: entry.last_opened_unix_ms,
+            .map(|entry| {
+                let mut project = RecentProject {
+                    summary: entry.summary,
+                    path: PathBuf::from(entry.path),
+                    last_opened_unix_ms: entry.last_opened_unix_ms,
+                };
+                if project.path.join("zircon-project.toml").is_file() {
+                    project.refresh_summary()?;
+                }
+                Ok(project)
             })
-            .collect(),
+            .collect::<Result<Vec<_>, HubError>>()?,
     })
 }
 
@@ -101,7 +107,7 @@ pub fn save_editor_recent_projects_with_last_project(
         recent_projects: recent_projects
             .into_iter()
             .map(|entry| EditorRecentProjectEntry {
-                display_name: entry.display_name,
+                summary: entry.summary,
                 path: entry.path.to_string_lossy().into_owned(),
                 last_opened_unix_ms: entry.last_opened_unix_ms,
             })
@@ -132,7 +138,7 @@ where
             Some(existing) if existing.last_opened_unix_ms > entry.last_opened_unix_ms => {}
             Some(existing)
                 if existing.last_opened_unix_ms == entry.last_opened_unix_ms
-                    && existing.display_name <= entry.display_name => {}
+                    && existing.summary.name <= entry.summary.name => {}
             _ => {
                 by_path.insert(key, entry);
             }
@@ -156,24 +162,24 @@ mod tests {
     #[test]
     fn recent_merge_deduplicates_by_path_and_keeps_newest_eight() {
         let hub = vec![
-            RecentProject::new("Old", "E:/Projects/Game", 1),
-            RecentProject::new("Other", "E:/Projects/Other", 2),
+            RecentProject::fixture("Old", "E:/Projects/Game", 1),
+            RecentProject::fixture("Other", "E:/Projects/Other", 2),
         ];
         let mut editor = (0..10)
             .map(|index| {
-                RecentProject::new(
+                RecentProject::fixture(
                     format!("Project{index}"),
                     format!("E:/Projects/Project{index}"),
                     10 + index,
                 )
             })
             .collect::<Vec<_>>();
-        editor.push(RecentProject::new("New", "E:/Projects/Game", 99));
+        editor.push(RecentProject::fixture("New", "E:/Projects/Game", 99));
 
         let merged = merge_recent_projects(hub, editor);
 
         assert_eq!(merged.len(), RECENT_PROJECT_LIMIT);
-        assert_eq!(merged[0].display_name, "New");
+        assert_eq!(merged[0].summary.name, "New");
         assert_eq!(
             merged
                 .iter()
@@ -192,8 +198,11 @@ mod tests {
         let path = root.join("config.json");
         fs::write(&path, r#"{"other.key":true}"#).unwrap();
 
-        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
-            .unwrap();
+        save_editor_recent_projects(
+            &path,
+            &[RecentProject::fixture("Game", "E:/Projects/Game", 42)],
+        )
+        .unwrap();
 
         let values =
             serde_json::from_str::<HashMap<String, Value>>(&fs::read_to_string(&path).unwrap())
@@ -217,7 +226,7 @@ mod tests {
         let path = root.join("config.json");
         fs::write(
             &path,
-            r#"{"editor.startup.session":{"last_project_path":"E:/Projects/Game","recent_projects":[{"display_name":"Game","path":"E:/Projects/Game","last_opened_unix_ms":42}]}}"#,
+            r#"{"editor.startup.session":{"last_project_path":"E:/Projects/Game","recent_projects":[{"summary":{"name":"Game","engine_version_req":null,"default_scene":"res://scenes/main.scene.toml","format_version":2},"path":"E:/Projects/Game","last_opened_unix_ms":42}]}}"#,
         )
         .unwrap();
 
@@ -228,7 +237,7 @@ mod tests {
             Some(PathBuf::from("E:/Projects/Game"))
         );
         assert_eq!(session.recent_projects.len(), 1);
-        assert_eq!(session.recent_projects[0].display_name, "Game");
+        assert_eq!(session.recent_projects[0].summary.name, "Game");
         let _ = fs::remove_dir_all(root);
     }
 
@@ -242,8 +251,11 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let path = root.join("config.json");
 
-        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
-            .unwrap();
+        save_editor_recent_projects(
+            &path,
+            &[RecentProject::fixture("Game", "E:/Projects/Game", 42)],
+        )
+        .unwrap();
 
         let text = fs::read_to_string(&path).unwrap();
         assert!(!text.contains("pinned"));
@@ -270,8 +282,8 @@ mod tests {
         save_editor_recent_projects(
             &path,
             &[
-                RecentProject::new("Last", "E:/Projects/Last", 99),
-                RecentProject::new("Game", "E:/Projects/Game", 42),
+                RecentProject::fixture("Last", "E:/Projects/Last", 99),
+                RecentProject::fixture("Game", "E:/Projects/Game", 42),
             ],
         )
         .unwrap();
@@ -301,8 +313,11 @@ mod tests {
         )
         .unwrap();
 
-        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
-            .unwrap();
+        save_editor_recent_projects(
+            &path,
+            &[RecentProject::fixture("Game", "E:/Projects/Game", 42)],
+        )
+        .unwrap();
 
         let values =
             serde_json::from_str::<HashMap<String, Value>>(&fs::read_to_string(&path).unwrap())
@@ -328,7 +343,7 @@ mod tests {
 
         save_editor_recent_projects_with_last_project(
             &path,
-            &[RecentProject::new("Game", "E:/Projects/Game", 42)],
+            &[RecentProject::fixture("Game", "E:/Projects/Game", 42)],
             Some(Path::new("E:/Projects/Game")),
         )
         .unwrap();

@@ -3,33 +3,28 @@ use std::sync::Arc;
 use crate::engine_module::EngineModule;
 use crate::plugin::RuntimePluginAvailabilityReport;
 
-use super::super::ids::RuntimePluginId;
-use super::missing::RuntimeRequiredPluginMissing;
+use super::diagnostics::RuntimeModuleLoadDiagnostic;
 use crate::core::CoreError;
 
 #[derive(Clone, Debug)]
 pub struct RuntimeModuleLoadReport {
     pub modules: Vec<Arc<dyn EngineModule>>,
-    pub warnings: Vec<String>,
-    pub errors: Vec<String>,
     pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
-    required_missing: Vec<RuntimeRequiredPluginMissing>,
+    diagnostics: Vec<RuntimeModuleLoadDiagnostic>,
 }
 
 impl RuntimeModuleLoadReport {
     pub(in crate::builtin::runtime_modules) fn new(modules: Vec<Arc<dyn EngineModule>>) -> Self {
         Self {
             modules,
-            warnings: Vec::new(),
-            errors: Vec::new(),
             runtime_plugin_availability: RuntimePluginAvailabilityReport::default(),
-            required_missing: Vec::new(),
+            diagnostics: Vec::new(),
         }
     }
 
     pub(in crate::builtin::runtime_modules) fn from_core_error(error: CoreError) -> Self {
         let mut report = Self::new(Vec::new());
-        report.errors.push(error.to_string());
+        report.push_diagnostic(RuntimeModuleLoadDiagnostic::Core(error));
         report
     }
 
@@ -41,20 +36,21 @@ impl RuntimeModuleLoadReport {
         self
     }
 
-    pub(in crate::builtin::runtime_modules) fn push_required_missing(
+    pub(in crate::builtin::runtime_modules) fn push_diagnostic(
         &mut self,
-        id: RuntimePluginId,
-        reason: String,
+        diagnostic: RuntimeModuleLoadDiagnostic,
     ) {
-        self.required_missing
-            .push(RuntimeRequiredPluginMissing { id, reason });
+        self.diagnostics.push(diagnostic);
     }
 
-    pub fn required_missing(&self) -> &[RuntimeRequiredPluginMissing] {
-        &self.required_missing
+    pub(in crate::builtin::runtime_modules) fn extend_diagnostics(
+        &mut self,
+        diagnostics: impl IntoIterator<Item = RuntimeModuleLoadDiagnostic>,
+    ) {
+        self.diagnostics.extend(diagnostics);
     }
 
-    pub(crate) fn owned_required_missing(&self) -> Vec<RuntimeRequiredPluginMissing> {
-        self.required_missing.clone()
+    pub fn diagnostics(&self) -> &[RuntimeModuleLoadDiagnostic] {
+        &self.diagnostics
     }
 }

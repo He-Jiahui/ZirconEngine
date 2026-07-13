@@ -1,6 +1,6 @@
 use std::sync::mpsc::channel;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::*;
 
@@ -10,10 +10,10 @@ impl ExportWizardCommandRunner for PipelineReportRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
-        let stage_id = export_pipeline_stage_cli_id(command.stage);
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+        let stage_id = command.stage.cli_id();
         let mut stdout_lines = vec![command.stdout_banner("windows-release")];
-        if command.stage == ExportPipelineStage::Report {
+        if command.stage == ExportStage::Report {
             stdout_lines.push(
                 "pipeline_report=D:\\zircon-export\\runtime-pipeline-report.json".to_string(),
             );
@@ -91,7 +91,7 @@ fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
 
     let planned_entry = pipeline_report_entry(&view_model);
     assert_eq!(planned_entry.detail, "D:\\zircon-export\\report.json");
-    assert_eq!(planned_entry.stage, Some(ExportPipelineStage::Report));
+    assert_eq!(planned_entry.stage, Some(ExportStage::Report));
     assert_eq!(
         planned_entry.severity,
         ExportWizardPanelEntrySeverity::Neutral
@@ -120,7 +120,7 @@ fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
         runtime_entry.detail,
         "D:\\zircon-export\\runtime-pipeline-report.json"
     );
-    assert_eq!(runtime_entry.stage, Some(ExportPipelineStage::Report));
+    assert_eq!(runtime_entry.stage, Some(ExportStage::Report));
     assert_eq!(
         runtime_entry.severity,
         ExportWizardPanelEntrySeverity::Success
@@ -129,7 +129,7 @@ fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
     let strategies = report_body_entry(&view_model, "report.export_plan.strategies");
     assert_eq!(strategies.label, "Export Strategies");
     assert_eq!(strategies.detail, "library_embed, source_template");
-    assert_eq!(strategies.stage, Some(ExportPipelineStage::Report));
+    assert_eq!(strategies.stage, Some(ExportStage::Report));
     assert_eq!(strategies.severity, ExportWizardPanelEntrySeverity::Info);
 
     let required_stages = report_body_entry(&view_model, "report.export_plan.required_stages");
@@ -165,7 +165,7 @@ fn export_wizard_panel_template_state_projects_pipeline_report_body_entry() {
         native_bundle.detail,
         "D:\\zircon-export\\bundle\\windows-release\\plugins"
     );
-    assert_eq!(native_bundle.stage, Some(ExportPipelineStage::Report));
+    assert_eq!(native_bundle.stage, Some(ExportStage::Report));
     assert_eq!(
         native_bundle.severity,
         ExportWizardPanelEntrySeverity::Success
@@ -227,7 +227,7 @@ fn report_body_entry(
 }
 
 fn ready_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

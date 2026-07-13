@@ -3,6 +3,7 @@ use crate::ui::workbench::project::project_root_path;
 use zircon_runtime::asset::project::ProjectManifest;
 
 use super::super::super::desktop_export_profile;
+use super::super::super::DesktopExportActionError;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::build_export_actions::host_actions) fn enqueue_desktop_export(
@@ -15,13 +16,16 @@ impl RetainedEditorHost {
         }
         let project_path = self.runtime.editor_snapshot().project_path;
         let result = project_root_path(&project_path)
-            .map_err(|error| error.to_string())
+            .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {
-                let profile = desktop_export_profile(profile_name)
-                    .ok_or_else(|| format!("unknown desktop export profile {profile_name}"))?;
+                let profile = desktop_export_profile(profile_name).ok_or_else(|| {
+                    DesktopExportActionError::UnknownProfile {
+                        profile_name: profile_name.to_string(),
+                    }
+                })?;
                 let manifest_path = project_root.join("zircon-project.toml");
-                let mut manifest =
-                    ProjectManifest::load(&manifest_path).map_err(|error| error.to_string())?;
+                let mut manifest = ProjectManifest::load(&manifest_path)
+                    .map_err(|source| DesktopExportActionError::Manifest { source })?;
                 manifest.export_profiles.push(profile);
                 let output_root =
                     self.effective_desktop_export_output_root(&project_root, profile_name);

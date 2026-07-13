@@ -31,8 +31,8 @@ related_code:
   - zircon_runtime/src/ui/layout/pass/child_frame.rs
   - zircon_runtime/src/ui/layout/pass/clip.rs
   - zircon_runtime/src/ui/surface/mod.rs
-  - zircon_runtime/src/ui/surface/pointer/mod.rs
-  - zircon_runtime/src/ui/surface/navigation/mod.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/mod.rs
+  - zircon_runtime_interface/src/ui/surface/navigation/mod.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/template/mod.rs
@@ -43,9 +43,6 @@ related_code:
   - zircon_runtime/src/ui/template/build/parsers.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/tree/node/mod.rs
-  - zircon_runtime/src/ui/tree/node/tree_node.rs
-  - zircon_runtime/src/ui/tree/node/ui_tree.rs
-  - zircon_runtime/src/ui/tree/node/tree_access.rs
   - zircon_runtime/src/ui/tree/node/layout.rs
   - zircon_runtime/src/ui/tree/node/scroll.rs
   - zircon_runtime/src/ui/tree/node/interaction.rs

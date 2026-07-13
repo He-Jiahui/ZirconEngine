@@ -6,8 +6,8 @@ use crate::ui::binding::core::{required_string_argument, EditorUiBindingError};
 impl AssetCommand {
     pub(crate) fn to_call(&self) -> UiBindingCall {
         match self {
-            Self::OpenAsset { asset_path } => UiBindingCall::new("AssetCommand.OpenAsset")
-                .with_argument(UiBindingValue::string(asset_path)),
+            Self::OpenAsset { asset_locator } => UiBindingCall::new("AssetCommand.OpenAsset")
+                .with_argument(UiBindingValue::string(asset_locator)),
             Self::SelectFolder { folder_id } => UiBindingCall::new("AssetCommand.SelectFolder")
                 .with_argument(UiBindingValue::string(folder_id)),
             Self::SelectItem { asset_uuid } => UiBindingCall::new("AssetCommand.SelectItem")
@@ -39,7 +39,7 @@ impl AssetCommand {
     pub(crate) fn from_call(call: UiBindingCall) -> Result<Option<Self>, EditorUiBindingError> {
         let command = match call.symbol.as_str() {
             "AssetCommand.OpenAsset" => Self::OpenAsset {
-                asset_path: required_string_argument(&call, 0, "AssetCommand.OpenAsset")?,
+                asset_locator: required_string_argument(&call, 0, "AssetCommand.OpenAsset")?,
             },
             "AssetCommand.SelectFolder" => Self::SelectFolder {
                 folder_id: required_string_argument(&call, 0, "AssetCommand.SelectFolder")?,

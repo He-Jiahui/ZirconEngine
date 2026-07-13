@@ -2,11 +2,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::project::ExportPackagingStrategy;
 use crate::plugin::{
-    CapabilityStatus, ExportPackagingStrategy, PluginModuleKind, PluginPackageManifest,
-    RuntimePluginCatalog, RuntimePluginDescriptor,
+    CapabilityStatus, PluginModuleKind, PluginPackageManifest, RuntimePluginCatalog,
+    RuntimePluginDescriptor,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_members() {
@@ -24,7 +25,8 @@ fn builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_
         );
         assert!(
             manifest.modules.iter().any(|module| {
-                module.kind == PluginModuleKind::Runtime && module.crate_name == descriptor.crate_name()
+                module.kind == PluginModuleKind::Runtime
+                    && module.crate_name == descriptor.crate_name()
             }),
             "runtime catalog entry `{}` is missing matching runtime module crate `{}` in plugin.toml",
             package_id,

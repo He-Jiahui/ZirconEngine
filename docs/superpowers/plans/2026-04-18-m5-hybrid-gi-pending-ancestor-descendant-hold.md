@@ -1,10 +1,8 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 plan_sources:
   - user: 2026-04-18 Hybrid GI 的 resolve/runtime-host 侧更完整 scene-driven hierarchy 闭环
   - user: 2026-04-18 继续 M5
@@ -12,7 +10,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-merge-back-child-probe-hysteresis.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-descendant-request-frontier.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancestor_request_remains_pending
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_visibility
 doc_type: milestone-detail

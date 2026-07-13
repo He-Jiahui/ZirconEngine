@@ -1,0 +1,11 @@
+/.zircon/*
+!/.zircon/autosave/
+!/.zircon/cache/
+!/.zircon/play/
+!/.zircon/registry/
+!/.zircon/thumbnails/
+!/.zircon/autosave/.gitignore
+!/.zircon/cache/.gitignore
+!/.zircon/play/.gitignore
+!/.zircon/registry/.gitignore
+!/.zircon/thumbnails/.gitignore

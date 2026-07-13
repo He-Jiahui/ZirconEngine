@@ -4,7 +4,9 @@ pub(super) fn assert_status_anchor_guard_children_line_budgets_are_current() {
     for (path, source) in [
         (
             "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard.rs",
-            read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard.rs"),
+            read_runtime_src(
+                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard.rs",
+            ),
         ),
         (
             STATUS_DOC_STATUS_ANCHOR_GUARD_CHILD_OWNERSHIP_CHILD,

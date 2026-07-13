@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "0168735b-dd25-4d88-9446-1e9970b01a9e"
 url = "res://terrain/jungle_clearing.terrain.toml"
 asset_kind = "Terrain"
@@ -8,7 +8,7 @@ artifact_locator = "lib://terrain/heightfields/8254aa93-ea15-86ed-3970-5dbbd812f
 importer_id = "zircon.builtin.toml.terrain"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781081309459
-source_hash = "df9d4b4158c24cb7"
+source_digest = "df9d4b4158c24cb7"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

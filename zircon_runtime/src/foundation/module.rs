@@ -40,7 +40,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {
-            let manager = Arc::new(DefaultConfigManager::new(core.clone()));
+            let manager = Arc::new(DefaultConfigManager::new(core));
             Ok(Arc::new(ConfigManagerHandle::new(manager)) as ServiceObject)
         }),
     ))
@@ -49,7 +49,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {
-            let manager = Arc::new(DefaultEventManager::new(core.clone()));
+            let manager = Arc::new(DefaultEventManager::new(core));
             Ok(Arc::new(EventManagerHandle::new(manager)) as ServiceObject)
         }),
     ))

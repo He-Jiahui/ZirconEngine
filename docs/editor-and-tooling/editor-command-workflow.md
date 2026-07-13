@@ -5,15 +5,15 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
+  - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
@@ -21,8 +21,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
-  - zircon_editor/src/core/host/manager.rs
-  - zircon_editor/src/core/editor_event/host_adapter.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
@@ -32,14 +32,14 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_scene/src/lib.rs
-  - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/scene/world/mod.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
-  - zircon_editor/src/core/host/manager.rs
-  - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
@@ -49,7 +49,7 @@ implementation_files:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
@@ -59,7 +59,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/scene/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 将 undo/redo 从整世界快照推进到真正的 EditorCommand/UndoableStack 命令化实现
@@ -73,7 +73,7 @@ tests:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/import.rs
-  - zircon_scene/src/lib.rs
+  - zircon_runtime/src/scene/mod.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
   - cargo test -p zircon_editor -- --nocapture
@@ -110,14 +110,14 @@ doc_type: module-detail
 - `zircon_editor/src/core/editing/command.rs`: 命令类型、创建/删除/更新节点逻辑
 - `zircon_editor/src/core/editor_operation.rs`: menu/toolbar/editor 插件 operation descriptor registry
 - `zircon_editor/src/core/editing/history.rs`: undo/redo 栈和 gizmo drag 聚合逻辑
-- `zircon_editor/src/core/editing/state/mod.rs`: `EditorIntent` 到命令执行的主入口，维护 inspector 草稿态
+- `zircon_editor/src/core/editing/intent.rs`: headless `EditorIntent` 声明 owner；具体执行与 inspector 草稿态由上方列出的 workbench state 模块分别持有
 - `zircon_editor/src/ui/retained_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
-- `zircon_editor/src/core/host/manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
+- `zircon_editor/src/ui/host/editor_manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
 - `zircon_editor/src/ui/workbench/project/mod.rs`: editor project/workspace sidecar 与 level 文档桥接
 - `zircon_editor/src/ui/workbench/snapshot/mod.rs`: workbench 与资产面板投影快照
 - `zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs`: template binding 的 operation-first 分派入口
 - `zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs`: workbench menu action 到 `EditorOperation` 的桥接
-- `zircon_scene/src/world/mod.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
+- `zircon_runtime/src/scene/world/mod.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
 
 ## Behavior Model
 
@@ -253,7 +253,7 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 - disabled Component Drawer capabilities keep drawer metadata hidden and leave dynamic component editing protected
 - Component Drawer adapter accepts safe action-style events beyond button press while rejecting draft value-change events before operation invocation
 
-`zircon_scene/src/lib.rs` 当前覆盖：
+`zircon_runtime/src/scene/mod.rs` 当前覆盖：
 
 - 递归删除返回完整子树记录
 - `NodeRecord` roundtrip 恢复实体

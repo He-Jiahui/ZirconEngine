@@ -5,7 +5,9 @@ use crate::core::framework::render::{
     ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::PipelineKey;
-use crate::graphics::scene::scene_renderer::environment::SceneReflectionProbeResources;
+use crate::graphics::scene::scene_renderer::environment::{
+    SceneLightmapResources, SceneReflectionProbeResources,
+};
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
@@ -16,6 +18,10 @@ use super::{MeshPipelineVariantRegistry, MeshPipelineVariantResolver};
 pub(crate) struct MeshPipelineCache {
     pub(in crate::graphics::scene::scene_renderer::mesh) target_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipeline_layout: wgpu::PipelineLayout,
+    pub(in crate::graphics::scene::scene_renderer::mesh) oit_fragment_store_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::mesh) oit_mesh_pipeline_layout:
+        wgpu::PipelineLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_receiver_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_compare_sampler:
@@ -32,10 +38,15 @@ pub(crate) struct MeshPipelineCache {
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::mesh) fallback_shadow_atlas_view:
         wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_volumetric_apply:
+        crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
     pub(in crate::graphics::scene::scene_renderer) reflection_probes: SceneReflectionProbeResources,
+    pub(in crate::graphics::scene::scene_renderer) lightmaps: SceneLightmapResources,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_modules:
         HashMap<String, wgpu::ShaderModule>,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_variant_pipelines:
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) oit_mesh_variant_pipelines:
         HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) gbuffer_mesh_pipelines:
         HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,

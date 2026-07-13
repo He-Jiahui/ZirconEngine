@@ -1,10 +1,12 @@
 mod artifacts;
 mod cargo_build;
 mod cleanup;
+mod error;
 mod native_dynamic_preparation;
 mod package_metadata;
 mod prepare;
 mod staging;
 
 pub(super) use cleanup::cleanup_native_dynamic_preparation;
+pub use error::{NativeDynamicCleanupError, NativeDynamicPreparationError};
 pub(super) use prepare::prepare_native_dynamic_packages_with_cancellation;

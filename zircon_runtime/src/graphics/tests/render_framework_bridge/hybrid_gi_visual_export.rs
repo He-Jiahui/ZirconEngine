@@ -206,6 +206,8 @@ fn direct_hybrid_gi_extract(viewport_size: UVec2) -> RenderFrameExtract {
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: Default::default(),
         trace_budget: 1,
         card_budget: 1,
@@ -287,6 +289,9 @@ fn seeded_hybrid_gi_prepared_frame(rgb: [u8; 3]) -> RenderHybridGiPreparedFrame 
         resident_probes: vec![RenderHybridGiPreparedProbe {
             probe_id: 200,
             slot: 0,
+            stable_instance_key: 0,
+            source_mask: crate::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+            dynamic_weight_q8: u8::MAX,
             ray_budget: 32,
             irradiance_rgb: rgb,
         }],

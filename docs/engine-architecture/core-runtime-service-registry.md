@@ -63,7 +63,7 @@ related_code:
   - zircon_runtime/src/core/runtime/state/mod.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
-  - zircon_runtime/src/core/runtime/state/scene_runtime_hooks.rs
+  - zircon_runtime/src/scene/runtime_hook/set.rs
   - zircon_runtime/src/core/runtime/state/service_entry.rs
   - zircon_runtime/src/core/runtime/tests.rs
   - zircon_runtime/src/core/runtime/tests/activation/mod.rs
@@ -100,12 +100,31 @@ related_code:
   - zircon_runtime/src/core/runtime/tests/registration/behavior/canonical_keys.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/commit.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/validation.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/registry_name.rs
   - zircon_runtime/src/core/runtime/tests/resolution/mod.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - zircon_runtime/src/engine_module/service_factory.rs
+  - zircon_runtime/src/foundation/runtime/config_manager.rs
+  - zircon_runtime/src/foundation/runtime/event_manager.rs
+  - zircon_runtime/src/foundation/module.rs
+  - zircon_runtime/src/animation/manager/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_editor/src/ui/host/editor_ui_host.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/module.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/module.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/manager/settings.rs
+  - zircon_plugins/physics/runtime/src/module.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
+  - zircon_plugins/sound/runtime/src/service_types/clip_assets.rs
+  - zircon_plugins/sound/runtime/src/module.rs
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 implementation_files:
   - zircon_runtime/src/core/framework/error.rs
@@ -170,7 +189,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/state/mod.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/module_entry.rs
-  - zircon_runtime/src/core/runtime/state/scene_runtime_hooks.rs
+  - zircon_runtime/src/scene/runtime_hook/set.rs
   - zircon_runtime/src/core/runtime/state/service_entry.rs
   - zircon_runtime/src/core/runtime/tests.rs
   - zircon_runtime/src/core/runtime/tests/activation/mod.rs
@@ -207,20 +226,47 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tests/registration/behavior/canonical_keys.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/commit.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/validation.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/registry_name.rs
   - zircon_runtime/src/core/runtime/tests/resolution/mod.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - zircon_runtime/src/engine_module/service_factory.rs
+  - zircon_runtime/src/foundation/runtime/config_manager.rs
+  - zircon_runtime/src/foundation/runtime/event_manager.rs
+  - zircon_runtime/src/foundation/module.rs
+  - zircon_runtime/src/animation/manager/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_editor/src/ui/host/editor_ui_host.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/module.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/module.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/manager/settings.rs
+  - zircon_plugins/physics/runtime/src/module.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
+  - zircon_plugins/sound/runtime/src/service_types/clip_assets.rs
+  - zircon_plugins/sound/runtime/src/module.rs
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 plan_sources:
+  - user: 2026-07-13 implement the approved runtime architecture and resolve priority code-structure findings
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - user: 2026-04-16 全部积极拆分并按模块边界持续重构所有脚本
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/全系统重构方案.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/收敛缺口修复 Spec 与 Implementation Plan.md
 tests:
+  - zircon_runtime/src/foundation/tests.rs::foundation_registry_services_do_not_retain_the_runtime_root
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs::failed_service_initialization_does_not_retain_the_runtime_root
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs::module_activation_rollback_drops_registry_owned_weak_services
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs::service_factory_panic_unwind_does_not_retain_the_runtime_root
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::registry_owned_editor_manager_does_not_retain_the_runtime_root
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::failed_project_open_does_not_make_the_editor_manager_retain_the_runtime_root
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::project_open_panic_unwind_drops_temporary_editor_manager_owners
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
   - rustfmt --edition 2021 --check zircon_runtime\src\core\error.rs zircon_runtime\src\core\lifecycle.rs zircon_runtime\src\core\diagnostics\devtools.rs zircon_runtime\src\core\runtime\descriptors\registry_name.rs zircon_runtime\src\core\runtime\state\core_runtime_state.rs zircon_runtime\src\core\runtime\state\module_entry.rs zircon_runtime\src\core\runtime\state\service_entry.rs zircon_runtime\src\core\runtime\handle\registration\mod.rs zircon_runtime\src\core\runtime\handle\registration\register_module.rs zircon_runtime\src\core\runtime\handle\registration\descriptor_entries.rs zircon_runtime\src\core\runtime\handle\registration\descriptor_entries_five.rs zircon_runtime\src\core\runtime\handle\registration\descriptor_entries_four.rs zircon_runtime\src\core\runtime\handle\registration\descriptor_entries_three.rs zircon_runtime\src\core\runtime\handle\registration\duplicates.rs zircon_runtime\src\core\runtime\handle\registration\entry.rs zircon_runtime\src\core\runtime\handle\registration\service_lists.rs zircon_runtime\src\core\runtime\handle\registration\validation.rs zircon_runtime\src\core\runtime\handle\activation.rs zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\event_bus.rs zircon_runtime\src\core\event_bus\failure.rs zircon_runtime\src\core\event_bus\prune.rs zircon_runtime\src\core\event_bus\publish.rs zircon_runtime\src\core\event_bus\subscribe.rs zircon_runtime\src\core\runtime\tests\events\mod.rs zircon_runtime\src\core\runtime\tests\events\behavior.rs zircon_runtime\src\core\runtime\tests\events\structure.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\fixture.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\root_contract.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\subscribe.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\publish.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\failure.rs zircon_runtime\src\core\runtime\tests\events\structure\event_bus\prune.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\activation.rs zircon_runtime\src\core\runtime\handle\activation\startup.rs zircon_runtime\src\core\runtime\handle\activation\unload_mutation.rs zircon_runtime\src\core\runtime\handle\activation\blocked_unload.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\mod.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\single.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\two_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\three_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\four_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\five_service.rs zircon_runtime\src\core\runtime\tests\activation\mod.rs zircon_runtime\src\core\runtime\tests\activation\behavior.rs zircon_runtime\src\core\runtime\tests\activation\behavior\activation.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation\blocked.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation\clean.rs zircon_runtime\src\core\runtime\tests\activation\structure\mod.rs zircon_runtime\src\core\runtime\tests\activation\structure\fixture.rs zircon_runtime\src\core\runtime\tests\activation\structure\root_contract.rs zircon_runtime\src\core\runtime\tests\activation\structure\service_lists.rs zircon_runtime\src\core\runtime\tests\activation\structure\startup.rs zircon_runtime\src\core\runtime\tests\activation\structure\blocked_dependencies.rs zircon_runtime\src\core\runtime\tests\activation\structure\blocked_unload.rs zircon_runtime\src\core\runtime\tests\activation\structure\unload_mutation.rs
@@ -300,7 +346,25 @@ doc_type: module-detail
 | `lifecycle.rs` (moved 2026-06-12) | `core::runtime::lifecycle` | keep lifecycle public facade through `core::runtime` and root `core` | Lifecycle and service kind vocabulary belongs to the runtime kernel. |
 | `diagnostics/` (moved 2026-06-12) | `core::runtime::diagnostics` | keep `core::diagnostics` as a curated facade through the runtime owner; do not create a sixth long-term root spine seat | Diagnostics are runtime observability owned by `CoreRuntime` and runtime services. |
 
-`foundation/runtime/config_manager.rs` and `foundation/runtime/event_manager.rs` remain wrappers over `CoreHandle`; they do not own the underlying config store or event bus behavior. M2 migration should update their `use` paths only.
+### Registry-owned service back-reference contract
+
+`CoreRuntimeInner.services` owns every materialized `ServiceObject`. A service stored in that table must therefore never retain a strong `CoreHandle`: the graph `CoreRuntimeInner -> ServiceEntry.instance -> service -> CoreHandle -> CoreRuntimeInner` is an `Arc` cycle, so ordinary `drop(CoreRuntime)` cannot begin cleanup and task-pool workers remain alive. Service factories may use their borrowed `&CoreHandle` during construction, but persistent reverse access is stored as `CoreWeak` and upgraded only at an operation boundary.
+
+The hard-cutover inventory covers Foundation config/event managers, the built-in and plugin animation managers, `EditorUiHost` inside `EditorManager`, Physics, and Sound. There is no dual strong/weak field, compatibility constructor, or shutdown-only escape hatch. `ManagerResolver` and retained application hosts may still own a strong handle when they are caller-owned rather than registry-owned; the invariant is about objects reachable from `ServiceEntry.instance`.
+
+Lifecycle coverage exercises ordinary drop, failed service construction, module-activation rollback, factory panic unwind, failed editor project open, project-open panic unwind, and 128 sequential editor Runtime fixtures. Every path asserts that the corresponding `CoreWeak` can no longer upgrade after the Runtime owner is dropped; the 128-fixture acceptance run additionally monitors the test process so task-pool threads cannot accumulate silently.
+
+The current Windows acceptance run compiled the locked Runtime lib-test program and passed the five focused service lifecycle/ownership checks 1/1 each. Animation, Physics, and Sound plugin workspaces then passed 528 tests total. The fresh Editor lib-test program passed the three focused lifecycle paths and the 128-fixture regression; the external monitor observed first/peak/last thread counts of `1/23/5`. The Manager partition returned a natural summary at `66 passed / 17 failed` with `1/36/4` threads, and the full-lib run stayed bounded at 26–29 threads through 1727 tests instead of reproducing the former 4091/5547-thread growth. Its later queued export-cancellation hang and the 17 ProjectAuthority fixture failures are tracked by Editor14 and Editor09 respectively; they do not reopen the service-registry strong-reference invariant, but they do keep their own upward gates open.
+
+Failure behavior follows each public contract instead of hiding the missing runtime:
+
+- config writes return `CoreError::RuntimeUnavailable`, while optional reads return `None`;
+- event publish becomes a no-op and subscription returns an already-disconnected receiver;
+- animation and Physics keep their local settings but skip persistence after a weak upgrade fails;
+- Sound reports its existing typed `BackendUnavailable` error when an asset operation requires the runtime;
+- Editor operations returning `EditorError` carry `CoreError::RuntimeUnavailable`; best-effort diagnostics return an empty snapshot and VM extension loading records the failure in its report.
+
+`foundation/runtime/config_manager.rs` and `foundation/runtime/event_manager.rs` remain facades over the runtime-owned config store and event bus. The ownership correction changes only their back-reference strength; it does not move the underlying behavior out of `core::runtime`.
 
 ## Public Entry Surface
 
@@ -531,7 +595,7 @@ M5 之后，每个 topic 的 subscriber list 以 `Arc<[ChannelSender<EngineEvent
 - 12:17-12:22 +08:00: the runtime-core test module was converted from one large `tests.rs` file into a folder-backed test tree. `tests.rs` is now a small module index; behavior and source-structure guards live in `tests/{registry_name,registration,activation,resolution,plugin,events,channel}.rs`, with shared fixtures isolated in `tests/fixtures.rs`. This keeps future M5 regressions from accumulating in a single mixed-responsibility file. Static validation covered `rustfmt --edition 2021 --check` over the test index and child modules, a PowerShell folder-layout guard for module declarations and `include_str!` paths, conflict-marker scan, `git diff --check`, and `python .\.codex\skills\zircon-project-skills\zr-runtime-interface-convergence\scripts\audit_runtime_structure.py --json`. Fresh Cargo remains deferred because external Cargo/rustc lanes are active.
 - 12:26 +08:00: follow-up scan over the folder-backed test tree, this document, and the live session note found no conflict markers or trailing whitespace. The root `tests.rs` is 8 lines and the largest child module is `tests/activation.rs` at 288 lines. Fresh Cargo remains deferred because external Cargo/rustc lanes are still active; the next quiet command is the focused `core::runtime::tests::` suite with `--locked`.
 - 12:28-12:29 +08:00: final lightweight validation for the folder-backed test split passed: `rustfmt --edition 2021 --check` over the test index and child modules, folder-layout guard, conflict-marker/trailing-whitespace scan, `git diff --check` with only expected LF-to-CRLF warnings, and `python .\.codex\skills\zircon-project-skills\zr-runtime-interface-convergence\scripts\audit_runtime_structure.py --json`. The audit still reports known runtime/editor large-file debt and graphics/root-surface deferred debt; no new plugin runtime gap or unclassified root-surface/hard-cutover issue was introduced by this slice. Fresh Cargo remains deferred because external Cargo/rustc lanes are active.
-- 12:31-12:37 +08:00: M5 scene-hook schedule dispatch moved installed runtime hooks into `SceneRuntimeHookSet`, which keeps canonical flat order for snapshots/devtools and caches per-`SystemStage` vectors for scene tick dispatch. `CoreHandle::scene_runtime_hooks_for_stage(...)` now reads the stage cache, `WorldDriver` snapshots a stage plan once per tick, and `ScheduledSceneStep::sorted_for_stage(...)` no longer re-filters already stage-specific hook slices. Fresh Cargo remains deferred because external Cargo/rustc lanes are active.
+- 12:31-12:37 +08:00: M5 scene-hook schedule dispatch introduced `SceneRuntimeHookSet`, which keeps canonical flat order and caches per-`SystemStage` vectors for scene tick dispatch. The 2026-07-13 Frameworks05 correction places that set in `scene/runtime_hook` and stores it directly in `WorldDriver`; core runtime now keeps only data-only devtools snapshots and no longer exposes executable hook installation/query APIs.
 - 13:17 +08:00: a downstream glTF Skin JSON validation exposed that the cached `Arc<[RegistryName]>` startup and shutdown lists must be projected to slices before iteration on this toolchain. `activate_module(...)` now uses `startup_services.as_ref()`, `deactivate_module(...)` projects `unload_order.as_ref()` once before the blocked-unload precheck and shutdown loop, and `activation_keeps_module_service_lists_as_registry_names` guards those source contracts. Focused validation passed with `cargo test -p zircon_runtime --lib core::runtime::tests::activation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gltf-skin-json-0605 --message-format short --color never -- --test-threads=1 --nocapture`, 5/5 activation tests passing and 2781 filtered; existing zircon_runtime lib-test warnings only.
 - 21:43 +08:00: canonical-key startup and dependency resolution was tightened without changing public APIs. `activate_module(...)` now resolves cached immediate startup service keys through `CoreHandle::resolve_registered_service(...)`, while dependency traversal inside `resolve_existing_service_inner(...)` uses `resolve_registered_service_inner(...)` directly on `Arc<[RegistryName]>` entries. Static validation passed with `rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\activation.rs zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests\activation.rs zircon_runtime\src\core\runtime\tests\resolution.rs`; a PowerShell source guard for direct canonical-key activation/dependency resolution and absence of the old `resolve_named_service(... as_str())` dependency path; and conflict-marker scans over the touched Rust files. Fresh Cargo remains pending while external Cargo/rustc lanes are active.
 - 22:23 +08:00: module registration now shortens registry lock scope without changing the public descriptor API. `register_module(...)` performs descriptor validation and pending `ServiceEntry` construction before the final module/service commit locks, then checks duplicate module/service keys again while committing the transaction. Static validation passed with `rustfmt --edition 2021 --check zircon_runtime/src/core/runtime/handle/registration.rs zircon_runtime/src/core/runtime/tests/registration/behavior.rs zircon_runtime/src/core/runtime/tests/registration/structure.rs`; a PowerShell source guard for pending preparation before the final commit lock, commit-time borrowed duplicate-service lookup, absence of the old `existing_services` preparation path, and doc/source guard coverage; `git diff --check`; and `audit_runtime_structure.py --json`. Fresh Cargo remains deferred because external runtime/workspace Cargo lanes are active.

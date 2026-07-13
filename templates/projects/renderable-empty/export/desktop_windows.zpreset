@@ -1,0 +1,18 @@
+{
+  "$zircon": {
+    "header": {
+      "schema_id": "zircon.export-preset",
+      "schema_version": 0
+    },
+    "payload": {
+      "cook": {
+        "binary_assets": true,
+        "compression": "zstd",
+        "deterministic": true
+      },
+      "debug": false,
+      "profile_ref": "desktop_windows",
+      "target_mode": "client_runtime"
+    }
+  }
+}

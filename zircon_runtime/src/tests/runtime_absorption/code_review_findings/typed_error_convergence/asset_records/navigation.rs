@@ -1,8 +1,7 @@
 #[test]
 fn review_f5_navigation_asset_uses_typed_error() {
-    let navigation = include_str!("../../../../../asset/assets/navigation.rs");
-    let asset_assets_mod = include_str!("../../../../../asset/assets/mod.rs");
-    let asset_mod = include_str!("../../../../../asset/mod.rs");
+    let navigation = include_str!("../../../../../core/framework/navigation/asset/mod.rs");
+    let navigation_mod = include_str!("../../../../../core/framework/navigation/mod.rs");
     let navigation_tests = include_str!("../../../../../asset/tests/assets/navigation.rs");
     let review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
@@ -46,9 +45,7 @@ fn review_f5_navigation_asset_uses_typed_error() {
         "NavigationAssetError::Deserialize(_)",
     ] {
         assert!(
-            asset_assets_mod.contains(required)
-                || asset_mod.contains(required)
-                || navigation_tests.contains(required),
+            navigation_mod.contains(required) || navigation_tests.contains(required),
             "navigation asset export/test surface should contain `{required}`"
         );
     }
@@ -57,7 +54,7 @@ fn review_f5_navigation_asset_uses_typed_error() {
         "runtime_15_navigation_asset_typed_errors_static_passed_cargo_deferred",
         "review_f5_navigation_asset_uses_typed_error",
         "NavigationAssetError",
-        "asset/assets/navigation.rs",
+        "core/framework/navigation/asset/mod.rs",
     ] {
         assert!(
             review_findings.contains(doc_anchor)

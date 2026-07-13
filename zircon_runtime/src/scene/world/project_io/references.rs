@@ -12,50 +12,34 @@ use super::{
 pub(super) fn model_handle_for_reference(
     project: &ProjectManager,
     reference: &AssetReference,
-) -> ResourceHandle<ModelMarker> {
-    let locator = &reference.locator;
-    if locator.scheme() == ResourceScheme::Builtin {
-        return ResourceHandle::new(ResourceId::from_locator(locator));
-    }
-
-    project
-        .asset_id_for_reference(reference.uuid, locator)
-        .map(ResourceHandle::new)
-        .unwrap_or_else(|| {
-            ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MODEL))
-        })
+) -> Result<ResourceHandle<ModelMarker>, SceneProjectError> {
+    handle_for_reference(project, reference)
 }
 
 pub(super) fn material_handle_for_reference(
     project: &ProjectManager,
     reference: &AssetReference,
-) -> ResourceHandle<MaterialMarker> {
-    let locator = &reference.locator;
-    if locator.scheme() == ResourceScheme::Builtin {
-        return ResourceHandle::new(ResourceId::from_locator(locator));
-    }
-
-    project
-        .asset_id_for_reference(reference.uuid, locator)
-        .map(ResourceHandle::new)
-        .unwrap_or_else(|| {
-            ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MATERIAL))
-        })
+) -> Result<ResourceHandle<MaterialMarker>, SceneProjectError> {
+    handle_for_reference(project, reference)
 }
 
 pub(super) fn handle_for_reference<T: ResourceMarker>(
     project: &ProjectManager,
     reference: &AssetReference,
-) -> ResourceHandle<T> {
+) -> Result<ResourceHandle<T>, SceneProjectError> {
     let locator = &reference.locator;
     if locator.scheme() == ResourceScheme::Builtin {
-        return ResourceHandle::new(ResourceId::from_locator(locator));
+        return Ok(ResourceHandle::new(ResourceId::from_locator(locator)));
     }
 
     project
-        .asset_id_for_reference(reference.uuid, locator)
+        .asset_registry()
+        .resolve_asset_id_for_reference(reference.uuid, locator)
         .map(ResourceHandle::new)
-        .unwrap_or_else(|| ResourceHandle::new(ResourceId::from_locator(locator)))
+        .map_err(|_| SceneProjectError::DanglingAssetReference {
+            uuid: reference.uuid,
+            locator: locator.clone(),
+        })
 }
 
 pub(super) fn reference_for_model_handle(
@@ -84,7 +68,7 @@ pub(super) fn reference_for_handle(
     id: ResourceId,
     label: &str,
 ) -> Result<AssetReference, SceneProjectError> {
-    if let Some(reference) = project.asset_reference_for_id(id) {
+    if let Ok(reference) = project.asset_registry().resolve_reference_by_asset_id(id) {
         return Ok(reference);
     }
     if let Some(locator) = builtin_locator_for_id(id) {

@@ -1,11 +1,12 @@
 use crate::capability::{RUNTIME_CAPABILITIES, TILEMAP_2D_RUNTIME_CAPABILITY};
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ComponentTypeDescriptor, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "tilemap_2d";
 pub const TILEMAP_2D_DIST_CRATE_NAME: &str = "zircon_plugin_tilemap_2d_dist";

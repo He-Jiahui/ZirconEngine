@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/extract_registration.rs
-  - zircon_graphics/src/runtime/virtual_geometry/extract_registration.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/extract_registration.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
 plan_sources:
   - user: 2026-04-18 Hybrid GI 的 resolve/runtime-host 侧更完整 scene-driven hierarchy 闭环
   - user: 2026-04-18 Virtual Geometry 的更深 residency-manager cascade / split-merge policy
@@ -16,8 +16,8 @@ plan_sources:
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-runtime-host.md
   - docs/superpowers/plans/2026-04-16-m5-hybrid-gi-runtime-host.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_runtime
 doc_type: milestone-detail

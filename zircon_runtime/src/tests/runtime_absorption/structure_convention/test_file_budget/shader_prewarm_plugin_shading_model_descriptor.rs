@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error";
+const STATUS: &str = "render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error";
 const DESCRIPTOR_EXPORT_STATUS: &str =
     "render_plan08_plugin_shading_model_descriptor_registry_export_static_passed_cargo_deferred";
 
@@ -45,15 +44,15 @@ fn runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wir
         read_runtime_src("bin/zircon_shader_prewarm/manifest/permutation_registry.rs");
     let prewarm_run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let prewarm_errors = read_runtime_src("bin/zircon_shader_prewarm/error.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let package_manifest_doc = read_repo("docs/zircon_runtime/plugin/package_manifest.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
-    let active_session_doc =
-        read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "package manifest owns custom shading model descriptors",
@@ -192,7 +191,6 @@ fn runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wir
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("active render session doc", active_session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -215,7 +213,6 @@ fn runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wir
         ("package manifest doc", package_manifest_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

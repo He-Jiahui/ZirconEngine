@@ -108,6 +108,21 @@ fn to_zr_value_lowers_supported_host_values() {
 }
 
 #[test]
+fn host_handle_i64_transport_preserves_packed_generation_bits() {
+    let handle = zircon_runtime::script::HostHandle::from_parts(17, u32::MAX);
+    let raw = handle.into_raw();
+    let lowered = to_zr_value(ScriptHostValue::HostHandle(raw)).unwrap();
+    let transported = lowered.as_int().unwrap();
+
+    assert!(transported < 0);
+    assert_eq!(transported as u64, raw);
+    assert_eq!(
+        zircon_runtime::script::HostHandle::from_raw(transported as u64),
+        handle
+    );
+}
+
+#[test]
 fn from_zr_value_for_function_rejects_unsupported_argument_kind_with_context() {
     let value = zr_vm_rust_binding::Value::new_array().unwrap();
     let error = from_zr_value_for_function(&value, "example.unsupported", 2).unwrap_err();

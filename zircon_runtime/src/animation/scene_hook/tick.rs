@@ -55,7 +55,7 @@ pub(super) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         })
         .collect::<Vec<_>>();
     if !loaded_sequences.is_empty() {
-        apply_loaded_sequences(animation.as_ref(), level, &loaded_sequences);
+        apply_loaded_sequences(level, &loaded_sequences);
     }
     frame_diagnostics.published_events =
         publish_clip_events(asset_manager, level, scan.clip_event_samples);

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::ui::workbench::startup::{NewProjectDraft, NewProjectTemplate};
+use crate::core::project::{NewProjectDraft, NewProjectTemplate};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorGuiStartupRequest {

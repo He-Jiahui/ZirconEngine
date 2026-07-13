@@ -177,7 +177,7 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
         standard_material_properties.data8.x,
         standard_material_properties.data8.y,
         standard_material_properties.data8.z,
-        standard_material_properties.data8.w,
+        f32(standard_material_decode_shading_model_id(standard_material_properties.data8.w)),
     );
     return surface;
 }

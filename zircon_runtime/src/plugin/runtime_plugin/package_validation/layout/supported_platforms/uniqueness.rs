@@ -1,4 +1,4 @@
-use crate::plugin::ExportTargetPlatform;
+use crate::core::framework::project::ExportTargetPlatform;
 
 pub(super) fn validate_runtime_plugin_package_supported_platform_uniqueness(
     platform: ExportTargetPlatform,

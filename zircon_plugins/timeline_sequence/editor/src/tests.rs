@@ -3,13 +3,14 @@ use std::collections::BTreeMap;
 use super::*;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_editor::EditorPlugin;
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
 };
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
-use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+use zircon_runtime::plugin::PluginModuleKind;
 
 #[test]
 fn timeline_authoring_registration_exposes_menu_items_and_payload_schemas() {
@@ -20,8 +21,8 @@ fn timeline_authoring_registration_exposes_menu_items_and_payload_schemas() {
     let operation =
         EditorOperationPath::parse("timeline_sequence.keyframe.move").expect("timeline operation");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("move keyframe operation registered");
 
     assert_eq!(
@@ -49,7 +50,7 @@ fn timeline_sequence_package_manifest_declares_editor_only_metadata() {
     assert_eq!(manifest.category, "authoring");
     assert_eq!(
         manifest.supported_targets,
-        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
     );
     assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
     assert_eq!(editor_module.capabilities, manifest.capabilities);

@@ -12,7 +12,10 @@ fn componentized_workbench_layout_collapses_right_drawer_shell_at_narrow_width()
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let mut bridge =
         match BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(640.0, 420.0)) {
@@ -55,7 +58,10 @@ fn componentized_regular_workbench_reserves_half_width_for_the_document() {
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let shell_size = UiSize::new(900.0, 620.0);
     let mut bridge = match BuiltinWorkbenchWindowTemplateSurfaceBridge::new(shell_size) {
@@ -89,7 +95,10 @@ fn componentized_workbench_layout_collapses_right_drawer_shell_by_logical_width_
 
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let metrics = WorkbenchChromeMetrics::default();
     let mut bridge =
         match BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 840.0)) {

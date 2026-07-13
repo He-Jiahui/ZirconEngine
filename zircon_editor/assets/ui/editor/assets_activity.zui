@@ -312,7 +312,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 
 [nodes.preview_adapter_text]
 component = "Label"
-control_id = "AssetsActivityPreviewAdapterText"
+control_id = "AssetsActivityPreviewToolkitText"
 props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 

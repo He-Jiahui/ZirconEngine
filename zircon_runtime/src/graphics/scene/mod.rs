@@ -18,7 +18,6 @@ pub(in crate::graphics) use scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID,
     IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
 };
-pub use scene_renderer::SceneRenderer;
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;
 pub(crate) use scene_renderer::{
@@ -37,7 +36,19 @@ pub(crate) use scene_renderer::{
     SCENE_COLOR_HDR_FORMAT,
 };
 pub use scene_renderer::{
+    oit_render_pass_executor_registrations, planar_reflection_filter_compute_workload,
+    planar_reflection_render_pass_executor_registrations, subsurface_render_feature_descriptor,
+    subsurface_render_pass_executor_registrations, subsurface_scatter_compute_workload,
+    subsurface_setup_compute_workload, volumetric_fog_render_pass_executor_registrations,
+    OIT_DRAW_SHADER_SOURCE, OIT_FRAGMENT_STORE_EXECUTOR_ID, OIT_RESOLVE_EXECUTOR_ID,
+    OIT_RESOLVE_SHADER_SOURCE, PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
+    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
+    VOLUMETRIC_INTEGRATE_EXECUTOR_ID, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID,
+    VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID,
+};
+pub use scene_renderer::{
     ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
     RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext,
 };
+pub use scene_renderer::{RealtimeIblGpuTimingReport, SceneRenderer};

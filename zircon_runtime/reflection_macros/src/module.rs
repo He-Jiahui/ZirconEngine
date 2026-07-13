@@ -49,7 +49,13 @@ pub(crate) fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Resu
         quote!(#export())
     });
     let type_descriptors = type_names.iter().map(|name| {
-        quote!(.with_type(<#name as ::zircon_runtime::core::framework::script::ZirconScriptType>::script_host_type_descriptor()))
+        quote!(.with_type(
+            <#name as ::zircon_runtime::core::framework::script::ZirconScriptType>::script_host_type_descriptor()
+                .map_err(|error| ::zircon_runtime::script::VmError::Operation(format!(
+                    "script type reflection registration failed for {}: {error}",
+                    stringify!(#name),
+                )))?
+        ))
     });
 
     Ok(quote! {
@@ -57,19 +63,22 @@ pub(crate) fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Resu
         #vis mod #mod_ident {
             #(#items)*
 
-            pub fn #descriptor_ident() -> ::zircon_runtime::core::framework::script::ScriptHostModuleDescriptor {
-                ::zircon_runtime::core::framework::script::ScriptHostModuleDescriptor::new(#module_name, #version)
+            pub fn #descriptor_ident() -> Result<
+                ::zircon_runtime::core::framework::script::ScriptHostModuleDescriptor,
+                ::zircon_runtime::script::VmError,
+            > {
+                Ok(::zircon_runtime::core::framework::script::ScriptHostModuleDescriptor::new(#module_name, #version)
                     #(#capabilities)*
                     #(#type_descriptors)*
                     #(#function_descriptors)*
-                    #documentation
+                    #documentation)
             }
 
             pub fn #register_ident(
                 exports: &::zircon_runtime::script::HostExportRegistry,
             ) -> Result<::zircon_runtime::script::HostHandle, ::zircon_runtime::script::VmError> {
                 exports.register_module(
-                    #descriptor_ident(),
+                    #descriptor_ident()?,
                     [#(#function_exports),*],
                 )
             }

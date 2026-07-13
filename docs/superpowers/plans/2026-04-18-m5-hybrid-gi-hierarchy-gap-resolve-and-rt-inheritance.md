@@ -1,19 +1,15 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/gpu_data/hybrid_gi_probe_gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
 plan_sources:
   - user: 2026-04-18 Hybrid GI 的 hierarchy-aware resolve / deeper screen-probe hierarchy / RT hybrid lighting continuation
   - user: 2026-04-18 Hybrid GI 的 hierarchy-aware resolve / deeper screen-probe hierarchy / RT hybrid lighting continuation，或者 Virtual Geometry 的 deeper unified indirect / cluster raster / residency-manager cascade
@@ -21,7 +17,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-rt-lighting-screen-probe-hierarchy.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-hierarchy-aware-radiance-gather.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_resolve_changes_when_resident_ancestor_is_reached_through_nonresident_hierarchy_gap
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_resolve_inherits_rt_lighting_tint_through_nonresident_hierarchy_gap
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_resolve_render

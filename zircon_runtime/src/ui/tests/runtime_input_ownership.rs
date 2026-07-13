@@ -109,7 +109,7 @@ fn drag_drop_input_event(
         kind,
         session_id,
         point,
-        payload,
+        payload: payload.map(Box::new),
     })
 }
 

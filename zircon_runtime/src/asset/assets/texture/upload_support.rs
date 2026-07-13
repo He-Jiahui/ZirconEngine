@@ -18,7 +18,8 @@ use self::dds::dds_upload_plan;
 use self::ktx::{ktx2_supercompression, ktx2_upload_plan, ktx_upload_plan};
 use super::{
     external_source_cubemap_container_info, TextureAsset, TexturePayload,
-    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, LIGHTMAP_RGBA16F_FORMAT,
+    LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
     ZCUBE_SOURCE_CUBEMAP_FORMAT,
 };
 
@@ -188,6 +189,9 @@ fn container_upload_readiness(
     if matches!(external_source_cubemap_container_info(texture), Ok(Some(_))) {
         return unsupported(EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON);
     }
+    if format == LIGHTMAP_RGBA16F_FORMAT {
+        return lightmap_rgba16f_upload_readiness(texture, bytes);
+    }
     if let Some(plan) = dds_upload_plan(texture, format, bytes) {
         return compressed_plan_readiness(texture, bytes, plan, support);
     }
@@ -221,6 +225,47 @@ fn container_upload_readiness(
     unsupported(format!(
         "texture container format {format} is not upload-ready"
     ))
+}
+
+fn lightmap_rgba16f_upload_readiness(
+    texture: &TextureAsset,
+    bytes: &[u8],
+) -> TextureUploadReadiness {
+    let descriptor = texture.render_image_descriptor();
+    let layer_count = descriptor.array_layer_count.max(1);
+    if descriptor.dimension != RenderImageDimension::D2
+        || descriptor.depth_or_array_layers != layer_count
+        || descriptor.mip_count.max(1) != 1
+        || descriptor.format != LIGHTMAP_RGBA16F_GPU_FORMAT
+    {
+        return unsupported(
+            "lightmap rgba16f container requires a one-mip 2d-array rgba16float descriptor",
+        );
+    }
+    let Some(expected_len) = (texture.width as usize)
+        .checked_mul(texture.height as usize)
+        .and_then(|texels| texels.checked_mul(layer_count as usize))
+        .and_then(|texels| texels.checked_mul(8))
+    else {
+        return unsupported("lightmap rgba16f texture extent is too large to upload");
+    };
+    if bytes.len() != expected_len {
+        return unsupported(format!(
+            "lightmap rgba16f payload length {} does not match expected {}",
+            bytes.len(),
+            expected_len
+        ));
+    }
+    ready(TextureUploadPlan {
+        format: LIGHTMAP_RGBA16F_GPU_FORMAT.to_string(),
+        compression: TextureUploadCompressionFamily::Uncompressed,
+        data_offset: 0,
+        data_length: Some(bytes.len()),
+        block_width: 1,
+        block_height: 1,
+        block_depth: 1,
+        bytes_per_block: 8,
+    })
 }
 
 fn texture_descriptor_mip_count(texture: &TextureAsset) -> u32 {

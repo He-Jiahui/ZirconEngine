@@ -10,6 +10,7 @@ use zircon_runtime_interface::ui::{
 use super::super::surface::UiSurface;
 use super::{
     pointer_reply::{merge_pointer_text_result, pointer_component_handler, pointer_reply},
+    rich_link::dispatch_pointer_rich_link_activation,
     route_policy::annotate_pointer_route_trace,
     route_steps::annotate_result_route_steps,
     text_pointer::dispatch_pointer_text_edit,
@@ -105,6 +106,12 @@ pub(super) fn dispatch_pointer_input(
     {
         merge_pointer_text_result(&mut result, text_result);
     }
+    dispatch_pointer_rich_link_activation(
+        surface,
+        &pointer_for_text,
+        &routed_result.route,
+        &mut result,
+    );
     if clear_cursor_point_after_dispatch {
         surface.input.clear_last_cursor_point();
     }

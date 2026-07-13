@@ -73,7 +73,7 @@ fn runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_s
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let modules = lock_poison_recovered(&core.inner.modules);",
             "let services = lock_poison_recovered(&core.inner.services);",
-            "let hooks = lock_poison_recovered(&core.inner.scene_hooks);",
+            "lock_poison_recovered(&core.inner.scene_hook_snapshots).clone()",
             "devtools_snapshot_recovers_poisoned_runtime_registry_locks",
         ],
     );

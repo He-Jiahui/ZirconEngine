@@ -2,13 +2,14 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::plugin::RuntimePluginBridgeLifecycleState;
+use crate::core::diagnostics::{
+    RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
+};
+use crate::core::RuntimeModuleLifecycleObserver;
 
 use super::super::descriptors::RegistryName;
 use super::super::state::CoreRuntimeInner;
-use super::super::state::{
-    ModuleEntry, SceneRuntimeHookSet, ServiceEntry, WorldRuntimeExtensionSet,
-};
+use super::super::state::{ModuleEntry, ServiceEntry};
 use super::super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
 use super::super::weak::CoreWeak;
 
@@ -48,18 +49,24 @@ impl CoreHandle {
         lock_poison_recovered(&self.inner.services)
     }
 
-    pub(crate) fn lock_scene_hooks(&self) -> MutexGuard<'_, SceneRuntimeHookSet> {
-        lock_poison_recovered(&self.inner.scene_hooks)
-    }
-
-    pub(crate) fn lock_world_extensions(&self) -> MutexGuard<'_, WorldRuntimeExtensionSet> {
-        lock_poison_recovered(&self.inner.world_extensions)
-    }
-
-    pub(crate) fn lock_plugin_bridge_lifecycle(
+    pub(crate) fn replace_devtools_scene_hook_snapshots(
         &self,
-    ) -> MutexGuard<'_, Option<RuntimePluginBridgeLifecycleState>> {
-        lock_poison_recovered(&self.inner.plugin_bridge_lifecycle)
+        snapshots: Vec<RuntimeDevtoolsSceneHookSnapshot>,
+    ) {
+        *lock_poison_recovered(&self.inner.scene_hook_snapshots) = snapshots;
+    }
+
+    pub fn replace_devtools_plugin_catalog_entries(
+        &self,
+        entries: Vec<RuntimeDevtoolsPluginCatalogEntry>,
+    ) {
+        *lock_poison_recovered(&self.inner.devtools_plugin_catalog_entries) = entries;
+    }
+
+    pub(crate) fn lock_runtime_module_lifecycle_observer(
+        &self,
+    ) -> MutexGuard<'_, Option<Arc<dyn RuntimeModuleLifecycleObserver>>> {
+        lock_poison_recovered(&self.inner.runtime_module_lifecycle_observer)
     }
 }
 
@@ -97,23 +104,25 @@ mod tests {
         assert!(handle.lock_services().is_empty());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.scene_hooks.lock().unwrap();
-            panic!("poison core handle scene hooks");
+            let _guard = handle.inner.scene_hook_snapshots.lock().unwrap();
+            panic!("poison core handle scene hook diagnostics snapshots");
         }));
-        let _scene_hooks = handle.lock_scene_hooks();
-        drop(_scene_hooks);
+        handle.replace_devtools_scene_hook_snapshots(Vec::new());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.world_extensions.lock().unwrap();
-            panic!("poison core handle world extensions");
+            let _guard = handle.inner.devtools_plugin_catalog_entries.lock().unwrap();
+            panic!("poison core handle devtools plugin catalog entries");
         }));
-        let _world_extensions = handle.lock_world_extensions();
-        drop(_world_extensions);
+        handle.replace_devtools_plugin_catalog_entries(Vec::new());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.plugin_bridge_lifecycle.lock().unwrap();
-            panic!("poison core handle plugin bridge lifecycle");
+            let _guard = handle
+                .inner
+                .runtime_module_lifecycle_observer
+                .lock()
+                .unwrap();
+            panic!("poison core handle runtime module lifecycle observer");
         }));
-        assert!(handle.lock_plugin_bridge_lifecycle().is_none());
+        assert!(handle.lock_runtime_module_lifecycle_observer().is_none());
     }
 }

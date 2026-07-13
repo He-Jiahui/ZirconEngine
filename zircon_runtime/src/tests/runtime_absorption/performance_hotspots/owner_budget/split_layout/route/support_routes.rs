@@ -26,7 +26,7 @@ pub(super) fn assert_owner_budget_support_routes(sources: &OwnerBudgetSources) {
             "split_layout/source_inventory.rs",
             "split_layout/status_docs.rs",
             "performance_hotpath_source_inventory.py",
-            "runtime07_script_maps.rs",
+            "2026-07-09-runtime-performance-hotpath-output-records.md",
         ],
     );
     assert_contains_all(

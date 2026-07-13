@@ -197,6 +197,7 @@ impl WgpuRenderFramework {
         Ok(Self {
             operation_lock: Mutex::new(()),
             compute_task_pool,
+            planar_reflection_updates: Mutex::new(Default::default()),
             state: Mutex::new(RenderFrameworkState {
                 renderer,
                 next_viewport_id: 1,

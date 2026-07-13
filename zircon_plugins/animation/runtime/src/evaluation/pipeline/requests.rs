@@ -10,6 +10,8 @@ pub(super) struct AnimationSceneScan {
     pub(super) clip_event_samples: Vec<PendingClipEventSample>,
     pub(super) graph_samples: Vec<PendingGraphPoseSample>,
     pub(super) state_machine_samples: Vec<PendingStateMachinePoseSample>,
+    pub(super) skeletons_by_entity:
+        std::collections::BTreeMap<EntityId, zircon_runtime::asset::AssetId>,
     pub(super) next_graph_times: std::collections::BTreeMap<EntityId, Real>,
     pub(super) next_state_machine_times: std::collections::BTreeMap<EntityId, Real>,
 }

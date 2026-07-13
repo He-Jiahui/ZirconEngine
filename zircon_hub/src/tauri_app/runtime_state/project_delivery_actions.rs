@@ -820,7 +820,7 @@ mod tests {
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("out");
         config.settings.default_device_install_dir = temp.join("device");
-        config.recent_projects = vec![RecentProject::new(name, project, 1)];
+        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(
@@ -843,7 +843,7 @@ mod tests {
         config.settings.default_device_install_dir = temp.join("device");
         config.recent_projects = projects
             .iter()
-            .map(|(name, path)| RecentProject::new(*name, path, 1))
+            .map(|(name, path)| RecentProject::fixture(*name, path, 1))
             .collect();
         config.runtime.selected_project_path = Some(selected_project.to_path_buf());
         config.save(&config_path).unwrap();

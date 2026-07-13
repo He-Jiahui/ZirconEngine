@@ -187,6 +187,7 @@ mod tests {
                 color: Vec3::new(1.0, 0.5, 0.25),
                 intensity: 2.0,
                 range: 3.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             })
             .collect::<Vec<_>>();
@@ -212,6 +213,7 @@ mod tests {
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::new(0.8, 0.7, 0.6),
                 intensity: 4.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: Some(LightShadowSettings {
                     casts_shadow: true,
                     depth_bias: 0.25,
@@ -255,6 +257,7 @@ mod tests {
                 range: 8.0,
                 inner_angle_radians: 0.25,
                 outer_angle_radians: 0.5,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             }],
             &[RenderRectLightSnapshot {

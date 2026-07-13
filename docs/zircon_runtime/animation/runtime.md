@@ -43,6 +43,9 @@ implementation_files:
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/clip_event.rs
 plan_sources:
+  - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -54,6 +57,7 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/src/scene/animation
   - dev/godot/scene/animation
 tests:
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_runtime/src/animation/manager/mod.rs::animation_manager_playback_settings_recover_poisoned_lock
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings
   - zircon_runtime/src/animation/sequence/tests.rs
@@ -102,6 +106,8 @@ Runtime 14 uses Bevy, Fyrox, and Godot only as boundary references, not as featu
 
 `zircon_runtime::animation` should keep its crate-root seat. Moving it into `core::framework::animation` would mix framework contracts with playback implementation, while moving playback into `scene` would make scene own asset-specific animation behavior.
 
+`DefaultAnimationManager` is installed in the Runtime service registry, so its runtime back-reference is `CoreWeak`. Construction may borrow `&CoreHandle`, but the manager upgrades only at the playback-settings persistence boundary; a dead Runtime root skips persistence while the manager's already-owned local playback settings remain readable. This prevents the registry entry from retaining the root through `ServiceEntry.instance`.
+
 The stable boundary is:
 
 - `core::framework::animation` defines contracts and DTOs.
@@ -122,7 +128,7 @@ Runtime 14 M1 adds `runtime_animation_backlog_boundary_requires_doc_update` as a
 
 Runtime 15 M1 animation manager folder-backed cutover is recorded as `runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred`. Runtime 15 M1 adds `runtime_15_animation_manager_is_folder_backed` as the structure guard for the manager entry cutover. The guard locks the old flat `animation/manager.rs` path as retired, requires `animation/manager/mod.rs` to own `DefaultAnimationManager` and the child module mounts, and keeps graph, parameters, pose, sampling, and state-machine behavior in `animation/manager/{graph,parameters,pose,sampling,state_machine}.rs`. This closes the `manager.rs` plus `manager/` coexistence debt for animation without changing the service-registration behavior or public `DefaultAnimationManager` facade; the current canonical module identity is `animation.runtime`.
 
-Runtime 15 F5 animation manager typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` now owns `AnimationError` and `AnimationResult`, while `AnimationManager::sample_clip_pose`, `AnimationManager::apply_sequence_to_world`, `DefaultAnimationManager`, clip pose sampling, channel sample helpers, and sequence channel conversion return `AnimationResult` instead of public `Result<_, String>`. The typed variants distinguish non-finite skeleton bind fields, zero-length bind rotations, sample type mismatches, non-finite samples, zero-length quaternion samples, non-finite sequence channel samples, and zero-length sequence channel quaternions. `review_f5_animation_manager_uses_animation_error` keeps this document, Runtime 15 status, review findings, and the framework animation contract document synchronized with the code owner.
+Runtime 15 F5 animation typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` owns `AnimationError` and `AnimationResult`; `AnimationManager::sample_clip_pose`, concrete clip sampling, channel helpers, and the upper `animation::sequence::apply_sequence_to_world(...)` function return `AnimationResult` instead of public `Result<_, String>`. The 2026-07-13 Frameworks05 cut removed scene writeback from the neutral manager trait, so the runtime scene hook now invokes the upper sequence function directly. `review_f5_animation_manager_uses_animation_error` keeps typed errors synchronized without reintroducing `scene::World` into framework.
 
 ## Playback Settings Lock Recovery
 

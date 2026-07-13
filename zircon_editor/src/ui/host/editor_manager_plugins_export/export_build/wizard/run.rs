@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use super::{
     execute_export_wizard_stage_with_output_and_cancel, ExportWizardCommandRunner,
     ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus,
@@ -24,7 +22,7 @@ pub struct ExportWizardJobEvent {
     pub snapshot: ExportWizardJobSnapshot,
 }
 
-pub trait ExportWizardCancelSignal {
+pub trait ExportWizardCancelSignal: Sync {
     fn is_cancel_requested(&self) -> bool;
 }
 
@@ -37,18 +35,12 @@ impl ExportWizardCancelSignal for ExportWizardNeverCancel {
     }
 }
 
-impl ExportWizardCancelSignal for AtomicBool {
-    fn is_cancel_requested(&self) -> bool {
-        self.load(Ordering::SeqCst)
-    }
-}
-
 pub fn run_export_wizard_job(
     job_id: impl Into<String>,
     plan: &ExportWizardPipelinePlan,
     runner: &mut impl ExportWizardCommandRunner,
     cancel_signal: &impl ExportWizardCancelSignal,
-    emit_event: &mut impl FnMut(ExportWizardJobEvent),
+    emit_event: &mut (impl FnMut(ExportWizardJobEvent) + Send),
 ) -> ExportWizardJobSnapshot {
     let mut job = ExportWizardJobState::new(job_id, plan);
     emit_job_event(emit_event, ExportWizardJobEventKind::Created, &job);
@@ -69,8 +61,8 @@ pub fn run_export_wizard_job(
     emit_job_event(emit_event, ExportWizardJobEventKind::Started, &job);
 
     let mut progress =
-        ExportWizardProgressState::for_stages(plan.stages.iter().map(|command| command.stage));
-    for command in &plan.stages {
+        ExportWizardProgressState::for_stages(plan.ordered_commands().map(|command| command.stage));
+    for command in plan.ordered_commands() {
         if cancel_signal.is_cancel_requested() {
             job.request_cancel();
             job.mark_cancelled(format!(
@@ -137,7 +129,7 @@ pub fn run_export_wizard_job(
 }
 
 fn emit_terminal_event(
-    emit_event: &mut impl FnMut(ExportWizardJobEvent),
+    emit_event: &mut (impl FnMut(ExportWizardJobEvent) + Send),
     job: &ExportWizardJobState,
 ) {
     let kind = match job.snapshot().status {
@@ -152,7 +144,7 @@ fn emit_terminal_event(
 }
 
 fn emit_job_event(
-    emit_event: &mut impl FnMut(ExportWizardJobEvent),
+    emit_event: &mut (impl FnMut(ExportWizardJobEvent) + Send),
     kind: ExportWizardJobEventKind,
     job: &ExportWizardJobState,
 ) {

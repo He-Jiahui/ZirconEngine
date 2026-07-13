@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/astc.rs
@@ -31,7 +31,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
 implementation_files:
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/astc.rs

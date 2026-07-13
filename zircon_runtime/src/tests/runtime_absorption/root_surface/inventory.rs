@@ -10,5 +10,8 @@ pub(super) const INTERFACE_CONVERGENCE_DOC: &str =
 pub(super) const RUNTIME_02_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md"
 );
+pub(super) const RUNTIME_02_OUTPUT_RECORDS: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/02/2026-07-09-core-spine-and-root-surface-output-records.md"
+);
 pub(super) const RUNTIME_INDEX: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");

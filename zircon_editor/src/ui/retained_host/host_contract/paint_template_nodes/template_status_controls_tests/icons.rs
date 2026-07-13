@@ -70,8 +70,9 @@ fn status_icon_button_uses_shared_icon_button_state_priority() {
     let hovered = select_workbench_status_icon_button_style(&node);
     assert_eq!(
         hovered.state,
-        zircon_runtime_interface::ui::style::UiPainterResolvedState::Hovered
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Checked
     );
+    assert_eq!(hovered.background, PALETTE.surface_selected);
 
     node.pressed = true;
     let pressed = select_workbench_status_icon_button_style(&node);

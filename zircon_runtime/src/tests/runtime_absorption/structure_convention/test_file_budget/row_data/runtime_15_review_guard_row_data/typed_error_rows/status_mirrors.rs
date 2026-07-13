@@ -11,7 +11,6 @@ fn runtime_15_review_guard_typed_error_row_data_status_mirrors_are_current() {
         read_repo("docs/plans/engine-code-structure-convention.md"),
         read_repo("docs/plans/engine-code-review-findings-2026-06.md"),
         read_repo("docs/zircon_runtime/structure/module-convention.md"),
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
     ]
     .join("\n");
 

@@ -15,6 +15,7 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
     gpu_scene_layout: &wgpu::BindGroupLayout,
     target_format: wgpu::TextureFormat,
     plugin_shading_models: &[ShadingModelDescriptor],
+    subsurface_mrt: bool,
 ) -> Result<wgpu::RenderPipeline, GraphicsError> {
     let lighting_shader_source =
         deferred_lighting_shader_source(asset_manager, plugin_shading_models)?;
@@ -32,9 +33,27 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
         ],
         immediate_size: 0,
     });
+    let mut targets = vec![Some(wgpu::ColorTargetState {
+        format: target_format,
+        blend: Some(wgpu::BlendState::REPLACE),
+        write_mask: wgpu::ColorWrites::ALL,
+    })];
+    if subsurface_mrt {
+        targets.extend([1, 2].map(|_| {
+            Some(wgpu::ColorTargetState {
+                format: wgpu::TextureFormat::Rgba16Float,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })
+        }));
+    }
     Ok(
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("zircon-deferred-lighting-pipeline"),
+            label: Some(if subsurface_mrt {
+                "zircon-deferred-lighting-subsurface-mrt-pipeline"
+            } else {
+                "zircon-deferred-lighting-pipeline"
+            }),
             layout: Some(&lighting_layout),
             vertex: wgpu::VertexState {
                 module: &lighting_shader,
@@ -47,13 +66,13 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
             multisample: wgpu::MultisampleState::default(),
             fragment: Some(wgpu::FragmentState {
                 module: &lighting_shader,
-                entry_point: Some("fs_main"),
+                entry_point: Some(if subsurface_mrt {
+                    "fs_main_sss"
+                } else {
+                    "fs_main"
+                }),
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: target_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
+                targets: &targets,
             }),
             multiview_mask: None,
             cache: None,

@@ -13,8 +13,6 @@ fn runtime_15_priority_plan_docs_plan_sources_stay_cross_linked() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/integrity_guards.rs",
     );
@@ -27,7 +25,6 @@ fn runtime_15_priority_plan_docs_plan_sources_stay_cross_linked() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(
@@ -74,9 +71,8 @@ fn assert_priority_plan_doc_plan_sources_are_cross_linked(label: &str, path: &st
         "{label} priority plan doc `{path}` should keep a user-request plan source"
     );
     assert!(
-        plan_sources
-            .iter()
-            .any(|item| *item == "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
+        plan_sources.iter().any(|item| *item
+            == "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
         "{label} priority plan doc `{path}` should cite Runtime 15 as its implementation-status source"
     );
 

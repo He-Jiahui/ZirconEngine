@@ -3,8 +3,6 @@ use super::{
     RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
     RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
 };
-#[cfg(feature = "graphics")]
-use crate::graphics::RenderPipelineAsset;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 pub trait RenderFramework: Send + Sync {
@@ -69,12 +67,6 @@ pub trait RenderFramework: Send + Sync {
         viewport: RenderViewportHandle,
         pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError>;
-
-    #[cfg(feature = "graphics")]
-    fn register_pipeline_asset(
-        &self,
-        pipeline: RenderPipelineAsset,
-    ) -> Result<RenderPipelineHandle, RenderFrameworkError>;
 
     fn reload_pipeline(&self, pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError>;
 

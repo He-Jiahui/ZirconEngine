@@ -5,10 +5,10 @@ related_code:
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/core/modules/log.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/report.rs
-  - zircon_runtime/src/core/time.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/report.rs
+  - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/platform/mod.rs
@@ -16,8 +16,8 @@ related_code:
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/core/framework/time/mod.rs
-  - zircon_runtime/src/core/state/mod.rs
-  - zircon_runtime/src/core/diagnostics/mod.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/mod.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
   - zircon_runtime/src/diagnostic_log/level.rs
@@ -28,7 +28,7 @@ implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/core/tasks/report.rs
+  - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/framework/window/mod.rs
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs

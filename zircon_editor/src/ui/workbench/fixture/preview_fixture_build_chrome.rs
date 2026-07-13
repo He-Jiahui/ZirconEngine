@@ -9,6 +9,7 @@ impl PreviewFixture {
             &self.layout,
             self.instances.clone(),
             self.descriptors.clone(),
+            None,
         )
     }
 }

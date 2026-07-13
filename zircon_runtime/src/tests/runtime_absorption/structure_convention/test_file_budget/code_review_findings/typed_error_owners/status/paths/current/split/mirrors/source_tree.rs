@@ -1,8 +1,7 @@
 use super::super::super::super::super::super::super::super::*;
 use super::super::super::super::root_paths::TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_STATUS_MIRRORS_CHILD;
 
-const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_STATUS_MIRROR_CHILDREN:
-    &[&str] = &[
+const TYPED_ERROR_STATUS_DOCS_PATHS_STATUS_CURRENT_SPLIT_LAYOUT_STATUS_MIRROR_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/mirrors/source_tree.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/mirrors/status_current.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/mirrors/status_documents.rs",

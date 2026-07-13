@@ -77,6 +77,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS,
             ))
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
             .write_buffer_with_minimum_size(
                 PostProcessGraphResourceNames::HYBRID_GI_SCENE,

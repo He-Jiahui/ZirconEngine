@@ -1,7 +1,9 @@
-use crate::plugin::{ProjectPluginManifest, ProjectPluginSelection};
-use crate::plugin::{RuntimeProfileDescriptor, RuntimeProfileId};
+use crate::core::framework::project::RuntimeProfileId;
+use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::plugin::RuntimeProfileDescriptor;
 
-use super::ids::{RuntimePluginId, RuntimeTargetMode};
+use super::ids::RuntimePluginId;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub fn manifest_with_mode_baseline(
     target: RuntimeTargetMode,

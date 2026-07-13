@@ -20,7 +20,7 @@ pub(crate) use events::{
     UiComponentShowcaseDemoEventInput,
 };
 
-pub(crate) const SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
+pub(crate) const SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiComponentShowcaseDemoLogEntry {
@@ -228,7 +228,6 @@ impl UiComponentShowcaseDemoState {
             for key in [
                 "commands",
                 "filtered_commands",
-                "disabled_commands",
                 "selected_command_id",
                 "focused_index",
                 "recent_commands",

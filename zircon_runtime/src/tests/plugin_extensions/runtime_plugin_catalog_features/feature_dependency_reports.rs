@@ -287,9 +287,11 @@ fn runtime_plugin_catalog_reports_feature_capability_cycles() {
     assert!(blocked.available_features.is_empty());
     assert_eq!(blocked.blocked_features.len(), 2);
     assert!(blocked.blocked_features.iter().all(|feature| feature.cycle));
-    assert!(blocked.blocked_features.iter().all(|feature| feature
-        .to_diagnostic()
-        .contains("feature capability dependencies form a cycle")));
+    assert!(blocked.blocked_features.iter().all(|feature| {
+        feature
+            .to_diagnostic()
+            .contains("feature capability dependencies form a cycle")
+    }));
 }
 
 #[test]

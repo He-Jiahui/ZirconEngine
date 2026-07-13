@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/ui/layout/mod.rs
-  - zircon_runtime/src/ui/layout/taffy_bridge.rs
+  - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs

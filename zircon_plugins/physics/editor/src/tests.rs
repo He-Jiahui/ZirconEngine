@@ -112,9 +112,9 @@ fn generated_profile_covers_all_mapped_bones() {
     let registration = plugin_registration();
     assert!(registration
         .extensions
-        .asset_editors()
+        .asset_type_contributions()
         .iter()
-        .any(|editor| editor.asset_kind() == RAGDOLL_PROFILE_ASSET_KIND));
+        .any(|contribution| contribution.asset_type().as_str() == RAGDOLL_PROFILE_ASSET_KIND));
 }
 
 #[test]

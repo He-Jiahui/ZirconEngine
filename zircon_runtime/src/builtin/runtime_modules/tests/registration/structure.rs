@@ -1,6 +1,7 @@
 #[test]
 fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let runtime_modules_source = include_str!("../../../runtime_modules.rs");
+    let builtin_source = include_str!("../../../mod.rs");
     let registration_mod_source = include_str!("mod.rs");
     let behavior_source = include_str!("behavior.rs");
     let assembly_source = include_str!("../../assembly.rs");
@@ -13,19 +14,14 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let plugin_id_source = include_str!("../../ids/plugin_id.rs");
     let profile_modules_source = include_str!("../../assembly/profile_modules.rs");
     let plugin_modules_source = include_str!("../../plugin_modules.rs");
-    let plugin_module_availability_source = include_str!("../../plugin_modules/availability.rs");
     let plugin_module_loader_source = include_str!("../../plugin_modules/loader.rs");
     let registration_inputs_source = include_str!("../../assembly/registration_inputs.rs");
-    let registration_inputs_production_source = registration_inputs_source
-        .split("#[cfg(test)]")
-        .next()
-        .expect("registration inputs production source");
     let registration_reports_source = include_str!("../../assembly/registration_reports.rs");
     let load_report_source = include_str!("../../load_report.rs");
     let load_report_diagnostics_source = include_str!("../../load_report/diagnostics.rs");
-    let load_report_missing_source = include_str!("../../load_report/missing.rs");
     let load_report_report_source = include_str!("../../load_report/report.rs");
-    let target_mode_source = include_str!("../../ids/target_mode.rs");
+    let target_mode_source =
+        include_str!("../../../../core/framework/platform/runtime_target_mode.rs");
     let target_modules_source = include_str!("../../assembly/target_modules.rs");
 
     assert!(registration_mod_source.contains("mod behavior;"));
@@ -46,6 +42,11 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(runtime_modules_source.contains("mod load_report;"));
     assert!(runtime_modules_source.contains("mod manifest;"));
     assert!(runtime_modules_source.contains("mod plugin_modules;"));
+    assert!(
+        runtime_modules_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
+    );
+    assert!(!runtime_modules_source.contains("pub use ids::{RuntimePluginId, RuntimeTargetMode};"));
+    assert!(!builtin_source.contains("RuntimePluginId, RuntimeTargetMode"));
     assert!(!runtime_modules_source.contains("mod extensions;"));
     assert!(assembly_source.contains("mod extension_inputs;"));
     assert!(assembly_source.contains("mod feature_reports;"));
@@ -53,11 +54,16 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(assembly_source.contains("mod registration_inputs;"));
     assert!(assembly_source.contains("mod registration_reports;"));
     assert!(assembly_source.contains("mod target_modules;"));
-    assert!(assembly_source.contains("use super::ids::RuntimeTargetMode;"));
+    assert!(assembly_source.contains("use crate::core::framework::platform::RuntimeTargetMode;"));
     assert!(assembly_source.contains("use super::load_report::RuntimeModuleLoadReport;"));
-    assert!(availability_source.contains("use super::ids::RuntimeTargetMode;"));
-    assert!(core_modules_source.contains("use super::ids::RuntimeTargetMode;"));
-    assert!(manifest_source.contains("use super::ids::{RuntimePluginId, RuntimeTargetMode};"));
+    assert!(
+        availability_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
+    );
+    assert!(
+        core_modules_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
+    );
+    assert!(manifest_source.contains("use super::ids::RuntimePluginId;"));
+    assert!(manifest_source.contains("use crate::core::framework::platform::RuntimeTargetMode;"));
     assert!(extension_inputs_source.contains("RuntimeModuleExtensionInputs"));
     assert!(extension_inputs_source.contains("extension_inputs_from_extension_registries"));
     assert!(extension_inputs_source.contains("RuntimeExtensionRegistry"));
@@ -77,14 +83,15 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(feature_reports_source.contains("feature_dependency_report"));
     assert!(feature_reports_source.contains("blocked_features"));
     assert!(feature_reports_source.contains("active_feature_registration_refs"));
-    assert!(feature_reports_source.contains("use super::super::ids::RuntimeTargetMode;"));
     assert!(
-        feature_reports_source.contains("use super::super::load_report::RuntimeModuleLoadReport;")
+        feature_reports_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
     );
+    assert!(feature_reports_source.contains(
+        "use super::super::load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};"
+    ));
     assert!(ids_source.contains("mod plugin_id;"));
-    assert!(ids_source.contains("mod target_mode;"));
     assert!(ids_source.contains("pub use plugin_id::RuntimePluginId;"));
-    assert!(ids_source.contains("pub use target_mode::RuntimeTargetMode;"));
+    assert!(!ids_source.contains("target_mode"));
     assert!(plugin_id_source.contains("pub struct RuntimePluginId"));
     assert!(!plugin_id_source.contains("pub enum RuntimePluginId"));
     assert!(plugin_id_source.contains("pub const fn key"));
@@ -117,44 +124,47 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(registration_reports_source.contains("extend_asset_importer_errors"));
     assert!(registration_reports_source
         .contains("target_manifest_availability_for_registration_reports"));
-    assert!(registration_reports_source.contains("use super::super::ids::RuntimeTargetMode;"));
     assert!(registration_reports_source
-        .contains("use super::super::load_report::RuntimeModuleLoadReport;"));
+        .contains("use crate::core::framework::platform::RuntimeTargetMode;"));
+    assert!(registration_reports_source.contains(
+        "use super::super::load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};"
+    ));
     assert!(target_modules_source.contains(
         "pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest"
     ));
     assert!(target_modules_source.contains("module_for_plugin"));
-    assert!(target_modules_source.contains("use super::super::ids::RuntimeTargetMode;"));
     assert!(
-        target_modules_source.contains("use super::super::load_report::RuntimeModuleLoadReport;")
+        target_modules_source.contains("use crate::core::framework::platform::RuntimeTargetMode;")
     );
-    assert!(plugin_modules_source.contains("mod availability;"));
+    assert!(target_modules_source.contains(
+        "use super::super::load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};"
+    ));
     assert!(plugin_modules_source.contains("mod loader;"));
-    assert!(plugin_modules_source.contains("pub(super) use availability::"));
+    assert!(!plugin_modules_source.contains("mod availability;"));
     assert!(plugin_modules_source.contains("pub(super) use loader::module_for_plugin;"));
-    assert!(plugin_module_availability_source.contains("linked_plugin_is_available"));
-    assert!(plugin_module_availability_source.contains("builtin_runtime_domain_is_available"));
-    assert!(plugin_module_availability_source.contains("builtin_runtime_domain_message"));
-    assert!(plugin_module_availability_source.contains("use super::super::ids::RuntimePluginId;"));
+    assert!(target_modules_source.contains("RuntimePluginAvailabilityCategory::Linked"));
+    assert!(target_modules_source.contains("RuntimePluginAvailabilityCategory::NativeDynamic"));
+    assert!(!target_modules_source.contains("linked_plugin_is_available"));
     assert!(plugin_module_loader_source.contains("module_for_plugin"));
-    assert!(plugin_module_loader_source.contains("externalized_runtime_plugin_module"));
-    assert!(plugin_module_loader_source.contains("externalized_runtime_plugin_message"));
+    assert!(!plugin_module_loader_source.contains("externalized_runtime_plugin_module"));
+    assert!(!plugin_module_loader_source.contains("externalized_runtime_plugin_message"));
     assert!(plugin_module_loader_source.contains("use super::super::ids::RuntimePluginId;"));
     assert!(load_report_source.contains("mod diagnostics;"));
-    assert!(load_report_source.contains("mod missing;"));
     assert!(load_report_source.contains("mod report;"));
-    assert!(load_report_source.contains("pub use missing::RuntimeRequiredPluginMissing;"));
+    assert!(!load_report_source.contains("mod missing;"));
+    assert!(load_report_source.contains("pub use diagnostics::RuntimeModuleLoadDiagnostic;"));
     assert!(load_report_source.contains("pub use report::RuntimeModuleLoadReport;"));
-    assert!(load_report_missing_source.contains("pub struct RuntimeRequiredPluginMissing"));
-    assert!(load_report_missing_source.contains("use super::super::ids::RuntimePluginId;"));
     assert!(load_report_report_source.contains("pub struct RuntimeModuleLoadReport"));
-    assert!(load_report_report_source.contains("use super::super::ids::RuntimePluginId;"));
-    assert!(load_report_report_source.contains("fn push_required_missing"));
-    assert!(load_report_report_source.contains("fn owned_required_missing"));
-    assert!(load_report_diagnostics_source.contains("effective_required_missing"));
+    assert!(load_report_report_source.contains("diagnostics: Vec<RuntimeModuleLoadDiagnostic>"));
+    assert!(!load_report_report_source.contains("pub warnings: Vec<String>"));
+    assert!(!load_report_report_source.contains("pub errors: Vec<String>"));
+    assert!(!load_report_report_source.contains("required_missing:"));
     assert!(load_report_diagnostics_source.contains("required_missing_summary"));
-    assert!(load_report_diagnostics_source.contains("effective_errors"));
-    assert!(target_modules_source.contains("report.push_required_missing(runtime_id, reason);"));
+    assert!(load_report_diagnostics_source.contains("fatal_messages"));
+    assert!(load_report_diagnostics_source.contains("warning_messages"));
+    assert!(!load_report_diagnostics_source.contains("effective_required_missing"));
+    assert!(!load_report_diagnostics_source.contains("effective_errors"));
+    assert!(!target_modules_source.contains("report.push_required_missing"));
     assert!(!plugin_modules_source.contains("use std::collections::HashSet;"));
     assert!(!plugin_modules_source.contains("use std::sync::Arc;"));
     assert!(!plugin_modules_source.contains("fn externalized_runtime_plugin_message"));
@@ -173,9 +183,6 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!registration_reports_source
         .contains("use super::super::{RuntimeModuleLoadReport, RuntimeTargetMode};"));
     assert!(!target_modules_source.contains("use super::super::{RuntimeModuleLoadReport,"));
-    assert!(!load_report_missing_source.contains("use super::super::RuntimePluginId;"));
-    assert!(!load_report_report_source.contains("use super::super::RuntimePluginId;"));
-    assert!(!plugin_module_availability_source.contains("use super::super::RuntimePluginId;"));
     assert!(!plugin_module_loader_source.contains("use super::super::RuntimePluginId;"));
     assert!(!load_report_source.contains("pub struct RuntimeModuleLoadReport"));
     assert!(!load_report_source.contains("pub struct RuntimeRequiredPluginMissing"));
@@ -200,17 +207,15 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!assembly_source.contains("runtime_profile_manifest_availability"));
     assert!(!assembly_source.contains("RuntimeProfileDescriptor"));
     assert!(!assembly_source.contains("RuntimeModuleRegistrationInputs::empty"));
-    assert!(!registration_inputs_production_source.contains("RuntimeTargetMode"));
-    assert!(!registration_inputs_production_source.contains("project_selection.supports_target"));
-    assert!(!registration_inputs_production_source.contains("RuntimeExtensionRegistry"));
-    assert!(!registration_inputs_production_source
-        .contains("asset_importers_from_extension_registries"));
-    assert!(!registration_inputs_production_source.contains("collect_render_features"));
-    assert!(!registration_inputs_production_source.contains("collect_shading_models"));
-    assert!(!registration_inputs_production_source.contains("collect_render_pass_executors"));
-    assert!(!registration_inputs_production_source.contains("collect_runtime_prepare_collectors"));
-    assert!(!registration_inputs_production_source.contains("collect_hybrid_gi_runtime_providers"));
-    assert!(!registration_inputs_production_source.contains("collect_solari_runtime_providers"));
-    assert!(!registration_inputs_production_source
-        .contains("collect_virtual_geometry_runtime_providers"));
+    assert!(!registration_inputs_source.contains("RuntimeTargetMode"));
+    assert!(!registration_inputs_source.contains("project_selection.supports_target"));
+    assert!(!registration_inputs_source.contains("RuntimeExtensionRegistry"));
+    assert!(!registration_inputs_source.contains("asset_importers_from_extension_registries"));
+    assert!(!registration_inputs_source.contains("collect_render_features"));
+    assert!(!registration_inputs_source.contains("collect_shading_models"));
+    assert!(!registration_inputs_source.contains("collect_render_pass_executors"));
+    assert!(!registration_inputs_source.contains("collect_runtime_prepare_collectors"));
+    assert!(!registration_inputs_source.contains("collect_hybrid_gi_runtime_providers"));
+    assert!(!registration_inputs_source.contains("collect_solari_runtime_providers"));
+    assert!(!registration_inputs_source.contains("collect_virtual_geometry_runtime_providers"));
 }

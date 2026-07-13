@@ -20,7 +20,7 @@ related_code:
   - zircon_runtime_interface/src/ui/layout/style.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
-  - zircon_runtime_interface/src/ui/event_ui.rs
+  - zircon_runtime_interface/src/ui/event_ui/mod.rs
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_runtime/src/ui/surface/render/extract.rs

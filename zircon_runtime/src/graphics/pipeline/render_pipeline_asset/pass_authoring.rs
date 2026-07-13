@@ -165,7 +165,7 @@ fn author_environment_ibl_bake_passes(
     let stage = RenderPassStage::AmbientOcclusion;
     let contents = request.required_contents();
     if contents.contains(crate::core::framework::render::IblBakeArtifactContents::PMREM) {
-        for mip_level in 0..request.mip_count() {
+        for mip_level in 0..request.pmrem_mip_count() {
             pass_stages.push(CompiledRenderPipelinePassStage::new(
                 ibl_bake_pmrem_pass_name(mip_level),
                 stage,
@@ -193,10 +193,76 @@ fn ordered_stage_pass_descriptors(
     descriptors: &[RenderFeatureDescriptor],
 ) -> Vec<RenderFeaturePassDescriptor> {
     let mut passes = stage_pass_descriptors(stage, descriptors);
+    order_unique_resource_producers_before_readers(&mut passes);
     if stage == RenderPassStage::PostProcess {
         order_post_process_bloom_after_scene_color_splits(&mut passes);
     }
     passes
+}
+
+fn order_unique_resource_producers_before_readers(passes: &mut Vec<RenderFeaturePassDescriptor>) {
+    let pass_count = passes.len();
+    if pass_count < 2 {
+        return;
+    }
+
+    let mut outgoing = vec![BTreeSet::<usize>::new(); pass_count];
+    let mut indegree = vec![0usize; pass_count];
+    for producer_index in 0..pass_count {
+        for write in passes[producer_index]
+            .resources
+            .iter()
+            .filter(|resource| resource.access == RenderFeatureResourceAccess::Write)
+        {
+            let writer_count = passes
+                .iter()
+                .filter(|pass| {
+                    pass.resources.iter().any(|resource| {
+                        resource.name == write.name
+                            && resource.kind == write.kind
+                            && resource.access == RenderFeatureResourceAccess::Write
+                    })
+                })
+                .count();
+            if writer_count != 1 {
+                continue;
+            }
+            for (reader_index, reader) in passes.iter().enumerate() {
+                if reader_index == producer_index
+                    || !reader.resources.iter().any(|resource| {
+                        resource.name == write.name
+                            && resource.kind == write.kind
+                            && resource.access == RenderFeatureResourceAccess::Read
+                    })
+                {
+                    continue;
+                }
+                if outgoing[producer_index].insert(reader_index) {
+                    indegree[reader_index] += 1;
+                }
+            }
+        }
+    }
+
+    let mut emitted = vec![false; pass_count];
+    let mut order = Vec::with_capacity(pass_count);
+    while order.len() < pass_count {
+        let Some(next) = (0..pass_count).find(|index| !emitted[*index] && indegree[*index] == 0)
+        else {
+            return;
+        };
+        emitted[next] = true;
+        order.push(next);
+        for dependency in outgoing[next].iter().copied() {
+            indegree[dependency] -= 1;
+        }
+    }
+
+    let original = passes.clone();
+    *passes = order
+        .into_iter()
+        .map(|index| original[index].clone())
+        .collect();
 }
 
 fn order_post_process_bloom_after_scene_color_splits(

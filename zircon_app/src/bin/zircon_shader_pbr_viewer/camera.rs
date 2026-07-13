@@ -79,12 +79,14 @@ pub(crate) fn camera_render_descriptor(
 ) -> CameraRenderDescriptor {
     let eye = camera.eye();
     let forward = (SPHERE_CENTER - eye).normalize_or_zero();
-    let mut snapshot = ViewportCameraSnapshot::default();
-    snapshot.transform = Transform::looking_at(eye, SPHERE_CENTER, stable_camera_up(forward));
-    snapshot.projection_mode = ProjectionMode::Perspective;
-    snapshot.fov_y_radians = CAMERA_FOV_Y_RADIANS;
-    snapshot.z_near = 0.1;
-    snapshot.z_far = 100.0;
+    let mut snapshot = ViewportCameraSnapshot {
+        transform: Transform::looking_at(eye, SPHERE_CENTER, stable_camera_up(forward)),
+        projection_mode: ProjectionMode::Perspective,
+        fov_y_radians: CAMERA_FOV_Y_RADIANS,
+        z_near: 0.1,
+        z_far: 100.0,
+        ..Default::default()
+    };
     snapshot.apply_viewport_size(viewport_size);
 
     let mut descriptor = CameraRenderDescriptor::from_camera_payload(None, snapshot);

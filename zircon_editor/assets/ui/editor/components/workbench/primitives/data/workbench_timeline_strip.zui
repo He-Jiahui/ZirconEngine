@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui"
+version = 2
+display_name = "Workbench Timeline Strip"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchTimelineStrip]
+root = "root"
+default_classes = ["workbench-timeline-strip", "workbench-primitive"]
+
+[nodes.root]
+component = "Canvas"
+control_id = "WorkbenchTimelineStripRoot"
+classes = ["workbench-timeline-strip"]
+props = { component_variant = "timeline-strip", duration = 1.0, current_time = 0.0, tick_interval = 0.25, track_label = "Track", timeline_keys = [], input_interactive = false, input_clickable = false, input_focusable = false }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

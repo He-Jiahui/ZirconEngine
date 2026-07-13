@@ -640,7 +640,7 @@ fn project_cover_id(name: &str) -> String {
 }
 
 fn recent_project_display_name(project: &RecentProject) -> String {
-    if project.display_name.trim().is_empty() {
+    if project.summary.name.trim().is_empty() {
         return project
             .path
             .file_name()
@@ -648,7 +648,7 @@ fn recent_project_display_name(project: &RecentProject) -> String {
             .unwrap_or("Zircon Project")
             .to_string();
     }
-    project.display_name.clone()
+    project.summary.name.clone()
 }
 
 fn severity_tone(severity: TaskSeverity) -> &'static str {

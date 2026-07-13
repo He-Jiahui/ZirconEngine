@@ -1,3 +1,4 @@
+mod blend_space_transport;
 mod bridge;
 mod command_palette;
 mod component_property_rows;
@@ -23,6 +24,7 @@ mod outer_shell_frames;
 mod pointer_feedback;
 mod popup_state;
 mod property_edit;
+mod responsive_layout;
 mod root_shell_frames;
 mod scene_tree_rows;
 mod status_bar;

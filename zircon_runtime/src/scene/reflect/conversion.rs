@@ -62,72 +62,11 @@ pub fn scene_value_from_reflected(
     }
 }
 
-pub fn reflected_from_json(value: serde_json::Value) -> ReflectedValue {
-    ReflectedValue::Json(value)
-}
-
-pub fn json_from_reflected(value: ReflectedValue) -> Result<serde_json::Value, ReflectError> {
-    ensure_finite_reflected_value(&value, "serde_json::Value")?;
-    match serde_json::to_value(&value) {
-        Ok(value) => Ok(value),
-        Err(_) => Err(ReflectError::UnsupportedConversion {
-            source: reflected_value_type_source(value.type_name()),
-            target: "serde_json::Value".to_string(),
-        }),
-    }
-}
-
 fn unsupported_reflected_to_scene<T>(source: &str) -> Result<T, ReflectError> {
     Err(ReflectError::UnsupportedConversion {
         source: source.to_string(),
         target: "ScenePropertyValue".to_string(),
     })
-}
-
-fn reflected_value_type_source(type_name: &str) -> String {
-    const PREFIX: &str = "ReflectedValue::";
-    let mut source = String::with_capacity(PREFIX.len() + type_name.len());
-    source.push_str(PREFIX);
-    source.push_str(type_name);
-    source
-}
-
-fn ensure_finite_reflected_value(
-    value: &ReflectedValue,
-    target: &'static str,
-) -> Result<(), ReflectError> {
-    match value {
-        ReflectedValue::Scalar(value) => {
-            ensure_finite_scalar(*value, "ReflectedValue::Scalar", target)
-        }
-        ReflectedValue::Vec2(value) => ensure_finite_vector(value, "ReflectedValue::Vec2", target),
-        ReflectedValue::Vec3(value) => ensure_finite_vector(value, "ReflectedValue::Vec3", target),
-        ReflectedValue::Vec4(value) => ensure_finite_vector(value, "ReflectedValue::Vec4", target),
-        ReflectedValue::Quaternion(value) => {
-            ensure_finite_vector(value, "ReflectedValue::Quaternion", target)
-        }
-        ReflectedValue::List(values) => {
-            for value in values {
-                ensure_finite_reflected_value(value, target)?;
-            }
-            Ok(())
-        }
-        ReflectedValue::Map(values) => {
-            for value in values.values() {
-                ensure_finite_reflected_value(value, target)?;
-            }
-            Ok(())
-        }
-        ReflectedValue::Null
-        | ReflectedValue::Bool(_)
-        | ReflectedValue::Integer(_)
-        | ReflectedValue::Unsigned(_)
-        | ReflectedValue::String(_)
-        | ReflectedValue::Enum(_)
-        | ReflectedValue::Entity(_)
-        | ReflectedValue::Resource(_)
-        | ReflectedValue::Json(_) => Ok(()),
-    }
 }
 
 fn ensure_finite_scalar(

@@ -29,7 +29,22 @@ fn zr_deferred_apply_alpha_clip(surface: ZrSurfaceOutput) {
 fn zr_fs_main_impl(input: ZrVertexOutput) -> ZrDeferredGBufferOutput {
     let surface = zr_material_surface(input);
     zr_deferred_apply_alpha_clip(surface);
-    return encode_gbuffer(surface, zr_build_shading_context(input));
+    var output = encode_gbuffer(surface, zr_build_shading_context(input));
+    if (surface.unlit < 0.5 && surface.shading_model_id != 0u) {
+        var diffuse_color = surface.base_color.rgb * (1.0 - surface.metallic * 0.45);
+        if (surface.shading_model_id == 1u) {
+            diffuse_color = surface.base_color.rgb;
+        }
+        let baked_indirect = diffuse_color * clamp(surface.occlusion, 0.0, 1.0)
+            * zr_lightmap_baked_irradiance(
+                input.instance_index,
+                input.uv1,
+                input.position_ws,
+                surface.normal_ws,
+            );
+        output.emissive = vec4<f32>(output.emissive.rgb + baked_indirect, output.emissive.a);
+    }
+    return output;
 }
 
 @fragment

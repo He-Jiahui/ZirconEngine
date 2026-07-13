@@ -154,7 +154,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/policy.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
@@ -334,7 +334,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/report.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
-  - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
+  - zircon_runtime_interface/src/ui/template/asset/resource_ref/value.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/policy.rs
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
@@ -444,6 +444,8 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 `ui::binding` contains event binding DTOs plus parsing helpers needed on the contract type itself.
 
 `ui::focus`, `ui::navigation`, `ui::picking`, `ui::accessibility`, `ui::widget`, and `ui::text` contain the Bevy-aligned M1 contract spine. These modules define neutral DTOs for input focus, focus visible state, focus change events, focused input bubbling, tab and directional navigation, unified pick policy, pointer capture, accessibility nodes/snapshots/actions/diagnostics, headless widget events, text edit changes, and cursor style. Runtime/editor behavior for these contracts remains outside the interface crate. See `docs/zircon_runtime_interface/ui/contract-spine.md` for the M1 module detail.
+
+The neutral widget event keeps its public tagged-serde shape while boxing the large `UiTextEdit` payload inside `TextEditChange`; this bounds enum stack size and leaves ownership explicit at the event boundary. No legacy unboxed event variant or conversion shim is retained.
 
 `ui::pipeline` contains the Bevy-informed M2 pipeline-report DTOs. `UiPipelineStage` fixes the neutral runtime schedule order from input collection through batch preparation, while `ARCHIVED_DIAGNOSTIC_FORMAT_VERSION` and `ARCHIVED_DIAGNOSTIC_STAGES` make older diagnostic report names explicit data-policy inputs instead of current schedule stages. `UiPipelineStageReport` and `UiPipelineFrameReport` record elapsed timing, dirty reasons, and counters for layout, hit-grid, render extract, batch prepare, paint submit, diagnostics, template reloads, and repeated pointer-move fast paths. Runtime/editor scheduling and surface mutation stay outside this interface module. See `docs/zircon_runtime_interface/ui/pipeline.md` for the M2 module detail.
 

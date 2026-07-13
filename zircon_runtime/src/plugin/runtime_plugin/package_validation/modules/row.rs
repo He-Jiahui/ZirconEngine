@@ -3,7 +3,7 @@ mod identity;
 mod systems;
 mod target_modes;
 
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleManifest;
 
 use self::{

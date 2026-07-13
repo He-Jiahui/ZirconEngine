@@ -12,8 +12,10 @@ fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
     let apply_pane_conversion = include_str!(
         "../../../../../../zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs"
     );
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let runtime_15 = include_str!(
@@ -29,6 +31,11 @@ fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
         .lines()
         .find(|line| line.starts_with("| F15 |"))
         .expect("engine-code-review findings should keep a top-level F15 row");
+    assert!(
+        f15_row.contains("pane_data_conversion")
+            && f15_row.ends_with("| Runtime 15 + Editor UI 10 |"),
+        "F15 overview row should keep only the finding and delegated owners"
+    );
 
     for required in [
         "editor `pane_data_conversion` 投影函数样板复制已由 child projection owners 收束",
@@ -40,8 +47,8 @@ fn review_f15_editor_pane_data_conversion_top_row_uses_projection_owners() {
         "runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_owners",
     ] {
         assert!(
-            f15_row.contains(required),
-            "F15 top review row should record current projection-owner state `{required}`"
+            review_findings.contains(required),
+            "F15 numbered review evidence should record current projection-owner state `{required}`"
         );
     }
     for stale_finding in [

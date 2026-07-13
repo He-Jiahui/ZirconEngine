@@ -80,6 +80,11 @@ pub(super) fn request_device(
     if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
         requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
     }
+    let timestamp_features =
+        wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
+    if adapter_features.contains(timestamp_features) {
+        requested_features |= timestamp_features;
+    }
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-ui-device"),
         required_features: requested_features,

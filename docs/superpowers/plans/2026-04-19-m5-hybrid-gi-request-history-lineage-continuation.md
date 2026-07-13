@@ -1,19 +1,17 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/ordering/hybrid_gi_probe_request_sort_key.rs
-  - zircon_graphics/src/visibility/declarations/visibility_history_snapshot.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_history_snapshot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_graphics/src/visibility/planning/build_hybrid_gi_plan/ordering/hybrid_gi_probe_request_sort_key.rs
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
 plan_sources:
   - user: 2026-04-19 scene-driven screen-probe hierarchy / RT hybrid lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-recent-lineage-trace-support-continuation.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_visibility.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_prefers_previously_requested_hybrid_gi_lineage_when_trace_schedule_clears -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_visibility -- --nocapture
 doc_type: milestone-detail

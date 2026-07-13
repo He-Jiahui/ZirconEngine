@@ -207,3 +207,10 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtim
 | WebSocket 服务端/客户端生命周期 | `dev/godot/modules/websocket/` | 握手、分帧、关闭码处理 |
 | TLS 接入形态 | `dev/godot/modules/mbedtls/` | 证书校验策略注入点（我们用 rustls，仅取结构形态） |
 | WebRTC 形态（后续池参考，不在 v1） | `dev/godot/modules/webrtc/` | data channel 抽象与 Transport 对齐方式 |
+
+## 9. 状态与产出记录
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 当前实现与历史验证记录：[`07/2026-07-09-net-output-records.md`](07/2026-07-09-net-output-records.md)。
+- fixed 已修复：[zrpack-blake3-contract-drift](07/fixed-2026-07-14-zrpack-blake3-contract-drift.md)

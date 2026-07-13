@@ -1,9 +1,10 @@
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use zircon_runtime::plugin::{
-    CapabilityStatusManifest, ExportPackagingStrategy, PluginFeatureBundleManifest, PluginMaturity,
-    PluginPackageManifest, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
+    CapabilityStatusManifest, PluginFeatureBundleManifest, PluginMaturity, PluginPackageManifest,
+    RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[derive(Clone, Debug)]
 pub struct RuntimePluginDeclaration {

@@ -1,4 +1,4 @@
-use crate::asset::AnimationChannelValueAsset;
+use crate::core::framework::animation::AnimationChannelValueAsset;
 use crate::core::framework::animation::{AnimationError, AnimationResult};
 use crate::core::framework::scene::ScenePropertyValue;
 use crate::core::math::Real;

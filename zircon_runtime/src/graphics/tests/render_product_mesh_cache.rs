@@ -3,14 +3,14 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AlphaMode, AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetUri, MaterialAsset,
-    MeshAsset, MeshAttributeValues, MeshIndices, MeshSkinAsset, MESH_ATTRIBUTE_JOINT_INDEX,
-    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_UV0,
+    AlphaMode, AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshSkinAsset,
+    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
+use crate::core::framework::animation::{AnimationSkeletonAsset, AnimationSkeletonBoneAsset};
 use crate::core::framework::render::{
     AntiAliasSettings, GeometryExtract, GeometryPhaseInput, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
@@ -31,9 +31,12 @@ use super::render_product_submit::{
 };
 
 mod morph;
+#[cfg(feature = "dynamic-api")]
 mod project_plugin_registry_material_passes_staged_cache;
+#[cfg(feature = "dynamic-api")]
 mod project_plugin_registry_staged_cache;
 mod shading_model_parity;
+#[cfg(feature = "dynamic-api")]
 mod staged_prewarm;
 mod virtual_geometry;
 

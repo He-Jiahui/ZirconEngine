@@ -108,6 +108,19 @@ class BaselineService:
         """Hash the shared workspace without holding the coordinator mutation lock."""
         baseline = self.initialize()
         observed_head = self._git_output("rev-parse", "HEAD")
+        if (
+            baseline.health is BaselineHealth.DEGRADED
+            and baseline.head_commit == observed_head
+        ):
+            # A degraded baseline remains strict until an explicit reconcile or
+            # acceptance.  Rehashing every file each maintenance interval cannot
+            # make it healthy and can starve Session writes in a large dirty tree.
+            return PreparedWorkspaceScan(
+                source_epoch_id=baseline.epoch_id,
+                observed_head=observed_head,
+                baseline_manifest=baseline.manifest,
+                current_manifest=baseline.manifest,
+            )
         baseline_manifest = (
             baseline.manifest
             if baseline.head_commit == observed_head

@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use zircon_runtime::asset::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavLinkMotion, NavMeshHandle, OffMeshTraversePhase, OffMeshTraverseState,
 };
+use zircon_runtime::core::framework::navigation::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::math::{Real, Vec3};
 
 use super::capacity::BridgeCapacityRuntime;

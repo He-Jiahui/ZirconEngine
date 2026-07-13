@@ -1,13 +1,15 @@
 mod manager;
 mod manifest;
 mod meta;
+pub(crate) mod meta_io;
 mod package_asset_registry;
 mod paths;
 mod script_manifest;
 mod shader_resource_records;
 
+pub(crate) use manager::mint_meta_for_migration;
 pub use manager::ProjectManager;
-pub use manifest::ProjectManifest;
+pub use manifest::{ProjectManifest, ProjectManifestError};
 pub use meta::{
     AssetMetaDocument, AssetMetaEntry, AssetMetaError, AssetMetaResult, AssetSourceUnit,
     PreviewState,

@@ -3,11 +3,11 @@ use crate::hybrid_gi::{
     HybridGiPrepareProbe, HybridGiResolveProbeSceneData, HybridGiScenePrepareResourceSamples,
 };
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiExtract,
-    RenderHybridGiScenePrepareSample, RenderHybridGiVoxelCellDominantNodeRecord,
-    RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
-    RenderHybridGiVoxelOccupancyMaskRecord, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiCompositePolicy,
+    RenderHybridGiExtract, RenderHybridGiScenePrepareSample,
+    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
+    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelOccupancyMaskRecord, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec4};
@@ -30,6 +30,8 @@ fn provider_projects_scene_screen_probes_into_neutral_prepared_frame_sideband() 
         &[],
         &[],
         &[],
+        None,
+        false,
         None,
         7,
     ));
@@ -64,6 +66,9 @@ fn provider_projects_probe_rt_lighting_history_into_neutral_prepared_frame_sideb
         resident_probes: vec![HybridGiPrepareProbe {
             probe_id: 77,
             slot: 0,
+            stable_instance_key: 0,
+            source_mask: HYBRID_GI_SOURCE_FULL_DYNAMIC,
+            dynamic_weight_q8: u8::MAX,
             ray_budget: 24,
             irradiance_rgb: [4, 8, 12],
         }],
@@ -87,7 +92,12 @@ fn provider_projects_probe_rt_lighting_history_into_neutral_prepared_frame_sideb
         BTreeMap::new(),
     );
 
-    let prepared_frame = neutral_prepared_frame_from_prepare(&prepare, &resolve_runtime);
+    let prepared_frame = neutral_prepared_frame_from_prepare(
+        &prepare,
+        &resolve_runtime,
+        RenderHybridGiCompositePolicy::default(),
+        Some(RenderHybridGiExtract::default().resolved_settings(false)),
+    );
 
     assert_eq!(prepared_frame.probe_scene_data[0].probe_id, 77);
     assert_eq!(prepared_frame.probe_rt_lighting_rgb.len(), 1);
@@ -156,6 +166,8 @@ fn provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_out
             &[],
             &[],
             None,
+            false,
+            None,
             11,
         ));
         let scene_prepare = &prepare.renderer_outputs().hybrid_gi.scene_prepare;
@@ -191,6 +203,8 @@ fn provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_out
         &[],
         &[],
         &[],
+        None,
+        false,
         None,
         12,
     ));

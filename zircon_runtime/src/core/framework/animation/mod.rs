@@ -1,5 +1,6 @@
 //! Animation framework contracts for sequence, graph, state-machine, parameter, and pose evaluation.
 
+pub mod asset;
 mod avatar_mask;
 mod error;
 mod event;
@@ -7,6 +8,8 @@ mod gpu_skinning;
 mod graph_blend_mode;
 mod graph_clip_instance;
 mod graph_evaluation;
+mod ik_command;
+mod ik_command_error;
 mod manager;
 mod parameter_map;
 mod parameter_value;
@@ -23,6 +26,19 @@ mod timeline;
 mod track_path;
 mod track_path_error;
 
+pub use asset::{
+    AnimationAssetError, AnimationAssetResult, AnimationBlendSpace1DAsset,
+    AnimationBlendSpace1DSampleAsset, AnimationBlendSpace2DAsset, AnimationBlendSpace2DSampleAsset,
+    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
+    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
+    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
+    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
+    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
+    AnimationStateMachineAsset, AnimationStateMachineLayerAsset,
+    AnimationStateMachineLayerBlendModeAsset, AnimationStateTransitionAsset,
+    AnimationTransitionConditionAsset, AnimationTransitionInterruptionPolicyAsset,
+};
 pub use avatar_mask::AnimationAvatarMask;
 pub use error::{AnimationError, AnimationResult};
 pub use event::AnimationEventRecord;
@@ -30,6 +46,8 @@ pub use gpu_skinning::{AnimationGpuSkinningReadiness, AnimationSkinningBackend};
 pub use graph_blend_mode::AnimationGraphBlendMode;
 pub use graph_clip_instance::AnimationGraphClipInstance;
 pub use graph_evaluation::AnimationGraphEvaluation;
+pub use ik_command::{AnimationIkCommand, AnimationLookAtCommand, AnimationTwoBoneIkCommand};
+pub use ik_command_error::AnimationIkCommandError;
 pub use manager::AnimationManager;
 pub use parameter_map::AnimationParameterMap;
 pub use parameter_value::AnimationParameterValue;

@@ -1,6 +1,7 @@
 //! Neutral navigation contracts shared by runtime plugins and editor tools.
 
 mod agent;
+mod asset;
 mod bake;
 mod constants;
 mod error;
@@ -17,7 +18,12 @@ mod surface;
 
 pub use agent::{
     NavAgentTickReport, NavAgentWritebackMode, NavAvoidanceQuality, NavDesiredVelocity,
-    NavMeshAgentDescriptor,
+    NavMeshAgentDescriptor, NavigationAgentDebugState, NavigationDebugCapture,
+};
+pub use asset::{
+    NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset,
+    NavMeshLinkCapacity, NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
+    NavigationAssetResult, NavigationSettingsAsset,
 };
 pub use bake::{
     NavMeshBakeDiagnostic, NavMeshBakeDiagnosticSeverity, NavMeshBakeReport, NavMeshBakeRequest,

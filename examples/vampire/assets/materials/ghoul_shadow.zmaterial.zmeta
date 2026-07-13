@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "46b108bb-3d1b-48b5-80b4-2e10b8fbd080"
 url = "res://materials/ghoul_shadow.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/331ddf40-61f3-b24d-fac5-739319e027cb.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487887
-source_hash = "b15d56f2f363ece4"
+source_digest = "b15d56f2f363ece4"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

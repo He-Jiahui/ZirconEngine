@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
@@ -30,8 +30,8 @@ related_code:
   - dev/Fyrox/fyrox-impl/src/engine/executor.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
-status: in_progress
-last_refined: 2026-07-10
+status: completed
+last_refined: 2026-07-14
 ---
 
 # 03 调度与帧循环对齐
@@ -42,11 +42,11 @@ last_refined: 2026-07-10
 
 - **阶段表已权威化（矫正）**："无 Bevy `MainScheduleOrder` 式单一权威阶段表"失实——`scene/ecs/system_stage.rs:4-45` 的 `SystemStage` 枚举即权威表：`First → PreUpdate → FixedFirst → FixedUpdate → FixedPostUpdate → Update → PostUpdate → Last → RenderExtract`，带 `ORDER: [Self; 9]`、`FIXED_LOOP`、`rank()` 与 `is_fixed_loop()`。
 - **三时钟已对齐 bevy_time（矫正）**："fixed timestep 语义未定稿"半失实——`core/runtime/time.rs` 的 `RuntimeTimeClocks` 已实现 `Time<Real>/Time<Virtual>/Time<Fixed>` 三时钟（`core/framework/time/{clock.rs,fixed_step_plan.rs}`），含 `advance_by(real_delta, max_fixed_steps)`、`accumulate_overstep`、`drain_steps(max_steps) -> FixedStepPlan`（clock.rs:133-140）、虚拟时钟 pause/max_delta/relative_speed，以及 `TIME_FIXED_STEPS_DIAGNOSTIC` 等诊断常量。驱动点：`core/runtime/handle/time.rs:29` `advance_time_by(real_delta, max_fixed_steps)`；动态 session profile 的 owner 是 `dynamic_api/session/profile.rs` 的 `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME` 与 `max_fixed_steps_per_frame()`，`dynamic_api/session.rs` 仅在 `tick_frame` 注入 `tick_time(...)`。
-- **`FixedStepPlan` 调度消费与时间权威已收束到单次推进（代码完成，Cargo 待跑）**。当前 `WorldDriver::tick_level`（`scene/module/world_driver.rs:11-73`）在 `FixedFirst` 处按 `SystemStage::FIXED_LOOP` 循环运行 `FixedFirst/FixedUpdate/FixedPostUpdate`，且直接消费上游 `RuntimeTimeAdvance`。`dynamic_api/session.rs:548-553` 仍是动态帧路径唯一 `tick_time(...)` 调用点，`scene/level_system.rs:103-105` 只透传 `RuntimeTimeAdvance`，`WorldDriver` 已删除局部 `MAX_FIXED_STEPS_PER_FRAME = 4` 与二次 `advance_time_by(...)`。
-- **帧循环归一审计已完成，UI extract 旁路已定稿为 runtime 03 合法旁路（Cargo 待跑）**。实测链路已写入 `docs/zircon_runtime/core/frame_schedule.md`：`dynamic_api/session.rs` `tick_frame`（C ABI 出口与 `RuntimeDynamicSession::tick_frame`）→ `tick_time` → `LevelSystem::tick` → `WorldDriver::tick_level` → 逐 stage `SceneScheduleRunner::run_stage`（`schedule_runner.rs`，步骤类型 `ScheduledSceneStepRef::{Internal, Native, ApplyDeferred, Hook}`）。runtime 侧 `RenderFrameExtract` 的生产构建点是 `dynamic_api/session/extract.rs` `current_extract()`；UI extract 旁路 `current_ui_extract()` + `session/hud.rs` + `session/menu.rs` + `runtime_loop.rs` 已裁决为"合法 dynamic-session side path"，并由 `session_ui_extract_remains_documented_dynamic_session_side_path` 源守卫锁定。
-- **结构审计 owner 已补并拆出清单与渲染 owner（静态通过，Cargo 待跑）**。`schedule_frame_loop_source_inventory.py` 现拥有 Runtime 03 的 19 个调度/帧循环 source owner、11 个 guard/test owner（含 folder-backed `schedule_plan.rs`、`world_driver.rs` 与 `schedule_frame_loop/mirror_docs.rs`）、`SystemStage` 计数、fixed-loop 计数与动态 session `.tick_time(...)` 计数；`schedule_frame_loop_anchor_inventory.py` 拥有 `SystemStage`、`RuntimeTimeAdvance`、`FixedStepPlan`、UI extract、显式 stage ordering、schedule runner、parallel executor、行为测试、镜像文档与 Cargo gate 锚点，并使用精确 `tests::time::` 过滤器；`schedule_frame_loop_boundary.py` 保留审计读取、缺失锚点与风险判定，当前 368 行；`schedule_frame_loop_markdown.py` 拥有 Markdown 渲染，当前 146 行。当前镜像事实为 source files 19/19、guard/test files 11/11、`SystemStage` count and variants 9/9、fixed-loop stages 3/3、dynamic-session `.tick_time(...)` calls 1/1、Runtime 03 guard anchors 14/14、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`doc_anchors = 10/10`、`mirror_docs_guard_present = true`、frame schedule module-doc anchors 3/3、no `WorldDriver` second `advance_time_by(...)` references、no dynamic-session raw-delta level tick references、`risks = []`；`runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 额外锁定 Runtime 03 计划、`frame_schedule.md`、总索引、M0 review 与 runtime-interface convergence 的镜像数字。
-- **stage 内排序核心已不是纯注册顺序，M1 负例守卫已补（Cargo 待跑）**。`SceneScheduleStagePlan::from_registry` 已做同 stage 拓扑排序，`SceneSystemDescriptor`/native metadata 已有 `order`、`before`、`after`；M0 盘点未发现 runtime-owned builtin 靠注册顺序表达依赖。`schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration` 覆盖同 stage 约束在注册顺序打乱后仍稳定；既有 `plugin_system_constraints_order_registered_native_systems` 覆盖 plugin/native 反向注册顺序。
-- **并行执行器已有实质测试，M3.1/M3.2 代码与文档已落地（Cargo 待跑）**：`scene/tests/ecs_schedule/conflict_graph.rs` 覆盖组件/资源/事件写冲突、disjoint query filter、跨 stage 独立与保守并行批次；`scene/tests/ecs_schedule/parallel_executor.rs` 覆盖 batch 经 `JobScheduler` 执行、失败上报、关闭并行回退、诊断计数、代表性批次收益与串并行终态一致性。`ScheduleParallelExecutor` 现有 `with_parallel_enabled(false)`、`run_batches_with_report(...)`、`ScheduleParallelExecutionReport` 与诊断常量 `schedule.parallel_batches` / `schedule.serial_fallbacks`；`representative_schedule_produces_multi_system_parallel_batches` 与 `parallel_and_serial_execution_reach_identical_world_state` 已补代表性 schedule 的批次收益和串并行终态一致性守卫。
+- **`FixedStepPlan` 调度消费与时间权威已收束到单次推进（已验证）**。当前 `WorldDriver::tick_level`（`scene/module/world_driver.rs:11-73`）在 `FixedFirst` 处按 `SystemStage::FIXED_LOOP` 循环运行 `FixedFirst/FixedUpdate/FixedPostUpdate`，且直接消费上游 `RuntimeTimeAdvance`。`dynamic_api/session.rs:548-553` 仍是动态帧路径唯一 `tick_time(...)` 调用点，`scene/level_system.rs:103-105` 只透传 `RuntimeTimeAdvance`，`WorldDriver` 已删除局部 `MAX_FIXED_STEPS_PER_FRAME = 4` 与二次 `advance_time_by(...)`；当前 `ecs_schedule` 77/77 与 `tests::time::` 4/4 已通过。
+- **帧循环归一审计已完成，UI extract 旁路已定稿为 runtime 03 合法旁路（已验证）**。实测链路已写入 `docs/zircon_runtime/core/frame_schedule.md`：`dynamic_api/session.rs` `tick_frame`（C ABI 出口与 `RuntimeDynamicSession::tick_frame`）→ `tick_time` → `LevelSystem::tick` → `WorldDriver::tick_level` → 逐 stage `SceneScheduleRunner::run_stage`（`schedule_runner.rs`，步骤类型 `ScheduledSceneStepRef::{Internal, Native, ApplyDeferred, Hook}`）。runtime 侧 `RenderFrameExtract` 的生产构建点是 `dynamic_api/session/extract.rs` `current_extract()`；UI extract 旁路 `current_ui_extract()` + `session/hud.rs` + `session/menu.rs` + `runtime_loop.rs` 已裁决为"合法 dynamic-session side path"，并由 `session_ui_extract_remains_documented_dynamic_session_side_path` 源守卫锁定；当前 `session` 为 165 passed / 0 failed / 10 ignored。
+- **结构审计 owner 已补并拆出清单与渲染 owner（静态与动态门槛均通过）**。`schedule_frame_loop_source_inventory.py` 现拥有 Runtime 03 的 19 个调度/帧循环 source owner、11 个 guard/test owner（含 folder-backed `schedule_plan.rs`、`world_driver.rs` 与 `schedule_frame_loop/mirror_docs.rs`）、`SystemStage` 计数、fixed-loop 计数与动态 session `.tick_time(...)` 计数；`schedule_frame_loop_anchor_inventory.py` 拥有 `SystemStage`、`RuntimeTimeAdvance`、`FixedStepPlan`、UI extract、显式 stage ordering、schedule runner、parallel executor、行为测试、镜像文档与 Cargo gate 锚点，并使用精确 `tests::time::` 过滤器；`schedule_frame_loop_boundary.py` 保留审计读取、缺失锚点与风险判定，当前 368 行；`schedule_frame_loop_markdown.py` 拥有 Markdown 渲染，当前 146 行。当前镜像事实为 source files 19/19、guard/test files 11/11、`SystemStage` count and variants 9/9、fixed-loop stages 3/3、dynamic-session `.tick_time(...)` calls 1/1、Runtime 03 guard anchors 14/14、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`doc_anchors = 10/10`、`mirror_docs_guard_present = true`、frame schedule module-doc anchors 3/3、no `WorldDriver` second `advance_time_by(...)` references、no dynamic-session raw-delta level tick references、`risks = []`；`runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 额外锁定 Runtime 03 计划、`frame_schedule.md`、总索引、M0 review 与 runtime-interface convergence 的镜像数字。2026-07-14 当前静态回归 3/3、独立 schedule/frame-loop 守卫 2/2 已通过。
+- **stage 内排序核心已不是纯注册顺序，M1 负例守卫已通过**。`SceneScheduleStagePlan::from_registry` 已做同 stage 拓扑排序，`SceneSystemDescriptor`/native metadata 已有 `order`、`before`、`after`；M0 盘点未发现 runtime-owned builtin 靠注册顺序表达依赖。`schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration` 覆盖同 stage 约束在注册顺序打乱后仍稳定；既有 `plugin_system_constraints_order_registered_native_systems` 覆盖 plugin/native 反向注册顺序。
+- **并行执行器已有实质测试，M3.1/M3.2 代码、文档与验证均已闭环**：`scene/tests/ecs_schedule/conflict_graph.rs` 覆盖组件/资源/事件写冲突、disjoint query filter、跨 stage 独立与保守并行批次；`scene/tests/ecs_schedule/parallel_executor.rs` 覆盖 batch 经 `JobScheduler` 执行、失败上报、关闭并行回退、诊断计数、代表性批次收益与串并行终态一致性。`ScheduleParallelExecutor` 现有 `with_parallel_enabled(false)`、`run_batches_with_report(...)`、`ScheduleParallelExecutionReport` 与诊断常量 `schedule.parallel_batches` / `schedule.serial_fallbacks`；`representative_schedule_produces_multi_system_parallel_batches` 与 `parallel_and_serial_execution_reach_identical_world_state` 已补代表性 schedule 的批次收益和串并行终态一致性守卫；当前 `schedule_parallel` 15/15 已通过。
 - `FrameClock`（`core/runtime/frame_clock.rs`，仅 `tick() -> Duration`）是 real_delta 来源原语，与三时钟分工明确；其归属迁移见子计划 02。
 - 参考锚点（每点一行）：Bevy `MainScheduleOrder.labels` + `insert_after` — `dev/bevy/crates/bevy_app/src/main_schedule.rs`；Bevy `bevy_time` Real/Virtual/Fixed 三时钟同形 — `dev/bevy/crates/bevy_time/src`；Fyrox `while lag >= fixed_time_step` 累积循环 — `dev/Fyrox/fyrox-impl/src/engine/executor.rs`。
 
@@ -79,7 +79,7 @@ last_refined: 2026-07-10
 1. 子计划 02 的 core 散件归属已完成物理 cutover：`frame_clock.rs`、`time.rs` 当前最终路径为 `core/runtime/frame_clock.rs` 与 `core/runtime/time.rs`。
 2. 活动会话对齐：`dynamic_api/runtime_loop.rs`、`session.rs` 被 wgpu 渲染主链与 10fps 会话触及过——`git status --porcelain -- zircon_runtime/src/dynamic_api/ zircon_runtime/src/scene/ecs/ zircon_runtime/src/scene/module/`，脏文件避让，禁止回退。
 3. 事实重核：
-   - `grep -n "ORDER\|rank" zircon_runtime/src/scene/ecs/system_stage.rs`
+   - `grep -n "ORDER\|rank" zircon_runtime/src/core/framework/scene/system_stage.rs`
    - `grep -n "advance_by\|drain_steps\|max_fixed_steps" zircon_runtime/src/core/runtime/time.rs zircon_runtime/src/core/runtime/handle/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/dynamic_api/session/profile.rs`
    - `grep -rn "FixedStepPlan" zircon_runtime/src --include=*.rs`（核调度消费方是否仍为单权威传入）
 4. 基线记录：`cargo test -p zircon_runtime --lib ecs_schedule --locked` 与 `cargo test -p zircon_runtime --lib tests::time:: --locked` 通过数，记入状态节；禁止再用裸 `--lib time` 作为 gate，因为 Rust test filter 会误匹配 `runtime`。
@@ -181,7 +181,7 @@ last_refined: 2026-07-10
 - 改动形态：并行执行加可关闭开关（owner 执行时定稿：profile 或 config_store，与子计划 02 的 config 归属一致）；诊断计数（签名草案）：`schedule.parallel_batches`（每帧并行批次数）、`schedule.serial_fallbacks`（串行回退次数）。
 - 调用方迁移：无公共面变化（executor 内部 + 诊断登记点）。
 - 验收：`schedule_parallel_executor_can_run_parallel_batches_serially_with_report`、`schedule_parallel_execution_report_records_diagnostic_counts`（归属 `scene/tests/ecs_schedule/parallel_executor.rs`）；结构守卫：`schedule_parallel_report_keeps_run_batches_compatible`、`schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts`。
-- DoD：计数经诊断通道可读，开关关闭时回退串行且报告一致；Cargo 回归待共享构建通道空闲后执行。
+- DoD：计数经诊断通道可读，开关关闭时回退串行且报告一致；当前 Cargo 回归已通过。
 
 #### 切片 3.2 串并行一致性与收益证据
 
@@ -189,7 +189,7 @@ last_refined: 2026-07-10
 - 改动形态：纯测试。代表性 schedule（多读单写混合，复用既有 conflict_graph 测试夹具）下断言：并行批次 > 1；并行与串行执行的 world 终态一致。
 - 调用方迁移：无。
 - 验收：`representative_schedule_produces_multi_system_parallel_batches`、`parallel_and_serial_execution_reach_identical_world_state`。
-- DoD：两测试已落地并写入批次计数基线；Cargo 回归待共享构建通道空闲后执行。
+- DoD：两测试已落地并写入批次计数基线；当前 Cargo 回归已通过。
 
 #### M3 测试阶段（milestone-first）
 
@@ -202,5 +202,7 @@ last_refined: 2026-07-10
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
+
+当前结论：`runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation` 已锁定 `completed`；当前 Runtime 过滤门为 `ecs_schedule` 77/77、`tests::time::` 4/4、`session` 165 passed / 0 failed / 10 ignored、`schedule_parallel` 15/15，`cargo test -p zircon_app --locked` 为主测试 135 passed / 0 failed / 1 ignored、PBR viewer 15/15，Runtime 03 已完成。
 
 - 迁入记录：[`03/2026-07-09-schedule-and-frame-loop-alignment-output-records.md`](03/2026-07-09-schedule-and-frame-loop-alignment-output-records.md)

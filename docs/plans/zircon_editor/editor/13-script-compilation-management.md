@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm
-  - zircon_runtime/src/scene/dynamic_scene/scene/reports.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_editor/src/core/editor_event/mod.rs
   - zircon_app/src/entry/entry_runner/editor.rs
 reference_sources:

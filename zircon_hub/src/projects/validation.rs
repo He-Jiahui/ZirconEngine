@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::Path;
 
+use zircon_runtime_interface::project::ProjectManifestSummary;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProjectValidation {
     Valid,
@@ -24,9 +26,9 @@ pub fn validate_project_root(path: impl AsRef<Path>) -> ProjectValidation {
 }
 
 fn manifest_is_parsable(manifest_path: &Path) -> bool {
-    fs::read_to_string(manifest_path)
+    fs::read(manifest_path)
         .ok()
-        .is_some_and(|text| toml::from_str::<toml::Value>(&text).is_ok())
+        .is_some_and(|bytes| ProjectManifestSummary::parse_toml_bytes(&bytes).is_ok())
 }
 
 #[cfg(test)]
@@ -38,9 +40,30 @@ mod tests {
     #[test]
     fn validate_project_root_accepts_parsable_manifest() {
         let root = temp_dir("project-validation-valid");
-        fs::write(root.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+        install_shared_fixture(&root, "v1");
 
         assert_eq!(validate_project_root(&root), ProjectValidation::Valid);
+
+        install_shared_fixture(&root, "v2");
+        assert_eq!(validate_project_root(&root), ProjectValidation::Valid);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn validate_project_root_rejects_future_or_bad_shape_manifests() {
+        let root = temp_dir("project-validation-future-manifest");
+        install_shared_fixture(&root, "future");
+        assert_eq!(
+            validate_project_root(&root),
+            ProjectValidation::InvalidManifest
+        );
+
+        install_shared_fixture(&root, "invalid");
+        assert_eq!(
+            validate_project_root(&root),
+            ProjectValidation::InvalidManifest
+        );
 
         fs::remove_dir_all(root).unwrap();
     }
@@ -66,5 +89,17 @@ mod tests {
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(&root).unwrap();
         root
+    }
+
+    fn install_shared_fixture(root: &Path, version: &str) {
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("tests")
+            .join("fixtures")
+            .join("serialization")
+            .join("project-manifest")
+            .join(version)
+            .join("zircon-project.toml");
+        fs::copy(fixture, root.join("zircon-project.toml")).unwrap();
     }
 }

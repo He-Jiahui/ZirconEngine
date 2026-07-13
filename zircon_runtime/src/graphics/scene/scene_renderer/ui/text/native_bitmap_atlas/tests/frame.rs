@@ -180,6 +180,7 @@ fn native_bitmap_atlas_frame_schedules_worker_miss_as_transparent_placeholder() 
 
     let frame = native_bitmap_atlas_frame(
         &mut font_system,
+        &FontDatabase::default(),
         Some(&worker_pool),
         &mut source_cache,
         &mut retry_state,
@@ -263,6 +264,7 @@ fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pen
 
     let frame = native_bitmap_atlas_frame(
         &mut font_system,
+        &FontDatabase::default(),
         Some(&worker_pool),
         &mut source_cache,
         &mut retry_state,

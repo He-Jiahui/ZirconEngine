@@ -10,7 +10,8 @@ description: Use when building, testing, refactoring, or debugging the `zirconEn
 - Work from the repository root.
 - Read `references/main-branch-development-policy.md` before starting. It overrides any generic skill advice about creating worktrees or feature branches.
 - Read `../zircon-project-skills/milestone-first-workflow-policy.md` before planning, implementing, or validating work. It overrides generic TDD and per-slice build/test workflows in this repository.
-- Read `references/cargo-target-disk-policy.md` before large Cargo validation loops, when disk usage is a concern, or when working across multiple clones or worktrees.
+- Read `../zircon-project-skills/prefer-windows-validation/SKILL.md` before choosing Windows or WSL validation. Windows-native validation is the default; WSL is an explicit Linux-specific exception.
+- Read `references/cargo-target-disk-policy.md` before every Cargo build or validation command. Build output is allowed only below the nine approved `D:`, `E:`, or `F:` drive-root `cargo-targets`, `targets`, or `ZirconBuilds` trees and their WSL mounted equivalents.
 - For cross-crate architecture convergence or crate-boundary changes, also read `../zircon-project-skills/zr-architecture-first-engineering/SKILL.md`.
 - Read `workflow/SKILL.md` for repository-specific editing and refactor rules.
 - Read `validation/SKILL.md` before claiming the workspace is green or before entering a milestone testing stage.

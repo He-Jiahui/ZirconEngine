@@ -2,6 +2,8 @@
 mod animation_manager;
 #[path = "structure_convention/diagnostics_surface.rs"]
 mod diagnostics_surface;
+#[path = "structure_convention/evidence_ownership.rs"]
+mod evidence_ownership;
 #[path = "structure_convention/facade_surface.rs"]
 mod facade_surface;
 #[path = "structure_convention/graphics_dead_code/mod.rs"]

@@ -1,7 +1,10 @@
+use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
     TemporalHistoryKey, TemporalHistoryStore,
 };
+
+use super::VolumetricHistoryTexture;
 
 pub(crate) struct SceneFrameHistoryTextures {
     pub(crate) size: UVec2,
@@ -13,6 +16,7 @@ pub(crate) struct SceneFrameHistoryTextures {
     pub(crate) global_illumination_temporal_metadata: wgpu::Texture,
     pub(crate) global_illumination_temporal_metadata_view: wgpu::TextureView,
     pub(super) global_illumination_history_valid: bool,
+    pub(super) volumetric_scattering: Option<VolumetricHistoryTexture>,
     pub(crate) ambient_occlusion: wgpu::Texture,
     pub(crate) ambient_occlusion_view: wgpu::TextureView,
     pub(crate) screen_space_reflection: wgpu::Texture,
@@ -24,6 +28,36 @@ pub(crate) struct SceneFrameHistoryTextures {
 }
 
 impl SceneFrameHistoryTextures {
+    pub(crate) fn volumetric_history_quality(&self) -> Option<FroxelGridQuality> {
+        self.volumetric_scattering
+            .as_ref()
+            .map(|history| history.quality)
+    }
+
+    pub(crate) fn volumetric_history_valid(&self) -> bool {
+        self.volumetric_scattering
+            .as_ref()
+            .is_some_and(|history| history.valid)
+    }
+
+    pub(crate) fn volumetric_history_view(&self) -> Option<wgpu::TextureView> {
+        self.volumetric_scattering
+            .as_ref()
+            .map(|history| history.view.clone())
+    }
+
+    pub(crate) fn volumetric_history_texture(&self) -> Option<&wgpu::Texture> {
+        self.volumetric_scattering
+            .as_ref()
+            .map(|history| &history.texture)
+    }
+
+    pub(crate) fn set_volumetric_history_valid(&mut self, valid: bool) {
+        if let Some(history) = self.volumetric_scattering.as_mut() {
+            history.valid = valid;
+        }
+    }
+
     pub(crate) fn global_illumination_history_valid(&self) -> bool {
         self.global_illumination_history_valid
     }

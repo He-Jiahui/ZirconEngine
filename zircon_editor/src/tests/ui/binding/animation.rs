@@ -141,7 +141,7 @@ fn animation_command_bindings_roundtrip_for_timeline_graph_and_state_machine_aut
                 "AddBlendNode",
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
-                    graph_path: "res://animation/hero.graph.zranim".to_string(),
+                    graph_locator: "res://animation/hero.graph.zranim".to_string(),
                     node_id: "blend_walk_run".to_string(),
                     node_kind: "blend".to_string(),
                 }),
@@ -154,7 +154,7 @@ fn animation_command_bindings_roundtrip_for_timeline_graph_and_state_machine_aut
                 "SetGraphParameter",
                 EditorUiEventKind::Change,
                 EditorUiBindingPayload::animation_command(AnimationCommand::SetGraphParameter {
-                    graph_path: "res://animation/hero.graph.zranim".to_string(),
+                    graph_locator: "res://animation/hero.graph.zranim".to_string(),
                     parameter_name: "speed".to_string(),
                     value_literal: "1.5".to_string(),
                 }),
@@ -167,7 +167,7 @@ fn animation_command_bindings_roundtrip_for_timeline_graph_and_state_machine_aut
                 "CreateTransition",
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::animation_command(AnimationCommand::CreateTransition {
-                    state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+                    state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
                     from_state: "Idle".to_string(),
                     to_state: "Run".to_string(),
                     duration_frames: 8,
@@ -182,7 +182,8 @@ fn animation_command_bindings_roundtrip_for_timeline_graph_and_state_machine_aut
                 EditorUiEventKind::Change,
                 EditorUiBindingPayload::animation_command(
                     AnimationCommand::SetTransitionCondition {
-                        state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+                        state_machine_locator: "res://animation/hero.state_machine.zranim"
+                            .to_string(),
                         from_state: "Idle".to_string(),
                         to_state: "Run".to_string(),
                         parameter_name: "speed".to_string(),

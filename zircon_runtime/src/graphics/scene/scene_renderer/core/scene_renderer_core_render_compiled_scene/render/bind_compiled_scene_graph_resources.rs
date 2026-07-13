@@ -25,6 +25,7 @@ pub(super) struct CompiledSceneGraphResourceBindingFlags {
     pub(super) screen_space_reflection_history_enabled: bool,
     pub(super) hzb_history_enabled: bool,
     pub(super) exposure_history_enabled: bool,
+    pub(super) volumetric_history_enabled: bool,
     pub(super) history_available: bool,
     pub(super) runtime_features: SceneRuntimeFeatureFlags,
 }
@@ -36,6 +37,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     target: &mut OffscreenTarget,
+    scene_light_data_buffer: &wgpu::Buffer,
     history_textures: Option<&SceneFrameHistoryTextures>,
     flags: CompiledSceneGraphResourceBindingFlags,
     graph_resources: &mut RenderGraphExecutionResources,
@@ -57,6 +59,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
         &pipeline.graph,
         graph_resources,
         target,
+        scene_light_data_buffer,
         imported_final_target,
         Some(shadow_atlas_resources),
     );
@@ -71,6 +74,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
             hzb: flags.history_available && flags.hzb_history_enabled,
             hybrid_global_illumination: flags.runtime_features.hybrid_global_illumination_enabled,
             exposure: flags.exposure_history_enabled,
+            volumetric_scattering: flags.history_available && flags.volumetric_history_enabled,
         },
     );
     bind_environment_ibl_graph_resources(

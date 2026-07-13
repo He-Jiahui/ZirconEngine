@@ -1,4 +1,4 @@
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 
 use super::support::two_island_asset;
 

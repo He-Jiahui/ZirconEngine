@@ -361,6 +361,7 @@ fn scene_composite_ssr_product_extract(
                     direction: Vec3::new(0.45, 0.25, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 1.2,
+                    mobility: crate::core::framework::scene::Mobility::Dynamic,
                     shadow: None,
                 }],
                 point_lights: Vec::new(),

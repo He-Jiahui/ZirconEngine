@@ -372,6 +372,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 3.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         });
     assert!(!history.is_compatible(

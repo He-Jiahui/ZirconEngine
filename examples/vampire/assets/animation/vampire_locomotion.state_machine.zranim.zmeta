@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "a231edcc-d4f3-49c8-a76a-97ad6ec559d1"
 url = "res://animation/vampire_locomotion.state_machine.zranim"
 asset_kind = "AnimationStateMachine"
@@ -8,7 +8,7 @@ artifact_locator = "lib://animation/state_machines/368e7b8b-91fd-a545-6e5d-40ad6
 importer_id = "zircon.builtin.animation.zranim.state_machine"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781063478871
-source_hash = "dbda70ced145f3f1"
+source_digest = "dbda70ced145f3f1"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

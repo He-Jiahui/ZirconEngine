@@ -1,35 +1,35 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-- zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-- zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene.rs
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
   - docs/assets-and-rendering/index.md
 implementation_files:
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/virtual_geometry_runtime_state.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
-- zircon_graphics/src/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/base_scene_pass.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/runtime_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
   - zircon_graphics/src/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
-- zircon_graphics/src/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_core_render_scene.rs
 plan_sources:
   - user: 2026-04-16 continue next step after M5 baseline completion

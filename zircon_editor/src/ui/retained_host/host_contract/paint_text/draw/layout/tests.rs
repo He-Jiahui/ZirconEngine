@@ -741,6 +741,7 @@ fn shaped_glyphs_from_host_layout(
             ShapedGlyph {
                 glyph_id: glyph.key.glyph_index as u32,
                 font_id: None,
+                font_instance_id: None,
                 source_range: visual_range,
                 visual_range,
                 advance: metrics.advance_width.max(0.0),

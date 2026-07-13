@@ -1,5 +1,8 @@
 use crate::core::framework::script::ScriptHostValue;
-use crate::script::{VmError, VmPluginHostContext, VmPluginManifest, VmStateBlob};
+use crate::script::{VmError, VmPluginHostContext, VmPluginManifest};
+
+use super::super::gc_bridge::{VmGcBudget, VmGcStepOutcome};
+use super::{VmStateBlob, VmStateSchema};
 
 pub trait VmPluginInstance: Send + Sync {
     fn manifest(&self) -> &VmPluginManifest;
@@ -20,6 +23,11 @@ pub trait VmPluginInstance: Send + Sync {
         Ok(())
     }
 
+    /// Returns the destination schema used for reflected hot-reload migration.
+    fn state_schema(&mut self) -> Result<Option<VmStateSchema>, VmError> {
+        Ok(None)
+    }
+
     fn call_export(
         &mut self,
         _module_name: &str,
@@ -27,5 +35,10 @@ pub trait VmPluginInstance: Send + Sync {
         _arguments: &[ScriptHostValue],
     ) -> Result<Option<ScriptHostValue>, VmError> {
         Ok(None)
+    }
+
+    /// Performs one cooperative collection slice within the host-provided remaining budget.
+    fn gc_step(&mut self, _budget: VmGcBudget) -> Result<VmGcStepOutcome, VmError> {
+        Ok(VmGcStepOutcome::default())
     }
 }

@@ -1,11 +1,12 @@
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
 use super::support::*;
 
 #[test]
 fn export_wizard_pipeline_plan_builds_stage_commands_in_cli_order() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -24,11 +25,11 @@ fn export_wizard_pipeline_plan_builds_stage_commands_in_cli_order() {
             .iter()
             .map(|command| command.stage)
             .collect::<Vec<_>>(),
-        export_pipeline_stages().to_vec()
+        ExportStage::ALL.to_vec()
     );
 
     let validate = plan
-        .command(ExportPipelineStage::Validate)
+        .command(ExportStage::Validate)
         .expect("validate command");
     assert_eq!(validate.program, "python");
     assert_eq!(validate.argument_value("--stage"), Some("validate"));
@@ -37,22 +38,26 @@ fn export_wizard_pipeline_plan_builds_stage_commands_in_cli_order() {
         Some("windows-release")
     );
     assert_eq!(
+        validate.argument_value("--preset"),
+        Some("export/windows-release.zpreset")
+    );
+    assert_eq!(
         validate.argument_value("--project"),
         Some("zircon-project.toml")
     );
     assert!(validate.contains_flag("--offline"));
     assert!(validate.contains_flag("--dry-run"));
     assert_eq!(
-        parse_export_pipeline_stage(
-            validate
-                .argument_value("--stage")
-                .expect("stage argument should exist")
-        ),
-        Some(ExportPipelineStage::Validate)
+        validate
+            .argument_value("--stage")
+            .expect("stage argument should exist")
+            .parse::<ExportStage>()
+            .ok(),
+        Some(ExportStage::Validate)
     );
 
     let native_dynamic = plan
-        .command(ExportPipelineStage::NativeDynamic)
+        .command(ExportStage::NativeDynamic)
         .expect("native dynamic command");
     assert_eq!(
         native_dynamic.argument_value("--stage"),
@@ -63,12 +68,12 @@ fn export_wizard_pipeline_plan_builds_stage_commands_in_cli_order() {
         Some("D:\\zircon-export\\stages\\validate\\report.json")
     );
     assert_eq!(
-        parse_export_pipeline_stage("native_dynamic"),
-        Some(ExportPipelineStage::NativeDynamic)
+        "native_dynamic".parse::<ExportStage>().ok(),
+        Some(ExportStage::NativeDynamic)
     );
     assert_eq!(
-        parse_export_pipeline_stage("NativeDynamic"),
-        Some(ExportPipelineStage::NativeDynamic)
+        "NativeDynamic".parse::<ExportStage>().ok(),
+        Some(ExportStage::NativeDynamic)
     );
 }
 
@@ -80,20 +85,16 @@ fn export_wizard_pipeline_plan_selects_stages_from_packaging_strategies() {
     assert_eq!(
         stage_sequence(&library_embed),
         vec![
-            ExportPipelineStage::Validate,
-            ExportPipelineStage::CompileHost,
-            ExportPipelineStage::CookAssets,
-            ExportPipelineStage::Pack,
-            ExportPipelineStage::PlatformBundle,
-            ExportPipelineStage::Report,
+            ExportStage::Validate,
+            ExportStage::CompileHost,
+            ExportStage::CookAssets,
+            ExportStage::Pack,
+            ExportStage::PlatformBundle,
+            ExportStage::Report,
         ]
     );
-    assert!(library_embed
-        .command(ExportPipelineStage::SourceTemplate)
-        .is_none());
-    assert!(library_embed
-        .command(ExportPipelineStage::NativeDynamic)
-        .is_none());
+    assert!(library_embed.command(ExportStage::SourceTemplate).is_none());
+    assert!(library_embed.command(ExportStage::NativeDynamic).is_none());
 
     let source_template = export_wizard_pipeline_plan(
         ready_export_options().with_strategies([ExportPackagingStrategy::SourceTemplate]),
@@ -101,9 +102,9 @@ fn export_wizard_pipeline_plan_selects_stages_from_packaging_strategies() {
     assert_eq!(
         stage_sequence(&source_template),
         vec![
-            ExportPipelineStage::Validate,
-            ExportPipelineStage::SourceTemplate,
-            ExportPipelineStage::Report,
+            ExportStage::Validate,
+            ExportStage::SourceTemplate,
+            ExportStage::Report,
         ]
     );
 
@@ -113,13 +114,13 @@ fn export_wizard_pipeline_plan_selects_stages_from_packaging_strategies() {
     assert_eq!(
         stage_sequence(&native_dynamic),
         vec![
-            ExportPipelineStage::Validate,
-            ExportPipelineStage::NativeDynamic,
-            ExportPipelineStage::CompileHost,
-            ExportPipelineStage::CookAssets,
-            ExportPipelineStage::Pack,
-            ExportPipelineStage::PlatformBundle,
-            ExportPipelineStage::Report,
+            ExportStage::Validate,
+            ExportStage::NativeDynamic,
+            ExportStage::CompileHost,
+            ExportStage::CookAssets,
+            ExportStage::Pack,
+            ExportStage::PlatformBundle,
+            ExportStage::Report,
         ]
     );
 
@@ -128,12 +129,12 @@ fn export_wizard_pipeline_plan_selects_stages_from_packaging_strategies() {
         ExportPackagingStrategy::NativeDynamic,
         ExportPackagingStrategy::LibraryEmbed,
     ]));
-    assert_eq!(stage_sequence(&combined), export_pipeline_stages().to_vec());
+    assert_eq!(stage_sequence(&combined), ExportStage::ALL.to_vec());
 }
 
 #[test]
 fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -151,7 +152,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     let plan = export_wizard_pipeline_plan(options);
 
     let native_dynamic = plan
-        .command(ExportPipelineStage::NativeDynamic)
+        .command(ExportStage::NativeDynamic)
         .expect("native dynamic command");
     assert_eq!(
         native_dynamic.argument_value("--validate-report"),
@@ -168,7 +169,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     }));
 
     let cook_assets = plan
-        .command(ExportPipelineStage::CookAssets)
+        .command(ExportStage::CookAssets)
         .expect("cook assets command");
     assert_eq!(
         cook_assets.argument_value("--asset-manifest"),
@@ -179,9 +180,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
             && artifact.path.ends_with("stages\\cook_assets\\assets.json")
     }));
 
-    let pack = plan
-        .command(ExportPipelineStage::Pack)
-        .expect("pack command");
+    let pack = plan.command(ExportStage::Pack).expect("pack command");
     assert_eq!(
         pack.argument_value("--asset-manifest"),
         Some("D:\\zircon-export\\stages\\cook_assets\\assets.json")
@@ -201,7 +200,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     assert!(pack.contains_flag("--determinism-check"));
 
     let platform_bundle = plan
-        .command(ExportPipelineStage::PlatformBundle)
+        .command(ExportStage::PlatformBundle)
         .expect("platform bundle command");
     assert_eq!(
         platform_bundle.argument_value("--pack-file"),
@@ -219,7 +218,7 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
 
 #[test]
 fn export_wizard_pipeline_plan_reports_missing_execution_inputs() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -234,17 +233,17 @@ fn export_wizard_pipeline_plan_reports_missing_execution_inputs() {
         .iter()
         .any(|diagnostic| diagnostic.contains("previous_pack and delta_pack")));
     assert!(plan
-        .command(ExportPipelineStage::CookAssets)
+        .command(ExportStage::CookAssets)
         .expect("cook assets command")
         .missing_inputs
         .contains(&"source_asset_manifest"));
     assert!(plan
-        .command(ExportPipelineStage::PlatformBundle)
+        .command(ExportStage::PlatformBundle)
         .expect("platform bundle command")
         .missing_inputs
         .contains(&"host_executable"));
     assert!(plan
-        .command(ExportPipelineStage::Pack)
+        .command(ExportStage::Pack)
         .expect("pack command")
         .missing_inputs
         .contains(&"previous_pack+delta_pack"));
@@ -252,7 +251,7 @@ fn export_wizard_pipeline_plan_reports_missing_execution_inputs() {
 
 #[test]
 fn export_wizard_pipeline_banners_drive_progress_parser() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -266,10 +265,10 @@ fn export_wizard_pipeline_banners_drive_progress_parser() {
         progress.push_stdout_line(&command.stdout_banner(&plan.profile));
     }
 
-    assert_eq!(progress.current_stage(), Some(ExportPipelineStage::Report));
+    assert_eq!(progress.current_stage(), Some(ExportStage::Report));
     assert_eq!(
         progress
-            .snapshot(ExportPipelineStage::Report)
+            .snapshot(ExportStage::Report)
             .expect("report snapshot")
             .profile
             .as_deref(),

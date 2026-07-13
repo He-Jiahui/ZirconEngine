@@ -20,7 +20,7 @@ pub(super) struct SplitLayoutSources {
     pub(super) status_rows: &'static str,
     pub(super) status_slice: &'static str,
     pub(super) date_slice: &'static str,
-    pub(super) session_note: &'static str,
+    pub(super) runtime_07_archive: &'static str,
 }
 
 impl SplitLayoutSources {
@@ -69,9 +69,9 @@ impl SplitLayoutSources {
             date_slice: include_str!(
                 "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_split_layout_maps.rs"
             ),
-            session_note: include_str!(
-                "../../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
+        runtime_07_archive: include_str!(
+            "../../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+        ),
         }
     }
 }

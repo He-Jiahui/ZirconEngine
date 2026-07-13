@@ -61,7 +61,7 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
         Arc::new(backend.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-test-custom-deferred-lighting-skinned-palette"),
             size: 64,
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
         }));
     let gpu_scene = GpuScene::new(
@@ -81,6 +81,7 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
         gpu_scene.scene_bind_group_layout(),
         wgpu::TextureFormat::Rgba8Unorm,
         &[descriptor],
+        false,
     )
     .expect("custom deferred lighting pipeline should be created from project WGSL include source");
     let error = pollster::block_on(error_scope.pop());

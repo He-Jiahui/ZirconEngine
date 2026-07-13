@@ -31,18 +31,18 @@ pub(crate) fn build_scene_edit_mode_projection(
     selected: Option<EntityId>,
     handle_drag_active: bool,
 ) -> SceneEditModeProjection {
-    let inspection = scene.inspect_world(selected);
-    let selected_entity = inspection.focused_entity;
+    let selected_entity = selected.filter(|entity| scene.contains_entity(*entity));
 
     SceneEditModeProjection {
         selected_entity,
-        hierarchy_rows: inspection
-            .hierarchy_rows
+        hierarchy_rows: scene
+            .inspect_hierarchy()
             .into_iter()
-            .map(SceneHierarchyRow::from)
+            .map(|row| scene_hierarchy_row_from_runtime(row, selected_entity))
             .collect(),
-        inspector_fields: inspection
-            .fields
+        inspector_fields: selected_entity
+            .map(|entity| scene.inspect_fields(entity))
+            .unwrap_or_default()
             .into_iter()
             .filter_map(scene_inspector_field_from_runtime)
             .collect(),
@@ -51,18 +51,20 @@ pub(crate) fn build_scene_edit_mode_projection(
     }
 }
 
-impl From<WorldInspectionHierarchyRow> for SceneHierarchyRow {
-    fn from(row: WorldInspectionHierarchyRow) -> Self {
-        Self {
-            entity: row.entity,
-            parent: row.parent,
-            depth: row.depth,
-            display_name: row.display_name,
-            kind: row.kind,
-            selected: row.focused,
-            active_in_hierarchy: row.active_in_hierarchy,
-            has_children: row.has_children,
-        }
+fn scene_hierarchy_row_from_runtime(
+    row: WorldInspectionHierarchyRow,
+    selected: Option<EntityId>,
+) -> SceneHierarchyRow {
+    SceneHierarchyRow {
+        entity: row.entity,
+        parent: row.parent,
+        depth: row.depth,
+        display_name: row.display_name,
+        kind: row.kind,
+        subtree_hash: row.subtree_hash,
+        selected: selected == Some(row.entity),
+        active_in_hierarchy: row.active_in_hierarchy,
+        has_children: row.has_children,
     }
 }
 

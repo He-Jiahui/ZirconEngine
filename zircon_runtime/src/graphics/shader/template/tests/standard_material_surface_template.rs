@@ -97,9 +97,13 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(assembly
         .wgsl_source
         .contains("camera_view_direction: vec4<f32>"));
-    assert!(assembly
+    let scene_uniform = assembly
         .wgsl_source
-        .contains("environment_sh9: array<vec4<f32>, 9>"));
+        .split("struct SceneUniform {")
+        .nth(1)
+        .and_then(|tail| tail.split("};").next())
+        .expect("standard material shader should declare SceneUniform");
+    assert!(!scene_uniform.contains("environment_sh9"));
     assert!(assembly
         .wgsl_source
         .contains("override ZR_ENV_DIFFUSE_IEM: bool = false;"));
@@ -118,6 +122,9 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(assembly
         .wgsl_source
         .contains("@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(0) @binding(6) var<uniform> zr_environment_sh9: ZrEnvironmentSh9;"));
     assert!(assembly.wgsl_source.contains("textureSampleLevel("));
     assert!(assembly
         .wgsl_source

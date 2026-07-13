@@ -10,7 +10,7 @@ use super::assemble::{
     ShaderAssemblyBuilder, ShaderAssemblySegmentKind, ShaderTemplateAssemblyError,
 };
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, scene_runtime_include,
+    geometry_source_include_for, gpu_scene_include, lightmap_include, scene_runtime_include,
     shading_model_gbuffer_include_for, shading_model_gbuffer_include_token, surface_types_include,
     ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
 };
@@ -145,6 +145,7 @@ pub(crate) fn assemble_deferred_gbuffer_shader_template(
     push_include_chunk(&mut registry, &mut builder, scene_runtime_include());
     push_include_chunk(&mut registry, &mut builder, gpu_scene_include());
     push_include_chunk(&mut registry, &mut builder, surface_types_include());
+    push_include_chunk(&mut registry, &mut builder, lightmap_include());
 
     let geometry_include =
         geometry_source_include_for(&request.geometry_source).ok_or_else(|| {

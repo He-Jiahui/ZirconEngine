@@ -114,11 +114,11 @@ pub(super) fn assert_runtime_08_identity_and_storage_anchors() {
         &[
             include_str!("../../../scene/ecs/resource/mod.rs"),
             include_str!("../../../scene/ecs/resource/id.rs"),
-            include_str!("../../../scene/ecs/resource/marker.rs"),
+            include_str!("../../../core/framework/scene/resource.rs"),
             include_str!("../../../scene/ecs/resource/registry.rs"),
         ],
         &[
-            "pub trait Resource: 'static + Send + Sync",
+            "pub trait SceneResource: 'static + Send + Sync",
             "pub struct ResourceId(usize)",
             "pub const fn new(index: usize) -> Self",
             "pub const fn index(self) -> usize",

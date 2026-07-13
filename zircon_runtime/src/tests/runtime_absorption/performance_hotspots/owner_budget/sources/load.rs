@@ -177,48 +177,11 @@ pub(super) fn load() -> OwnerBudgetSources {
         source_inventory: include_str!(
             "../../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py"
         ),
-        runtime_07_plan: include_str!(
-            "../../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+        runtime_07_archive: include_str!(
+            "../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
         ),
-        runtime_15_plan: include_str!(
-            "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-        ),
-        runtime_index: include_str!(
-            "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-        ),
-        review_findings: include_str!(
-            "../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
-        ),
-        structure_convention: include_str!(
-            "../../../../../../../docs/plans/engine-code-structure-convention.md"
-        ),
-        module_doc: include_str!(
-            "../../../../../../../docs/zircon_runtime/structure/module-convention.md"
-        ),
-        hotspot_doc: include_str!(
-            "../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md"
-        ),
-        dynamic_session_doc: include_str!(
-            "../../../../../../../docs/zircon_runtime/dynamic_api/session.md"
-        ),
-        ecs_doc: include_str!("../../../../../../../docs/zircon_runtime/scene/ecs.md"),
-        interface_doc: include_str!(
-            "../../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-        ),
-        architecture_review: include_str!(
-            "../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-        ),
-        status_rows: include_str!(
-            "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/runtime_07_performance.rs"
-        ),
-        status_slice: include_str!(
-            "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps.rs"
-        ),
-        date_slice: include_str!(
-            "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps.rs"
-        ),
-        session_note: include_str!(
-            "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+        runtime_15_archive: include_str!(
+            "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
         ),
     }
 }

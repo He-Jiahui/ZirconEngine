@@ -1,7 +1,6 @@
 pub(super) const SLICE: &str =
     "Runtime 15 M3 code review findings plugin-importer DX structure guard child-owner split";
-pub(super) const STATUS: &str =
-    "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_child_owner_split_static_passed_cargo_deferred";
+pub(super) const STATUS: &str = "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_child_owner_split_static_passed_cargo_deferred";
 pub(super) const DATE: &str = "2026-06-30";
 pub(super) const GUARD: &str =
     "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner";
@@ -19,8 +18,7 @@ pub(super) const BUDGET_GUARD: &str =
 
 pub(super) const PLUGIN_IMPORTER_DX_ROOT_INVENTORY_SLICE: &str =
     "Runtime 15 M3 plugin-importer DX structure guard root inventory child split";
-pub(super) const PLUGIN_IMPORTER_DX_ROOT_INVENTORY_STATUS: &str =
-    "runtime_15_plugin_importer_dx_structure_guard_root_inventory_child_split_target_server_direct_binary_passed";
+pub(super) const PLUGIN_IMPORTER_DX_ROOT_INVENTORY_STATUS: &str = "runtime_15_plugin_importer_dx_structure_guard_root_inventory_child_split_target_server_direct_binary_passed";
 pub(super) const PLUGIN_IMPORTER_DX_ROOT_INVENTORY_DATE: &str = "2026-07-04";
 pub(super) const PLUGIN_IMPORTER_DX_ROOT_INVENTORY_GUARD: &str =
     "runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned";

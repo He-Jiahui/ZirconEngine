@@ -1,5 +1,5 @@
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset};
 use zircon_runtime::core::framework::navigation::NavPathResult;
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavMeshLinkAsset};
 
 pub(super) fn select_upcoming_link<'a>(
     asset: &'a NavMeshAsset,
@@ -15,10 +15,10 @@ pub(super) fn select_upcoming_link<'a>(
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::asset::{NavMeshLinkAsset, NavMeshLinkCapacity};
     use zircon_runtime::core::framework::navigation::{
         NavLinkMotion, NavPathPoint, NavPathStatus, AREA_JUMP, AREA_WALKABLE,
     };
+    use zircon_runtime::core::framework::navigation::{NavMeshLinkAsset, NavMeshLinkCapacity};
 
     use super::*;
 

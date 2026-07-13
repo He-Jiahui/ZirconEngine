@@ -35,7 +35,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/ui-and-layout/shared-ui-template-runtime.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-12
 ---
 
 # 09 UI 子系统架构收束
@@ -192,3 +192,4 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`09/2026-07-09-ui-subsystem-architecture-output-records.md`](09/2026-07-09-ui-subsystem-architecture-output-records.md)
+- fixed 已修复：[runtime-rich-table-layout-recursion](09/fixed-2026-07-12-runtime-rich-table-layout-recursion.md)

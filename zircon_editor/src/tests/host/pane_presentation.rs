@@ -162,6 +162,7 @@ fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -423,6 +424,7 @@ fn module_plugins_fixture() -> ModulePluginsPaneViewData {
 fn build_export_fixture() -> BuildExportPaneViewData {
     BuildExportPaneViewData {
         targets: crate::ui::layouts::common::model_rc(vec![BuildExportTargetViewData {
+            preset_name: "desktop_windows".into(),
             profile_name: "desktop_windows".into(),
             platform: "Windows".into(),
             target_mode: "ClientRuntime".into(),
@@ -459,52 +461,52 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
     let cases = [
         (
             "editor.console",
-            "pane.console.body",
+            "res://ui/editor/host/console_body.zui",
             PanePayloadKind::ConsoleV1,
         ),
         (
             "editor.inspector",
-            "pane.inspector.body",
+            "res://ui/editor/host/inspector_body.zui",
             PanePayloadKind::InspectorV1,
         ),
         (
             "editor.hierarchy",
-            "pane.hierarchy.body",
+            "res://ui/editor/host/hierarchy_body.zui",
             PanePayloadKind::HierarchyV1,
         ),
         (
             "editor.animation_sequence",
-            "pane.animation.sequence.body",
+            "res://ui/editor/host/animation_sequence_body.zui",
             PanePayloadKind::AnimationSequenceV1,
         ),
         (
             "editor.animation_graph",
-            "pane.animation.graph.body",
+            "res://ui/editor/host/animation_graph_body.zui",
             PanePayloadKind::AnimationGraphV1,
         ),
         (
             "editor.runtime_diagnostics",
-            "pane.runtime.diagnostics.body",
+            "res://ui/editor/host/runtime_diagnostics_body.zui",
             PanePayloadKind::RuntimeDiagnosticsV1,
         ),
         (
             "editor.performance_timeline",
-            "pane.performance.timeline.body",
+            "res://ui/editor/host/performance_timeline_body.zui",
             PanePayloadKind::PerformanceTimelineV1,
         ),
         (
             "editor.module_plugins",
-            "pane.module_plugins.body",
+            "res://ui/editor/host/module_plugins_body.zui",
             PanePayloadKind::ModulePluginsV1,
         ),
         (
             "editor.build_export_desktop",
-            "pane.build_export_desktop.body",
+            "res://ui/editor/host/build_export_desktop_body.zui",
             PanePayloadKind::BuildExportV1,
         ),
         (
             "editor.generated_bottom",
-            "pane.generated_bottom.body",
+            "res://ui/editor/host/generated_bottom_body.zui",
             PanePayloadKind::GeneratedBottomV1,
         ),
     ];
@@ -835,7 +837,10 @@ fn pane_presentation_keeps_shell_and_body_split_without_erasing_payload_type() {
             .map(|state| state.secondary_hint.as_str()),
         Some("Wait for editor output")
     );
-    assert_eq!(presentation.body.document_id, "pane.console.body");
+    assert_eq!(
+        presentation.body.document_id,
+        "res://ui/editor/host/console_body.zui"
+    );
     match presentation.body.payload {
         PanePayload::ConsoleV1(payload) => assert_eq!(payload.status_text, "Console ready"),
         unexpected => panic!("expected console payload, found {unexpected:?}"),
@@ -849,25 +854,43 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
         .unwrap_or_else(|poison| poison.into_inner());
 
     let cases = [
-        ("editor.console", "pane.console.body"),
-        ("editor.inspector", "pane.inspector.body"),
-        ("editor.hierarchy", "pane.hierarchy.body"),
-        ("editor.animation_sequence", "pane.animation.sequence.body"),
-        ("editor.animation_graph", "pane.animation.graph.body"),
+        ("editor.console", "res://ui/editor/host/console_body.zui"),
+        (
+            "editor.inspector",
+            "res://ui/editor/host/inspector_body.zui",
+        ),
+        (
+            "editor.hierarchy",
+            "res://ui/editor/host/hierarchy_body.zui",
+        ),
+        (
+            "editor.animation_sequence",
+            "res://ui/editor/host/animation_sequence_body.zui",
+        ),
+        (
+            "editor.animation_graph",
+            "res://ui/editor/host/animation_graph_body.zui",
+        ),
         (
             "editor.runtime_diagnostics",
-            "pane.runtime.diagnostics.body",
+            "res://ui/editor/host/runtime_diagnostics_body.zui",
         ),
         (
             "editor.performance_timeline",
-            "pane.performance.timeline.body",
+            "res://ui/editor/host/performance_timeline_body.zui",
         ),
-        ("editor.module_plugins", "pane.module_plugins.body"),
+        (
+            "editor.module_plugins",
+            "res://ui/editor/host/module_plugins_body.zui",
+        ),
         (
             "editor.build_export_desktop",
-            "pane.build_export_desktop.body",
+            "res://ui/editor/host/build_export_desktop_body.zui",
         ),
-        ("editor.generated_bottom", "pane.generated_bottom.body"),
+        (
+            "editor.generated_bottom",
+            "res://ui/editor/host/generated_bottom_body.zui",
+        ),
     ];
 
     for (descriptor_id, document_id) in cases {
@@ -899,8 +922,12 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             &layout,
             vec![instance],
             vec![descriptor.clone()],
+            None,
         );
-        let model = WorkbenchViewModel::build(&chrome);
+        let model = WorkbenchViewModel::build(
+            &crate::core::commands::EditorCommandRegistry::default_workbench(),
+            &chrome,
+        );
         let animation_panes = if descriptor_id.starts_with("editor.animation_") {
             BTreeMap::from([(instance_id.0.clone(), animation_fixture())])
         } else {

@@ -1,10 +1,11 @@
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+use crate::core::framework::scene::ComponentTypeDescriptor;
 #[cfg(feature = "graphics")]
 use crate::plugin::PluginModuleId;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
-use crate::plugin::{ComponentTypeDescriptor, PluginEventCatalogManifest, PluginOptionManifest};
+use crate::plugin::{PluginEventCatalogManifest, PluginOptionManifest};
 
 use super::super::RuntimeExtensionRegistry;
 

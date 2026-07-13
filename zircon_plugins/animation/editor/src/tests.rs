@@ -1,4 +1,5 @@
 use super::*;
+use zircon_editor::EditorPlugin;
 
 #[test]
 fn animation_editor_plugin_contributes_authoring_extensions() {
@@ -42,7 +43,34 @@ fn animation_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.animation.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.animation.authoring.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.animation.authoring.open"));
+}
+
+#[test]
+fn blend_space_and_avatar_mask_asset_drawers_are_owned_by_animation_editor() {
+    let mut registry = zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+    editor_plugin()
+        .register_editor_extensions(&mut registry)
+        .expect("animation asset authoring registration");
+
+    for (component_type, ui_document) in [
+        (
+            "animation.Asset.BlendSpace1D",
+            "plugins://animation/editor/blend_space_1d.zui",
+        ),
+        (
+            "animation.Asset.BlendSpace2D",
+            "plugins://animation/editor/blend_space_2d.zui",
+        ),
+        (
+            "animation.Asset.AvatarMask",
+            "plugins://animation/editor/avatar_mask_bone_tree.zui",
+        ),
+    ] {
+        assert!(registry.component_drawers().iter().any(|drawer| {
+            drawer.component_type() == component_type && drawer.ui_document() == ui_document
+        }));
+    }
 }

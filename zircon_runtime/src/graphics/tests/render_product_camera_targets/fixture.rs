@@ -40,7 +40,9 @@ impl RenderFixture {
     pub(super) fn new(label: &str, base_color: [f32; 4]) -> Self {
         let root = unique_temp_project_root(label);
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             label,
             AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -50,17 +52,28 @@ impl RenderFixture {
         .unwrap();
 
         write_flat_color_wgsl(
-            paths.assets_root().join("shaders").join("flat_color.wgsl"),
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("shaders")
+                .join("flat_color.wgsl"),
             [base_color[0], base_color[1], base_color[2]],
         );
         write_solid_png(
-            paths.assets_root().join("textures").join("white.png"),
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("textures")
+                .join("white.png"),
             [255, 255, 255, 255],
         );
-        write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+        write_quad_obj(
+            paths
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+                .join("models")
+                .join("quad.obj"),
+        );
         write_material_with_base_color_and_texture(
             paths
-                .assets_root()
+                .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
                 .join("materials")
                 .join("flat_color.zmaterial"),
             "res://shaders/flat_color.wgsl",

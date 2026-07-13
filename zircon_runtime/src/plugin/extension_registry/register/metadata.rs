@@ -3,11 +3,11 @@ use crate::core::framework::render::{
     GBufferChannelMask, GeometrySourceDescriptor, ShadingModelDescriptor,
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
+use crate::core::framework::scene::ComponentTypeDescriptor;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
 use crate::plugin::{
-    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginOptionManifest,
-    RuntimeExtensionRegistryError,
+    PluginEventCatalogManifest, PluginOptionManifest, RuntimeExtensionRegistryError,
 };
 
 #[cfg(feature = "ui")]

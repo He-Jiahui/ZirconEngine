@@ -47,6 +47,7 @@ impl ResourceStreamer {
                             receive_shadows: descriptor.receive_shadows,
                             disabled_passes: Default::default(),
                             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
+                            subsurface_profile_index: descriptor.subsurface_profile_index,
                             base_color_texture: self
                                 .resolve_texture_reference(
                                     "base_color_texture",

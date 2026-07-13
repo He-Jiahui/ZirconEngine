@@ -1,22 +1,81 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
+use crate::asset::assets::ProjectDocumentError;
 use crate::asset::assets::{
-    AnimationAssetError, FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError,
-    UiThemeAssetDocumentError, UiV2AssetDocumentError,
+    FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
+    UiV2AssetDocumentError,
 };
 #[cfg(feature = "text")]
 use crate::asset::assets::{FontMetadataParseError, FontSourceDecodeError};
+use crate::asset::project::ProjectManifestError;
+use crate::asset::registry::AssetRegistryError;
+use crate::asset::ReferenceResolutionError;
+use crate::core::framework::animation::AnimationAssetError;
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
 #[derive(Debug, Error)]
 pub enum AssetImportError {
+    #[error(transparent)]
+    ProjectDocument(#[from] ProjectDocumentError),
+    #[error(transparent)]
+    ReferenceResolution(#[from] ReferenceResolutionError),
+    #[error(transparent)]
+    ProjectManifest(#[from] ProjectManifestError),
     #[error("asset I/O failed: {0}")]
     Io(#[from] std::io::Error),
     #[error("asset uri error: {0}")]
     Uri(#[from] ResourceLocatorError),
     #[error("asset parse failed: {0}")]
     Parse(String),
+    #[error("authoring asset {path} requires an explicit project registry resolver")]
+    ProjectContextRequired { path: std::path::PathBuf },
+    #[error("project has no registered manifest asset roots")]
+    MissingProjectAssetRoot,
+    #[error("project asset root {root} escapes project root {project_root}")]
+    ProjectAssetRootOutsideProject {
+        project_root: std::path::PathBuf,
+        root: std::path::PathBuf,
+    },
+    #[error("canonicalize project root {path} failed: {source}")]
+    CanonicalProjectRoot {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("canonicalize project asset root {path} failed: {source}")]
+    CanonicalProjectAssetRoot {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("canonical project asset root {asset_root} escapes project root {project_root}")]
+    CanonicalProjectAssetRootEscape {
+        project_root: std::path::PathBuf,
+        asset_root: std::path::PathBuf,
+    },
+    #[error("project asset root {root} is registered more than once")]
+    DuplicateProjectAssetRoot { root: std::path::PathBuf },
+    #[error("project asset uri {uri} resolves from both {first} and {second}")]
+    DuplicateProjectAssetUri {
+        uri: ResourceLocator,
+        first: std::path::PathBuf,
+        second: std::path::PathBuf,
+    },
+    #[error("project asset uri {uri} does not exist in any registered manifest root")]
+    MissingProjectAssetUri { uri: ResourceLocator },
+    #[error("project asset uri {uri} exists in multiple registered manifest roots: {paths:?}")]
+    AmbiguousProjectAssetUri {
+        uri: ResourceLocator,
+        paths: Vec<std::path::PathBuf>,
+    },
+    #[error("source path {path} is outside all registered manifest asset roots")]
+    SourceOutsideProjectAssetRoots { path: std::path::PathBuf },
+    #[error("source path {path} belongs to overlapping registered project roots: {roots:?}")]
+    AmbiguousProjectSourcePath {
+        path: std::path::PathBuf,
+        roots: Vec<std::path::PathBuf>,
+    },
     #[error("font asset document failed: {0}")]
     FontDocument(#[source] FontAssetError),
     #[error("font source {path} could not be read: {source}")]
@@ -66,6 +125,8 @@ pub enum AssetImportError {
     },
     #[error("asset importer registry failed: {0}")]
     Registry(#[from] AssetImporterRegistryError),
+    #[error("asset registry index failed: {0}")]
+    RegistryIndex(#[from] AssetRegistryError),
     #[error("asset TOML serialization failed while {context}: {source}")]
     TomlSerialize {
         context: &'static str,

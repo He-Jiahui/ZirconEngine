@@ -34,7 +34,7 @@ impl VolumeParamValue {
         }
     }
 
-    pub(super) fn float(
+    pub(crate) fn float(
         self,
         component_id: &'static str,
         param_name: &'static str,
@@ -50,7 +50,7 @@ impl VolumeParamValue {
         }
     }
 
-    pub(super) fn vec3(
+    pub(crate) fn vec3(
         self,
         component_id: &'static str,
         param_name: &'static str,
@@ -66,7 +66,7 @@ impl VolumeParamValue {
         }
     }
 
-    pub(super) fn uint(
+    pub(crate) fn uint(
         self,
         component_id: &'static str,
         param_name: &'static str,
@@ -82,7 +82,7 @@ impl VolumeParamValue {
         }
     }
 
-    pub(super) fn enum_id(
+    pub(crate) fn enum_id(
         self,
         component_id: &'static str,
         param_name: &'static str,
@@ -93,6 +93,22 @@ impl VolumeParamValue {
                 component_id,
                 param_name,
                 VolumeParamType::Enum,
+                other,
+            )),
+        }
+    }
+
+    pub(crate) fn bool(
+        self,
+        component_id: &'static str,
+        param_name: &'static str,
+    ) -> Result<bool, VolumeComponentApplyError> {
+        match self {
+            Self::Bool(value) => Ok(value),
+            other => Err(type_mismatch(
+                component_id,
+                param_name,
+                VolumeParamType::Bool,
                 other,
             )),
         }

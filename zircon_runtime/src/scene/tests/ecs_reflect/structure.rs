@@ -74,24 +74,15 @@ fn type_registry_registration_borrows_field_without_result_map_closure() {
 }
 
 #[test]
-fn reflection_conversion_finite_checks_use_direct_loops() {
+fn reflection_conversion_vector_finite_checks_use_direct_loops() {
     let source = include_str!("../../reflect/conversion.rs");
-    let reflected_value = source
-        .split("fn ensure_finite_reflected_value(")
-        .nth(1)
-        .and_then(|text| text.split("fn ensure_finite_scalar(").next())
-        .expect("read ensure_finite_reflected_value body");
     let vector = source
         .split("fn ensure_finite_vector(")
         .nth(1)
         .expect("read ensure_finite_vector body");
 
     assert!(
-        reflected_value.contains("for value in values {")
-            && reflected_value.contains("ensure_finite_reflected_value(value, target)?;")
-            && reflected_value.contains("for value in values.values() {")
-            && !reflected_value.contains(".try_for_each(")
-            && vector.contains("for value in values {")
+        vector.contains("for value in values {")
             && vector.contains("if !value.is_finite()")
             && vector.contains("return Err(ReflectError::UnsupportedConversion")
             && !vector.contains(".iter()")
@@ -121,238 +112,192 @@ fn reflection_conversion_scalar_finite_check_uses_direct_branch() {
 }
 
 #[test]
-fn reflection_json_conversion_uses_direct_error_branch() {
-    let source = include_str!("../../reflect/conversion.rs");
-    let json_from_reflected = source
-        .split("pub fn json_from_reflected(")
-        .nth(1)
-        .and_then(|text| text.split("fn unsupported_reflected_to_scene").next())
-        .expect("read json_from_reflected body");
-    let type_source = source
-        .split("fn reflected_value_type_source(")
-        .nth(1)
-        .and_then(|text| text.split("fn ensure_finite_reflected_value").next())
-        .expect("read reflected value type source helper");
-
+fn reflection_json_persistence_stays_folder_backed_and_versioned() {
+    let mod_source = include_str!("../../reflect/json_document/mod.rs");
+    let read_source = include_str!("../../reflect/json_document/read.rs");
+    let write_source = include_str!("../../reflect/json_document/write.rs");
+    let migration_source = include_str!("../../reflect/json_document/migration.rs");
     assert!(
-        json_from_reflected.contains("match serde_json::to_value(&value)")
-            && json_from_reflected.contains("Ok(value) => Ok(value)")
-            && json_from_reflected.contains("Err(_) => Err(ReflectError::UnsupportedConversion")
-            && json_from_reflected.contains("source: reflected_value_type_source(value.type_name())")
-            && !json_from_reflected.contains(".map_err(")
-            && !json_from_reflected.contains("format!(\"ReflectedValue::{}\"")
-            && type_source.contains("const PREFIX: &str = \"ReflectedValue::\";")
-            && type_source.contains("String::with_capacity(PREFIX.len() + type_name.len())")
-            && type_source.contains("source.push_str(PREFIX);")
-            && type_source.contains("source.push_str(type_name);")
-            && !type_source.contains("format!("),
-        "reflection JSON conversion must use a direct serde error branch and pre-sized source string helper"
-    );
-}
-
-#[test]
-fn fixed_reflection_shared_component_helpers_use_direct_branches() {
-    let source = include_str!("../../reflect/fixed/shared.rs");
-    let ensure_entity = source
-        .split("pub(super) fn ensure_entity")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn get_component").next())
-        .expect("read fixed shared ensure_entity helper");
-    let get_component = source
-        .split("pub(super) fn get_component<'a, T>(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn get_component_mut").next())
-        .expect("read fixed shared get_component helper");
-    let get_component_mut = source
-        .split("pub(super) fn get_component_mut<'a, T>(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn ensure_component").next())
-        .expect("read fixed shared get_component_mut helper");
-    let ensure_component = source
-        .split("pub(super) fn ensure_component<T>")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn missing_component").next())
-        .expect("read fixed shared ensure_component helper");
-    let expect_i32 = source
-        .split("pub(super) fn expect_i32(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn expect_scalar(").next())
-        .expect("read fixed shared expect_i32 helper");
-    let remove_component = source
-        .split("pub(super) fn remove_component<T>(")
-        .nth(1)
-        .expect("read fixed shared remove_component helper");
-
-    assert!(
-        ensure_entity.contains("if world.contains_entity(entity) {")
-            && ensure_entity.contains("return Ok(());")
-            && ensure_entity.contains("Err(ReflectError::MissingEntity { entity })")
-            && !ensure_entity.contains(".then_some(())")
-            && !ensure_entity.contains(".ok_or(")
-            && get_component.contains("let Some(component) = world.get::<T>(entity) else")
-            && get_component.contains("return Err(missing_component(entity, type_path));")
-            && get_component.contains("Ok(component)")
-            && !get_component.contains(".ok_or_else(")
-            && get_component_mut.contains("let Some(component) = world.get_mut::<T>(entity) else")
-            && get_component_mut.contains("return Err(missing_component(entity, type_path));")
-            && get_component_mut.contains("Ok(component)")
-            && !get_component_mut.contains("world.get::<T>(entity).is_none()")
-            && !get_component_mut.contains(".ok_or_else(")
-            && ensure_component.contains("if world.get::<T>(entity).is_none() {")
-            && ensure_component.contains("return Err(missing_component(entity, type_path));")
-            && ensure_component.contains("Ok(())")
-            && !ensure_component.contains(".then_some(())")
-            && !ensure_component.contains(".ok_or_else(")
-            && expect_i32.contains("match i32::try_from(value)")
-            && expect_i32.contains("Ok(value) => Ok(value)")
-            && expect_i32.contains("Err(_) => Err(invalid_value(")
-            && !expect_i32.contains(".map_err(")
-            && remove_component.contains("match world.remove::<T>(entity) {")
-            && remove_component.contains("Ok(Some(_)) => Ok(true),")
-            && remove_component.contains("Err(_) => Err(missing_component(entity, type_path)),")
-            && !remove_component.contains(".map_err(|_| missing_component(entity, type_path))"),
-        "fixed reflection shared helpers must use direct success/error branches instead of Option/Result adapter projections"
-    );
-}
-
-#[test]
-fn fixed_reflection_vector_expectations_use_direct_finite_checks() {
-    let source = include_str!("../../reflect/fixed/shared.rs");
-    let expect_vec3 = source
-        .split("pub(super) fn expect_vec3(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn expect_vec2(").next())
-        .expect("read fixed shared expect_vec3 helper");
-    let expect_vec2 = source
-        .split("pub(super) fn expect_vec2(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn expect_vec4(").next())
-        .expect("read fixed shared expect_vec2 helper");
-    let expect_vec4 = source
-        .split("pub(super) fn expect_vec4(")
-        .nth(1)
-        .and_then(|text| text.split("fn vec2_components_are_finite").next())
-        .expect("read fixed shared expect_vec4 helper");
-    let finite_helpers = source
-        .split("fn vec2_components_are_finite")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn remove_component").next())
-        .expect("read fixed shared vector finite helpers");
-
-    assert!(
-        expect_vec2.contains("ReflectedValue::Vec2(value) if vec2_components_are_finite(&value)")
-            && expect_vec3
-                .contains("ReflectedValue::Vec3(value) if vec3_components_are_finite(&value)")
-            && expect_vec4
-                .contains("ReflectedValue::Vec4(value) if vec4_components_are_finite(&value)")
-            && !expect_vec2.contains(".iter().all(")
-            && !expect_vec3.contains(".iter().all(")
-            && !expect_vec4.contains(".iter().all(")
-            && finite_helpers.contains("value[0].is_finite() && value[1].is_finite()")
-            && finite_helpers.contains(
-                "value[0].is_finite() && value[1].is_finite() && value[2].is_finite()"
+        mod_source.contains("mod migration;")
+            && mod_source.contains("mod schema;")
+            && read_source.contains("load_versioned::<ReflectedJsonDocument>")
+            && write_source.contains("write_versioned_text")
+            && migration_source.contains(
+                "use zircon_runtime_interface::project::migrate_retired_asset_references;"
             )
-            && finite_helpers.contains("value[3].is_finite()")
-            && !finite_helpers.contains(".iter()")
-            && !finite_helpers.contains(".all("),
-        "fixed reflection vector expectations must use direct fixed-array finite checks instead of iterator all adapters"
+            && migration_source.contains("migrate_retired_asset_references"),
+        "reflected JSON persistence must remain folder-backed and delegate retired AssetRef value migration to the Runtime Interface contract"
     );
 }
 
 #[test]
-fn fixed_reflection_simple_adapters_use_direct_error_branches() {
-    let active_in_hierarchy = include_str!("../../reflect/fixed/active_in_hierarchy.rs");
-    let active_self = include_str!("../../reflect/fixed/active_self.rs");
-    let name = include_str!("../../reflect/fixed/name.rs");
-    let render_layer_mask = include_str!("../../reflect/fixed/render_layer_mask.rs");
-
-    let active_in_hierarchy_read = active_in_hierarchy
-        .split("fn read_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn read_fields(").next())
-        .expect("read ActiveInHierarchy read_field body");
-    let active_self_write = active_self
-        .split("fn write_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove(").next())
-        .expect("read ActiveSelf write_field body");
-    let name_write = name
-        .split("fn write_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove(").next())
-        .expect("read Name write_field body");
-    let render_layer_mask_write = render_layer_mask
-        .split("fn write_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove(").next())
-        .expect("read RenderLayerMask write_field body");
+fn reflection_hard_cut_removes_the_manual_fixed_adapter_tree() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let fixed_module = manifest_dir.join("src/scene/reflect/fixed/mod.rs");
+    let reflect_root = include_str!("../../reflect/mod.rs");
 
     assert!(
-        active_in_hierarchy_read
-            .contains("let Some(value) = world.active_in_hierarchy(entity) else")
-            && active_in_hierarchy_read
-                .contains("return Err(shared::missing_component(entity, TYPE_PATH));")
-            && active_in_hierarchy_read.contains("Ok(ReflectedValue::Bool(value))")
-            && !active_in_hierarchy_read.contains(".map(ReflectedValue::Bool)")
-            && !active_in_hierarchy_read.contains(".ok_or_else(")
-            && active_self_write.contains("match world.insert(entity, ActiveSelf(next))")
-            && active_self_write.contains("Ok(_) => Ok(true)")
-            && active_self_write.contains("Err(_) => Err(shared::missing_component(entity, TYPE_PATH))")
-            && !active_self_write.contains(".map_err(")
-            && name_write.contains("match world.insert(entity, Name(next))")
-            && name_write.contains("Ok(_) => Ok(true)")
-            && name_write.contains("Err(_) => Err(shared::missing_component(entity, TYPE_PATH))")
-            && !name_write.contains(".map_err(")
-            && render_layer_mask_write
-                .contains("match world.insert(entity, RenderLayerMask(next))")
-            && render_layer_mask_write.contains("Ok(_) => Ok(true)")
-            && render_layer_mask_write
-                .contains("Err(_) => Err(shared::missing_component(entity, TYPE_PATH))")
-            && !render_layer_mask_write.contains(".map_err("),
-        "simple fixed reflection adapters must use direct read/write error branches instead of map/ok_or/map_err adapters"
+        !fixed_module.exists() && !reflect_root.contains("mod fixed;"),
+        "unified derived reflection must hard-cut the former scene/reflect/fixed adapter tree"
     );
 }
 
 #[test]
-fn fixed_reflection_world_conversion_writes_use_direct_error_branches() {
-    let shared = include_str!("../../reflect/fixed/shared.rs");
-    let hierarchy = include_str!("../../reflect/fixed/hierarchy.rs");
-    let mobility = include_str!("../../reflect/fixed/mobility.rs");
+fn builtin_reflection_registration_uses_derived_adapters_for_plain_components() {
+    let registration = include_str!("../../reflect/builtin_reflection/registration.rs");
+    for component in [
+        "Name",
+        "LocalTransform",
+        "ActiveSelf",
+        "RenderLayerMask",
+        "Mobility",
+        "CameraComponent",
+        "MeshRenderer",
+        "AmbientLight",
+        "DirectionalLight",
+        "PointLight",
+        "RectLight",
+        "SpotLight",
+        "RigidBodyComponent",
+    ] {
+        assert!(
+            registration.contains(&format!("derived_component_registration::<{component}>()")),
+            "plain reflected component {component} must use the unified derived adapter"
+        );
+    }
+    assert!(
+        registration.contains("hierarchy::registration()")
+            && registration.contains("active_in_hierarchy::registration()"),
+        "only components with world-owned invariants should use explicit builtin adapters"
+    );
+}
 
-    let field_target = shared
-        .split("pub(super) fn field_target")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn type_mismatch").next())
-        .expect("read fixed shared field_target helper");
-    let hierarchy_write = hierarchy
-        .split("fn write_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove(").next())
-        .expect("read Hierarchy write_field body");
-    let mobility_write = mobility
-        .split("fn write_field(")
-        .nth(1)
-        .and_then(|text| text.split("fn remove(").next())
-        .expect("read Mobility write_field body");
+#[test]
+fn builtin_reflection_special_adapters_only_enforce_world_owned_invariants() {
+    let hierarchy = include_str!("../../reflect/builtin_reflection/hierarchy.rs");
+    let active_in_hierarchy =
+        include_str!("../../reflect/builtin_reflection/active_in_hierarchy.rs");
 
     assert!(
-        field_target.contains("String::with_capacity(type_path.len() + 1 + field_name.len())")
-            && field_target.contains("target.push_str(type_path);")
-            && field_target.contains("target.push('.');")
-            && field_target.contains("target.push_str(field_name);")
-            && !field_target.contains("format!(")
-            && hierarchy_write.contains("match world.set_parent_checked(entity, parent)")
-            && hierarchy_write.contains("Ok(changed) => Ok(changed)")
-            && hierarchy_write.contains("Err(error) => Err(ReflectError::UnsupportedConversion")
-            && hierarchy_write.contains("target: shared::field_target(TYPE_PATH, field_name)")
-            && !hierarchy_write.contains(".map_err(")
-            && !hierarchy_write.contains("format!(\"{TYPE_PATH}.{field_name}\")")
-            && mobility_write.contains("match world.set_mobility(entity, parse_mobility(&kind)?)")
-            && mobility_write.contains("Ok(changed) => Ok(changed)")
-            && mobility_write.contains("Err(error) => Err(ReflectError::UnsupportedConversion")
-            && mobility_write.contains("target: shared::field_target(TYPE_PATH, field_name)")
-            && !mobility_write.contains(".map_err(")
-            && !mobility_write.contains("format!(\"{TYPE_PATH}.{field_name}\")"),
-        "Hierarchy and Mobility reflection writes must use direct conversion-error branches and the shared pre-sized field target"
+        hierarchy.contains("derived_component_registration_with_adapter::<Hierarchy>")
+            && hierarchy.contains("world.set_parent_checked(entity, parent)")
+            && active_in_hierarchy
+                .contains("derived_component_registration_with_adapter::<ActiveInHierarchy>")
+            && active_in_hierarchy.contains("world.active_in_hierarchy(entity)"),
+        "special adapters must be limited to hierarchy-cycle validation and computed active state"
+    );
+}
+
+#[test]
+fn builtin_component_metadata_is_owned_by_zr_reflect_derives() {
+    let components = include_str!("../../components/scene.rs");
+    let lighting = include_str!("../../components/scene/lighting.rs");
+    let mobility = include_str!("../../../core/framework/scene/mobility.rs");
+
+    for type_path in [
+        "zircon_runtime::scene::components::Name",
+        "zircon_runtime::scene::components::Hierarchy",
+        "zircon_runtime::scene::components::LocalTransform",
+        "zircon_runtime::scene::components::ActiveSelf",
+        "zircon_runtime::scene::components::ActiveInHierarchy",
+        "zircon_runtime::scene::components::RenderLayerMask",
+        "zircon_runtime::scene::components::CameraComponent",
+        "zircon_runtime::scene::components::MeshRenderer",
+        "zircon_runtime::scene::components::RigidBodyComponent",
+    ] {
+        assert!(
+            components.contains(type_path),
+            "component source must own canonical reflected metadata for {type_path}"
+        );
+    }
+    for type_path in [
+        "zircon_runtime::scene::components::AmbientLight",
+        "zircon_runtime::scene::components::DirectionalLight",
+        "zircon_runtime::scene::components::PointLight",
+        "zircon_runtime::scene::components::RectLight",
+        "zircon_runtime::scene::components::SpotLight",
+    ] {
+        assert!(
+            lighting.contains(type_path),
+            "lighting component source must own canonical reflected metadata for {type_path}"
+        );
+    }
+    assert!(
+        components.contains("zircon_reflect_derive::ZrReflect")
+            && lighting.contains("zircon_reflect_derive::ZrReflect")
+            && mobility.contains("zircon_reflect_derive::ZrReflect")
+            && mobility.contains("zircon_runtime::core::framework::scene::Mobility"),
+        "builtin metadata must be generated from component-owned ZrReflect derives"
+    );
+}
+
+#[test]
+fn derived_reflection_helpers_have_owner_scoped_visibility_and_world_lifetimes() {
+    let registration = include_str!("../../reflect/builtin_reflection/registration.rs");
+    let component_support = include_str!("../../reflect/builtin_reflection/component_support.rs");
+    let local_transform = include_str!("../../components/scene/reflection/local_transform.rs");
+    let mesh_renderer = include_str!("../../components/scene/reflection/mesh_renderer.rs");
+    let rigid_body = include_str!("../../components/scene/reflection/rigid_body.rs");
+
+    assert!(
+        registration.contains("pub(in crate::scene::reflect) fn register(")
+            && component_support.contains("fn get<'world, T>(")
+            && component_support.contains("world: &'world World,")
+            && component_support.contains("Result<&'world T, ReflectError>"),
+        "builtin registration and borrowed component helpers must expose only the required reflection owner and bind returned references to World"
+    );
+    for source in [local_transform, mesh_renderer, rigid_body] {
+        assert!(
+            source.contains("pub(in crate::scene::components::scene) fn")
+                && !source.contains("pub fn"),
+            "derive accessors must be visible to their generated component owner without becoming crate-public"
+        );
+    }
+}
+
+#[test]
+fn derived_component_write_reinserts_through_world_with_direct_error_branches() {
+    let source = include_str!("../../reflect/derived/component_adapter.rs");
+    let write_field = source
+        .split("fn write_field<T>(")
+        .nth(1)
+        .and_then(|text| text.split("fn remove<T>").next())
+        .expect("read derived component write_field body");
+
+    assert!(
+        write_field.contains("match world.insert(entity, next) {")
+            && write_field.contains("Ok(_) => Ok(true),")
+            && write_field.contains("Err(error) => Err(ReflectError::UnsupportedConversion")
+            && !write_field.contains(".map(")
+            && !write_field.contains(".map_err("),
+        "derived component writes must re-enter World invariants with direct success/error branches"
+    );
+}
+
+#[test]
+fn derived_and_dynamic_component_adapters_expose_dense_field_slots() {
+    let reflect_contract =
+        include_str!("../../../../../zircon_runtime_interface/src/reflect/zr_reflect.rs");
+    let reflect_component = include_str!("../../reflect/reflect_component.rs");
+    let derived = include_str!("../../reflect/derived/component_adapter.rs");
+    let dynamic = include_str!("../../reflect/dynamic_component.rs");
+    let hierarchy = include_str!("../../reflect/builtin_reflection/hierarchy.rs");
+    let active_in_hierarchy =
+        include_str!("../../reflect/builtin_reflection/active_in_hierarchy.rs");
+
+    assert!(
+        reflect_contract.contains("fn read_reflected_field_by_slot(")
+            && reflect_contract.contains("fn write_reflected_field_by_slot(")
+            && reflect_component.contains("pub fn with_dense_field_slots(")
+            && reflect_component.contains("pub fn read_field_by_slot(")
+            && reflect_component.contains("pub fn write_field_by_slot(")
+            && derived.contains(".with_dense_field_slots(")
+            && derived.contains("read_reflected_field_by_slot(field_slot)")
+            && derived.contains("write_reflected_field_by_slot(field_slot, value)")
+            && dynamic.contains(".with_dense_field_slots(read_dense_slot, write_dense_slot)")
+            && hierarchy.contains(".with_dense_field_slots(read_field_by_slot, write_field_by_slot)")
+            && active_in_hierarchy
+                .contains(".with_dense_field_slots(read_field_by_slot, write_field_by_slot)"),
+        "all component reflection paths consumed by VM call sites must provide numeric field-slot adapters"
     );
 }

@@ -11,6 +11,9 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
+    let runtime_07_archive = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc =
@@ -103,6 +106,7 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
         assert!(
             runtime_04_plan.contains(doc_anchor)
                 || runtime_07_plan.contains(doc_anchor)
+                || runtime_07_archive.contains(doc_anchor)
                 || runtime_index.contains(doc_anchor)
                 || hotspot_doc.contains(doc_anchor)
                 || artifact_doc.contains(doc_anchor),

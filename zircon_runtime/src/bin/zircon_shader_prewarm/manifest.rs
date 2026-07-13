@@ -37,7 +37,7 @@ use self::paths::{
 };
 use self::resource_registry::ShaderPrewarmResourceRegistryOverlay;
 use self::revision::{
-    asset_scan_revision_from_content_hashes, asset_scan_revision_from_source_hash,
+    asset_scan_revision_from_content_hashes, asset_scan_revision_from_source_digest,
 };
 use super::error::{
     ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult, ShaderPrewarmManifestError,
@@ -345,7 +345,7 @@ fn shader_source_from_zmeta(
     let stable_label = meta.url.to_string();
     let revision = resource_registry
         .and_then(|registry| registry.revision_for(resource_id, &stable_label))
-        .unwrap_or_else(|| asset_scan_revision_from_source_hash(&meta.source_hash));
+        .unwrap_or_else(|| asset_scan_revision_from_source_digest(&meta.source_digest));
     let metadata = Some(ShaderSourceMetadata {
         resource_id,
         stable_label,

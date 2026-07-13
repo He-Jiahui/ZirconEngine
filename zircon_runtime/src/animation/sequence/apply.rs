@@ -1,4 +1,4 @@
-use crate::asset::AnimationSequenceAsset;
+use crate::core::framework::animation::AnimationSequenceAsset;
 use crate::core::framework::animation::{
     AnimationResult, AnimationSequenceApplyReport, AnimationTrackPath,
 };

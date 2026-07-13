@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use wgpu::util::DeviceExt;
 
-use crate::core::framework::render::{ProbeInfluenceShape, ReflectionProbeData};
-use crate::core::math::Vec3;
+use crate::core::framework::render::{
+    derive_planar_reflection_camera, ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget,
+};
+use crate::core::math::{view_matrix, Vec3};
 #[cfg(test)]
 use crate::graphics::backend::{
     read_buffer_bytes, read_texture_rgba16float_region, BufferByteReadback,
@@ -12,7 +14,9 @@ use crate::graphics::backend::{
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::gpu_layout::{GpuReflectionProbe, GpuReflectionProbeHeader, ReflectionProbeGpuBindings};
+use super::gpu_layout::{
+    GpuPlanarReflection, GpuReflectionProbe, GpuReflectionProbeHeader, ReflectionProbeGpuBindings,
+};
 use super::slot_allocator::ProbeCubemapSlotAllocator;
 use super::upload::{
     upload_probe_pmrem_texture, validate_probe_pmrem_texture, ReflectionProbeAssetError,
@@ -22,6 +26,8 @@ use super::upload::{
 pub(super) const MAX_REFLECTION_PROBES: usize = 64;
 pub(super) const REFLECTION_PROBE_FACE_SIZE: u32 = 128;
 pub(super) const REFLECTION_PROBE_MIP_COUNT: u32 = 8;
+pub(in crate::graphics::scene::scene_renderer) const PLANAR_REFLECTION_TEXTURE_SIZE: u32 = 1024;
+pub(in crate::graphics::scene::scene_renderer) const PLANAR_REFLECTION_MIP_COUNT: u32 = 11;
 const REFLECTION_PROBE_CUBE_ARRAY_LAYER_COUNT: u32 = MAX_REFLECTION_PROBES as u32 * 6;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -39,6 +45,9 @@ pub(in crate::graphics::scene::scene_renderer) struct SceneReflectionProbeResour
     header_buffer: Arc<wgpu::Buffer>,
     cubemap_array: wgpu::Texture,
     cubemap_array_view: Arc<wgpu::TextureView>,
+    planar_texture: Arc<wgpu::Texture>,
+    planar_texture_view: Arc<wgpu::TextureView>,
+    planar_params_buffer: Arc<wgpu::Buffer>,
     slots: ProbeCubemapSlotAllocator,
     last_report: ReflectionProbeUploadReport,
 }
@@ -94,11 +103,49 @@ impl SceneReflectionProbeResources {
                 base_array_layer: 0,
                 array_layer_count: Some(REFLECTION_PROBE_CUBE_ARRAY_LAYER_COUNT),
             }));
+        let planar_texture = Arc::new(device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-planar-reflection-mip-chain"),
+            size: wgpu::Extent3d {
+                width: PLANAR_REFLECTION_TEXTURE_SIZE,
+                height: PLANAR_REFLECTION_TEXTURE_SIZE,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: PLANAR_REFLECTION_MIP_COUNT,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        }));
+        let planar_texture_view =
+            Arc::new(planar_texture.create_view(&wgpu::TextureViewDescriptor {
+                label: Some("zircon-planar-reflection-mip-chain-view"),
+                format: Some(wgpu::TextureFormat::Rgba16Float),
+                dimension: Some(wgpu::TextureViewDimension::D2),
+                usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
+                aspect: wgpu::TextureAspect::All,
+                base_mip_level: 0,
+                mip_level_count: Some(PLANAR_REFLECTION_MIP_COUNT),
+                base_array_layer: 0,
+                array_layer_count: Some(1),
+            }));
+        let planar_params_buffer = Arc::new(device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("zircon-planar-reflection-params"),
+                contents: bytemuck::bytes_of(&GpuPlanarReflection::default()),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            },
+        ));
         Self {
             probe_buffer,
             header_buffer,
             cubemap_array,
             cubemap_array_view,
+            planar_texture,
+            planar_texture_view,
+            planar_params_buffer,
             slots: ProbeCubemapSlotAllocator::new(MAX_REFLECTION_PROBES),
             last_report: ReflectionProbeUploadReport::default(),
         }
@@ -111,7 +158,13 @@ impl SceneReflectionProbeResources {
             Arc::clone(&self.probe_buffer),
             Arc::clone(&self.header_buffer),
             Arc::clone(&self.cubemap_array_view),
+            Arc::clone(&self.planar_params_buffer),
+            Arc::clone(&self.planar_texture_view),
         )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn planar_texture(&self) -> Arc<wgpu::Texture> {
+        Arc::clone(&self.planar_texture)
     }
 
     #[cfg(test)]
@@ -203,6 +256,7 @@ impl SceneReflectionProbeResources {
         frame: &ViewportRenderFrame,
         enabled: bool,
     ) -> ReflectionProbeUploadReport {
+        self.prepare_planar_reflection(queue, frame);
         let mut report = ReflectionProbeUploadReport {
             extracted_probe_count: frame.environment().probes.len(),
             ..ReflectionProbeUploadReport::default()
@@ -301,6 +355,63 @@ impl SceneReflectionProbeResources {
             bytemuck::bytes_of(&GpuReflectionProbeHeader::with_probe_count(probe_count)),
         );
     }
+
+    fn prepare_planar_reflection(&self, queue: &wgpu::Queue, frame: &ViewportRenderFrame) {
+        let selected_target = frame.extract.view.selected_camera_target();
+        let is_capture_camera = matches!(selected_target, RenderCameraTarget::Texture(target) if frame
+            .extract
+            .lighting
+            .advanced_lighting
+            .planar_probes
+            .iter()
+            .any(|probe| probe.capture_target() == Some(*target)));
+        let params = if is_capture_camera {
+            GpuPlanarReflection::default()
+        } else {
+            frame
+                .extract
+                .lighting
+                .advanced_lighting
+                .planar_probes
+                .iter()
+                .filter(|probe| {
+                    probe.capture_target().is_some()
+                        && probe
+                            .layer_mask
+                            .intersects(frame.extract.view.selected_camera_layers())
+                })
+                .min_by_key(|probe| probe.probe_id)
+                .and_then(|probe| planar_gpu_params(frame, probe))
+                .unwrap_or_default()
+        };
+        queue.write_buffer(&self.planar_params_buffer, 0, bytemuck::bytes_of(&params));
+    }
+}
+
+fn planar_gpu_params(
+    frame: &ViewportRenderFrame,
+    probe: &crate::core::framework::render::PlanarReflectionProbeData,
+) -> Option<GpuPlanarReflection> {
+    let target = probe.capture_target()?;
+    let main_camera = frame.extract.view.selected_camera_descriptor()?;
+    let reflected = derive_planar_reflection_camera(main_camera, probe, target)?;
+    let projection = reflected.camera.projection_override?;
+    let clip_from_world = projection * view_matrix(reflected.camera.transform);
+    let determinant = probe.plane_transform.determinant();
+    if !determinant.is_finite() || determinant.abs() <= 1.0e-6 {
+        return None;
+    }
+    let local_from_world = probe.plane_transform.inverse();
+    let resolution = probe.resolution.clamp(1, PLANAR_REFLECTION_TEXTURE_SIZE);
+    let mip_count = u32::BITS - resolution.leading_zeros();
+    let scale = resolution as f32 / PLANAR_REFLECTION_TEXTURE_SIZE as f32;
+    Some(GpuPlanarReflection {
+        clip_from_world: clip_from_world.to_cols_array_2d(),
+        local_from_world: local_from_world.to_cols_array_2d(),
+        bounds_min: probe.bounds_min.extend(0.0).to_array(),
+        bounds_max: probe.bounds_max.extend(0.0).to_array(),
+        sample_params: [scale, scale, mip_count as f32, 1.0],
+    })
 }
 
 fn probe_distance_to_influence(probe: &ReflectionProbeData, world_position: Vec3) -> f32 {

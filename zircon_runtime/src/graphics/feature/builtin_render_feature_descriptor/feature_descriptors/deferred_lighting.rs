@@ -1,5 +1,5 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
-use crate::render_graph::QueueLane;
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
 use crate::graphics::pipeline::RenderPassStage;
 
@@ -32,8 +32,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
         .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
         .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
-        .read_external_texture(PostProcessGraphResourceNames::FINAL_COLOR)
-        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
+        .write_texture_with_ops(
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            RenderGraphAttachmentOps::clear_store(),
+        )],
     )
 }
 
@@ -80,5 +82,20 @@ mod tests {
             resource.name == PostProcessGraphResourceNames::GBUFFER_EMISSIVE
                 && resource.access == RenderFeatureResourceAccess::Read
         }));
+    }
+
+    #[test]
+    fn deferred_lighting_does_not_depend_on_pre_rendered_final_color_background() {
+        let descriptor = descriptor();
+        let pass = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == "deferred-lighting")
+            .expect("deferred lighting pass");
+
+        assert!(!pass
+            .resources
+            .iter()
+            .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR }));
     }
 }

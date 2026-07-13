@@ -5,6 +5,8 @@ related_code:
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
+  - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
@@ -14,19 +16,19 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - docs/zircon_runtime/scene/world/project_io.md
-  - zircon_runtime/src/scene/dynamic_scene/document.rs
-  - zircon_runtime/src/scene/dynamic_scene/entity.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene.rs
-  - zircon_runtime/src/scene/dynamic_scene/value.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/entity/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/value/mod.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
-  - zircon_runtime/src/scene/reflect/fixed/active_in_hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
-  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/active_in_hierarchy.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/reflection/mesh_renderer.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
@@ -47,6 +49,9 @@ implementation_files:
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
+  - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/world/generation.rs
+  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
@@ -65,6 +70,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py
 plan_sources:
+  - docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
+  - docs/plans/engine-code-structure-convention.md
   - user: 2026-05-16 Bevy-grade ECS/reflect/scene/transform completion request
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
@@ -76,6 +83,8 @@ plan_sources:
   - dev/bevy/crates/bevy_ecs/src/world/reflect.rs
   - dev/UnrealEngine/Engine/Source/Editor/AdvancedPreviewScene/Public/SAdvancedPreviewDetailsTab.h
 tests:
+  - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs::scene_assets_keep_script_only_entities_as_empty_nodes
@@ -108,11 +117,13 @@ This follows the current reference direction: Fyrox keeps graph selection and wo
 
 ## Public DTOs
 
-- `WorldInspection` contains `focused_entity`, `hierarchy_rows`, and reflected `fields`.
-- `WorldInspectionHierarchyRow` contains entity id, parent id, depth, display name, kind label, focused flag, active-in-hierarchy flag, and child presence.
+- `WorldInspection` contains the runtime-only `generation` header, `focused_entity`, `hierarchy_rows`, and reflected `fields`. Callers can reject a composed or split-read projection when its captured generation no longer matches the world revision.
+- `WorldInspectionHierarchyRow` contains entity id, parent id, depth, display name, kind label, stable recursive `subtree_hash`, focused flag, active-in-hierarchy flag, and child presence.
 - `WorldInspectionField` contains reflected component type path, component display name, field name, field display name, value type path, reflected value, writable flag, serializable flag, and plugin-owned flag.
 
-`World::inspect_world(focused)` is the convenience entry point. It filters missing focus entities to `None`, builds hierarchy rows for the current world, and only builds reflected fields for a valid focused entity.
+`World::inspect_hierarchy()` is the hierarchy-only entry point and carries no editor selection input. `World::inspect_fields(entity)` is the reflected-field-only entry point and returns an empty list for a missing entity. `World::inspect_world(focused)` is the planned composition façade: it captures `World::world_generation()` into the snapshot header, validates the focused entity, composes those two split reads, and applies the composed snapshot's focused row marker without making the hierarchy query depend on editor state.
+
+Current editor consumers use the split reads directly. Viewport selection validity checks call `World::contains_entity`, the edit-mode hierarchy uses `inspect_hierarchy`, and its inspector only calls `inspect_fields` for the editor-owned selected entity. This prevents selection-only or inspector-only work from rebuilding the other projection.
 
 ## Reflection Rules
 
@@ -123,13 +134,21 @@ The field list is schema-led:
 - visible reflected fields are included,
 - field names, display names, value type paths, writability, serializability, and plugin ownership come from the reflected registration,
 - values come from adapter `read_fields`,
-- plugin-owned dynamic JSON components and fixed components share the same inspection path.
+- plugin-owned dynamic JSON components and built-in derived components share the same inspection path.
 
 This keeps editor UI code from hard-coding fixed fields such as `Name.value`, `MeshRenderer.model`, or plugin component JSON fields. Editor-specific labels, property paths, command routing, and viewport affordances are projected in `zircon_editor`.
 
 ## Hierarchy Rules
 
 Hierarchy rows are built from `World::node_records()` and `World::active_in_hierarchy`. Rows are emitted root-first, depth annotated, and guarded by a visited set so malformed imported parent data cannot create infinite traversal. Orphaned or cyclic leftovers not reached from roots are still emitted as depth-zero rows to preserve inspectability.
+
+Each row's `subtree_hash` is a stable FNV-1a digest of its display-name bytes, ordered direct-child entity ids, and each child's recursively computed subtree hash. A descendant rename therefore changes that descendant and all ancestors, a reparent changes the old and new parent chains while preserving the moved subtree hash, and unrelated roots remain unchanged. The constants are named and local to the inspection implementation; the hash is a projection revision, not a persisted asset id or security primitive.
+
+## World Generation
+
+`World::world_generation()` exposes a monotonic runtime-only `u64` revision. Successful entity spawn paths, successful despawn, and effective reparent operations advance it exactly once per structural mutation; the typed component mutation throat advances the same revision for insert/replace/remove and mutable access so a renamed or edited row cannot be answered with stale `NotModified`. Rejected and explicit no-op operations do not advance it; mutable access may advance without a write, matching Editor02's accepted false-positive invalidation rule. The field is skipped by serde and excluded from persistent `World` equality through its private revision wrapper, so project/dynamic-scene data never stores session synchronization state.
+
+The generation owner is `scene/world/generation.rs`; mutation methods only call its private advance operation. Editor02 M2 will pair this revision with subscription flushing and component-watch invalidation. No editor view id, watch token, gateway object, or message transport is stored in `World`.
 
 ## Boundary Rules
 
@@ -173,7 +192,7 @@ The 2026-06-24 Runtime 15 M3 scene world basics test folder split keeps world pr
 
 ## Validation
 
-`zircon_runtime/src/scene/tests/inspection.rs` verifies hierarchy order, focus filtering, fixed component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
+`zircon_runtime/src/scene/inspection/tests.rs` verifies split-entry/composition equivalence and subtree-hash propagation for rename and reparent operations. `zircon_runtime/src/scene/world/generation/tests.rs` verifies monotonic structural generation, typed component replacement and no-op behavior, rejected mutation behavior, explicit-id spawn counting, and the serde boundary. `zircon_runtime/src/scene/tests/inspection.rs` continues to verify hierarchy order, focus filtering, built-in component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
 
 `zircon_runtime/src/scene/tests/component_structure.rs` rejects reintroducing the old production `scene/editor_projection` module, checks that the runtime scene public inspection files do not expose `SceneEditor*` symbols, and guards scene/project serialization source files against editor authoring-state names.
 

@@ -79,7 +79,7 @@ fn project_prepared_hybrid_gi_probe(
     let (uv_x, uv_y) = project_screen_uv(view_proj, position)?;
     let screen_radius = projected_screen_radius(radius, position, camera_position);
     let budget_weight = ((probe.ray_budget.max(1) as f32) / 128.0).clamp(0.25, 1.5);
-    let temporal_signature = ((probe.probe_id % 1024) as f32 + 1.0) / 1024.0;
+    let temporal_signature = probe_temporal_signature(probe, prepared_frame);
     let irradiance = rgb8_to_unit(probe.irradiance_rgb);
     let rt_lighting = prepared_frame
         .probe_rt_lighting_rgb
@@ -103,8 +103,33 @@ fn project_prepared_hybrid_gi_probe(
             rt_lighting[2],
             rt_lighting_weight,
         ],
-        temporal_signature_and_padding: [temporal_signature, 1.0, 0.0, 0.0],
+        temporal_signature_and_padding: [
+            temporal_signature,
+            1.0,
+            probe.source_mask as f32,
+            f32::from(probe.dynamic_weight_q8) / 255.0,
+        ],
     })
+}
+
+fn probe_temporal_signature(
+    probe: &RenderHybridGiPreparedProbe,
+    prepared_frame: &RenderHybridGiPreparedFrame,
+) -> f32 {
+    let policy = prepared_frame.composite_policy;
+    let generation = policy.baked_light_set_generation().unwrap_or_default();
+    let mut signature = probe.probe_id
+        ^ probe.stable_instance_key as u32
+        ^ (probe.stable_instance_key >> 32) as u32
+        ^ probe.source_mask.rotate_left(7)
+        ^ (policy.participation_epoch() as u32).rotate_left(13)
+        ^ (generation as u32).rotate_left(19)
+        ^ ((generation >> 32) as u32).rotate_left(23);
+    signature ^= signature >> 16;
+    signature = signature.wrapping_mul(0x7FEB_352D);
+    signature ^= signature >> 15;
+    let bucket = signature % 1023 + 1;
+    bucket as f32 / 1024.0
 }
 
 fn project_screen_uv(view_proj: Mat4, position: Vec3) -> Option<(f32, f32)> {
@@ -200,6 +225,9 @@ mod tests {
                     resident_probes: vec![RenderHybridGiPreparedProbe {
                         probe_id: 7,
                         slot: 0,
+                        stable_instance_key: 77,
+                        source_mask: crate::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+                        dynamic_weight_q8: u8::MAX,
                         ray_budget: 1,
                         irradiance_rgb: [32, 40, 48],
                     }],

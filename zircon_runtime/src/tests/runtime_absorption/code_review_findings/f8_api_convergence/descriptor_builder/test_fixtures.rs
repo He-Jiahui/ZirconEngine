@@ -79,14 +79,14 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
             .match_indices("RuntimePluginDescriptor::builder(")
             .count();
     assert_eq!(
-        builder_count, 59,
+        builder_count, 61,
         "F8 runtime/plugin extension test fixtures and child fixture owners should keep the current builder call count"
     );
     assert_eq!(
         lifecycle_fixture_source
             .match_indices("RuntimePluginDescriptor::builder(")
             .count(),
-        4,
+        1,
         "runtime plugin lifecycle descriptor builders should live in the lifecycle fixture child owner"
     );
     assert!(
@@ -113,8 +113,10 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
         );
     }
 
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_06_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
     );

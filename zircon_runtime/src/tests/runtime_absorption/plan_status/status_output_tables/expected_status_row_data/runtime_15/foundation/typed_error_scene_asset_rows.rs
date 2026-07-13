@@ -23,7 +23,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 15 F5 navigation asset typed errors",
         &[
             "runtime_15_navigation_asset_typed_errors_static_passed_cargo_deferred",
-            "asset/assets/navigation.rs",
+            "core/framework/navigation/asset/mod.rs",
             "NavigationAssetError",
             "review_f5_navigation_asset_uses_typed_error",
         ],
@@ -78,7 +78,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred",
             "asset/project/meta.rs",
-            "AssetMetaError::UnsupportedFormatVersion",
+            "UnsupportedOldFormatVersion",
+            "UnsupportedFutureFormatVersion",
             "review_f5_asset_meta_uses_typed_error",
         ],
     ),

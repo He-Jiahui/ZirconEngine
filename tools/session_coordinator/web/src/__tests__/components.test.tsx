@@ -103,26 +103,24 @@ test("control tables render canonical Cargo and commit projection fields", async
   await act(async () => root.unmount()); host.remove();
 });
 
-test("artifact lifecycle summary de-duplicates reusable pools and reports cleanup risk", async () => {
-  const jobs = [
-    cargoJob({ job_id: "retained-1", compatibility_key: "shared-pool" }),
-    cargoJob({ job_id: "retained-2", compatibility_key: "shared-pool" }),
-    cargoJob({ job_id: "historical-deleted", compatibility_key: "deleted-pool", cleanup_status: "deleted" }),
-    cargoJob({ job_id: "historical-failed", compatibility_key: "failed-pool", cleanup_status: "failed" }),
-    cargoJob({ job_id: "pending", cleanup_policy: "delete_on_release", cleanup_status: "pending", compatibility_key: null }),
-    cargoJob({ job_id: "failed", cleanup_policy: "delete_on_release", cleanup_status: "failed", compatibility_key: null }),
-  ];
-  assert.deepEqual(artifactLifecycleCounts(jobs), { reusablePools: 1, ephemeralJobs: 2, pendingCleanup: 1, failedCleanup: 2 });
+test("artifact lifecycle summary uses the live unique-target projection", async () => {
+  const lifecycle = {
+    reusablePools: 5,
+    ephemeralTargets: 4,
+    pendingCleanup: 4,
+    failedCleanup: 1,
+  };
+  assert.deepEqual(artifactLifecycleCounts(lifecycle), lifecycle);
   const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ArtifactLifecycleSummary jobs={jobs} /></ThemeProvider>));
-  for (const label of ["可复用池 1", "用后即删 2", "待清理 1", "清理失败 2"])
+  await act(async () => root.render(<ThemeProvider theme={controlTheme}><ArtifactLifecycleSummary lifecycle={lifecycle} /></ThemeProvider>));
+  for (const label of ["可复用池 5", "用后即删 4", "待清理 4", "清理失败 1"])
     assert.ok(host.querySelector(`[aria-label="${label}"]`));
-  assert.match(host.textContent ?? "", /当前有界协调器快照/);
+  assert.match(host.textContent ?? "", /当前存在的唯一 Cargo 目录/);
   await act(async () => root.unmount()); host.remove();
 });
 
-test("overview counts running Cargo jobs from canonical status", () => {
-  const snapshot = { workflows: [], sessions: [], failures: { nodes: [] }, validation: { cargoJobs: [{ status: "running" }, { status: "succeeded" }] } } as unknown as ControlSnapshot;
+test("overview counts only running Cargo targets in the real-time baseline", () => {
+  const snapshot = { workflows: [], sessions: [], failures: { nodes: [] }, validation: { cargoJobs: [{ status: "running" }, { status: "running" }], currentCargoTargets: [{ status: "running" }, { status: "succeeded" }] } } as unknown as ControlSnapshot;
   assert.deepEqual(overviewMetrics(snapshot), [["工作流", 0], ["活动会话", 0], ["Failure", 0], ["运行验证", 1]]);
 });
 

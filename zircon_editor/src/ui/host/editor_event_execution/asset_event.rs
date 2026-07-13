@@ -1,9 +1,14 @@
-use serde_json::json;
+use zircon_runtime::asset::AssetUri;
 
+use crate::core::asset::AssetToolkitOpenRoute;
+use crate::core::commands::{EditorCommandRegistry, EditorCommandRegistryError};
 use crate::core::editor_event::{
     EditorAssetEvent, EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode,
     EditorEventEffect,
 };
+use crate::core::editor_operation::EditorOperationSource;
+use crate::ui::host::editor_extension_registration::materialize_enabled_asset_types;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::snapshot::{
     AssetUtilityTab as SnapshotAssetUtilityTab, AssetViewMode as SnapshotAssetViewMode,
@@ -13,56 +18,65 @@ use crate::ui::workbench::view::ViewDescriptorId;
 use super::common::{asset_effects, open_view, parse_asset_kind_filter};
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_asset_event(
+    controller: &EditorHostEventController,
     shell: &mut WorkbenchShellStateData,
     event: &EditorAssetEvent,
 ) -> Result<ExecutionOutcome, String> {
     match event {
-        EditorAssetEvent::OpenAsset { asset_path } => {
-            let lower_path = asset_path.to_ascii_lowercase();
-            if lower_path.ends_with(".zui") {
-                let instance_id = shell
-                    .manager
-                    .open_ui_asset_editor_by_id(asset_path, None)
-                    .map_err(|error| error.to_string())?;
-                let focused = shell
-                    .manager
-                    .focus_view(&instance_id)
-                    .map_err(|error| error.to_string())?;
+        EditorAssetEvent::OpenAsset { asset_locator } => {
+            let asset_locator = match AssetUri::parse(asset_locator) {
+                Ok(asset_locator) => asset_locator,
+                Err(error) => {
+                    shell
+                        .state
+                        .set_status_line(format!("Invalid asset locator {asset_locator}: {error}"));
+                    return Ok(asset_effects(false, false, false));
+                }
+            };
+            let Some(asset_type) = shell.state.asset_type_id_for_locator(&asset_locator) else {
                 shell
                     .state
-                    .set_status_line(format!("Opened UI asset editor for {asset_path}"));
-                return Ok(ExecutionOutcome {
-                    changed: focused || !instance_id.0.is_empty(),
-                    effects: vec![
-                        EditorEventEffect::LayoutChanged,
-                        EditorEventEffect::PresentationChanged,
-                        EditorEventEffect::ReflectionChanged,
-                    ],
-                });
-            }
-            if lower_path.ends_with(".sequence.zranim") {
+                    .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
+                return Ok(asset_effects(false, false, false));
+            };
+            let enabled_capabilities = shell
+                .manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            let registry =
+                materialize_enabled_asset_types(&shell.editor_extensions, &enabled_capabilities)
+                    .map_err(|error| error.to_string())?;
+            let Some(definition) = registry.get(&asset_type) else {
+                return Err(format!("asset type `{asset_type}` is not registered"));
+            };
+            if let Some(toolkit) = definition.toolkit() {
+                let operation = {
+                    controller
+                        .commands()
+                        .lock()
+                        .command(toolkit.open_operation().as_str())
+                        .cloned()
+                }
+                .ok_or_else(|| {
+                    EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone())
+                        .to_string()
+                })?;
+                let context =
+                    controller.command_eval_ctx_for_source(&EditorOperationSource::UiBinding);
+                EditorCommandRegistry::ensure_enabled(&operation, &context)
+                    .map_err(|error| error.to_string())?;
                 return open_asset_document_view(
                     shell,
-                    "editor.animation_sequence",
-                    asset_path,
-                    "Animation Sequence",
-                    "Opened animation sequence editor for",
-                );
-            }
-            if lower_path.ends_with(".graph.zranim")
-                || lower_path.ends_with(".state_machine.zranim")
-            {
-                return open_asset_document_view(
-                    shell,
-                    "editor.animation_graph",
-                    asset_path,
-                    "Animation Graph",
-                    "Opened animation graph editor for",
+                    toolkit.view_id(),
+                    AssetToolkitOpenRoute::new(asset_locator, toolkit.open_operation().clone()),
+                    definition.presentation().display_name(),
+                    "Opened asset toolkit for",
                 );
             }
             shell
                 .state
-                .set_status_line(format!("Open asset requested for {asset_path}"));
+                .set_status_line(format!("No toolkit is registered for `{asset_type}`"));
             Ok(asset_effects(false, false, false))
         }
         EditorAssetEvent::SelectFolder { folder_id } => {
@@ -141,10 +155,12 @@ pub(super) fn execute_asset_event(
 fn open_asset_document_view(
     shell: &mut WorkbenchShellStateData,
     descriptor_id: &str,
-    asset_path: &str,
+    route: AssetToolkitOpenRoute,
     fallback_title: &str,
     status_prefix: &str,
 ) -> Result<ExecutionOutcome, String> {
+    let asset_locator = route.asset_locator().to_string();
+    let payload = serde_json::to_value(&route).map_err(|error| error.to_string())?;
     let instance_id = shell
         .manager
         .open_view(ViewDescriptorId::new(descriptor_id), None)
@@ -153,9 +169,9 @@ fn open_asset_document_view(
         .manager
         .update_view_instance_metadata(
             &instance_id,
-            Some(asset_document_title(asset_path, fallback_title)),
+            Some(asset_document_title(route.asset_locator(), fallback_title)),
             Some(false),
-            Some(json!({ "path": asset_path })),
+            Some(payload),
         )
         .map_err(|error| error.to_string())?;
     let focused = shell
@@ -164,7 +180,7 @@ fn open_asset_document_view(
         .map_err(|error| error.to_string())?;
     shell
         .state
-        .set_status_line(format!("{status_prefix} {asset_path}"));
+        .set_status_line(format!("{status_prefix} {asset_locator}"));
     Ok(ExecutionOutcome {
         changed: focused || !instance_id.0.is_empty(),
         effects: vec![
@@ -175,9 +191,10 @@ fn open_asset_document_view(
     })
 }
 
-fn asset_document_title(asset_path: &str, fallback_title: &str) -> String {
-    asset_path
-        .rsplit(['/', '\\'])
+fn asset_document_title(asset_locator: &AssetUri, fallback_title: &str) -> String {
+    asset_locator
+        .path()
+        .rsplit('/')
         .next()
         .filter(|segment| !segment.is_empty())
         .unwrap_or(fallback_title)

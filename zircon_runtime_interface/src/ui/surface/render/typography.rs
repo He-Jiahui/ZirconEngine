@@ -29,6 +29,37 @@ pub enum UiTextRenderMode {
     Auto,
     Native,
     Sdf,
+    Msdf,
+    Mtsdf,
+}
+
+pub const fn resolve_ui_text_render_mode(
+    requested_mode: UiTextRenderMode,
+    font_render_mode: Option<UiTextRenderMode>,
+) -> UiTextRenderMode {
+    match requested_mode {
+        UiTextRenderMode::Native => UiTextRenderMode::Native,
+        UiTextRenderMode::Sdf => UiTextRenderMode::Sdf,
+        UiTextRenderMode::Msdf => UiTextRenderMode::Msdf,
+        UiTextRenderMode::Mtsdf => UiTextRenderMode::Mtsdf,
+        UiTextRenderMode::Auto => match font_render_mode {
+            Some(UiTextRenderMode::Native) => UiTextRenderMode::Native,
+            Some(UiTextRenderMode::Sdf) => UiTextRenderMode::Sdf,
+            Some(UiTextRenderMode::Msdf) => UiTextRenderMode::Msdf,
+            Some(UiTextRenderMode::Mtsdf) => UiTextRenderMode::Mtsdf,
+            Some(UiTextRenderMode::Auto) | None => UiTextRenderMode::Native,
+        },
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiRichTextFormat {
+    #[default]
+    Plain,
+    Markdown,
+    BbCode,
+    Html,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,4 +105,37 @@ pub enum UiTextRunKind {
     Emphasis,
     Code,
     Link,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{resolve_ui_text_render_mode, UiTextRenderMode};
+
+    #[test]
+    fn text_render_mode_resolution_uses_explicit_request_then_font_default() {
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Native, Some(UiTextRenderMode::Sdf)),
+            UiTextRenderMode::Native
+        );
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Sdf, Some(UiTextRenderMode::Native)),
+            UiTextRenderMode::Sdf
+        );
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Sdf)),
+            UiTextRenderMode::Sdf
+        );
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Auto, None),
+            UiTextRenderMode::Native
+        );
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Msdf, Some(UiTextRenderMode::Native)),
+            UiTextRenderMode::Msdf
+        );
+        assert_eq!(
+            resolve_ui_text_render_mode(UiTextRenderMode::Auto, Some(UiTextRenderMode::Mtsdf)),
+            UiTextRenderMode::Mtsdf
+        );
+    }
 }

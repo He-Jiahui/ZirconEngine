@@ -100,12 +100,12 @@ fn write_project_shader_asset_root(asset_root: &Path, source: &str) {
     fs::write(
         shader_dir.join("project_shader.wgsl.zmeta"),
         format!(
-            r#"format_version = 6
+            r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000062"
 url = "{PROJECT_SHADER_LOCATOR}"
 asset_kind = "Shader"
 unit = "single"
-source_hash = "{}"
+source_digest = "{}"
 preview_state = "ready"
 importer_id = "zircon.plan08.project_shader"
 importer_version = 1

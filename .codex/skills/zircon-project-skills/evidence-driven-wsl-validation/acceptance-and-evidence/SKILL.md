@@ -11,6 +11,7 @@
 1. Re-state the scope.
    - Name the changed feature, bug, or milestone.
    - Name the affected layers: parser, instruction generation, runtime execution, library support, CLI, test harness, or project fixtures.
+   - When WSL is used, state the Linux-specific reason, compatibility key inputs, coordinator job, and granted mounted `/mnt/d`, `/mnt/e`, or `/mnt/f` Cargo target directory.
 
 2. Establish the baseline.
 - Record the pre-change failure, baseline passing set, and any known repository-level failures from `zircon-dev`.
@@ -60,6 +61,7 @@
 ## Tooling Evidence
 - Tool name and version
 - Why that tool was used
+- Why WSL was required and which coordinator-granted mounted-drive primary pool was used
 - Exact commands
 - Key observed outputs
 

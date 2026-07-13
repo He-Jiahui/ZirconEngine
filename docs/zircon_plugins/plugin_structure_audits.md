@@ -23,7 +23,7 @@ related_code:
   - zircon_plugins/net/editor/src/plugin.rs
   - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/Cargo.toml
-  - zircon_plugins/**/plugin.toml
+  - zircon_plugins
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs

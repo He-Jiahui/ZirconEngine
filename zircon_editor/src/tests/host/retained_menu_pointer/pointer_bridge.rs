@@ -281,12 +281,6 @@ fn shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover() {
                 vec![MenuItemModel::leaf(
                     "Refresh Clouds",
                     None,
-                    EditorUiBinding::new(
-                        "WorkbenchMenuBar",
-                        operation_path.as_str(),
-                        EditorUiEventKind::Click,
-                        EditorUiBindingPayload::editor_operation(operation_path.as_str()),
-                    ),
                     Some(operation_path.clone()),
                     Some("Ctrl+Alt+R".to_string()),
                     true,

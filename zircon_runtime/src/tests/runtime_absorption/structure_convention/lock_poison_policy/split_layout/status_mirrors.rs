@@ -11,7 +11,6 @@ pub(super) fn assert_lock_poison_status_mirrors(sources: &LockPoisonSources) {
             sources.structure_convention.as_str(),
         ),
         ("module convention doc", sources.module_doc.as_str()),
-        ("session note", sources.session_note.as_str()),
         (
             "status-output lock-poison row data",
             sources.lock_poison_status_rows.as_str(),
@@ -42,7 +41,6 @@ pub(super) fn assert_lock_poison_status_mirrors(sources: &LockPoisonSources) {
         ),
         ("module convention doc", sources.module_doc.as_str()),
         ("Frameworks02 plan", sources.frameworks_plan.as_str()),
-        ("session note", sources.session_note.as_str()),
         (
             "status-output lock-poison policy guard rows",
             sources.lock_poison_policy_guard_rows.as_str(),
@@ -72,7 +70,6 @@ pub(super) fn assert_lock_poison_status_mirrors(sources: &LockPoisonSources) {
         ),
         ("module convention doc", sources.module_doc.as_str()),
         ("Frameworks02 plan", sources.frameworks_plan.as_str()),
-        ("session note", sources.session_note.as_str()),
         (
             "status-output lock-poison row data",
             sources.lock_poison_status_rows.as_str(),
@@ -101,7 +98,6 @@ pub(super) fn assert_lock_poison_status_mirrors(sources: &LockPoisonSources) {
             sources.structure_convention.as_str(),
         ),
         ("module convention doc", sources.module_doc.as_str()),
-        ("session note", sources.session_note.as_str()),
         (
             "status-output lock-poison row data",
             sources.lock_poison_status_rows.as_str(),
@@ -131,7 +127,6 @@ pub(super) fn assert_lock_poison_status_mirrors(sources: &LockPoisonSources) {
             sources.structure_convention.as_str(),
         ),
         ("module convention doc", sources.module_doc.as_str()),
-        ("session note", sources.session_note.as_str()),
         (
             "status-output lock-poison row data",
             sources.lock_poison_status_rows.as_str(),

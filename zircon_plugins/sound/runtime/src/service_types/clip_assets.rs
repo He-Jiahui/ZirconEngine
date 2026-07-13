@@ -14,6 +14,7 @@ impl DefaultSoundManager {
         let core = self
             .core
             .as_ref()
+            .and_then(|core| core.upgrade())
             .ok_or_else(|| SoundError::BackendUnavailable {
                 detail: "sound manager is not attached to a CoreRuntime".to_string(),
             })?;

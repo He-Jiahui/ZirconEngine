@@ -7,7 +7,7 @@ use crate::ui::template_runtime::{
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use super::{
-    export_pipeline_stage_cli_id, export_wizard_panel_template_state, project_export_wizard_panel,
+    export_wizard_panel_template_state, project_export_wizard_panel,
     ExportWizardPanelEntrySeverity, ExportWizardPanelSlotEntry, ExportWizardPanelSlotKind,
     ExportWizardPanelSlotState, ExportWizardPanelTemplateState, ExportWizardPanelViewModel,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID,
@@ -111,11 +111,7 @@ fn slot_entry_node(
     insert_string(&mut properties, "detail", entry.detail.clone());
     insert_string(&mut properties, "severity", severity_label(entry.severity));
     if let Some(stage) = entry.stage {
-        insert_string(
-            &mut properties,
-            "stage",
-            export_pipeline_stage_cli_id(stage),
-        );
+        insert_string(&mut properties, "stage", stage.cli_id());
     }
 
     RetainedUiHostNodeModel {

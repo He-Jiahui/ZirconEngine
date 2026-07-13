@@ -28,8 +28,6 @@ fn runtime_15_test_file_budget_root_layout_assertions_guard_is_folder_backed() {
     let date_map = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/root_layout_ui_maps.rs",
     );
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     assert_contains_all(
         "assertions route owns only child mounts and dispatch",
@@ -152,7 +150,6 @@ fn runtime_15_test_file_budget_root_layout_assertions_guard_is_folder_backed() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("status row data", status_rows.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,

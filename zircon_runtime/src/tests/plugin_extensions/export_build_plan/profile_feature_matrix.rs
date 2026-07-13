@@ -128,7 +128,7 @@ fn validate_report_summarizes_profile_plan_and_fatal_state() {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
-    .with_runtime_profile_id(crate::plugin::RuntimeProfileId::Minimal)
+    .with_runtime_profile_id(crate::core::framework::project::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])
     .with_selected_plugins(["net".to_string()])
     .with_feature_selection("net", ["http".to_string()])
@@ -149,7 +149,7 @@ fn validate_report_summarizes_profile_plan_and_fatal_state() {
         .as_ref()
         .expect("validate report should summarize the build plan");
 
-    assert_eq!(report.stage, ExportPipelineStage::Validate);
+    assert_eq!(report.stage, ExportStage::Validate);
     assert_eq!(report.profile, "net-library");
     assert!(report.profile_found);
     assert!(!report.fatal);
@@ -192,7 +192,7 @@ fn feature_matrix_links_selected_plugins_only() {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
-    .with_build_mode(crate::plugin::ExportBuildMode::Release)
+    .with_build_mode(crate::core::framework::project::ExportBuildMode::Release)
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])
     .with_selected_plugins([
         "rendering".to_string(),

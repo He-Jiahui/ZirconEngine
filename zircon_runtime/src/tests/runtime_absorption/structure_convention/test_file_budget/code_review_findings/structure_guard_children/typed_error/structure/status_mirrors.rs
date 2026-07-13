@@ -1,9 +1,7 @@
 use super::*;
 
-const REVIEW_GUARD_STRUCTURE_ASSERTION_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
-const REVIEW_GUARD_STRUCTURE_ASSERTION_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
+const REVIEW_GUARD_STRUCTURE_ASSERTION_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
+const REVIEW_GUARD_STRUCTURE_ASSERTION_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
 
 pub(super) fn assert_structure_assertions_guard_status_mirrors_are_current() {
     let status_rows = review_guard_status_rows_source();
@@ -27,8 +25,6 @@ pub(super) fn assert_structure_assertions_guard_status_mirrors_are_current() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     let common_anchors = &[
         STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_SLICE,
@@ -49,7 +45,6 @@ pub(super) fn assert_structure_assertions_guard_status_mirrors_are_current() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("runtime architecture session note", session_note.as_str()),
     ] {
         assert_contains_all(label, source, common_anchors);
     }

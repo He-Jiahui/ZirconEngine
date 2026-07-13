@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/src/asset/reference_resolver.rs
   - zircon_runtime/src/asset/importer/contract.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/native.rs
@@ -22,6 +23,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
+  - zircon_runtime/src/asset/importer/ingest/import_model.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets/material.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
@@ -36,8 +38,8 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/obj_importer.rs
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
-  - zircon_runtime/src/asset/tests/project/binary_library_assertions.rs
-  - zircon_runtime/src/asset/tests/project/binary_library_artifacts.rs
+  - zircon_runtime/src/asset/tests/project/binary_artifact_cache_assertions.rs
+  - zircon_runtime/src/asset/tests/project/binary_artifact_cache.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_runtime/src/asset/module.rs
@@ -52,8 +54,9 @@ related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/metadata.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_project_scan_import.rs
@@ -71,7 +74,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
-  - zircon_runtime/src/asset/assets/shader.rs
+  - zircon_runtime/src/asset/assets/shader/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
@@ -126,7 +129,7 @@ related_code:
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/container.rs
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/dist/Cargo.toml
   - zircon_plugins/texture_importer/dist/src/lib.rs
@@ -142,7 +145,6 @@ related_code:
   - zircon_plugins/asset_importers/shader/dist/src/lib.rs
   - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/Cargo.toml
-  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
@@ -152,7 +154,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/schema.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
@@ -195,8 +197,9 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/metadata.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
@@ -244,7 +247,7 @@ implementation_files:
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/container.rs
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/asset_importers/texture/plugin.toml
   - zircon_plugins/asset_importers/texture/dist/Cargo.toml
   - zircon_plugins/asset_importers/texture/dist/src/lib.rs
@@ -257,7 +260,6 @@ implementation_files:
   - zircon_plugins/asset_importers/shader/dist/src/lib.rs
   - zircon_plugins/ui_document_importer/plugin.toml
   - zircon_plugins/ui_document_importer/runtime/Cargo.toml
-  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 plan_sources:
@@ -307,10 +309,10 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiIconAsset slice: passed with existing warnings)
   - cargo test -p zircon_runtime --lib ui_icon --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never -- --test-threads=1 --nocapture (2026-06-12 UiIconAsset slice: passed, 4 passed / 0 failed / 3563 filtered out)
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
-  - zircon_runtime/src/asset/tests/project/binary_library_assertions.rs
-  - zircon_runtime/src/asset/tests/project/binary_library_artifacts.rs
-  - rustfmt --edition 2021 --check zircon_runtime/src/asset/artifact/store.rs zircon_runtime/src/asset/artifact/mod.rs zircon_runtime/src/asset/project/manager/scan_and_import.rs zircon_runtime/src/asset/tests/assets/artifact_store.rs zircon_runtime/src/asset/tests/project/binary_library_assertions.rs zircon_runtime/src/asset/tests/project/manager.rs (2026-06-12 artifact cache binary wire reaffirmation: passed)
-  - git diff --check -- zircon_runtime/src/asset/artifact/store.rs zircon_runtime/src/asset/artifact/mod.rs zircon_runtime/src/asset/project/manager/scan_and_import.rs zircon_runtime/src/asset/tests/assets/artifact_store.rs zircon_runtime/src/asset/tests/project/binary_library_assertions.rs zircon_runtime/src/asset/tests/project/manager.rs (2026-06-12 artifact cache binary wire reaffirmation: passed with LF-to-CRLF warnings only)
+  - zircon_runtime/src/asset/tests/project/binary_artifact_cache_assertions.rs
+  - zircon_runtime/src/asset/tests/project/binary_artifact_cache.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/artifact/store.rs zircon_runtime/src/asset/artifact/mod.rs zircon_runtime/src/asset/project/manager/scan_and_import.rs zircon_runtime/src/asset/tests/assets/artifact_store.rs zircon_runtime/src/asset/tests/project/binary_artifact_cache_assertions.rs zircon_runtime/src/asset/tests/project/manager.rs (2026-06-12 artifact cache binary wire reaffirmation: passed)
+  - git diff --check -- zircon_runtime/src/asset/artifact/store.rs zircon_runtime/src/asset/artifact/mod.rs zircon_runtime/src/asset/project/manager/scan_and_import.rs zircon_runtime/src/asset/tests/assets/artifact_store.rs zircon_runtime/src/asset/tests/project/binary_artifact_cache_assertions.rs zircon_runtime/src/asset/tests/project/manager.rs (2026-06-12 artifact cache binary wire reaffirmation: passed with LF-to-CRLF warnings only)
   - Select-String over artifact store/project restore/binary-cache test files for `artifact_cache_payload_is_current`, `legacy_bincode_artifact_payload_for_test`, cache JSON/legacy constants, and direct artifact-cache `serde_json` encode/decode (2026-06-12 artifact cache binary wire reaffirmation: passed, no matches)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-binary-cache-0611c --message-format short --color never (2026-06-12 artifact cache binary wire reaffirmation: passed with existing warnings only)
   - cargo test -p zircon_runtime --lib artifact_store --locked --jobs 1 --target-dir D:\cargo-targets\zircon-asset-binary-cache-0611c --message-format short --color never -- --test-threads=1 --nocapture (2026-06-12 artifact cache binary wire reaffirmation: blocked before artifact tests by unrelated active `zircon_runtime::render_graph` lib-test compile errors around missing `TransientTexture`/`TransientBuffer` exports and `RenderGraphBuilder::create_transient_*` methods)
@@ -408,14 +410,14 @@ tests:
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_importer_runtime package_manifest_declares_texture_importer_dist_contract --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-texture-importer-runtime-0625-nodebug --message-format short --color never -- --test-threads=1 --nocapture (2026-06-25 split texture_importer dist package-manifest gate: first two 305s compile attempts timed out before target result, then rerun with a 20-minute timeout and CARGO_PROFILE_DEV_DEBUG=0 passed 1/1 with existing zircon_runtime warnings)
   - python -m tools.zircon_export plugin build texture_importer --form dist --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-texture-importer-package-0625 --target-dir D:\cargo-targets\zircon-plugin-texture-importer-build-0625 --offline (2026-06-25 split texture_importer dist package smoke: passed with fatal=false, native_plugins.toml manifests and texture_importer.sig emitted)
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/container.rs
-  - zircon_plugins/texture_importer/runtime/src/container.rs::dds_dx10_container_importer_reads_cubemap_array_layers
-  - zircon_plugins/texture_importer/runtime/src/container.rs::ktx1_3d_container_keeps_depth_separate_from_array_layers
-  - zircon_plugins/texture_importer/runtime/src/container.rs::astc_container_importer_reads_3d_block_and_depth
-  - zircon_plugins/texture_importer/runtime/src/container.rs::ktx2_3d_container_keeps_depth_separate_from_array_layers
-  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_applies_descriptor_settings_without_expanding_payload
-  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_rejects_array_layout_without_decoded_rgba
-  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_reports_layer_count_overflow_diagnostics
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::dds_dx10_container_importer_reads_cubemap_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::ktx1_3d_container_keeps_depth_separate_from_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::astc_container_importer_reads_3d_block_and_depth
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::ktx2_3d_container_keeps_depth_separate_from_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::container_importer_applies_descriptor_settings_without_expanding_payload
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::container_importer_rejects_array_layout_without_decoded_rgba
+  - zircon_plugins/texture_importer/runtime/src/container/mod.rs::container_importer_reports_layer_count_overflow_diagnostics
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::render_asset_usage_alias_accepts_single_token
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::depth_or_array_layers_updates_array_layer_count_for_2d_arrays
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::array_layer_count_updates_depth_or_array_layers_for_2d_arrays
@@ -538,7 +540,6 @@ tests:
   - 2026-06-24: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_obj_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-obj-importer-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture (passed, 2 passed)
   - 2026-06-24: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_gltf_importer_dist --no-default-features --features dist --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-gltf-importer-dist-0624 --message-format short --color never -- --test-threads=1 --nocapture (passed, 2 passed)
   - passed: cargo build --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 with CARGO_TARGET_DIR=E:\cargo-targets\zircon-asset-importer-gap-continuation-3-plugin
-  - passed: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1
   - passed: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --check
   - passed: rustfmt --edition 2021 --check zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - blocked: cargo fmt -p zircon_runtime --check (unrelated runtime formatting deltas in importer/project/plugin catalog files owned by adjacent sessions)
@@ -566,7 +567,6 @@ tests:
   - 2026-05-03: cargo info stl_io, cargo info ply-rs-bw, cargo info psd (used for third-party backend selection)
   - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding STL/PLY/PSD backend dependencies)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime -p zircon_plugin_texture_importer_runtime -p zircon_plugin_asset_importer_texture_runtime (passed)
-  - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-model --message-format short --color never (passed with existing runtime warnings)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-model --message-format short --color never (passed, 4 tests)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-texture --message-format short --color never (passed, 7 tests)
@@ -577,15 +577,12 @@ tests:
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-dxf-backend --message-format short --color never (passed, 5 tests)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-dxf-backend --message-format short --color never (passed again after extracting DXF into `src/cad.rs`, 5 tests)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --check (passed)
-  - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
   - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
   - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the UI binary document backend dependency)
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-ui-binary-backend --message-format short --color never (passed, 8 tests)
-  - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
-  - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -613,6 +610,12 @@ This makes import formats a runtime extension point. The runtime still owns the 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
 Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry rejects `.ui.toml` source-template and `.v2.ui.toml` source-template importer descriptors on the production path, so plugin manifests cannot reintroduce recursive UI source schemas or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test source-template fixtures are allowed to register those matchers for schema migration coverage.
+
+### Project reference repair ordering
+
+`asset/reference_resolver.rs` is the single owner for GUID, path-hint, and labeled-subasset repair used by importers. It first validates the project path against the configured roots, then checks the exact labeled registry locator when a subasset label is present, and finally falls back to the canonical base asset only when that label is stale or absent. This ordering preserves valid labeled subassets while allowing a stale `#Mesh0` reference to repair to the existing base asset; the resolver emits the complete `ReferenceRepair` and the model importer only records it in `AssetImportOutcome`.
+
+The importer layer must not catch `Dangling` to retry without a label, add registry aliases, or silently delete subasset identity. Regression coverage lives in `asset::reference_resolver::tests::resolution_reports_guid_path_repair_dangling_and_conflict_states` and `asset::importer::ingest::import_model::tests::importer_outcome_exposes_complete_guid_repair`, sourced from `docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md` and its stale-subasset failure handoff.
 
 ## Built-In Coverage
 
@@ -826,29 +829,31 @@ Heavy or toolchain-backed formats are registered as diagnostic importers until a
 
 ## Project Scan Behavior
 
-`ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates `.zmeta` with source hash, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset. Each entry has its own persistent UUID, and `ResourceId` is derived from that UUID instead of from the source UUID plus label.
+`ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates `.zmeta` with `source_digest`, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset. Each entry has its own persistent UUID, and `ResourceId` is derived from that UUID instead of from the source UUID plus label.
 
-The importer also exposes `import_context(&AssetImportContext)` so project scanning can pass the same source-byte owner to the selected plugin and post-import staging without cloning large HDR files. After a successful first import, and again after restoring a ready cached asset, the scan invokes both source-format staging entries. `stage_environment_ibl_source(...)` converts HDR/EXR 2:1 images; `stage_external_source_cubemap_texture(...)` converts supported linear-float DDS/KTX cubemap payloads. Both produce or validate current `.zcube` source mips and a companion PMREM/SH9/IEM `.zribl` under the project `library/` root. External source mips are preserved for display/FIS input but PMREM is always regenerated. This post-import host step intentionally leaves the plugin ABI neutral: texture plugins decode the ordinary asset/container, while the shared runtime importer owns render-derived files and their current algorithm key. Invalid explicit environment settings and unsupported compressed/supercompressed cubemap formats are reported through the normal failed-import diagnostic path; automatic HDR/EXR mode skips non-equirectangular images.
+The importer also exposes `import_context(&AssetImportContext)` so project scanning can pass the same source-byte owner to the selected plugin and post-import staging without cloning large HDR files. After a successful first import, and again after restoring a ready cached asset, the scan invokes both source-format staging entries. `stage_environment_ibl_source(...)` converts HDR/EXR 2:1 images; `stage_external_source_cubemap_texture(...)` converts supported linear-float DDS/KTX cubemap payloads. Both produce or validate current `.zcube` source mips and a companion PMREM/SH9/IEM `.zribl` under `.zircon/cache`. External source mips are preserved for display/FIS input but PMREM is always regenerated. This post-import host step intentionally leaves the plugin ABI neutral: texture plugins decode the ordinary asset/container, while the shared runtime importer owns render-derived files and their current algorithm key. Invalid explicit environment settings and unsupported compressed/supercompressed cubemap formats are reported through the normal failed-import diagnostic path; automatic HDR/EXR mode skips non-equirectangular images.
 
-Runtime 15 M4 asset project scan/import source collection owner split is recorded as `runtime_15_asset_project_scan_import_sources_owner_split_static_passed_cargo_deferred`. `asset/project/manager/scan_and_import.rs` keeps the import loop, artifact restore/writeback, success/failure meta updates, dependency resolution, and entry identity registration. `asset/project/manager/scan_and_import/sources.rs` owns `AssetImportSource`, project/package root source enumeration, compound `.zmeta` source discovery, source URI mapping, source byte assembly, and mtime aggregation. Guard `runtime_15_asset_project_scan_import_sources_are_child_owner` locks those owner boundaries, the two production files staying below the Runtime 15 soft budget, and the plan/status mirrors.
+Runtime 15 M4 asset project scan/import source collection owner split is recorded as `runtime_15_asset_project_scan_import_sources_owner_split_static_passed_cargo_deferred`. `asset/project/manager/scan_and_import.rs` now keeps only import-loop orchestration, artifact restore/writeback, success/failure transitions, shader diagnostics, and registry publication. `scan_and_import/sources.rs` owns project/package enumeration and compound-source byte/mtime assembly; `scan_and_import/dependency_resolution.rs` owns locator-to-id resolution plus handwritten dependency merging; `scan_and_import/metadata.rs` owns importer-contract validation, schema-migration cleanup, stable entry UUID/tag projection, failed-entry preservation, URL remapping, and settings hashing. This follows the Bevy-style split between processor orchestration and source/meta concerns while retaining Zircon's existing runtime/editor boundary. Guard `runtime_15_asset_project_scan_import_sources_are_child_owner` locks all four production owners below the Runtime 15 soft budget and reads completed status only from the Runtime 15 numbered output archive; it no longer requires plan definitions, indexes, review overviews, session notes, or generated status/date mirrors to duplicate the same completion record.
 
 Runtime 15 M3 asset project manager lock poison recovery is recorded as `runtime_15_asset_project_manager_lock_poison_recovery_static_passed_cargo_deferred`. `asset/pipeline/manager/project_asset_manager/runtime.rs` now centralizes project, pending importer registry, change subscriber, watch-error subscriber, and watcher lock access behind poison recovery helpers. `asset/pipeline/manager/project_asset_manager/construction.rs` consumes the importer registry helpers when registering late plugin importers and when cloning pending importers into an active registry. Guard `runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager` locks those helper names, rejects direct lock unwrap/RwLock expect/`lock poisoned` production regressions, and mirrors the Runtime 15/status/module documentation anchors. This keeps ProjectAssetManager API, project scan/import flow, watcher-driven reimport, importer extension handoff, and resource sync behavior unchanged.
 
-`ArtifactStore` treats `lib://` artifacts as processed runtime cache rather than authoring documents. Every stored imported entry now uses the `.zasset` extension under its asset-family library directory, and the payload is `ZRARTZ01` followed directly by zstd level-1 compressed bincode bytes for an internal `ArtifactCacheAsset` wire type. That wire type converts authoring-friendly shapes such as material `toml::Value` override maps, shader TOML editor metadata/defaults, material texture slots with flattened authoring fields, and flattened physics material metadata into bincode-stable structs before compression. The library cache deliberately does not write source-format `.json`, `.toml`, or other readable authoring files and no longer preserves JSON or legacy format-marker read branches; readability stays in source assets, importer metadata, and `.zmeta`, while the library path is optimized for restore speed and compact I/O. Reads reject non-`.zasset` locators, missing magic, failed decompression/deserialization, invalid cached TOML datetime payloads, and payload/path kind mismatches, so stale text artifacts fall back to normal source import instead of keeping an old cache format alive.
+`ArtifactStore` treats `lib://` locators as logical identifiers for processed runtime cache rather than authoring documents. Every stored imported entry uses the `.zasset` extension under its asset-family directory rooted at `ProjectPaths::asset_artifact_root()` (`<project>/.zircon/cache/assets`), and the payload is `ZRARTZ01` followed directly by zstd level-1 compressed bincode bytes for an internal `ArtifactCacheAsset` wire type. That wire type converts authoring-friendly shapes such as material `toml::Value` override maps, shader TOML editor metadata/defaults, material texture slots with flattened authoring fields, and flattened physics material metadata into bincode-stable structs before compression. The artifact cache deliberately does not write source-format `.json`, `.toml`, or other readable authoring files and no longer preserves JSON or legacy format-marker read branches; readability stays in source assets, importer metadata, and `.zmeta`, while `.zircon/cache/assets` is optimized for restore speed and compact I/O. Reads reject non-`.zasset` locators, missing magic, failed decompression/deserialization, invalid cached TOML datetime payloads, and payload/path kind mismatches, so stale text artifacts fall back to normal source import instead of keeping an old cache format alive.
 
-Project scan coverage locks the same rule at the real write path. The dedicated binary library artifact test asserts that model, mesh, scene, shader, material, and texture registry records all use `lib://...zasset`, that the library files start with the `ZRARTZ01` binary-cache magic, that decompressed payloads are not JSON documents and do not carry `JSON` or `BIN\0` compatibility markers, and that every file under the temporary `library/` tree uses the `.zasset` extension. The manager-level physics/animation, sound, and restart-restore tests keep the same binary-cache assertions for non-render and restore paths.
+Project scan coverage locks the same rule at the real write path. The dedicated binary artifact-cache test asserts that model, mesh, scene, shader, material, and texture registry records all use logical `lib://...zasset` locators, that physical files under `.zircon/cache/assets` start with the `ZRARTZ01` binary-cache magic, that decompressed payloads are not JSON documents and do not carry `JSON` or `BIN\0` compatibility markers, and that every cached artifact uses the `.zasset` extension. The manager-level physics/animation, sound, and restart-restore tests keep the same binary-cache assertions for non-render and restore paths.
 
 Project scanning also walks every registered `PackageAssetRegistry` root after the project `assets/` root. Project files keep `res://` locators; package files are converted to `package://{package_id}/...` locators from the package asset root, then enter the same importer, artifact, `.zmeta`, dependency, and registry flow. `source_path_for_uri(package://...)` maps back through the package registry, rejects unknown packages, and relies on locator/package-root validation so package paths cannot escape the registered root. Package subassets keep the package id when entry URLs are remapped during restore or failed reimport, so `package://com.zircon.navigation/bundles/atlas.multi#Texture0` remains a UUID-addressable record and artifact across restarts.
 
-If an importer is missing, unsupported, malformed, or fails validation, the scan writes meta with the same source hash and importer identity when known, sets `preview_state = error`, and registers `ResourceState::Error` with diagnostics. The live registry only publishes the failed root record, but `.zmeta.entries` preserves prior root/subasset UUID rows with cleared artifact locators so transient failures do not break saved subasset references after a later successful reimport. The next source file continues importing. Runtime resource sync registers error records without trying to load a missing artifact.
+If an importer is missing, unsupported, malformed, or fails validation, the scan writes meta with the same source digest and importer identity when known, sets `preview_state = error`, and registers `ResourceState::Error` with diagnostics. The live registry only publishes the failed root record, but `.zmeta.entries` preserves prior root/subasset UUID rows with cleared artifact locators so transient failures do not break saved subasset references after a later successful reimport. The next source file continues importing. Runtime resource sync registers error records without trying to load a missing artifact.
 
 Editor catalog sync mirrors the same contract. `DefaultEditorAssetManager::sync_from_project` keeps failed assets visible in the catalog, carries their diagnostics, and leaves direct-reference edges empty instead of calling `load_artifact_by_id` on records that have no artifact locator. This keeps missing-plugin and parse-error assets inspectable without blocking editor manager startup.
 
-Runtime meta documents are `.zmeta` format version 6. The schema uses `uuid`, `url`, `asset_kind`, `unit`, `included_files`, importer metadata fields, `artifact_locator`, `config_hash`, root dependencies, and per-entry `uuid/url/asset_kind/artifact_locator/dependencies`. Future meta versions fail so the engine does not downgrade unknown schema, and old `*.meta.toml` files are ignored rather than treated as compatibility inputs.
+Runtime meta documents are `.zmeta` format version 7. The schema uses `uuid`, `url`, `asset_kind`, `unit`, `included_files`, importer metadata fields, `artifact_locator`, `config_hash`, `source_digest`, root dependencies, and per-entry `uuid/url/asset_kind/artifact_locator/dependencies`. The parser accepts only v7, rejects v6 as `UnsupportedOldFormatVersion`, rejects future input as `UnsupportedFutureFormatVersion`, and reports the retired `source_hash` key as `RetiredSourceHashField`; no serde alias or in-place legacy migration remains.
 
-Runtime 15 F5 asset meta typed errors (`runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred`) keeps this future-version failure typed in `asset/project/meta.rs`: `migrate_to_current(...)` returns `AssetMetaResult`, future versions report `AssetMetaError::UnsupportedFormatVersion { found, supported }`, and `AssetMetaDocument::load(...)` stringifies only at the `std::io::ErrorKind::InvalidData` boundary. `review_f5_asset_meta_uses_typed_error` and `asset_meta_migration_reports_typed_future_version_error` lock this contract.
+Meta saves validate and serialize before filesystem mutation, then use a unique same-directory staging file with `write_all`, `flush`, and `sync_all`. Replacement keeps the prior sidecar continuously visible: Windows uses one `ReplaceFileW` call with a backup path, while Unix creates a hard-link/copy backup before same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable and cleans transaction files. Backup cleanup after the successful commit point is best-effort, so a durable new sidecar is never reported as a failed save solely because obsolete-backup removal failed.
 
-Ready meta can now restore an already-imported artifact after editor restart without rerunning the importer. The restore path requires `preview_state = ready`, unchanged source hash, unchanged import settings hash, a matching importer id/version contract when the importer is present, and a readable artifact at `artifact_locator`. It remaps every entry URL to the current source URI before building `ResourceRecord` rows, preserving UUID identity while allowing source files and their `.zmeta` sidecars to move together. This keeps model, texture, material/data, scene, and UI document imports stable across restarts even when only the artifact store and meta are available. If the artifact is missing, the source/config changed, or the importer contract no longer matches, the project scan falls back to a normal import attempt and rewrites meta from the fresh result.
+Runtime 15 F5 asset meta typed errors (`runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred`) remain typed in `asset/project/meta.rs`: `AssetMetaDocument::from_toml_str(...)` returns `AssetMetaResult`, current-version validation distinguishes old, future, retired-field, and deserialize failures, and `AssetMetaDocument::load(...)` stringifies only at the `std::io::ErrorKind::InvalidData` filesystem boundary. `review_f5_asset_meta_uses_typed_error`, `asset_meta_validation_reports_typed_future_version_error`, and `asset/tests/project/zmeta/schema_v7.rs` lock the current contract.
+
+Ready meta can now restore an already-imported artifact after editor restart without rerunning the importer. The restore path requires `preview_state = ready`, unchanged source digest, unchanged import settings hash, a matching importer id/version contract when the importer is present, and a readable artifact at `artifact_locator`. It remaps every entry URL to the current source URI before building `ResourceRecord` rows, preserving UUID identity while allowing source files and their `.zmeta` sidecars to move together. This keeps model, texture, material/data, scene, and UI document imports stable across restarts even when only the artifact store and meta are available. If the artifact is missing, the source/config changed, or the importer contract no longer matches, the project scan falls back to a normal import attempt and rewrites meta from the fresh result.
 
 Successful imports now clear stale schema migration fields when the selected importer does not
 return a migration report. Failed imports clear the same fields before recording error state, so an

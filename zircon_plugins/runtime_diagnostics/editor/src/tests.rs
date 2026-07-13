@@ -1,5 +1,5 @@
 use zircon_runtime::{
-    builtin::RuntimeTargetMode,
+    core::framework::platform::RuntimeTargetMode,
     plugin::{ExportPackagingStrategy, PluginModuleKind},
 };
 
@@ -42,9 +42,9 @@ fn runtime_diagnostics_plugin_contributes_view_and_capability() {
         .any(|menu| menu.operation().as_str() == "view.editor.runtime_diagnostics.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.editor.runtime_diagnostics.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.editor.runtime_diagnostics.open"));
 }
 
 #[test]

@@ -144,9 +144,6 @@ def signal_coordinator(repo_root: Path, repository_key: str) -> bool:
             or str(runtime.get("process_creation_time")) != process_creation_time(pid)
         ):
             return False
-        token = runtime.get("token")
-        if not isinstance(token, str) or not token:
-            return False
         data = json.dumps(
             {"repositoryKey": repository_key, "schemaVersion": 1},
             separators=(",", ":"),
@@ -155,7 +152,6 @@ def signal_coordinator(repo_root: Path, repository_key: str) -> bool:
             f"http://127.0.0.1:{port}/control/v1/codex-sync/wake",
             data=data,
             headers={
-                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             },
             method="POST",

@@ -4,7 +4,7 @@ mod state;
 
 pub(super) fn parse_module_target_modes_line(
     line: &str,
-    target_modes: &mut Vec<zircon_runtime::builtin::RuntimeTargetMode>,
+    target_modes: &mut Vec<zircon_runtime::core::framework::platform::RuntimeTargetMode>,
 ) -> bool {
     let Some(value) = field::module_target_modes_value(line) else {
         return false;

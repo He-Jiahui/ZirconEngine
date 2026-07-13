@@ -76,14 +76,13 @@ fn plugin_resource_event_and_system_registrations_apply_to_world() {
         &WeatherObserved(vec![7])
     );
     assert!(world.events::<WeatherChanged>().is_some());
-    assert!(registry
-        .plugin_event_catalogs()
-        .iter()
-        .any(|catalog| catalog.namespace == "weather.events"
+    assert!(registry.plugin_event_catalogs().iter().any(|catalog| {
+        catalog.namespace == "weather.events"
             && catalog
                 .events
                 .iter()
-                .any(|event| event.id == "weather.events.changed")));
+                .any(|event| event.id == "weather.events.changed")
+    }));
 }
 
 #[test]

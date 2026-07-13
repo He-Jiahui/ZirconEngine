@@ -22,6 +22,7 @@ struct ZrVertexOutput {
     @location(7) tint: vec4<f32>,
     @location(8) shadow_params: vec4<f32>,
     @location(9) motion_params: vec4<f32>,
+    @location(10) @interpolate(flat) instance_index: u32,
 };
 
 struct ZrSurfaceOutput {
@@ -53,6 +54,8 @@ struct ZrShadingContext {
     frag_coord: vec2<f32>,
     position_ws: vec3<f32>,
     shadow_params: vec4<f32>,
+    uv2: vec2<f32>,
+    instance_index: u32,
 };
 
 fn zr_build_vertex_output(
@@ -78,6 +81,7 @@ fn zr_build_vertex_output(
     output.tint = zr_gpu_scene_tint(instance_index);
     output.shadow_params = zr_gpu_scene_shadow_params(instance_index);
     output.motion_params = zr_gpu_scene_motion_params(instance_index);
+    output.instance_index = instance_index;
     return output;
 }
 
@@ -86,6 +90,8 @@ fn zr_build_shading_context(input: ZrVertexOutput) -> ZrShadingContext {
     ctx.frag_coord = input.clip_position.xy;
     ctx.position_ws = input.position_ws;
     ctx.shadow_params = input.shadow_params;
+    ctx.uv2 = input.uv1;
+    ctx.instance_index = input.instance_index;
     return ctx;
 }
 

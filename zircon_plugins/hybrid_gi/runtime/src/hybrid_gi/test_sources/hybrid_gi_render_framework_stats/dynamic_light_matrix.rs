@@ -169,6 +169,7 @@ fn dynamic_light_extract(
             direction: Vec3::new(0.0, 0.0, -1.0),
             color: Vec3::new(1.0, 0.05, 0.02),
             intensity: 6.0,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }]
     } else {
@@ -183,6 +184,7 @@ fn dynamic_light_extract(
             color: Vec3::new(0.02, 1.0, 0.06),
             intensity: 10.0,
             range: 5.0,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }]
     } else {
@@ -200,6 +202,7 @@ fn dynamic_light_extract(
             range: 5.0,
             inner_angle_radians: 0.2,
             outer_angle_radians: 0.7,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }]
     } else {
@@ -232,6 +235,8 @@ fn dynamic_light_extract(
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: RenderHybridGiQuality::High,
         trace_budget: 2,
         card_budget: 1,

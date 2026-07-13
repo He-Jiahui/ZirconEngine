@@ -100,7 +100,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         gbuffer_material_resource_name: &str,
         gbuffer_emissive_resource_name: &str,
         scene_depth_resource_name: &str,
-        background_resource_name: &str,
         scene_color_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
@@ -154,10 +153,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let background_view = Self::require_texture_view_by_name(
+        let integrated_volumetric_view = Self::optional_texture_view_by_name(
             resources,
             resource_resolver,
-            background_resource_name,
+            PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED,
             RenderGraphResourceAccessKind::Read,
         )?;
         let scene_color_view = Self::require_texture_view_by_name(
@@ -166,6 +165,23 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_color_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let subsurface_diffuse_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SSS_DIFFUSE,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let subsurface_retained_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SSS_SPECULAR,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        if subsurface_diffuse_view.is_some() != subsurface_retained_view.is_some() {
+            return Err(format!(
+                "deferred graph executor for pass `{pass_name}` requires both SSS MRT resources or neither"
+            ));
+        }
         let render_region = self.render_region();
         let deferred = self.deferred.ok_or_else(|| {
             format!(
@@ -197,8 +213,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             light_grid_params_buffer,
             light_zbins_buffer,
             light_tile_masks_buffer,
-            background_view,
+            integrated_volumetric_view,
+            self.frame,
             scene_color_view,
+            subsurface_diffuse_view,
+            subsurface_retained_view,
             attachment_ops,
             render_region,
         );

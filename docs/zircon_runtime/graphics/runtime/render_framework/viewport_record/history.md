@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
   - zircon_runtime/src/graphics/runtime/history/viewport_frame_history.rs
-  - zircon_runtime/src/graphics/runtime/history/new.rs
+  - zircon_runtime/src/graphics/runtime/history/construct.rs
   - zircon_runtime/src/graphics/runtime/history/update.rs
   - zircon_runtime/src/graphics/runtime/history/access.rs
 implementation_files:
@@ -42,7 +42,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
   - zircon_runtime/src/graphics/runtime/history/viewport_frame_history.rs
-  - zircon_runtime/src/graphics/runtime/history/new.rs
+  - zircon_runtime/src/graphics/runtime/history/construct.rs
   - zircon_runtime/src/graphics/runtime/history/update.rs
   - zircon_runtime/src/graphics/runtime/history/access.rs
 plan_sources:

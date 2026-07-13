@@ -11,13 +11,34 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  rust:
-    name: Rust build & test
+  runtime-profile-feature-matrix-plan:
+    name: Runtime profile feature matrix plan
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.profile-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Linux system dependencies (winit / wgpu / retained UI)
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Export canonical runtime profile matrix
+        id: profile-matrix
+        run: echo "matrix=$(python tools/runtime-profile-feature-presets.py matrix)" >> "$GITHUB_OUTPUT"
+
+  runtime-profile-feature-matrix:
+    name: Runtime profile feature (${{ matrix.profile }})
+    needs: runtime-profile-feature-matrix-plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Linux system dependencies (runtime profile feature matrix)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -44,6 +65,87 @@ jobs:
 
       - name: Cache cargo registry
         uses: Swatinem/rust-cache@v2
+
+      - name: Check application profile preset
+        run: cargo check -p zircon_app --lib --no-default-features --features "${{ matrix.cargo_feature }}" --locked --verbose
+
+  runtime-domain-feature-matrix:
+    name: Runtime additive domain (${{ matrix.feature }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        feature:
+          - ai-contracts
+          - animation
+          - diagnostic-log
+          - dynamic-api
+          - graphics
+          - navigation
+          - net-contracts
+          - physics-contracts
+          - script
+          - sound-contracts
+          - text
+          - ui
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check additive runtime domain
+        run: cargo check -p zircon_runtime --lib --no-default-features --features "core-min,${{ matrix.feature }}" --locked --verbose
+
+  rust:
+    name: Rust build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux system dependencies (winit / wgpu / retained UI)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libfontconfig-dev \
+            libudev-dev \
+            libinput-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcursor-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libwayland-dev \
+            xinput \
+            libasound2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Test convention runner
+        run: python -m unittest tools.tests.test_check_conventions -v
+
+      - name: Run convention gates
+        run: python tools/check_conventions.py --json
 
       - name: Build workspace
         run: cargo build --workspace --locked --verbose

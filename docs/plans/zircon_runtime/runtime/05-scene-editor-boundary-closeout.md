@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/ecs/archetype/index.rs
-  - zircon_runtime/src/scene/ecs/events.rs
+  - zircon_runtime/src/scene/ecs/events/mod.rs
   - zircon_runtime/src/scene/ecs/schedule_conflict_graph.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
@@ -322,11 +322,19 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/session/path_transfer/copy/selected/metadata/preview.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_export/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/named/{mod,commit,preview}.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/selected/{mod,commit,preview}.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/named/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/named/commit.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/named/preview.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/selected/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/selected/commit.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/loaded/selected/preview.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/named/{mod,commit,preview}.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/selected/{mod,commit,preview}.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/named/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/named/commit.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/named/preview.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/selected/mod.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/selected/commit.rs
+  - zircon_runtime/src/scene/dynamic_scene/session/path_export/source_path/selected/preview.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_query/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_query/manifest.rs
   - zircon_runtime/src/scene/dynamic_scene/session/path_query/selection.rs
@@ -405,8 +413,8 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
-status: in_progress
-last_refined: 2026-07-10
+status: completed
+last_refined: 2026-07-13
 ---
 
 # 05 scene/editor 边界收尾
@@ -564,6 +572,8 @@ last_refined: 2026-07-10
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-2026-07-10 当前概述：plan-status 审计与 Rust 守卫已统一为“父计划保留当前概述、编号目录拥有具体产出”的单一规则；审计现为 support owners 84/84、subplans 15/15、index map 15/15、problem rows 17/17、known backlog 7/7、`risks = []`，完整 standalone plan-status suite 48/48。Runtime 05 仍保持 `in_progress`，full `scene::` Cargo gate 未被静态证据替代。
+2026-07-13 完成概述：`runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete` 已在同一 fresh Windows lib-test 程序闭合 full `scene::`（1642 passed / 0 failed / 5 ignored）、`structure_convention`（1304/1304）、`code_review_findings`（298/298）以及 PMREM CPU/GPU parity（1/1，`PMREM_TEXEL_TOLERANCE=0.006` 未放宽）。机器守卫 `runtime_05_closeout_status_records_completed_scene_cargo_gate` 锁定该完成证据；父计划仅保留当前状态与路由，具体命令、时间和修复记录继续由编号归档拥有。
 
 - 迁入记录：[`05/2026-07-09-scene-editor-boundary-closeout-output-records.md`](05/2026-07-09-scene-editor-boundary-closeout-output-records.md)
+- fixed 已修复：[dynamic-scene-version-validation](02/fixed-2026-07-12-dynamic-scene-version-validation.md)
+- fixed 已修复：[scene-test-support-file-budget](../frameworks/06/fixed-2026-07-13-scene-test-support-file-budget.md)

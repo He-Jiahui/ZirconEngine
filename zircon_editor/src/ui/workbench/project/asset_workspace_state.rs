@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::core::asset::AssetTypeId;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord,
@@ -8,10 +9,11 @@ use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord, ResourceS
 
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSubassetSnapshot, AssetSurfaceMode, AssetUtilityTab, AssetViewMode,
-    AssetWorkspaceSnapshot, ProjectOverviewSnapshot,
+    AssetSubassetSnapshot, AssetSurfaceMode, AssetTypeProjectionSnapshot, AssetUtilityTab,
+    AssetViewMode, AssetWorkspaceSnapshot, ProjectOverviewSnapshot,
 };
 use zircon_runtime::asset::project::AssetSourceUnit;
+use zircon_runtime::asset::AssetUri;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetWorkspaceState {
@@ -105,6 +107,16 @@ impl AssetWorkspaceState {
         }
     }
 
+    pub(crate) fn asset_type_id_for_locator(&self, locator: &AssetUri) -> Option<AssetTypeId> {
+        let locator = locator.to_string();
+        self.catalog
+            .as_ref()?
+            .assets
+            .iter()
+            .find(|asset| asset.locator == locator)
+            .map(|asset| AssetTypeId::from_resource_kind(asset.kind))
+    }
+
     pub fn set_search_query(&mut self, query: impl Into<String>) {
         self.search_query = query.into();
     }
@@ -182,7 +194,7 @@ impl AssetWorkspaceState {
             project_name: catalog.project_name.clone(),
             project_root: catalog.project_root.clone(),
             assets_root: catalog.assets_root.clone(),
-            library_root: catalog.library_root.clone(),
+            cache_root: catalog.cache_root.clone(),
             default_scene_uri: catalog.default_scene_uri.clone(),
             catalog_revision: catalog.catalog_revision,
             surface_mode,
@@ -193,6 +205,7 @@ impl AssetWorkspaceState {
             folder_tree,
             visible_folders,
             visible_assets,
+            creation_templates: Vec::new(),
             selected_folder_id: Some(self.selected_folder_id.clone()),
             selected_asset_uuid: self.selected_asset_uuid.clone(),
             selection: self.selection_snapshot(),
@@ -208,7 +221,7 @@ impl AssetWorkspaceState {
             project_name: catalog.project_name.clone(),
             project_root: catalog.project_root.clone(),
             assets_root: catalog.assets_root.clone(),
-            library_root: catalog.library_root.clone(),
+            cache_root: catalog.cache_root.clone(),
             default_scene_uri: catalog.default_scene_uri.clone(),
             catalog_revision: catalog.catalog_revision,
             folder_count: catalog.folders.len(),
@@ -270,11 +283,12 @@ impl AssetWorkspaceState {
             display_name: asset.display_name.clone(),
             locator: asset.locator.clone(),
             kind: Some(asset.kind),
+            asset_type: asset_type_projection(asset.kind),
             preview_artifact_path: asset.preview_artifact_path.clone(),
             meta_path: asset.meta_path.clone(),
-            adapter_key: details
-                .and_then(|details| details.editor_adapter.clone())
-                .unwrap_or_default(),
+            toolkit_view_id: String::new(),
+            toolkit_open_operation: String::new(),
+            context_commands: Vec::new(),
             package_id: details.and_then(|details| details.package_id.clone()),
             asset_unit: details
                 .map(|details| asset_unit_label(details.unit).to_string())
@@ -291,6 +305,7 @@ impl AssetWorkspaceState {
                             uuid: subasset.uuid.clone(),
                             locator: subasset.locator.clone(),
                             kind: subasset.kind,
+                            asset_type: asset_type_projection(subasset.kind),
                             artifact_locator: subasset.artifact_locator.clone(),
                             dependency_locators: subasset.dependency_locators.clone(),
                         })
@@ -330,6 +345,7 @@ impl AssetWorkspaceState {
             file_name: asset.file_name.clone(),
             extension: asset.extension.clone(),
             kind: asset.kind,
+            asset_type: asset_type_projection(asset.kind),
             preview_artifact_path: asset.preview_artifact_path.clone(),
             dirty: asset.dirty,
             diagnostics: asset.diagnostics.clone(),
@@ -338,6 +354,10 @@ impl AssetWorkspaceState {
             resource_revision: resource.map(|resource| resource.revision),
         }
     }
+}
+
+fn asset_type_projection(kind: ResourceKind) -> AssetTypeProjectionSnapshot {
+    AssetTypeProjectionSnapshot::from_resource_kind(kind)
 }
 
 fn asset_unit_label(unit: AssetSourceUnit) -> &'static str {
@@ -473,6 +493,7 @@ fn reference_snapshot(
         locator: reference.locator.clone(),
         display_name: reference.display_name.clone(),
         kind: reference.kind,
+        asset_type: reference.kind.map(asset_type_projection),
         known_project_asset: reference.known_project_asset,
     }
 }

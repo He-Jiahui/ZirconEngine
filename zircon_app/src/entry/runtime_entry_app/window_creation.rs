@@ -68,8 +68,8 @@ impl RuntimeEntryApp {
                 self.fail_surface_present();
             }
         }
-        if !self.surface_present_enabled && !self.ensure_fallback_presenter(event_loop) {
-            return;
+        if !self.surface_present_enabled {
+            self.ensure_fallback_presenter(event_loop);
         }
     }
 }

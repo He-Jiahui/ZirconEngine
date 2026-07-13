@@ -97,7 +97,7 @@ fn assert_child_owners_are_focused() {
         &[
             "assert_runtime_01_guard_anchors",
             "tech_stack_dependency_guard.rs",
-            "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+            "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
         ],
     );
     assert_contains_all(

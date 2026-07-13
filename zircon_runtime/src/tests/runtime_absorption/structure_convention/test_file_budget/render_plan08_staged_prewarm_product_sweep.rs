@@ -1,14 +1,10 @@
 use super::*;
 
 const STATUS: &str = "render_plan08_staged_prewarm_product_sweep_wgpu_passed_renderdoc_deferred";
-const DEFAULT_FEATURES_DIRECT_BINARY_STATUS: &str =
-    "render_plan08_staged_prewarm_product_sweep_default_features_direct_binary_wgpu_passed_renderdoc_deferred";
-const DEFAULT_FEATURES_CARGO_WRAPPER_STATUS: &str =
-    "render_plan08_staged_prewarm_product_sweep_default_features_cargo_wrapper_wgpu_passed_renderdoc_deferred";
-const DEFAULT_FEATURES_CURRENT_REFRESH_STATUS: &str =
-    "render_plan08_staged_prewarm_product_sweep_default_features_current_wgpu_refresh_passed_renderdoc_deferred";
-const PRODUCT_READBACK_PNG_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred";
+const DEFAULT_FEATURES_DIRECT_BINARY_STATUS: &str = "render_plan08_staged_prewarm_product_sweep_default_features_direct_binary_wgpu_passed_renderdoc_deferred";
+const DEFAULT_FEATURES_CARGO_WRAPPER_STATUS: &str = "render_plan08_staged_prewarm_product_sweep_default_features_cargo_wrapper_wgpu_passed_renderdoc_deferred";
+const DEFAULT_FEATURES_CURRENT_REFRESH_STATUS: &str = "render_plan08_staged_prewarm_product_sweep_default_features_current_wgpu_refresh_passed_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired() {
@@ -42,13 +38,15 @@ fn runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired() {
     let ensure_pipeline = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "Plan 08 staged-prewarm product/runtime sweep covers base, registry, material-pass, custom shading, and runtime consumers",
@@ -97,7 +95,6 @@ fn runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired() {
         ("structure convention", structure_convention.as_str()),
         ("shader doc", shader_doc.as_str()),
         ("render product doc", render_product_doc.as_str()),
-        ("session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

@@ -5,8 +5,10 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/render.rs");
     let tests = read_runtime_src("graphics/scene/scene_renderer/ui/render/tests.rs");
 
-    let plan_14 = read_repo("docs/plans/zircon_runtime/render/14/2026-07-09-2d-stack-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_14 =
+        read_repo("docs/plans/zircon_runtime/render/14/2026-07-09-2d-stack-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_product_submit = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
@@ -18,7 +20,7 @@ fn runtime_15_screen_space_ui_render_tests_are_child_owner_split() {
             "pub(crate) fn record(",
             "fn prepare_screen_space_ui(",
             "fn plan_screen_space_ui_batches(",
-            "#[cfg(test)]\nmod tests;",
+            "#[cfg(all(test, feature = \"ui\"))]\nmod tests;",
         ],
     );
 

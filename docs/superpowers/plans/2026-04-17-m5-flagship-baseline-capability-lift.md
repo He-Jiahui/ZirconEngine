@@ -1,29 +1,29 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/mod.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
   - docs/superpowers/plans/2026-04-16-m5-flagship-capability-slots.md
 implementation_files:
-  - zircon_graphics/src/runtime/server/capability_summary/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/update_stats/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_virtual_geometry/mod.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/mod.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
 plan_sources:
   - user: 2026-04-17 continue next task after M5 Virtual Geometry indirect raster and Hybrid GI resolve baselines
   - user: 2026-04-17 continue missing capability/runtime boundary work without waiting for confirmation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-flagship-capability-slots.md
 tests:
-  - zircon_render_server/src/tests.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - cargo test -p zircon_render_server --lib --locked
   - cargo test -p zircon_graphics render_server_bridge --locked
   - cargo test -p zircon_graphics --lib --locked

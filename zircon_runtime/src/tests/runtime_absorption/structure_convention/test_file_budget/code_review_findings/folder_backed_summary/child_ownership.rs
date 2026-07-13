@@ -14,31 +14,20 @@ mod source_inventory_checks;
 #[path = "ownership/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/child_ownership.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_DELEGATION_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/delegation.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/parent_absence.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_DIRECT_ASSERTIONS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/direct_assertions.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_SOURCE_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/source_inventory.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/budgets.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/status_mirrors.rs";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_SLICE: &str =
-    "Runtime 15 M3 code review findings folder-backed summary child-ownership guard folder-backed split";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS: &str =
-    "runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/child_ownership.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_DELEGATION_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/delegation.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/parent_absence.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_DIRECT_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/direct_assertions.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_SOURCE_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/source_inventory.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/budgets.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/status_mirrors.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_SLICE: &str = "Runtime 15 M3 code review findings folder-backed summary child-ownership guard folder-backed split";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS: &str = "runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_folder_backed_static_passed_cargo_deferred";
 pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_DATE: &str = "2026-07-04";
 pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_GUARD: &str =
     "runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_is_folder_backed";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_GUARD: &str =
-    "runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_folder_backed_status_is_current";
-pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGET_GUARD: &str =
-    "runtime_15_code_review_findings_folder_backed_summary_child_ownership_children_line_budgets_are_current";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_GUARD: &str = "runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_folder_backed_status_is_current";
+pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGET_GUARD: &str = "runtime_15_code_review_findings_folder_backed_summary_child_ownership_children_line_budgets_are_current";
 
 pub(super) const FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
     (

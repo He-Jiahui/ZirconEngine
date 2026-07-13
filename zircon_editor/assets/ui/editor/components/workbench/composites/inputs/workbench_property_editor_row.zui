@@ -1,0 +1,31 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+version = 2
+display_name = "Workbench Property Editor Row"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchPropertyEditorRow]
+root = "root"
+default_classes = ["workbench-property-editor-row", "workbench-composite"]
+slots = { value = { multiple = false } }
+
+[nodes.root]
+component = "PropertyRow"
+control_id = "WorkbenchPropertyEditorRowRoot"
+classes = ["workbench-property-editor-row"]
+props = { text = "Property" }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "name_column" }, { node = "value_slot" }]
+
+[nodes.name_column]
+component = "Container"
+layout = { width = { min = 60.0, preferred = 105.0, max = 105.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.value_slot]
+component = "Slot"
+props = { name = "value" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

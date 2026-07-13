@@ -11,6 +11,7 @@ mod scene_renderer_core_render_scene;
 mod scene_renderer_core_write_scene_uniform;
 mod scene_renderer_hdr_capture;
 mod scene_renderer_history;
+mod scene_renderer_realtime_ibl_diagnostics;
 mod scene_renderer_render;
 mod scene_renderer_render_capture;
 mod scene_renderer_render_with_pipeline;

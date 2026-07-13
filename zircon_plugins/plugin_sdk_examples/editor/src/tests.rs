@@ -1,5 +1,6 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::plugin::PluginModuleKind;
 
 use crate::capability::{ASSET_FIXTURE_CAPABILITY, CAPABILITY, WINDOW_CAPABILITY};
 use crate::extension_ids::{
@@ -44,14 +45,21 @@ fn sdk_examples_package_contributes_window_importer_and_inspector() {
         importer.source_extensions(),
         &["glb".to_string(), "gltf".to_string()]
     );
-    assert_eq!(importer.output_kind(), Some(MODEL_ASSET_KIND));
+    assert_eq!(
+        importer.output_type().map(|asset_type| asset_type.as_str()),
+        Some(MODEL_ASSET_KIND)
+    );
     assert_eq!(importer.priority(), 10);
-    assert!(registration
+    let model_type = registration
         .extensions
-        .asset_editors()
-        .iter()
-        .any(|editor| editor.asset_kind() == MODEL_ASSET_KIND
-            && editor.view_id() == ASSET_INSPECTOR_VIEW_ID));
+        .asset_type_contributions()
+        .into_iter()
+        .find(|contribution| contribution.asset_type().as_str() == MODEL_ASSET_KIND)
+        .expect("SDK model type contribution");
+    assert_eq!(
+        model_type.toolkit().unwrap().view_id(),
+        ASSET_INSPECTOR_VIEW_ID
+    );
     assert!(registration
         .extensions
         .component_drawers()
@@ -59,9 +67,12 @@ fn sdk_examples_package_contributes_window_importer_and_inspector() {
         .any(|drawer| drawer.component_type() == MODEL_IMPORT_SETTINGS_COMPONENT));
     assert!(registration
         .extensions
-        .asset_creation_templates()
+        .asset_type_contributions()
         .iter()
-        .any(|template| template.id() == MODEL_IMPORT_SETTINGS_TEMPLATE_ID));
+        .any(|contribution| contribution
+            .creation_templates()
+            .iter()
+            .any(|template| template.id() == MODEL_IMPORT_SETTINGS_TEMPLATE_ID)));
 }
 
 #[test]
@@ -72,7 +83,7 @@ fn sdk_examples_package_manifest_declares_sdk_fixture_metadata() {
     assert_eq!(manifest.category, "sdk");
     assert_eq!(
         manifest.supported_targets,
-        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
     );
     assert!(manifest.capabilities.contains(&CAPABILITY.to_string()));
     assert!(manifest

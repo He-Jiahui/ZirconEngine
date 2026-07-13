@@ -26,6 +26,10 @@ pub(super) fn scan_animation_scene(
         };
 
         for entity in entity_ids {
+            if let Some(skeleton) = world.animation_skeleton(entity) {
+                scan.skeletons_by_entity
+                    .insert(entity, skeleton.skeleton.id());
+            }
             if playback_settings.skeletal_clips {
                 if let Some(mut player) = world.animation_player(entity).cloned() {
                     let previous_time_seconds = player.time_seconds;

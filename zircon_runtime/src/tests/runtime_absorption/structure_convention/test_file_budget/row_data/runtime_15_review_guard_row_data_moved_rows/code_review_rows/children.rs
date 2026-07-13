@@ -1,21 +1,12 @@
-pub(super) const CODE_REVIEW_ROWS_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows.rs";
-pub(super) const CODE_REVIEW_ROWS_CHILDREN_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/children.rs";
-pub(super) const CODE_REVIEW_ROWS_CHILD_OWNERSHIP_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/child_ownership.rs";
-pub(super) const CODE_REVIEW_ROWS_SOURCE_DELEGATION_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/source_delegation.rs";
-pub(super) const CODE_REVIEW_ROWS_REVIEW_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/review_guard_rows.rs";
-pub(super) const CODE_REVIEW_ROWS_STRUCTURE_GUARD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/structure_guard_rows.rs";
-pub(super) const CODE_REVIEW_ROWS_TYPED_ERROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/typed_error_structure_rows.rs";
-pub(super) const CODE_REVIEW_ROWS_PLUGIN_IMPORTER_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/plugin_importer_rows.rs";
-pub(super) const CODE_REVIEW_ROWS_STATUS_MIRRORS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/status_mirrors.rs";
+pub(super) const CODE_REVIEW_ROWS_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows.rs";
+pub(super) const CODE_REVIEW_ROWS_CHILDREN_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/children.rs";
+pub(super) const CODE_REVIEW_ROWS_CHILD_OWNERSHIP_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/child_ownership.rs";
+pub(super) const CODE_REVIEW_ROWS_SOURCE_DELEGATION_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/source_delegation.rs";
+pub(super) const CODE_REVIEW_ROWS_REVIEW_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/review_guard_rows.rs";
+pub(super) const CODE_REVIEW_ROWS_STRUCTURE_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/structure_guard_rows.rs";
+pub(super) const CODE_REVIEW_ROWS_TYPED_ERROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/typed_error_structure_rows.rs";
+pub(super) const CODE_REVIEW_ROWS_PLUGIN_IMPORTER_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/plugin_importer_rows.rs";
+pub(super) const CODE_REVIEW_ROWS_STATUS_MIRRORS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/status_mirrors.rs";
 
 pub(super) const CODE_REVIEW_ROW_CHILDREN: &[(&str, &str, &str)] = &[
     (

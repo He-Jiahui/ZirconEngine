@@ -1,8 +1,9 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, plugin::PluginModuleKind,
-    plugin::PluginPackageManifest, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginSelection,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ProjectPluginFeatureSelection,
+    core::framework::project::ProjectPluginSelection, plugin::PluginFeatureBundleManifest,
+    plugin::PluginModuleKind, plugin::PluginPackageManifest,
 };
 
 use super::module_crate_lookup::module_crate;
@@ -25,7 +26,7 @@ pub(in crate::ui::host::editor_manager_plugins_export) fn native_project_selecti
         enabled: false,
         required: false,
         target_modes,
-        packaging: zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
+        packaging: zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic,
         runtime_crate: module_crate(package, PluginModuleKind::Runtime),
         editor_crate: module_crate(package, PluginModuleKind::Editor),
         features: package
@@ -88,7 +89,7 @@ fn feature_target_modes(feature: &PluginFeatureBundleManifest) -> Vec<RuntimeTar
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::builtin::RuntimeTargetMode;
+    use zircon_runtime::core::framework::platform::RuntimeTargetMode;
     use zircon_runtime::{
         plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
         plugin::PluginModuleManifest,

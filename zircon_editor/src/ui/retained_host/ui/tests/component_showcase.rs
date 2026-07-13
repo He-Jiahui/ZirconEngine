@@ -57,7 +57,7 @@ fn default_component_showcase_nodes_for_size(
         .unwrap_or_else(|poison| poison.into_inner());
     let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
     let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
+        "res://ui/editor/component_showcase.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,
@@ -227,7 +227,7 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .unwrap_or_else(|poison| poison.into_inner());
     let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
     let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
+        "res://ui/editor/component_showcase.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,
@@ -1041,7 +1041,7 @@ fn component_showcase_pane_uses_supplied_runtime_demo_state() {
         .unwrap_or_else(|poison| poison.into_inner());
     let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
     let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
+        "res://ui/editor/component_showcase.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,
@@ -1070,7 +1070,7 @@ fn component_showcase_pane_uses_supplied_runtime_demo_state() {
         .load_builtin_host_templates()
         .expect("built-in host templates should load");
     let binding = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .expect("showcase projection should compile")
         .bindings
         .into_iter()
@@ -1081,7 +1081,7 @@ fn component_showcase_pane_uses_supplied_runtime_demo_state() {
         .apply_showcase_demo_binding(&binding, UiComponentShowcaseDemoEventInput::DragDelta(5.0))
         .expect("showcase runtime should accept NumberField drag input");
     let combo_open_binding = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .expect("showcase projection should compile")
         .bindings
         .into_iter()
@@ -1092,7 +1092,7 @@ fn component_showcase_pane_uses_supplied_runtime_demo_state() {
         .apply_showcase_demo_binding(&combo_open_binding, UiComponentShowcaseDemoEventInput::None)
         .expect("showcase runtime should accept ComboBox popup input");
     let asset_drop_binding = runtime
-        .project_document("editor.window.ui_component_showcase")
+        .project_document("res://ui/editor/component_showcase.zui")
         .expect("showcase projection should compile")
         .bindings
         .into_iter()

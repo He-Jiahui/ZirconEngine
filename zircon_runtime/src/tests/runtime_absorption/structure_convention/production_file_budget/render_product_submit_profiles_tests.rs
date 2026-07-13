@@ -5,13 +5,15 @@ fn runtime_15_render_product_submit_profile_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/render_product_submit.rs");
     let profiles = read_runtime_src("graphics/tests/render_product_submit/profiles.rs");
 
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_09 = read_repo(
+        "docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_product_submit_doc =
         read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "render product submit parent keeps base submit/material coverage and child mount",
@@ -87,7 +89,6 @@ fn runtime_15_render_product_submit_profile_tests_are_child_owner() {
             "render product submit doc",
             render_product_submit_doc.as_str(),
         ),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

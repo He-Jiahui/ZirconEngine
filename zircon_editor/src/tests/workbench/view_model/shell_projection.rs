@@ -1,3 +1,4 @@
+use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_event::{MenuAction, ViewDescriptorId as EventViewDescriptorId};
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
 use crate::core::editor_operation::EditorOperationPath;
@@ -30,7 +31,10 @@ use super::support::{
 fn workbench_view_model_projects_menu_strip_drawers_and_status() {
     let chrome = sample_workbench_chrome();
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert_eq!(
         model
@@ -95,7 +99,7 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .iter()
         .find(|menu| menu.label == "File")
         .and_then(|menu| menu.items.iter().find(|item| item.label == "Save Project"))
-        .map(|item| item.binding.native_binding())
+        .map(|item| crate::ui::workbench::event::menu_item_binding(item).native_binding())
         .expect("save project binding");
     assert_eq!(
         save_project_binding,
@@ -186,7 +190,10 @@ fn workbench_view_model_projects_status_task_progress_slot() {
             .with_tone(StatusTaskProgressTone::Info),
     );
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert_eq!(model.status_bar.message_text, "1 Message");
     let task = model
@@ -200,7 +207,10 @@ fn workbench_view_model_projects_status_task_progress_slot() {
 
 #[test]
 fn workbench_window_menu_exposes_unreal_style_functional_windows() {
-    let model = WorkbenchViewModel::build(&sample_workbench_chrome());
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &sample_workbench_chrome(),
+    );
     let window_menu = model
         .menu_bar
         .menus
@@ -266,7 +276,7 @@ fn workbench_window_menu_exposes_unreal_style_functional_windows() {
             Some(operation_path)
         );
         assert_eq!(
-            item.binding.native_binding(),
+            crate::ui::workbench::event::menu_item_binding(item).native_binding(),
             format!(
                 r#"WorkbenchMenuBar/OpenView.{descriptor_id}:onClick(MenuAction("workbench.view.open.{descriptor_id}"))"#
             )
@@ -278,7 +288,10 @@ fn workbench_window_menu_exposes_unreal_style_functional_windows() {
 fn workbench_view_model_freezes_drawers_for_exclusive_page() {
     let chrome = sample_exclusive_chrome();
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert!(!model.drawer_ring.visible);
     assert!(matches!(
@@ -301,7 +314,10 @@ fn workbench_view_model_uses_only_active_activity_window_drawers() {
     let chrome =
         sample_two_activity_windows_chrome(ActivityWindowId::new("window:z_asset_browser"));
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert!(chrome.workbench.drawers.is_empty());
     assert!(!model.drawer_ring.visible);
@@ -313,7 +329,10 @@ fn workbench_view_model_uses_only_active_activity_window_drawers() {
 fn workbench_view_model_uses_active_activity_window_drawer_extent() {
     let chrome = sample_two_activity_windows_chrome(ActivityWindowId::new("window:workbench"));
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let drawer = model
         .drawer_ring
         .drawers
@@ -329,7 +348,10 @@ fn workbench_view_model_uses_active_activity_window_drawer_extent() {
 fn workbench_view_model_exposes_floating_windows_as_workspace_tabs() {
     let chrome = sample_floating_window_chrome();
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert_eq!(model.document_tabs.len(), 1);
     assert_eq!(model.floating_windows.len(), 1);
@@ -368,22 +390,43 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new("Tools/Weather/Refresh Cloud Layers", public_operation)
-                .with_priority(20)
-                .with_shortcut("Ctrl+Alt+R")
-                .with_enabled(false),
+            EditorMenuItemDescriptor::new(
+                "Tools/Weather/Refresh Cloud Layers",
+                public_operation.clone(),
+            )
+            .with_priority(20)
+            .with_shortcut("Ctrl+Alt+R")
+            .with_enabled(false),
         )
         .unwrap();
     extension
         .register_menu_item(
-            EditorMenuItemDescriptor::new("Tools/Weather/Secret Cloud Pass", gated_operation)
-                .with_priority(-10)
-                .with_shortcut("Ctrl+Alt+S")
+            EditorMenuItemDescriptor::new(
+                "Tools/Weather/Secret Cloud Pass",
+                gated_operation.clone(),
+            )
+            .with_priority(-10)
+            .with_shortcut("Ctrl+Alt+S")
+            .with_required_capabilities([weather_capability]),
+        )
+        .unwrap();
+
+    let mut commands = crate::core::commands::EditorCommandRegistry::default_workbench();
+    commands
+        .register(EditorCommandDescriptor::pending_operation(
+            public_operation,
+            "Refresh Cloud Layers",
+        ))
+        .unwrap();
+    commands
+        .register(
+            EditorCommandDescriptor::pending_operation(gated_operation, "Secret Cloud Pass")
                 .with_required_capabilities([weather_capability]),
         )
         .unwrap();
 
     let disabled_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+        &commands,
         &chrome,
         &[extension.clone()],
         &[],
@@ -407,7 +450,7 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .children
             .first()
             .and_then(|item| item.shortcut.as_deref()),
-        Some("Ctrl+Alt+R")
+        Some("Ctrl+Alt+S")
     );
     assert!(!disabled_tools.items[0].enabled);
     assert_eq!(
@@ -416,11 +459,12 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .iter()
             .map(|item| item.label.as_str())
             .collect::<Vec<_>>(),
-        vec!["Refresh Cloud Layers"]
+        vec!["Secret Cloud Pass", "Refresh Cloud Layers"]
     );
 
     let enabled_capabilities = vec![weather_capability.to_string()];
     let enabled_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
+        &commands,
         &chrome,
         &[extension],
         &enabled_capabilities,
@@ -591,5 +635,6 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                 "Asset Browser",
             ),
         ],
+        None,
     )
 }

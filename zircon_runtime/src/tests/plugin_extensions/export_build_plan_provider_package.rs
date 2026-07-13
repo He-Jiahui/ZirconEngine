@@ -1,9 +1,11 @@
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginFeatureSelection,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, plugin::ExportBuildPlan,
 };
 
 #[test]
@@ -37,18 +39,22 @@ fn export_plan_reports_malformed_feature_provider_package_id_as_fatal_when_requi
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("feature sound.timeline_animation_track provider_package_id `1sound__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
     assert!(!plugin_source.contains("provider_package_id: Some(\"1sound__\""));
 }
 
@@ -84,12 +90,14 @@ fn export_plan_reports_malformed_project_feature_ids_as_fatal_when_required() {
     let cargo_manifest = generated_file(&plan, "Cargo.toml");
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `sound..timeline_animation_track`")
-        && diagnostic.contains("must not contain empty namespace segments")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `sound..timeline_animation_track`")
-        && diagnostic.contains("must not contain empty namespace segments")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `sound..timeline_animation_track`")
+            && diagnostic.contains("must not contain empty namespace segments")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `sound..timeline_animation_track`")
+            && diagnostic.contains("must not contain empty namespace segments")
+    }));
     assert!(!plan
         .linked_runtime_crates
         .contains(&"zircon_plugin_sound_timeline_animation_runtime".to_string()));
@@ -130,12 +138,14 @@ fn export_plan_reports_project_feature_ids_outside_owner_namespace_as_fatal_when
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `animation.timeline_animation_track`")
-        && diagnostic.contains("must be prefixed by project plugin `sound`")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `animation.timeline_animation_track`")
-        && diagnostic.contains("must be prefixed by project plugin `sound`")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `animation.timeline_animation_track`")
+            && diagnostic.contains("must be prefixed by project plugin `sound`")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `animation.timeline_animation_track`")
+            && diagnostic.contains("must be prefixed by project plugin `sound`")
+    }));
     assert!(!plugin_source.contains("id: \"animation.timeline_animation_track\""));
 }
 
@@ -163,10 +173,12 @@ fn export_plan_reports_duplicate_project_plugin_ids_as_fatal_when_required() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `sound` is declared more than once")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `sound` is declared more than once")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `sound` is declared more than once")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `sound` is declared more than once")
+    }));
     assert_eq!(plugin_source.matches("id: \"sound\"").count(), 1);
 }
 
@@ -207,12 +219,14 @@ fn export_plan_reports_duplicate_project_feature_ids_as_fatal_when_required() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `sound.timeline_animation_track`")
-        && diagnostic.contains("is declared more than once under project plugin `sound`")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature id `sound.timeline_animation_track`")
-        && diagnostic.contains("is declared more than once under project plugin `sound`")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `sound.timeline_animation_track`")
+            && diagnostic.contains("is declared more than once under project plugin `sound`")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature id `sound.timeline_animation_track`")
+            && diagnostic.contains("is declared more than once under project plugin `sound`")
+    }));
     assert_eq!(
         plugin_source
             .matches("id: \"sound.timeline_animation_track\"")
@@ -259,18 +273,22 @@ fn export_plan_reports_duplicate_project_target_modes_as_fatal_when_required() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin sound target_modes")
-        && diagnostic.contains("ClientRuntime")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin sound target_modes")
-        && diagnostic.contains("ClientRuntime")));
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature sound.timeline_animation_track target_modes")
-        && diagnostic.contains("ClientRuntime")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin feature sound.timeline_animation_track target_modes")
-        && diagnostic.contains("ClientRuntime")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin sound target_modes")
+            && diagnostic.contains("ClientRuntime")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin sound target_modes")
+            && diagnostic.contains("ClientRuntime")
+    }));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature sound.timeline_animation_track target_modes")
+            && diagnostic.contains("ClientRuntime")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin feature sound.timeline_animation_track target_modes")
+            && diagnostic.contains("ClientRuntime")
+    }));
     assert!(!plugin_source
         .contains("RuntimeTargetMode::ClientRuntime, RuntimeTargetMode::ClientRuntime"));
 }
@@ -305,18 +323,22 @@ fn export_plan_reports_malformed_project_plugin_ids_as_fatal_when_required() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `1weather__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `1weather__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `1weather__`")
-        && diagnostic.contains("start with a lowercase ASCII letter")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin selection id `1weather__`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `1weather__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `1weather__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `1weather__`")
+            && diagnostic.contains("start with a lowercase ASCII letter")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin selection id `1weather__`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
     assert!(!plan
         .linked_runtime_crates
         .contains(&"zircon_plugin_weather_runtime".to_string()));
@@ -354,12 +376,14 @@ fn export_plan_reports_malformed_project_plugin_runtime_crate_as_fatal_when_requ
     let cargo_manifest = generated_file(&plan, "Cargo.toml");
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin weather runtime_crate `zircon_plugin_weather__runtime`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin weather runtime_crate `zircon_plugin_weather__runtime`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin weather runtime_crate `zircon_plugin_weather__runtime`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin weather runtime_crate `zircon_plugin_weather__runtime`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
     assert!(!plan
         .linked_runtime_crates
         .contains(&"zircon_plugin_weather__runtime".to_string()));
@@ -448,12 +472,14 @@ fn export_plan_reports_malformed_project_plugin_editor_crate_as_fatal_when_requi
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin weather editor_crate `zircon_plugin_weather__editor`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("project plugin weather editor_crate `zircon_plugin_weather__editor`")
-        && diagnostic.contains("not end with an underscore or contain repeated underscores")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin weather editor_crate `zircon_plugin_weather__editor`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("project plugin weather editor_crate `zircon_plugin_weather__editor`")
+            && diagnostic.contains("not end with an underscore or contain repeated underscores")
+    }));
     assert!(!plugin_source.contains("editor_crate: Some(\"zircon_plugin_weather__editor\""));
 }
 

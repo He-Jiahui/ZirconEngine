@@ -4,6 +4,7 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     let parent = read_runtime_src("script/vm/tests.rs");
     let bridge_host = read_runtime_src("script/vm/tests/bridge_host.rs");
     let host_exports = read_runtime_src("script/vm/tests/host_exports.rs");
+    let host_interfaces = read_runtime_src("script/vm/tests/host_interfaces.rs");
     let lifecycle_failures = read_runtime_src("script/vm/tests/lifecycle_failures.rs");
     let module_surface = read_runtime_src("script/vm/tests/module_surface.rs");
     let plugin_runtime = read_runtime_src("script/vm/tests/plugin_runtime.rs");
@@ -33,6 +34,7 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
             "#[cfg(test)]\nmod lifecycle_failures;",
             "mod bridge_host;",
             "mod host_exports;",
+            "mod host_interfaces;",
             "mod module_surface;",
             "mod plugin_runtime;",
             "mod reflection_docs;",
@@ -66,6 +68,16 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
             "fn host_handles_are_stable_and_valid",
             "fn script_call_table_pre_resolves_host_export_callbacks",
             "fn zr_vm_real_backend_uses_script_call_table_for_host_callbacks",
+        ],
+    );
+    assert_contains_all(
+        "host interfaces child owns typed VM host interface contracts",
+        &host_interfaces,
+        &[
+            "fn stale_generation_resolves_to_new_function",
+            "fn unauthorized_channel_returns_capability_denied",
+            "fn vm_bt_node_executes_in_tree",
+            "fn authorized_rpc_and_editor_channels_publish_active_descriptors",
         ],
     );
     assert_contains_all(
@@ -121,6 +133,7 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     let migrated_test_count = [
         bridge_host.as_str(),
         host_exports.as_str(),
+        host_interfaces.as_str(),
         lifecycle_failures.as_str(),
         module_surface.as_str(),
         plugin_runtime.as_str(),
@@ -130,14 +143,18 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 32,
-        "script VM child modules should preserve the original 32 tests including lifecycle failures"
+        migrated_test_count, 34,
+        "script VM child modules should preserve all 34 current tests including lifecycle and typed host-interface coverage"
     );
 
     for (path, source) in [
         ("script/vm/tests.rs", parent.as_str()),
         ("script/vm/tests/bridge_host.rs", bridge_host.as_str()),
         ("script/vm/tests/host_exports.rs", host_exports.as_str()),
+        (
+            "script/vm/tests/host_interfaces.rs",
+            host_interfaces.as_str(),
+        ),
         (
             "script/vm/tests/lifecycle_failures.rs",
             lifecycle_failures.as_str(),

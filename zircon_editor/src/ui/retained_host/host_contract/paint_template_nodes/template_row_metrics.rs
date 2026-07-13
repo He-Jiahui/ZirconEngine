@@ -83,12 +83,12 @@ fn row_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchRowMetrics {
         text_inset_x: metrics.gap_m,
         text_inset_y: metrics.gap_s,
         right_reserve: metrics.button_chevron_reserve + metrics.gap_m,
-        list_adornment_size: metrics.font_large + metrics.border_width * 2.0,
+        list_adornment_size: (metrics.row_height - metrics.gap_l).max(1.0),
         list_adornment_right_inset: metrics.gap_l,
         selection_indicator_width: metrics.selection_indicator_width,
         tree_base_inset_x: metrics.button_pad_x,
         tree_disclosure_size: metrics.gap_l,
-        tree_icon_size: metrics.font_large,
+        tree_icon_size: (metrics.row_height - metrics.gap_l).max(1.0),
         tree_text_gap: metrics.gap_s + metrics.border_width * 2.0,
         tree_right_inset: metrics.button_pad_x,
         tree_action_size,
@@ -163,12 +163,12 @@ mod tests {
         assert_eq!(metrics.text_inset_x, 9.0);
         assert_eq!(metrics.text_inset_y, 5.0);
         assert_eq!(metrics.right_reserve, 30.0);
-        assert_eq!(metrics.list_adornment_size, 18.0);
+        assert_eq!(metrics.list_adornment_size, 17.0);
         assert_eq!(metrics.list_adornment_right_inset, 13.0);
         assert_eq!(metrics.selection_indicator_width, 3.0);
         assert_eq!(metrics.tree_base_inset_x, 14.0);
         assert_eq!(metrics.tree_disclosure_size, 13.0);
-        assert_eq!(metrics.tree_icon_size, 15.0);
+        assert_eq!(metrics.tree_icon_size, 17.0);
         assert_eq!(metrics.tree_text_gap, 8.0);
         assert_eq!(metrics.tree_action_size, 18.0);
         assert_eq!(metrics.tree_action_button_size, 23.0);

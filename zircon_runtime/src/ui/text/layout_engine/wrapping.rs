@@ -26,6 +26,20 @@ pub(super) fn wrap_source_runs_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
+    wrap_source_runs_with_line_widths_provider(runs, wrap, max_width, max_width, style, provider)
+}
+
+pub(super) fn wrap_source_runs_with_line_widths_provider<P>(
+    runs: &[UiTextSourceRun],
+    wrap: UiTextWrap,
+    first_line_width: f32,
+    continuation_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> Vec<CandidateLine>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     let mut lines = Vec::new();
     let mut current = CandidateLine::empty();
 
@@ -45,7 +59,8 @@ where
                     run.kind,
                     &segment.text,
                     segment.range,
-                    max_width,
+                    first_line_width,
+                    continuation_width,
                     style,
                     provider,
                     false,
@@ -56,7 +71,8 @@ where
                     run.kind,
                     &segment.text,
                     segment.range,
-                    max_width,
+                    first_line_width,
+                    continuation_width,
                     style,
                     provider,
                     true,
@@ -67,7 +83,8 @@ where
                     run.kind,
                     &segment.text,
                     segment.range,
-                    max_width,
+                    first_line_width,
+                    continuation_width,
                     style,
                     provider,
                 ),
@@ -130,7 +147,8 @@ fn append_word_wrapped_segment<P>(
     kind: UiTextRunKind,
     text: &str,
     range: UiTextRange,
-    max_width: f32,
+    first_line_width: f32,
+    continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut P,
     word_smart: bool,
@@ -143,6 +161,7 @@ fn append_word_wrapped_segment<P>(
         line_break_chunks_with_provider(text, style, provider)
     };
     for chunk in chunks {
+        let max_width = current_line_width(lines, first_line_width, continuation_width);
         let mut word_text = chunk.text;
         let mut word_source_range = UiTextRange {
             start: range.start + chunk.source_range.start,
@@ -176,6 +195,7 @@ fn append_word_wrapped_segment<P>(
                 continue;
             }
         }
+        let max_width = current_line_width(lines, first_line_width, continuation_width);
         if chunk.should_fallback_to_glyph_wrap_with_provider(word_text, max_width, style, provider)
         {
             append_glyph_wrapped_segment(
@@ -184,7 +204,8 @@ fn append_word_wrapped_segment<P>(
                 kind,
                 word_text,
                 word_source_range,
-                max_width,
+                first_line_width,
+                continuation_width,
                 style,
                 provider,
             );
@@ -208,7 +229,8 @@ fn append_glyph_wrapped_segment<P>(
     kind: UiTextRunKind,
     text: &str,
     range: UiTextRange,
-    max_width: f32,
+    first_line_width: f32,
+    continuation_width: f32,
     style: &UiResolvedStyle,
     provider: &mut P,
 ) where
@@ -217,6 +239,7 @@ fn append_glyph_wrapped_segment<P>(
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
     for (offset, grapheme) in grapheme_indices(&text[continuation_len..]) {
         let offset = continuation_len + offset;
+        let max_width = current_line_width(lines, first_line_width, continuation_width);
         if should_wrap_before_chunk_with_provider(
             &current.text,
             grapheme,
@@ -235,6 +258,18 @@ fn append_glyph_wrapped_segment<P>(
                 end: range.start + offset + grapheme.len(),
             },
         );
+    }
+}
+
+fn current_line_width(
+    lines: &[CandidateLine],
+    first_line_width: f32,
+    continuation_width: f32,
+) -> f32 {
+    if lines.is_empty() {
+        first_line_width
+    } else {
+        continuation_width
     }
 }
 

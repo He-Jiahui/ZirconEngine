@@ -3,8 +3,7 @@ related_code:
   - zircon_runtime/src/ui/v2/loader.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
@@ -62,7 +61,7 @@ doc_type: plan
 | 后缀分类 | `ui/v2/file_cache.rs:576,580` | `.zui`/`.v2.ui.toml` 判 v2，`.zui` 判 component | 统一识别 `.zui`；`.v2.ui.toml` 进废弃诊断 |
 | importer descriptor | `asset/importer/ingest/asset_importer.rs:174-175,416-420` | `.zui` → `ui_component` importer | `.zui` 承载 component/view/style 三 kind |
 | v2 importer kind 分派 | `asset/importer/ingest/import_ui_v2_asset.rs:16` | 按 `parsed.asset.kind` 分支；拒 `.v2.ui.toml` 的 component | 入口改由 `.zui` 驱动；`.v2.ui.toml` 走废弃路径 |
-| zui importer | `asset/importer/ingest/import_ui_zui_asset.rs` | 解析 `.zui` component | 扩展到 view/style |
+| zui importer | `zircon_plugins/ui_document_importer/runtime/src/lib.rs` | 解析 `.zui` component/view/style | 当前 plugin-owned 单一入口，无 Runtime 内置 importer 兼容路径 |
 | source-template registry | `asset/importer/registry.rs:20-23,80` | 拒 `.ui.toml`/`.v2.ui.toml` source-template，要求 `.zui` | 收敛为单一 `.zui` 校验 + 废弃诊断 |
 | 错误文案 | `asset/assets/ui.rs:131` | "must use `.zui`, not `.v2.ui.toml`" | 保留并扩展到 view/style |
 | 热重载 plan | `ui/template/asset/hot_reload_plan.rs:158` | 同时认 `.zui`/`.v2.ui.toml`/`.ui.toml` | 仅认 `.zui` |
@@ -78,7 +77,7 @@ doc_type: plan
 - T1：`ui/v2/loader.rs` 把 `validate_zui_component_profile` 重构为 `validate_zui_document_profile`，按 `document.asset.kind` 分派：
   - `Component` → 现有组件 profile（无 `[root]`、恰好一个 component）。
   - `View` / `Style` → root profile（允许 `[root]`、允许 imports.widgets/styles，沿用 `.v2.ui.toml` 现行 view/style 校验）。
-- T2：`asset/importer/ingest/import_ui_zui_asset.rs` 扩展 kind 分派，复用 `import_ui_v2_asset.rs` 的 view/style 物化路径（不复制逻辑，抽 owner 共享函数）。
+- T2：`zircon_plugins/ui_document_importer/runtime/src/lib.rs` 统一按 kind 分派 component/view/style；Runtime 只提供 current document loader/DTO，不复制 plugin importer，也不保留旧 ingest owner。
 - T3：`file_cache.rs` 后缀分类把 `.zui` 视为可承载任意 kind；`.v2.ui.toml` 暂保留为废弃可读路径。
 - T4（2026-07-02 评审收口，U6 联动）：**theme_tokens profile 校验/物化切片**——`validate_zui_document_profile` 补 `ThemeTokens` 分支：仅允许 `[asset]` + token 表（palette/typography/spacing 等 token 组表），禁 `[root]`、禁 component、禁 imports.widgets；物化由 importer 走 theme 资产路径，**消费方 = 计划 04 ThemeRegistry/loader**（04/05 已按 U6 改为 `.zui` theme_tokens profile，生产已有 `editor_tokens.zui`），本计划只持有后缀/profile 校验层，不定义 token 语义。
 - 测试：`ui/tests/v2_asset/asset_loading.rs` 新增 `zui_view_root_loads`、`zui_style_root_loads`、`zui_component_still_enforced`；锁定三 kind 分派与组件档不回退。（2026-07-02 评审收口）补 `zui_theme_tokens_profile_enforced`（theme_tokens 档拒 `[root]`/component 混入），四 kind 分派齐备。
@@ -159,3 +158,4 @@ M3 + M4 ──→ M5（删后缀支持 + 闸口）
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`11/2026-07-09-zui-suffix-convergence-and-ui-toml-retirement-output-records.md`](11/2026-07-09-zui-suffix-convergence-and-ui-toml-retirement-output-records.md)
+- open 待修复：[plan-output-archive-notice](11/failure-2026-07-13-plan-output-archive-notice.md)

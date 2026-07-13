@@ -3,19 +3,19 @@ use super::*;
 #[test]
 fn animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_session_state() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_sequence_dirty");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_sequence_asset")
-        .join("hero.sequence.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_sequence_asset(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_sequence_dirty");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_sequence_asset_project",
+        "res://animation/hero.sequence.zranim",
+        write_sequence_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
-            }),
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset { asset_locator }),
         )
         .unwrap();
 
@@ -64,20 +64,20 @@ fn animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_ses
 #[test]
 fn animation_sequence_ignores_timeline_selection_for_missing_track() {
     let _guard = env_lock().lock().unwrap();
-    let harness =
+    let mut harness =
         EventRuntimeHarness::new("zircon_editor_event_animation_sequence_missing_selection");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_sequence_missing_selection")
-        .join("hero.sequence.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_sequence_asset(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_sequence_missing_selection_project",
+        "res://animation/hero.sequence.zranim",
+        write_sequence_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
-            }),
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset { asset_locator }),
         )
         .unwrap();
     harness
@@ -131,20 +131,20 @@ fn animation_sequence_ignores_timeline_selection_for_missing_track() {
 #[test]
 fn animation_sequence_removing_selected_track_clears_selection_summary() {
     let _guard = env_lock().lock().unwrap();
-    let harness =
+    let mut harness =
         EventRuntimeHarness::new("zircon_editor_event_animation_sequence_remove_selected");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_sequence_remove_selected")
-        .join("hero.sequence.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_sequence_asset_with_multiple_tracks(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_sequence_remove_selected_project",
+        "res://animation/hero.sequence.zranim",
+        write_sequence_asset_with_multiple_tracks,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
-            }),
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset { asset_locator }),
         )
         .unwrap();
     harness

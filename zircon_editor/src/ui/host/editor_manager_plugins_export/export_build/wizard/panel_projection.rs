@@ -1,12 +1,11 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use serde_json::Value;
 
 use super::{
-    export_pipeline_stage_cli_id, ExportStageProgressKind, ExportWizardControlState,
-    ExportWizardJobStatus, ExportWizardPanelViewModel, ExportWizardStageArtifactPath,
-    ExportWizardStageViewRow, DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON,
-    DESKTOP_EXPORT_START_BUTTON,
+    ExportStageProgressKind, ExportWizardControlState, ExportWizardJobStatus,
+    ExportWizardPanelViewModel, ExportWizardStageArtifactPath, ExportWizardStageViewRow,
+    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_START_BUTTON,
 };
 
 pub const DESKTOP_EXPORT_MISSING_INPUTS_SLOT: &str = "DesktopExportMissingInputs";
@@ -38,7 +37,7 @@ pub struct ExportWizardPanelSlotEntry {
     pub key: String,
     pub label: String,
     pub detail: String,
-    pub stage: Option<ExportPipelineStage>,
+    pub stage: Option<ExportStage>,
     pub severity: ExportWizardPanelEntrySeverity,
 }
 
@@ -283,7 +282,7 @@ fn report_body_entries(
         entries.push(ExportWizardPanelSlotEntry {
             key: "current_stage".to_string(),
             label: "Current Stage".to_string(),
-            detail: export_pipeline_stage_cli_id(stage).to_string(),
+            detail: stage.cli_id().to_string(),
             stage: Some(stage),
             severity: ExportWizardPanelEntrySeverity::Info,
         });
@@ -302,15 +301,13 @@ fn report_body_entries(
 fn pipeline_report_body_entry(
     rows: &[ExportWizardStageViewRow],
 ) -> Option<ExportWizardPanelSlotEntry> {
-    let report = rows
-        .iter()
-        .find(|row| row.stage == ExportPipelineStage::Report)?;
+    let report = rows.iter().find(|row| row.stage == ExportStage::Report)?;
     let path = artifact_path_for_key(report, "pipeline_report")?;
     Some(ExportWizardPanelSlotEntry {
         key: "report.pipeline_report".to_string(),
         label: "Pipeline Report".to_string(),
         detail: path,
-        stage: Some(ExportPipelineStage::Report),
+        stage: Some(ExportStage::Report),
         severity: severity_for_progress(report.progress_kind),
     })
 }
@@ -318,10 +315,7 @@ fn pipeline_report_body_entry(
 fn report_export_plan_body_entries(
     rows: &[ExportWizardStageViewRow],
 ) -> Vec<ExportWizardPanelSlotEntry> {
-    let Some(report) = rows
-        .iter()
-        .find(|row| row.stage == ExportPipelineStage::Report)
-    else {
+    let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
         return Vec::new();
     };
     let Some(summary) = export_plan_summary_from_report_stdout(&report.stdout_lines) else {
@@ -361,10 +355,7 @@ fn report_export_plan_body_entries(
 fn report_native_plugins_payload_body_entries(
     rows: &[ExportWizardStageViewRow],
 ) -> Vec<ExportWizardPanelSlotEntry> {
-    let Some(report) = rows
-        .iter()
-        .find(|row| row.stage == ExportPipelineStage::Report)
-    else {
+    let Some(report) = rows.iter().find(|row| row.stage == ExportStage::Report) else {
         return Vec::new();
     };
     let Some(summary) = native_plugins_payload_summary_from_report_stdout(&report.stdout_lines)
@@ -424,7 +415,7 @@ fn push_optional_report_entry(
             key: key.to_string(),
             label: label.to_string(),
             detail,
-            stage: Some(ExportPipelineStage::Report),
+            stage: Some(ExportStage::Report),
             severity,
         });
     }
@@ -440,7 +431,7 @@ fn export_plan_entry(
         key: key.to_string(),
         label: label.to_string(),
         detail: value_list_detail(&values),
-        stage: Some(ExportPipelineStage::Report),
+        stage: Some(ExportStage::Report),
         severity,
     }
 }

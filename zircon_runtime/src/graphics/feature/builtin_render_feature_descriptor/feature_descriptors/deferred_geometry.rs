@@ -19,17 +19,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         vec![
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
-                "preview-sky",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("sky.preview-final-color")
-            .write_external_texture_with_ops(
-                PostProcessGraphResourceNames::FINAL_COLOR,
-                RenderGraphAttachmentOps::clear_store(),
-            )
-            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
                 "depth-prepass",
                 QueueLane::Graphics,
             )
@@ -46,6 +35,17 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "preview-sky",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("sky.preview-scene-color")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                RenderGraphAttachmentOps::load_store(),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "transparent-mesh",
@@ -67,6 +67,37 @@ mod tests {
     };
     use super::*;
     use crate::render_graph::RenderGraphExternalResourceBinding;
+
+    #[test]
+    fn deferred_preview_sky_composites_scene_color_after_lighting_before_transparency() {
+        let descriptor = descriptor();
+        let sky_index = descriptor
+            .stage_passes
+            .iter()
+            .position(|pass| pass.pass_name == "preview-sky")
+            .expect("preview sky pass");
+        let transparent_index = descriptor
+            .stage_passes
+            .iter()
+            .position(|pass| pass.pass_name == "transparent-mesh")
+            .expect("transparent mesh pass");
+        let sky = &descriptor.stage_passes[sky_index];
+
+        assert_eq!(sky.stage, RenderPassStage::Transparent3d);
+        assert!(sky_index < transparent_index);
+        assert!(sky.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_COLOR
+                && resource.access == RenderFeatureResourceAccess::Write
+        }));
+        assert!(sky.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+                && resource.access == RenderFeatureResourceAccess::Read
+        }));
+        assert!(!sky
+            .resources
+            .iter()
+            .any(|resource| { resource.name == PostProcessGraphResourceNames::FINAL_COLOR }));
+    }
 
     #[test]
     fn deferred_transparent_mesh_requires_shadow_atlas_external_texture() {

@@ -1,5 +1,6 @@
 use crate::core::framework::render::RenderLayerSet;
 use crate::core::framework::scene::EntityId;
+use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Vec2, Vec3};
 
 use super::shadow_settings::LightShadowSettings;
@@ -12,6 +13,7 @@ pub struct RenderDirectionalLightSnapshot {
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
+    pub mobility: Mobility,
     pub shadow: Option<LightShadowSettings>,
 }
 
@@ -24,6 +26,7 @@ pub struct RenderPointLightSnapshot {
     pub color: Vec3,
     pub intensity: Real,
     pub range: Real,
+    pub mobility: Mobility,
     pub shadow: Option<LightShadowSettings>,
 }
 
@@ -39,6 +42,7 @@ pub struct RenderSpotLightSnapshot {
     pub range: Real,
     pub inner_angle_radians: Real,
     pub outer_angle_radians: Real,
+    pub mobility: Mobility,
     pub shadow: Option<LightShadowSettings>,
 }
 

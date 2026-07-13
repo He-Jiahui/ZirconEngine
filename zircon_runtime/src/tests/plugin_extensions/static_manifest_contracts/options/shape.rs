@@ -9,7 +9,10 @@ pub(super) fn assert_known_value_type(
     value_type: &str,
 ) {
     assert!(
-        matches!(value_type, "bool" | "integer" | "number" | "string" | "enum"),
+        matches!(
+            value_type,
+            "bool" | "integer" | "number" | "string" | "enum"
+        ),
         "plugin manifest {relative_path:?} {option_context} value_type `{value_type}` should be bool, integer, number, string, or enum"
     );
 }
@@ -43,7 +46,12 @@ pub(super) fn assert_default_value_shape(
                 "plugin manifest {relative_path:?} {option_context} number default_value `{default_value}` should be finite"
             );
         }
-        "enum" => assert_enum_token(relative_path, option_context, "default_value", default_value),
+        "enum" => assert_enum_token(
+            relative_path,
+            option_context,
+            "default_value",
+            default_value,
+        ),
         "string" => {}
         _ => unreachable!("value_type should already be validated"),
     }
@@ -91,12 +99,10 @@ pub(super) fn assert_enum_token(
 ) {
     assert_trimmed(relative_path, option_context, field_name, value);
     assert!(
-        value
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || byte == b'_'
-                || byte == b'-'),
+        value.bytes().all(|byte| byte.is_ascii_lowercase()
+            || byte.is_ascii_digit()
+            || byte == b'_'
+            || byte == b'-'),
         "plugin manifest {relative_path:?} {option_context} enum `{field_name}` value `{value}` should contain only lowercase ASCII letters, digits, underscores, or hyphens"
     );
 }

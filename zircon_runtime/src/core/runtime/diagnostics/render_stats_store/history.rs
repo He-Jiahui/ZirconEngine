@@ -199,6 +199,13 @@ fn record_history_copy_report(store: &mut DiagnosticStore, stats: &RenderStats) 
         report.exposure_copied,
         &["render", "history", "copy", "exposure"],
     );
+    record_bool(
+        store,
+        "render.history.copy.volumetric_scattering_copied",
+        frame_index,
+        report.volumetric_scattering_copied,
+        &["render", "history", "copy", "volumetric_scattering"],
+    );
 }
 
 fn record_invalidation_reason(

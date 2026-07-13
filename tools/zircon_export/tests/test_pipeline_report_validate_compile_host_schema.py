@@ -772,7 +772,6 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
         _write_pack_report(out, out / "pack-output" / "assets.zrpack")
         _write_stage_report(out, "platform_bundle", fatal=False)
         self._update_validate_compile_host_plan(out, field, value)
-        self._update_compile_host_link_plan(out, field, value)
 
     def _write_reports_with_compile_host_plan(
         self,
@@ -813,24 +812,6 @@ class PipelineReportValidateCompileHostSchemaTests(unittest.TestCase):
         validate_report["plan_summary"] = plan_summary
         validate_report_path.write_text(
             json.dumps(validate_report, indent=2),
-            encoding="utf-8",
-        )
-
-    def _update_compile_host_link_plan(
-        self,
-        out: Path,
-        field: str,
-        value: object,
-    ) -> None:
-        compile_host_report_path = out / "stages" / "compile_host" / "report.json"
-        compile_host_report = json.loads(
-            compile_host_report_path.read_text(encoding="utf-8")
-        )
-        link_plan = compile_host_report["link_plan"]
-        if isinstance(link_plan, dict) and field in link_plan:
-            link_plan[field] = value
-        compile_host_report_path.write_text(
-            json.dumps(compile_host_report, indent=2),
             encoding="utf-8",
         )
 

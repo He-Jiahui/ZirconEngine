@@ -116,7 +116,7 @@ Dashboard-style Open Editor can fall back to the latest recent project only when
 
 ## Create And Import
 
-`CreateProjectRequest` owns request-level validation and target-root derivation. `create_project()` currently enables only the `renderable-empty` template. It validates that the target directory is empty or missing, creates the standard local project layout, writes `zircon-project.toml`, writes the default scene and starter assets, then returns a `CreateProjectReport`.
+`CreateProjectRequest` owns request-level validation and target-root derivation. `create_project()` currently enables only the `renderable-empty` template. It renders the shared interface template pack, writes the complete versioned directory into a sibling staging directory, validates linked-path and empty-target boundaries, and commits with rename. The returned `CreateProjectReport` includes the parsed manifest Summary. Hub carries no duplicate starter-asset strings and has no runtime source-checkout lookup.
 
 `create_project_from_payload` resolves the Source Engine id, rejects disabled templates as localized coming-soon failures, calls `create_project()`, remembers the new project in Hub recent-project metadata, stores the bound engine/template, selects the new project, refreshes selected-project scoped catalogs, records a create-project action-history row, and persists Hub plus Editor recent state. `CreateProjectDialog` still renders disabled template rows from the DTO so future templates remain visible, but it can submit only enabled templates.
 
@@ -148,7 +148,7 @@ Every lifecycle and workflow handoff records action-history data through the Hub
 
 `HubConfig.runtime` stores selected page, project subpage, search/filter/sort/view mode, selected project path, selected template id, new-project location, and new-project engine id. Hub project metadata stores pin state, Source Engine binding, and last selected template by normalized project path. Editor recent sync remains isolated to the existing Editor JSON startup session.
 
-Recent projects merge by normalized path key, keep newest entries, and preserve Editor state that is outside Hub ownership. Hub writes Editor recent state only through the runtime persistence boundary after project create/import/open/remove/delete state changes that intentionally affect startup context.
+Recent projects persist `ProjectManifestSummary`, path, and timestamp. They merge by normalized path key, keep newest entries, refresh the Summary from an existing manifest during import/config load/Editor sync, and preserve Editor state that is outside Hub ownership. Hub writes Editor recent state only through the runtime persistence boundary after project create/import/open/remove/delete state changes that intentionally affect startup context. A separate persisted display-name truth no longer exists.
 
 ## Validation Ownership
 

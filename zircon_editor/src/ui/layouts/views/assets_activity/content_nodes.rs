@@ -4,8 +4,7 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::ViewTemplateNodeData;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::asset_content_layout::{
-    resource_kind_badge_code, ACTIVITY_CONTENT_EMPTY_CONTROL_ID, ACTIVITY_CONTENT_FOLDER_PREFIX,
-    ACTIVITY_CONTENT_ITEM_PREFIX,
+    ACTIVITY_CONTENT_EMPTY_CONTROL_ID, ACTIVITY_CONTENT_FOLDER_PREFIX, ACTIVITY_CONTENT_ITEM_PREFIX,
 };
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetWorkspaceSnapshot,
@@ -60,7 +59,7 @@ pub(super) fn append_assets_activity_content_nodes(
         nodes.push(type_badge(item_badge_control_id(index)));
         nodes.push(label_node(
             item_type_control_id(index),
-            resource_kind_badge_code(asset.kind).to_string(),
+            asset.asset_type.badge.clone(),
             "accent",
             typography().caption_size,
             typography().strong_weight as i32,

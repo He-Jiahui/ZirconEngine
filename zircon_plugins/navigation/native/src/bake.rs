@@ -3,9 +3,11 @@ use std::ffi::CStr;
 use std::slice;
 use std::sync::Arc;
 
-use zircon_runtime::asset::{NavMeshAsset, NavMeshPolygonAsset, NavMeshTileAsset};
 use zircon_runtime::core::framework::navigation::{
     NavAreaId, NavigationError, NavigationErrorKind,
+};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAsset, NavMeshPolygonAsset, NavMeshTileAsset,
 };
 use zircon_runtime::core::math::Real;
 

@@ -18,7 +18,7 @@
 - Follow `zirconEngine` milestone-first cadence. Implementation slices may add production code, test code, comments, and docs; compile/build/unit-test execution belongs to each milestone's named testing stage unless a blocker requires a scoped `cargo check` earlier.
 - If an editor panel or overlay test fails, diagnose shared snapshot generation first. Do not add editor-only geometry, hit-test, or draw-order reconstruction to make an upper layer pass.
 - Keep root wiring files structural. If new debug DTOs or builders grow, split by declaration and behavior instead of adding large sections to `mod.rs` or broad files.
-- `zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs` is 881 lines. Avoid adding more than a small call site there; put new overlay drawing helpers under a focused painter child module if overlay code grows.
+- `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs` is 881 lines. Avoid adding more than a small call site there; put new overlay drawing helpers under a focused painter child module if overlay code grows.
 - Do not copy Unreal APIs. Reference `SWidgetReflector`, `WidgetReflectorNode`, `SWidgetHittestGrid`, `SlateDebugging`, `FHittestGrid`, and `SlateInvalidationRoot` for responsibilities and evidence only.
 
 ## Current Baseline
@@ -28,7 +28,7 @@
 - `zircon_runtime/src/ui/surface/diagnostics.rs` already builds basic reflector nodes, material batches, overdraw summary, and rebuild stats from `UiSurfaceFrame`.
 - `zircon_runtime/src/ui/surface/frame_hit_test.rs` already supports query-aware hit-test debug dumps with virtual pointer and cursor radius.
 - `zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs`, `presenter.rs`, `redraw.rs`, and `app/invalidation.rs` already expose host refresh, damage, and invalidation counters.
-- `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml` and the `RuntimeDiagnostics` pane already exist and can host the first Debug Reflector view without creating a new top-level editor system.
+- `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui` and the `RuntimeDiagnostics` pane already exist and can host the first Debug Reflector view without creating a new top-level editor system.
 
 ## File Structure
 
@@ -61,9 +61,9 @@
 - Modify `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs`: add a `UiDebugReflectorV1` payload or extend `RuntimeDiagnosticsPanePayload` only if the first implementation intentionally embeds reflector into Runtime Diagnostics.
 - Modify `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs`: include a debug-reflector summary section from the latest available UI snapshot when embedding into Runtime Diagnostics.
 - Modify `zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs`: project debug-reflector fields into template attributes.
-- Modify `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml`: add a Debug Reflector section with tree/detail/render/hit/overdraw/invalidation summaries while preserving the existing Focus Diagnostics action.
+- Modify `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui`: add a Debug Reflector section with tree/detail/render/hit/overdraw/invalidation summaries while preserving the existing Focus Diagnostics action.
 - Modify `zircon_editor/src/ui/slint_host/host_contract/data/panes.rs`: add host payload fields only if native painter needs structured reflector rows.
-- Modify `zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs`: add only the call site for reflector overlay drawing.
+- Modify `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs`: add only the call site for reflector overlay drawing.
 - Create `zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs`: draw selected frame, clip frame, hit cells, overdraw cells, material bounds, reject bounds, and damage region.
 - Modify `zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs`: wire the overlay drawing helper.
 - Modify `zircon_editor/src/tests/host/slint_window/native_host_contract.rs`: cover native host reflector payload/overlay behavior.

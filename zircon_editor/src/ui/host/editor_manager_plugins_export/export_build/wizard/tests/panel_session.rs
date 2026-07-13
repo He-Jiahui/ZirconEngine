@@ -1,9 +1,10 @@
 use std::sync::mpsc::channel;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use crate::core::jobs::{test_job_system_with_limits, EditorJobLimits, JobCategory, JobError};
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::template_runtime::EditorUiHostRuntime;
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
 use super::support::*;
@@ -67,12 +68,13 @@ fn export_wizard_panel_bindings_project_template_button_events() {
 
 #[test]
 fn export_wizard_panel_session_rejects_unready_start_until_plan_regenerates() {
-    let missing_plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let missing_plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
     ));
-    let mut session = ExportWizardPanelSession::new("export-panel-missing", missing_plan);
+    let mut session =
+        ExportWizardPanelSession::new(editor_jobs(), "export-panel-missing", missing_plan);
 
     assert!(!session.view_model().controls().can_start);
     assert_eq!(
@@ -93,12 +95,13 @@ fn export_wizard_panel_session_rejects_unready_start_until_plan_regenerates() {
 
 #[test]
 fn export_wizard_panel_session_dispatches_generate_plan_request() {
-    let missing_plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let missing_plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
     ));
-    let mut session = ExportWizardPanelSession::new("export-panel-missing", missing_plan);
+    let mut session =
+        ExportWizardPanelSession::new(editor_jobs(), "export-panel-missing", missing_plan);
 
     let update = session
         .handle_request(ExportWizardPanelRequest::generate_plan(
@@ -119,7 +122,7 @@ fn export_wizard_panel_session_dispatches_generate_plan_request() {
 #[test]
 fn export_wizard_panel_session_rejects_generate_plan_call_without_options() {
     let plan = export_wizard_pipeline_plan(ready_export_options());
-    let mut session = ExportWizardPanelSession::new("export-panel-call", plan);
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-panel-call", plan);
     let call = export_wizard_panel_action_call(
         ExportWizardPanelAction::GeneratePlan,
         DESKTOP_EXPORT_GENERATE_PLAN_BUTTON,
@@ -140,7 +143,7 @@ fn export_wizard_panel_session_starts_polls_and_cancels_job() {
     let (stage_started_sender, stage_started_receiver) = channel();
     let (release_stage_sender, release_stage_receiver) = channel();
     let runner = BlockingRunner::new(stage_started_sender, release_stage_receiver);
-    let mut session = ExportWizardPanelSession::new("export-panel-cancel", plan);
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-panel-cancel", plan);
 
     let start_update = session
         .handle_start_request_with_runner(runner)
@@ -155,7 +158,7 @@ fn export_wizard_panel_session_starts_polls_and_cancels_job() {
         stage_started_receiver
             .recv_timeout(Duration::from_secs(1))
             .expect("first stage should start before polling"),
-        ExportPipelineStage::Validate
+        ExportStage::Validate
     );
 
     let poll_update = session
@@ -177,11 +180,24 @@ fn export_wizard_panel_session_starts_polls_and_cancels_job() {
         .send(())
         .expect("release first stage after cancel");
 
-    let snapshot = session
-        .finish_job()
-        .expect("panel job should join")
-        .expect("panel job should have been active");
-    assert_eq!(snapshot.status, ExportWizardJobStatus::Cancelled);
+    assert_eq!(
+        poll_until_error(&mut session),
+        ExportWizardPanelSessionError::Job(JobError::Cancelled)
+    );
+    assert_eq!(
+        session.view_model().snapshot().status,
+        ExportWizardJobStatus::Cancelled
+    );
+    assert_eq!(session.view_model().snapshot().stages.len(), 1);
+    assert!(!session.view_model().snapshot().stages[0]
+        .stdout_lines
+        .is_empty());
+    assert!(session
+        .view_model()
+        .snapshot()
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("cancelled after Validate finished")));
     assert_eq!(session.active_job_id(), None);
     assert_eq!(
         session.view_model().latest_event_kind(),
@@ -194,7 +210,7 @@ fn export_wizard_panel_session_starts_polls_and_cancels_job() {
 #[test]
 fn export_wizard_panel_session_poll_finishes_terminal_job() {
     let plan = export_wizard_pipeline_plan(ready_export_options());
-    let mut session = ExportWizardPanelSession::new("export-panel-finished", plan);
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-panel-finished", plan);
 
     let start_update = session
         .handle_start_request_with_runner(StubRunner::default())
@@ -209,7 +225,7 @@ fn export_wizard_panel_session_poll_finishes_terminal_job() {
         let update = session
             .handle_request(ExportWizardPanelRequest::Poll)
             .expect("poll request should drain events and finish terminal jobs");
-        if update.snapshot.is_terminal() {
+        if update.snapshot.is_terminal() && update.active_job_id.is_none() {
             terminal_update = Some(update);
             break;
         }
@@ -239,4 +255,182 @@ fn export_wizard_panel_session_poll_finishes_terminal_job() {
         .expect("terminal poll should clear the old controller");
     assert_eq!(generate_update.snapshot.job_id, "export-panel-next");
     assert!(session.view_model().controls().can_start);
+}
+
+#[test]
+fn export_wizard_panel_session_poll_preserves_typed_job_failure_and_clears_active_job() {
+    struct PanicRunner;
+
+    impl ExportWizardCommandRunner for PanicRunner {
+        fn run(
+            &mut self,
+            _command: &ExportWizardPipelineStageCommand,
+        ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+            panic!("typed export runner failure")
+        }
+    }
+
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-panel-panic", plan);
+    session
+        .start_with_runner(PanicRunner)
+        .expect("panic runner job should submit");
+
+    let error = poll_until_error(&mut session);
+    assert!(matches!(
+        error,
+        ExportWizardPanelSessionError::Job(JobError::Panicked(message))
+            if message.contains("typed export runner failure")
+    ));
+    assert_eq!(session.active_job_id(), None);
+    assert!(session.view_model().snapshot().is_terminal());
+    assert_eq!(
+        session.view_model().snapshot().status,
+        ExportWizardJobStatus::Failed
+    );
+    assert!(session
+        .view_model()
+        .snapshot()
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("typed export runner failure")));
+    assert!(session.view_model().controls().can_close);
+    assert!(!session.view_model().controls().can_cancel);
+}
+
+#[test]
+fn export_wizard_panel_session_poll_retains_final_business_failure_event() {
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let runner = StubRunner::with_execution(ExportWizardCommandExecution {
+        exit_code: Some(7),
+        stdout_lines: Vec::new(),
+        stderr_lines: vec!["poll business failure".to_string()],
+    });
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-poll-failed", plan);
+    session
+        .start_with_runner(runner)
+        .expect("failed business runner should submit");
+
+    let error = poll_until_error(&mut session);
+    let ExportWizardPanelSessionError::Job(job_error) = &error else {
+        panic!("panel returned the wrong failure type: {error:?}");
+    };
+    assert!(matches!(
+        job_error.downcast_ref::<EditorExportBuildError>(),
+        Some(EditorExportBuildError::WizardStageFailed {
+            stage: ExportStage::Validate,
+            exit_code: Some(7),
+        })
+    ));
+    let snapshot = session.view_model().snapshot();
+    assert_eq!(snapshot.status, ExportWizardJobStatus::Failed);
+    assert_eq!(snapshot.stages.len(), 1);
+    assert!(snapshot.stages[0]
+        .stderr_lines
+        .iter()
+        .any(|line| line.contains("poll business failure")));
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("poll business failure")));
+    assert_eq!(
+        session.view_model().latest_event_kind(),
+        Some(ExportWizardJobEventKind::Failed)
+    );
+    assert_eq!(session.active_job_id(), None);
+}
+
+#[test]
+fn export_wizard_panel_session_direct_finish_projects_typed_job_failure() {
+    struct PanicRunner;
+
+    impl ExportWizardCommandRunner for PanicRunner {
+        fn run(
+            &mut self,
+            _command: &ExportWizardPipelineStageCommand,
+        ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+            panic!("direct finish export runner failure")
+        }
+    }
+
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let mut session = ExportWizardPanelSession::new(editor_jobs(), "export-finish-panic", plan);
+    session
+        .start_with_runner(PanicRunner)
+        .expect("panic runner job should submit");
+
+    assert!(matches!(
+        session.finish_job(),
+        Err(ExportWizardPanelSessionError::Job(JobError::Panicked(message)))
+            if message.contains("direct finish export runner failure")
+    ));
+    assert_eq!(session.active_job_id(), None);
+    assert_eq!(
+        session.view_model().snapshot().status,
+        ExportWizardJobStatus::Failed
+    );
+    assert!(session.view_model().snapshot().is_terminal());
+    assert!(session.view_model().controls().can_close);
+    assert!(!session.view_model().controls().can_cancel);
+}
+
+#[test]
+fn export_wizard_panel_session_poll_finishes_queued_prestart_cancellation() {
+    let jobs =
+        test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Export, 1));
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let (stage_started_sender, stage_started_receiver) = channel();
+    let (release_stage_sender, release_stage_receiver) = channel();
+    let first = ExportWizardJobController::submit(
+        &jobs,
+        "export-quota-gate",
+        plan.clone(),
+        BlockingRunner::new(stage_started_sender, release_stage_receiver),
+    )
+    .expect("quota gate should submit");
+    stage_started_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("quota gate should occupy the export category");
+
+    let mut session = ExportWizardPanelSession::new(jobs.clone(), "export-queued-cancel", plan);
+    session
+        .start_with_runner(StubRunner::default())
+        .expect("queued export should submit");
+    let cancellation = match session.handle_request(ExportWizardPanelRequest::Cancel) {
+        Ok(_) => poll_until_error(&mut session),
+        Err(error) => error,
+    };
+
+    assert_eq!(
+        cancellation,
+        ExportWizardPanelSessionError::Job(JobError::Cancelled)
+    );
+    assert_eq!(session.active_job_id(), None);
+    assert!(session.view_model().snapshot().is_terminal());
+    assert_eq!(
+        session.view_model().snapshot().status,
+        ExportWizardJobStatus::Cancelled
+    );
+    assert!(session.view_model().snapshot().cancel_requested);
+    assert!(session.view_model().controls().can_close);
+    assert!(!session.view_model().controls().can_cancel);
+
+    release_stage_sender
+        .send(())
+        .expect("quota gate should be released");
+    // This fixture gates only the first stage. Disconnect the receiver so later
+    // stages do not wait for release messages that the test never intends to send.
+    drop(release_stage_sender);
+    first.finish().result.expect("quota gate should finish");
+}
+
+fn poll_until_error(session: &mut ExportWizardPanelSession) -> ExportWizardPanelSessionError {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        match session.handle_request(ExportWizardPanelRequest::Poll) {
+            Ok(_) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(1)),
+            Ok(_) => panic!("poll missed the five second terminal error deadline"),
+            Err(error) => return error,
+        }
+    }
 }

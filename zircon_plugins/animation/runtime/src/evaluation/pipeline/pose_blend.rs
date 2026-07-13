@@ -64,7 +64,8 @@ pub(super) fn blend_graph_base_poses(
     source: AnimationPoseSource,
     active_state: Option<String>,
 ) -> Option<AnimationPoseOutput> {
-    let first = weighted_poses.first()?.clone();
+    let mut weighted_poses = weighted_poses.into_iter();
+    let first = weighted_poses.next()?;
     let first_weight = first.weight;
     let first_target_mask = first.target_mask;
     let first_target_ids = first.legacy_target_ids;
@@ -83,7 +84,7 @@ pub(super) fn blend_graph_base_poses(
         }
     }
 
-    for weighted in weighted_poses.into_iter().skip(1) {
+    for weighted in weighted_poses {
         for (bone_index, bone) in bones.iter_mut().enumerate() {
             if !graph_pose_targets_bone(
                 weighted.target_mask.as_deref(),

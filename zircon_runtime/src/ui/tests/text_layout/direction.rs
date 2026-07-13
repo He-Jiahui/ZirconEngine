@@ -95,7 +95,7 @@ font_size = 10.0
 line_height = 12.0
 wrap = "word"
 text_overflow = "ellipsis"
-rich_text = true
+rich_text_format = "markdown"
 "#,
                 )
                 .unwrap(),

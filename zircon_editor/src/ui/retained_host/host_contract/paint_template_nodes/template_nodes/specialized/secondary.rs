@@ -12,13 +12,16 @@ use super::super::super::template_icon_buttons::push_icon_button_commands;
 use super::super::super::template_inspector_rows::push_inspector_row_commands;
 use super::super::super::template_list_rows::push_list_row_commands;
 use super::super::super::template_notification_center::push_notification_center_commands;
+use super::super::super::template_sample_grid::push_sample_grid_commands;
 use super::super::super::template_section_titles::push_section_title_commands;
 use super::super::super::template_sliders::push_slider_commands;
 use super::super::super::template_status_controls::push_status_control_commands;
 use super::super::super::template_table_rows::push_table_row_commands;
+use super::super::super::template_timeline_strip::push_timeline_strip_commands;
 use super::super::super::template_tooltips::push_tooltip_commands;
 use super::super::super::template_tree_rows::push_tree_row_commands;
 use super::super::super::template_viewport_scene::push_viewport_scene_commands;
+use super::super::super::template_weight_heatmap::push_weight_heatmap_commands;
 
 pub(super) fn push_secondary_specialized_template_node_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -29,6 +32,9 @@ pub(super) fn push_secondary_specialized_template_node_commands(
     opacity: f32,
 ) -> bool {
     push_tree_row_commands(commands, node, rect, node_clip, order, opacity)
+        || push_sample_grid_commands(commands, node, rect, node_clip, order, opacity)
+        || push_weight_heatmap_commands(commands, node, rect, node_clip, order, opacity)
+        || push_timeline_strip_commands(commands, node, rect, node_clip, order, opacity)
         || push_list_row_commands(commands, node, rect, node_clip, order, opacity)
         || push_table_row_commands(commands, node, rect, node_clip, order, opacity)
         || push_status_control_commands(commands, node, rect, node_clip, order, opacity)

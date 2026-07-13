@@ -41,7 +41,7 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_velocity_vertex/particle_velocity_vertex.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle_velocity.wgsl

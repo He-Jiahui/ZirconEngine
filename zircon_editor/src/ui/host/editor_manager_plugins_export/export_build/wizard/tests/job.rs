@@ -1,14 +1,18 @@
+use std::error::Error as _;
+use std::io;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-use zircon_runtime::plugin::ExportPipelineStage;
+use crate::core::jobs::{JobError, JobSubmitError};
+use crate::ui::host::export_process_support::ExportProcessError;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
 use super::support::*;
 
 #[test]
 fn export_wizard_job_state_finishes_from_successful_pipeline_execution() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -27,13 +31,13 @@ fn export_wizard_job_state_finishes_from_successful_pipeline_execution() {
     assert_eq!(snapshot.status, ExportWizardJobStatus::Finished);
     assert!(snapshot.is_terminal());
     assert!(!snapshot.fatal);
-    assert_eq!(snapshot.current_stage, Some(ExportPipelineStage::Report));
-    assert_eq!(snapshot.stages.len(), export_pipeline_stages().len());
+    assert_eq!(snapshot.current_stage, Some(ExportStage::Report));
+    assert_eq!(snapshot.stages.len(), ExportStage::ALL.len());
 }
 
 #[test]
 fn export_wizard_job_state_exposes_plan_diagnostic_failure_without_starting() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -55,7 +59,7 @@ fn export_wizard_job_state_exposes_plan_diagnostic_failure_without_starting() {
 
 #[test]
 fn export_wizard_job_state_tracks_cancel_request_and_cancelled_terminal_state() {
-    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -80,7 +84,7 @@ fn export_wizard_job_state_tracks_cancel_request_and_cancelled_terminal_state() 
 
 #[test]
 fn export_wizard_job_runner_emits_successful_snapshot_events() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -100,11 +104,11 @@ fn export_wizard_job_runner_emits_successful_snapshot_events() {
     );
 
     assert_eq!(snapshot.status, ExportWizardJobStatus::Finished);
-    assert_eq!(snapshot.current_stage, Some(ExportPipelineStage::Report));
-    assert_eq!(snapshot.stages.len(), export_pipeline_stages().len());
+    assert_eq!(snapshot.current_stage, Some(ExportStage::Report));
+    assert_eq!(snapshot.stages.len(), ExportStage::ALL.len());
     assert_eq!(
         runner.seen_stages,
-        export_pipeline_stages().to_vec(),
+        ExportStage::ALL.to_vec(),
         "runner should execute every planned stage"
     );
     assert_eq!(
@@ -120,20 +124,20 @@ fn export_wizard_job_runner_emits_successful_snapshot_events() {
             .iter()
             .filter(|event| event.kind == ExportWizardJobEventKind::StageStarted)
             .count(),
-        export_pipeline_stages().len()
+        ExportStage::ALL.len()
     );
     assert_eq!(
         events
             .iter()
             .filter(|event| event.kind == ExportWizardJobEventKind::StageFinished)
             .count(),
-        export_pipeline_stages().len()
+        ExportStage::ALL.len()
     );
 }
 
 #[test]
 fn export_wizard_job_runner_stops_after_fatal_stage_event() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -157,9 +161,9 @@ fn export_wizard_job_runner_stops_after_fatal_stage_event() {
     );
 
     assert_eq!(snapshot.status, ExportWizardJobStatus::Failed);
-    assert_eq!(snapshot.current_stage, Some(ExportPipelineStage::Validate));
+    assert_eq!(snapshot.current_stage, Some(ExportStage::Validate));
     assert_eq!(snapshot.stages.len(), 1);
-    assert_eq!(runner.seen_stages, vec![ExportPipelineStage::Validate]);
+    assert_eq!(runner.seen_stages, vec![ExportStage::Validate]);
     assert_eq!(
         events.last().map(|event| event.kind),
         Some(ExportWizardJobEventKind::Failed)
@@ -168,7 +172,7 @@ fn export_wizard_job_runner_stops_after_fatal_stage_event() {
 
 #[test]
 fn export_wizard_job_runner_cancels_after_stage_boundary() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -193,7 +197,7 @@ fn export_wizard_job_runner_cancels_after_stage_boundary() {
 
     assert_eq!(snapshot.status, ExportWizardJobStatus::Cancelled);
     assert!(snapshot.cancel_requested);
-    assert_eq!(snapshot.current_stage, Some(ExportPipelineStage::Validate));
+    assert_eq!(snapshot.current_stage, Some(ExportStage::Validate));
     assert_eq!(snapshot.stages.len(), 1);
     assert_eq!(
         events.last().map(|event| event.kind),
@@ -207,7 +211,7 @@ fn export_wizard_job_runner_cancels_after_stage_boundary() {
 
 #[test]
 fn export_wizard_job_controller_streams_events_and_finishes_worker() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -216,9 +220,15 @@ fn export_wizard_job_controller_streams_events_and_finishes_worker() {
     options.host_executable = Some("D:\\zircon-export\\host\\ZirconRuntime.exe".to_string());
     let plan = export_wizard_pipeline_plan(options);
 
-    let controller =
-        ExportWizardJobController::spawn("export-controller-success", plan, StubRunner::default());
-    assert_eq!(controller.handle().job_id, "export-controller-success");
+    let jobs = editor_jobs();
+    let controller = ExportWizardJobController::submit(
+        &jobs,
+        "export-controller-success",
+        plan,
+        StubRunner::default(),
+    )
+    .expect("controller should submit to editor jobs");
+    assert_eq!(controller.job_id(), "export-controller-success");
 
     let mut event_kinds = Vec::new();
     loop {
@@ -231,9 +241,9 @@ fn export_wizard_job_controller_streams_events_and_finishes_worker() {
             break;
         }
     }
-    let snapshot = controller.finish().expect("worker should finish");
+    let snapshot = controller.finish().result.expect("worker should finish");
     assert_eq!(snapshot.status, ExportWizardJobStatus::Finished);
-    assert_eq!(snapshot.stages.len(), export_pipeline_stages().len());
+    assert_eq!(snapshot.stages.len(), ExportStage::ALL.len());
     assert_eq!(
         event_kinds.first().copied(),
         Some(ExportWizardJobEventKind::Created)
@@ -245,8 +255,18 @@ fn export_wizard_job_controller_streams_events_and_finishes_worker() {
 }
 
 #[test]
+fn export_wizard_job_controller_preserves_typed_submit_error() {
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let jobs = editor_jobs();
+
+    let result = ExportWizardJobController::submit(&jobs, "", plan, StubRunner::default());
+
+    assert!(matches!(result, Err(JobSubmitError::EmptyLabel)));
+}
+
+#[test]
 fn export_wizard_job_controller_handle_requests_stage_boundary_cancel() {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -257,25 +277,191 @@ fn export_wizard_job_controller_handle_requests_stage_boundary_cancel() {
     let (stage_started_sender, stage_started_receiver) = channel();
     let (release_stage_sender, release_stage_receiver) = channel();
     let runner = BlockingRunner::new(stage_started_sender, release_stage_receiver);
-    let controller = ExportWizardJobController::spawn("export-controller-cancel", plan, runner);
+    let jobs = editor_jobs();
+    let controller =
+        ExportWizardJobController::submit(&jobs, "export-controller-cancel", plan, runner)
+            .expect("controller should submit to editor jobs");
 
     assert_eq!(
         stage_started_receiver
             .recv()
             .expect("stage should start before cancel"),
-        ExportPipelineStage::Validate
+        ExportStage::Validate
     );
     controller.request_cancel();
-    assert!(controller.handle().is_cancel_requested());
+    assert!(controller.is_cancel_requested());
     release_stage_sender
         .send(())
         .expect("release first stage after cancel");
 
-    let snapshot = controller.finish().expect("worker should finish");
+    let completion = controller.finish();
+    assert_eq!(completion.result, Err(JobError::Cancelled));
+    let snapshot = &completion
+        .events
+        .last()
+        .expect("direct finish should retain the cancelled business event")
+        .snapshot;
     assert_eq!(snapshot.status, ExportWizardJobStatus::Cancelled);
     assert_eq!(snapshot.stages.len(), 1);
+    assert!(!snapshot.stages[0].stdout_lines.is_empty());
     assert!(snapshot
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("cancelled after Validate finished")));
+}
+
+#[test]
+fn export_wizard_job_controller_maps_business_failure_to_typed_ticket_error() {
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let runner = StubRunner::with_execution(ExportWizardCommandExecution {
+        exit_code: Some(7),
+        stdout_lines: Vec::new(),
+        stderr_lines: vec!["validate business failure".to_string()],
+    });
+    let jobs = editor_jobs();
+    let controller =
+        ExportWizardJobController::submit(&jobs, "export-controller-failed", plan, runner)
+            .expect("failed business job should submit");
+
+    let completion = controller.finish();
+    let error = completion
+        .result
+        .expect_err("non-zero export stage must fail the editor job");
+    assert!(matches!(
+        error.downcast_ref::<EditorExportBuildError>(),
+        Some(EditorExportBuildError::WizardStageFailed {
+            stage: ExportStage::Validate,
+            exit_code: Some(7),
+        })
+    ));
+    let snapshot = &completion
+        .events
+        .last()
+        .expect("direct finish should retain the failed business event")
+        .snapshot;
+    assert_eq!(snapshot.status, ExportWizardJobStatus::Failed);
+    assert_eq!(snapshot.stages.len(), 1);
+    assert!(snapshot.stages[0]
+        .stderr_lines
+        .iter()
+        .any(|line| line.contains("validate business failure")));
+    assert!(snapshot
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("validate business failure")));
+}
+
+#[test]
+fn export_wizard_job_controller_preserves_runner_io_source_through_ticket() {
+    struct IoFailureRunner;
+
+    impl ExportWizardCommandRunner for IoFailureRunner {
+        fn run(
+            &mut self,
+            _command: &ExportWizardPipelineStageCommand,
+        ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+            Err(EditorExportBuildError::Process(ExportProcessError::io(
+                "failed to start test export process",
+                "typed wizard runner",
+                None,
+                None,
+                io::Error::new(io::ErrorKind::PermissionDenied, "source marker"),
+            )))
+        }
+    }
+
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let controller = ExportWizardJobController::submit(
+        &editor_jobs(),
+        "export-controller-typed-source",
+        plan,
+        IoFailureRunner,
+    )
+    .expect("typed failure job should submit");
+
+    let error = controller
+        .finish()
+        .result
+        .expect_err("runner IO failure must reach the ticket");
+    let export_error = error
+        .downcast_ref::<EditorExportBuildError>()
+        .expect("ticket must retain the editor export error");
+    let EditorExportBuildError::Process(process_error) = export_error else {
+        panic!("ticket retained the wrong export error variant: {export_error}");
+    };
+    let io_error = process_error
+        .source()
+        .and_then(|source| source.downcast_ref::<io::Error>())
+        .expect("export process error must retain its IO source");
+    assert_eq!(io_error.kind(), io::ErrorKind::PermissionDenied);
+    assert_eq!(io_error.to_string(), "source marker");
+}
+
+#[test]
+fn export_wizard_job_controller_preserves_failure_observed_during_cancellation() {
+    struct CancelThenFailRunner {
+        started: std::sync::mpsc::Sender<()>,
+        release: std::sync::mpsc::Receiver<()>,
+    }
+
+    impl ExportWizardCommandRunner for CancelThenFailRunner {
+        fn run(
+            &mut self,
+            _command: &ExportWizardPipelineStageCommand,
+        ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+            unreachable!("cancel-aware entry should be used")
+        }
+
+        fn run_with_output_and_cancel(
+            &mut self,
+            _command: &ExportWizardPipelineStageCommand,
+            _emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+            should_cancel: &mut (dyn FnMut() -> bool + Send),
+        ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+            self.started
+                .send(())
+                .expect("test should observe the runner after scheduling");
+            self.release
+                .recv_timeout(Duration::from_secs(5))
+                .expect("test should release the active runner");
+            assert!(should_cancel(), "active runner should observe cancellation");
+            Err(EditorExportBuildError::Process(ExportProcessError::io(
+                "failed while cancelling test export process",
+                "typed cancellation race",
+                None,
+                None,
+                io::Error::new(io::ErrorKind::BrokenPipe, "cancellation source marker"),
+            )))
+        }
+    }
+
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let (started_sender, started_receiver) = channel();
+    let (release_sender, release_receiver) = channel();
+    let controller = ExportWizardJobController::submit(
+        &editor_jobs(),
+        "export-controller-cancel-failure",
+        plan,
+        CancelThenFailRunner {
+            started: started_sender,
+            release: release_receiver,
+        },
+    )
+    .expect("cancellation failure job should submit");
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .expect("runner should start before cancellation is requested");
+    controller.request_cancel();
+    release_sender
+        .send(())
+        .expect("active runner should be released after cancellation");
+
+    let error = controller
+        .finish()
+        .result
+        .expect_err("sourceful cancellation race must fail instead of becoming cancellation");
+    assert!(matches!(
+        error.downcast_ref::<EditorExportBuildError>(),
+        Some(EditorExportBuildError::Process(_))
+    ));
 }

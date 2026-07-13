@@ -7,7 +7,7 @@ related_code:
   - zircon_plugins/sound/runtime/src/runtime_plugin/mod.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
-  - zircon_plugins/sound/runtime/src/runtime_plugin/registration.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
@@ -1544,7 +1544,7 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/runtime_plugin/mod.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
-  - zircon_plugins/sound/runtime/src/runtime_plugin/registration.rs
+  - zircon_plugins/sound/runtime/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
@@ -3031,10 +3031,14 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/tests/source_inputs/resampling/clip.rs
   - zircon_plugins/sound/runtime/src/tests/source_inputs/resampling/external.rs
 plan_sources:
+  - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - user: 2026-05-25 继续完善插件工作流以及sound插件作为样例完善
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
   - .codex/plans/Sound 插件核心完善计划.md
 tests:
+  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
   - zircon_plugins/sound/runtime/src/tests.rs
@@ -4922,6 +4926,10 @@ doc_type: module-detail
 ---
 
 # Sound Runtime Plugin
+
+## Service Registry Ownership
+
+`DefaultSoundManager` can be held by `ServiceEntry.instance`, so `SoundManagerState` stores only `CoreWeak` after borrowing `&CoreHandle` during construction. Clip asset operations upgrade at the operation boundary and return the existing typed `BackendUnavailable` error when the Runtime root has already been dropped. No strong/weak dual ownership path is retained.
 
 ## Purpose
 

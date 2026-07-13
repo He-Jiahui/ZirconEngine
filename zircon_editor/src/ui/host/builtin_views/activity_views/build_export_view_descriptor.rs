@@ -17,7 +17,7 @@ pub(super) fn build_export_view_descriptor() -> ViewDescriptor {
         ViewContentKind::BuildExport,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.build_export_desktop.body",
+        "res://ui/editor/host/build_export_desktop_body.zui",
         PanePayloadKind::BuildExportV1,
         PaneRouteNamespace::Diagnostics,
         PaneInteractionMode::HybridNativeSlot,

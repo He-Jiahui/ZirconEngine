@@ -31,7 +31,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 design_references:
@@ -49,6 +50,7 @@ plan_sources:
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - docs/plans/zircon_runtime/render/14-2d-stack.md
 status: in_progress
+last_refined: 2026-07-14
 ---
 
 # 05 SDF / MSDF 管线(动态 + 预生成)
@@ -67,8 +69,8 @@ status: in_progress
 
 - `ui/sdf_font_bake.rs`:fontsdf 单通道 SDF 动态烘焙(64×64 槽);空字形检测、缓存。
 - `ui/sdf_atlas.rs`:SDF cache 已从固定单页扩展到 `graphics/text/atlas::GlyphAtlasSet` 的 `Sdf` page identity、共享 shelf rect、page residency/LRU 与 page-keyed upload/render 数据面；2026-07-02 已在 plan 层接入 `GlyphAtlasSet`,用共享 shelf allocator 生成 slot rect、共享 dirty-rect owner 输出 cache/upload report 数据面,同时由 `graphics/text/atlas/page_residency.rs` 持有页上限、缺页分配、oldest-unreferenced LRU eviction 与本帧引用页不可逐出的决策数据面。`SdfAtlasSlot.page_key`、`SdfAtlasCacheReport.dirty_pages` 与 `SdfAtlasUploadReport.dirty_pages` 已补齐 page-keyed dirty/upload entries,renderer 已通过 `texture_2d_array` 和 vertex `page_index` 消费 page-keyed upload commands；shelf overflow 现在使用固定 page size 并通过 `GlyphAtlasSet::reserve_page_for_format(...)` 申请 page[1+] slot；evicted/rebuilt page 现在会进入 `SdfAtlasPlan.rebuilt_pages`,并在 cache report 中输出 full-page dirty rect；allocation failure 已按 run 汇总 page-limit/oversized counts,`SdfAtlasRun.glyph_failure_reasons` 也按字符位置记录失败原因,且 `ui/text/sdf_fallback.rs` 现在持有 text prepare fallback policy,会把失败原因归并为连续 glyph fallback spans/report span counts；Horizontal LTR/no-wrap/non-justify 失败 span 已局部 native overlay；2026-07-03 `ui/sdf_advances.rs` 首段把 resolved grapheme advances 投影到当前 SDF char-run advances,并让 mixed overlay fallback span 扩展到 whole grapheme；同日 `ui/sdf_char_run.rs` 首段把 ZWJ/zero-width/Bidi format/variation selector 等 invisible format controls 保留在 run index 中但过滤出 atlas slots,且 fallback measurement 对这些 scalar 返回 0 advance；同日 `ui/text_pixel_snap.rs` 让 native glyphon `TextArea` 与 SDF horizontal/vertical draw planning 共用 device-pixel text origin,避免 frame 小数原点在两条路径上分叉。Vertical/RTL/wrap/justify 等不支持原因仍进入 fallback report,并走 whole-batch native fallback。
-- `ui/sdf_render.rs` + `shaders/sdf_text.wgsl`:R8 array 采样 + alpha 混合；2026-07-02 首段已把 per-vertex `screen_px_range` 接入 shader 并移除固定 smoothstep 阈值,后续又把 SDF atlas view 改为 `D2Array`,用 `textureSample(..., i32(page_index))` 采样对应页。2026-07-03 editor-host 验证暴露 fallback measurement 调用旧私有 helper 的编译阻塞;当前已改为调用 `sdf_advances.rs::resolved_layout_advances_for_sdf_glyphs(...)`,让无 native resolved advances 的 SDF fallback 测量仍走同一 char-run advance projection owner。
-- 缺口:**无 MSDF**(尖角失真)、**无离线预生成**(每次运行时烘焙)、**无 outline/阴影/glow**；`screenPxRange` shader、固定 bake 参数/cache key、`GlyphAtlasSet` SDF page identity、shared shelf rect、dirty-rect report 数据面、SDF page-keyed dirty/upload report entries、SDF render partial `write_texture`、renderer texture-array page consumption、shelf overflow 多页 slot allocation、rebuilt-page full-dirty invalidation、over-cap/oversized allocation failure reporting、per-glyph failure reason mapping、glyph-level fallback span planning、Horizontal LTR/no-wrap/non-justify mixed native overlay、unsupported mixed overlay diagnostics、whole-batch native fallback、resolved grapheme advance 到 SDF char-run 的首段投影、通用 alpha/SDF upload command owner 与 atlas page residency/LRU 首段已完成,但真实 alpha bitmap atlas 尚未接入同一 GPU upload path,持久化 glyph cache/residency 驱动的完整淘汰闭环、broader glyph-level mixed fallback(Vertical/RTL/justify/wrapped)、independent oversized fallback、真实 shaping cluster 后端数据、native/SDF paragraph parity 与窗口级 editor 字体一致性 QA 仍 pending。
+- `ui/sdf_render.rs` + `ui/sdf_render/{atlas_resources,material,vertices,decorations}.rs` + `shaders/zr_text_sdf.wgsl`:2026-07-14 已完成 R8 SDF / RGBA MSDF-MTSDF texture arrays、group2 dynamic material、fill/outline/derivative shadow/MTSDF glow、straight-alpha、face-derived solid decorations，以及 CPU/fragment-derived 双 `screenPxRange`。vertex flat `decode_mode` 显式选择 SDF `.r` 或 MSDF/MTSDF median RGB，MTSDF alpha 为 true distance；homogeneous clip position 支持旋转/透视产品证明。`UiTextRenderMode::{Msdf,Mtsdf}` 仍只影响 raster batch mode，复用 shared shaping/layout identity；旧 `sdf_text.wgsl` 已删除。
+- 当前剩余缺口已收束到 SM-M5 paragraph parity 和长期 atlas/fallback 完整性：真实 alpha bitmap atlas 统一 GPU upload、持久化 glyph cache/residency 完整淘汰闭环、broader glyph-level mixed fallback(Vertical/RTL/justify/wrapped)、independent oversized fallback、native/SDF paragraph bbox/advance/linebreak parity，以及窗口级 editor 字体一致性 QA。MSDF/MTSDF 动态生成、`.zsdf` 离线预生成和 SM-M4 effects/decorations/transformed sampling 已有生产实现与真实 WGPU 证据；SM-M4 仍需完成一次浮点容差修正复验和综合结构/target-client gate 后才能标记 complete。
 - 2026-07-02 首个竖排消费切片已让 `sdf_render.rs` 根据 `ScreenSpaceUiTextBatch.writing_mode` 在 `VerticalRl` 下沿 y 轴投影 glyph quads;这只关闭 render-path writing-mode consumption,不替代本计划的 screenPxRange、统一 atlas、MSDF/MTSDF 或离线 bake 工作。
 
 ## 3. 参考代码
@@ -135,6 +137,8 @@ glyph outline(ttf-parser) → geometry preprocess(去重叠/定向) →
 3. (2026-07-02 评审收口)选路策略条款:请求含 outline/shadow/glow 效果的文本**强制走 SDF/MSDF 路径**(bitmap alpha 路径无距离信息,无法实现距离阈值效果)——`raster/policy.rs` 选路输入必须包含效果标志,即使字号在 bitmap 快路径阈值内也改走 SDF。
 
 测试:`render_text_outline_thickness_matches_distance_offset`、`render_text_shadow_offset_correct`、`render_text_decoration_underline_geometry`、`render_text_decoration_metrics_from_face_tables`(2026-07-02 评审收口)、`text_policy_outline_effect_forces_sdf_path`(2026-07-02 评审收口)。
+
+执行状态（2026-07-14，完成）：production graphics 与 target-client compile 均通过；真实 WGPU framebuffer 产品用例两次通过，输出 960×560/5113 colors/SHA256 `D0BD287F65DBABC33E78045942BB38F19A4EB7B5C2D282FC59907C922649BD59`，且 repo/coordinator target 同名副本为 0。broad `render_text_` 先通过 121/122，唯一 exact-zero 浮点断言改为 `1e-5` 后 exact 1/1，组合证明当前组 122/122；production/test file budget 与 UI child-owner split 结构门通过。SM-M4 正式关闭，继续 SM-M5 native/SDF paragraph parity。
 
 ### SM-M5 native/SDF paragraph parity 闸门(2026-07-02 评审收口)
 
@@ -237,8 +241,10 @@ fn msdf_alpha(s: vec4<f32>, screen_px_range: f32) -> f32 {
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-11）：生产 SDF path 已从 scalar/cmap identity 推进到 shaped glyph identity：atlas key 保留实际 glyph id + face id，`fontsdf` 按 indexed glyph 烘焙，VerticalRl quad 消费 backend vertical origin/VORG-side-bearing offset、main-axis advance 与 rotation。当前源 SDF vertical 5/5、atlas 23/23、font bake 10/10；真实 WGPU 帧包含两列右到左 CJK、竖排开闭引号、句号与逗号，整体 changed=4114、bbox 68×240，逐列像素断言通过。单通道 SDF 的 shaped VerticalRl 标点/多列生产门已关闭；MSDF/MTSDF、离线产物、缩放黄金图、horizontal shaped-SDF 全链与 native/SDF bbox/advance/linebreak 全量 parity 仍保持 open。
+当前概述（2026-07-14）：SM-M5 layout identity 与真实 Native/SDF 产品像素门已通过；SM2-M1 shared pure-Rust fdsm core 已验收。SM2-M2/M3 已把 authoritative face/glyph id 动态生成、mode-keyed R8/RGBA atlas、format-aware upload、typed per-glyph fallback、flat GPU decode mode、双 storage texture arrays 与显式 `UiTextRenderMode::{Msdf,Mtsdf}` 接到生产路径；managed `graphics`/`target-client` checks、真实 WGPU exporter 与新增高对比 A-apex occupancy 闸门均通过，产出 `docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260713.png`（1080×1690、315799 bytes、2444 colors、SHA256 `05BED61944F35380A0967A9A3D04DFC0B1F5413D240A2C5627A4E3D4294FB448`，target 同名 0）。SM3-M1/M2/M3 已实现 deterministic embedded-page `.zsdf`、feature-gated `font-sdf` target/CLI、project `.zmeta` UUID identity、runtime prefill 与 dynamic fallback；artifact/renderer exact 6/6、CLI range 1/1、独立三模式 deterministic/decode 2/2、Python 5/5 与既有 build-tool regressions 45/45 均通过。2026-07-14 按 Runtime02 failure 将 build tool 从未裁决 crate-root seat 硬切到 `zircon_runtime::graphics::text::font_sdf_build_tool`，不保留旧路径或兼容转发；feature integration 2/2、CLI check、fresh default Runtime no-run、`generated` 29/29、`core::` 705/705、structure-convention 1304/1304 通过，root audit 恢复 19/19、0 debt、0 risk。Text05 root-surface failure 已回传 Runtime02；整体 Text05 仍为 `in_progress`，继续 SM-M5 paragraph parity。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`05/2026-07-09-sdf-msdf-pipeline-output-records.md`](05/2026-07-09-sdf-msdf-pipeline-output-records.md)
+- fixed 已修复：[ui-text-distance-field-effects-type-resolution](../../zircon_editor/editor_layout/15/fixed-2026-07-13-ui-text-distance-field-effects-type-resolution.md)
+- fixed 已修复：[font-sdf-build-tool-root-surface-drift](../runtime/02/fixed-2026-07-14-font-sdf-build-tool-root-surface-drift.md)

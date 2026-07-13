@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ATLAS_LIBRARY_DIR:
-    &str = "editor-sprite-atlases";
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const ATLAS_CACHE_DIR: &str =
+    "editor-sprite-atlases";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn atlas_manifest_candidates(
     source_path: &Path,
@@ -14,14 +14,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn atlas_m
     else {
         return candidates;
     };
-    push_candidate(
-        &mut candidates,
-        root.join("library").join(ATLAS_LIBRARY_DIR),
-    );
     if let Some(parent) = root.parent() {
         push_candidate(
             &mut candidates,
-            parent.join("library").join(ATLAS_LIBRARY_DIR),
+            parent.join(".zircon").join("cache").join(ATLAS_CACHE_DIR),
         );
     }
     candidates

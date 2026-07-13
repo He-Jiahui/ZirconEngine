@@ -2,7 +2,9 @@ use crate::core::framework::render::{
     AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
 };
 
-use crate::graphics::{RenderFeatureCapabilityRequirement, RenderPipelineCompileOptions};
+use crate::graphics::{
+    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineCompileOptions,
+};
 
 pub(super) fn apply_flagship_profile_features(
     profile: Option<&RenderQualityProfile>,
@@ -22,6 +24,7 @@ pub(super) fn apply_flagship_profile_features(
         && availability.hybrid_gi_provider_id.is_some()
     {
         options = options
+            .with_feature_enabled(BuiltinRenderFeature::Temporal)
             .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
     }
 

@@ -517,7 +517,7 @@ fn button_kind(metadata: &UiTemplateNodeMetadata) -> ButtonKind {
 }
 
 fn button_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
-    ["text", "label", "value_text"]
+    ["label", "text", "value_text"]
         .iter()
         .find_map(|key| string_attribute(metadata, key))
         .map(str::trim)

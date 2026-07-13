@@ -83,7 +83,7 @@ Validation: `cargo test -p zircon_editor workbench_window_template`
 
 **Files:**
 - Create: `zircon_editor/assets/ui/editor/windows/asset_window.ui.toml`
-- Reuse: `zircon_editor/assets/ui/editor/asset_browser.ui.toml`
+- Reuse: `zircon_editor/assets/ui/editor/asset_browser.zui`
 - Test: `zircon_editor/tests/asset_window_template.rs`
 
 - [ ] Add a failing test that verifies `AssetWindow` references `ActivityDrawerWindow` and mounts asset browser content.

@@ -1,9 +1,12 @@
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportPlatformHostKind,
-    plugin::ExportPlatformResourceStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
-    plugin::RuntimePluginAvailabilityEntry, plugin::RuntimeProfileId,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ExportPlatformHostKind,
+    core::framework::project::ExportPlatformResourceStrategy,
+    core::framework::project::ExportProfile, core::framework::project::ExportTargetPlatform,
+    core::framework::project::RuntimeProfileId, plugin::ExportBuildPlan,
+    plugin::RuntimePluginAvailabilityEntry,
 };
 
 #[test]
@@ -125,12 +128,14 @@ fn export_plan_reports_duplicate_profile_strategies_and_generates_sanitized_prof
         .and_then(|source| source.split("pub fn project_plugins()").next())
         .expect("generated plugin source must include export_profile before project_plugins");
 
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("export profile client strategies")
-        && diagnostic.contains("SourceTemplate")));
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("export profile client strategies")
-        && diagnostic.contains("LibraryEmbed")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("export profile client strategies")
+            && diagnostic.contains("SourceTemplate")
+    }));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("export profile client strategies")
+            && diagnostic.contains("LibraryEmbed")
+    }));
     assert!(!plan
         .fatal_diagnostics
         .iter()
@@ -213,12 +218,14 @@ fn export_plan_reports_duplicate_profile_names_as_fatal() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
 
     assert!(plan.has_fatal_diagnostics());
-    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("export profile name \"client\" must be unique")
-        && diagnostic.contains("found 2 matching export profiles")));
-    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("export profile name \"client\" must be unique")
-        && diagnostic.contains("found 2 matching export profiles")));
+    assert!(plan.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("export profile name \"client\" must be unique")
+            && diagnostic.contains("found 2 matching export profiles")
+    }));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("export profile name \"client\" must be unique")
+            && diagnostic.contains("found 2 matching export profiles")
+    }));
     assert_eq!(plan.profile.target_platform, ExportTargetPlatform::Windows);
 }
 
@@ -277,9 +284,10 @@ fn export_plan_reports_invalid_profile_output_names_and_generates_sanitized_prof
         let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
         let cargo_manifest = generated_file(&plan, "Cargo.toml");
 
-        assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic
-            .contains("export profile client output_name")
-            && diagnostic.contains("must be non-empty and trimmed")));
+        assert!(plan.diagnostics.iter().any(|diagnostic| {
+            diagnostic.contains("export profile client output_name")
+                && diagnostic.contains("must be non-empty and trimmed")
+        }));
         assert!(!plan
             .fatal_diagnostics
             .iter()

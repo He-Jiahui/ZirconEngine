@@ -88,9 +88,9 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.sound.acoustic_debug.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.sound.mixer_console.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.sound.mixer_console.open"));
     for path in SOUND_MIXER_OPERATION_PATHS
         .iter()
         .chain(SOUND_AUDIO_SOURCE_OPERATION_PATHS)
@@ -99,9 +99,9 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
     {
         let operation = registration
             .extensions
-            .operations()
-            .descriptors()
-            .find(|operation| operation.path().as_str() == *path)
+            .commands()
+            .commands()
+            .find(|operation| operation.id().as_str() == *path)
             .unwrap_or_else(|| panic!("missing sound editor operation {path}"));
         assert!(operation
             .payload_schema_id()
@@ -109,9 +109,9 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
     }
     let create_track = registration
         .extensions
-        .operations()
-        .descriptors()
-        .find(|operation| operation.path().as_str() == "sound.mixer.track.create")
+        .commands()
+        .commands()
+        .find(|operation| operation.id().as_str() == "sound.mixer.track.create")
         .expect("create track operation");
     assert!(create_track.undoable().is_some());
 }
@@ -121,9 +121,9 @@ fn sound_editor_ui_template_routes_are_registered_operations() {
     let registration = plugin_registration();
     let registered_operations = registration
         .extensions
-        .operations()
-        .descriptors()
-        .map(|operation| operation.path().as_str().to_string())
+        .commands()
+        .commands()
+        .map(|operation| operation.id().as_str().to_string())
         .collect::<BTreeSet<_>>();
     let routes = ui_template_routes(&[
         ("mixer_console.zui", include_str!("../mixer_console.zui")),

@@ -4,6 +4,8 @@ related_code:
   - tools/zircon_export/__main__.py
   - tools/zircon_export/cli.py
   - tools/zircon_export/cli_arguments.py
+  - tools/zircon_export/preset_contract.py
+  - tools/zircon_export/tests/test_preset_contract.py
   - tools/zircon_export/pack_stage.py
   - tools/zircon_export/pack_stage_paths.py
   - tools/zircon_export/validate_stage.py
@@ -3787,6 +3789,18 @@ is no longer excluded from the main pipeline when the selected profile requests 
 strategy.
 
 ## Command Surface
+
+### Versioned preset input
+
+Editor-driven export commands now include `--preset <project>/export/<name>.zpreset` together with
+`--profile`. The CLI reads only schema `zircon.export-preset` version 0, requires the exact
+`$zircon` header/payload envelope, and rejects a profile argument that differs from the preset's
+`profile_ref`. A preset `include_filter` becomes the default asset filter when the caller did not
+provide an explicit `--asset-filter`.
+
+`--preset` remains optional for low-level tooling and existing CI commands during M1 because those
+commands can still deliberately address a profile directly. The editor wizard is not profile-only:
+its production path always loads the project `.zpreset` and passes the path to every stage command.
 
 Useful commands:
 

@@ -60,8 +60,8 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 12,
-        "asset project zmeta child modules should preserve the current 12 tests"
+        migrated_test_count, 15,
+        "asset project zmeta child modules should preserve the current 15 tests"
     );
 
     assert_contains_all(
@@ -70,6 +70,9 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn project_manager_writes_zmeta_schema_and_ignores_old_meta_toml_sidecars",
+            "fn project_manager_watch_remove_commits_resource_and_asset_registries_together",
+            "fn project_manager_watch_rename_preserves_guid_and_replaces_both_registry_paths",
+            "fn project_manager_registry_commit_failure_keeps_both_live_registries_unchanged",
             "fn project_manager_restore_refreshes_zmeta_entry_urls_after_source_rename",
             "fn project_manager_preserves_zmeta_subasset_uuids_across_failed_reimport",
         ],
@@ -158,7 +161,8 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
 #[test]
 fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     let parent = read_runtime_src("asset/tests/project/manager.rs");
-    let library_imports = read_runtime_src("asset/tests/project/manager/library_imports.rs");
+    let artifact_cache_imports =
+        read_runtime_src("asset/tests/project/manager/artifact_cache_imports.rs");
     let restore_failure_migration =
         read_runtime_src("asset/tests/project/manager/restore_failure_migration.rs");
     let subassets_errors = read_runtime_src("asset/tests/project/manager/subassets_errors.rs");
@@ -176,7 +180,7 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
         "asset project manager parent test module mounts",
         &parent,
         &[
-            "mod library_imports;",
+            "mod artifact_cache_imports;",
             "mod restore_failure_migration;",
             "mod subassets_errors;",
             "fn project_manager_with_first_wave_plugin_fixtures",
@@ -186,8 +190,8 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     );
 
     for moved_test in [
-        "fn project_manager_scans_assets_imports_library_and_loads_artifacts",
-        "fn project_manager_imports_physics_and_animation_assets_into_runtime_library",
+        "fn project_manager_scans_assets_imports_artifact_cache_and_loads_artifacts",
+        "fn project_manager_imports_physics_and_animation_assets_into_runtime_artifact_cache",
         "fn project_manager_restores_ready_artifacts_from_meta_after_restart",
         "fn project_manager_records_ui_schema_migration_in_meta",
         "fn project_manager_imports_labeled_subassets_as_separate_artifacts",
@@ -204,7 +208,7 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
         "asset/tests/project/manager.rs should not keep executable tests in the parent module"
     );
     let migrated_test_count = [
-        library_imports.as_str(),
+        artifact_cache_imports.as_str(),
         restore_failure_migration.as_str(),
         subassets_errors.as_str(),
     ]
@@ -217,13 +221,13 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     );
 
     assert_contains_all(
-        "asset project manager library child owns first-wave import contracts",
-        &library_imports,
+        "asset project manager artifact-cache child owns first-wave import contracts",
+        &artifact_cache_imports,
         &[
             "use super::*;",
-            "fn project_manager_scans_assets_imports_library_and_loads_artifacts",
-            "fn project_manager_imports_physics_and_animation_assets_into_runtime_library",
-            "fn project_manager_imports_sound_assets_into_runtime_library",
+            "fn project_manager_scans_assets_imports_artifact_cache_and_loads_artifacts",
+            "fn project_manager_imports_physics_and_animation_assets_into_runtime_artifact_cache",
+            "fn project_manager_imports_sound_assets_into_runtime_artifact_cache",
         ],
     );
     assert_contains_all(
@@ -250,8 +254,8 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     for (path, source) in [
         ("asset/tests/project/manager.rs", parent.as_str()),
         (
-            "asset/tests/project/manager/library_imports.rs",
-            library_imports.as_str(),
+            "asset/tests/project/manager/artifact_cache_imports.rs",
+            artifact_cache_imports.as_str(),
         ),
         (
             "asset/tests/project/manager/restore_failure_migration.rs",

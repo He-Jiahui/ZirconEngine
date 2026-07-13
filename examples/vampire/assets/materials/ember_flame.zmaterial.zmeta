@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "fd9742c1-c0c6-4953-b4d7-e3d4d053bc93"
 url = "res://materials/ember_flame.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/a7979a0b-e722-9e5f-2098-acb8818a555b.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487873
-source_hash = "a0f538112fbe57c0"
+source_digest = "a0f538112fbe57c0"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

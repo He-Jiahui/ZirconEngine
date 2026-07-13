@@ -79,12 +79,14 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
     hero_entity.rigid_body = Some(SceneRigidBodyAsset {
         body_type: SceneRigidBodyTypeAsset::Dynamic,
         mass: 3.0,
+        mass_properties: Default::default(),
         linear_velocity: [0.0, 0.0, 0.0],
         angular_velocity: [0.0, 0.0, 0.0],
         linear_damping: 0.0,
         angular_damping: 0.0,
         gravity_scale: 1.0,
-        can_sleep: true,
+        ccd_mode: Default::default(),
+        sleep_policy: Default::default(),
         lock_translation: [false, false, false],
         lock_rotation: [false, false, false],
     });
@@ -270,12 +272,14 @@ fn scene_asset_management_record_set_sorts_and_summarizes_records() {
     actor_entity.rigid_body = Some(SceneRigidBodyAsset {
         body_type: SceneRigidBodyTypeAsset::Dynamic,
         mass: 1.0,
+        mass_properties: Default::default(),
         linear_velocity: [0.0, 0.0, 0.0],
         angular_velocity: [0.0, 0.0, 0.0],
         linear_damping: 0.0,
         angular_damping: 0.0,
         gravity_scale: 1.0,
-        can_sleep: true,
+        ccd_mode: Default::default(),
+        sleep_policy: Default::default(),
         lock_translation: [false, false, false],
         lock_rotation: [false, false, false],
     });

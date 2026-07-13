@@ -464,7 +464,7 @@ Expected: no whitespace errors. LF-to-CRLF warnings are acceptable on Windows.
 ### Task 4: Restore Editor Generic Host Boundary Suites
 
 **Files:**
-- Modify: `zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs`
+- Modify: `zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs`
 - Modify: any source guards that read old Slint paths
 - Modify: moved Slint files only for source guard repair
 
@@ -667,7 +667,7 @@ Expected: both PASS.
 ### Task 6: Add Runtime UI Input Dispatch Acceptance
 
 **Files:**
-- Modify: `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs`
+- Modify: `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs`
 - Modify: `zircon_runtime/src/tests/ui_boundary/runtime_host.rs`
 
 - [x] **Step 1: Write failing runtime input test**
@@ -728,7 +728,7 @@ Expected: FAIL because `RuntimeUiManager::dispatch_pointer_event` and `RuntimeUi
 
 - [x] **Step 2: Add manager dispatch methods**
 
-In `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs`, extend imports:
+In `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs`, extend imports:
 
 ```rust
 use crate::ui::dispatch::{
@@ -996,7 +996,7 @@ Expected: all PASS. Latest focused graphics evidence remains the Task 7 reruns: 
 Run `rustfmt --edition 2021 --check` on touched Rust files. Include at least:
 
 ```powershell
-rustfmt --edition 2021 --check zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs zircon_runtime/src/tests/ui_boundary/runtime_host.rs zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
+rustfmt --edition 2021 --check zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs zircon_runtime/src/tests/ui_boundary/runtime_host.rs zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
 git diff --check
 ```
 

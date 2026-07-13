@@ -3,11 +3,13 @@ use std::path::Path;
 use super::vampire_root;
 use crate::asset::project::{ProjectManager, ProjectManifest};
 use crate::asset::{
-    AlphaMode, AnimationGraphAsset, AnimationStateMachineAsset, AssetKind, AssetUri, MaterialAsset,
-    ModelAsset, NavMeshAsset, SceneAsset, SceneMobilityAsset, TerrainAsset, ZShaderDocumentV2,
+    AlphaMode, AssetKind, AssetUri, MaterialAsset, ModelAsset, SceneAsset, SceneMobilityAsset,
+    TerrainAsset, ZShaderDocumentV2,
 };
 use crate::builtin::RuntimePluginId;
 use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::{AnimationGraphAsset, AnimationStateMachineAsset};
+use crate::core::framework::navigation::NavMeshAsset;
 use crate::core::resource::ResourceState;
 use crate::script::discover_vm_plugin_packages;
 
@@ -26,7 +28,7 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
     assert!(manifest.plugins.selections.iter().any(|selection| {
         selection.enabled
             && selection.required
-            && selection.runtime_id() == Some(RuntimePluginId::GltfImporter)
+            && RuntimePluginId::parse_key(&selection.id) == Some(RuntimePluginId::GltfImporter)
     }));
 
     let scene = SceneAsset::from_toml_str(

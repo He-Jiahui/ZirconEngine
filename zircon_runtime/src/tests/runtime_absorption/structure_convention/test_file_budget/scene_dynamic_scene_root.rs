@@ -59,8 +59,8 @@ fn runtime_15_dynamic_scene_root_tests_are_folder_backed() {
         &[
             "fn runtime_session_archive_roundtrips_slots_and_restores_world",
             "fn runtime_session_archive_rejects_duplicate_slots",
-            "fn runtime_session_archive_rejects_unsupported_embedded_scene_versions",
-            "fn runtime_session_archive_rejects_unsupported_slots_on_push_and_upsert",
+            "fn runtime_session_archive_normalizes_noncanonical_inner_scene_versions",
+            "fn runtime_session_archive_normalizes_noncanonical_inner_versions_on_push_and_upsert",
             "fn runtime_session_archive_rejects_non_canonical_slot_ids",
             "fn runtime_session_archive_serializes_manual_slots_in_canonical_order",
             "fn runtime_session_archive_normalizes_metadata_tags_for_manifest_and_json",
@@ -111,8 +111,8 @@ fn runtime_15_dynamic_scene_root_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 27,
-        "dynamic_scene children should preserve all 27 parent tests"
+        child_test_total, 28,
+        "dynamic_scene children should preserve all 28 tests"
     );
 
     for (path, source) in [
@@ -145,11 +145,18 @@ fn runtime_15_dynamic_scene_root_tests_are_folder_backed() {
         );
     }
 
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
     let status_rows = read_runtime_src(

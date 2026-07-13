@@ -1,4 +1,4 @@
-use crate::asset::AnimationSkeletonAsset;
+use crate::core::framework::animation::AnimationSkeletonAsset;
 use crate::core::resource::ResourceId;
 
 use super::ResourceStreamer;

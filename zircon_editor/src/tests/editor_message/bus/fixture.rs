@@ -1,7 +1,8 @@
+use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{
     DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, FocusMessage,
-    HistoryContextId, ModeMessage, PlayStateKind, SceneModeId, SelectionDomain, TransactionMessage,
+    ModeMessage, PlayStateKind, SceneModeId, SelectionDomain, TransactionMessage,
 };
 
 pub(super) fn topic(value: &str) -> EditorTopic {
@@ -24,7 +25,7 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
             "editor.transaction",
             EditorMessage::new(EditorMessagePayload::Transaction(
                 TransactionMessage::Committed {
-                    history: HistoryContextId::new(11),
+                    history: HistoryContextId::Document(DocumentId::new(11)),
                     label: "Move entity".to_string(),
                 },
             )),

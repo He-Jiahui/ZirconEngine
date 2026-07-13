@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest,
+    core::framework::project::ExportPackagingStrategy,
+    core::framework::project::ProjectPluginFeatureSelection,
+    core::framework::project::ProjectPluginSelection, plugin::PluginFeatureBundleManifest,
     plugin::PluginFeatureDependency, plugin::PluginModuleKind, plugin::PluginPackageManifest,
-    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection,
     plugin::RuntimePluginFeatureBlock,
 };
 
@@ -474,7 +475,7 @@ fn push_unique(values: &mut Vec<String>, value: String) {
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::builtin::RuntimeTargetMode;
+    use zircon_runtime::core::framework::platform::RuntimeTargetMode;
     use zircon_runtime::{plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency};
 
     use super::{

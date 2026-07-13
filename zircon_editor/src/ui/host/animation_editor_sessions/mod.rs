@@ -3,11 +3,10 @@ mod lifecycle;
 mod save;
 mod sync;
 
-use std::path::PathBuf;
-
+use crate::core::asset::AssetToolkitOpenRoute;
 use crate::ui::animation_editor::AnimationEditorSession;
 
 pub(crate) struct AnimationEditorWorkspaceEntry {
-    pub(crate) source_path: PathBuf,
+    pub(crate) route: AssetToolkitOpenRoute,
     pub(crate) session: AnimationEditorSession,
 }

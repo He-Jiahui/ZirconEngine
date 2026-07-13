@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime_interface/Cargo.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/physics/runtime/Cargo.toml
-  - zircon_plugins/physics/runtime/src/backend.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_runtime/src/plugin/export_profile.rs
   - zircon_runtime/src/ui/text
   - zircon_runtime/src/ui/text/shaper.rs
@@ -22,8 +22,8 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
-status: in_progress
-last_refined: 2026-07-10
+status: completed
+last_refined: 2026-07-12
 ---
 
 # 01 技术选型与依赖治理
@@ -37,7 +37,7 @@ last_refined: 2026-07-10
 - 版本风险：winit `0.31.0-beta.2`（根 `Cargo.toml:37`，default-features = false）、notify `9.0.0-rc.3`（L27）。同文件 wgpu `29.0.1`（L36）、naga `29.0.1`（L26）、glam `0.32.1`（L23）。
 - `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` 是指向仓库外 `../../zr_vm/...` 的路径依赖（`zircon_runtime/Cargo.toml`，optional），由 feature `backend-zr-vm` 门控。2026-06-12 的 plugin lifecycle 修复已在 `../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs` 落地空参数导出调用 marshalling 防御，当前 `backend-zr-vm` 验证必须与这份本地 binding 修复配对。
 - 物理现状矫正（2026-06-12 重核）：原文"`zircon_plugins/physics/runtime` 为空壳"已过时。该插件现有 37 个文件 / 4353 行 Rust：自研 builtin 物理（manager/ 7 文件 859 行：builtin_step、clock、query、service、settings、validation、world_sync）、query_contact（raycast aabb/capsule/sphere、overlap、contact/filter/geometry）、trigger、scene_hook，外加 1707 行 `physics_manager_runtime_contract` 集成测试。"无任何物理依赖"仍属实：`zircon_plugins/physics/runtime/Cargo.toml` 仅依赖 `zircon_runtime`。jolt 空 feature 有两处：`zircon_runtime/Cargo.toml:18` 与 `zircon_plugins/physics/runtime/Cargo.toml:10`（原文漏列后者）；`backend.rs:5-10` 中 `JOLT_ENABLED = cfg!(feature = "jolt")` 而 `JOLT_BACKEND_AVAILABLE = false` 硬编码——jolt 是"可声明但永不可用"的后端槽位。
-- 物理当前落地（2026-07-10）：上述 2026-06-12 基线已被 Plugins 03 M1-T3 硬切取代。Runtime manifest 只保留 `backend-jolt` profile vocabulary；Physics plugin 通过 optional `joltc-sys` 独占真实 Jolt backend，feature-on 为 Ready/native step，feature-off 为 Unavailable，且两条路径均不静默降级 builtin。具体状态归 Runtime 01 编号产出记录。
+- 物理当前落地（2026-07-10）：上述 2026-06-12 基线已被 Plugins 03 M1-T3 硬切取代。Runtime manifest 只保留 `backend-jolt` profile vocabulary；Physics plugin 通过 optional `joltc-sys` 独占真实 Jolt backend，feature-on 为 Ready/native step，feature-off 为 Unavailable，且两条路径均不静默降级 builtin。当前守卫为 `physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned`；具体状态归 Runtime 01 编号产出记录。
 - 导出打包：`ExportPackagingStrategy` 三变体 Copy 枚举（SourceTemplate / LibraryEmbed / NativeDynamic，serde snake_case，`plugin/export_profile.rs:115-121`）；`ExportProfile.strategies: Vec<ExportPackagingStrategy>`（L131），默认 `[SourceTemplate, LibraryEmbed]`（L188-193）。仓内唯一压缩/归档依赖是 zstd `0.13.3`（`zircon_runtime/Cargo.toml:100`），无 zip/tar/容器实现。全仓 `ExportPackagingStrategy` 引用 76 个代码文件 / 386 处。
 - 守卫口径矫正（2026-06-12 重核）：原 M1 切片 4"锁定 `zircon_runtime_interface`、`zircon_editor` 不出现 `wgpu`/`winit` 直依（现状已满足）"对 zircon_editor 不成立——`zircon_editor/Cargo.toml:23` 存在 `winit.workspace = true` 直依（softbuffer `0.4.6`（L19）自绘 retained host 需要 winit 类型）。`zircon_runtime_interface` 确认无 wgpu/winit（依赖仅 glam/serde/serde_json/thiserror/toml/unicode-segmentation/uuid）。守卫口径已在 M1 切片 1.4 修正。
 - 参考引擎对照矫正（2026-06-12 重核）：原 M3 称 `dev/Fyrox` 为"自研物理"失实——`dev/Fyrox/fyrox-impl/Cargo.toml:30-31` 依赖 rapier2d/rapier3d `0.32`，Fyrox 是 rapier 外挂形态。
@@ -83,7 +83,7 @@ last_refined: 2026-07-10
    - `grep -n "glyphon\|fontsdf\|unicode-segmentation\|zstd\|zr_vm\|jolt" zircon_runtime/Cargo.toml`（核 L77/L78/L95/L100/L103-104/L18）
    - `grep -n "fontdue\|softbuffer\|winit\|resvg" zircon_editor/Cargo.toml`（核 L11/L19/L23/L16）
    - `grep -n "wgpu\|winit" zircon_runtime_interface/Cargo.toml`（应 0 命中）
-   - `grep -n "jolt" zircon_plugins/physics/runtime/Cargo.toml zircon_plugins/physics/runtime/src/backend.rs`
+   - `grep -n "jolt" zircon_plugins/physics/runtime/Cargo.toml zircon_plugins/physics/runtime/src/manager.rs`
    - `grep -n "is not connected to layout yet" zircon_runtime/src/ui/text/shaper.rs`
 4. §1.1 核对表逐项复核：通读 `docs/plans/zircon_runtime/runtime/index.md` §1.1，对每行"证据"列跑一次对应 grep（本次细化仅验证了五项失实库缺席）。
 5. 基线记录：在干净工作区跑一次 `cargo check -p zircon_runtime --lib --locked`，把耗时记入"状态与产出记录"。
@@ -227,4 +227,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`01/2026-07-09-tech-stack-and-dependency-governance-output-records.md`](01/2026-07-09-tech-stack-and-dependency-governance-output-records.md)
-- 当前状态（2026-07-10）：精确 `tech_stack` locked Cargo 门禁已在当前源码上通过 14/14；`text_shaper`、plugin physics、`export_build_plan` 等其余门禁尚未全部闭合，因此本计划继续保持 `in_progress`。具体命令、编译修复与测试证据只记录在上述编号产出档案中。
+- fixed 已修复：[wgpu-hal-windows-version-split](../../zircon_editor/editor/11/fixed-2026-07-12-wgpu-hal-windows-version-split.md)
+- fixed 已修复：[wsl-vhdx-sharing-violation](../../zircon_editor/editor/11/fixed-2026-07-11-wsl-vhdx-sharing-violation.md)
+- 失败交接（`open / 待恢复受管验证空间`）：[`01/failure-2026-07-11-editor-libtest-link-disk-space.md`](01/failure-2026-07-11-editor-libtest-link-disk-space.md)
+- 当前状态（2026-07-11）：原计划声明的五项 locked Cargo 门禁曾在当时源码上闭合；当前依赖图重新出现 `wgpu-hal`/Windows 类型分裂，Editor lib-test 的受管链接空间也待恢复，因此 Runtime 01 重新进入 `in_progress`，以编号失败交接为当前事实。WSL 虚拟磁盘冲突已由环境释放并回传 fixed。

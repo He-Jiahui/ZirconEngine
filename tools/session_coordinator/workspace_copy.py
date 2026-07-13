@@ -87,6 +87,7 @@ class WorkspaceCopyService:
         self.target_roots = roots
         self._running_lock = threading.Lock()
         self._running_processes: dict[str, subprocess.Popen[str]] = {}
+        self._cleanup_lock = threading.Lock()
         self._mutation_gate = mutation_gate
         self._completion_hook: Callable[[str], None] | None = None
 
@@ -286,10 +287,11 @@ class WorkspaceCopyService:
         run_id = uuid.uuid4().hex
         started_at = utc_text()
         process: subprocess.Popen[str] | None = None
+        job_root = Path(row["job_root"]).resolve()
+        process_finished = False
         try:
             source_root = Path(row["source_root"]).resolve()
             target_root = Path(row["target_root"]).resolve()
-            job_root = Path(row["job_root"]).resolve()
             self._validate_job_root(job_root)
             if source_root.parent != job_root or target_root.parent != job_root:
                 raise CoordinatorError(
@@ -314,6 +316,7 @@ class WorkspaceCopyService:
                     (process.pid, job_id),
                 )
             stdout_full, stderr_full = process.communicate()
+            process_finished = True
             completed_at = utc_text()
             stdout = stdout_full[-65536:]
             stderr = stderr_full[-65536:]
@@ -354,6 +357,8 @@ class WorkspaceCopyService:
                 )
             raise
         finally:
+            if process_finished:
+                self._cleanup_terminal_copy(session_id, job_root)
             with self._running_lock:
                 self._running_processes.pop(job_id, None)
         return ValidationRunEvidence(
@@ -461,8 +466,13 @@ class WorkspaceCopyService:
         started_at: str,
         process: subprocess.Popen[str],
     ) -> None:
+        job_root = Path(
+            self._validation_copy_row(job_id)["job_root"]
+        ).resolve()
+        process_finished = False
         try:
             stdout_full, stderr_full = process.communicate()
+            process_finished = True
             gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
             with gate, self.database.transaction() as connection:
                 connection.execute(
@@ -496,6 +506,8 @@ class WorkspaceCopyService:
                     (job_id,),
                 )
         finally:
+            if process_finished:
+                self._cleanup_terminal_copy(session_id, job_root)
             with self._running_lock:
                 self._running_processes.pop(job_id, None)
 
@@ -528,63 +540,35 @@ class WorkspaceCopyService:
 
     def cleanup(self, session_id: str, job_root: str | Path) -> Path:
         candidate = Path(job_root).resolve()
-        valid = False
-        for root in self.target_roots:
-            verify_root = self._managed_verify_root(root)
-            if candidate.parent == verify_root and candidate.name:
-                valid = True
-                break
-        if not valid:
-            raise CoordinatorError(
-                "validation_copy_path_not_managed",
-                f"Validation-copy cleanup path is not a direct verify job: {candidate}",
-            )
-        with self.database.transaction() as connection:
-            row = connection.execute(
-                "SELECT job_id, session_id, status FROM validation_copies WHERE job_root = ?",
-                (str(candidate),),
-            ).fetchone()
-            if row is None:
-                raise CoordinatorError(
-                    "validation_copy_not_found", f"Unknown validation-copy job: {candidate}"
-                )
-            if row["session_id"] != session_id:
-                raise CoordinatorError(
-                    "validation_copy_foreign_session", "Validation copy belongs to another Session"
-                )
-            cursor = connection.execute(
-                """
-                UPDATE validation_copies SET status = 'cleanup_pending'
-                WHERE job_root = ? AND status IN ('planned', 'materialized', 'failed')
-                """,
-                (str(candidate),),
-            )
-            if cursor.rowcount != 1:
-                raise CoordinatorError(
-                    "validation_copy_cleanup_busy", "Validation copy is running or already removed"
-                )
-        try:
-            if candidate.exists():
-                shutil.rmtree(candidate)
-        except BaseException:
+        self._validate_cleanup_root(candidate)
+        with self._cleanup_lock:
             with self.database.transaction() as connection:
-                connection.execute(
+                row = connection.execute(
+                    "SELECT job_id, session_id, status FROM validation_copies WHERE job_root = ?",
+                    (str(candidate),),
+                ).fetchone()
+                if row is None:
+                    raise CoordinatorError(
+                        "validation_copy_not_found", f"Unknown validation-copy job: {candidate}"
+                    )
+                if row["session_id"] != session_id:
+                    raise CoordinatorError(
+                        "validation_copy_foreign_session",
+                        "Validation copy belongs to another Session",
+                    )
+                cursor = connection.execute(
                     """
-                    UPDATE validation_copies SET status = 'materialized'
-                    WHERE job_root = ? AND status = 'cleanup_pending'
+                    UPDATE validation_copies SET status = 'cleanup_pending'
+                    WHERE job_root = ? AND status IN ('planned', 'materialized', 'failed')
                     """,
                     (str(candidate),),
                 )
-            raise
-        with self.database.transaction() as connection:
-            connection.execute(
-                """
-                UPDATE validation_copies SET status = 'removed', removed_at = ?
-                WHERE job_root = ?
-                """,
-                (utc_text(), str(candidate)),
-            )
-        return candidate
+                if cursor.rowcount != 1:
+                    raise CoordinatorError(
+                        "validation_copy_cleanup_busy",
+                        "Validation copy is running or already removed",
+                    )
+            return self._remove_pending_cleanup(candidate)
 
     def recover_interrupted_jobs(
         self, *, process_alive=process_is_alive, startup: bool = True
@@ -607,15 +591,65 @@ class WorkspaceCopyService:
                         (row["job_id"],),
                     )
                     recovered_running += 1
-            if startup:
-                cursor = connection.execute(
-                    """
-                    UPDATE validation_copies SET status = 'materialized'
-                    WHERE status = 'cleanup_pending'
-                    """
-                )
-                recovered_cleanup = cursor.rowcount
+        with self.database.connect() as connection:
+            cleanup_rows = connection.execute(
+                """
+                SELECT session_id, job_root FROM validation_copies
+                WHERE status = 'cleanup_pending'
+                """
+            ).fetchall()
+        for row in cleanup_rows:
+            try:
+                candidate = Path(row["job_root"]).resolve()
+                self._validate_cleanup_root(candidate)
+                with self._cleanup_lock:
+                    self._remove_pending_cleanup(candidate)
+            except Exception:
+                continue
+            recovered_cleanup += 1
         return recovered_running, recovered_cleanup
+
+    def _cleanup_terminal_copy(self, session_id: str, job_root: Path) -> None:
+        """Preserve completed validation evidence while deferring failed deletion."""
+        try:
+            self.cleanup(session_id, job_root)
+        except Exception:
+            # ``cleanup_pending`` is intentionally durable and retried by the
+            # coordinator maintenance loop; validation completion stays visible.
+            return
+
+    def _remove_pending_cleanup(self, candidate: Path) -> Path:
+        if candidate.exists():
+            shutil.rmtree(candidate)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE validation_copies SET status = 'removed', removed_at = ?
+                WHERE job_root = ? AND status = 'cleanup_pending'
+                """,
+                (utc_text(), str(candidate)),
+            )
+        return candidate
+
+    def _validate_cleanup_root(self, candidate: Path) -> None:
+        if any(
+            candidate.parent == self._managed_verify_root(root) and candidate.name
+            for root in self.target_roots
+        ):
+            return
+        raise CoordinatorError(
+            "validation_copy_path_not_managed",
+            f"Validation-copy cleanup path is not a direct verify job: {candidate}",
+        )
+
+    def _validation_copy_row(self, job_id: str):
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT job_root FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
+        return row
 
     def _session_attributions(self, session_id: str) -> dict[str, str | None]:
         with self.database.connect() as connection:

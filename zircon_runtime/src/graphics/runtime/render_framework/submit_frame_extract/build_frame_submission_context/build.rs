@@ -25,6 +25,7 @@ use super::compile_pipeline::{
 use super::environment_ibl_compile_options::compile_options_with_environment_ibl_bake_request;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
+use super::subsurface_profile_extract::resolve_subsurface_material_profiles;
 use super::target_resolution::resolve_camera_target_descriptor;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context_from_runtime_frame_extract(
@@ -78,6 +79,7 @@ fn build_frame_submission_context_from_source(
         let state = framework.lock_state();
         state.renderer.asset_manager_for_runtime_extract()
     };
+    resolve_subsurface_material_profiles(asset_manager.as_ref(), Arc::make_mut(extract_source));
     let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
         extract_source.as_ref().view.selected_camera_target(),

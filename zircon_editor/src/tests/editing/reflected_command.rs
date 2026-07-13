@@ -1,5 +1,5 @@
 use serde_json::json;
-use zircon_runtime::plugin::ComponentTypeDescriptor;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest, ReflectedValue};

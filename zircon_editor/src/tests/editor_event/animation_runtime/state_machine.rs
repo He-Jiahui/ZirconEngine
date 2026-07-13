@@ -3,18 +3,20 @@ use super::*;
 #[test]
 fn animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_transition_summary() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_state_machine_dirty");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_state_machine_asset")
-        .join("hero.state_machine.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_state_machine_asset(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_state_machine_dirty");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_state_machine_asset_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -24,7 +26,7 @@ fn animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_trans
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::CreateTransition {
-                    state_machine_path: asset_path.to_string_lossy().into_owned(),
+                    state_machine_locator: asset_locator.clone(),
                     from_state: "Idle".to_string(),
                     to_state: "Run".to_string(),
                     duration_frames: 8,
@@ -56,7 +58,7 @@ fn animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_trans
         harness.runtime.editor_snapshot().status_line,
         format!(
             "Created animation transition Idle -> Run in {} (8 frames)",
-            asset_path.to_string_lossy()
+            asset_locator
         )
     );
 }
@@ -64,19 +66,21 @@ fn animation_state_machine_event_marks_open_graph_editor_dirty_and_updates_trans
 #[test]
 fn animation_state_machine_ignores_missing_entry_state_requests() {
     let _guard = env_lock().lock().unwrap();
-    let harness =
+    let mut harness =
         EventRuntimeHarness::new("zircon_editor_event_animation_state_machine_invalid_entry");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_state_machine_invalid_entry")
-        .join("hero.state_machine.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_state_machine_asset(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_state_machine_invalid_entry_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -86,7 +90,7 @@ fn animation_state_machine_ignores_missing_entry_state_requests() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::SetEntryState {
-                    state_machine_path: asset_path.to_string_lossy().into_owned(),
+                    state_machine_locator: asset_locator,
                     state_name: "Jump".to_string(),
                 },
             ),
@@ -124,20 +128,21 @@ fn animation_state_machine_ignores_missing_entry_state_requests() {
 #[test]
 fn animation_state_machine_ignores_transition_requests_with_missing_states() {
     let _guard = env_lock().lock().unwrap();
-    let harness =
+    let mut harness =
         EventRuntimeHarness::new("zircon_editor_event_animation_state_machine_invalid_transition");
-    let asset_path =
-        unique_temp_dir("zircon_editor_event_animation_state_machine_invalid_transition")
-            .join("hero.state_machine.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_state_machine_asset(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_state_machine_invalid_transition_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -147,7 +152,7 @@ fn animation_state_machine_ignores_transition_requests_with_missing_states() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::CreateTransition {
-                    state_machine_path: asset_path.to_string_lossy().into_owned(),
+                    state_machine_locator: asset_locator,
                     from_state: "Idle".to_string(),
                     to_state: "Jump".to_string(),
                     duration_frames: 8,
@@ -187,21 +192,22 @@ fn animation_state_machine_ignores_transition_requests_with_missing_states() {
 #[test]
 fn animation_state_machine_ignores_condition_requests_for_missing_transitions() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new(
+    let mut harness = EventRuntimeHarness::new(
         "zircon_editor_event_animation_state_machine_missing_transition_condition",
     );
-    let asset_path =
-        unique_temp_dir("zircon_editor_event_animation_state_machine_missing_transition")
-            .join("hero.state_machine.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_state_machine_asset(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_state_machine_missing_transition_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -211,7 +217,7 @@ fn animation_state_machine_ignores_condition_requests_for_missing_transitions() 
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::SetTransitionCondition {
-                    state_machine_path: asset_path.to_string_lossy().into_owned(),
+                    state_machine_locator: asset_locator,
                     from_state: "Idle".to_string(),
                     to_state: "Run".to_string(),
                     parameter_name: "speed".to_string(),
@@ -253,21 +259,22 @@ fn animation_state_machine_ignores_condition_requests_for_missing_transitions() 
 #[test]
 fn animation_state_machine_ignores_unknown_transition_condition_operator() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new(
+    let mut harness = EventRuntimeHarness::new(
         "zircon_editor_event_animation_state_machine_unknown_condition_operator",
     );
-    let asset_path =
-        unique_temp_dir("zircon_editor_event_animation_state_machine_unknown_condition_operator")
-            .join("hero.state_machine.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_state_machine_asset_with_transition(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_state_machine_unknown_condition_project",
+        "res://animation/hero.state_machine.zranim",
+        write_state_machine_asset_with_transition,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
+                asset_locator: asset_locator.clone(),
             }),
         )
         .unwrap();
@@ -277,7 +284,7 @@ fn animation_state_machine_ignores_unknown_transition_condition_operator() {
             EditorEventSource::Headless,
             EditorEvent::Animation(
                 crate::core::editor_event::EditorAnimationEvent::SetTransitionCondition {
-                    state_machine_path: asset_path.to_string_lossy().into_owned(),
+                    state_machine_locator: asset_locator,
                     from_state: "Idle".to_string(),
                     to_state: "Run".to_string(),
                     parameter_name: "speed".to_string(),

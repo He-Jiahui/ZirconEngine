@@ -25,7 +25,7 @@ related_code:
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime/src/ui/surface/input/mod.rs
-  - zircon_runtime/src/ui/surface/input/state.rs
+  - zircon_runtime/src/ui/surface/input/state/mod.rs
   - zircon_runtime/src/ui/surface/input/validation.rs
   - zircon_runtime/src/ui/surface/input/effect.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
@@ -80,7 +80,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/dispatch/pointer/event.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
   - zircon_runtime/src/ui/surface/input/mod.rs
-  - zircon_runtime/src/ui/surface/input/state.rs
+  - zircon_runtime/src/ui/surface/input/state/mod.rs
   - zircon_runtime/src/ui/surface/input/validation.rs
   - zircon_runtime/src/ui/surface/input/effect.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
@@ -143,7 +143,7 @@ tests:
   - owner-cutover-validation: cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (20 passed, 0 failed, 869 filtered out)
   - owner-cutover-validation: cargo test -p zircon_runtime --lib shared_core --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (36 passed, 0 failed, 853 filtered out)
   - owner-cutover-validation: cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never (passed with existing warnings)
-  - owner-safety-final-validation: rustfmt --edition 2021 --config skip_children=true --check zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/state.rs zircon_runtime/src/ui/surface/input/validation.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/effect.rs zircon_runtime/src/ui/surface/surface.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/event_routing.rs zircon_runtime/src/ui/tests/runtime_input_ownership.rs (passed)
+  - owner-safety-final-validation: rustfmt --edition 2021 --config skip_children=true --check zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/state/mod.rs zircon_runtime/src/ui/surface/input/validation.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/effect.rs zircon_runtime/src/ui/surface/surface.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/event_routing.rs zircon_runtime/src/ui/tests/runtime_input_ownership.rs (passed)
   - owner-safety-final-validation: cargo test -p zircon_runtime --lib runtime_input_ownership --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (7 passed, 0 failed, 897 filtered out)
   - owner-safety-final-validation: cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (20 passed, 0 failed, 884 filtered out)
   - owner-safety-final-validation: cargo test -p zircon_runtime --lib shared_core --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (38 passed, 0 failed, 866 filtered out)

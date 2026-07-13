@@ -1,26 +1,24 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/runtime_parent_chain.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_resolve_runtime/topology.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_args_authority.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/runtime_parent_chain.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_resolve_runtime/topology.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_args_authority.rs
 plan_sources:
   - user: 2026-04-20 hybrid GI / Lumen-style hierarchy-aware resolve and runtime continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-scene-driven-parent-chain-runtime-gather.md
 tests:
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_args_authority.rs
   - cargo test -p zircon_runtime --locked --offline virtual_geometry_execution_args_authority --target-dir D:/cargo-targets/zircon-workspace-compile-recovery -- --nocapture
   - cargo test -p zircon_runtime --locked --offline hybrid_gi_resolve_gathers_runtime_grandparent --target-dir D:/cargo-targets/zircon-workspace-compile-recovery -- --nocapture
   - cargo test -p zircon_runtime --locked --offline hybrid_gi_resolve_ignores_zero_weight_exact --target-dir D:/cargo-targets/zircon-workspace-compile-recovery -- --nocapture

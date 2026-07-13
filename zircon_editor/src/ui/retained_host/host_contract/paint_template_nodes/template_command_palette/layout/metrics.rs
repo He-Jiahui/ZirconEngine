@@ -46,7 +46,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command
     let search_top = metrics.gap_m + metrics.border_width * 2.0;
     let search_height = metrics.row_height + metrics.gap_s + metrics.border_width * 2.0;
     let list_top = search_top + search_height + metrics.gap_m;
-    let search_icon_size = (metrics.row_height - metrics.gap_m)
+    let search_icon_size = (metrics.row_height - metrics.gap_l)
         .max(metrics.font_body)
         .round();
     let search_icon_x = metrics.input_pad[0] + metrics.border_width * 2.0;

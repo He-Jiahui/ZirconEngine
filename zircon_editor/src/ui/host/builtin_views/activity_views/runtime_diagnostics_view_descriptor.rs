@@ -17,7 +17,7 @@ pub(super) fn runtime_diagnostics_view_descriptor() -> ViewDescriptor {
         ViewContentKind::RuntimeDiagnostics,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.runtime.diagnostics.body",
+        "res://ui/editor/host/runtime_diagnostics_body.zui",
         PanePayloadKind::RuntimeDiagnosticsV1,
         PaneRouteNamespace::Diagnostics,
         PaneInteractionMode::TemplateOnly,

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{BridgeError, BridgeOwnerTransitionMode, PluginInterface};
+use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
 use crate::plugin::{
-    BridgeOwnerTransitionMode, ExportPackagingStrategy, PluginDependencyManifest,
-    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    PluginDependencyManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimePluginBridgeLifecycleError, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleOutcome, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
     RuntimePluginRegistrationReport,
@@ -19,12 +19,13 @@ fn runtime_plugin_catalog_reports_missing_required_bridge_dependency_interface()
     );
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("bridge.strong_dependency_missing")
-        && diagnostic.contains("package `weather`")
-        && diagnostic.contains("provider plugin `physics` is not registered")
-        && diagnostic.contains("interface `physics.query.v1`")
-        && diagnostic.contains("chain: weather -> physics")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("bridge.strong_dependency_missing")
+            && diagnostic.contains("package `weather`")
+            && diagnostic.contains("provider plugin `physics` is not registered")
+            && diagnostic.contains("interface `physics.query.v1`")
+            && diagnostic.contains("chain: weather -> physics")
+    }));
 }
 
 #[test]
@@ -78,12 +79,13 @@ fn runtime_plugin_catalog_reports_transitive_required_bridge_dependency_chain() 
     );
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("bridge.strong_dependency_missing")
-        && diagnostic.contains("package `weather`")
-        && diagnostic.contains("provider plugin `scene` is not registered")
-        && diagnostic.contains("interface `scene.query.v1`")
-        && diagnostic.contains("chain: weather -> physics -> scene")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("bridge.strong_dependency_missing")
+            && diagnostic.contains("package `weather`")
+            && diagnostic.contains("provider plugin `scene` is not registered")
+            && diagnostic.contains("interface `scene.query.v1`")
+            && diagnostic.contains("chain: weather -> physics -> scene")
+    }));
 }
 
 #[test]

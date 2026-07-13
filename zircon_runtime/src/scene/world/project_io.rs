@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::asset::assets::{
-    ImportedAsset, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
+    ImportedAsset, ProjectDocumentError, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset,
     SceneCameraTargetAsset, SceneChromaticAberrationSettingsAsset, SceneColliderAsset,
@@ -17,7 +17,7 @@ use crate::asset::assets::{
 };
 use crate::asset::importer::AssetImportError;
 use crate::asset::project::ProjectManager;
-use crate::asset::AssetReference;
+use crate::asset::{AssetReference, AssetUuid};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
@@ -75,8 +75,15 @@ pub enum SceneProjectError {
     Parse(#[from] serde_json::Error),
     #[error("asset import failed: {0}")]
     Asset(#[from] AssetImportError),
+    #[error(transparent)]
+    ProjectDocument(#[from] ProjectDocumentError),
     #[error("scene asset error: {0}")]
     SceneAsset(String),
+    #[error("dangling asset reference {uuid} at {locator}")]
+    DanglingAssetReference {
+        uuid: AssetUuid,
+        locator: ResourceLocator,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -133,7 +140,125 @@ impl World {
                 NodeKind::Empty
             };
 
-            let mesh = mesh_from_asset(project, entity.mesh.as_ref());
+            let mesh = mesh_from_asset(project, entity.mesh.as_ref())?;
+            let camera = entity
+                .camera
+                .clone()
+                .map(|camera| {
+                    Ok::<_, SceneProjectError>(CameraComponent {
+                        core_pipeline: camera.core_pipeline,
+                        projection_mode: camera.projection_mode,
+                        fov_y_radians: camera.fov_y_radians,
+                        ortho_size: camera.ortho_size,
+                        z_near: camera.z_near,
+                        z_far: camera.z_far,
+                        target: camera_target_from_asset(project, camera.target)?,
+                        viewport: camera.viewport.map(viewport_rect_from_asset),
+                        order: camera.order,
+                        is_active: camera.active,
+                        hdr: camera.hdr,
+                        exposure_ev100: camera.exposure_ev100,
+                        clear_color: camera.clear_color,
+                        msaa_samples: camera.msaa_samples,
+                    })
+                })
+                .transpose()?;
+            let collider = entity
+                .collider
+                .clone()
+                .map(|collider| {
+                    Ok::<_, SceneProjectError>(ColliderComponent {
+                        shape: collider_shape_from_asset(collider.shape),
+                        sensor: collider.sensor,
+                        layer: collider.layer,
+                        collision_group: collider.collision_group,
+                        collision_mask: collider.collision_mask,
+                        material: collider
+                            .material
+                            .as_ref()
+                            .map(|reference| {
+                                handle_for_reference::<PhysicsMaterialMarker>(project, reference)
+                            })
+                            .transpose()?,
+                        material_override: collider.material_override,
+                        local_transform: transform_from_asset(collider.local_transform),
+                    })
+                })
+                .transpose()?;
+            let animation_skeleton = entity
+                .animation_skeleton
+                .clone()
+                .map(|animation_skeleton| {
+                    Ok::<_, SceneProjectError>(AnimationSkeletonComponent {
+                        skeleton: handle_for_reference::<AnimationSkeletonMarker>(
+                            project,
+                            &animation_skeleton.skeleton,
+                        )?,
+                    })
+                })
+                .transpose()?;
+            let animation_player = entity
+                .animation_player
+                .clone()
+                .map(|animation_player| {
+                    Ok::<_, SceneProjectError>(AnimationPlayerComponent {
+                        clip: handle_for_reference::<AnimationClipMarker>(
+                            project,
+                            &animation_player.clip,
+                        )?,
+                        playback_speed: animation_player.playback_speed,
+                        time_seconds: animation_player.time_seconds,
+                        weight: animation_player.weight,
+                        looping: animation_player.looping,
+                        playing: animation_player.playing,
+                    })
+                })
+                .transpose()?;
+            let animation_sequence_player = entity
+                .animation_sequence_player
+                .clone()
+                .map(|animation_sequence_player| {
+                    Ok::<_, SceneProjectError>(AnimationSequencePlayerComponent {
+                        sequence: handle_for_reference::<AnimationSequenceMarker>(
+                            project,
+                            &animation_sequence_player.sequence,
+                        )?,
+                        playback_speed: animation_sequence_player.playback_speed,
+                        time_seconds: animation_sequence_player.time_seconds,
+                        looping: animation_sequence_player.looping,
+                        playing: animation_sequence_player.playing,
+                    })
+                })
+                .transpose()?;
+            let animation_graph_player = entity
+                .animation_graph_player
+                .clone()
+                .map(|animation_graph_player| {
+                    Ok::<_, SceneProjectError>(AnimationGraphPlayerComponent {
+                        graph: handle_for_reference::<AnimationGraphMarker>(
+                            project,
+                            &animation_graph_player.graph,
+                        )?,
+                        parameters: animation_graph_player.parameters,
+                        playing: animation_graph_player.playing,
+                    })
+                })
+                .transpose()?;
+            let animation_state_machine_player = entity
+                .animation_state_machine_player
+                .clone()
+                .map(|animation_state_machine_player| {
+                    Ok::<_, SceneProjectError>(AnimationStateMachinePlayerComponent {
+                        state_machine: handle_for_reference::<AnimationStateMachineMarker>(
+                            project,
+                            &animation_state_machine_player.state_machine,
+                        )?,
+                        parameters: animation_state_machine_player.parameters,
+                        active_state: animation_state_machine_player.active_state,
+                        playing: animation_state_machine_player.playing,
+                    })
+                })
+                .transpose()?;
 
             world
                 .insert_node_record(crate::scene::components::NodeRecord {
@@ -148,22 +273,7 @@ impl World {
                         rotation: crate::core::math::Quat::from_array(entity.transform.rotation),
                         scale: crate::core::math::Vec3::from_array(entity.transform.scale),
                     },
-                    camera: entity.camera.clone().map(|camera| CameraComponent {
-                        core_pipeline: camera.core_pipeline,
-                        projection_mode: camera.projection_mode,
-                        fov_y_radians: camera.fov_y_radians,
-                        ortho_size: camera.ortho_size,
-                        z_near: camera.z_near,
-                        z_far: camera.z_far,
-                        target: camera_target_from_asset(project, camera.target),
-                        viewport: camera.viewport.map(viewport_rect_from_asset),
-                        order: camera.order,
-                        is_active: camera.active,
-                        hdr: camera.hdr,
-                        exposure_ev100: camera.exposure_ev100,
-                        clear_color: camera.clear_color,
-                        msaa_samples: camera.msaa_samples,
-                    }),
+                    camera,
                     mesh,
                     sprite_2d: None,
                     mesh_2d: None,
@@ -214,6 +324,7 @@ impl World {
                                 SceneRigidBodyTypeAsset::Kinematic => RigidBodyType::Kinematic,
                             },
                             mass: rigid_body.mass,
+                            mass_properties: rigid_body.mass_properties,
                             linear_velocity: crate::core::math::Vec3::from_array(
                                 rigid_body.linear_velocity,
                             ),
@@ -223,22 +334,12 @@ impl World {
                             linear_damping: rigid_body.linear_damping,
                             angular_damping: rigid_body.angular_damping,
                             gravity_scale: rigid_body.gravity_scale,
-                            can_sleep: rigid_body.can_sleep,
+                            ccd_mode: rigid_body.ccd_mode,
+                            sleep_policy: rigid_body.sleep_policy,
                             lock_translation: rigid_body.lock_translation,
                             lock_rotation: rigid_body.lock_rotation,
                         }),
-                    collider: entity.collider.clone().map(|collider| ColliderComponent {
-                        shape: collider_shape_from_asset(collider.shape),
-                        sensor: collider.sensor,
-                        layer: collider.layer,
-                        collision_group: collider.collision_group,
-                        collision_mask: collider.collision_mask,
-                        material: collider.material.as_ref().map(|reference| {
-                            handle_for_reference::<PhysicsMaterialMarker>(project, reference)
-                        }),
-                        material_override: collider.material_override,
-                        local_transform: transform_from_asset(collider.local_transform),
-                    }),
+                    collider,
                     joint: entity.joint.clone().map(|joint| JointComponent {
                         joint_type: match joint.joint_type {
                             SceneJointKindAsset::Fixed => JointKind::Fixed,
@@ -256,63 +357,11 @@ impl World {
                         constraint: joint.constraint,
                         skeleton_binding: joint.skeleton_binding,
                     }),
-                    animation_skeleton: entity.animation_skeleton.clone().map(
-                        |animation_skeleton| AnimationSkeletonComponent {
-                            skeleton: handle_for_reference::<AnimationSkeletonMarker>(
-                                project,
-                                &animation_skeleton.skeleton,
-                            ),
-                        },
-                    ),
-                    animation_player: entity.animation_player.clone().map(|animation_player| {
-                        AnimationPlayerComponent {
-                            clip: handle_for_reference::<AnimationClipMarker>(
-                                project,
-                                &animation_player.clip,
-                            ),
-                            playback_speed: animation_player.playback_speed,
-                            time_seconds: animation_player.time_seconds,
-                            weight: animation_player.weight,
-                            looping: animation_player.looping,
-                            playing: animation_player.playing,
-                        }
-                    }),
-                    animation_sequence_player: entity.animation_sequence_player.clone().map(
-                        |animation_sequence_player| AnimationSequencePlayerComponent {
-                            sequence: handle_for_reference::<AnimationSequenceMarker>(
-                                project,
-                                &animation_sequence_player.sequence,
-                            ),
-                            playback_speed: animation_sequence_player.playback_speed,
-                            time_seconds: animation_sequence_player.time_seconds,
-                            looping: animation_sequence_player.looping,
-                            playing: animation_sequence_player.playing,
-                        },
-                    ),
-                    animation_graph_player: entity.animation_graph_player.clone().map(
-                        |animation_graph_player| AnimationGraphPlayerComponent {
-                            graph: handle_for_reference::<AnimationGraphMarker>(
-                                project,
-                                &animation_graph_player.graph,
-                            ),
-                            parameters: animation_graph_player.parameters,
-                            playing: animation_graph_player.playing,
-                        },
-                    ),
-                    animation_state_machine_player: entity
-                        .animation_state_machine_player
-                        .clone()
-                        .map(|animation_state_machine_player| {
-                            AnimationStateMachinePlayerComponent {
-                                state_machine: handle_for_reference::<AnimationStateMachineMarker>(
-                                    project,
-                                    &animation_state_machine_player.state_machine,
-                                ),
-                                parameters: animation_state_machine_player.parameters,
-                                active_state: animation_state_machine_player.active_state,
-                                playing: animation_state_machine_player.playing,
-                            }
-                        }),
+                    animation_skeleton,
+                    animation_player,
+                    animation_sequence_player,
+                    animation_graph_player,
+                    animation_state_machine_player,
                 })
                 .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))?;
             if let Some(camera_post_process) = entity
@@ -438,12 +487,14 @@ impl World {
                             RigidBodyType::Kinematic => SceneRigidBodyTypeAsset::Kinematic,
                         },
                         mass: rigid_body.mass,
+                        mass_properties: rigid_body.mass_properties,
                         linear_velocity: rigid_body.linear_velocity.to_array(),
                         angular_velocity: rigid_body.angular_velocity.to_array(),
                         linear_damping: rigid_body.linear_damping,
                         angular_damping: rigid_body.angular_damping,
                         gravity_scale: rigid_body.gravity_scale,
-                        can_sleep: rigid_body.can_sleep,
+                        ccd_mode: rigid_body.ccd_mode,
+                        sleep_policy: rigid_body.sleep_policy,
                         lock_translation: rigid_body.lock_translation,
                         lock_rotation: rigid_body.lock_rotation,
                     }),

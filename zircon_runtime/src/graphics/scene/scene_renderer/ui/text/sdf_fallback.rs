@@ -1,7 +1,8 @@
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasRun};
-use crate::ui::text::resolve_text_direction;
+use crate::graphics::text::sdf::SdfGlyphGenerationError;
+use crate::graphics::text::shaping::resolve_bidi_base_direction;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -47,7 +48,13 @@ struct SdfAtlasGlyphFallbackSpan {
     glyph_count: usize,
     start_byte_index: usize,
     end_byte_index: usize,
-    reason: SdfAtlasAllocationFailureReason,
+    reason: SdfGlyphFallbackReason,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SdfGlyphFallbackReason {
+    Allocation(SdfAtlasAllocationFailureReason),
+    Generation(SdfGlyphGenerationError),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -82,7 +89,7 @@ pub(super) fn apply_sdf_atlas_fallbacks(
             continue;
         };
 
-        if run.has_allocation_failures() {
+        if run.has_failures() {
             let fallback_spans = fallback_spans_for_text_run(text.text.as_str(), run);
             report.record_run_fallback(run, &fallback_spans);
 
@@ -121,7 +128,8 @@ impl ScreenSpaceUiTextSdfFallbackReport {
         self.fallback_text_batch_count = self.fallback_text_batch_count.saturating_add(1);
         self.fallback_glyph_count = self
             .fallback_glyph_count
-            .saturating_add(run.allocation_failure_count);
+            .saturating_add(run.allocation_failure_count)
+            .saturating_add(run.generation_failure_count);
         self.fallback_span_count = self
             .fallback_span_count
             .saturating_add(fallback_spans.len());
@@ -142,18 +150,19 @@ impl ScreenSpaceUiTextSdfFallbackReport {
     fn record_span_fallback(&mut self, span: &SdfAtlasGlyphFallbackSpan) {
         let span_source_byte_count = span_source_byte_count(span);
         match span.reason {
-            SdfAtlasAllocationFailureReason::PageLimit => {
+            SdfGlyphFallbackReason::Allocation(SdfAtlasAllocationFailureReason::PageLimit) => {
                 self.page_limit_span_count = self.page_limit_span_count.saturating_add(1);
                 self.page_limit_source_byte_count = self
                     .page_limit_source_byte_count
                     .saturating_add(span_source_byte_count);
             }
-            SdfAtlasAllocationFailureReason::OversizedSlot => {
+            SdfGlyphFallbackReason::Allocation(SdfAtlasAllocationFailureReason::OversizedSlot) => {
                 self.oversized_span_count = self.oversized_span_count.saturating_add(1);
                 self.oversized_source_byte_count = self
                     .oversized_source_byte_count
                     .saturating_add(span_source_byte_count);
             }
+            SdfGlyphFallbackReason::Generation(_) => {}
         }
     }
 
@@ -241,7 +250,9 @@ fn validate_mixed_native_overlay_layout_support(
     }
     let text_direction = match text.text_direction {
         UiTextDirection::LeftToRight | UiTextDirection::RightToLeft => text.text_direction,
-        UiTextDirection::Auto => resolve_text_direction(text.text.as_str(), text.text_direction),
+        UiTextDirection::Auto => {
+            resolve_bidi_base_direction(text.text.as_str(), text.text_direction)
+        }
         UiTextDirection::Mixed => {
             return Err(MixedNativeOverlayUnsupportedReason::UnsupportedTextDirection);
         }
@@ -330,10 +341,19 @@ fn fallback_spans_for_text_run(
             continue;
         }
         let reason = (0..glyph_count).find_map(|offset| {
+            let glyph_index = glyph_index.saturating_add(offset);
             run.glyph_failure_reasons
-                .get(glyph_index.saturating_add(offset))
+                .get(glyph_index)
                 .copied()
                 .flatten()
+                .map(SdfGlyphFallbackReason::Allocation)
+                .or_else(|| {
+                    run.glyph_generation_failures
+                        .get(glyph_index)
+                        .copied()
+                        .flatten()
+                        .map(SdfGlyphFallbackReason::Generation)
+                })
         });
         let Some(reason) = reason else {
             glyph_index = glyph_index.saturating_add(glyph_count);

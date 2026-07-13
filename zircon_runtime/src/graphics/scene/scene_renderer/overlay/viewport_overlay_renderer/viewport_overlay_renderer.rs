@@ -22,6 +22,10 @@ pub(crate) struct ViewportOverlayRenderer {
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_pipeline:
         wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_volumetric_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_volumetric_apply:
+        crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_count:

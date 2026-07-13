@@ -62,6 +62,66 @@ fn collider_body_and_joint_contracts_use_snake_case_serde() {
 }
 
 #[test]
+fn physics_extended_collider_shape_family_round_trips_json() {
+    use crate::core::resource::{AssetReference, ResourceLocator};
+
+    let mesh = AssetReference::from_locator(
+        ResourceLocator::parse("res://physics/arena.physics_mesh").unwrap(),
+    );
+    let shapes = [
+        PhysicsColliderShape::Cylinder {
+            radius: 0.75,
+            half_height: 1.25,
+        },
+        PhysicsColliderShape::ConvexHull {
+            points: vec![
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ],
+        },
+        PhysicsColliderShape::TriangleMesh { mesh: mesh.clone() },
+        PhysicsColliderShape::HeightField {
+            resolution: [32, 16],
+            heights: mesh,
+        },
+        PhysicsColliderShape::Compound {
+            children: vec![(
+                Transform::default(),
+                Box::new(PhysicsColliderShape::Sphere { radius: 0.5 }),
+            )],
+        },
+    ];
+
+    for shape in shapes {
+        let json = serde_json::to_string(&shape).unwrap();
+        let decoded: PhysicsColliderShape = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, shape);
+    }
+}
+
+#[test]
+fn physics_mesh_asset_payloads_round_trip_json() {
+    let assets = [
+        PhysicsMeshAsset::TriangleMesh {
+            vertices: vec![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 2.0]],
+            indices: vec![[0, 1, 2]],
+        },
+        PhysicsMeshAsset::HeightField {
+            resolution: [2, 2],
+            heights: vec![0.0, 0.25, 0.5, 0.75],
+        },
+    ];
+
+    for asset in assets {
+        let json = serde_json::to_string(&asset).unwrap();
+        let decoded: PhysicsMeshAsset = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, asset);
+    }
+}
+
+#[test]
 fn world_sync_default_starts_empty_and_backend_neutral() {
     let sync = PhysicsWorldSyncState::default();
 
@@ -93,6 +153,7 @@ fn backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos() {
         origin: [0.0, 1.0, 0.0],
         direction: [0.0, -1.0, 0.0],
         max_distance: 32.0,
+        mode: PhysicsQueryMode::Closest,
         filter: PhysicsQueryFilter {
             collision_mask: Some(0b101),
             include_sensors: true,
@@ -103,6 +164,7 @@ fn backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos() {
         world: WorldHandle::new(7),
         shape: PhysicsColliderShape::Sphere { radius: 0.75 },
         transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
+        mode: PhysicsQueryMode::All,
         filter: PhysicsQueryFilter {
             excluded_entities: vec![99],
             required_collision_group: Some(3),
@@ -117,6 +179,7 @@ fn backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos() {
         origin_transform: Transform::default(),
         direction: [1.0, 0.0, 0.0],
         max_distance: 8.0,
+        mode: PhysicsQueryMode::Closest,
         filter: PhysicsQueryFilter::default(),
     };
     let overlap_hit = PhysicsShapeOverlapHit {
@@ -322,12 +385,14 @@ fn body_collider_material_and_contact_sync_use_scene_identity() {
         body_type: PhysicsBodyType::Dynamic,
         transform: Transform::default(),
         mass: 2.0,
+        mass_properties: Default::default(),
         linear_velocity: [1.0, 0.0, 0.0],
         angular_velocity: [0.0, 1.0, 0.0],
         linear_damping: 0.1,
         angular_damping: 0.2,
         gravity_scale: 1.0,
-        can_sleep: true,
+        ccd_mode: Default::default(),
+        sleep_policy: Default::default(),
         lock_translation: [false, true, false],
         lock_rotation: [false, false, true],
     };

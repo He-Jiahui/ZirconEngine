@@ -62,9 +62,9 @@ fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
             "pub const PHYSICS_QUERY_INTERFACE_ID: &str = \"physics.query.v1\"",
             "impl PluginInterface for dyn PhysicsQueryInterface",
             "const INTERFACE_ID: &'static str = PHYSICS_QUERY_INTERFACE_ID",
-            "fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit>;",
+            "fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit>;",
             "fn shape_overlap(&self, query: &PhysicsShapeOverlapQuery) -> Vec<PhysicsShapeOverlapHit>;",
-            "fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Option<PhysicsShapeCastHit>;",
+            "fn shape_cast(&self, query: &PhysicsShapeCastQuery) -> Vec<PhysicsShapeCastHit>;",
         ],
     );
 

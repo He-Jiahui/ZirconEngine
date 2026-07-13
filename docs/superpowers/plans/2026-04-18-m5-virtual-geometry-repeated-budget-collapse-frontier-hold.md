@@ -1,18 +1,18 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/construct.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/visibility/context/from_extract_with_history/construct.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
 plan_sources:
   - user: 2026-04-18 仍然是 Virtual Geometry 更深的 split-merge frontier policy / residency-manager cascade
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/sessions/20260417-1415-m5-vg-slot-assignment-ownership.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-requested-lineage-frontier-budget-hold.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_collapse_without_pending_requests -- --nocapture
   - cargo test -p zircon_graphics --offline --locked visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontier_budget_collapses -- --nocapture
   - cargo test -p zircon_graphics --offline --locked visibility -- --nocapture

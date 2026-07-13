@@ -1,8 +1,8 @@
-mod joint_palette_uniform;
+mod joint_palette_storage;
 
-pub(in crate::graphics::scene) use joint_palette_uniform::SkinnedMeshJointPaletteUniform;
+pub(in crate::graphics::scene) use joint_palette_storage::SkinnedMeshJointPaletteStorage;
 #[cfg(test)]
-pub(in crate::graphics::scene::scene_renderer::mesh) use joint_palette_uniform::SKINNED_MESH_MAX_JOINT_MATRICES;
-pub(in crate::graphics::scene::scene_renderer) use joint_palette_uniform::{
-    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_uniform_min_binding_size,
+pub(in crate::graphics::scene::scene_renderer::mesh) use joint_palette_storage::SKINNED_MESH_MAX_JOINT_MATRICES;
+pub(in crate::graphics::scene::scene_renderer) use joint_palette_storage::{
+    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
 };

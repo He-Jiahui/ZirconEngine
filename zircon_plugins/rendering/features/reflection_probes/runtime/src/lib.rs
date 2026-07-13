@@ -6,11 +6,13 @@ mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
 pub use capture::{
-    capture_and_persist_reflection_probe, ReflectionProbeCaptureError, ReflectionProbeCaptureFace,
-    ReflectionProbeCaptureFaceView, ReflectionProbeCaptureQuality, ReflectionProbeCaptureReport,
-    ReflectionProbeCaptureRequest, ReflectionProbeCaptureRequestError,
-    ReflectionProbeCaptureStorageTransform, REFLECTION_PROBE_CAPTURE_FACE_VIEWS,
-    REFLECTION_PROBE_CAPTURE_REQUEST_SCHEMA_VERSION,
+    capture_and_persist_reflection_probe, register_captured_reflection_probe,
+    CapturedReflectionProbeAsset, CapturedReflectionProbeConsumeError,
+    CapturedReflectionProbeInfluence, CapturedReflectionProbePlacement,
+    ReflectionProbeCaptureError, ReflectionProbeCaptureFace, ReflectionProbeCaptureFaceView,
+    ReflectionProbeCaptureQuality, ReflectionProbeCaptureReport, ReflectionProbeCaptureRequest,
+    ReflectionProbeCaptureRequestError, ReflectionProbeCaptureStorageTransform,
+    REFLECTION_PROBE_CAPTURE_FACE_VIEWS, REFLECTION_PROBE_CAPTURE_REQUEST_SCHEMA_VERSION,
 };
 pub use plugin::{
     feature_manifest, plugin_feature_registration, runtime_plugin_feature,

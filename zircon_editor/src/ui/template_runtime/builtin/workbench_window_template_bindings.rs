@@ -36,7 +36,7 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "CommandPalette",
         "Commit",
-        EditorUiBindingPayload::editor_command("editor.command_palette"),
+        EditorUiBindingPayload::editor_command("editor.command.palette"),
     );
 
     insert_click(
@@ -530,7 +530,7 @@ mod tests {
         assert_eq!(binding.path().event_kind, EditorUiEventKind::Submit);
         assert_eq!(
             binding.payload(),
-            &EditorUiBindingPayload::editor_command("editor.command_palette")
+            &EditorUiBindingPayload::editor_command("editor.command.palette")
         );
     }
 

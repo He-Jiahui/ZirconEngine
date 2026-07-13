@@ -1,0 +1,69 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui"
+version = 2
+display_name = "Workbench Transport Controls"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
+]
+styles = []
+
+[components.WorkbenchTransportControls]
+root = "root"
+default_classes = ["workbench-transport-controls", "workbench-composite"]
+
+[nodes.root]
+component = "HorizontalGroup"
+control_id = "WorkbenchTransportControlsRoot"
+classes = ["workbench-transport-controls"]
+layout = { container = { kind = "HorizontalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "record" }, { node = "play" }, { node = "pause" }, { node = "previous" }, { node = "next" }, { node = "loop" }, { node = "fill" }]
+
+[nodes.record]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportRecord"
+props = { icon = "zircon_editor_shell/animation/playback-record.svg", label = "Record", text = "", button_variant = "text", button_color = "secondary", validation_level = "error", layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportRecord", event = "Click", route = "workbench.extension.animation_transport.record.toggle" }]
+
+[nodes.play]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportPlay"
+props = { icon = "zircon_editor_shell/animation/playback-play.svg", label = "Play", text = "", button_variant = "text", button_color = "secondary", selected = true, layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportPlay", event = "Click", route = "workbench.extension.animation_transport.play.invoke" }]
+
+[nodes.pause]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportPause"
+props = { icon = "zircon_editor_shell/animation/playback-pause.svg", label = "Pause", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportPause", event = "Click", route = "workbench.extension.animation_transport.pause.invoke" }]
+
+[nodes.previous]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportPrevious"
+props = { icon = "zircon_editor_shell/animation/playback-previous.svg", label = "Previous", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportPrevious", event = "Click", route = "workbench.extension.animation_transport.previous.invoke" }]
+
+[nodes.next]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportNext"
+props = { icon = "zircon_editor_shell/animation/playback-next.svg", label = "Next", text = "", button_variant = "text", button_color = "secondary", layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportNext", event = "Click", route = "workbench.extension.animation_transport.next.invoke" }]
+
+[nodes.loop]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchTransportLoop"
+props = { icon = "zircon_editor_shell/animation/playback-loop.svg", label = "Loop", text = "", button_variant = "text", button_color = "secondary", checked = true, layout_icon_size = 20.0, layout_padding_left = 2.0, layout_padding_right = 2.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchExtension/AnimationTransportLoop", event = "Click", route = "workbench.extension.animation_transport.loop.toggle" }]
+
+[nodes.fill]
+component = "Container"
+control_id = "WorkbenchTransportFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

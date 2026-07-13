@@ -1,0 +1,14 @@
+pub(super) const OUTER_SURFACE: [u8; 4] = [17, 20, 24, 255];
+pub(super) const OUTER_BORDER: [u8; 4] = [49, 55, 62, 255];
+pub(super) const PLOT_SURFACE: [u8; 4] = [20, 23, 27, 255];
+pub(super) const PLOT_BORDER: [u8; 4] = [61, 68, 75, 255];
+pub(super) const GRID_LINE: [u8; 4] = [73, 81, 89, 150];
+pub(super) const ZERO_AXIS: [u8; 4] = [112, 121, 129, 210];
+pub(super) const TICK_TEXT: [u8; 4] = [151, 157, 163, 255];
+pub(super) const AXIS_TEXT: [u8; 4] = [190, 195, 199, 255];
+pub(super) const POINT: [u8; 4] = [162, 170, 177, 255];
+pub(super) const POINT_CENTER: [u8; 4] = [45, 50, 56, 255];
+pub(super) const SELECTED_POINT: [u8; 4] = [24, 187, 214, 255];
+pub(super) const SELECTED_HALO: [u8; 4] = [24, 187, 214, 82];
+pub(super) const SELECTED_LABEL_SURFACE: [u8; 4] = [18, 55, 64, 244];
+pub(super) const SELECTED_LABEL_TEXT: [u8; 4] = [214, 244, 248, 255];

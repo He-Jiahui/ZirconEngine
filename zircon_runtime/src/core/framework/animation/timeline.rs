@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AnimationClipAsset, AnimationSequenceAsset};
 use crate::core::math::Real;
 
 use super::{avatar_mask::animation_target_id_matches, AnimationAvatarMask, AnimationTrackPath};
@@ -175,83 +174,6 @@ impl Default for AnimationTimelineDescriptor {
 }
 
 impl AnimationTimelineDescriptor {
-    pub fn from_sequence(sequence: &AnimationSequenceAsset) -> Self {
-        let tracks = sequence
-            .bindings
-            .iter()
-            .flat_map(|binding| {
-                binding.tracks.iter().map(|track| {
-                    let mut descriptor = AnimationTimelineTrackDescriptor::property(
-                        AnimationTrackPath::new(
-                            binding.entity_path.clone(),
-                            track.property_path.clone(),
-                        ),
-                        track.channel.keys.len() as u32,
-                    );
-                    descriptor.target_id = binding.target_id.clone();
-                    descriptor
-                })
-            })
-            .collect();
-
-        Self {
-            id: sequence.name.clone(),
-            duration_seconds: sequence.duration_seconds,
-            frames_per_second: sequence.frames_per_second,
-            clips: Vec::new(),
-            tracks,
-            events: Vec::new(),
-        }
-    }
-
-    pub fn from_clip(clip: &AnimationClipAsset) -> Self {
-        let tracks = clip
-            .tracks
-            .iter()
-            .map(|track| {
-                let target_id = track
-                    .target_id
-                    .clone()
-                    .unwrap_or_else(|| track.bone_name.clone());
-                let key_count = track
-                    .translation
-                    .keys
-                    .len()
-                    .max(track.rotation.keys.len())
-                    .max(track.scale.keys.len()) as u32;
-                AnimationTimelineTrackDescriptor::bone_transform(target_id, key_count)
-            })
-            .chain(
-                clip.event_tracks
-                    .iter()
-                    .map(|event| AnimationTimelineTrackDescriptor::event(event.target_id.clone())),
-            )
-            .collect();
-        let events = clip
-            .event_tracks
-            .iter()
-            .map(|event| AnimationTimelineEventDescriptor {
-                target_id: event.target_id.clone(),
-                name: event.event.clone(),
-                payload: event.payload.clone(),
-                time_seconds: event.time_seconds,
-            })
-            .collect();
-
-        Self {
-            id: clip.name.clone(),
-            duration_seconds: clip.duration_seconds,
-            frames_per_second: 0.0,
-            clips: vec![AnimationTimelineClipDescriptor {
-                clip_id: clip.name.clone(),
-                duration_seconds: clip.duration_seconds,
-                ..AnimationTimelineClipDescriptor::default()
-            }],
-            tracks,
-            events,
-        }
-    }
-
     pub fn sanitized_duration_seconds(&self) -> Real {
         sanitize_non_negative_real(self.duration_seconds)
     }

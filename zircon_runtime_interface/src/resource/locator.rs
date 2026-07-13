@@ -165,7 +165,7 @@ impl std::error::Error for ResourceLocatorError {}
 
 fn split_label(value: &str) -> Result<(String, Option<String>), ResourceLocatorError> {
     match value.split_once('#') {
-        Some((_path, label)) if label.is_empty() => Err(ResourceLocatorError::EmptyLabel),
+        Some((_path, "")) => Err(ResourceLocatorError::EmptyLabel),
         Some((path, label)) => Ok((path.to_string(), Some(label.to_string()))),
         None => Ok((value.to_string(), None)),
     }

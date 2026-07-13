@@ -1,5 +1,6 @@
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
-use zircon_runtime::plugin::{PluginModuleKind, ProjectPluginManifest, ProjectPluginSelection};
+use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+use zircon_runtime::plugin::PluginModuleKind;
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugins() {

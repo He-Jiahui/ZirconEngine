@@ -1,5 +1,11 @@
 ---
 related_code:
+  - zircon_app/Cargo.toml
+  - zircon_runtime/runtime-feature-presets.toml
+  - zircon_runtime/src/core/framework/render/environment/lightmap.rs
+  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
+  - zircon_runtime/src/core/framework/render/environment/extract.rs
+  - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
@@ -282,6 +288,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
 implementation_files:
+  - zircon_app/Cargo.toml
+  - zircon_runtime/runtime-feature-presets.toml
+  - zircon_runtime/src/core/framework/render/environment/lightmap.rs
+  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
+  - zircon_runtime/src/core/framework/render/environment/extract.rs
+  - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
@@ -503,6 +515,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
 plan_sources:
+  - user: 2026-07-13 audit the 35-article WeChat graphics collection and improve Hybrid GI/rendering usage plans
   - user: 2026-04-21 continue Hybrid GI / Lumen-style implementation and keep advancing the approved three-phase plan
   - docs/superpowers/specs/2026-05-01-plugin-renderer-hard-cutover-design.md
   - docs/superpowers/plans/2026-05-01-plugin-renderer-hard-cutover.md
@@ -523,6 +536,8 @@ plan_sources:
   - user: 2026-07-10 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph-owned main-scene HZB trace packet
   - user: 2026-07-11 continue WGPU-to-render-pipeline Plan 18 editor-default/runtime-opt-in and capability fallback
 tests:
+  - tools/tests/test_hybrid_gi_editor_profile.py
+  - tools/tests/test_environment_lightmap_contract.py
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs::surface_cache_trace_tile_ray_count_scales_with_hybrid_gi_quality_budget
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::global_illumination_history_source_requires_single_sample_rgba16_float
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs::reflection_and_gi_products_preserve_hdr_before_output_transfer
@@ -804,10 +819,16 @@ Solari requirements, remain strict validation errors.
 
 Focused validation passed for the editor viewport lifecycle/default extract, editor-only entry
 default, advanced-provider selection, advanced capability degradation, and strict AA validation. The
-`target-editor-host` Cargo preset still needs the first-party advanced render catalog feature; that
-manifest is owned by the active Frameworks 03 session, so this behavior slice is recorded as partial
-until the owner lands or releases that one manifest relation. No editor WGPU visual acceptance is
-claimed by this subsection.
+`target-editor-host` now compiles the first-party advanced render catalog feature, and the canonical
+Editor/Dev app presets carry the same relation. Runtime profile selection still links only the HGI
+provider requested by the editor's render profile, so compiling the catalog does not activate Virtual
+Geometry or Solari. The manifest relation is covered by
+`tools/tests/test_hybrid_gi_editor_profile.py`. No editor WGPU visual acceptance is claimed by this
+subsection yet; the executable default-path product image and RenderDoc capture remain M3 gates.
+
+The operator-facing configuration, budget, debug-view, fallback, and acceptance workflow is kept in
+`docs/zircon_plugins/hybrid_gi/usage.md`. It explicitly distinguishes the current DynamicOnly path
+from the not-yet-implemented HGI-M4 baked-static/dynamic composition contract.
 
 ### Quality-Scaled Trace Rays And HDR History Format
 
@@ -835,6 +856,87 @@ The current plugin binary also passed all 94 non-ignored tests with 13 visual ex
 fresh Runtime unit-test binary did not build because the active reflection-probe test source refers
 to an undefined `stats` local; no Runtime unit-test GREEN is claimed from that command. The direct
 WGPU product covers the corrected resource format and history copy in the normal HGI frame path.
+
+### Multi-Direction Trace Quality
+
+`trace_probe_tiles.wgsl` now treats the quality ray count as actual directional work instead of using
+it only as a march-depth scalar. Direction ids 0-7 retain their axis/diagonal ABI, while ids 8-15 add
+the deterministic intermediate directions `(2,1)`, `(1,2)`, `(-1,2)`, `(-2,1)`, `(-2,-1)`,
+`(-1,-2)`, `(1,-2)`, and `(2,-1)`. A tile rotates from its sample id across 4, 8, or 16 directions.
+Each ray independently performs direction-aware HZB traversal and Surface Cache depth/radiance
+sampling; the tile result is the equal-weight aggregate of valid directional radiance. Low quality now
+also marches at least one texel, so four configured rays cannot collapse to four center-only reads.
+
+The TDD counterexample placed a red Surface Cache texel on `+X` outside the Low sample-id quartet.
+Before the implementation Low and High both returned `0x0f0f0f`; after the change High includes the
+additional direction while Low does not. That focused WGPU test passes 1/1, the exact HZB/depth/fallback
+Shader regressions pass 9/9, and the plugin's non-ignored suite passes 95/95 with 14 product exports
+ignored by default.
+
+The dedicated product exporter executes the real compute pipeline for sixteen synthetic direction
+targets and writes a 4x4 matrix for each quality. The inspected
+`docs/tests/runtime/render/plan18_hybrid_gi_multi_direction_trace_quality_wgpu_20260711.png` is
+257x128: the left Low panel has exactly four hit cells and the right High panel has all sixteen. The
+writer applies the same documented 6x display exposure to both panels; assertions and the report keep
+the unexposed packed GPU RGB. All sixteen Low/High cells differ. PNG SHA-256 is
+`06D3156183BC7B75C8F1876CC108162D1D020AD5BFB2FD41000049344EA1B4BF`; report SHA-256 is
+`5CFBDA9F48222F1FCC043FDE0351C5F307CE0749B420C0F24506F57077A1BBC3`.
+
+### Normal-Aware Temporal Rejection
+
+The scene-prepare pass now consumes the graph-owned GBuffer normal beside scene depth. Its single-
+sample and MSAA shader variants encode the selected surface normal with a 6-bit octahedral code in
+scene-tile flag bits 8-13; the MSAA path uses the normal from the same conservative nearest-depth
+sample. The sign-not-zero octahedral fold keeps positive and negative Z distinguishable. Both
+external and transient read-only normal resources satisfy the pass contract, so Forward+ and
+Deferred graph inputs share the same handoff.
+
+The trace-tile ABI now owns eight words per tile. Word 7 carries the normal code separately from the
+depth, source, radiance, and 10-bit local-support signature. The fixed 64-tile packet is therefore
+576 words / 2304 bytes; this supersedes the historical 512-word / 2048-byte contract above. Temporal
+metadata channel Y stores `trace_source * 64 + normal_code`. Its 0-319 integer range is exact in
+`R16Float`, so resolve can recover both fields without reducing support-signature precision. History
+is accepted only when the decoded current and reprojected normals have dot product at least 0.75, in
+addition to the existing bounds, motion, depth, source, support, luminance, and confidence checks.
+
+Focused WGPU validation passes for both scene-normal input variants, the 2304-byte trace handoff, and
+five temporal resolve cases including a depth/source/support-stable opposite-normal rejection. The
+full plugin binary passes 96 non-ignored tests with 15 visual exports ignored by default. The
+dedicated ignored exporter passes 1/1 and writes the inspected 257x128 image
+`docs/tests/runtime/render/plan18_hybrid_gi_normal_aware_temporal_rejection_wgpu_20260711.png`.
+Its 3x3 reprojectable interior retains four matching-normal pixels and rejects five checkerboard
+opposite-normal pixels; seven outer pixels are rejected by the existing reprojection-border rule.
+PNG SHA-256 is `F90381BA2C9B675DE93564A82E14E01DF4B1E3A82F6976DEEDEB8A6A097075C5`;
+report SHA-256 is `6199172970DE762709F688CC1B3470951D9C6A45E53C96B23C8799A6258CEF15`.
+
+### Depth-Normal-Support Spatial Denoise
+
+The resolve shader now filters current-frame trace radiance on the 8x8 probe grid before temporal
+reprojection. Its fixed 3x3 separable `1-2-1` kernel only accepts a candidate when current validity,
+trace source, 10-bit local-support signature, depth difference, and decoded 6-bit normal all agree.
+The depth threshold is 0.02 and the normal dot threshold remains 0.75. Out-of-grid candidates are
+skipped rather than clamped, so border probes are not counted multiple times. The center sample keeps
+ownership of depth, source, support, normal, and confidence metadata; only its radiance is filtered.
+
+This follows the edge-aware neighborhood intent in
+`dev/LumenInUE5.5.4WithComputeShader/Res/Shader/LumenSceneLighting/Radiosity/SpatialFilterProbe.hlsl`,
+but deliberately operates on Zircon's available trace-tile packet instead of claiming the reference's
+full world-position plane filter. Running it before history accumulation prevents temporal feedback
+from amplifying raw checker noise while preserving the existing per-pixel rejection contract.
+
+The WGPU counterexample uses two adjacent support surfaces with alternating radiance outliers. The
+left surface's red variance falls from 0.124567 to 0.013245, and the right surface's blue variance
+falls by the same amount. Their filtered averages remain red-dominant
+`(0.351974, 0.196045, 0.078430)` and blue-dominant `(0.078430, 0.196045, 0.351974)`, proving the
+filter does not cross the support boundary. Resolve regressions pass 8/8, the full plugin binary
+passes 98 non-ignored tests with 16 visual exports ignored, and the existing main-scene product
+reruns 1/1 with unchanged PNG SHA-256
+`DA9454E744E6691C98A71AF8E51C0BFBC6FB22A16328175DBF1EAFEAB529E53C`.
+
+The inspected 257x128 raw-versus-filtered WGPU matrix is
+`docs/tests/runtime/render/plan18_hybrid_gi_depth_normal_support_spatial_denoise_wgpu_20260711.png`.
+PNG SHA-256 is `1FF7851F148B66840B66D34EFADFD746419E23EAC03D007345EE4BB039C080D1`;
+report SHA-256 is `80BECCDB34562B5D1FAE6B50AA1B556030FFEBF5CA12EC820C352E06B939DA3D`.
 
 ## 2026-04-25 RenderFeature Integration
 

@@ -57,7 +57,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/engine-architecture/runtime-interface-convergence.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-12
 ---
 
 # 10 dynamic_api 与 runtime_interface 收敛线

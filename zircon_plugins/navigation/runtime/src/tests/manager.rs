@@ -1,10 +1,10 @@
 use serde_json::json;
-use zircon_runtime::asset::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::framework::navigation::{
     nav_area_flag, NavLinkTraversalMode, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
     NavQueryFilter, NavigationAreaSettings, NavigationManager, AREA_WALKABLE,
     NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
+use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use zircon_runtime::core::manager::resolve_navigation_manager;
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;

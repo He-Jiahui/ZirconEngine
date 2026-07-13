@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::{
     CoreResult, CoreRuntime, ModuleContext, ModuleDescriptor, ModuleLifecycle,
 };
 use zircon_runtime::plugin::{
     RuntimePlugin, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[derive(Debug)]
 struct RecordingLifecycle {

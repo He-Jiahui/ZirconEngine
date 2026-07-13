@@ -79,7 +79,7 @@ pub fn write_shader_ide_env_for_project(
 
     let output_dir = output_dir
         .map(Path::to_path_buf)
-        .unwrap_or_else(|| project.paths().root().join(SHADER_IDE_ENV_CACHE_DIR));
+        .unwrap_or_else(|| project.paths().cache_root().join(SHADER_IDE_ENV_CACHE_DIR));
     fs::create_dir_all(&output_dir).map_err(|error| {
         format!(
             "create shader IDE output directory {}: {error}",

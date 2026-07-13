@@ -10,14 +10,82 @@ styles = ["res://ui/theme/editor_base.zui"]
 [root]
 node = "navigation_debug_root"
 
-[nodes.navigation_debug_layers]
+[nodes.navigation_overlay_title]
+component = "Label"
+control_id = "NavigationOverlayTitle"
+props = { text = "NAVIGATION OVERLAY" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_area_overlay]
+component = "Checkbox"
+control_id = "NavigationAreaOverlayToggle"
+props = { text = "NavMesh areas", checked = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, stretch = "Fixed" } }
+
+[nodes.navigation_link_overlay]
+component = "Checkbox"
+control_id = "NavigationOffMeshLinkToggle"
+props = { text = "Off-mesh links", checked = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, stretch = "Fixed" } }
+
+[nodes.navigation_agent_path]
+component = "Checkbox"
+control_id = "NavigationAgentPathToggle"
+props = { text = "Agent paths", checked = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, stretch = "Fixed" } }
+
+[nodes.navigation_avoidance_vector]
+component = "Checkbox"
+control_id = "NavigationAvoidanceVectorToggle"
+props = { text = "Avoidance vectors", checked = true, value = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, stretch = "Fixed" } }
+
+[nodes.navigation_debug_filters]
+component = "VerticalGroup"
+control_id = "NavigationDebugFilters"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 230.0, preferred = 260.0, max = 300.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_overlay_title" }, { node = "navigation_area_overlay" }, { node = "navigation_link_overlay" }, { node = "navigation_agent_path" }, { node = "navigation_avoidance_vector" }]
+
+[nodes.navigation_overlay_viewport]
 component = "Space"
-control_id = "NavigationDebugLayers"
+control_id = "NavigationGizmoOverlayViewport"
+classes = ["editor-canvas"]
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_pie_title]
+component = "Label"
+control_id = "NavigationPieTitle"
+props = { text = "PLAY-IN-EDITOR MIRROR" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_pie_status]
+component = "Label"
+control_id = "NavigationPieMirrorStatus"
+props = { text = "Waiting for a play session (read-only)" }
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 44.0, stretch = "Fixed" } }
+
+[nodes.navigation_debug_agent_list]
+component = "Table"
+control_id = "NavigationDebugAgentList"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_pie_column]
+component = "VerticalGroup"
+control_id = "NavigationPieMirrorColumn"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_pie_title" }, { node = "navigation_pie_status" }, { node = "navigation_debug_agent_list" }]
+
+[nodes.navigation_debug_workspace]
+component = "HorizontalGroup"
+control_id = "NavigationDebugWorkspace"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_debug_filters" }, { node = "navigation_overlay_viewport" }, { node = "navigation_pie_column" }]
 
 [nodes.navigation_debug_root]
 component = "VerticalGroup"
 control_id = "NavigationDebugRoot"
 classes = ["editor-shell"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "navigation_debug_layers" }]
+children = [{ node = "navigation_debug_workspace" }]

@@ -13,9 +13,14 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
         "PaneSurface"
     );
 
-    let projection = runtime.project_document("pane.surface_controls").unwrap();
+    let projection = runtime
+        .project_document("res://ui/editor/host/pane_surface_controls.zui")
+        .unwrap();
 
-    assert_eq!(projection.document_id, "pane.surface_controls");
+    assert_eq!(
+        projection.document_id,
+        "res://ui/editor/host/pane_surface_controls.zui"
+    );
     assert_eq!(projection.root.component, "HorizontalGroup");
     assert_eq!(
         projection
@@ -37,7 +42,7 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
     assert_eq!(trigger.binding.path().control_id, "TriggerAction");
 
     let mut surface = runtime
-        .build_shared_surface("pane.surface_controls")
+        .build_shared_surface("res://ui/editor/host/pane_surface_controls.zui")
         .unwrap();
     surface.compute_layout(UiSize::new(300.0, 32.0)).unwrap();
     let host_model = runtime

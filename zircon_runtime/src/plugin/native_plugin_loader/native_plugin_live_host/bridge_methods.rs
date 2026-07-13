@@ -61,7 +61,10 @@ impl std::fmt::Display for NativePluginBridgeMethodError {
                 "runtime plugin {plugin_id} exposes no native bridge method table"
             ),
             Self::MissingPackageManifest { plugin_id } => {
-                write!(formatter, "runtime plugin {plugin_id} has no package manifest")
+                write!(
+                    formatter,
+                    "runtime plugin {plugin_id} has no package manifest"
+                )
             }
             Self::MissingInstalledBridgeMethodBindings { plugin_id } => write!(
                 formatter,

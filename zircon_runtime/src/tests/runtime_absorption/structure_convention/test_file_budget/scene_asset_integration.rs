@@ -26,6 +26,7 @@ fn runtime_15_scene_asset_integration_tests_are_folder_backed() {
         "scene/tests/asset_scene.rs should only keep shared helpers and mount child owners"
     );
     for moved_test in [
+        "fn unresolved_scene_reference_returns_typed_dangling_error",
         "fn scene_assets_instantiate_world_with_asset_bound_meshes",
         "fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay",
         "fn scene_assets_roundtrip_primitive_mesh_material_bindings",
@@ -46,6 +47,7 @@ fn runtime_15_scene_asset_integration_tests_are_folder_backed() {
         "mesh bindings child owns asset-bound mesh and primitive binding coverage",
         &mesh_bindings,
         &[
+            "fn unresolved_scene_reference_returns_typed_dangling_error",
             "fn scene_assets_instantiate_world_with_asset_bound_meshes",
             "fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay",
             "fn scene_assets_roundtrip_primitive_mesh_material_bindings",
@@ -78,8 +80,8 @@ fn runtime_15_scene_asset_integration_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 9,
-        "scene asset integration children should preserve all 9 parent tests"
+        child_test_total, 10,
+        "scene asset integration children should preserve all 10 tests"
     );
 
     for (path, source) in [

@@ -1,5 +1,5 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginSelection};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ProjectPluginFeatureSelection, ProjectPluginSelection};
 
 pub(super) fn target_consumes_selection(
     selection: &ProjectPluginSelection,

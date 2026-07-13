@@ -314,7 +314,13 @@ fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight(
     assert!(!request.hint);
     assert_eq!(request.offset, Vec2::new(0.75, 0.5));
     assert_eq!(request.render_format, ::swash::zeno::Format::Alpha);
-    assert_eq!(request.variation_weight, Some(650));
+    assert_eq!(
+        request.variations,
+        crate::core::framework::render::VariationCoords(vec![(
+            u32::from_be_bytes(*b"wght"),
+            650.0,
+        )])
+    );
     assert!(!request.fake_italic);
     assert_eq!(
         request.sources(),
@@ -324,6 +330,19 @@ fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight(
             SwashRasterSource::AlphaOutline,
         ]
     );
+}
+
+#[test]
+fn text_raster_swash_request_preserves_arbitrary_variable_axes() {
+    let variations = crate::core::framework::render::VariationCoords(vec![
+        (u32::from_be_bytes(*b"wdth"), 85.0),
+        (u32::from_be_bytes(*b"opsz"), 18.0),
+    ]);
+
+    let request =
+        SwashRasterRequest::alpha_outline(0, 1, 18.0, true).with_variations(variations.clone());
+
+    assert_eq!(request.variations, variations);
 }
 
 #[test]

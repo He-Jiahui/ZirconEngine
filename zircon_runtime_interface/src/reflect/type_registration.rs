@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ReflectTypeInfo, ReflectTypePath};
+use super::{ReflectScriptVisibility, ReflectTypeInfo, ReflectTypePath};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReflectSerializationStrategy {
@@ -15,6 +15,8 @@ pub enum ReflectSerializationStrategy {
 pub struct ReflectTypeRegistration {
     pub type_path: ReflectTypePath,
     pub display_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
     pub type_info: ReflectTypeInfo,
     pub serialization: ReflectSerializationStrategy,
     pub is_component: bool,
@@ -23,6 +25,8 @@ pub struct ReflectTypeRegistration {
     pub serializable: bool,
     pub editor_visible: bool,
     pub remote_visible: bool,
+    #[serde(default)]
+    pub script_visibility: ReflectScriptVisibility,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plugin_id: Option<String>,
 }
@@ -38,6 +42,7 @@ impl ReflectTypeRegistration {
         Self {
             type_path,
             display_name: display_name.into(),
+            documentation: None,
             type_info,
             serialization,
             is_component: false,
@@ -46,12 +51,18 @@ impl ReflectTypeRegistration {
             serializable,
             editor_visible: true,
             remote_visible: false,
+            script_visibility: ReflectScriptVisibility::Private,
             plugin_id: None,
         }
     }
 
     pub fn as_component(mut self) -> Self {
         self.is_component = true;
+        self
+    }
+
+    pub fn with_documentation(mut self, documentation: impl Into<String>) -> Self {
+        self.documentation = Some(documentation.into());
         self
     }
 
@@ -77,6 +88,11 @@ impl ReflectTypeRegistration {
 
     pub fn with_remote_visible(mut self, remote_visible: bool) -> Self {
         self.remote_visible = remote_visible;
+        self
+    }
+
+    pub fn with_script_visibility(mut self, script_visibility: ReflectScriptVisibility) -> Self {
+        self.script_visibility = script_visibility;
         self
     }
 

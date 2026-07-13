@@ -1,29 +1,27 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
-  - zircon_graphics/src/visibility/declarations/visibility_hybrid_gi_feedback.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/mod.rs
+  - zircon_runtime/src/graphics/visibility/declarations/visibility_hybrid_gi_feedback.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/mod.rs
 plan_sources:
   - user: 2026-04-16 continue next M5 Hybrid GI slice after runtime-host baseline
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-hybrid-gi-runtime-host.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-feedback-streaming.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - cargo test -p zircon_graphics hybrid_gi_runtime_state_consumes_feedback_and_promotes_requested_probes --locked
   - cargo test -p zircon_graphics hybrid_gi_runtime_state_leaves_updates_pending_without_evictable_budget --locked

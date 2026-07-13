@@ -1,4 +1,5 @@
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime_interface::export::ExportStage;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExportStageProgressKind {
@@ -10,7 +11,7 @@ pub enum ExportStageProgressKind {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageProgressSnapshot {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub kind: ExportStageProgressKind,
     pub profile: Option<String>,
     pub report_path: Option<String>,
@@ -26,7 +27,7 @@ pub struct ExportWizardStageArtifactPath {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStreamEvent {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub kind: ExportStageProgressKind,
     pub line: String,
 }
@@ -34,12 +35,12 @@ pub struct ExportWizardStreamEvent {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardProgressState {
     stages: Vec<ExportWizardStageProgressSnapshot>,
-    current_stage: Option<ExportPipelineStage>,
+    current_stage: Option<ExportStage>,
     json_diagnostics_depth: usize,
 }
 
 impl ExportWizardStageProgressSnapshot {
-    fn pending(stage: ExportPipelineStage) -> Self {
+    fn pending(stage: ExportStage) -> Self {
         Self {
             stage,
             kind: ExportStageProgressKind::Pending,
@@ -71,10 +72,10 @@ impl ExportWizardStageProgressSnapshot {
 
 impl ExportWizardProgressState {
     pub fn new() -> Self {
-        Self::for_stages(export_pipeline_stages())
+        Self::for_stages(ExportStage::ALL)
     }
 
-    pub fn for_stages(stages: impl IntoIterator<Item = ExportPipelineStage>) -> Self {
+    pub fn for_stages(stages: impl IntoIterator<Item = ExportStage>) -> Self {
         Self {
             stages: stages
                 .into_iter()
@@ -89,14 +90,11 @@ impl ExportWizardProgressState {
         &self.stages
     }
 
-    pub fn current_stage(&self) -> Option<ExportPipelineStage> {
+    pub fn current_stage(&self) -> Option<ExportStage> {
         self.current_stage
     }
 
-    pub fn snapshot(
-        &self,
-        stage: ExportPipelineStage,
-    ) -> Option<&ExportWizardStageProgressSnapshot> {
+    pub fn snapshot(&self, stage: ExportStage) -> Option<&ExportWizardStageProgressSnapshot> {
         self.stages.iter().find(|snapshot| snapshot.stage == stage)
     }
 
@@ -187,7 +185,7 @@ impl ExportWizardProgressState {
         None
     }
 
-    fn stage_mut(&mut self, stage: ExportPipelineStage) -> &mut ExportWizardStageProgressSnapshot {
+    fn stage_mut(&mut self, stage: ExportStage) -> &mut ExportWizardStageProgressSnapshot {
         self.stages
             .iter_mut()
             .find(|snapshot| snapshot.stage == stage)
@@ -201,65 +199,38 @@ impl Default for ExportWizardProgressState {
     }
 }
 
-pub fn export_pipeline_stages() -> [ExportPipelineStage; 8] {
-    [
-        ExportPipelineStage::Validate,
-        ExportPipelineStage::SourceTemplate,
-        ExportPipelineStage::NativeDynamic,
-        ExportPipelineStage::CompileHost,
-        ExportPipelineStage::CookAssets,
-        ExportPipelineStage::Pack,
-        ExportPipelineStage::PlatformBundle,
-        ExportPipelineStage::Report,
-    ]
-}
-
 pub fn export_pipeline_stages_for_strategies(
     strategies: &[ExportPackagingStrategy],
-) -> Vec<ExportPipelineStage> {
+) -> Vec<ExportStage> {
     let mut stages = Vec::new();
-    stages.push(ExportPipelineStage::Validate);
+    stages.push(ExportStage::Validate);
     if strategies.contains(&ExportPackagingStrategy::SourceTemplate) {
-        push_stage_once(&mut stages, ExportPipelineStage::SourceTemplate);
+        push_stage_once(&mut stages, ExportStage::SourceTemplate);
     }
     if strategies.contains(&ExportPackagingStrategy::NativeDynamic) {
-        push_stage_once(&mut stages, ExportPipelineStage::NativeDynamic);
-        push_stage_once(&mut stages, ExportPipelineStage::CompileHost);
-        push_stage_once(&mut stages, ExportPipelineStage::CookAssets);
-        push_stage_once(&mut stages, ExportPipelineStage::Pack);
-        push_stage_once(&mut stages, ExportPipelineStage::PlatformBundle);
+        push_stage_once(&mut stages, ExportStage::NativeDynamic);
+        push_stage_once(&mut stages, ExportStage::CompileHost);
+        push_stage_once(&mut stages, ExportStage::CookAssets);
+        push_stage_once(&mut stages, ExportStage::Pack);
+        push_stage_once(&mut stages, ExportStage::PlatformBundle);
     }
     if strategies.contains(&ExportPackagingStrategy::LibraryEmbed) {
-        push_stage_once(&mut stages, ExportPipelineStage::CompileHost);
-        push_stage_once(&mut stages, ExportPipelineStage::CookAssets);
-        push_stage_once(&mut stages, ExportPipelineStage::Pack);
-        push_stage_once(&mut stages, ExportPipelineStage::PlatformBundle);
+        push_stage_once(&mut stages, ExportStage::CompileHost);
+        push_stage_once(&mut stages, ExportStage::CookAssets);
+        push_stage_once(&mut stages, ExportStage::Pack);
+        push_stage_once(&mut stages, ExportStage::PlatformBundle);
     }
-    stages.push(ExportPipelineStage::Report);
+    stages.push(ExportStage::Report);
     stages
 }
 
-fn push_stage_once(stages: &mut Vec<ExportPipelineStage>, stage: ExportPipelineStage) {
+fn push_stage_once(stages: &mut Vec<ExportStage>, stage: ExportStage) {
     if !stages.contains(&stage) {
         stages.push(stage);
     }
 }
 
-pub fn parse_export_pipeline_stage(value: &str) -> Option<ExportPipelineStage> {
-    match normalize_stage_name(value).as_str() {
-        "validate" => Some(ExportPipelineStage::Validate),
-        "sourcetemplate" => Some(ExportPipelineStage::SourceTemplate),
-        "nativedynamic" => Some(ExportPipelineStage::NativeDynamic),
-        "compilehost" => Some(ExportPipelineStage::CompileHost),
-        "cookassets" => Some(ExportPipelineStage::CookAssets),
-        "pack" => Some(ExportPipelineStage::Pack),
-        "platformbundle" => Some(ExportPipelineStage::PlatformBundle),
-        "report" => Some(ExportPipelineStage::Report),
-        _ => None,
-    }
-}
-
-fn parse_stage_banner(line: &str) -> Option<(ExportPipelineStage, Option<String>)> {
+fn parse_stage_banner(line: &str) -> Option<(ExportStage, Option<String>)> {
     let rest = line.strip_prefix("zircon_export ")?;
     let mut stage = None;
     let mut profile = None;
@@ -268,20 +239,12 @@ fn parse_stage_banner(line: &str) -> Option<(ExportPipelineStage, Option<String>
             continue;
         };
         match key {
-            "stage" => stage = parse_export_pipeline_stage(value),
+            "stage" => stage = value.parse().ok(),
             "profile" => profile = Some(value.to_string()),
             _ => {}
         }
     }
     stage.map(|stage| (stage, profile))
-}
-
-fn normalize_stage_name(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| *character != '_' && *character != '-')
-        .flat_map(char::to_lowercase)
-        .collect()
 }
 
 fn is_artifact_key(key: &str) -> bool {
@@ -382,7 +345,7 @@ mod tests {
         let event = progress
             .push_stdout_line("zircon_export stage=CookAssets profile=windows-release")
             .expect("stage banner should produce a progress event");
-        assert_eq!(event.stage, ExportPipelineStage::CookAssets);
+        assert_eq!(event.stage, ExportStage::CookAssets);
         assert_eq!(event.kind, ExportStageProgressKind::Running);
 
         progress
@@ -391,7 +354,7 @@ mod tests {
         progress.push_stdout_line(r#""fatal": false,"#);
 
         let cook_assets = progress
-            .snapshot(ExportPipelineStage::CookAssets)
+            .snapshot(ExportStage::CookAssets)
             .expect("CookAssets snapshot should exist");
         assert_eq!(cook_assets.kind, ExportStageProgressKind::Passed);
         assert_eq!(cook_assets.profile.as_deref(), Some("windows-release"));
@@ -414,7 +377,7 @@ mod tests {
         progress.push_stdout_line(r#""fatal": true,"#);
 
         let platform_bundle = progress
-            .snapshot(ExportPipelineStage::PlatformBundle)
+            .snapshot(ExportStage::PlatformBundle)
             .expect("PlatformBundle snapshot should exist");
         assert_eq!(platform_bundle.kind, ExportStageProgressKind::Fatal);
         assert!(platform_bundle
@@ -436,7 +399,7 @@ mod tests {
         progress.push_stdout_line(r#""fatal": false,"#);
 
         let report = progress
-            .snapshot(ExportPipelineStage::Report)
+            .snapshot(ExportStage::Report)
             .expect("Report snapshot should exist");
         assert_eq!(report.kind, ExportStageProgressKind::Passed);
         assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
@@ -453,7 +416,7 @@ mod tests {
         progress.push_stdout_line(r#""fatal": true,"#);
 
         let report = progress
-            .snapshot(ExportPipelineStage::Report)
+            .snapshot(ExportStage::Report)
             .expect("Report snapshot should exist");
         assert_eq!(report.kind, ExportStageProgressKind::Fatal);
         assert_eq!(report.diagnostics, vec!["validate failed"]);
@@ -462,36 +425,36 @@ mod tests {
     #[test]
     fn export_pipeline_stage_parser_accepts_cli_and_report_stage_names() {
         assert_eq!(
-            parse_export_pipeline_stage("source_template"),
-            Some(ExportPipelineStage::SourceTemplate)
+            "source_template".parse::<ExportStage>().ok(),
+            Some(ExportStage::SourceTemplate)
         );
         assert_eq!(
-            parse_export_pipeline_stage("SourceTemplate"),
-            Some(ExportPipelineStage::SourceTemplate)
+            "SourceTemplate".parse::<ExportStage>().ok(),
+            Some(ExportStage::SourceTemplate)
         );
         assert_eq!(
-            parse_export_pipeline_stage("platform_bundle"),
-            Some(ExportPipelineStage::PlatformBundle)
+            "platform_bundle".parse::<ExportStage>().ok(),
+            Some(ExportStage::PlatformBundle)
         );
         assert_eq!(
-            parse_export_pipeline_stage("native_dynamic"),
-            Some(ExportPipelineStage::NativeDynamic)
+            "native_dynamic".parse::<ExportStage>().ok(),
+            Some(ExportStage::NativeDynamic)
         );
         assert_eq!(
-            parse_export_pipeline_stage("NativeDynamic"),
-            Some(ExportPipelineStage::NativeDynamic)
+            "NativeDynamic".parse::<ExportStage>().ok(),
+            Some(ExportStage::NativeDynamic)
         );
         assert_eq!(
-            export_pipeline_stages(),
+            ExportStage::ALL,
             [
-                ExportPipelineStage::Validate,
-                ExportPipelineStage::SourceTemplate,
-                ExportPipelineStage::NativeDynamic,
-                ExportPipelineStage::CompileHost,
-                ExportPipelineStage::CookAssets,
-                ExportPipelineStage::Pack,
-                ExportPipelineStage::PlatformBundle,
-                ExportPipelineStage::Report,
+                ExportStage::Validate,
+                ExportStage::SourceTemplate,
+                ExportStage::NativeDynamic,
+                ExportStage::CompileHost,
+                ExportStage::CookAssets,
+                ExportStage::Pack,
+                ExportStage::PlatformBundle,
+                ExportStage::Report,
             ]
         );
     }

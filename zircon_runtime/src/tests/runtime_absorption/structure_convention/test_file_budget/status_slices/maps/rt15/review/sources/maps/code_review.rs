@@ -1,7 +1,6 @@
 use super::*;
 
-pub(in super::super::super) const CODE_REVIEW_STATUS_MAP_SOURCE: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/code_review.rs";
+pub(in super::super::super) const CODE_REVIEW_STATUS_MAP_SOURCE: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/code_review.rs";
 pub(in super::super::super) const STATUS_REVIEW_CODE_REVIEW_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps.rs";
 pub(in super::super::super) const STATUS_REVIEW_CODE_REVIEW_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs",

@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::navigation::NAV_MESH_SURFACE_COMPONENT_TYPE;
-use zircon_runtime::plugin::ComponentTypeDescriptor;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 
 use crate::PLUGIN_ID;
 

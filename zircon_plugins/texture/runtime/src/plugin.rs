@@ -1,10 +1,11 @@
 use crate::capability::{RUNTIME_CAPABILITIES, TEXTURE_RUNTIME_CAPABILITY};
 use crate::module::module_descriptor;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginMaturity, PluginModuleManifest,
-    PluginPackageManifest, RuntimePlugin, RuntimePluginDescriptor,
+    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
+    RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "texture";
 pub const TEXTURE_DIST_CRATE_NAME: &str = "zircon_plugin_texture_dist";

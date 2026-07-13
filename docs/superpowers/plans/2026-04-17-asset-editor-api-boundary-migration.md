@@ -45,7 +45,7 @@ zircon_asset/src/editor/
 - Modify: `zircon_asset/src/tests/editor/mod.rs`
 - Create: `zircon_editor/src/tests/host/asset_manager_boundary.rs`
 - Modify: `zircon_editor/src/tests/host/mod.rs`
-- Modify: `zircon_manager/src/tests.rs`
+- Modify: `zircon_runtime/src/core/manager/tests.rs`
 
 - [ ] 写 source-based red tests，锁死 `zircon_asset` 必须导出本地 editor asset API
 - [ ] 写 source-based red tests，锁死 `zircon_editor` host 不再通过 `zircon_manager` 获取 editor asset API
@@ -65,7 +65,7 @@ zircon_asset/src/editor/
 - Modify: `zircon_asset/src/editor/manager.rs`
 - Modify: `zircon_asset/src/lib.rs`
 - Modify: `zircon_asset/src/pipeline/manager/registration/module_descriptor.rs`
-- Modify: `zircon_asset/src/pipeline/manager/registration/service_names.rs`
+- Modify: `zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs`
 
 - [ ] 在 `zircon_asset::editor` 下创建 trait、records、resolver/handle 模块
 - [ ] 让 `DefaultEditorAssetManager` 实现本地 `EditorAssetManager` trait
@@ -78,12 +78,12 @@ zircon_asset/src/editor/
 
 **Files:**
 - Modify: `zircon_manager/src/traits.rs`
-- Modify: `zircon_manager/src/records/mod.rs`
+- Modify: `zircon_runtime/src/asset/pipeline/manager/records/mod.rs`
 - Delete: `zircon_manager/src/records/editor_asset.rs`
 - Modify: `zircon_manager/src/resolver.rs`
-- Modify: `zircon_manager/src/service_names.rs`
+- Modify: `zircon_runtime/src/core/manager/service_names.rs`
 - Modify: `zircon_manager/src/lib.rs`
-- Modify: `zircon_manager/src/tests.rs`
+- Modify: `zircon_runtime/src/core/manager/tests.rs`
 
 - [ ] 删除 `EditorAssetManager` trait、`EditorAsset*Record`、`EditorAssetManagerHandle`、`resolve_editor_asset_manager`、`EDITOR_ASSET_MANAGER_NAME`
 - [ ] 保证 `zircon_manager` 其余 manager facade 不受影响

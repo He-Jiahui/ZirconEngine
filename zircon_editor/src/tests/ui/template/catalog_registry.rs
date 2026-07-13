@@ -10,7 +10,7 @@ fn editor_component_catalog_registers_editor_only_composites() {
     catalog
         .register(EditorComponentDescriptor::new(
             "UiHostWindow",
-            "ui.host_window",
+            "res://ui/editor/host/workbench_shell.zui",
             "UiHostWindow",
         ))
         .unwrap();
@@ -39,11 +39,15 @@ fn editor_template_registry_instantiates_registered_documents() {
     let template_service = EditorTemplateRuntimeService;
     let mut registry = EditorTemplateRegistry::default();
     template_service
-        .register_asset_document(&mut registry, "ui.host_window", document)
+        .register_asset_document(
+            &mut registry,
+            "res://ui/editor/host/workbench_shell.zui",
+            document,
+        )
         .unwrap();
 
     let instance = template_service
-        .instantiate(&registry, "ui.host_window")
+        .instantiate(&registry, "res://ui/editor/host/workbench_shell.zui")
         .unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(
@@ -63,11 +67,11 @@ fn editor_template_registry_instantiates_registered_asset_documents() {
     let template_service = EditorTemplateRuntimeService;
     let mut registry = EditorTemplateRegistry::default();
     template_service
-        .register_asset_document(&mut registry, "ui.host_window.asset", document)
+        .register_asset_document(&mut registry, "test://ui/host-window-asset", document)
         .unwrap();
 
     let instance = template_service
-        .instantiate(&registry, "ui.host_window.asset")
+        .instantiate(&registry, "test://ui/host-window-asset")
         .unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(

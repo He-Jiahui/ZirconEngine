@@ -1,4 +1,4 @@
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::project::ProjectPluginManifest;
 
 use super::super::feature_definitions::FeatureDefinitionMap;
 use super::super::feature_report::RuntimePluginFeatureBlock;

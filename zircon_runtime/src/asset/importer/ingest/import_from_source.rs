@@ -59,6 +59,11 @@ impl AssetImporter {
         &self,
         context: &AssetImportContext,
     ) -> Result<AssetImportOutcome, AssetImportError> {
+        if requires_project_resolver(&context.source_path) && !context.has_project_resolver() {
+            return Err(AssetImportError::ProjectContextRequired {
+                path: context.source_path.clone(),
+            });
+        }
         let importer = self.registry().select(&context.source_path)?;
         let descriptor = importer.descriptor().clone();
         let outcome = importer.import(context)?;
@@ -79,4 +84,12 @@ impl AssetImporter {
         }
         Ok(outcome)
     }
+}
+
+fn requires_project_resolver(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    name.ends_with(".scene.toml") || name.ends_with(".model.toml") || name.ends_with(".zmaterial")
 }

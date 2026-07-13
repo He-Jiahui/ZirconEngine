@@ -12,6 +12,7 @@ impl Default for RenderPipelineCompileOptions {
             allow_async_compute: true,
             enable_hzb_occlusion_culling: true,
             graph_msaa_sample_count: None,
+            shader_quality: Default::default(),
             post_process_stack: None,
             environment_ibl_bake_request: None,
         }

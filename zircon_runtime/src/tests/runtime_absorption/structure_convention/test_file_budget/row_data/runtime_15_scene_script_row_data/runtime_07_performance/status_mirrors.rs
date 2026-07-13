@@ -1,16 +1,13 @@
 use super::*;
 
-const OTHER_ROW_DATA_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/other_row_data_maps.rs";
-const OTHER_ROW_DATA_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/other_row_data_maps.rs";
+const OTHER_ROW_DATA_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/other_row_data_maps.rs";
+const OTHER_ROW_DATA_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/other_row_data_maps.rs";
 const STATUS_MIRROR_DOC_PATHS: &[&str] = &[
     "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
     "docs/plans/zircon_runtime/runtime/index.md",
     "docs/plans/engine-code-review-findings-2026-06.md",
     "docs/plans/engine-code-structure-convention.md",
     "docs/zircon_runtime/structure/module-convention.md",
-    ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
 ];
 
 fn assert_status_docs_include(label: &str, expected: &[&str]) {

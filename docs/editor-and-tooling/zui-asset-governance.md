@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/**/*.zui
-  - zircon_runtime/assets/ui/**/*.zui
+  - zircon_editor/assets/ui
+  - zircon_runtime/assets/ui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
-  - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/feedback/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/layout/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
-  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
+  - zircon_editor/assets/ui/editor/material_components/data_display
+  - zircon_editor/assets/ui/editor/material_components/feedback
+  - zircon_editor/assets/ui/editor/material_components/inputs
+  - zircon_editor/assets/ui/editor/material_components/layout
+  - zircon_editor/assets/ui/editor/material_components/mui_x
+  - zircon_editor/assets/ui/editor/material_components/navigation
+  - zircon_editor/assets/ui/editor/material_components/surfaces
+  - zircon_editor/assets/ui/editor/material_components/utils_lab
   - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
@@ -34,8 +34,8 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/v2/loader.rs
 implementation_files:
@@ -59,14 +59,14 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
 plan_sources:
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md
 tests:
-  - F:\cargo-targets\zircon-ui-state-priority-0711\debug\deps\zircon_editor-1ca47919e17744f1.exe zui_asset_governance --test-threads=1 --nocapture (2026-07-11 production locator and ActivityDrawerWindow hard cut: passed 71/71)
+  - F:\cargo-targets\zircon-ui-state-priority-0711\debug\deps\zircon_editor-1ca47919e17744f1.exe zui_asset_governance --test-threads=1 --nocapture (2026-07-11 production locator, builtin registry, view-slot, and ActivityDrawerWindow hard cut: passed 72/72)
   - cargo test -p zircon_editor --lib zui_asset_governance --locked --jobs 1
   - cargo test -p zircon_editor --lib production_view_style_roots_are_zui_documents --locked --jobs 1
   - cargo test -p zircon_runtime --lib importer_registry_rejects_non_fixture_ui_toml_source_importer_registration --locked --jobs 1
@@ -87,7 +87,7 @@ Material/MUI editor component assets are also stricter than the generic componen
 
 Retired `.v2.ui.toml` files are not production roots. Governance scans view/style roots and component prototypes through the unified `.zui` document set, then dispatches rules by `asset.kind`. Their `imports.widgets` entries may reference only `.zui` component assets or explicitly registered builtin `.zui` aliases. A direct widget import must name the component fragment explicitly, for example `res://ui/editor/components/showcase/showcase_visual_section.zui#ShowcaseVisualSection`; alias imports follow the same `asset.id#ComponentName` shape. Importing a `.zui` component file without `#ComponentName`, or importing any old `.v2.ui.toml#ComponentName` widget source, is invalid for production assets because widget composition flows through `.zui` component prototypes.
 
-Production `.zui` `[asset].id` values equal their file-derived `res://` locator. This keeps component assets relocatable through the same identity that `UiV2PrototypeStoreFileCache` registers for loaded source files. The 2026-07-11 hard cut moved `ActivityDrawerWindow` into the Workbench shell component folder, updated its window imports, and emptied `BUILTIN_ZUI_ASSET_ID_ALIASES`; no production `.zui` currently depends on a logical-id alias.
+Production `.zui` `[asset].id` values equal their file-derived `res://` locator. This keeps component assets relocatable through the same identity that `UiV2PrototypeStoreFileCache` and the builtin template registry use for loaded source files. The 2026-07-11 hard cut moved `ActivityDrawerWindow` into the Workbench shell component folder, updated its window imports, replaced all 24 builtin runtime registry keys and direct consumers with the same locators, and deleted the builtin alias table and resolution branches.
 
 Production UI asset ids are globally unique across all `.zui` documents. The locator is the production identity; migration-only logical aliases are not preserved alongside it.
 
@@ -159,7 +159,7 @@ Production `.zui` inline style overrides must stay inside the currently governed
 
 If a `.zui` component asset declares its own imports, those imports follow the same boundary as production roots. Component/widget imports must target `.zui#ComponentName` or a registered builtin `.zui` alias with a fragment, and the fragment must name the component declared by the target `.zui` asset. Style imports must be fragment-free `res://` locators that resolve to style assets. This keeps future component nesting and component-local styling on the same asset graph instead of creating a second import dialect.
 
-Production `.zui` widget imports must not point back at the same component asset. The rule checks both the file-derived `res://...zui` locator and any registered builtin alias for that file, so future component expansion cannot create a trivial self-recursive prototype through either import spelling.
+Production `.zui` widget imports must not point back at the same component asset. The rule checks the file-derived `res://...zui` locator, which is the only supported production identity, so future component expansion cannot create a trivial self-recursive prototype through another spelling.
 
 Production UI import lists must not repeat dependencies within the same `.zui` asset. This applies to `imports.widgets` / `imports.styles` lists, keeping dependency graphs deterministic for hot reload, diagnostics, cache invalidation, and future authoring tools.
 
@@ -169,7 +169,7 @@ Production `.zui` `imports.styles` entries must use `res://` locators and resolv
 
 The builtin template registry must not directly register `.zui` component files. Registry entries may point at `.zui` view/style roots. Component prototypes remain reusable imports and must not be registered as standalone windows.
 
-`zui_asset_governance.rs` guards this boundary across production editor/runtime UI roots, with `zui_asset_governance/support.rs` owning shared asset-root scanning, `res://` resolution, widget import parsing, file-stem component naming, registered builtin `.zui` alias lookup, and the document buckets: all `.zui` documents, component `.zui` documents, and view/style `.zui` roots. The rule file parses each UI root document, requires every widget import to target a direct `.zui` locator or registered builtin `.zui` alias, requires an explicit `#ComponentName`, resolves the import to a production `.zui` component source file, parses the target `.zui` document, and verifies the fragment names the declared component. It also checks that production `.zui` component files live under component directories unless their path is an explicit alias exception, enforces the Workbench/showcase functional folder taxonomy under `ui/editor/components`, enforces the Material/MUI functional folder taxonomy under `ui/editor/material_components`, requires each `.zui` component name to match the file stem PascalCase with an optional `Prototype` suffix, checks that every production `.zui` component source is reachable from widget imports or typed Workbench design contracts, applies the same widget/style import rules to imports declared inside `.zui` documents, verifies `.zui` internal widget import fragments against the target component document, rejects `.zui` widget imports that self-reference the current document, requires import entries to be non-empty and trimmed, rejects duplicate widget/style import entries inside each production UI asset, verifies every production style import resolves to a style document, scans production `.zui` documents to require `[asset].id` to match the derived locator unless the file is listed as a builtin alias and that alias is actively referenced, requires production UI asset ids to stay unique across `.zui` documents, requires production UI asset headers to use the current schema version and non-empty trimmed asset id/display name fields, and confirms `builtin_template_documents()` never registers `.zui` component documents directly.
+`zui_asset_governance.rs` guards this boundary across production editor/runtime UI roots, with `zui_asset_governance/support.rs` owning shared asset-root scanning, `res://` resolution, widget import parsing, file-stem component naming, and the document buckets: all `.zui` documents, component `.zui` documents, and view/style `.zui` roots. The rule file parses each UI root document, requires every widget import to target a direct `.zui` locator with an explicit `#ComponentName`, resolves the import to a production `.zui` component source file, parses the target `.zui` document, and verifies the fragment names the declared component. It also requires every component file to live under a component directory, enforces the Workbench/showcase and Material/MUI folder taxonomies, requires each component name to match the file stem PascalCase with an optional `Prototype` suffix, checks reachability, validates internal widget/style imports, rejects self-reference and duplicate imports, requires every production `[asset].id` to exactly match its derived locator, applies child-slot vocabulary/type checks to every production document including views, and requires every builtin template registry key to equal the loaded document asset id. `builtin_template_documents()` may register `.zui` view roots but never component prototypes.
 
 `zui_asset_governance/component.rs` owns component-level metadata: component names must be clean authoring tokens, present `default_classes` lists must expose at least one usable public style anchor, and component style scopes must remain closed until public style parts are governed. `zui_asset_governance/component_root.rs` owns component-root contracts: component roots must resolve to concrete non-`Slot` authoring nodes, root nodes must declare explicit layout metadata, root layout must include a `width` contract, and the root width contract must declare a clean `stretch` mode. `zui_asset_governance/graph.rs` owns the intra-component graph invariants: walking each `.zui` component root to ensure the full node table is reachable, requiring component root node references to stay non-empty and trimmed, requiring persistent node ids to stay lower_snake_case, requiring child mount node references to stay non-empty and trimmed, and rejecting root-as-child and duplicate-parent node mounts so each component graph remains a single-root tree. `zui_asset_governance/node_metadata.rs` owns generic node metadata governance: node `props`, `state`, `layout`, `style.self`, and `style.slot` keys must stay non-empty and trimmed, and resource-like strings inside those metadata maps must use portable asset paths instead of `dev/` paths, parent-relative paths, drive-letter absolute paths, or backslashes. `zui_asset_governance/node_component.rs` owns node component reference governance: authored `node.component` strings must stay non-empty and trimmed, avoid inline `asset#Component` locators, and resolve through local component names, `.zui` widget import fragments, or registered editor showcase / Material foundation descriptor ids. `zui_asset_governance/control.rs` owns persistent control identifier governance: optional node `control_id` values must stay non-empty, trimmed, whitespace-free, selector-safe, and unique inside each `.zui` asset so previews, binding diagnostics, retained-host tests, and hierarchy selection resolve one authored control. `zui_asset_governance/class.rs` owns style-anchor governance: component `default_classes`, node `classes`, Material/MUI-compatible `className` and `baseClassName`, and nested `slotProps.*.className` values must stay selector-safe, non-empty when present, trim-stable, and duplicate-free where a list is authored. `zui_asset_governance/event.rs` owns event-binding governance: governed event kind vocabulary, slash-delimited binding ids, asset-local and global id uniqueness, dotted legacy routes, route namespace alignment with ids, route uniqueness, and route-or-action dispatch target coverage. `zui_asset_governance/props.rs` owns generic node prop authoring safety: ASCII identifier keys across nested prop tables, trim-stable strings, finite numeric values, and string-encoded date/time data for Inspector serialization. `zui_asset_governance/style.rs` owns inline style override governance: known `style.self` keys, `material.*` color-token tables, and non-negative numeric render values for `border` and `opacity`. `zui_asset_governance/layout.rs` owns shared layout vocabulary and container/clip constraints: known layout, axis, and container keys, known container `kind` values, non-negative numeric container gaps, Masonry-specific `columns` / `sequential` contracts, and boolean `clip` metadata. `zui_asset_governance/layout_axis.rs` owns width/height axis constraints: known `stretch` modes, unambiguous `Stretch` versus `Fixed` semantics, explicit preferred size contracts for `Fixed` axes, and finite, non-negative, ordered numeric `min` / `preferred` / `max` ranges. `zui_asset_governance/slot.rs` owns generic slot metadata boundaries: keeping child mount slot metadata inside the named-slot key vocabulary, keeping slot metadata names/keys non-empty and trimmed, keeping `name` / `slot_name` migration aliases consistent when both appear, and requiring `Slot` placeholder nodes and declared component slots to stay bidirectional with whitespace-free names. `zui_asset_governance/slot_schema.rs` owns schema-bound slot governance: validating child mount slot names against known parent component slot schemas, enforcing known slot `required` / `multiple` cardinality when production assets author schema-bound children, and aligning Material/MUI-compatible `props.slotProps` keys with known component descriptor slot schemas. `zui_asset_governance/workbench_primitives.rs` owns the focused Workbench primitive and shell surface contracts: low-level controls, shell leaves, and shell assemblies must stay componentized, layout-explicit, input-ready where interactive, and imported through functional Workbench `.zui` paths. `zui_asset_governance/metadata.rs` owns the reusable string, token, class-list, className-prop, lower_snake_case, control-id, slash-delimited path, dotted route, resource-like path, and nested attribute-key helper logic used by those class, component, component_root, control, event, graph, layout, layout_axis, node_component, node_metadata, props, slot, slot_schema, and style rules. Keeping those rules separate leaves the top-level governance file focused on cross-asset identity and import boundaries.
 

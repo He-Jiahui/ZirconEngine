@@ -1,13 +1,18 @@
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiDebugView,
-    RenderHybridGiExtract, RenderHybridGiQuality, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, LightmapAtlasDescriptor,
+    LightmapAtlasFormat, LightmapConsumeContract, LightmapInstanceSlot,
+    RenderDirectionalLightSnapshot, RenderHybridGiDebugView, RenderHybridGiExtract,
+    RenderHybridGiMode, RenderHybridGiProfile, RenderHybridGiQuality, RenderLayerSet,
+    RenderMeshSnapshot, RenderMeshStaticState, HYBRID_GI_SOURCE_BAKED_BASELINE,
+    HYBRID_GI_SOURCE_DYNAMIC_DELTA, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-use crate::hybrid_gi::{HybridGiInputSet, HybridGiSceneRepresentation};
+use crate::hybrid_gi::{
+    HybridGiInputSet, HybridGiSceneRepresentation, HybridGiSurfaceParticipation,
+};
 
 #[test]
 fn hybrid_gi_input_contract_stays_complete_for_deferred_and_forward_plus() {
@@ -24,6 +29,8 @@ fn hybrid_gi_input_contract_stays_complete_for_deferred_and_forward_plus() {
 fn hybrid_gi_scene_representation_uses_public_settings_without_authored_scene_payloads() {
     let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: RenderHybridGiQuality::High,
         trace_budget: 24,
         card_budget: 48,
@@ -37,6 +44,222 @@ fn hybrid_gi_scene_representation_uses_public_settings_without_authored_scene_pa
     assert!(representation.inputs().is_complete());
     assert_eq!(representation.surface_cache().resident_page_count(), 0);
     assert_eq!(representation.voxel_scene().resident_clipmap_count(), 0);
+}
+
+#[test]
+fn hybrid_gi_baked_mode_classifies_static_and_dynamic_receivers_without_double_ownership() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: true,
+        mode: RenderHybridGiMode::BakedStaticDynamic,
+        profile: RenderHybridGiProfile::IndoorStatic,
+        trace_budget: 24,
+        card_budget: 48,
+        voxel_budget: 12,
+        ..RenderHybridGiExtract::default()
+    });
+    let static_mesh = mesh_with_mobility(11, Mobility::Static);
+    let dynamic_mesh = mesh_with_mobility(22, Mobility::Dynamic);
+    let contract = baked_contract(7, static_mesh.stable_instance_key);
+
+    representation.synchronize_scene_with_baked(
+        &[static_mesh.clone(), dynamic_mesh.clone()],
+        &[],
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+
+    assert_eq!(
+        representation.surface_participation(static_mesh.stable_instance_key),
+        Some(HybridGiSurfaceParticipation::BakedStatic)
+    );
+    assert_eq!(
+        representation.surface_participation(dynamic_mesh.stable_instance_key),
+        Some(HybridGiSurfaceParticipation::HybridReceiver)
+    );
+    assert_eq!(representation.baked_light_set_generation(), Some(7));
+    let policy = representation.composite_policy();
+    assert_eq!(
+        policy.source_mask(),
+        HYBRID_GI_SOURCE_BAKED_BASELINE | HYBRID_GI_SOURCE_DYNAMIC_DELTA
+    );
+    assert_eq!(policy.source_mask() & HYBRID_GI_SOURCE_FULL_DYNAMIC, 0);
+    assert_eq!(
+        representation.surface_source_mask(static_mesh.stable_instance_key),
+        Some(HYBRID_GI_SOURCE_BAKED_BASELINE | HYBRID_GI_SOURCE_DYNAMIC_DELTA)
+    );
+    assert_eq!(
+        representation.surface_source_mask(dynamic_mesh.stable_instance_key),
+        Some(HYBRID_GI_SOURCE_BAKED_BASELINE | HYBRID_GI_SOURCE_DYNAMIC_DELTA)
+    );
+}
+
+#[test]
+fn hybrid_gi_baked_mode_seeds_only_movable_lights_into_dynamic_delta() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: true,
+        mode: RenderHybridGiMode::BakedStaticDynamic,
+        profile: RenderHybridGiProfile::IndoorStatic,
+        ..RenderHybridGiExtract::default()
+    });
+    let mesh = mesh_with_mobility(11, Mobility::Static);
+    let contract = baked_contract(7, mesh.stable_instance_key);
+
+    representation.synchronize_scene_with_baked(
+        &[mesh],
+        &[
+            directional_light(101, Mobility::Static),
+            directional_light(202, Mobility::Dynamic),
+        ],
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+
+    assert_eq!(representation.directional_light_ids(), vec![202]);
+}
+
+#[test]
+fn hybrid_gi_participation_epoch_changes_only_when_participation_or_generation_changes() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: true,
+        mode: RenderHybridGiMode::BakedStaticDynamic,
+        profile: RenderHybridGiProfile::IndoorStatic,
+        ..RenderHybridGiExtract::default()
+    });
+    let static_mesh = mesh_with_mobility(11, Mobility::Static);
+    let contract_generation_7 = baked_contract(7, static_mesh.stable_instance_key);
+
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&static_mesh),
+        &[],
+        &[],
+        &[],
+        Some(&contract_generation_7),
+        true,
+    );
+    let initial_epoch = representation.participation_epoch();
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&static_mesh),
+        &[],
+        &[],
+        &[],
+        Some(&contract_generation_7),
+        true,
+    );
+    assert_eq!(representation.participation_epoch(), initial_epoch);
+
+    let dynamic_mesh = mesh_with_mobility(11, Mobility::Dynamic);
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&dynamic_mesh),
+        &[],
+        &[],
+        &[],
+        Some(&contract_generation_7),
+        true,
+    );
+    let mobility_epoch = representation.participation_epoch();
+    assert!(mobility_epoch > initial_epoch);
+
+    let contract_generation_8 = baked_contract(8, dynamic_mesh.stable_instance_key);
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&dynamic_mesh),
+        &[],
+        &[],
+        &[],
+        Some(&contract_generation_8),
+        true,
+    );
+    assert!(representation.participation_epoch() > mobility_epoch);
+}
+
+#[test]
+fn hybrid_gi_invalidation_epoch_tracks_transform_material_light_and_streaming_changes() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
+        enabled: true,
+        mode: RenderHybridGiMode::BakedStaticDynamic,
+        profile: RenderHybridGiProfile::IndoorStatic,
+        ..RenderHybridGiExtract::default()
+    });
+    let mut mesh = mesh_with_mobility(11, Mobility::Static);
+    let contract = baked_contract(7, mesh.stable_instance_key);
+    let mut light = directional_light(202, Mobility::Dynamic);
+
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&mesh),
+        std::slice::from_ref(&light),
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+    let initial_epoch = representation.participation_epoch();
+
+    mesh.transform = Transform::from_translation(Vec3::X);
+    mesh.transform_revision = render_mesh_transform_revision(&mesh.transform);
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&mesh),
+        std::slice::from_ref(&light),
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+    let transform_epoch = representation.participation_epoch();
+    assert!(transform_epoch > initial_epoch);
+
+    mesh.static_state.material_revision = 9;
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&mesh),
+        std::slice::from_ref(&light),
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+    let material_epoch = representation.participation_epoch();
+    assert!(material_epoch > transform_epoch);
+
+    light.mobility = Mobility::Static;
+    representation.synchronize_scene_with_baked(
+        std::slice::from_ref(&mesh),
+        std::slice::from_ref(&light),
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+    let light_epoch = representation.participation_epoch();
+    assert!(light_epoch > material_epoch);
+
+    representation.synchronize_scene_with_baked(
+        &[],
+        std::slice::from_ref(&light),
+        &[],
+        &[],
+        Some(&contract),
+        true,
+    );
+    assert!(representation.participation_epoch() > light_epoch);
+}
+
+#[test]
+fn hybrid_gi_cards_keep_distinct_stable_primitive_owners_for_one_entity() {
+    let mut representation = HybridGiSceneRepresentation::from_extract(&extract_with_budgets(4, 4));
+    let first = mesh_at(11, Vec3::ZERO, 1.0);
+    let mut second = first.clone();
+    second.stable_instance_key = render_mesh_stable_instance_key(11, 1);
+    second.mesh = Some(ResourceHandle::new(ResourceId::from_stable_label(
+        "builtin://hybrid-gi/test-mesh/11/primitive-1",
+    )));
+
+    representation.synchronize_scene(&[first, second], &[], &[], &[]);
+
+    assert_eq!(representation.card_count(), 2);
+    let card_ids = representation.card_ids();
+    assert_ne!(card_ids[0], card_ids[1]);
 }
 
 #[test]
@@ -434,6 +657,8 @@ fn extract_with_trace_and_budgets(
 ) -> RenderHybridGiExtract {
     RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: RenderHybridGiQuality::High,
         trace_budget,
         card_budget,
@@ -462,5 +687,46 @@ fn mesh_at(node_id: u64, translation: Vec3, uniform_scale: f32) -> RenderMeshSna
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
         render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+    }
+}
+
+fn mesh_with_mobility(node_id: u64, mobility: Mobility) -> RenderMeshSnapshot {
+    let mut mesh = mesh_at(node_id, Vec3::ZERO, 1.0);
+    mesh.mobility = mobility;
+    mesh.static_state = RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
+    mesh
+}
+
+fn baked_contract(generation: u64, stable_instance_key: u64) -> LightmapConsumeContract {
+    LightmapConsumeContract::new(
+        generation,
+        ResourceId::from_stable_label(&format!(
+            "res://hybrid-gi/m4/lightmap-generation-{generation}"
+        )),
+        LightmapAtlasDescriptor {
+            page_size: 4,
+            page_count: 1,
+            format: LightmapAtlasFormat::Rgba16Float,
+        },
+        vec![(
+            stable_instance_key,
+            LightmapInstanceSlot {
+                atlas_page: 0,
+                uv_rect: Vec4::new(1.0, 1.0, 0.0, 0.0),
+            },
+        )],
+    )
+}
+
+fn directional_light(light_id: u64, mobility: Mobility) -> RenderDirectionalLightSnapshot {
+    RenderDirectionalLightSnapshot {
+        node_id: light_id,
+        light_id,
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        direction: Vec3::NEG_Y,
+        color: Vec3::ONE,
+        intensity: 1.0,
+        mobility,
+        shadow: None,
     }
 }

@@ -77,6 +77,38 @@ fn sdf_atlas_plan_keys_glyph_slots_by_font_identity_and_fixed_bake_params() {
 }
 
 #[test]
+fn sdf_atlas_plan_keeps_sdf_msdf_and_mtsdf_identity_and_storage_distinct() {
+    let keys = vec![
+        glyph_key_for_mode('A', SdfMode::Sdf),
+        glyph_key_for_mode('A', SdfMode::Msdf),
+        glyph_key_for_mode('A', SdfMode::Mtsdf),
+    ];
+    let plan = plan_sdf_atlas_from_slot_keys(
+        keys.clone(),
+        vec![keys.into_iter().map(Some).collect()],
+        SdfAtlasQuality::default(),
+    );
+
+    assert_eq!(plan.slots.len(), 3);
+    assert_eq!(plan.runs[0].glyph_slot_indices, glyph_slots(&[0, 1, 2]));
+    assert_eq!(plan.slots[0].key.bake_params.mode, SdfMode::Sdf);
+    assert_eq!(plan.slots[0].page_key.format, GlyphAtlasFormat::Sdf);
+    assert_eq!(plan.slots[1].key.bake_params.mode, SdfMode::Msdf);
+    assert_eq!(plan.slots[1].page_key.format, GlyphAtlasFormat::Msdf);
+    assert_eq!(plan.slots[2].key.bake_params.mode, SdfMode::Mtsdf);
+    assert_eq!(plan.slots[2].page_key.format, GlyphAtlasFormat::Msdf);
+    assert_ne!(plan.slots[1].key, plan.slots[2].key);
+
+    let sdf_page = plan.atlas_set.page(GlyphAtlasFormat::Sdf, 0).unwrap();
+    let msdf_page = plan.atlas_set.page(GlyphAtlasFormat::Msdf, 0).unwrap();
+    assert_eq!(sdf_page.storage_format, GlyphAtlasStorageFormat::R8Unorm);
+    assert_eq!(
+        msdf_page.storage_format,
+        GlyphAtlasStorageFormat::Rgba8Unorm
+    );
+}
+
+#[test]
 fn sdf_atlas_plan_separates_locale_sensitive_glyph_slots() {
     let mut simplified = text_batch("界", UiFrame::new(0.0, 0.0, 16.0, 16.0));
     simplified.language = Some("zh-Hans".to_string());
@@ -97,6 +129,7 @@ fn sdf_atlas_plan_preserves_shaped_glyph_and_face_identity() {
     vertical.shaped_glyphs = vec![ScreenSpaceUiShapedGlyph {
         glyph_id: 321,
         font_id: Some(FontFaceId(17)),
+        font_instance_id: Some(InstancedFaceId(29)),
         source_scalar: '。',
         source_range: UiTextRange {
             start: 0,
@@ -115,7 +148,35 @@ fn sdf_atlas_plan_preserves_shaped_glyph_and_face_identity() {
     assert_eq!(plan.slots[0].key.glyph, '。');
     assert_eq!(plan.slots[0].key.glyph_id, Some(321));
     assert_eq!(plan.slots[0].key.font_id, Some(17));
+    assert_eq!(plan.slots[0].key.font_instance_id, Some(29));
     assert_eq!(plan.runs[0].glyph_slot_indices, vec![Some(0)]);
+}
+
+#[test]
+fn sdf_atlas_plan_separates_variable_font_instances_on_same_face() {
+    let mut regular = text_batch("A", UiFrame::new(0.0, 0.0, 32.0, 48.0));
+    regular.shaped_glyphs = vec![ScreenSpaceUiShapedGlyph {
+        glyph_id: 41,
+        font_id: Some(FontFaceId(17)),
+        font_instance_id: Some(InstancedFaceId(29)),
+        source_scalar: 'A',
+        source_range: UiTextRange { start: 0, end: 1 },
+        advance: 20.0,
+        offset_x: 0.0,
+        offset_y: 0.0,
+        rotation: ShapedGlyphRotation::None,
+        requires_atlas_slot: true,
+    }];
+    let mut expanded = regular.clone();
+    expanded.shaped_glyphs[0].font_instance_id = Some(InstancedFaceId(30));
+
+    let plan = plan_sdf_atlas(&[regular, expanded]);
+
+    assert_eq!(plan.slots.len(), 2);
+    assert_ne!(
+        plan.slots[0].key.font_instance_id,
+        plan.slots[1].key.font_instance_id
+    );
 }
 
 #[test]

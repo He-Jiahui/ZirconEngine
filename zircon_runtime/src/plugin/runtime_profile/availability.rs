@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::plugin::{
-    ExportPackagingStrategy, PluginMaturity, ProjectPluginManifest, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
-};
+use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginManifest};
+use crate::plugin::{PluginMaturity, RuntimePluginDescriptor, RuntimePluginRegistrationReport};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use super::availability_report::{RuntimePluginAvailabilityEntry, RuntimePluginAvailabilityReport};
 use super::descriptor::RuntimeProfileDescriptor;
@@ -73,7 +71,6 @@ impl RuntimeProfileDescriptor {
                 &mut linked_plugin_ids
             };
             push_provider_id(target_ids, &registration.package_manifest.id);
-            push_provider_id(target_ids, &registration.project_selection.id);
         }
         self.availability_report_for_manifest_with_providers(
             descriptors,
@@ -92,7 +89,7 @@ impl RuntimeProfileDescriptor {
     ) -> RuntimePluginAvailabilityReport {
         let mut plugins = Vec::<(RuntimePluginId, bool)>::new();
         for selection in manifest.enabled_for_target(self.target_mode) {
-            let Some(runtime_id) = selection.runtime_id() else {
+            let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id) else {
                 continue;
             };
             if let Some((_, required)) = plugins.iter_mut().find(|(id, _)| *id == runtime_id) {
@@ -182,6 +179,10 @@ impl RuntimeProfileDescriptor {
         report: &mut RuntimePluginAvailabilityReport,
     ) {
         let Some(descriptor) = descriptors.get(&plugin_id) else {
+            if let Some(entry) = builtin_unavailable_entry(plugin_id, required) {
+                push_blocked(&mut report.stub, &mut report.missing_required, entry);
+                return;
+            }
             if let Some(entry) = builtin_available_entry(plugin_id, required) {
                 report.available.push(entry);
                 return;
@@ -254,18 +255,14 @@ impl RuntimeProfileDescriptor {
             );
             return;
         }
-        if linked_plugin_ids.contains(descriptor.package_id())
-            || linked_plugin_ids.contains(descriptor.runtime_id().key())
-        {
+        if linked_plugin_ids.contains(descriptor.package_id()) {
             report.linked.push(RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime was supplied by linked registration".to_string(),
                 ..entry
             });
             return;
         }
-        if native_dynamic_plugin_ids.contains(descriptor.package_id())
-            || native_dynamic_plugin_ids.contains(descriptor.runtime_id().key())
-        {
+        if native_dynamic_plugin_ids.contains(descriptor.package_id()) {
             report.native_dynamic.push(RuntimePluginAvailabilityEntry {
                 reason: "plugin runtime was supplied by native dynamic registration".to_string(),
                 ..entry
@@ -303,7 +300,7 @@ fn builtin_available_entry(
     required: bool,
 ) -> Option<RuntimePluginAvailabilityEntry> {
     match id {
-        RuntimePluginId::Ui => Some(RuntimePluginAvailabilityEntry {
+        RuntimePluginId::Ui if cfg!(feature = "ui") => Some(RuntimePluginAvailabilityEntry {
             id: id.key().to_string(),
             runtime_id: id,
             required,
@@ -314,8 +311,25 @@ fn builtin_available_entry(
     }
 }
 
+fn builtin_unavailable_entry(
+    id: RuntimePluginId,
+    required: bool,
+) -> Option<RuntimePluginAvailabilityEntry> {
+    match id {
+        RuntimePluginId::Ui if !cfg!(feature = "ui") => Some(RuntimePluginAvailabilityEntry {
+            id: id.key().to_string(),
+            runtime_id: id,
+            required,
+            maturity: PluginMaturity::Core,
+            reason: "built-in UI runtime is unavailable because the ui feature is disabled"
+                .to_string(),
+        }),
+        _ => None,
+    }
+}
+
 fn builtin_runtime_domain_is_available(id: RuntimePluginId) -> bool {
-    matches!(id, RuntimePluginId::Ui)
+    matches!(id, RuntimePluginId::Ui) && cfg!(feature = "ui")
 }
 
 fn push_provider_id(ids: &mut Vec<String>, id: &str) {

@@ -15,18 +15,21 @@ CORE_GUARD_ANCHORS = (
     "runtime_subplan_status_records_keep_non_empty_evidence",
     "runtime_plan_status_output_tables_cover_index_and_all_subplans",
     "runtime_index_status_output_records_recent_cross_plan_slices",
-    "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
+    "runtime_05_closeout_status_records_completed_scene_cargo_gate",
     "runtime_architecture_review_documents_all_absorption_guards",
 )
 
+COMPLETED_GATE_ANCHORS = (
+    "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
+    "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
+    "runtime_05_closeout_status_records_completed_scene_cargo_gate",
+    "runtime_07_performance_hotpath_records_completed_authoritative_validation",
+)
+
 PENDING_GATE_ANCHORS = (
-    "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
     "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
-    "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
     "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
-    "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
     "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
-    "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
     "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
     "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
     "runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation",
@@ -39,8 +42,8 @@ PENDING_GATE_ANCHORS = (
 
 DOC_ANCHORS = (
     "runtime_plan_status_boundary",
-    "pending_full_scene_cargo",
-    "cargo test -p zircon_runtime --lib scene:: --locked",
+    "runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete",
+    "1642 passed / 0 failed / 5 ignored",
     "runtime_plan_last_refined_covers_latest_recorded_date",
     "runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs",
     "runtime_architecture_review_documents_all_absorption_guards",

@@ -347,6 +347,16 @@ impl FrameSubmissionContext {
         &self.source_extract.lighting.spot_lights
     }
 
+    pub(super) fn scene_baked_lighting(
+        &self,
+    ) -> Option<&crate::core::framework::render::LightmapConsumeContract> {
+        self.source_extract.environment.baked_lighting()
+    }
+
+    pub(super) fn scene_has_baked_probe_grid(&self) -> bool {
+        self.source_extract.environment.light_probe_grid().is_some()
+    }
+
     pub(super) fn scene_ambient_lights(&self) -> &[RenderAmbientLightSnapshot] {
         &self.source_extract.lighting.ambient_lights
     }

@@ -9,14 +9,10 @@ mod parent_routes;
 #[path = "route_ownership/status_mirrors.rs"]
 mod status_mirrors;
 
-pub(super) const P0_ROUTE_PARENT_ROUTES_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/parent_routes.rs";
-pub(super) const P0_ROUTE_LEAF_OWNERS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/leaf_owners.rs";
-pub(super) const P0_ROUTE_CHILD_OWNERSHIP_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/child_ownership.rs";
-pub(super) const P0_ROUTE_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/status_mirrors.rs";
+pub(super) const P0_ROUTE_PARENT_ROUTES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/parent_routes.rs";
+pub(super) const P0_ROUTE_LEAF_OWNERS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/leaf_owners.rs";
+pub(super) const P0_ROUTE_CHILD_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/child_ownership.rs";
+pub(super) const P0_ROUTE_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/status_mirrors.rs";
 
 pub(super) const P0_ROUTE_OWNERSHIP_CHILD_SPLIT_SLICE: &str =
     "Runtime 15 M3 P0 route ownership guard child split";

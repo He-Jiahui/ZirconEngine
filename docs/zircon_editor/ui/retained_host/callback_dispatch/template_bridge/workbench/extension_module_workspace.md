@@ -3,56 +3,56 @@ related_code:
   - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_terrain_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_level_streaming_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_level_variant_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_scatter_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_collision_proxy_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_physics_collision_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_navmesh_ai_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_lobby_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_matchmaking_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_shader_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_lighting_bake_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_post_process_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_sequencer_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_montage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_control_rig_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_animation_compression_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_data_table_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_source_control_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_build_export_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_automation_report_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_project_overview_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_plugin_manager_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_save_data_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_particle_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_ui_asset_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_ui_binding_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_font_atlas_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_console_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_runtime_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_icon_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_accessibility_audit_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_menu_flow_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_render_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_vfx_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_hud_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
@@ -78,7 +78,43 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_sample_grid.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_weight_heatmap.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
+  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs
+  - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
+  - zircon_runtime/src/ui/v2/component_instancer.rs
+  - zircon_runtime/src/ui/tests/asset/document_compiler.rs
+  - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/keys.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/sample_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/weight_heatmap.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/sample_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_weight_heatmap.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace.rs
+  - docs/tests/editor/editor-window-m3-blend-space-workbench-640x520.png
+  - docs/tests/editor/editor-window-m3-blend-space-workbench-900x620.png
+  - docs/tests/editor/editor-window-m3-blend-space-workbench-1260x780.png
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/online_sessions.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/runtime_state.rs
@@ -86,53 +122,75 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics/observability.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/transport_actions.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace.rs
 implementation_files:
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui
+  - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
+  - zircon_runtime/src/ui/v2/component_instancer.rs
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-record.svg
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-play.svg
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-pause.svg
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-previous.svg
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-next.svg
+  - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-loop.svg
+  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
+  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
+  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_terrain_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_level_streaming_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_level_variant_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_scatter_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_collision_proxy_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_physics_collision_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_navmesh_ai_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_matchmaking_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_lighting_bake_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_post_process_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_sequencer_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_montage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_control_rig_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_animation_compression_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_automation_report_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_project_overview_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_plugin_manager_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_save_data_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_particle_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_ui_asset_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_ui_binding_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_font_atlas_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_console_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_runtime_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_icon_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_accessibility_audit_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_menu_flow_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_vfx_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_hud_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs
   - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
@@ -159,6 +217,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
@@ -169,15 +228,29 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
 plan_sources:
+  - user: 2026-07-13 continue Layout 15 atomic Unreal visual convergence from the Blend Space reference
+  - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
+  - dev/UnrealEngine/Engine/Source/Editor/EditorStyle/Private/StarshipStyle.cpp
+  - dev/UnrealEngine/Engine/Source/Editor/EditorWidgets/Private/STransportControl.cpp
   - user: 2026-06-03 componentized editor UI prototype and native retained/Taffy replication request
   - docs/ui-and-layout/ai-workbench-style/component-prototype/README.md
   - docs/ui-and-layout/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 tests:
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_composites.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/composite_contracts.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/transport_actions.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/property_editor_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs
+  - zircon_runtime/src/ui/tests/asset/document_compiler.rs
+  - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/timeline_strip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip_tests/paint.rs
   - rustfmt --edition 2021 --check zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/simulation_physics.rs zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/data_production.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
   - node --check docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - node --check docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
   - node --check docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
-  - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs => modules=44 events=880 bindings=880 extensionPreviewActions=880
+  - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs => modules=44 events=886 routed=886 unique=886 bindings=886 extensionPreviewActions=886
+  - current-source Windows zircon_editor lib-test binary => blend_space_transport_buttons_dispatch_unique_registered_actions 1/1; blend_space_transport_actions_update_independent_preview_state 1/1
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs => nativeExtensionEvidence=44
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs => previewActions=1178
   - cargo check -p zircon_editor --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-extension-gap-0605 --message-format short --color never
@@ -247,7 +320,37 @@ The Sequencer workspace extends the cinematic animation lane with timeline autho
 
 The Montage Editor workspace starts the animation lane with montage timeline authoring evidence: fixed 72 px rail gap, left/center/right regions, sections/notifies/curves tabs, montage section list rows, intro/combo/notify/root-motion table rows, preview/apply commands, montage/slot/blend detail controls, 20 `WorkbenchExtension/MontageEditor*` events including the opener, split template bindings, registered preview actions, retained navigation state, and output feedback on `WorkbenchExtensionMontageEditorOutputRow`.
 
-The Blend Space workspace extends that animation lane with sample-grid evidence: fixed 72 px rail gap, left/center/right regions, samples/axes/preview tabs, locomotion asset list rows, idle/walk/run/diagonal sample table rows, preview/apply commands, asset/x-axis/interpolation detail controls, 20 `WorkbenchExtension/BlendSpace*` events including the opener, split template bindings, registered preview actions, retained navigation state, and output feedback on `WorkbenchExtensionBlendSpaceOutputRow`.
+The Blend Space workspace extends that animation lane with a dense, adaptive sample authoring surface. It preserves the fixed 72 px activity-rail alignment and the existing 20 `WorkbenchExtension/BlendSpace*` interaction events, while composing the standardized primitives into a horizontal tab strip, passive search field, asset/file browser, relative sample grid, blend-preview card, axes/sample details, and a bottom Blend Output log. The left/right panes and preview card use bounded shrinkable `min/preferred/max + Fixed` axes, while the center lane and sample canvas consume the remaining stretch budget; equal-share tabs and spacing containers remain constraint-free stretch lanes. This lets Taffy preserve a usable editor at 900 px and route wider-window growth into the sample lane without screenshot-specific coordinates. Surface color and borders come only from shared panel/inset classes; the L4 workspace carries no local surface override. Small Unreal-style labels consume the shared `WorkbenchCaption` text primitive, so the L4 asset carries no local `font_size` or `font_weight`.
+
+The wide preview card now consumes `WorkbenchPreviewViewport`, a shared Image atom backed by `animation_mannequin_viewport.svg`. The SVG supplies only scene pixels—lit mannequin, perspective floor grid, staging background, and axis gizmo—while `Perspective`, `Lit`, and `Run_Fwd | Previewing` remain separate `WorkbenchCaption` nodes and therefore continue through Runtime Text. The image uses the generic retained preview-image loader and aspect-fit painter rather than a Blend-Space-specific bitmap path or control-ID paint branch. The atom is hidden with its containing card below the Wide tier, so 640/900 layouts keep their primary editing budget.
+
+Wide details also add a compact four-column sample table before the existing axis and selected-sample editors. Four visible rows expose animation, direction, speed, and weight data using `WorkbenchTableRow`; the remaining authored samples stay represented by the typed Sample Grid and `SAMPLES (8)` count. This increases reference density without duplicating local table paint, typography, colors, or absolute geometry in the domain workspace.
+
+The Preview Timeline is the next shared atom boundary. `WorkbenchTimelineStrip` authors duration, playhead time, tick interval, track label, and structured keys on a Canvas. A typed `TemplatePaneTimelineStripData` travels through both the pane-body projector and the full-window adapter; malformed key tables are dropped and all time values are normalized against the duration. The native painter is split into identity, geometry, metrics, palette, surface, text, and key/playhead owners. Metrics and colors project from `HostControlMetrics` and `HostMaterialPalette`, while ruler labels, track labels, and time summaries emit `HostPaintCommand::text` for Runtime Text rendering.
+
+Blend Space replaces the repeated Blend Output sample rows with this typed timeline. The existing output and four sample-selection routes remain attached to the timeline and the denser right-side sample rows, so visual refactoring does not delete interaction contracts. The regular/wide output panel composes a shared button toolbar above the Canvas; the narrow tier continues to collapse the whole secondary output region. This atom is intentionally reusable by Sequencer, Montage, VFX, Weather, and Performance timeline surfaces in later slices instead of retaining each domain's table-row simulation.
+
+The Wide bottom lane now composes two reusable L3 assets beside Preview Timeline. `WorkbenchSampleWeights` is built only from shared Caption, ProgressBar, and Checkbox primitives: axis readouts and weight rows use bounded label/value columns with stretch-owned progress tracks, and the Normalize state stays a shared selection primitive. `WorkbenchValidationLog` composes Caption, StatusItem, and Button primitives into severity filters, diagnostic rows, a stretch fill, and a trailing Clear command. Both composites inherit palette, typography, spacing, progress, status, and button behavior from the existing primitive painters; they add no local RGB, font, or screenshot coordinates. Their `wide` responsive gate keeps the 900 layout timeline-only while the 1260 layout approaches the three-column reference bottom strip.
+
+The Preview Timeline transport row now mounts `WorkbenchTransportControls`, a reusable animation composite built from six `WorkbenchIconButton` atoms. Its 20 logical-pixel glyphs, 2 logical-pixel content padding, transparent normal button surface, subdued foreground, and 28 logical-pixel lane directly follow Unreal Starship's `Animation.PlayControlsButton` plus the `Animation.{Record,Forward,Pause,Backward_Step,Forward_Step,Loop}` brush family. Zircon owns equivalent repository-native SVG assets rather than importing Unreal artwork. The composite removes abbreviated Runtime Text labels from the narrow timeline, keeps accessible labels on every icon button, and lets the timeline receive the remaining relative width after the two Wide diagnostic panels; no control-id painter special case or screenshot coordinate is introduced.
+
+The six transport controls now own distinct `WorkbenchExtension/AnimationTransport*` click events and dotted preview action ids. The shared binding registry maps each event to a registered action, and `blend_space_transport.rs` applies the retained state transition for the active Blend Space projection: Record and Loop toggle independently, Play/Pause remain mutually exclusive, Previous/Next move the typed timeline to its start/end, and the Runtime Text-backed preview/status controls report the resulting state. This logic lives in the Workbench bridge rather than local UI callbacks or control-id painter branches, so the composite remains reusable while the current Blend Space instance owns its domain projection.
+
+The Wide right pane delegates its domain content to `WorkbenchBlendSpaceDetails` instead of keeping sixteen sample/axis/property children inline in the L4 workspace. The composite preserves the existing sample click and field/dropdown edit/commit routes, while grouping Samples, Axis Settings, and Sample under the shared `WorkbenchSectionTitle` category atom. These category headers follow Unreal `DetailsView.CategoryTop` and `DetailsView.CategoryFontStyle` semantics through the existing token-backed SectionTitle painter; table rows, property rows, fields, and dropdowns continue to own their own compact 28-32 logical-pixel contracts. The parent workspace is now 415 lines and only owns the right-pane shell plus one stretch mount, which keeps the L4 file within the engine structure budget and makes the Details family reusable without local colors, fonts, dividers, or absolute coordinates.
+
+Editable detail values now use `WorkbenchPropertyEditorRow`, a shared NameContent/ValueContent-style composite derived from Unreal `FDetailWidgetRow`. Its root remains the existing native `PropertyRow`, while a bounded 60-105 logical-pixel name column yields the remaining width to one named `value` slot. Dropdown and Field atoms keep their own focus, popup, edit, and commit behavior inside that slot. The full-window projection also recognizes both the `property-row` role and `PropertyRow` component when converting authored `value` into retained `value_text`; this repairs the lower shared data path that previously made Horizontal, Vertical, Grid divisions, Sample position, and Rate scale appear as label-only rows even though their ZUI values were authored. All labels and values continue through Runtime Text and the shared property-row painter; the Blend Space domain introduces no local palette, font, or painter branch.
+
+The shared row also exposed a lower Runtime component contract defect: replacing a named `Slot` placeholder discarded the placeholder's layout relative to the component root, causing filled controls to overlay the entire property row. The legacy document compiler and the production UI v2 component instancer now transfer that layout into mounted-child slot metadata before removing the placeholder. The legacy path resolves component tokens and component parameters before capturing that placeholder layout. Nested maps merge recursively and explicit caller mount values win, so the component supplies the default name/value geometry while each consumer can still override one axis intentionally. Focused Runtime tests cover both compiler generations; the Editor geometry regression requires every field/dropdown to begin after the name column and stretch through the remaining value column.
+
+The same frame regression exposed a second UI v2 boundary: an instance-authored width/height table used to replace the component root's complete layout, deleting `HorizontalBox` and making the two row children overlap even after slot metadata was correct. Component-root layout patches now merge recursively as well. Current Editor frames place the three Wide detail editors at x=1109 inside rows beginning at x=1000, with 151 logical pixels of value-column width in 260-pixel rows; the property labels and Runtime Text values therefore remain distinct and aligned.
+
+The native host painter has an explicit extension-workspace overlay after legacy dock rendering. `TemplatePaneNodeData` carries retained parent identity, and the overlay selects the active concrete extension-workspace root before closing over its projected parent chain; it does not infer ancestry from generated node-id prefixes or redraw inactive workspace hosts or SceneWorkspace siblings. Projection collapses control-less component-expansion ancestors to the nearest parent that is itself present in the native DTO.
+
+Blend Space now consumes a reusable typed `WorkbenchSampleGrid` Canvas atom. Authored TOML axes, ticks, and sample tables pass through one shared projector used by both pane-body and full-window retained adapters into `TemplatePaneSampleGridData`; the painter derives all gutters and point positions from the node frame and numeric axis ranges. Its surface, dashed grid, zero axes, diamonds, selected cyan halo, tick labels, axis labels, and selected sample label are native commands; text is emitted through the Runtime Text-backed `HostPaintCommand::text` path. No control-id-specific geometry or encoded separator string is involved.
+
+Current-source focused evidence for the complete Blend Space workspace is 13 passed/0 failed/1 ignored with ZUI governance 74/74. The ignored visual route opens the production `WorkbenchAbilityBlendSpaceButton` route and writes 640x520, 900x620, and 1260x780 artifacts only under `docs/tests/editor`. Manual comparison confirms responsive Sample Grid, preview image, Weight Heatmap, Timeline, diagnostics, and bounded Property Editor Rows. Higher-fidelity preview assets, top chrome, and whole-window reference density remain later visual-refinement work rather than part of the accepted component boundary.
+
+The next completed atom is `WorkbenchWeightHeatmap`. Its retained DTO carries bounded cell resolution, legend labels, and normalized weighted sources; both retained adapter paths use the same typed projector. The native painter derives plot and legend frames from the allotted geometry, evaluates a radial influence field into a shared blue/cyan/green/yellow/red palette, draws source diamonds, and emits legend labels through Runtime Text. Blend Space mounts it only inside the Wide preview card, so narrow and regular layouts retain their existing pixels while the 1260 view gains the reference-style heatmap without absolute positioning. Focused projection/painter evidence is 4/4 and the complete ZUI governance remains 72/72.
 
 The Pose Library workspace extends the animation lane with pose-set evidence: fixed 72 px rail gap, left/center/right regions, poses/tags/mirror tabs, pose-set list rows, idle/aim/crouch/mirror pose table rows, preview/apply commands, asset/tag/mirror detail controls, 20 `WorkbenchExtension/PoseLibrary*` events including the opener, split template bindings, registered preview actions, retained navigation state, and output feedback on `WorkbenchExtensionPoseLibraryOutputRow`.
 

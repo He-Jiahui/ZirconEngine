@@ -23,7 +23,6 @@ pub(super) const FOLDER_BACKED_GUARD_NAME: &str =
 
 pub(super) const ROOT_INVENTORY_CHILD_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 child-groups status-doc root inventory child split";
-pub(super) const ROOT_INVENTORY_CHILD_SPLIT_STATUS_ID: &str =
-    "runtime_15_m3_child_groups_status_docs_root_inventory_child_split_static_passed_cargo_deferred";
+pub(super) const ROOT_INVENTORY_CHILD_SPLIT_STATUS_ID: &str = "runtime_15_m3_child_groups_status_docs_root_inventory_child_split_static_passed_cargo_deferred";
 pub(super) const ROOT_INVENTORY_CHILD_SPLIT_GUARD_NAME: &str =
     "runtime_15_m3_child_group_status_docs_root_inventory_is_child_owned";

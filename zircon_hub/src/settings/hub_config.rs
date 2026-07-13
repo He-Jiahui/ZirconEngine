@@ -45,7 +45,13 @@ impl HubConfig {
             return Ok(Self::default());
         }
         let text = fs::read_to_string(path)?;
-        Ok(toml::from_str(&text)?)
+        let mut config: Self = toml::from_str(&text)?;
+        for project in &mut config.recent_projects {
+            if project.path.join("zircon-project.toml").is_file() {
+                project.refresh_summary()?;
+            }
+        }
+        Ok(config)
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), HubError> {
@@ -605,9 +611,9 @@ command_line = []
     fn config_repair_deduplicates_and_prunes_foundation_registries() {
         let mut config = HubConfig::default();
         config.recent_projects = vec![
-            RecentProject::new("Old", "E:/Projects/Game", 1),
-            RecentProject::new("New", "E:/Projects/Game", 9),
-            RecentProject::new("Other", "E:/Projects/Other", 2),
+            RecentProject::fixture("Old", "E:/Projects/Game", 1),
+            RecentProject::fixture("New", "E:/Projects/Game", 9),
+            RecentProject::fixture("Other", "E:/Projects/Other", 2),
         ];
         config.project_metadata.insert(
             project_metadata_key("E:/Projects/Game"),
@@ -637,7 +643,7 @@ command_line = []
 
         assert!(report.repaired_anything());
         assert_eq!(config.recent_projects.len(), 2);
-        assert_eq!(config.recent_projects[0].display_name, "New");
+        assert_eq!(config.recent_projects[0].summary.name, "New");
         assert!(config
             .project_metadata
             .contains_key(&project_metadata_key("E:/Projects/Game")));
@@ -652,7 +658,7 @@ command_line = []
         let mut config = HubConfig::default();
         config.recent_projects = (0..(RECENT_PROJECT_LIMIT + 3))
             .map(|index| {
-                RecentProject::new(
+                RecentProject::fixture(
                     format!("Project {index}"),
                     format!("E:/Projects/{index}"),
                     index as u64,
@@ -677,7 +683,7 @@ command_line = []
         let report = config.repair_registries();
 
         assert_eq!(config.recent_projects.len(), RECENT_PROJECT_LIMIT);
-        assert_eq!(config.recent_projects[0].display_name, "Project 10");
+        assert_eq!(config.recent_projects[0].summary.name, "Project 10");
         assert_eq!(config.action_history.len(), ACTION_HISTORY_LIMIT);
         assert_eq!(config.action_history[0].finished_unix_ms, 17);
         assert_eq!(report.removed_recent_projects, 3);
@@ -687,7 +693,7 @@ command_line = []
     #[test]
     fn config_repair_preserves_valid_metadata_and_active_engine() {
         let mut config = HubConfig::default();
-        config.recent_projects = vec![RecentProject::new("Game", "E:/Projects/Game", 1)];
+        config.recent_projects = vec![RecentProject::fixture("Game", "E:/Projects/Game", 1)];
         config.project_metadata.insert(
             project_metadata_key("E:/Projects/Game"),
             crate::projects::ProjectMetadata {

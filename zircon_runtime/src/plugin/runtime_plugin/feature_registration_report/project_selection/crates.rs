@@ -1,4 +1,5 @@
-use crate::plugin::{PluginFeatureBundleManifest, PluginModuleKind, ProjectPluginFeatureSelection};
+use crate::core::framework::project::ProjectPluginFeatureSelection;
+use crate::plugin::{PluginFeatureBundleManifest, PluginModuleKind};
 
 pub(super) fn assign_feature_project_selection_crates(
     feature: &PluginFeatureBundleManifest,

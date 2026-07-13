@@ -233,6 +233,7 @@ fn mixed_shadow_extract(
                     direction: Vec3::new(0.38, 0.20, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 0.78,
+                    mobility: crate::core::framework::scene::Mobility::Dynamic,
                     shadow: Some(mixed_shadow_settings(
                         ShadowResolutionTier::T1024,
                         ShadowPcfQuality::Medium,
@@ -315,6 +316,7 @@ fn mixed_shadow_spot_light(index: usize, x: f32) -> RenderSpotLightSnapshot {
         range: 5.4,
         inner_angle_radians: 0.48,
         outer_angle_radians: 0.78,
+        mobility: crate::core::framework::scene::Mobility::Dynamic,
         shadow: Some(mixed_shadow_settings(
             ShadowResolutionTier::T512,
             ShadowPcfQuality::Medium,

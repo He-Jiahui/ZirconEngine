@@ -12,7 +12,10 @@ mod actions;
 mod collection;
 mod mui_surface_defaults;
 mod mui_variants;
+mod sample_grid;
+mod timeline_strip;
 mod visual_metadata;
+mod weight_heatmap;
 mod world_space;
 
 fn projected_node(

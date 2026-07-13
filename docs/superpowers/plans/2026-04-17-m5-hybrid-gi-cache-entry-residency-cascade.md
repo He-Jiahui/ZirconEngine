@@ -1,32 +1,30 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/clear_pending_update.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/probe_in_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/promote_to_resident.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/promote_to_resident_in_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/reserve_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/clear_pending_update.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/probe_in_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/promote_to_resident.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/promote_to_resident_in_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/reserve_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/mod.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/clear_pending_update.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/probe_in_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/promote_to_resident.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/promote_to_resident_in_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/reserve_slot.rs
-  - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/gpu_completion.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/submit/collect_gpu_completions.rs
-  - zircon_graphics/src/runtime/server/submit_frame_extract/record_submission/update_hybrid_gi_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/clear_pending_update.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/probe_in_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/promote_to_resident.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/promote_to_resident_in_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/reserve_slot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/residency_management/mod.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 plan_sources:
   - user: 2026-04-17 continue M5
   - user: 2026-04-17 Hybrid GI still needs scene-driven radiance cache / probe gather / RT hybrid lighting
@@ -34,7 +32,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-gpu-completion-source.md
   - docs/superpowers/plans/2026-04-17-m5-hybrid-gi-scene-driven-probe-gather.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime_state_applies_gpu_cache_snapshot_as_residency_truth
   - cargo test -p zircon_graphics --offline --locked hybrid_gi
   - cargo test -p zircon_graphics --offline --locked render_server_bridge

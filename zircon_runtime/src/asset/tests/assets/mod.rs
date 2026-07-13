@@ -1,6 +1,7 @@
 mod animation;
 mod artifact_store;
 mod authoring;
+#[cfg(feature = "text")]
 mod font;
 mod gltf_external_fixtures;
 mod gltf_importer;

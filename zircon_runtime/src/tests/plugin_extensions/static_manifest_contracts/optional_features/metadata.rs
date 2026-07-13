@@ -10,9 +10,7 @@ fn plugin_tomls_declare_optional_feature_metadata() {
 
         for_each_optional_feature(table, relative_path, &mut |feature, feature_context| {
             assert_eq!(
-                feature
-                    .get("owner_plugin_id")
-                    .and_then(toml::Value::as_str),
+                feature.get("owner_plugin_id").and_then(toml::Value::as_str),
                 Some(package_id),
                 "plugin manifest {relative_path:?} {feature_context} should declare owner_plugin_id matching package id `{package_id}`"
             );

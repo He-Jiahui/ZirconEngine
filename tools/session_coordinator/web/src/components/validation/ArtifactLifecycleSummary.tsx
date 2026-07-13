@@ -1,36 +1,17 @@
 import { Box, Grid, Stack, Typography } from "@mui/material";
-import type { CargoJobProjection } from "../../api/contracts";
+import type { ArtifactLifecycleProjection } from "../../api/contracts";
 
-export interface ArtifactLifecycleCounts {
-  reusablePools: number;
-  ephemeralJobs: number;
-  pendingCleanup: number;
-  failedCleanup: number;
+export function artifactLifecycleCounts(
+  lifecycle: ArtifactLifecycleProjection,
+): ArtifactLifecycleProjection {
+  return lifecycle;
 }
 
-export function artifactLifecycleCounts(jobs: CargoJobProjection[]): ArtifactLifecycleCounts {
-  const reusableKeys = new Set(
-    jobs
-      .filter((job) =>
-        job.cleanup_policy === "retained"
-        && job.cleanup_status === "retained"
-        && job.compatibility_key
-      )
-      .map((job) => job.compatibility_key as string),
-  );
-  return {
-    reusablePools: reusableKeys.size,
-    ephemeralJobs: jobs.filter((job) => job.cleanup_policy === "delete_on_release").length,
-    pendingCleanup: jobs.filter((job) => job.cleanup_status === "pending").length,
-    failedCleanup: jobs.filter((job) => job.cleanup_status === "failed").length,
-  };
-}
-
-export function ArtifactLifecycleSummary({ jobs }: { jobs: CargoJobProjection[] }) {
-  const counts = artifactLifecycleCounts(jobs);
+export function ArtifactLifecycleSummary({ lifecycle }: { lifecycle: ArtifactLifecycleProjection }) {
+  const counts = artifactLifecycleCounts(lifecycle);
   const metrics = [
     ["可复用池", counts.reusablePools],
-    ["用后即删", counts.ephemeralJobs],
+    ["用后即删", counts.ephemeralTargets],
     ["待清理", counts.pendingCleanup],
     ["清理失败", counts.failedCleanup],
   ] as const;
@@ -44,7 +25,7 @@ export function ArtifactLifecycleSummary({ jobs }: { jobs: CargoJobProjection[] 
       </Grid>)}
     </Grid>
     <Typography variant="caption" color="text.secondary">
-      数量来自当前有界协调器快照，不代表独立磁盘扫描；清理与回收仍由服务受控执行。
+      数量来自服务确认当前存在的唯一 Cargo 目录；历史作业与已删除目录不参与统计。
     </Typography>
   </Stack>;
 }

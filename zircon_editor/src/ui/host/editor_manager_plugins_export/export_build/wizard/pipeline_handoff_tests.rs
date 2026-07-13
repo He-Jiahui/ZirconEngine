@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{
-    ExportBuildMode, ExportPackagingStrategy, ExportPipelineStage, ExportProfile,
-    ExportTargetPlatform,
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::{
+    ExportBuildMode, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
 };
+use zircon_runtime_interface::export::ExportStage;
 
 use super::*;
 
@@ -18,8 +18,11 @@ fn export_wizard_compile_host_path_feeds_platform_bundle_host_input() {
         .join("report.json")
         .to_string_lossy()
         .into_owned();
-    let mut options =
-        ExportWizardPipelineOptions::new(profile.name.as_str(), "zircon-project.toml", out);
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
+        profile.name.as_str(),
+        "zircon-project.toml",
+        out,
+    );
     options.strategies = Some(profile.strategies.clone());
     options.source_asset_manifest = Some(
         PathBuf::from("target")
@@ -39,12 +42,12 @@ fn export_wizard_compile_host_path_feeds_platform_bundle_host_input() {
 
     assert!(plan.is_ready(), "{plan:?}");
     let compile_host = plan
-        .command(ExportPipelineStage::CompileHost)
+        .command(ExportStage::CompileHost)
         .expect("CompileHost command should be planned");
     assert!(compile_host.expected_stdout_keys.contains(&"host"));
 
     let native_dynamic = plan
-        .command(ExportPipelineStage::NativeDynamic)
+        .command(ExportStage::NativeDynamic)
         .expect("NativeDynamic command should be planned");
     assert_eq!(
         native_dynamic.argument_value("--validate-report"),
@@ -55,7 +58,7 @@ fn export_wizard_compile_host_path_feeds_platform_bundle_host_input() {
         .contains(&"loader_manifest"));
 
     let platform_bundle = plan
-        .command(ExportPipelineStage::PlatformBundle)
+        .command(ExportStage::PlatformBundle)
         .expect("PlatformBundle command should be planned");
     assert_eq!(
         platform_bundle.argument_value("--host-executable"),

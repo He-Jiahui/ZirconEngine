@@ -9,10 +9,10 @@ use zircon_runtime::core::framework::render::{
 
 #[test]
 fn runtime_environment_source_cubemap_pmrem_roughness_mapping_matches_shader_contract() {
-    let mip_count = 9;
+    let mip_count = 8;
 
-    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 6.0);
-    assert_close(source_cubemap_roughness_from_pmrem_mip(6, mip_count), 1.0);
+    assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 5.0);
+    assert_close(source_cubemap_roughness_from_pmrem_mip(5, mip_count), 1.0);
 
     let mut previous = 0.0;
     for mip in 1..mip_count {
@@ -32,7 +32,7 @@ fn runtime_environment_source_cubemap_pmrem_preserves_constant_environment() {
     for texel in cubemap.source_texels() {
         assert_texel_close(*texel, [0.25, 0.5, 0.75, 1.0]);
     }
-    for texel in cubemap.texels() {
+    for texel in cubemap.pmrem_texels() {
         assert_texel_close(*texel, [0.25, 0.5, 0.75, 1.0]);
     }
 }
@@ -44,7 +44,7 @@ fn runtime_environment_source_cubemap_preserves_hdr_values_for_float_upload_path
     for texel in cubemap.source_texels() {
         assert_texel_close(*texel, [2.5, 1.25, 0.75, 1.0]);
     }
-    for texel in cubemap.texels() {
+    for texel in cubemap.pmrem_texels() {
         assert_texel_close(*texel, [2.5, 1.25, 0.75, 1.0]);
     }
 }
@@ -87,17 +87,27 @@ fn runtime_environment_source_cubemap_pmrem_blurs_high_frequency_environment() {
         }
     });
     let base_variance = mip_luma_variance(&cubemap, 0);
-    let rough_mip = cubemap.mip_count().saturating_sub(2);
-    let source_mip_variance = source_mip_luma_variance(&cubemap, rough_mip);
+    let rough_mip =
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
     let rough_variance = mip_luma_variance(&cubemap, rough_mip);
+    let pmrem_comparison_mip =
+        source_cubemap_pmrem_mip_from_roughness(0.5, cubemap.pmrem_mip_count()).round() as u32;
+    let pmrem_comparison_size =
+        source_cubemap_mip_size(cubemap.pmrem_face_size(), pmrem_comparison_mip);
+    let source_comparison_mip = ((cubemap.source_face_size() / pmrem_comparison_size.max(1))
+        .max(1)
+        .ilog2())
+    .min(cubemap.source_mip_count().saturating_sub(1));
+    let source_mip_variance = source_mip_luma_variance(&cubemap, source_comparison_mip);
+    let pmrem_comparison_variance = mip_luma_variance(&cubemap, pmrem_comparison_mip);
 
     assert!(
         rough_variance < base_variance * 0.45,
         "rough PMREM mip should reduce high-frequency luma variance, base={base_variance} rough={rough_variance}"
     );
     assert!(
-        rough_variance < source_mip_variance * 0.75,
-        "GGX PMREM mip should be blurrier than the regular source mip at the same level, source={source_mip_variance} pmrem={rough_variance}"
+        pmrem_comparison_variance < source_mip_variance * 0.75,
+        "GGX PMREM mip should be blurrier than the regular source mip at the same face resolution, source_mip={source_comparison_mip} pmrem_mip={pmrem_comparison_mip} face_size={pmrem_comparison_size} source={source_mip_variance} pmrem={pmrem_comparison_variance}"
     );
 }
 
@@ -111,7 +121,10 @@ fn runtime_environment_source_cubemap_source_mips_blur_high_frequency_environmen
     });
 
     let base_variance = source_mip_luma_variance(&cubemap, 0);
-    let mid_mip = cubemap.mip_count().saturating_sub(3);
+    let mid_mip = cubemap
+        .source_mip_count()
+        .min(cubemap.pmrem_mip_count())
+        .saturating_sub(3);
     let source_mid_variance = source_mip_luma_variance(&cubemap, mid_mip);
     let pmrem_mid_variance = mip_luma_variance(&cubemap, mid_mip);
 
@@ -131,7 +144,7 @@ fn runtime_environment_source_cubemap_source_roughest_mip_averages_all_faces() {
         let luma = if u < 0.5 { 0.15 } else { 1.6 } + v * 0.45;
         [luma, luma * 0.8, luma * 0.55, 1.0]
     });
-    let last_mip = cubemap.mip_count().saturating_sub(1);
+    let last_mip = cubemap.source_mip_count().saturating_sub(1);
     let first = source_texel(&cubemap, CubemapFace::PositiveX, last_mip, 0, 0);
 
     for face in CubemapFace::ALL {
@@ -159,7 +172,7 @@ fn runtime_environment_source_cubemap_pmrem_mips_progressively_blur_high_frequen
         let luma = checker + sun;
         [luma, luma, luma, 1.0]
     });
-    let variances: Vec<_> = (0..cubemap.mip_count())
+    let variances: Vec<_> = (0..cubemap.pmrem_mip_count())
         .map(|mip| mip_luma_variance(&cubemap, mip))
         .collect();
 
@@ -168,7 +181,9 @@ fn runtime_environment_source_cubemap_pmrem_mips_progressively_blur_high_frequen
         "first PMREM mip should already reduce high-frequency variance, variances={variances:?}"
     );
 
-    for mip in 2..cubemap.mip_count().saturating_sub(1) {
+    let rough_mip =
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
+    for mip in 2..=rough_mip {
         let previous = variances[mip as usize - 1];
         let current = variances[mip as usize];
         assert!(
@@ -177,7 +192,7 @@ fn runtime_environment_source_cubemap_pmrem_mips_progressively_blur_high_frequen
         );
     }
 
-    let rough_mip = cubemap.mip_count().saturating_sub(2) as usize;
+    let rough_mip = rough_mip as usize;
     assert!(
         variances[rough_mip] < variances[0] * 0.12,
         "rough PMREM mip should be heavily blurred relative to mip0, base={} rough={} variances={variances:?}",
@@ -198,12 +213,12 @@ fn runtime_environment_source_cubemap_saturated_roughness_mip_uses_cosine_convol
         [luma, luma * 0.85, luma * 0.65, 1.0]
     });
     let saturated_mip =
-        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.mip_count()).round() as u32;
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
     assert!(
         saturated_mip > 0,
         "roughness=1 should select a PMREM mip below the base level"
     );
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), saturated_mip);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), saturated_mip);
     let previous_variance = mip_luma_variance(&cubemap, saturated_mip - 1);
     let saturated_variance = mip_luma_variance(&cubemap, saturated_mip);
     let mut max_downsample_luma_delta = 0.0_f32;
@@ -217,7 +232,7 @@ fn runtime_environment_source_cubemap_saturated_roughness_mip_uses_cosine_convol
                 );
                 let ordinary_downsample =
                     sample_pmrem_linear_at_mip(&cubemap, direction, saturated_mip - 1);
-                let actual = cubemap.texel(face, saturated_mip, x, y);
+                let actual = cubemap.pmrem_texel(face, saturated_mip, x, y);
                 max_downsample_luma_delta =
                     max_downsample_luma_delta.max((luma(actual) - luma(ordinary_downsample)).abs());
             }
@@ -240,11 +255,11 @@ fn runtime_environment_source_cubemap_pmrem_roughest_mip_averages_all_faces() {
         let luma = if u < 0.5 { 0.15 } else { 1.4 } + v * 0.35;
         [luma, luma * 0.75, luma * 0.5, 1.0]
     });
-    let last_mip = cubemap.mip_count().saturating_sub(1);
-    let average = cubemap.texel(CubemapFace::PositiveX, last_mip, 0, 0);
+    let last_mip = cubemap.pmrem_mip_count().saturating_sub(1);
+    let average = cubemap.pmrem_texel(CubemapFace::PositiveX, last_mip, 0, 0);
 
     for face in CubemapFace::ALL {
-        assert_texel_close(cubemap.texel(face, last_mip, 0, 0), average);
+        assert_texel_close(cubemap.pmrem_texel(face, last_mip, 0, 0), average);
     }
 }
 
@@ -258,8 +273,10 @@ fn runtime_environment_source_cubemap_pmrem_rough_mips_reduce_cube_seam_energy()
         [luma, luma * 0.85, luma * 0.7, 1.0]
     });
     let base = pmrem_seam_luma_stats(&cubemap, 0);
-    let mid_mip = cubemap.mip_count().saturating_sub(3);
-    let rough_mip = cubemap.mip_count().saturating_sub(2);
+    let mid_mip =
+        source_cubemap_pmrem_mip_from_roughness(0.5, cubemap.pmrem_mip_count()).round() as u32;
+    let rough_mip =
+        source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.pmrem_mip_count()).round() as u32;
     let mid = pmrem_seam_luma_stats(&cubemap, mid_mip);
     let rough = pmrem_seam_luma_stats(&cubemap, rough_mip);
 
@@ -278,7 +295,12 @@ fn runtime_environment_source_cubemap_pmrem_rough_mips_reduce_cube_seam_energy()
 }
 
 fn source_mip_luma_variance(cubemap: &SourceCubemapMipChain, mip_level: u32) -> f32 {
-    mip_luma_variance_from_texels(cubemap, cubemap.source_texels(), mip_level)
+    mip_luma_variance_from_texels(
+        cubemap.source_texels(),
+        cubemap.source_face_size(),
+        cubemap.source_mip_count(),
+        mip_level,
+    )
 }
 
 fn source_texel(
@@ -288,22 +310,32 @@ fn source_texel(
     x: u32,
     y: u32,
 ) -> [f32; 4] {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
-    let offset =
-        source_cubemap_face_mip_offset(cubemap.face_size(), cubemap.mip_count(), face, mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.source_face_size(), mip_level);
+    let offset = source_cubemap_face_mip_offset(
+        cubemap.source_face_size(),
+        cubemap.source_mip_count(),
+        face,
+        mip_level,
+    );
     cubemap.source_texels()[offset + y as usize * mip_size as usize + x as usize]
 }
 
 fn mip_luma_variance(cubemap: &SourceCubemapMipChain, mip_level: u32) -> f32 {
-    mip_luma_variance_from_texels(cubemap, cubemap.texels(), mip_level)
+    mip_luma_variance_from_texels(
+        cubemap.pmrem_texels(),
+        cubemap.pmrem_face_size(),
+        cubemap.pmrem_mip_count(),
+        mip_level,
+    )
 }
 
 fn mip_luma_variance_from_texels(
-    cubemap: &SourceCubemapMipChain,
     texels: &[[f32; 4]],
+    face_size: u32,
+    mip_count: u32,
     mip_level: u32,
 ) -> f32 {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(face_size, mip_level);
     let mut sum = 0.0;
     let mut sum_sq = 0.0;
     let mut count = 0.0;
@@ -312,10 +344,7 @@ fn mip_luma_variance_from_texels(
             for x in 0..mip_size {
                 let offset =
                     zircon_runtime::core::framework::render::source_cubemap_face_mip_offset(
-                        cubemap.face_size(),
-                        cubemap.mip_count(),
-                        face,
-                        mip_level,
+                        face_size, mip_count, face, mip_level,
                     );
                 let texel = texels[offset + y as usize * mip_size as usize + x as usize];
                 let luma = 0.2126 * texel[0] + 0.7152 * texel[1] + 0.0722 * texel[2];
@@ -348,7 +377,7 @@ struct SeamLumaStats {
 }
 
 fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> SeamLumaStats {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
     let mut sum = 0.0;
     let mut max = 0.0_f32;
     let mut count = 0.0;
@@ -363,10 +392,11 @@ fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> Sea
             };
             for index in sample_start..sample_end {
                 let (x, y) = side.edge_texel(index, mip_size);
-                let current = cubemap.texel(face, mip_level, x, y);
+                let current = cubemap.pmrem_texel(face, mip_level, x, y);
                 let (neighbor_face, neighbor_x, neighbor_y) =
                     side.neighbor_texel(face, index, mip_size);
-                let neighbor = cubemap.texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
+                let neighbor =
+                    cubemap.pmrem_texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
                 let delta = (luma(current) - luma(neighbor)).abs();
                 sum += delta;
                 max = max.max(delta);
@@ -444,7 +474,7 @@ fn sample_pmrem_linear_at_mip(
     direction: [f32; 3],
     mip_level: u32,
 ) -> [f32; 4] {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
     let (face, scaled_uv) = cubemap_face_scaled_uv_from_direction(direction);
     let u = (scaled_uv[0] * 0.5 + 0.5) * mip_size as f32 - 0.5;
     let v = (scaled_uv[1] * 0.5 + 0.5) * mip_size as f32 - 0.5;
@@ -454,10 +484,10 @@ fn sample_pmrem_linear_at_mip(
     let y1 = (y0 + 1).min(mip_size.saturating_sub(1));
     let tx = (u - x0 as f32).clamp(0.0, 1.0);
     let ty = (v - y0 as f32).clamp(0.0, 1.0);
-    let c00 = cubemap.texel(face, mip_level, x0, y0);
-    let c10 = cubemap.texel(face, mip_level, x1, y0);
-    let c01 = cubemap.texel(face, mip_level, x0, y1);
-    let c11 = cubemap.texel(face, mip_level, x1, y1);
+    let c00 = cubemap.pmrem_texel(face, mip_level, x0, y0);
+    let c10 = cubemap.pmrem_texel(face, mip_level, x1, y0);
+    let c01 = cubemap.pmrem_texel(face, mip_level, x0, y1);
+    let c11 = cubemap.pmrem_texel(face, mip_level, x1, y1);
     lerp_vec4(lerp_vec4(c00, c10, tx), lerp_vec4(c01, c11, tx), ty)
 }
 

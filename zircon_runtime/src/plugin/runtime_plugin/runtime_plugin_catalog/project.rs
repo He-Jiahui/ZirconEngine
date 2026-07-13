@@ -1,4 +1,4 @@
-use crate::plugin::{ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 
 use super::project_manifest::{
     catalog_project_manifest, complete_project_manifest as complete_catalog_project_manifest,

@@ -41,7 +41,8 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
     for required_camera_loop_anchor in [
         "struct CameraLoopSubmission {",
         "camera: CameraRenderDescriptor,",
-        "resolve_camera_sequence_borrowed(&extract.view.cameras)",
+        "camera_loop_submissions_from_cameras(&extract.view.cameras)",
+        "resolve_camera_sequence_borrowed(cameras)",
         ".map(CameraLoopSubmission::from)",
         "stream_camera_loop_extract_submissions(",
         "let mut source_extract = Arc::new(extract);",

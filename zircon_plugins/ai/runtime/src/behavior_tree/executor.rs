@@ -1,20 +1,25 @@
 use zircon_runtime::core::framework::ai::{
-    AiBehaviorNodeParameterValue, AiBlackboardEntry, AiDecisionStatus, AiPerceptionSnapshot,
+    AiBehaviorNodeParameterValue, AiBlackboardEntry, AiDecisionStatus, AiManagerError,
+    AiPerceptionSnapshot,
 };
 
+use crate::blackboard::{BlackboardLayout, BlackboardObserverSet, BlackboardSlot, BlackboardStore};
 use crate::manager::parameters::{
-    parse_parallel_policy, parse_task_result, ParallelPolicy,
-    PARALLEL_FAILURE_POLICY_PARAMETER_KEY, PARALLEL_SUCCESS_POLICY_PARAMETER_KEY,
-    SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
+    parse_task_result, ParallelPolicy, PARALLEL_FAILURE_POLICY_PARAMETER_KEY,
+    PARALLEL_SUCCESS_POLICY_PARAMETER_KEY, SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
 };
 
+use self::abort::{abort_active_root, process_observer_aborts};
 use self::condition::decorator_condition_passes;
+use self::support::*;
 use super::{
     BehaviorNodeRuntime, BehaviorNodeSemantics, BehaviorNodeTickContext, CompiledBehaviorNode,
     CompiledBehaviorTree, SelectorRecheckPolicy,
 };
 
+mod abort;
 mod condition;
+mod support;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct BehaviorTreeExecution {
@@ -26,12 +31,14 @@ pub(crate) struct BehaviorTreeExecution {
 #[derive(Debug, Default)]
 pub(crate) struct BehaviorTreeInstanceState {
     trees: std::collections::BTreeMap<String, Vec<BehaviorNodeRuntimeState>>,
+    observers: std::collections::BTreeMap<String, BlackboardObserverSet>,
     root_tree: Option<String>,
     tick: u64,
 }
 
 #[derive(Debug, Default)]
 struct BehaviorNodeRuntimeState {
+    is_active: bool,
     elapsed_seconds: f32,
     cooldown_remaining: f32,
     loop_count: u32,
@@ -42,14 +49,6 @@ struct BehaviorNodeRuntimeState {
 }
 
 impl BehaviorTreeInstanceState {
-    fn begin_root(&mut self, tree: &CompiledBehaviorTree) {
-        if self.root_tree.as_deref() != Some(tree.id()) {
-            self.trees.clear();
-            self.tick = 0;
-            self.root_tree = Some(tree.id().to_string());
-        }
-    }
-
     fn node_mut(
         &mut self,
         tree: &CompiledBehaviorTree,
@@ -62,6 +61,24 @@ impl BehaviorTreeInstanceState {
         });
         &mut states[node_index as usize]
     }
+
+    fn bind_observers(
+        &mut self,
+        tree: &CompiledBehaviorTree,
+        layout: &BlackboardLayout,
+    ) -> Result<(), AiManagerError> {
+        let requires_rebind = self
+            .observers
+            .get(tree.id())
+            .is_none_or(|observers| observers.schema_id() != layout.schema_id());
+        if requires_rebind {
+            self.observers.insert(
+                tree.id().to_string(),
+                BlackboardObserverSet::resolve(tree, layout)?,
+            );
+        }
+        Ok(())
+    }
 }
 
 struct BehaviorTreeExecutionContext<'a> {
@@ -69,6 +86,25 @@ struct BehaviorTreeExecutionContext<'a> {
     perception: Option<&'a AiPerceptionSnapshot>,
     delta_seconds: f32,
     instance: &'a mut BehaviorTreeInstanceState,
+    changed_slots: &'a [BlackboardSlot],
+    processed_observers: std::collections::BTreeSet<String>,
+    tree_descriptors: &'a [CompiledBehaviorTree],
+    blackboard_store: Option<&'a BlackboardStore>,
+}
+
+impl BehaviorTreeExecutionContext<'_> {
+    fn dense_blackboard_value(
+        &self,
+        tree_id: &str,
+        node_index: u32,
+    ) -> Option<Option<zircon_runtime::core::framework::ai::AiBlackboardValue>> {
+        let slot = self
+            .instance
+            .observers
+            .get(tree_id)?
+            .slot_for_node(node_index)?;
+        Some(self.blackboard_store?.read(slot))
+    }
 }
 
 pub(crate) fn evaluate_behavior_tree(
@@ -77,15 +113,30 @@ pub(crate) fn evaluate_behavior_tree(
     blackboard: &[AiBlackboardEntry],
     perception: Option<&AiPerceptionSnapshot>,
     delta_seconds: f32,
+    blackboard_layout: Option<&BlackboardLayout>,
+    blackboard_store: Option<&BlackboardStore>,
+    changed_slots: &[BlackboardSlot],
     instance: &mut BehaviorTreeInstanceState,
-) -> BehaviorTreeExecution {
-    instance.begin_root(descriptor);
+) -> Result<BehaviorTreeExecution, AiManagerError> {
+    if let Some(layout) = blackboard_layout {
+        bind_reachable_observers(instance, descriptor, registered_trees, layout)?;
+    }
     let mut context = BehaviorTreeExecutionContext {
         blackboard,
         perception,
         delta_seconds,
         instance,
+        changed_slots,
+        processed_observers: std::collections::BTreeSet::new(),
+        tree_descriptors: registered_trees,
+        blackboard_store,
     };
+    if context.instance.root_tree.as_deref() != Some(descriptor.id()) {
+        abort_active_root(&mut context);
+        context.instance.trees.clear();
+        context.instance.tick = 0;
+        context.instance.root_tree = Some(descriptor.id().to_string());
+    }
     let result = evaluate_behavior_tree_with_stack(
         descriptor,
         registered_trees,
@@ -93,7 +144,29 @@ pub(crate) fn evaluate_behavior_tree(
         &mut Vec::new(),
     );
     context.instance.tick = context.instance.tick.wrapping_add(1);
-    result
+    Ok(result)
+}
+
+pub(crate) fn abort_behavior_tree_instance(
+    registered_trees: &[CompiledBehaviorTree],
+    blackboard: &[AiBlackboardEntry],
+    perception: Option<&AiPerceptionSnapshot>,
+    delta_seconds: f32,
+    instance: &mut BehaviorTreeInstanceState,
+) {
+    let mut context = BehaviorTreeExecutionContext {
+        blackboard,
+        perception,
+        delta_seconds,
+        instance,
+        changed_slots: &[],
+        processed_observers: std::collections::BTreeSet::new(),
+        tree_descriptors: registered_trees,
+        blackboard_store: None,
+    };
+    abort_active_root(&mut context);
+    context.instance.trees.clear();
+    context.instance.root_tree = None;
 }
 
 fn evaluate_behavior_tree_with_stack(
@@ -102,6 +175,7 @@ fn evaluate_behavior_tree_with_stack(
     context: &mut BehaviorTreeExecutionContext<'_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
+    process_observer_aborts(descriptor, context);
     tree_stack.push(descriptor.id().to_string());
     let result = evaluate_node(0, descriptor, tree_descriptors, context, tree_stack);
     tree_stack.pop();
@@ -117,7 +191,7 @@ fn evaluate_node(
 ) -> BehaviorTreeExecution {
     let node = tree.node(node_index as usize);
 
-    match node.semantics() {
+    let result = match node.semantics() {
         BehaviorNodeSemantics::Selector => evaluate_selector(
             node_index,
             node,
@@ -150,9 +224,14 @@ fn evaluate_node(
             context,
             tree_stack,
         ),
-        BehaviorNodeSemantics::BlackboardCondition => {
-            evaluate_decorator(node, tree, tree_descriptors, context, tree_stack)
-        }
+        BehaviorNodeSemantics::BlackboardCondition => evaluate_decorator(
+            node_index,
+            node,
+            tree,
+            tree_descriptors,
+            context,
+            tree_stack,
+        ),
         BehaviorNodeSemantics::Cooldown => evaluate_cooldown(
             node_index,
             node,
@@ -196,7 +275,12 @@ fn evaluate_node(
         | BehaviorNodeSemantics::EmitEvent
         | BehaviorNodeSemantics::ScriptTask => evaluate_task(node),
         BehaviorNodeSemantics::External => evaluate_external(node_index, node, tree, context),
-    }
+    };
+    context.instance.node_mut(tree, node_index).is_active = matches!(
+        &result.status,
+        AiDecisionStatus::Running | AiDecisionStatus::Idle
+    );
+    result
 }
 
 fn evaluate_selector(
@@ -267,6 +351,15 @@ fn evaluate_selector(
 
 fn selector_branch_requires_recheck(node_index: u32, tree: &CompiledBehaviorTree) -> bool {
     let node = tree.node(node_index as usize);
+    if node.semantics() == BehaviorNodeSemantics::BlackboardCondition
+        && parameter(node, "blackboard_key").is_some()
+    {
+        return matches!(
+            node.abort_policy(),
+            zircon_runtime::core::framework::ai::AiBehaviorAbortPolicy::LowerPriority
+                | zircon_runtime::core::framework::ai::AiBehaviorAbortPolicy::Both
+        );
+    }
     if node.selector_recheck_policy() == SelectorRecheckPolicy::RecheckWhileLowerPriorityRuns {
         return true;
     }
@@ -394,13 +487,20 @@ fn evaluate_parallel(
 }
 
 fn evaluate_decorator(
+    node_index: u32,
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
     context: &mut BehaviorTreeExecutionContext<'_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
-    if !decorator_condition_passes(node, context.blackboard, context.perception) {
+    let dense_value = context.dense_blackboard_value(tree.id(), node_index);
+    if !decorator_condition_passes(
+        node,
+        context.blackboard,
+        context.perception,
+        dense_value.as_ref().map(Option::as_ref),
+    ) {
         return BehaviorTreeExecution {
             status: AiDecisionStatus::Failed,
             active_node: Some(node.id().to_string()),
@@ -441,43 +541,6 @@ fn evaluate_random_selector(
         context.instance.node_mut(tree, node_index).selected_child = None;
     }
     result
-}
-
-fn weighted_random_child(
-    node: &CompiledBehaviorNode,
-    tree: &CompiledBehaviorTree,
-    children: &[u32],
-    tick: u64,
-) -> u32 {
-    use std::hash::{Hash, Hasher};
-
-    let weights = children
-        .iter()
-        .enumerate()
-        .map(|(position, child)| {
-            let id_key = format!("weight.{}", tree.node(*child as usize).id());
-            let position_key = format!("weight_{position}");
-            scalar_parameter(node, &[id_key.as_str(), position_key.as_str()])
-                .unwrap_or(1.0)
-                .max(0.0)
-        })
-        .collect::<Vec<_>>();
-    let total = weights.iter().sum::<f32>();
-    if total <= f32::EPSILON {
-        return children[0];
-    }
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    tree.id().hash(&mut hasher);
-    node.id().hash(&mut hasher);
-    tick.hash(&mut hasher);
-    let mut sample = (hasher.finish() as f64 / u64::MAX as f64) as f32 * total;
-    for (child, weight) in children.iter().zip(weights) {
-        if sample < weight {
-            return *child;
-        }
-        sample -= weight;
-    }
-    children[children.len() - 1]
 }
 
 fn evaluate_cooldown(
@@ -722,92 +785,4 @@ fn evaluate_subtree(
         result.active_node = Some(format!("{target_tree_id}::{active_node}"));
     }
     result
-}
-
-fn parameter<'a>(
-    node: &'a CompiledBehaviorNode,
-    key: &str,
-) -> Option<&'a AiBehaviorNodeParameterValue> {
-    node.parameters()
-        .iter()
-        .find(|parameter| parameter.key == key)
-        .map(|parameter| &parameter.value)
-}
-
-fn scalar_parameter(node: &CompiledBehaviorNode, keys: &[&str]) -> Option<f32> {
-    keys.iter().find_map(|key| match parameter(node, key) {
-        Some(AiBehaviorNodeParameterValue::Scalar(value)) => Some(*value),
-        _ => None,
-    })
-}
-
-fn integer_parameter(node: &CompiledBehaviorNode, key: &str) -> Option<i64> {
-    match parameter(node, key) {
-        Some(AiBehaviorNodeParameterValue::Integer(value)) => Some(*value),
-        _ => None,
-    }
-}
-
-fn bool_parameter(node: &CompiledBehaviorNode, key: &str) -> Option<bool> {
-    parameter(node, key).and_then(AiBehaviorNodeParameterValue::as_bool)
-}
-
-fn is_terminal(status: &AiDecisionStatus) -> bool {
-    matches!(
-        status,
-        AiDecisionStatus::Succeeded | AiDecisionStatus::Failed | AiDecisionStatus::Blocked
-    )
-}
-
-fn parallel_policy(node: &CompiledBehaviorNode, key: &str) -> Option<ParallelPolicy> {
-    parameter(node, key)?
-        .as_string()
-        .and_then(parse_parallel_policy)
-}
-
-fn parallel_policy_matches(
-    child_results: &[BehaviorTreeExecution],
-    status: AiDecisionStatus,
-    policy: ParallelPolicy,
-) -> bool {
-    match policy {
-        ParallelPolicy::All => {
-            !child_results.is_empty() && child_results.iter().all(|result| result.status == status)
-        }
-        ParallelPolicy::Any => child_results.iter().any(|result| result.status == status),
-    }
-}
-
-fn selected_parallel_result(
-    child_results: &[BehaviorTreeExecution],
-    status: AiDecisionStatus,
-) -> Option<BehaviorTreeExecution> {
-    child_results
-        .iter()
-        .rev()
-        .find(|result| result.status == status)
-        .cloned()
-}
-
-fn first_status(
-    child_results: &[BehaviorTreeExecution],
-    status: AiDecisionStatus,
-) -> Option<&BehaviorTreeExecution> {
-    child_results.iter().find(|result| result.status == status)
-}
-
-fn node_result(node: &CompiledBehaviorNode, status: AiDecisionStatus) -> BehaviorTreeExecution {
-    BehaviorTreeExecution {
-        status,
-        active_node: Some(node.id().to_string()),
-        diagnostic: None,
-    }
-}
-
-fn blocked(node_id: &str, reason: &'static str) -> BehaviorTreeExecution {
-    BehaviorTreeExecution {
-        status: AiDecisionStatus::Blocked,
-        active_node: Some(node_id.to_string()),
-        diagnostic: Some(format!("AI behavior node `{node_id}` {reason}")),
-    }
 }

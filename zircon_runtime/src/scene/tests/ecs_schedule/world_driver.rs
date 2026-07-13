@@ -31,7 +31,11 @@ fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
             },
         ))
         .unwrap();
-    runtime.install_scene_runtime_hooks(&registry).unwrap();
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .unwrap();
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();
@@ -102,7 +106,11 @@ fn world_driver_runs_native_render_extract_system_before_render_extract_hooks() 
             },
         ))
         .unwrap();
-    runtime.install_scene_runtime_hooks(&registry).unwrap();
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .unwrap();
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();
@@ -164,7 +172,11 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
             },
         ))
         .unwrap();
-    runtime.install_scene_runtime_hooks(&registry).unwrap();
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .unwrap();
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();

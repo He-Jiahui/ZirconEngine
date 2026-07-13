@@ -16,7 +16,7 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Split-Path -Parent $PSScriptRoot
 }
 
-$resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+$resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).ProviderPath
 $python = (Get-Command python -ErrorAction Stop).Source
 
 function Get-BaseArguments {

@@ -18,7 +18,7 @@ related_code:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/meta_path_for_source.rs
   - zircon_runtime/src/asset/project/manager/is_meta_sidecar.rs
@@ -33,7 +33,7 @@ related_code:
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/registry_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
   - zircon_runtime/src/asset/project/manager/source_uri_for_path.rs
@@ -103,13 +103,13 @@ related_code:
   - zircon_runtime/src/asset/watch/mod.rs
   - zircon_runtime/src/asset/watch/asset_change.rs
   - zircon_runtime/src/asset/watch/asset_change_kind.rs
-  - zircon_runtime/src/asset/watch/asset_change_new.rs
+  - zircon_runtime/src/asset/watch/asset_change_construction.rs
   - zircon_runtime/src/asset/watch/asset_watch_event.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/default.rs
   - zircon_runtime/src/asset/watch/spawn.rs
   - zircon_runtime/src/asset/watch/fold_events.rs
-  - zircon_runtime/src/asset/watch/drop_impl.rs
+  - zircon_runtime/src/asset/watch/shutdown_on_drop.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
   - zircon_runtime/src/asset/watch/map_notify_event.rs
   - zircon_runtime/src/asset/watch/watched_asset_uri_for_path.rs
@@ -121,10 +121,10 @@ related_code:
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/world/world.rs
-  - zircon_scene/src/world/bootstrap.rs
-  - zircon_scene/src/world/project_io.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/world/bootstrap.rs
+  - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/mod.rs
@@ -135,31 +135,31 @@ related_code:
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/module/level_display_name.rs
   - zircon_runtime/src/scene/module/core_error.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/service/mod.rs
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/backend/render_backend/mod.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/host/resource_access.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/intent.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/event_bridge.rs
   - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/assets/ui/editor/assets_activity.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
-  - zircon_editor/src/host/bridge/viewport.rs
+  - zircon_editor/assets/ui/editor/assets_activity.zui
+  - zircon_editor/assets/ui/editor/asset_browser.zui
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/src/ui/retained_host/app/viewport.rs
 implementation_files:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/locator.rs
@@ -179,7 +179,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/meta_path_for_source.rs
   - zircon_runtime/src/asset/project/manager/is_meta_sidecar.rs
@@ -194,7 +194,7 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/registry_access.rs
-  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
   - zircon_runtime/src/asset/project/manager/source_uri_for_path.rs
@@ -263,13 +263,13 @@ implementation_files:
   - zircon_runtime/src/asset/watch/mod.rs
   - zircon_runtime/src/asset/watch/asset_change.rs
   - zircon_runtime/src/asset/watch/asset_change_kind.rs
-  - zircon_runtime/src/asset/watch/asset_change_new.rs
+  - zircon_runtime/src/asset/watch/asset_change_construction.rs
   - zircon_runtime/src/asset/watch/asset_watch_event.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/default.rs
   - zircon_runtime/src/asset/watch/spawn.rs
   - zircon_runtime/src/asset/watch/fold_events.rs
-  - zircon_runtime/src/asset/watch/drop_impl.rs
+  - zircon_runtime/src/asset/watch/shutdown_on_drop.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
   - zircon_runtime/src/asset/watch/map_notify_event.rs
   - zircon_runtime/src/asset/watch/watched_asset_uri_for_path.rs
@@ -277,10 +277,10 @@ implementation_files:
   - zircon_runtime/src/asset/watch/watch_io_error.rs
   - zircon_runtime/src/asset/watch/is_meta_sidecar.rs
   - zircon_runtime/src/asset/watch/recommended_watcher.rs
-  - zircon_scene/src/components/mod.rs
-  - zircon_scene/src/world/world.rs
-  - zircon_scene/src/world/bootstrap.rs
-  - zircon_scene/src/world/project_io.rs
+  - zircon_runtime/src/scene/components/mod.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/world/bootstrap.rs
+  - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/scene/mod.rs
@@ -293,23 +293,23 @@ implementation_files:
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/module/level_display_name.rs
   - zircon_runtime/src/scene/module/core_error.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
-  - zircon_graphics/src/types/mod.rs
-  - zircon_editor/src/editing/command.rs
-  - zircon_editor/src/editing/state/mod.rs
-  - zircon_editor/src/editing/asset_workspace.rs
-  - zircon_editor/src/workbench/snapshot/mod.rs
-  - zircon_editor/src/workbench/project/mod.rs
-  - zircon_editor/src/host/resource_access.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/editing/intent.rs
+  - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
+  - zircon_editor/src/ui/workbench/snapshot/mod.rs
+  - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/event_bridge.rs
   - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_runtime_interface/src/resource/resource_id.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
@@ -341,7 +341,7 @@ tests:
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_runtime/src/asset/tests/watcher.rs
   - zircon_scene/src/lib.rs
-  - zircon_graphics/src/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -390,7 +390,7 @@ doc_type: module-detail
 
 - `zircon_runtime/src/asset/pipeline/manager/mod.rs` 现在只负责声明 folder-backed 子模块；驱动声明、`ProjectAssetManager` 构造、runtime resident 载入、watcher 同步、service contract 实现、builtin 资源和模块描述符分别落到 `pipeline/manager/` 下
 - `zircon_scene/src/module.rs` 现在只保留 scene 模块导出层；`DefaultLevelManager`、level project I/O、manager service contract、descriptor 和 service name 已拆到 `module/` 子树
-- `zircon_scene/src/world/mod.rs` 继续作为 world 子系统边界，但 `World` 结构定义本身已经独立到 `zircon_scene/src/world/world.rs`
+- `zircon_runtime/src/scene/world/mod.rs` 继续作为 world 子系统边界，但 `World` 结构定义本身已经独立到 `zircon_runtime/src/scene/world/world.rs`
 
 ## Resource Foundation
 
@@ -419,7 +419,7 @@ M1 Bevy-style facade keeps this foundation authoritative. `Handle<TAsset>` is a 
 
 M2 dependency graph data follows the same authority model. Each `ImportedAssetEntry.dependencies` list records dependency locators from importers, `AssetMetaDocument.entries[*].dependencies` persists those locators for artifact restore, and `ProjectManager::scan_and_import()` resolves the final project registry into `ResourceRecord.dependency_ids`. The runtime graph is therefore a field on the canonical resource record instead of a parallel asset-side graph store. Unresolved locators are retained as `ResourceDiagnostic` rows, while `ProjectAssetManager::recursive_dependency_load_state()` walks the resource records to produce Bevy-style dependency state.
 
-M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry list, with one unlabeled root entry and zero or more labeled subasset entries. Each entry writes its own artifact under `Project/library`, records its artifact locator in `AssetMetaDocument.entries`, and registers a distinct `ResourceRecord`. The stable ID formula is `AssetId::from_asset_uuid(entry.uuid)`: the root entry uses the document UUID, while each labeled subasset stores its own persistent entry UUID, so `res://bundle.multi` and `res://bundle.multi#Texture0` stay separate handles, artifacts, dependency rows, diagnostics, and load targets without deriving identity from a mutable label.
+M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry list, with one unlabeled root entry and zero or more labeled subasset entries. Each entry writes its own artifact under `Project/.zircon/cache/assets`, records its artifact locator in `AssetMetaDocument.entries`, and registers a distinct `ResourceRecord`. The stable ID formula is `AssetId::from_asset_uuid(entry.uuid)`: the root entry uses the document UUID, while each labeled subasset stores its own persistent entry UUID, so `res://bundle.multi` and `res://bundle.multi#Texture0` stay separate handles, artifacts, dependency rows, diagnostics, and load targets without deriving identity from a mutable label.
 
 `ResourceLocator`、`AssetUuid`、`ResourceId`、`ResourceHandle`、`ResourceRecord`、`ResourceEvent` 与 marker/status DTO 的源码只落在 `zircon_runtime_interface/src/resource/**`。`zircon_runtime::core::resource` 只保留 `ResourceData`、`ResourceIo`、`ResourceLease`、`ResourceManager`、`ResourceRegistry`、`ResourceRuntimeInfo` 等执行层文件，不再保留 resource DTO 的第二套 owner 路径。
 
@@ -431,7 +431,7 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 
 - `Project/zircon-project.toml`
 - `Project/assets/`
-- `Project/library/`
+- `Project/.zircon/cache/assets/`
 
 `ProjectManager` 负责：
 
@@ -440,7 +440,7 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 - 扫描已注册 package asset roots，并为包资源生成 `package://{package_id}/...` URL
 - 为缺失资源补写 `*.zmeta`
 - 调 importer 解析 PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB
-- 把导入物写到 `library/`
+- 把导入物写到 `.zircon/cache/assets/`
 - 生成 `ResourceRecord` 元数据和 `AssetUuid` 驱动的 `ResourceId`
 
 实现上，`zircon_runtime/src/asset/project/manager/mod.rs` 现在只保留 `ProjectManager` 结构定义与子模块声明；`open`、`scan_and_import`、registry/lookup、artifact 访问和本地文件/meta helper 全部下沉到 `zircon_runtime/src/asset/project/manager/` 子树，避免 project root manager 继续堆叠 importer 与文件系统逻辑。
@@ -449,7 +449,7 @@ M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry l
 
 `ProjectManifest` 的现行文件格式写出 `format_version` 与 `library_version`。读取路径仍接受旧项目 manifest 省略 `format_version` 的文件，并把旧字段名 `schema_version` 作为 `library_version` 的 serde alias 解析；这保证旧 export profile 文件在补充 `runtime_profile_id` 之前仍能加载，缺失的 runtime profile 继续表示为 `None`。
 
-Package asset roots are registered on the same `ProjectManager` through `register_package_asset_root(...)` or `register_package_manifest_asset_roots(...)`. Manifest registration composes `PluginPackageManifest::package_id()` from `package_prefix/package_company/package_name`, defaults omitted `asset_roots` to `assets`, and rejects multiple or escaping roots so `package://` has one clear filesystem owner. Registered package files use the same `.zmeta` schema, importer registry, `Project/library` artifact store, UUID index, dependency resolution, and live `ResourceRegistry` as project files; only the URL scheme and package id differ.
+Package asset roots are registered on the same `ProjectManager` through `register_package_asset_root(...)` or `register_package_manifest_asset_roots(...)`. Manifest registration composes `PluginPackageManifest::package_id()` from `package_prefix/package_company/package_name`, defaults omitted `asset_roots` to `assets`, and rejects multiple or escaping roots so `package://` has one clear filesystem owner. Registered package files use the same `.zmeta` schema, importer registry, `Project/.zircon/cache/assets` artifact store, UUID index, dependency resolution, and live `ResourceRegistry` as project files; only the URL scheme and package id differ.
 
 runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 
@@ -459,7 +459,7 @@ runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 - `unit = "single" | "compound"`
 - `included_files`
 - `source_mtime_unix_ms`
-- `source_hash`
+- `source_digest`
 - `preview_state`
 - `dependencies`
 - `entries[*].uuid/url/asset_kind/artifact_locator/dependencies`
@@ -479,7 +479,7 @@ runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 - 载入 runtime `*.zmeta`，同时保留 editor-owned `*.editor.meta.toml`
 - 解析 material/scene/UI icon 直接引用；`UiTheme` 作为自包含 theme document 不产生直接依赖，`UiIcon` 的外部 SVG/bitmap source URI 进入引用图
 - 维护“谁引用我 / 我引用谁”的直接引用图
-- 管理 `library/editor-previews/` 的缓存路径和 dirty/visible refresh 策略
+- 管理 `.zircon/cache/editor-previews/` 的缓存路径和 dirty/visible refresh 策略
 
 `AssetManager` 继续负责项目打开、重导入、watch 生命周期。  
 `ResourceManager` 负责 locator 解析、resource status/revision 查询和资源事件订阅。  
@@ -540,7 +540,7 @@ shader 缺失时回退到 `builtin://shader/pbr.wgsl`。
   - 直接边当前覆盖 material -> shader/texture、scene -> model/material
   - 解析时执行“UUID 优先、locator 回退”的迁移修复
 - `PreviewCache`
-  - 统一放在 `Project/library/editor-previews/`
+  - 统一放在 `Project/.zircon/cache/editor-previews/`
 - `PreviewScheduler`
   - 文件变更后先标 `Dirty`
   - 只有 `visible = true` 时才刷新 preview artifact
@@ -632,8 +632,8 @@ asset workspace 现在明确拆成两条链：
 ## Constraints
 
 - `ResourceLocator` 拒绝绝对路径、`..` 逃逸和空路径
-- `library/` 只存可重建导入物，不是权威源文件
-- watcher 只观察 `assets/`，不观察 `library/`
+- `.zircon/cache/assets/` 只存可重建导入物，不是权威源文件
+- watcher 只观察 `assets/`，不观察 `.zircon/cache/assets/`
 - 外部 `.gltf` 仍要求用户先处理外部依赖目录；单文件 `.glb` 是当前推荐路径
 - `FBX`、`ASTC`、`PVRTexTool` 目前只保留扩展位，不承诺真实导入链
 
@@ -651,7 +651,7 @@ asset workspace 现在明确拆成两条链：
   - registry rename/remove
   - manager last-good reload 语义
 - `zircon_runtime/src/asset/tests/project/manager.rs`
-  - 扫描 `assets/` 并生成 `library/`
+  - 扫描 `assets/` 并生成 `.zircon/cache/assets/`
   - 自动补写 `*.zmeta`
   - 旧 `*.meta.toml` 不作为资产或 runtime meta 参与扫描
   - per-entry UUID 生成、持久化和 UUID-first reference lookup
@@ -669,7 +669,7 @@ asset workspace 现在明确拆成两条链：
 - `zircon_scene/tests/viewport_packet.rs`
   - runtime world viewport packet 只保留基础 scene/preview packet
   - selection anchor / handle / grid / scene gizmo overlay 不再由 runtime world 直接生成
-- `zircon_graphics/src/tests/project_render.rs`
+- `zircon_runtime/src/graphics/tests/project_render.rs`
   - headless project render
   - shader 驱动颜色回归
   - editor-composed gizmo overlay 非空帧断言

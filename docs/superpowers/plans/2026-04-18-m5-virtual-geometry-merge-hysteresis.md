@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - user: 2026-04-17 continue M5
   - user: 2026-04-17 Virtual Geometry still needs deeper split-merge hysteresis
@@ -12,7 +12,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-split-hysteresis.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-page-owned-cluster-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_holds_resident_parent_one_frame_after_requested_children_become_resident
   - cargo test -p zircon_graphics --offline --locked visibility
   - cargo test -p zircon_graphics --offline --locked virtual_geometry

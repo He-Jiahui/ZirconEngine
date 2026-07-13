@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::native::NativePluginLoader;
 use zircon_runtime::{
-    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
-    plugin::PluginPackageManifest, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimePluginCatalog,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, plugin::PluginFeatureBundleManifest,
+    plugin::PluginFeatureDependency, plugin::PluginPackageManifest, plugin::RuntimePluginCatalog,
 };
 
 use super::super::super::editor_manager::EditorManager;
@@ -96,7 +96,11 @@ impl EditorManager {
                 .iter()
                 .cloned()
                 .chain(native_report.runtime_plugin_registration_reports()),
-            builtin.feature_registrations().iter().cloned(),
+            builtin
+                .feature_registrations()
+                .iter()
+                .cloned()
+                .chain(native_report.runtime_plugin_feature_registration_reports()),
         )
     }
 }
@@ -110,7 +114,6 @@ fn set_project_plugin_feature_enabled_with_catalog(
     catalog_label: &str,
 ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
     let mut candidate = catalog.complete_project_manifest(&manifest.plugins);
-    let _feature = feature_manifest(catalog, plugin_id, feature_id)?;
     let owner_selection = project_selection_mut(&mut candidate, plugin_id, catalog_label)?;
     let feature_selection = owner_selection
         .features
@@ -152,8 +155,8 @@ fn enable_project_plugin_feature_dependencies_with_catalog(
     catalog_label: &str,
 ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
     let packages = catalog.package_manifests();
-    let feature = feature_manifest(catalog, plugin_id, feature_id)?;
     let mut candidate = catalog.complete_project_manifest(&manifest.plugins);
+    let feature = feature_manifest(catalog, &candidate, plugin_id, feature_id, catalog_label)?;
     let mut enabled_dependency_plugins = Vec::new();
     let mut enabled_dependency_features = Vec::new();
     let mut diagnostics = Vec::new();
@@ -378,15 +381,21 @@ fn enable_dependency_feature_provider(
 
 fn feature_manifest(
     catalog: &RuntimePluginCatalog,
+    manifest: &ProjectPluginManifest,
     plugin_id: &str,
     feature_id: &str,
+    catalog_label: &str,
 ) -> Result<PluginFeatureBundleManifest, String> {
+    let feature_selection = project_selection(manifest, plugin_id, catalog_label)?
+        .features
+        .iter()
+        .find(|feature| feature.id == feature_id)
+        .ok_or_else(|| format!("feature {feature_id} is not completed under plugin {plugin_id}"))?;
     catalog
-        .package_manifests()
-        .into_iter()
-        .flat_map(|package| package.optional_features)
-        .find(|feature| feature.owner_plugin_id == plugin_id && feature.id == feature_id)
-        .ok_or_else(|| format!("feature {feature_id} is not registered under plugin {plugin_id}"))
+        .feature_manifest_for_selection(plugin_id, feature_selection)
+        .ok_or_else(|| {
+            format!("feature {feature_id} provider is not registered under plugin {plugin_id}")
+        })
 }
 
 fn project_selection<'a>(

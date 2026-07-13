@@ -1,9 +1,9 @@
 use serde::Serialize;
 
-use crate::asset::{
-    NavMeshAreaCostAsset, NavMeshAsset, NavMeshPolygonAsset, NavMeshTileAsset, NavigationAssetError,
+use crate::core::framework::navigation::{
+    NavLinkMotion, NavLinkTraversalMode, NavMeshAreaCostAsset, NavMeshAsset, NavMeshPolygonAsset,
+    NavMeshTileAsset, NavigationAssetError, AREA_JUMP,
 };
-use crate::core::framework::navigation::{NavLinkMotion, NavLinkTraversalMode, AREA_JUMP};
 
 #[test]
 fn navmesh_binary_roundtrip_reports_typed_errors() {

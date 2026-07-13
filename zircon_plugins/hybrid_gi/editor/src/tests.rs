@@ -30,7 +30,7 @@ fn hybrid_gi_editor_plugin_contributes_authoring_extensions() {
         .any(|menu| menu.operation().as_str() == "view.hybrid_gi.authoring.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.hybrid_gi.authoring.open"));
+        .commands()
+        .commands()
+        .any(|operation| operation.id().as_str() == "view.hybrid_gi.authoring.open"));
 }

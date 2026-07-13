@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind, component::UiValue, event_ui::UiRouteId, layout::UiFrame,
 };
 
 use super::RetainedUiHostModel;
+use crate::ui::component_registry::retained_component_registry;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RetainedUiHostComponentKind {
@@ -139,7 +139,7 @@ pub struct RetainedUiHostAdapter;
 
 impl RetainedUiHostAdapter {
     pub fn build_projection(host_model: &RetainedUiHostModel) -> RetainedUiHostProjection {
-        let component_registry = UiComponentDescriptorRegistry::editor_showcase();
+        let component_registry = retained_component_registry();
         RetainedUiHostProjection {
             document_id: host_model.document_id.clone(),
             nodes: host_model

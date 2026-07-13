@@ -2,6 +2,17 @@
 
 use serde::{Deserialize, Serialize};
 
+#[doc(hidden)]
+pub mod __reflect {
+    pub use zircon_runtime_interface::reflect::{
+        ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectScriptVisibility,
+        ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypeKind, ReflectTypePath,
+        ReflectTypeRegistration,
+    };
+}
+
+use __reflect::{ReflectError, ReflectScriptVisibility, ReflectTypeRegistration};
+
 /// Stable host handle value exposed to script VMs.
 ///
 /// The framework layer owns the neutral value representation, so it stores the
@@ -309,7 +320,17 @@ fn argument_type_error(
 }
 
 pub trait ZirconScriptType {
-    fn script_host_type_descriptor() -> ScriptHostTypeDescriptor;
+    fn reflect_type_registration() -> Result<ReflectTypeRegistration, ReflectError>;
+
+    fn script_host_type_projection() -> ScriptHostTypeProjection;
+
+    fn script_host_type_descriptor() -> Result<ScriptHostTypeDescriptor, ReflectError> {
+        let registration = Self::reflect_type_registration()?;
+        ScriptHostTypeDescriptor::from_reflect_registration(
+            &registration,
+            &Self::script_host_type_projection(),
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -444,6 +465,64 @@ pub struct ScriptHostTypeDescriptor {
     pub documentation: Option<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScriptHostFieldProjection {
+    pub name: String,
+    pub value_kind: ScriptHostValueKind,
+}
+
+impl ScriptHostFieldProjection {
+    pub fn new(name: impl Into<String>, value_kind: ScriptHostValueKind) -> Self {
+        Self {
+            name: name.into(),
+            value_kind,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScriptHostTypeProjection {
+    pub value_kind: ScriptHostValueKind,
+    pub prototype_kind: ScriptHostPrototypeKind,
+    pub allow_value_construction: bool,
+    pub fields: Vec<ScriptHostFieldProjection>,
+}
+
+impl ScriptHostTypeProjection {
+    pub fn new(value_kind: ScriptHostValueKind) -> Self {
+        Self {
+            value_kind,
+            prototype_kind: ScriptHostPrototypeKind::Struct,
+            allow_value_construction: false,
+            fields: Vec::new(),
+        }
+    }
+
+    pub fn with_prototype_kind(mut self, prototype_kind: ScriptHostPrototypeKind) -> Self {
+        self.prototype_kind = prototype_kind;
+        self
+    }
+
+    pub fn allow_value_construction(mut self, allow_value_construction: bool) -> Self {
+        self.allow_value_construction = allow_value_construction;
+        self
+    }
+
+    pub fn with_field(mut self, field: ScriptHostFieldProjection) -> Self {
+        self.fields.push(field);
+        self
+    }
+
+    fn field_value_kind(&self, name: &str) -> Option<ScriptHostValueKind> {
+        for field in &self.fields {
+            if field.name == name {
+                return Some(field.value_kind);
+            }
+        }
+        None
+    }
+}
+
 impl ScriptHostTypeDescriptor {
     pub fn new(name: impl Into<String>, value_kind: ScriptHostValueKind) -> Self {
         let name = name.into();
@@ -482,6 +561,66 @@ impl ScriptHostTypeDescriptor {
     pub fn with_documentation(mut self, documentation: impl Into<String>) -> Self {
         self.documentation = Some(documentation.into());
         self
+    }
+
+    pub fn from_reflect_registration(
+        registration: &ReflectTypeRegistration,
+        projection: &ScriptHostTypeProjection,
+    ) -> Result<Self, ReflectError> {
+        if registration.script_visibility != ReflectScriptVisibility::Public {
+            return Err(ReflectError::InvalidRegistration {
+                type_path: registration.type_path.type_path.clone(),
+                reason: "script host projection requires public script visibility".to_string(),
+            });
+        }
+
+        for projected_field in &projection.fields {
+            let mut found = false;
+            for field in &registration.type_info.fields {
+                if field.name == projected_field.name {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return Err(ReflectError::InvalidRegistration {
+                    type_path: registration.type_path.type_path.clone(),
+                    reason: format!(
+                        "script field projection `{}` has no reflected field",
+                        projected_field.name
+                    ),
+                });
+            }
+        }
+
+        let mut descriptor = Self::new(&registration.display_name, projection.value_kind)
+            .with_type_ref(ScriptHostTypeRef::new(
+                projection.value_kind,
+                &registration.display_name,
+            ))
+            .with_prototype_kind(projection.prototype_kind)
+            .allow_value_construction(projection.allow_value_construction);
+        for field in &registration.type_info.fields {
+            let value_kind = projection.field_value_kind(&field.name).ok_or_else(|| {
+                ReflectError::InvalidRegistration {
+                    type_path: registration.type_path.type_path.clone(),
+                    reason: format!(
+                        "reflected field `{}` has no script ABI value-kind projection",
+                        field.name
+                    ),
+                }
+            })?;
+            let mut field_descriptor = ScriptHostFieldDescriptor::new(&field.name, value_kind)
+                .with_type_ref(ScriptHostTypeRef::new(value_kind, &field.value_type_path));
+            if let Some(documentation) = &field.documentation {
+                field_descriptor = field_descriptor.with_documentation(documentation);
+            }
+            descriptor.fields.push(field_descriptor);
+        }
+        if let Some(documentation) = &registration.documentation {
+            descriptor.documentation = Some(documentation.clone());
+        }
+        Ok(descriptor)
     }
 }
 

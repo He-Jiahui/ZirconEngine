@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
-  - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
   - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_profile
@@ -13,7 +12,6 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs
@@ -33,7 +31,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-12
 ---
 
 # 06 插件公开面与生命周期收束

@@ -13,8 +13,10 @@ pub(super) fn push_text_decorations(
     before_text: bool,
 ) {
     for decoration in &text.decorations {
-        let decoration_before_text =
-            matches!(decoration.kind, UiTextPaintDecorationKind::Selection);
+        let decoration_before_text = matches!(
+            decoration.kind,
+            UiTextPaintDecorationKind::Selection | UiTextPaintDecorationKind::TableCellBackground
+        );
         if decoration_before_text != before_text {
             continue;
         }
@@ -24,6 +26,8 @@ pub(super) fn push_text_decorations(
                 UiTextPaintDecorationKind::CompositionUnderline => [77, 137, 255, 255],
                 UiTextPaintDecorationKind::Caret => [232, 238, 247, 255],
                 UiTextPaintDecorationKind::Outline => [232, 238, 247, 255],
+                UiTextPaintDecorationKind::TableCellBackground => [23, 28, 32, 255],
+                UiTextPaintDecorationKind::TableCellBorder => [42, 50, 56, 255],
             });
         let decoration_z = if decoration_before_text {
             z_index - 1

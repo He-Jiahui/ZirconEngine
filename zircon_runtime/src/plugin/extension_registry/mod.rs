@@ -14,4 +14,6 @@ mod validation;
 pub use owner::PluginModuleId;
 pub use ownership::ExtensionOwnership;
 pub use runtime_extension_registry::RuntimeExtensionRegistry;
-pub use typed_extension_point::{ExtensionKey, ExtensionSlot, FrozenExtensionTable};
+pub use typed_extension_point::{
+    ExtensionKey, ExtensionSlot, FrozenExtensionTable, TypedExtensionPoint,
+};

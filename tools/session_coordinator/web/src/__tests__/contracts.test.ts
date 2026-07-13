@@ -96,7 +96,7 @@ function validSnapshot() {
     workflows: [] as Record<string, unknown>[], sessions: [],
     failures: { nodes: [] as Record<string, unknown>[], diagnostics: [] },
     collaboration: { baseline: null, leases: [] as Record<string, unknown>[], patches: [] as Record<string, unknown>[] },
-    validation: { cargoJobs: [] as Record<string, unknown>[], validationCopies: [] as Record<string, unknown>[] },
+    validation: { cargoJobs: [] as Record<string, unknown>[], currentCargoTargets: [] as Record<string, unknown>[], artifactLifecycle: { reusablePools: 0, ephemeralTargets: 0, pendingCleanup: 0, failedCleanup: 0 }, validationCopies: [] as Record<string, unknown>[] },
     git: { finalizeRequests: [] as Record<string, unknown>[] }, audit: [],
   };
 }

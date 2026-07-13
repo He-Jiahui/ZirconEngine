@@ -1,7 +1,7 @@
 use super::*;
 use crate::ui::host::{EditorPluginFeatureDependencyStatus, EditorPluginFeatureStatus};
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::ExportPackagingStrategy;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
 #[test]
 fn module_plugin_primary_action_respects_required_and_enabled_state() {

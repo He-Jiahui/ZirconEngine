@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::dispatch::{UiInputSequence, UiInputTimestamp, UiWindowId};
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct UiWindowEventMetadata {
     pub window_id: UiWindowId,
@@ -28,16 +28,5 @@ impl UiWindowEventMetadata {
     pub const fn synthetic(mut self, synthetic: bool) -> Self {
         self.synthetic = synthetic;
         self
-    }
-}
-
-impl Default for UiWindowEventMetadata {
-    fn default() -> Self {
-        Self {
-            window_id: UiWindowId::default(),
-            timestamp: UiInputTimestamp::default(),
-            sequence: UiInputSequence::default(),
-            synthetic: false,
-        }
     }
 }

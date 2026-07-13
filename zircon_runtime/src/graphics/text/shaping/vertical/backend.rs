@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use rustybuzz::{ttf_parser::Tag, Direction, Feature, Language, UnicodeBuffer};
+use rustybuzz::{ttf_parser::Tag, Direction, Feature, Language, UnicodeBuffer, Variation};
 
 use crate::core::framework::render::{FontFaceId, OpenTypeFeature};
 use crate::graphics::text::font::FontDatabase;
@@ -33,15 +33,28 @@ pub(super) fn shape_vertical_run(
     language: Option<&str>,
     features: &[OpenTypeFeature],
     include_kerning: bool,
+    font_weight: u16,
     font_size: f32,
 ) -> Option<VerticalBackendRun> {
     if text.is_empty() {
         return Some(VerticalBackendRun { glyphs: Vec::new() });
     }
 
-    let bytes = database.face_bytes(face).ok()?;
-    let face_index = database.face_index(face).ok()?;
-    let face = rustybuzz::Face::from_slice(bytes.as_ref(), face_index)?;
+    let face_id = face;
+    let bytes = database.face_bytes(face_id).ok()?;
+    let face_index = database.face_index(face_id).ok()?;
+    let mut face = rustybuzz::Face::from_slice(bytes.as_ref(), face_index)?;
+    if let Ok(variations) = database.effective_variations(face_id, font_weight) {
+        let variations = variations
+            .0
+            .iter()
+            .map(|(tag, value)| Variation {
+                tag: Tag::from_bytes(&tag.to_be_bytes()),
+                value: *value,
+            })
+            .collect::<Vec<_>>();
+        face.set_variations(&variations);
+    }
     let scale = font_size.max(1.0) / face.units_per_em().max(1) as f32;
     let mut buffer = UnicodeBuffer::new();
     buffer.push_str(text);

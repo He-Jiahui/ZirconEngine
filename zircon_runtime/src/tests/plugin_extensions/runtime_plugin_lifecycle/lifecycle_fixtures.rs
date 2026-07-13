@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::{CoreResult, ModuleContext, ModuleDescriptor, ModuleLifecycle};
 use crate::plugin::{RuntimePlugin, RuntimePluginDescriptor};
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[derive(Debug)]
 pub(super) struct RecordingModuleLifecycle {

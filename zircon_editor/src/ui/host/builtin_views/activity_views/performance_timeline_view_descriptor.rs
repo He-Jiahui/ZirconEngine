@@ -17,7 +17,7 @@ pub(super) fn performance_timeline_view_descriptor() -> ViewDescriptor {
         ViewContentKind::PerformanceTimeline,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.performance.timeline.body",
+        "res://ui/editor/host/performance_timeline_body.zui",
         PanePayloadKind::PerformanceTimelineV1,
         PaneRouteNamespace::Diagnostics,
         PaneInteractionMode::HybridNativeSlot,

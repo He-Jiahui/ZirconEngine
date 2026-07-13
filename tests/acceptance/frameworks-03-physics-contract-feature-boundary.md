@@ -27,14 +27,14 @@ tests:
   - zircon_runtime/src/core/framework/scene/physics/tests.rs
   - zircon_runtime/src/core/runtime/diagnostics/physics_collection_enabled.rs
 doc_type: acceptance-evidence
-status: red-production-pending-staged-unmounted
+status: green-production-hard-cut-validated
 ---
 
 # Frameworks 03 Physics Contract Feature Boundary Acceptance
 
 ## Scope
 
-This record covers the test-first boundary for the pending Frameworks 03 M1 Physics slice. It does not claim that the production hard cut, Cargo matrix, or complete M1 testing stage has passed.
+This record covers the test-first boundary and production hard cut for the Frameworks 03 M1 Physics slice. The complete twelve-domain matrix has subsequently passed; this record does not claim that the Runtime/App full suites or Frameworks M1 as a whole has passed.
 
 The accepted target architecture is:
 
@@ -64,14 +64,29 @@ The initial exact six-test run completed as six assertion failures and zero read
 - `LevelSystem` directly stores optional Physics contract types.
 - Runtime diagnostics directly exposes `PhysicsBackendStatus` and resolves the Physics manager in the shared collector.
 
-The target scene schema, separated joint serde behavior, LevelSystem feature-on/off runtime-state adapters, neutral diagnostics DTO, and feature-on/off diagnostic collectors are now staged as unmounted files. Their scoped rustfmt and whitespace checks pass. Focused re-execution has advanced to the intended integration failures: the scene owner is not mounted from `scene/mod.rs`, `level_system.rs` still imports/stores the optional Physics contract directly, and `physics.rs` still embeds `PhysicsBackendStatus`. No staged file participates in the active Cargo source graph and no new public owner exists yet.
+## GREEN Evidence
 
-Staged unit coverage includes scene material JSON roundtrip, default and sparse joint TOML roundtrip, three-slot JSON axis input, rejection of duplicate/unknown axes and arrays longer than three slots, plus complete neutral backend-state and simulation-mode projection. These tests are parsed by rustfmt but cannot execute until the modules are mounted; no pass is claimed yet.
+The production hard cut is mounted atomically:
 
-Production implementation remains pending while `20260710-1920-plugin-architecture-continuation` owns Physics manager imports and active Runtime/Editor/PBR Cargo lanes compile shared source. The hard cut must mount the new files, delete the old declarations, migrate every consumer, and add the feature gates atomically.
+- Runtime/App expose `physics-contracts`; Client/Editor presets include it and Server does not.
+- `core::framework::physics`, manager resolver/holder/service names, LevelSystem enabled adapter, and diagnostics enabled collector share the same declaration gate.
+- persisted material/joint/skeleton schema has one always-on `core::framework::scene::physics` owner; old declaration files and old public imports are absent, with no re-export or alias.
+- LevelSystem and Runtime diagnostics select enabled/disabled child owners at declarations; the common owners do not import optional Physics contracts.
+- the Physics runtime plugin explicitly requests `physics-contracts` and remains the concrete simulation/backend owner.
+
+Fresh 2026-07-11 evidence:
+
+- Frameworks 03 contract/server/matrix static suites: 27 passed / 0 failed in 26.19s;
+- current Runtime `physics` filter: 35 passed / 0 failed in 23.45s;
+- nightly locked/offline `core-min + physics-contracts`: passed in 12m39s with 52 existing warnings;
+- nightly locked/offline `target-server`: passed in 15m14s with 53 existing warnings after waiting for the shared target lock;
+- Physics plugin owner evidence: feature-on 46/46 and feature-off 43/43 locked/offline suites, including builtin/Jolt queued-force and unchanged-body anchors;
+- old persistent-schema owner and Activity-independent Physics path scans are enforced by the static gate rather than a compatibility allowlist.
+
+The first nightly matrix attempt stopped before compilation because root `Cargo.lock` did not yet include the active Animation runtime manifest's `serde/toml` dependencies. Offline root metadata synchronization added only those declared dependencies; the identical locked command then passed. This is recorded as lock drift, not a Physics source failure.
 
 The plan-output audit currently reports 23 violations outside Frameworks (priority overview, root index, Editor UI, and Render children) and zero Frameworks violations. Those external active-owner records were not modified by this slice.
 
 ## Current Decision
 
-Status is `RED / production pending / target files staged but unmounted`. This is a completed test-contract slice only. The plan must remain M1 in progress until the hard cut, old-path scan, standalone Physics check, Server exclusion, Physics plugin check, App checks, and full domain matrix are green.
+Status is `GREEN / production hard cut validated` for the Physics slice. The complete twelve-domain matrix is now green; Frameworks 03 M1 remains in progress until the declared Runtime/App full testing stage is green. No Physics-specific production, ownership, single-domain, or Server-exclusion blocker remains.

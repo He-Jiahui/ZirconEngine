@@ -14,6 +14,7 @@ struct RecordingLifecycle {
     ready_after: usize,
     ready_calls: AtomicUsize,
     fail_finish: bool,
+    fail_cleanup: bool,
 }
 
 impl RecordingLifecycle {
@@ -23,6 +24,7 @@ impl RecordingLifecycle {
             ready_after: 0,
             ready_calls: AtomicUsize::new(0),
             fail_finish: false,
+            fail_cleanup: false,
         }
     }
 
@@ -33,6 +35,11 @@ impl RecordingLifecycle {
 
     fn fail_finish(mut self) -> Self {
         self.fail_finish = true;
+        self
+    }
+
+    fn fail_cleanup(mut self) -> Self {
+        self.fail_cleanup = true;
         self
     }
 
@@ -66,6 +73,9 @@ impl ModuleLifecycle for RecordingLifecycle {
 
     fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
         self.record("cleanup", context);
+        if self.fail_cleanup {
+            return Err(CoreError::MissingConfig("module.cleanup".to_owned()));
+        }
         Ok(())
     }
 }
@@ -169,7 +179,11 @@ fn module_ready_timeout_resets_module_and_started_services() {
     ));
     assert_eq!(
         recorded_calls(&calls),
-        expected_calls(&["TimeoutModule:build", "TimeoutModule:ready"])
+        expected_calls(&[
+            "TimeoutModule:build",
+            "TimeoutModule:ready",
+            "TimeoutModule:cleanup",
+        ])
     );
 
     let handle = runtime.handle();
@@ -220,6 +234,7 @@ fn module_finish_error_resets_module_and_started_services() {
             "FinishErrorModule:build",
             "FinishErrorModule:ready",
             "FinishErrorModule:finish",
+            "FinishErrorModule:cleanup",
         ])
     );
 
@@ -237,6 +252,41 @@ fn module_finish_error_resets_module_and_started_services() {
         .expect("failed module should keep service entry");
     assert_eq!(service.lifecycle, LifecycleState::Registered);
     assert!(service.instance.is_none());
+}
+
+#[test]
+fn module_activation_reports_primary_and_cleanup_errors() {
+    let runtime = CoreRuntime::new();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let lifecycle = Arc::new(
+        RecordingLifecycle::new(Arc::clone(&calls))
+            .fail_finish()
+            .fail_cleanup(),
+    );
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("RollbackErrorModule", "rollback error")
+                .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let error = runtime.activate_module("RollbackErrorModule").unwrap_err();
+    assert!(matches!(
+        error,
+        CoreError::ModuleActivationRollback { activation, cleanup }
+            if matches!(*activation, CoreError::MissingConfig(ref key) if key == "module.finish")
+                && matches!(*cleanup, CoreError::MissingConfig(ref key) if key == "module.cleanup")
+    ));
+    assert_eq!(
+        recorded_calls(&calls),
+        expected_calls(&[
+            "RollbackErrorModule:build",
+            "RollbackErrorModule:ready",
+            "RollbackErrorModule:finish",
+            "RollbackErrorModule:cleanup",
+        ])
+    );
 }
 
 #[test]
@@ -347,6 +397,8 @@ fn activate_registered_modules_rolls_back_all_started_modules_on_finish_error() 
             "SecondBatchModule:ready",
             "FirstBatchModule:finish",
             "SecondBatchModule:finish",
+            "SecondBatchModule:cleanup",
+            "FirstBatchModule:cleanup",
         ])
     );
 
@@ -368,4 +420,70 @@ fn activate_registered_modules_rolls_back_all_started_modules_on_finish_error() 
         assert_eq!(service.lifecycle, LifecycleState::Registered);
         assert!(service.instance.is_none());
     }
+}
+
+#[test]
+fn batch_activation_cleanup_failures_keep_reverse_order_and_primary_error() {
+    let runtime = CoreRuntime::new();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("FirstRollbackModule", "first")
+                .with_init_level(InitLevel::Kernel)
+                .with_lifecycle(Arc::new(
+                    RecordingLifecycle::new(Arc::clone(&calls)).fail_cleanup(),
+                )),
+        )
+        .unwrap();
+    runtime
+        .register_module(
+            ModuleDescriptor::new("SecondRollbackModule", "second")
+                .with_init_level(InitLevel::Services)
+                .with_module_dependency(ModuleDependencySpec::named("FirstRollbackModule"))
+                .with_lifecycle(Arc::new(
+                    RecordingLifecycle::new(Arc::clone(&calls))
+                        .fail_finish()
+                        .fail_cleanup(),
+                )),
+        )
+        .unwrap();
+
+    let error = runtime.activate_registered_modules().unwrap_err();
+    match error {
+        CoreError::ModuleBatchActivationRollback {
+            activation,
+            cleanup_failures,
+        } => {
+            assert!(matches!(
+                *activation,
+                CoreError::MissingConfig(ref key) if key == "module.finish"
+            ));
+            assert_eq!(
+                cleanup_failures
+                    .iter()
+                    .map(|(module, _)| module.as_str())
+                    .collect::<Vec<_>>(),
+                vec!["SecondRollbackModule", "FirstRollbackModule"]
+            );
+            assert!(cleanup_failures.iter().all(|(_, error)| matches!(
+                error,
+                CoreError::MissingConfig(key) if key == "module.cleanup"
+            )));
+        }
+        other => panic!("expected typed batch rollback error, found {other:?}"),
+    }
+    assert_eq!(
+        recorded_calls(&calls),
+        expected_calls(&[
+            "FirstRollbackModule:build",
+            "SecondRollbackModule:build",
+            "FirstRollbackModule:ready",
+            "SecondRollbackModule:ready",
+            "FirstRollbackModule:finish",
+            "SecondRollbackModule:finish",
+            "SecondRollbackModule:cleanup",
+            "FirstRollbackModule:cleanup",
+        ])
+    );
 }

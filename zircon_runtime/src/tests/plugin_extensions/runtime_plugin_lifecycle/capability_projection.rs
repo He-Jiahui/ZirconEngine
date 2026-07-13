@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, CapabilityView, PluginFeatureBundleManifest,
     PluginModuleManifest, PluginPackageManifest, RuntimePluginFeatureRegistrationReport,

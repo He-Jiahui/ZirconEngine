@@ -1,6 +1,7 @@
 use super::menu::menu_popup_keyboard_target;
 use super::model::PopupKeyboardTarget;
 use super::options::option_popup_keyboard_target;
+use super::page_overflow::host_page_overflow_keyboard_target;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData,
 };
@@ -12,6 +13,9 @@ pub(in crate::ui::retained_host::host_contract) fn active_popup_keyboard_target_
     ui: &UiHostWindow,
 ) -> Option<PopupKeyboardTarget> {
     let presentation = ui.get_host_presentation();
+    if let Some(target) = host_page_overflow_keyboard_target(&presentation) {
+        return Some(target);
+    }
     let interaction = ui.get_pane_interaction_state();
     let bounds = template_popup_bounds(
         &presentation.host_shell.native_window_bounds,

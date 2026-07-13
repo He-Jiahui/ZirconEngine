@@ -1,6 +1,7 @@
 use crate::asset::project::ProjectManifest;
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ProjectPluginSelection,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ProjectPluginSelection,
 };
 
 use super::asset_manifest_template::asset_manifest_template;

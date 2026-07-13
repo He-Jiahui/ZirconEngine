@@ -14,6 +14,7 @@ fn runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed() {
     let registry = read_runtime_src("scene/tests/ecs_reflect/foundation/registry.rs");
     let value_conversion =
         read_runtime_src("scene/tests/ecs_reflect/foundation/value_conversion.rs");
+    let versioned_json = read_runtime_src("scene/tests/ecs_reflect/foundation/versioned_json.rs");
 
     assert_contains_all(
         "scene ECS reflect foundation parent mounts folder-backed children",
@@ -26,6 +27,7 @@ fn runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed() {
             "mod fixed_transform_active;",
             "mod registry;",
             "mod value_conversion;",
+            "mod versioned_json;",
             "fn metadata_registration(",
             "fn typed_registration(",
             "fn fixed_component_address(",
@@ -70,8 +72,17 @@ fn runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed() {
         &[
             "fn scene_property_values_convert_to_reflected_values",
             "fn reflected_values_convert_to_scene_property_values_when_supported",
-            "fn reflected_json_conversion_rejects_non_finite_scalars",
             "fn animation_parameter_conversion_returns_structured_error",
+        ],
+    );
+    assert_contains_all(
+        "versioned-json child owns reflected JSON migration and writer boundary tests",
+        &versioned_json,
+        &[
+            "fn reflected_json_v0_migrates_asset_refs_and_resaves_idempotently",
+            "fn retired_asset_ref_migration_only_rewrites_the_exact_retired_shape",
+            "fn reflected_json_rejects_future_headers_before_payload_decode",
+            "fn reflected_json_writer_rejects_non_finite_values_with_typed_source",
         ],
     );
     assert_contains_all(
@@ -120,13 +131,14 @@ fn runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed() {
         fixed_transform_active.as_str(),
         registry.as_str(),
         value_conversion.as_str(),
+        versioned_json.as_str(),
     ]
     .into_iter()
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 20,
-        "ECS reflect foundation children should preserve all 20 parent tests"
+        child_test_total, 23,
+        "ECS reflect foundation children should preserve all 23 tests"
     );
 
     for (path, source) in [
@@ -158,6 +170,10 @@ fn runtime_15_scene_ecs_reflect_foundation_tests_are_folder_backed() {
         (
             "scene/tests/ecs_reflect/foundation/value_conversion.rs",
             value_conversion.as_str(),
+        ),
+        (
+            "scene/tests/ecs_reflect/foundation/versioned_json.rs",
+            versioned_json.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

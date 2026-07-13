@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
-  - zircon_runtime/src/script/vm/vampire_gameplay/world_ops.rs
+  - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
   - examples/vampire/assets/navigation/main.navmesh.toml
 implementation_files:
   - zircon_runtime/src/navigation/mod.rs
@@ -40,6 +40,7 @@ plan_sources:
   - dev/godot/modules/navigation_3d
 tests:
   - cargo check -p zircon_runtime --lib --message-format short --color never
+  - zircon_runtime/src/navigation/module.rs::tests::builtin_navigation_module_obeys_driver_manager_dependency_layers
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_navigation_boundary_file_set_requires_doc_update
@@ -85,6 +86,18 @@ The folder-backed runtime owner split keeps those responsibilities in focused fi
 - `runtime/tests.rs` owns focused fallback runtime behavior tests.
 
 Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agent component to the mover and invokes the navigation runtime. This keeps enemy chase behavior tied to the baked scene instead of raw per-frame translation.
+
+## Service Registration Layers
+
+The built-in module registers one implementation owner and two public facades without reversing the Runtime service hierarchy:
+
+- `navigation.runtime.Driver.BuiltinNavigationRuntime` owns the shared `BuiltinNavigationManager` implementation as an internal Driver with no dependencies.
+- `navigation.runtime.Driver.SceneNavigationRuntime` is the scene-facing Driver facade and depends only on the internal Driver.
+- `navigation.runtime.Manager.NavigationManager` is the public query Manager facade and depends downward on the same internal Driver.
+
+Both facades resolve the internal implementation with `resolve_driver(...)`, so they share one cached runtime instance. A Driver never depends on a Manager. The retired `navigation.runtime.Manager.BuiltinNavigationManager` identity is not retained as an alias, re-export, or compatibility registration.
+
+`builtin_navigation_module_obeys_driver_manager_dependency_layers` locks the descriptor kinds and dependency names, registers the complete descriptor through `CoreRuntime`, and resolves the internal Driver, scene Driver, and public Manager. Product acceptance additionally builds `zircon_app --bin zircon_editor` and starts both the default Editor and `editor.runtime_diagnostics` views with isolated configuration.
 
 ## Poison Handling
 

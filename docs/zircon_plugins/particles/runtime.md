@@ -37,9 +37,9 @@ related_code:
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
   - zircon_plugins/particles/editor/src/tests.rs
-  - zircon_plugins/particles/editor/authoring.ui.toml
-  - zircon_plugins/particles/editor/preview.ui.toml
-  - zircon_plugins/particles/editor/particle_system.drawer.ui.toml
+  - zircon_plugins/particles/editor/authoring.zui
+  - zircon_plugins/particles/editor/preview.zui
+  - zircon_plugins/particles/editor/particle_system.drawer.zui
   - zircon_plugins/particles/templates/cpu_sprite_system.toml
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
@@ -68,7 +68,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
@@ -94,9 +94,9 @@ implementation_files:
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
-  - zircon_plugins/particles/editor/authoring.ui.toml
-  - zircon_plugins/particles/editor/preview.ui.toml
-  - zircon_plugins/particles/editor/particle_system.drawer.ui.toml
+  - zircon_plugins/particles/editor/authoring.zui
+  - zircon_plugins/particles/editor/preview.zui
+  - zircon_plugins/particles/editor/particle_system.drawer.zui
   - zircon_plugins/particles/templates/cpu_sprite_system.toml
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
@@ -125,7 +125,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs

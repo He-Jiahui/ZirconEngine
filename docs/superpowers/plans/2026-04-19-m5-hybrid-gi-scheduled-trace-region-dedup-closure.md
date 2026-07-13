@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/scene_trace_support.rs
-  - zircon_graphics/src/runtime/hybrid_gi/plan_ingestion.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/consume_feedback.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/scene_trace_support.rs
-  - zircon_graphics/src/runtime/hybrid_gi/plan_ingestion.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/consume_feedback.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，然后完善 Hybrid GI，不要中途确认
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-scene-driven-lineage-trace-support-runtime-and-gpu-source.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime_state_deduplicates_scheduled_trace_region_ids_before_lineage_support_scoring -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu -- --nocapture

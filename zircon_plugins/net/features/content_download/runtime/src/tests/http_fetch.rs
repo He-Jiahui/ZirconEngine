@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
+use zircon_runtime::asset::pack::{ZrChunkEntry, ZrPackManifest, ZRPACK_FORMAT_VERSION};
 use zircon_runtime::core::framework::net::{
     NetDownloadChunk, NetDownloadId, NetDownloadManifest, NetDownloadStatus, NetEndpoint,
     NetHttpMethod, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId,
@@ -8,7 +9,7 @@ use zircon_runtime::core::framework::net::{
 
 use crate::NetContentDownloadRuntimeManager;
 
-use super::support::sha256_hex;
+use super::support::zrpack_hash;
 
 #[test]
 fn content_download_manager_fetches_http_chunk_and_marks_complete_after_hash_match() {
@@ -29,7 +30,7 @@ fn content_download_manager_fetches_http_chunk_and_marks_complete_after_hash_mat
             format!("http://{}:{}/chunks/full", endpoint.host, endpoint.port),
             0,
             11,
-            sha256_hex(b"chunk-bytes"),
+            zrpack_hash(b"chunk-bytes"),
         ),
     );
 
@@ -71,7 +72,7 @@ fn content_download_manager_fetches_resumed_http_range_with_existing_prefix() {
             format!("http://{}:{}/chunks/range", endpoint.host, endpoint.port),
             0,
             12,
-            sha256_hex(b"prefixsuffix"),
+            zrpack_hash(b"prefixsuffix"),
         )
         .with_resume_from_byte(6),
     );
@@ -107,7 +108,7 @@ fn content_download_manager_preserves_partial_prefix_after_corrupt_resume() {
             format!("http://{}:{}/chunks/corrupt", endpoint.host, endpoint.port),
             0,
             13,
-            sha256_hex(b"prefixsuffix!"),
+            zrpack_hash(b"prefixsuffix!"),
         )
         .with_resume_from_byte(6),
     );
@@ -155,13 +156,15 @@ fn corrupt_chunk_refetched() {
 
     let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
     let download = NetDownloadId::new(18);
+    let zrpack_manifest = ZrPackManifest::new(ZRPACK_FORMAT_VERSION, 7)
+        .with_chunk(ZrChunkEntry::new(zrpack_hash(b"correct"), 0, 7));
     let manifest = NetDownloadManifest::new(download, "asset://download/refetch")
         .with_chunk(NetDownloadChunk::new(
             "chunk-refetch",
             format!("http://{}:{}/chunks/refetch", endpoint.host, endpoint.port),
             0,
             7,
-            sha256_hex(b"correct"),
+            zrpack_manifest.chunks[0].hash,
         ))
         .with_mirror_url(format!("http://{}:{}/mirror", endpoint.host, endpoint.port));
 

@@ -1,20 +1,151 @@
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::core::framework::render::{RichParseResult, RichTextFormat, StyleOverride, StyledRun};
+use crate::core::framework::render::{
+    InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult, RichTextFormat, StyleOverride,
+    StyledRun,
+};
+use zircon_runtime_interface::ui::surface::UiTextAlign;
 
-use super::bbcode::{token_at, BbCodeToken};
-use super::decorator::DecoratorRegistry;
+use super::bbcode::{literal_tag_text, token_at, BbCodeToken};
+use super::bbcode_blocks::{BbCodeBlockState, BlockClose, BlockOpen};
+use super::bbcode_table::BbCodeTableState;
+use super::decorator::{DecoratorRegistry, RichTextDecoration};
+use super::emoji_shortcode::EmojiShortcodeRegistry;
+use super::html_subset::{self, HtmlToken};
 
 pub(super) fn parse(
     markup: &str,
     format: RichTextFormat,
     decorators: &DecoratorRegistry,
+    emoji_shortcodes: &EmojiShortcodeRegistry,
 ) -> RichParseResult {
     match format {
-        RichTextFormat::Plain | RichTextFormat::Html => plain(markup),
-        RichTextFormat::BbCode => parse_bbcode(markup, decorators),
+        RichTextFormat::Plain => plain(markup),
+        RichTextFormat::BbCode => parse_bbcode(markup, decorators, emoji_shortcodes),
+        RichTextFormat::Html => parse_html(markup),
         RichTextFormat::Markdown => parse_markdown(markup),
     }
+}
+
+fn parse_html(markup: &str) -> RichParseResult {
+    let mut result = RichParseResult::default();
+    let mut active_tags: Vec<ActiveTag> = Vec::new();
+    let mut index = 0;
+    let mut text_start = 0;
+
+    while index < markup.len() {
+        let remaining = &markup[index..];
+        let Some((token_len, token)) = html_subset::token_at(remaining) else {
+            index += next_char_len(remaining);
+            continue;
+        };
+        append_html_text(
+            &mut result,
+            &markup[text_start..index],
+            current_style(&active_tags),
+            current_link(&active_tags),
+        );
+        match token {
+            HtmlToken::Open { name, .. } if name == "br" => {
+                append_text_with_metadata(
+                    &mut result,
+                    "\n",
+                    current_style(&active_tags),
+                    None,
+                    current_link(&active_tags),
+                );
+            }
+            HtmlToken::Open {
+                name, attributes, ..
+            } if name == "img" => {
+                if let Some(inline) = html_subset::inline_image(&attributes) {
+                    append_inline_object(
+                        &mut result,
+                        current_style(&active_tags),
+                        current_link(&active_tags),
+                        inline,
+                    );
+                }
+            }
+            HtmlToken::Open {
+                name,
+                attributes,
+                self_closing,
+            } if name == "a" => {
+                let mut style = current_style(&active_tags);
+                if let Some(link) = html_subset::link(&attributes, &mut style) {
+                    if !self_closing {
+                        active_tags.push(ActiveTag {
+                            name,
+                            style,
+                            link: Some(link),
+                        });
+                    }
+                }
+            }
+            HtmlToken::Open {
+                name,
+                attributes,
+                self_closing,
+            } if html_subset::is_style_tag(&name) => {
+                let mut style = current_style(&active_tags);
+                if html_subset::apply_style_tag(&name, &attributes, &mut style) && !self_closing {
+                    let link = current_link(&active_tags);
+                    active_tags.push(ActiveTag { name, style, link });
+                }
+            }
+            HtmlToken::Close { name } if html_subset::is_style_tag(&name) || name == "a" => {
+                if let Some(position) = active_tags.iter().rposition(|active| active.name == name) {
+                    active_tags.truncate(position);
+                }
+            }
+            HtmlToken::Open { .. } | HtmlToken::Close { .. } | HtmlToken::Ignored => {}
+        }
+        index += token_len;
+        text_start = index;
+    }
+    append_html_text(
+        &mut result,
+        &markup[text_start..],
+        current_style(&active_tags),
+        current_link(&active_tags),
+    );
+    result.runs = align_runs_to_graphemes(&result.text, &result.runs);
+    result
+}
+
+fn append_html_text(
+    result: &mut RichParseResult,
+    text: &str,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+) {
+    append_text_with_metadata(
+        result,
+        &html_subset::decode_entities(text),
+        style,
+        None,
+        link,
+    );
+}
+
+#[derive(Clone, Debug)]
+struct ActiveTag {
+    name: String,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+}
+
+fn current_style(active_tags: &[ActiveTag]) -> StyleOverride {
+    active_tags
+        .last()
+        .map(|active| &active.style)
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn current_link(active_tags: &[ActiveTag]) -> Option<LinkRef> {
+    active_tags.last().and_then(|active| active.link.clone())
 }
 
 fn plain(text: &str) -> RichParseResult {
@@ -30,9 +161,17 @@ fn plain(text: &str) -> RichParseResult {
     result
 }
 
-fn parse_bbcode(markup: &str, decorators: &DecoratorRegistry) -> RichParseResult {
+fn parse_bbcode(
+    markup: &str,
+    decorators: &DecoratorRegistry,
+    emoji_shortcodes: &EmojiShortcodeRegistry,
+) -> RichParseResult {
     let mut result = RichParseResult::default();
-    let mut active_tags: Vec<(String, StyleOverride)> = Vec::new();
+    let mut active_tags: Vec<ActiveTag> = Vec::new();
+    let mut active_paragraphs: Vec<ActiveParagraph> = Vec::new();
+    let mut block_state = BbCodeBlockState::default();
+    let mut table_state = BbCodeTableState::default();
+    let mut pending_block_break = false;
     let mut index = 0;
     let mut text_start = 0;
 
@@ -43,32 +182,173 @@ fn parse_bbcode(markup: &str, decorators: &DecoratorRegistry) -> RichParseResult
             continue;
         };
 
-        append_text(
+        append_bbcode_text(
             &mut result,
             &markup[text_start..index],
-            active_tags
-                .last()
-                .map(|(_, style)| style)
-                .cloned()
-                .unwrap_or_default(),
+            current_style(&active_tags),
+            current_link(&active_tags),
+            emoji_shortcodes,
+            &mut pending_block_break,
         );
         match token {
-            BbCodeToken::Open { name, value } => {
-                let mut style = active_tags
-                    .last()
-                    .map(|(_, style)| style)
-                    .cloned()
-                    .unwrap_or_default();
-                if decorators.apply(&name, value.as_deref(), &mut style) {
-                    active_tags.push((name, style));
+            BbCodeToken::Open {
+                name,
+                value,
+                attributes,
+            } => {
+                let mut style = current_style(&active_tags);
+                if name == "table" {
+                    ensure_block_boundary(
+                        &mut result,
+                        &mut pending_block_break,
+                        style,
+                        current_link(&active_tags),
+                    );
+                    table_state.open_table(
+                        value.as_deref(),
+                        u32::try_from(result.text.len()).unwrap_or(u32::MAX),
+                    );
+                } else if name == "cell" {
+                    table_state.open_cell(
+                        value.as_deref(),
+                        &attributes,
+                        u32::try_from(result.text.len()).unwrap_or(u32::MAX),
+                    );
+                } else if let Some(block) = block_state.open(&name, value.as_deref(), &attributes) {
+                    ensure_block_boundary(
+                        &mut result,
+                        &mut pending_block_break,
+                        style.clone(),
+                        current_link(&active_tags),
+                    );
+                    if let BlockOpen::Paragraph {
+                        name,
+                        mut paragraph,
+                        prefix,
+                    } = block
+                    {
+                        let start = u32::try_from(result.text.len()).unwrap_or(u32::MAX);
+                        if let Some(prefix) = prefix {
+                            append_text_with_metadata(
+                                &mut result,
+                                &prefix,
+                                style,
+                                None,
+                                current_link(&active_tags),
+                            );
+                            paragraph.list_prefix =
+                                Some((start, u32::try_from(result.text.len()).unwrap_or(u32::MAX)));
+                        }
+                        active_paragraphs.push(ActiveParagraph {
+                            name,
+                            start,
+                            paragraph: Some(paragraph),
+                        });
+                    }
+                } else if let Some(literal) = literal_tag_text(&name) {
+                    ensure_pending_block_break(
+                        &mut result,
+                        &mut pending_block_break,
+                        style.clone(),
+                        current_link(&active_tags),
+                    );
+                    append_text_with_metadata(
+                        &mut result,
+                        literal,
+                        style,
+                        None,
+                        current_link(&active_tags),
+                    );
+                } else if name == "img" {
+                    if let Some(inline) =
+                        value.as_deref().and_then(html_subset::bbcode_inline_image)
+                    {
+                        ensure_pending_block_break(
+                            &mut result,
+                            &mut pending_block_break,
+                            style.clone(),
+                            current_link(&active_tags),
+                        );
+                        append_inline_object(
+                            &mut result,
+                            style,
+                            current_link(&active_tags),
+                            inline,
+                        );
+                    }
+                } else if name == "url" {
+                    if let Some(link) = value
+                        .as_deref()
+                        .and_then(|href| html_subset::bbcode_link(href, &mut style))
+                    {
+                        active_tags.push(ActiveTag {
+                            name,
+                            style,
+                            link: Some(link),
+                        });
+                    }
+                } else if let Some(align) = bbcode_paragraph_align(&name) {
+                    let paragraph = active_paragraphs.is_empty().then_some(ParagraphOverride {
+                        align: Some(align),
+                        ..ParagraphOverride::default()
+                    });
+                    active_paragraphs.push(ActiveParagraph {
+                        name,
+                        start: u32::try_from(result.text.len()).unwrap_or(u32::MAX),
+                        paragraph,
+                    });
+                } else {
+                    let mut decoration = RichTextDecoration {
+                        style,
+                        inline: None,
+                        link: current_link(&active_tags),
+                    };
+                    if decorators.apply(&name, value.as_deref(), &mut decoration) {
+                        if let Some(inline) = decoration.inline {
+                            ensure_pending_block_break(
+                                &mut result,
+                                &mut pending_block_break,
+                                decoration.style.clone(),
+                                decoration.link.clone(),
+                            );
+                            append_inline_object(
+                                &mut result,
+                                decoration.style,
+                                decoration.link,
+                                inline,
+                            );
+                        } else {
+                            active_tags.push(ActiveTag {
+                                name,
+                                style: decoration.style,
+                                link: decoration.link,
+                            });
+                        }
+                    }
                 }
             }
             BbCodeToken::Close { name } => {
-                if let Some(position) = active_tags
-                    .iter()
-                    .rposition(|(active_name, _)| active_name == &name)
-                {
-                    active_tags.truncate(position);
+                if name == "cell" {
+                    table_state.close_cell(u32::try_from(result.text.len()).unwrap_or(u32::MAX));
+                } else if name == "table" {
+                    if let Some(table) = table_state
+                        .close_table(u32::try_from(result.text.len()).unwrap_or(u32::MAX))
+                    {
+                        result.tables.push(table);
+                        pending_block_break = true;
+                    }
+                } else if let Some(block) = block_state.close(&name) {
+                    if let BlockClose::Paragraph { name } = block {
+                        close_paragraph_override(&mut result, &name, &mut active_paragraphs);
+                    }
+                    pending_block_break = true;
+                } else {
+                    close_paragraph_override(&mut result, &name, &mut active_paragraphs);
+                    if let Some(position) =
+                        active_tags.iter().rposition(|active| active.name == name)
+                    {
+                        active_tags.truncate(position);
+                    }
                 }
             }
         }
@@ -76,17 +356,124 @@ fn parse_bbcode(markup: &str, decorators: &DecoratorRegistry) -> RichParseResult
         text_start = index;
     }
 
-    append_text(
+    append_bbcode_text(
         &mut result,
         &markup[text_start..],
-        active_tags
-            .last()
-            .map(|(_, style)| style)
-            .cloned()
-            .unwrap_or_default(),
+        current_style(&active_tags),
+        current_link(&active_tags),
+        emoji_shortcodes,
+        &mut pending_block_break,
     );
     result.runs = align_runs_to_graphemes(&result.text, &result.runs);
+    close_open_paragraph_overrides(&mut result, active_paragraphs);
     result
+        .tables
+        .extend(table_state.finish(u32::try_from(result.text.len()).unwrap_or(u32::MAX)));
+    result.tables.sort_by(|left, right| {
+        left.byte_range
+            .0
+            .cmp(&right.byte_range.0)
+            .then_with(|| right.byte_range.1.cmp(&left.byte_range.1))
+            .then_with(|| left.depth.cmp(&right.depth))
+    });
+    result.paragraphs.sort_by(|left, right| {
+        left.0
+             .0
+            .cmp(&right.0 .0)
+            .then_with(|| right.0 .1.cmp(&left.0 .1))
+    });
+    result
+}
+
+fn append_bbcode_text(
+    result: &mut RichParseResult,
+    text: &str,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+    emoji_shortcodes: &EmojiShortcodeRegistry,
+    pending_block_break: &mut bool,
+) {
+    let text = emoji_shortcodes.expand(text);
+    if text.is_empty() {
+        return;
+    }
+    ensure_pending_block_break(result, pending_block_break, style.clone(), link.clone());
+    append_text_with_metadata(result, &text, style, None, link);
+}
+
+fn ensure_block_boundary(
+    result: &mut RichParseResult,
+    pending_block_break: &mut bool,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+) {
+    if result.text.is_empty() {
+        *pending_block_break = false;
+        return;
+    }
+    *pending_block_break = true;
+    ensure_pending_block_break(result, pending_block_break, style, link);
+}
+
+fn ensure_pending_block_break(
+    result: &mut RichParseResult,
+    pending_block_break: &mut bool,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+) {
+    if !std::mem::take(pending_block_break) || result.text.is_empty() || result.text.ends_with('\n')
+    {
+        return;
+    }
+    append_text_with_metadata(result, "\n", style, None, link);
+}
+
+#[derive(Clone, Debug)]
+struct ActiveParagraph {
+    name: String,
+    start: u32,
+    paragraph: Option<ParagraphOverride>,
+}
+
+fn bbcode_paragraph_align(name: &str) -> Option<UiTextAlign> {
+    match name {
+        "left" => Some(UiTextAlign::Left),
+        "center" => Some(UiTextAlign::Center),
+        "right" => Some(UiTextAlign::Right),
+        "fill" => Some(UiTextAlign::Justify),
+        _ => None,
+    }
+}
+
+fn close_paragraph_override(
+    result: &mut RichParseResult,
+    name: &str,
+    active_paragraphs: &mut Vec<ActiveParagraph>,
+) {
+    let Some(position) = active_paragraphs
+        .iter()
+        .rposition(|active| active.name == name)
+    else {
+        return;
+    };
+    let end = u32::try_from(result.text.len()).unwrap_or(u32::MAX);
+    for active in active_paragraphs.drain(position..) {
+        if let Some(paragraph) = active.paragraph {
+            result.paragraphs.push(((active.start, end), paragraph));
+        }
+    }
+}
+
+fn close_open_paragraph_overrides(
+    result: &mut RichParseResult,
+    active_paragraphs: Vec<ActiveParagraph>,
+) {
+    let end = u32::try_from(result.text.len()).unwrap_or(u32::MAX);
+    for active in active_paragraphs {
+        if let Some(paragraph) = active.paragraph {
+            result.paragraphs.push(((active.start, end), paragraph));
+        }
+    }
 }
 
 fn parse_markdown(markup: &str) -> RichParseResult {
@@ -153,27 +540,49 @@ fn markdown_marker(input: &str) -> Option<(&'static str, &'static str, StyleOver
 }
 
 fn append_text(result: &mut RichParseResult, text: &str, style: StyleOverride) {
+    append_text_with_metadata(result, text, style, None, None);
+}
+
+fn append_text_with_metadata(
+    result: &mut RichParseResult,
+    text: &str,
+    style: StyleOverride,
+    inline: Option<InlineObjectRef>,
+    link: Option<LinkRef>,
+) {
     if text.is_empty() {
         return;
     }
     let start = result.text.len();
     result.text.push_str(text);
-    push_or_merge_run(
-        &mut result.runs,
-        styled_run(start, result.text.len(), style),
-    );
+    let mut run = styled_run(start, result.text.len(), style);
+    run.inline = inline;
+    run.link = link;
+    push_or_merge_run(&mut result.runs, run);
+}
+
+fn append_inline_object(
+    result: &mut RichParseResult,
+    style: StyleOverride,
+    link: Option<LinkRef>,
+    inline: InlineObjectRef,
+) {
+    append_text_with_metadata(result, "\u{fffc}", style, Some(inline), link);
 }
 
 fn align_runs_to_graphemes(text: &str, runs: &[StyledRun]) -> Vec<StyledRun> {
     let mut aligned = Vec::new();
     for (start, grapheme) in text.grapheme_indices(true) {
         let end = start + grapheme.len();
-        let style = runs
+        let source = runs
             .iter()
             .find(|run| range_contains(run.byte_range, start))
-            .map(|run| run.style.clone())
+            .cloned()
             .unwrap_or_default();
-        push_or_merge_run(&mut aligned, styled_run(start, end, style));
+        let mut run = styled_run(start, end, source.style);
+        run.inline = source.inline;
+        run.link = source.link;
+        push_or_merge_run(&mut aligned, run);
     }
     aligned
 }

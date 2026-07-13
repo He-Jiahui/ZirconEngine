@@ -37,7 +37,10 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
@@ -108,7 +111,10 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
@@ -169,7 +175,10 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,
@@ -259,7 +268,10 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,
@@ -350,7 +362,10 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let mut geometry = crate::ui::workbench::autolayout::compute_workbench_shell_geometry(
         &model,
         &chrome,

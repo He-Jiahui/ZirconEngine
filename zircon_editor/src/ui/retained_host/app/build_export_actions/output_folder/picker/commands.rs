@@ -1,9 +1,11 @@
 use std::ffi::OsString;
 use std::path::Path;
 
+use super::super::super::DesktopExportActionError;
+
 pub(in crate::ui::retained_host::app::build_export_actions::output_folder) fn folder_picker_commands(
     initial_dir: &Path,
-) -> Result<Vec<(&'static str, Vec<OsString>)>, String> {
+) -> Result<Vec<(&'static str, Vec<OsString>)>, DesktopExportActionError> {
     #[cfg(target_os = "windows")]
     {
         let selected_path = powershell_single_quoted(&initial_dir.to_string_lossy());
@@ -63,7 +65,7 @@ pub(in crate::ui::retained_host::app::build_export_actions::output_folder) fn fo
     #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
     {
         let _ = initial_dir;
-        Err("choosing desktop export output folders is unsupported on this host".to_string())
+        Err(DesktopExportActionError::PickerUnsupported)
     }
 }
 

@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/src/core/editor_event/service/listener_control.rs
   - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/core/editor_event/service/stamp.rs
-  - zircon_editor/src/core/editing/operation_state.rs
+  - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/core/play/bridge.rs
   - zircon_editor/src/scene/viewport/interaction/gizmo_drag_state.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
@@ -21,7 +21,7 @@ implementation_files:
   - zircon_editor/src/core/editor_event/service/listener_control.rs
   - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/core/editor_event/service/stamp.rs
-  - zircon_editor/src/core/editing/operation_state.rs
+  - zircon_editor/src/core/editing/engine/transaction.rs
   - zircon_editor/src/core/play/bridge.rs
   - zircon_editor/src/scene/viewport/interaction/gizmo_drag_state.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs

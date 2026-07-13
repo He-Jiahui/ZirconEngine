@@ -6,8 +6,7 @@ use super::super::super::super::super::{
     TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_SOURCES_STATUS_MAPS_CHILDREN_CHILD,
 };
 
-const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_SOURCES_SOURCE_SPLIT_CHILDREN:
-    &[&str] = &[
+const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_SOURCES_SOURCE_SPLIT_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/source/source_tree.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/source/status_current.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/source/folder_backed.rs",

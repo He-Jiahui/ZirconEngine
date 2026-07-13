@@ -1,6 +1,7 @@
 use crate::asset::AssetImporterRegistry;
 #[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 #[cfg(feature = "graphics")]
@@ -13,8 +14,8 @@ use crate::plugin::bridge::InterfaceExport;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
 use crate::{
-    plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest,
-    plugin::PluginOptionManifest, plugin::SceneRuntimeHookRegistration,
+    plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
+    scene::SceneRuntimeHookRegistration,
 };
 use std::any::TypeId;
 

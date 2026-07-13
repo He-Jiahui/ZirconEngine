@@ -27,6 +27,7 @@ mod fixed_render_physics;
 mod fixed_transform_active;
 mod registry;
 mod value_conversion;
+mod versioned_json;
 
 fn metadata_registration(type_path: &str, short_type_path: &str) -> ReflectTypeRegistration {
     ReflectTypeRegistration::new(

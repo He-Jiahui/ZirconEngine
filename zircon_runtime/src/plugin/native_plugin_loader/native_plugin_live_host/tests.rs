@@ -1,15 +1,15 @@
 use super::*;
 
-use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::core::framework::bridge::{BridgeError, BridgeOwnerTransitionMode, PluginInterface};
+use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
 use crate::plugin::native::{
     NativeBridgeCall, NativeBridgeMethodBinding, NativeBridgeMethodFn,
     NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
     NativePluginLoadReport, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
 };
 use crate::plugin::{
-    BridgeOwnerTransitionMode, ExportPackagingStrategy, PluginDependencyManifest,
-    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginPackageManifest,
-    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePluginBridgeLifecycleEvent,
+    PluginDependencyManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -627,6 +627,13 @@ pub(super) fn restored_payloads() -> &'static Mutex<Vec<Vec<u8>>> {
     PAYLOADS.get_or_init(|| Mutex::new(Vec::new()))
 }
 
+pub(super) fn hot_reload_payload_fixture_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 pub(super) unsafe extern "C" fn hot_reload_save_state(
     output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
 ) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
@@ -662,7 +669,10 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state(
     } else {
         std::slice::from_raw_parts(state.data, state.len).to_vec()
     };
-    restored_payloads().lock().unwrap().push(payload);
+    restored_payloads()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .push(payload);
     super::super::abi_declarations::NativePluginCallbackStatusV2 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
@@ -677,7 +687,10 @@ pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
     } else {
         std::slice::from_raw_parts(state.data, state.len).to_vec()
     };
-    restored_payloads().lock().unwrap().push(payload);
+    restored_payloads()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .push(payload);
     super::super::abi_declarations::NativePluginCallbackStatusV2 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
         diagnostics: c"restore failed during hot reload".as_ptr(),

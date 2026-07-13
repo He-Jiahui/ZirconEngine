@@ -88,12 +88,18 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
         &["plan_status_children::RECENT_STATIC_GUARDS_FOLDER_BACKED_SPLIT"],
     );
 
-    let row_data = include_str!(
-        "../status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors/plan_status_children.rs"
-    );
+    let row_data = [
+        include_str!(
+            "../status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors/plan_status_children.rs"
+        ),
+        include_str!(
+            "../status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors/plan_status_children/recent_and_reconciliation.rs"
+        ),
+    ]
+    .join("\n");
     assert_contains_all(
         "runtime index anchor row data records recent static guard split",
-        row_data,
+        row_data.as_str(),
         &[
             SLICE,
             STATUS,

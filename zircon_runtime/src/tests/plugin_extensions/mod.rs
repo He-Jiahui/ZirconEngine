@@ -7,18 +7,22 @@ mod export_build_plan_native_dynamic;
 mod export_build_plan_platform;
 mod export_build_plan_profile;
 mod export_build_plan_provider_package;
+#[cfg(feature = "graphics")]
 mod extension_registry;
 mod extension_registry_bridge;
 mod extension_registry_bridge_performance_baseline;
+#[cfg(feature = "ui")]
 mod extension_registry_components;
 mod extension_registry_event_catalogs;
 mod extension_registry_features;
 mod extension_registry_managers;
+#[cfg(all(feature = "graphics", feature = "ui"))]
 mod extension_registry_metadata;
 mod extension_registry_modules;
 mod extension_registry_options;
 mod extension_registry_scene_hooks;
 mod extension_registry_systems;
+#[cfg(feature = "graphics")]
 mod extension_registry_typed_points;
 mod manifest_contributions;
 mod native_plugin_loader;

@@ -46,7 +46,8 @@ pub fn build_source_cubemap_irradiance_cube(
 ) -> SourceCubemapIrradianceCube {
     let face_size = SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE;
     let mut texels = vec![[0.0; 3]; source_cubemap_irradiance_cube_sample_count(face_size)];
-    let source_mip = source_cubemap_irradiance_mip_level(cubemap.face_size(), cubemap.mip_count());
+    let source_mip =
+        source_cubemap_irradiance_mip_level(cubemap.source_face_size(), cubemap.source_mip_count());
 
     for face in CubemapFace::ALL {
         let offset = source_cubemap_irradiance_cube_face_offset(face_size, face);
@@ -83,15 +84,15 @@ fn convolve_source_cubemap_cosine(
     source_mip: u32,
     normal: [Real; 3],
 ) -> [Real; 3] {
-    let source_size = source_cubemap_mip_size(cubemap.face_size(), source_mip);
+    let source_size = source_cubemap_mip_size(cubemap.source_face_size(), source_mip);
     let mut color = [0.0; 3];
     let mut weight_sum = 0.0;
 
     // Direct cosine convolution produces the optional IEM path without SH band truncation.
     for face in CubemapFace::ALL {
         let offset = source_cubemap_face_mip_offset(
-            cubemap.face_size(),
-            cubemap.mip_count(),
+            cubemap.source_face_size(),
+            cubemap.source_mip_count(),
             face,
             source_mip,
         );

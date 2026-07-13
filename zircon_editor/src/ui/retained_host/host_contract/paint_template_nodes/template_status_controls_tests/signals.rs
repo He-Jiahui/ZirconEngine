@@ -1,6 +1,10 @@
 use super::super::super::super::data::FrameRect;
+use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::super::paint_theme::METRICS;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::super::template_status_control_geometry::{
+    status_font_size, status_signal_text_rect, workbench_status_metrics,
+};
 use super::super::{
     push_status_control_commands, status_signal_icon_fill, status_signal_icon_paint_rect,
     status_signal_icon_rect, status_signal_text_color, status_signal_text_gap, StatusSignalKind,
@@ -22,7 +26,7 @@ fn ready_status_item_paints_dot_and_text_without_chip_surface() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 140, 28, 23), PALETTE.success);
+    assert_eq!(pixel_at(&bytes, 140, 12, 23), PALETTE.success);
     assert_eq!(pixel_at(&bytes, 140, 90, 4), [0, 0, 0, 255]);
     assert!(changed_pixel_count(&bytes, 140, 42, 14, 40, 18) > 0);
 }
@@ -48,7 +52,7 @@ fn ready_status_item_uses_declared_dot_text_and_gap_style() {
         StatusSignalKind::Ready,
     );
 
-    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.x - METRICS.gap_m).abs() < 0.001);
     assert!((icon.y - 19.0).abs() < 0.001);
     assert!((icon.width - METRICS.gap_m).abs() < 0.001);
     assert!((status_signal_text_gap(&node) - 8.0).abs() < 0.001);
@@ -75,7 +79,7 @@ fn errors_status_item_uses_audited_success_icon_fill() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 140, 28, 23), STATUS_NO_ERRORS_FILL);
+    assert_eq!(pixel_at(&bytes, 140, 12, 23), STATUS_NO_ERRORS_FILL);
     assert!(changed_pixel_count(&bytes, 140, 46, 14, 58, 18) > 0);
 }
 
@@ -109,10 +113,10 @@ fn status_signal_item_ignores_legacy_icon_size_overrides() {
     );
     let paint = status_signal_icon_paint_rect(&node, &layout, StatusSignalKind::Success);
 
-    assert!((layout.x - 24.0).abs() < 0.001);
+    assert!((layout.x - METRICS.gap_m).abs() < 0.001);
     assert!((layout.y - 19.0).abs() < 0.001);
     assert!((layout.width - METRICS.gap_m).abs() < 0.001);
-    assert!((paint.x - 24.0).abs() < 0.001);
+    assert!((paint.x - METRICS.gap_m).abs() < 0.001);
     assert!((paint.y - 19.0).abs() < 0.001);
     assert!((paint.width - METRICS.gap_m).abs() < 0.001);
 }
@@ -141,7 +145,7 @@ fn warning_status_item_uses_declared_marker_text_and_gap_style() {
         StatusSignalKind::Warning,
     );
 
-    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.x - METRICS.gap_m).abs() < 0.001);
     assert!((icon.y - 19.0).abs() < 0.001);
     assert!((icon.width - METRICS.gap_m).abs() < 0.001);
     assert!((status_signal_text_gap(&node) - 8.0).abs() < 0.001);
@@ -177,7 +181,7 @@ fn messages_status_item_uses_declared_marker_text_and_offset_style() {
         StatusSignalKind::Info,
     );
 
-    assert!((icon.x - 24.0).abs() < 0.001);
+    assert!((icon.x - METRICS.gap_m).abs() < 0.001);
     assert!((icon.y - 19.0).abs() < 0.001);
     assert!((icon.width - METRICS.gap_m).abs() < 0.001);
     assert_eq!(
@@ -232,5 +236,47 @@ fn non_ready_status_items_emit_single_inline_marker_and_text() {
         assert!((marker_commands[0].frame.width - METRICS.gap_m).abs() < 0.001);
         assert!((marker_commands[0].frame.height - METRICS.gap_m).abs() < 0.001);
         assert!((marker_commands[0].corner_radius - METRICS.gap_m * 0.5).abs() < 0.001);
+    }
+}
+
+#[test]
+fn compact_status_signals_keep_full_runtime_text_inside_their_authored_widths() {
+    let metrics = workbench_status_metrics();
+
+    for (control_id, text, width) in [
+        ("WorkbenchStatusReady", "Ready", 72.0),
+        ("WorkbenchStatusErrors", "No Errors", 92.0),
+        ("WorkbenchStatusWarnings", "2 Warnings", 96.0),
+        ("WorkbenchStatusMessages", "0 Messages", 100.0),
+    ] {
+        let mut node = status_node(control_id, text, width, 46.0);
+        node.layout_content_offset_x = 8.0;
+        let rect = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width,
+            height: 46.0,
+        };
+        let kind = match control_id {
+            "WorkbenchStatusReady" => StatusSignalKind::Ready,
+            "WorkbenchStatusErrors" => StatusSignalKind::Success,
+            "WorkbenchStatusWarnings" => StatusSignalKind::Warning,
+            "WorkbenchStatusMessages" => StatusSignalKind::Info,
+            _ => unreachable!("status fixture must use a known signal identity"),
+        };
+        let icon = status_signal_icon_rect(&node, &rect, kind);
+        let text_rect = status_signal_text_rect(&node, &rect, &icon);
+        let required_text_width =
+            measure_runtime_text_width(text, status_font_size()) + metrics.text_clip_guard;
+
+        assert!(
+            (icon.x - rect.x - metrics.signal_icon_left).abs() <= 0.01,
+            "{control_id} should use one compact shared inset before its marker: icon={icon:?}, metrics={metrics:?}"
+        );
+        assert!(
+            text_rect.width >= required_text_width,
+            "{control_id} should preserve the full Runtime Text label: available={}, required={required_text_width}, rect={text_rect:?}",
+            text_rect.width,
+        );
     }
 }

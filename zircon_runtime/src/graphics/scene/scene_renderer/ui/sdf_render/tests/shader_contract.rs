@@ -13,9 +13,9 @@ fn text_sdf_screen_px_range_scales_with_font_size() {
     let medium_range = first_sdf_screen_px_range(medium);
     let large_range = first_sdf_screen_px_range(large);
 
-    assert!((small_range - 4.0).abs() < 0.0001);
-    assert!((medium_range - 8.0).abs() < 0.0001);
-    assert!((large_range - 16.0).abs() < 0.0001);
+    assert!((small_range - 8.0 / 3.0).abs() < 0.0001);
+    assert!((medium_range - 16.0 / 3.0).abs() < 0.0001);
+    assert!((large_range - 32.0 / 3.0).abs() < 0.0001);
     assert!((medium_range - small_range * 2.0).abs() < 0.0001);
     assert!((large_range - small_range * 4.0).abs() < 0.0001);
 }
@@ -65,8 +65,60 @@ fn sdf_shader_uses_screen_px_range_instead_of_fixed_smoothstep_thresholds() {
 fn sdf_shader_samples_page_indexed_atlas_array() {
     assert!(SDF_TEXT_SHADER.contains("texture_2d_array"));
     assert!(SDF_TEXT_SHADER.contains("page_index"));
-    assert!(SDF_TEXT_SHADER
-        .contains("textureSample(sdf_atlas, sdf_sampler, input.uv, i32(input.page_index))"));
+    assert!(SDF_TEXT_SHADER.contains("sdf_atlas"));
+    assert!(SDF_TEXT_SHADER.contains("msdf_atlas"));
+    assert!(SDF_TEXT_SHADER.contains("distance_field_sampler"));
+}
+
+#[test]
+fn sdf_shader_decodes_explicit_sdf_msdf_and_mtsdf_modes() {
+    assert!(SDF_TEXT_SHADER.contains("decode_mode"));
+    assert!(SDF_TEXT_SHADER.contains("fn median3"));
+    assert!(SDF_TEXT_SHADER.contains("median3(sample.rgb)"));
+    assert!(SDF_TEXT_SHADER.contains("input.decode_mode == MTSDF_MODE"));
+    assert!(SDF_TEXT_SHADER.contains("sample.a"));
+    assert!(!SDF_TEXT_SHADER.contains("let distance = textureSample(sdf_atlas"));
+    assert!(!std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl")
+        .exists());
+}
+
+#[test]
+fn sdf_vertices_propagate_mode_for_horizontal_and_vertical_glyphs() {
+    for writing_mode in [
+        UiTextWritingMode::HorizontalTb,
+        UiTextWritingMode::VerticalRl,
+    ] {
+        let mut text = text_batch("AMW", UiFrame::new(8.0, 12.0, 120.0, 120.0));
+        text.writing_mode = writing_mode;
+        let mut plan = plan_sdf_atlas(&[text.clone()]);
+        for (slot, mode) in plan
+            .slots
+            .iter_mut()
+            .zip([SdfMode::Sdf, SdfMode::Msdf, SdfMode::Mtsdf])
+        {
+            slot.key.bake_params.mode = mode;
+            slot.page_key = GlyphAtlasPageKey::new(mode.atlas_format(), 0);
+        }
+        let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+        let vertices = build_sdf_vertices(
+            &[text],
+            &plan,
+            &atlas_bake,
+            &mut font_bake,
+            &mut font_database,
+            &asset_manager,
+            UVec2::new(256, 160),
+        );
+
+        assert_eq!(vertices.len(), 18);
+        assert_eq!(vertices[0].decode_mode, SdfMode::Sdf.shader_discriminant());
+        assert_eq!(vertices[6].decode_mode, SdfMode::Msdf.shader_discriminant());
+        assert_eq!(
+            vertices[12].decode_mode,
+            SdfMode::Mtsdf.shader_discriminant()
+        );
+    }
 }
 
 #[test]

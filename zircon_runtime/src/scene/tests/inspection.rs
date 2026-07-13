@@ -1,7 +1,7 @@
 use serde_json::json;
 use zircon_runtime_interface::reflect::ReflectedValue;
 
-use crate::plugin::ComponentTypeDescriptor;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::{NodeKind, World};
 
 use super::authoring_boundary::{

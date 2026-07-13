@@ -1,4 +1,5 @@
 use super::*;
+use zircon_runtime_interface::serialization::LoadError;
 
 #[test]
 fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
@@ -25,19 +26,20 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
         )
         .expect("dynamic component should attach");
 
-    let encoded = serde_json::to_string(
-        &DynamicScene::from_world(&source).expect("source world should export"),
-    )
-    .expect("dynamic scene should serialize");
-    assert!(encoded.contains("\"format_version\":1"));
+    let encoded = DynamicScene::from_world(&source)
+        .expect("source world should export")
+        .to_versioned_json_pretty()
+        .expect("dynamic scene should serialize");
+    assert!(encoded.contains("\"format_version\": 1"));
+    assert!(encoded.contains("\"schema_id\": \"zircon.scene.dynamic-scene\""));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
     assert_text_excludes_authoring_tokens(
         "dynamic scene JSON",
         &encoded,
         SERIALIZED_AUTHORING_TOKENS,
     );
-    let scene: DynamicScene =
-        serde_json::from_str(&encoded).expect("dynamic scene should deserialize");
+    let scene = DynamicScene::from_versioned_json(&encoded)
+        .expect("versioned dynamic scene should deserialize");
 
     let mut target = World::empty();
     target
@@ -181,6 +183,22 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
         )
         .expect("dynamic component should attach");
     let patch = ScenePatch::from_world(&source).expect("source world should export");
+    let expected_component_instance_count = patch
+        .scene
+        .entities
+        .iter()
+        .map(|entity| entity.components.len())
+        .sum::<usize>();
+    assert_eq!(
+        patch
+            .scene
+            .entities
+            .iter()
+            .flat_map(|entity| &entity.components)
+            .filter(|component| component.plugin_owned)
+            .count(),
+        1
+    );
 
     let mut target = World::empty();
     let collision = target.spawn_node(NodeKind::Mesh);
@@ -199,7 +217,10 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
     assert_eq!(preview.component_types[0].plugin_id, "weather");
     assert_eq!(preview.component_types[0].display_name, "Cloud Layer");
     assert!(!preview.component_types[0].already_registered);
-    assert_eq!(preview.component_instance_count, 1);
+    assert_eq!(
+        preview.component_instance_count,
+        expected_component_instance_count
+    );
     assert_eq!(preview.entity_count, 2);
     assert_eq!(preview.resource_count, 0);
     assert!(preview.resources.is_empty());
@@ -230,21 +251,53 @@ fn scene_patch_preview_reports_remaps_without_mutating_target_world() {
 #[test]
 fn dynamic_scene_world_mutation_preserves_scene_error_source() {
     let mut scene = DynamicScene::empty();
-    scene.component_types.push(
-        ComponentTypeDescriptor::new(CLOUD_LAYER_TYPE_PATH, "weather", "Cloud Layer")
-            .with_property("", "Scalar", true),
-    );
+    let descriptor = cloud_layer_descriptor();
+    scene.component_types.push(descriptor.clone());
+    let registration = crate::scene::reflect::registration_from_component_descriptor(&descriptor)
+        .expect("cloud layer descriptor should produce valid reflection metadata");
+    let mut world = World::empty();
+    world
+        .type_registry_mut_for_tests()
+        .register(crate::scene::reflect::RuntimeTypeRegistration::metadata(
+            registration,
+        ))
+        .expect("metadata-only duplicate fixture should register");
 
     let error = scene
-        .spawn_into(&mut World::empty())
-        .expect_err("invalid dynamic component registration should preserve scene error source");
+        .spawn_into(&mut world)
+        .expect_err("duplicate runtime registration should preserve scene error source");
 
     assert!(matches!(
         error,
         DynamicSceneError::WorldMutation(SceneError::Reflect(
-            ReflectError::InvalidRegistration { type_path, reason }
+            ReflectError::DuplicateTypePath { type_path }
         )) if type_path == CLOUD_LAYER_TYPE_PATH
-            && reason == "dynamic component field name must not be empty"
+    ));
+}
+
+#[test]
+fn dynamic_scene_rejects_future_envelope_header_before_payload_decode() {
+    let scene = DynamicScene::empty();
+    let current = scene
+        .to_versioned_json_pretty()
+        .expect("current dynamic scene should serialize");
+    let mut future: serde_json::Value = serde_json::from_str(&current).unwrap();
+    future["$zircon"]["header"]["schema_version"] = serde_json::Value::from(2);
+    future["$zircon"]["payload"] = json!({ "not": "a dynamic scene" });
+
+    let error = DynamicScene::from_versioned_json(&future.to_string())
+        .expect_err("future scene versions require a newer reader");
+    assert!(matches!(
+        error,
+        DynamicSceneError::SerializationLoad(source)
+            if matches!(
+                source.as_ref(),
+                LoadError::FutureVersion {
+                    found: 2,
+                    supported: 1,
+                    ..
+                }
+            )
     ));
 }
 

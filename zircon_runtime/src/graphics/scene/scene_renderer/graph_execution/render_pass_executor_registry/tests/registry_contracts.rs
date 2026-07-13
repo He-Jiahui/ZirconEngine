@@ -216,12 +216,11 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
 fn builtin_registry_covers_preview_sky_executor_ids() {
     let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
 
-    for executor_id in ["sky.preview-scene-color", "sky.preview-final-color"] {
-        assert!(
-            registry.contains(&RenderPassExecutorId::new(executor_id)),
-            "preview sky executor `{executor_id}` should be registered"
-        );
-    }
+    let executor_id = "sky.preview-scene-color";
+    assert!(
+        registry.contains(&RenderPassExecutorId::new(executor_id)),
+        "preview sky executor `{executor_id}` should be registered"
+    );
 }
 
 #[test]

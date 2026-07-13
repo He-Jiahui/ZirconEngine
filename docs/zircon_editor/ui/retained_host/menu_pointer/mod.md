@@ -14,19 +14,19 @@ related_code:
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_sync.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_target.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_spec.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/node_ids.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
   - zircon_editor/src/ui/workbench/window_registry/window_instance.rs
@@ -48,7 +48,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_target.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
@@ -56,7 +56,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/menu_bar/metrics.rs

@@ -1,12 +1,12 @@
 %module "main";
 
 var foundation = %import("zr.zircon.foundation");
-var savedState = "created";
+var savedState = "{\"schema_version\":2,\"types\":[],\"payload\":[99,114,101,97,116,101,100]}";
 
 pub activate(): void {
     var now = foundation.time_unix_millis();
     foundation.log_info("zr_vm_minimal activated");
-    savedState = "activated";
+    savedState = "{\"schema_version\":2,\"types\":[],\"payload\":[97,99,116,105,118,97,116,101,100]}";
 }
 
 pub deactivate(): void {
@@ -18,5 +18,5 @@ pub saveState(): string {
 }
 
 pub restoreState(state: string): void {
-    savedState = state + ":restored";
+    savedState = state;
 }

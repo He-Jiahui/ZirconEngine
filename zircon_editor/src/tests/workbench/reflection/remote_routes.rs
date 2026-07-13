@@ -11,7 +11,10 @@ use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse
 fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let view_model = WorkbenchViewModel::build(&chrome);
+    let view_model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let mut service = EditorUiControlService::default();
 
     let reflection = register_workbench_reflection_routes(

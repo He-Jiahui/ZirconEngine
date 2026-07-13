@@ -12,9 +12,10 @@ mod recycle_bin;
 mod validation;
 
 pub use cover::project_cover_path;
-pub use create_project::{create_project, CreateProjectReport};
+pub use create_project::{create_project, CreateProjectError, CreateProjectReport};
 pub use create_project_request::{
-    project_template_catalog, CreateProjectRequest, ProjectTemplate, ProjectTemplateInfo,
+    project_template_catalog, CreateProjectRequest, CreateProjectRequestError, ProjectTemplate,
+    ProjectTemplateInfo,
 };
 pub use device_install::{install_package_to_device, DeviceInstallReport, DeviceInstallRequest};
 pub use editor_recent_sync::{

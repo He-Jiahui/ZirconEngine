@@ -1,7 +1,7 @@
+use crate::core::framework::project::ProjectPluginSelection;
 use crate::core::{ModuleDescriptor, ModuleLifecycle};
 use crate::plugin::{
-    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 
 use super::super::RuntimePluginDescriptor;

@@ -11,7 +11,7 @@ use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
 use crate::graphics::scene::gpu_scene::GpuScene;
-use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -43,7 +43,7 @@ struct DynamicMeshPrimitive {
     source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
-    skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
 }
@@ -211,10 +211,10 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 None,
                 true,
                 skinned_palette_signature,
-                skinned_primitive.joint_palette_uniform,
+                skinned_primitive.joint_palette_storage,
                 previous_skinned_joint_palette,
                 skinned_gpu_source_candidate_available(
-                    skinned_primitive.joint_palette_uniform.as_ref(),
+                    skinned_primitive.joint_palette_storage.as_ref(),
                 )
                 .then_some(PendingSkinnedGpuSource::Prepared(mesh.clone())),
                 None,
@@ -366,9 +366,9 @@ fn dynamic_direct_mesh_primitive(
             source_morph_weights,
             skinned: true,
             skinned_palette_signature: Some(skinned_palette_signature),
-            skinned_joint_palette: prepared.joint_palette_uniform,
+            skinned_joint_palette: prepared.joint_palette_storage,
             skinned_gpu_source: direct_skinned_gpu_source(
-                prepared.joint_palette_uniform.as_ref(),
+                prepared.joint_palette_storage.as_ref(),
                 *mesh_id,
                 prepared_mesh.clone(),
                 prepared.shader_skinning_source_primitive,
@@ -508,20 +508,20 @@ fn morph_shape_signature(mesh_id: ResourceId, morph_weights: &[f32]) -> u64 {
 }
 
 fn skinned_gpu_source_candidate_available(
-    joint_palette_uniform: Option<&SkinnedMeshJointPaletteUniform>,
+    joint_palette_storage: Option<&SkinnedMeshJointPaletteStorage>,
 ) -> bool {
-    joint_palette_uniform.is_some()
+    joint_palette_storage.is_some()
 }
 
 fn direct_skinned_gpu_source(
-    joint_palette_uniform: Option<&SkinnedMeshJointPaletteUniform>,
+    joint_palette_storage: Option<&SkinnedMeshJointPaletteStorage>,
     mesh_id: ResourceId,
     prepared_mesh: Arc<GpuMeshResource>,
     shader_skinning_source_primitive: ModelPrimitiveAsset,
     morph_payload_available: bool,
     morph_weights: &[f32],
 ) -> Option<PendingSkinnedGpuSource> {
-    skinned_gpu_source_candidate_available(joint_palette_uniform).then(|| {
+    skinned_gpu_source_candidate_available(joint_palette_storage).then(|| {
         if has_active_morph_weights(morph_weights) && !morph_payload_available {
             PendingSkinnedGpuSource::CpuMorphed {
                 primitive: shader_skinning_source_primitive,
@@ -553,8 +553,8 @@ fn push_dynamic_mesh_draws(
     source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
-    skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
-    previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
+    previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteStorage>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     gpu_morphed_source: Option<Arc<GpuMeshResource>>,
     mesh_lod: Option<RenderMeshLodSelection>,

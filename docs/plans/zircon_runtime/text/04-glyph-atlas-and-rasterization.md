@@ -69,7 +69,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/text/raster/mod.rs

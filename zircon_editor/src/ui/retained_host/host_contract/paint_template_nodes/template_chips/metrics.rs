@@ -103,6 +103,10 @@ mod tests {
         assert_eq!(metrics.text_right, 9.0);
         assert_eq!(metrics.chevron_size, 14.0);
         assert_eq!(metrics.chevron_right, 9.0);
-        assert_eq!(metrics.chevron_reserve, 28.0);
+        assert_eq!(metrics.chevron_reserve, 27.0);
+        assert_eq!(
+            metrics.chevron_reserve,
+            metrics.chevron_size + metrics.chevron_right + host.gap_s
+        );
     }
 }

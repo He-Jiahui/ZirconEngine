@@ -1,10 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-use crate::asset::{NavMeshAsset, NavMeshPolygonAsset};
 use crate::core::framework::navigation::{
-    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery, NavRaycastResult,
-    NavSampleHit, NavSampleQuery, AREA_WALKABLE,
+    NavMeshAsset, NavMeshPolygonAsset, NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus,
+    NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery, AREA_WALKABLE,
 };
 use crate::core::math::{Real, Vec3};
 
@@ -201,6 +200,7 @@ impl BakedNavMesh {
         NavPathPoint {
             position: position.to_array(),
             area: self.polygons[polygon].area,
+            off_mesh_link_id: None,
             flags: Vec::new(),
         }
     }

@@ -18,14 +18,10 @@ const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_CHILD_OWNER
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/budgets.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/status_mirrors.rs";
 
-const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_SLICE: &str =
-    "Runtime 15 M3 code review findings structure guard typed-error structure assertions folder-backed split";
-const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_STATUS: &str =
-    "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred";
-const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred";
-const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_GUARD: &str =
-    "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_guard_is_folder_backed";
+const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_SLICE: &str = "Runtime 15 M3 code review findings structure guard typed-error structure assertions folder-backed split";
+const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_STATUS: &str = "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred";
+const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred";
+const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_GUARD: &str = "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_guard_is_folder_backed";
 
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILDREN: &[(&str, &str, &str)] = &[
     (

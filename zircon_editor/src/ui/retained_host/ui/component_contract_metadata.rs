@@ -1,7 +1,6 @@
-use std::sync::OnceLock;
-
-use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::UiComponentDescriptor;
+
+use crate::ui::component_registry::retained_component_registry;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct ComponentContractTokens {
@@ -12,7 +11,7 @@ pub(super) struct ComponentContractTokens {
 pub(super) fn descriptor_for_component(
     component_id: &str,
 ) -> Option<&'static UiComponentDescriptor> {
-    runtime_component_registry().descriptor(component_id)
+    retained_component_registry().descriptor(component_id)
 }
 
 pub(super) fn tokens_for_component_role(
@@ -25,22 +24,6 @@ pub(super) fn tokens_for_component_role(
             layout_role: descriptor.layout_role.as_str(),
         })
         .unwrap_or_else(|| fallback_tokens_for_component_role(component_id, component_role))
-}
-
-fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
-    static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
-    UI_COMPONENT_REGISTRY.get_or_init(|| {
-        let mut registry = UiComponentDescriptorRegistry::editor_showcase();
-        for descriptor in UiComponentDescriptorRegistry::material_editor_foundation()
-            .descriptors()
-            .cloned()
-        {
-            registry
-                .register(descriptor)
-                .expect("retained host component registry descriptors must validate");
-        }
-        registry
-    })
 }
 
 fn fallback_tokens_for_component_role(

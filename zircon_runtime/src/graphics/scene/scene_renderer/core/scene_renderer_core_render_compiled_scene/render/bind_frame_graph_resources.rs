@@ -10,6 +10,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     target: &OffscreenTarget,
+    scene_light_data_buffer: &wgpu::Buffer,
     imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
     shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) {
@@ -67,6 +68,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         resources,
         PostProcessGraphResourceNames::LIGHT_LIST,
         &target.cluster_buffer,
+    );
+    bind_live_frame_target_buffer(
+        graph,
+        resources,
+        PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
+        scene_light_data_buffer,
     );
     if let Some(shadow_atlas_resources) = shadow_atlas_resources {
         bind_live_frame_target_texture(
@@ -157,13 +164,27 @@ mod tests {
         let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let graph = live_frame_resource_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let scene_light_data = backend.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("scene-light-data-test"),
+            size: 64,
+            usage: wgpu::BufferUsages::STORAGE,
+            mapped_at_creation: false,
+        });
 
-        bind_frame_graph_resources(&graph, &mut resources, &target, None, None);
+        bind_frame_graph_resources(
+            &graph,
+            &mut resources,
+            &target,
+            &scene_light_data,
+            None,
+            None,
+        );
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::FINAL_COLOR));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::LIGHT_LIST));
+        assert!(resources.has_buffer(PostProcessGraphResourceNames::SCENE_LIGHT_DATA));
         assert!(
             !resources.has_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
             "unused fixed frame targets must not be pre-bound into the graph resource table"
@@ -181,7 +202,14 @@ mod tests {
         let graph = live_scene_target_graph();
         let mut resources = RenderGraphExecutionResources::new();
 
-        bind_frame_graph_resources(&graph, &mut resources, &target, None, None);
+        bind_frame_graph_resources(
+            &graph,
+            &mut resources,
+            &target,
+            &target.cluster_buffer,
+            None,
+            None,
+        );
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
@@ -229,6 +257,7 @@ mod tests {
             &graph,
             &mut resources,
             &target,
+            &target.cluster_buffer,
             Some(RenderGraphImportedFinalTarget {
                 view: &imported_view,
             }),
@@ -255,7 +284,14 @@ mod tests {
         let graph = advanced_transient_graph();
         let mut resources = RenderGraphExecutionResources::new();
 
-        bind_frame_graph_resources(&graph, &mut resources, &target, None, None);
+        bind_frame_graph_resources(
+            &graph,
+            &mut resources,
+            &target,
+            &target.cluster_buffer,
+            None,
+            None,
+        );
 
         for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
             assert!(
@@ -294,10 +330,15 @@ mod tests {
             PostProcessGraphResourceNames::LIGHT_LIST,
             RenderGraphExternalResourceBinding::report_only_buffer(),
         );
+        let scene_light_data = builder.import_external_resource_with_binding(
+            PostProcessGraphResourceNames::SCENE_LIGHT_DATA,
+            RenderGraphExternalResourceBinding::required_buffer(),
+        );
         let pass = side_effect_pass(&mut builder, "frame-resource-use");
         builder.read_external(pass, scene_color).unwrap();
         builder.read_external(pass, ambient_occlusion).unwrap();
         builder.read_external(pass, light_list).unwrap();
+        builder.read_external(pass, scene_light_data).unwrap();
         builder.write_external(pass, final_color).unwrap();
         builder.compile().unwrap()
     }

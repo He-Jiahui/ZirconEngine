@@ -14,10 +14,13 @@ fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_retai
     );
 
     let projection = runtime
-        .project_document("inspector.surface_controls")
+        .project_document("res://ui/editor/host/inspector_surface_controls.zui")
         .unwrap();
 
-    assert_eq!(projection.document_id, "inspector.surface_controls");
+    assert_eq!(
+        projection.document_id,
+        "res://ui/editor/host/inspector_surface_controls.zui"
+    );
     assert_eq!(projection.root.component, "InspectorSurfaceControls");
     assert_eq!(
         projection
@@ -62,10 +65,10 @@ fn editor_ui_host_runtime_projects_inspector_controls_through_material_roots() {
     runtime.load_builtin_host_templates().unwrap();
 
     let projection = runtime
-        .project_document("inspector.surface_controls")
+        .project_document("res://ui/editor/host/inspector_surface_controls.zui")
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface("inspector.surface_controls")
+        .build_shared_surface("res://ui/editor/host/inspector_surface_controls.zui")
         .unwrap();
     surface.compute_layout(UiSize::new(360.0, 240.0)).unwrap();
     let host_model = runtime

@@ -1,7 +1,10 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::PluginMaturity;
+use crate::{
+    builtin::RuntimePluginId,
+    core::framework::{platform::RuntimeTargetMode, project::RuntimeProfileId},
+};
 
-use super::descriptor::{RuntimeProfileDescriptor, RuntimeProfileId};
+use super::descriptor::RuntimeProfileDescriptor;
 
 impl RuntimeProfileDescriptor {
     pub fn for_id(id: RuntimeProfileId) -> Self {

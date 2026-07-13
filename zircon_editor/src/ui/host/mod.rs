@@ -4,7 +4,7 @@ pub(crate) mod animation_editor_sessions;
 pub(crate) mod asset_editor_sessions;
 mod builtin_layout;
 mod builtin_views;
-mod commands;
+pub(crate) mod command_eval_projection;
 pub(crate) mod editor_asset_manager;
 mod editor_capabilities;
 mod editor_error;
@@ -33,6 +33,7 @@ mod editor_session_state;
 mod editor_subsystems;
 mod editor_ui_host;
 mod export_cargo_process;
+mod export_process_support;
 mod host_capability_bridge;
 mod layout_commands;
 mod layout_hosts;
@@ -49,33 +50,26 @@ mod window_host_manager;
 mod workspace_state;
 
 pub(crate) use builtin_layout::builtin_hybrid_layout;
-pub use commands::{
-    EditorCommandAction, EditorCommandCategory, EditorCommandContext, EditorCommandDescriptor,
-    EditorCommandDispatchError, EditorCommandEnablement, EditorCommandPaletteEntry,
-    EditorCommandRegistry, EditorKeyBinding, EditorKeyChord, EditorKeyChordParseError,
-    EditorKeymap, EditorKeymapError,
-};
 pub use editor_capabilities::EditorCapabilitySnapshot;
 pub use editor_error::EditorError;
 pub use editor_host_event_controller::EditorHostEventController;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
-    execute_export_wizard_stage, export_pipeline_stage_cli_id, export_pipeline_stage_report_name,
-    export_pipeline_stages, export_wizard_compile_host_executable_path,
+    execute_export_wizard_stage, export_wizard_compile_host_executable_path,
     export_wizard_compile_host_target_dir, export_wizard_panel_action_call,
     export_wizard_panel_action_for_control, export_wizard_panel_binding_entries,
     export_wizard_panel_bindings, export_wizard_panel_retained_projection,
-    export_wizard_panel_template_state, export_wizard_pipeline_plan, parse_export_pipeline_stage,
-    project_export_wizard_panel, register_export_wizard_panel_bindings,
-    register_export_wizard_panel_template, run_export_wizard_job, EditorExportBuildProgress,
+    export_wizard_panel_template_state, export_wizard_pipeline_plan, project_export_wizard_panel,
+    register_export_wizard_panel_bindings, register_export_wizard_panel_template,
+    run_export_wizard_job, EditorExportBuildError, EditorExportBuildProgress,
     EditorExportBuildReport, EditorExportCargoInvocation, EditorPluginEnableReport,
     EditorPluginFeatureDependencyStatus, EditorPluginFeatureSelectionUpdateReport,
     EditorPluginFeatureStatus, EditorPluginSelectionUpdateReport, EditorPluginStatus,
     EditorPluginStatusReport, ExportStageProgressKind, ExportWizardCancelSignal,
     ExportWizardCommandExecution, ExportWizardCommandRunner, ExportWizardControlState,
-    ExportWizardJobController, ExportWizardJobEvent, ExportWizardJobEventKind,
-    ExportWizardJobHandle, ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus,
+    ExportWizardJobCompletion, ExportWizardJobController, ExportWizardJobEvent,
+    ExportWizardJobEventKind, ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus,
     ExportWizardNeverCancel, ExportWizardPanelAction, ExportWizardPanelBinding,
     ExportWizardPanelControlBindingState, ExportWizardPanelEntrySeverity, ExportWizardPanelRequest,
     ExportWizardPanelSession, ExportWizardPanelSessionError, ExportWizardPanelSlotEntry,
@@ -102,8 +96,10 @@ pub use editor_subsystems::{
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
 };
+pub use export_process_support::ExportProcessError;
 pub use host_capability_bridge::{EditorHostVmBridgeReport, EditorVmExtensionLoadReport};
 pub use minimal_host_contract::{
     editor_host_minimal_contract, EditorHostMinimalContract, EditorHostMinimalReport,
 };
+pub use native_dynamic_export_preparation::NativeDynamicPreparationError;
 pub use window_host_manager::NativeWindowHostState;

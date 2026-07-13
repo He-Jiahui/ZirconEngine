@@ -160,6 +160,30 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     ),
     click("BlendSpaceOpen", "workbench.extension.blend_space.open"),
     click(
+        "AnimationTransportRecord",
+        "workbench.extension.animation_transport.record.toggle",
+    ),
+    click(
+        "AnimationTransportPlay",
+        "workbench.extension.animation_transport.play.invoke",
+    ),
+    click(
+        "AnimationTransportPause",
+        "workbench.extension.animation_transport.pause.invoke",
+    ),
+    click(
+        "AnimationTransportPrevious",
+        "workbench.extension.animation_transport.previous.invoke",
+    ),
+    click(
+        "AnimationTransportNext",
+        "workbench.extension.animation_transport.next.invoke",
+    ),
+    click(
+        "AnimationTransportLoop",
+        "workbench.extension.animation_transport.loop.toggle",
+    ),
+    click(
         "BlendSpaceSamplesTab",
         "workbench.extension.blend_space.samples_tab.select",
     ),

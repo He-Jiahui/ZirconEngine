@@ -102,7 +102,7 @@ zircon_app 入口
 CoreRuntime 注册全部 ModuleDescriptor           状态: Registered
   ▼
 按 InitLevel 逐层推进:
-  Kernel ──▶ Servers ──▶ Scene ──▶ Editor* ──▶ Post      (*仅 editor-host)
+Kernel ──▶ Services ──▶ Scene ──▶ Editor* ──▶ Post     (*仅 editor-host)
   每层内: 依赖拓扑排序
     ├─ build(ctx)   注册服务/系统/事件            状态: Initializing
     ├─ ready(ctx)?  异步就绪轮询(GPU surface 等,带超时预算)

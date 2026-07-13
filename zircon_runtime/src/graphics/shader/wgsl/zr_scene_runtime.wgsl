@@ -11,9 +11,11 @@ struct SceneUniform {
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
+    sky_sun_direction: vec4<f32>,
+    sky_sun_color_radius: vec4<f32>,
+    sky_sun_params: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
-    environment_sh9: array<vec4<f32>, 9>,
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;

@@ -16,7 +16,7 @@
 - Modify `zircon_runtime/src/core/framework/sound/manager.rs`: add manager methods for backend capability listing and backend callback pull.
 - Modify `zircon_runtime/src/core/framework/sound/mod.rs`: re-export new output DTOs.
 - Modify `zircon_plugins/sound/runtime/src/output.rs`: implement backend capability catalog, backend validation, callback report accounting, and the deterministic software/null adapter behavior.
-- Modify `zircon_plugins/sound/runtime/src/service_types.rs`: wire `SoundManager` methods to the output adapter and existing `render_mix` path.
+- Modify `zircon_plugins/sound/runtime/src/service_types/mod.rs`: wire `SoundManager` methods to the output adapter and existing `render_mix` path.
 - Modify `zircon_plugins/sound/runtime/src/tests.rs`: import new output DTOs if needed.
 - Modify `zircon_plugins/sound/runtime/src/tests/output_device.rs`: add backend seam tests.
 - Modify `docs/engine-architecture/runtime-sound-extension.md`: document backend seam behavior, tests, and remaining backend gap.
@@ -214,7 +214,7 @@ pub(crate) fn record_callback_error(
 
 Goal: Expose the backend seam through `DefaultSoundManager` and cover lifecycle behavior.
 
-- [ ] In `zircon_plugins/sound/runtime/src/service_types.rs`, import `available_output_backends` and implement `SoundManager::available_output_backends`.
+- [ ] In `zircon_plugins/sound/runtime/src/service_types/mod.rs`, import `available_output_backends` and implement `SoundManager::available_output_backends`.
 
 ```rust
 fn available_output_backends(&self) -> Result<Vec<SoundBackendCapability>, SoundError> {

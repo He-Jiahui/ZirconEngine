@@ -1,18 +1,32 @@
 use zircon_runtime::core::framework::ai::{AiAgentTickReport, AiAgentTickRequest, AiManagerError};
 use zircon_runtime::core::framework::scene::WorldHandle;
 
-use super::state::ActiveBehaviorAgent;
+use super::state::{ActiveBehaviorAgent, AgentBlackboard};
 use super::validation::{validate_blackboard_entries, validate_perception_snapshot};
 use super::DefaultAiManager;
-use crate::behavior_tree::{evaluate_behavior_tree, BehaviorTreeInstanceState};
+use crate::behavior_tree::{
+    abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorTreeInstanceState,
+};
+use crate::blackboard::BlackboardStore;
 use crate::AiBehaviorTickLod;
 
 pub(super) fn tick_agent(
     manager: &DefaultAiManager,
     request: AiAgentTickRequest,
 ) -> Result<AiAgentTickReport, AiManagerError> {
+    tick_agent_with_source(manager, request, false)
+}
+
+fn tick_agent_with_source(
+    manager: &DefaultAiManager,
+    request: AiAgentTickRequest,
+    use_stored_blackboard: bool,
+) -> Result<AiAgentTickReport, AiManagerError> {
     if !request.delta_seconds.is_finite() {
         return Err(AiManagerError::NonFiniteTickDelta);
+    }
+    if let Some(perception) = &request.perception {
+        validate_perception_snapshot(request.entity, perception)?;
     }
 
     let agent_key = (request.world, request.entity);
@@ -21,6 +35,7 @@ pub(super) fn tick_agent(
         registered_tree,
         registered_trees,
         schema,
+        stored_blackboard,
         stored_perception,
         mut instance,
     ) = {
@@ -77,14 +92,41 @@ pub(super) fn tick_agent(
                 .ok_or_else(|| AiManagerError::UnknownBlackboardSchema {
                     id: schema_id.raw(),
                 })?;
-            Some(schema.descriptor.clone())
+            Some(schema.clone())
         } else {
             None
         };
+        if schema.is_none()
+            && registered_tree.as_ref().is_some_and(|tree| {
+                tree.compiled
+                    .reachable_tree_has_abort_observers(&registered_trees)
+            })
+        {
+            return Err(AiManagerError::BehaviorObserverRequiresBlackboardSchema {
+                tree_id: registered_tree
+                    .as_ref()
+                    .map(|tree| tree.compiled.id().to_string())
+                    .unwrap_or_default(),
+            });
+        }
+        let validation_entries = if use_stored_blackboard {
+            state
+                .blackboards
+                .get(&agent_key)
+                .map(AgentBlackboard::entries_ref)
+                .unwrap_or_default()
+        } else {
+            &request.blackboard
+        };
+        validate_blackboard_entries(
+            schema.as_ref().map(|schema| &schema.descriptor),
+            validation_entries,
+        )?;
         let stored_perception = state
             .perceptions
             .get(&(request.world, request.entity))
             .cloned();
+        let stored_blackboard = state.blackboards.remove(&agent_key);
         let instance = state
             .behavior_tree_instances
             .remove(&agent_key)
@@ -94,26 +136,79 @@ pub(super) fn tick_agent(
             registered_tree,
             registered_trees,
             schema,
+            stored_blackboard,
             stored_perception,
             instance,
         )
     };
-    validate_blackboard_entries(schema.as_ref(), &request.blackboard)?;
-
-    if let Some(perception) = &request.perception {
-        validate_perception_snapshot(request.entity, perception)?;
-    }
+    let (stored_blackboard, changed_slots) = if let Some(schema) = &schema {
+        let mut store = match stored_blackboard {
+            Some(AgentBlackboard::Dense(store))
+                if store.layout().schema_id() == schema.layout.schema_id() =>
+            {
+                store
+            }
+            previous => {
+                let mut store = BlackboardStore::new(schema.layout.clone());
+                if use_stored_blackboard {
+                    let entries = previous
+                        .as_ref()
+                        .map(AgentBlackboard::entries)
+                        .unwrap_or_default();
+                    store.synchronize(&entries).map_err(|error| {
+                        super::blackboard::map_runtime_error(schema.layout.schema_id(), error)
+                    })?;
+                }
+                store
+            }
+        };
+        if !use_stored_blackboard {
+            store.synchronize(&request.blackboard).map_err(|error| {
+                super::blackboard::map_runtime_error(schema.layout.schema_id(), error)
+            })?;
+        }
+        let changed_slots = store.drain_changed_slots();
+        (AgentBlackboard::Dense(store), changed_slots)
+    } else if use_stored_blackboard {
+        (
+            stored_blackboard.unwrap_or_else(|| AgentBlackboard::Dynamic(Vec::new())),
+            Vec::new(),
+        )
+    } else {
+        (
+            AgentBlackboard::Dynamic(request.blackboard.clone()),
+            Vec::new(),
+        )
+    };
+    let blackboard = stored_blackboard.entries_ref();
+    let blackboard_store = match &stored_blackboard {
+        AgentBlackboard::Dense(store) => Some(store),
+        AgentBlackboard::Dynamic(_) => None,
+    };
 
     let report = if let Some(tree) = &registered_tree {
         let perception = request.perception.as_ref().or(stored_perception.as_ref());
-        let execution = evaluate_behavior_tree(
+        let execution = match evaluate_behavior_tree(
             &tree.compiled,
             &registered_trees,
-            &request.blackboard,
+            blackboard,
             perception,
             request.delta_seconds,
+            schema.as_ref().map(|schema| schema.layout.as_ref()),
+            blackboard_store,
+            &changed_slots,
             &mut instance,
-        );
+        ) {
+            Ok(execution) => execution,
+            Err(error) => {
+                let mut state = manager.lock_state();
+                state.blackboards.insert(agent_key, stored_blackboard);
+                state.behavior_tree_instances.insert(agent_key, instance);
+                drop(state);
+                drop(execution_lease);
+                return Err(error);
+            }
+        };
         AiAgentTickReport {
             world: request.world,
             entity: request.entity,
@@ -122,6 +217,13 @@ pub(super) fn tick_agent(
             diagnostic: execution.diagnostic,
         }
     } else {
+        abort_behavior_tree_instance(
+            &registered_trees,
+            blackboard,
+            request.perception.as_ref().or(stored_perception.as_ref()),
+            request.delta_seconds,
+            &mut instance,
+        );
         AiAgentTickReport::idle(request.world, request.entity)
     };
 
@@ -145,7 +247,7 @@ pub(super) fn tick_agent(
     }
     state
         .blackboards
-        .insert((request.world, request.entity), request.blackboard.clone());
+        .insert((request.world, request.entity), stored_blackboard);
     if let Some(perception) = request.perception.clone() {
         state
             .perceptions
@@ -220,11 +322,7 @@ pub(super) fn tick_active_agents_with_lod(
                 behavior_tree: Some(behavior_tree),
                 blackboard_schema,
                 delta_seconds: elapsed,
-                blackboard: state
-                    .blackboards
-                    .get(&(world, entity))
-                    .cloned()
-                    .unwrap_or_default(),
+                blackboard: Vec::new(),
                 perception: state.perceptions.get(&(world, entity)).cloned(),
             });
         }
@@ -232,6 +330,6 @@ pub(super) fn tick_active_agents_with_lod(
     };
     requests
         .into_iter()
-        .map(|request| tick_agent(manager, request))
+        .map(|request| tick_agent_with_source(manager, request, true))
         .collect()
 }

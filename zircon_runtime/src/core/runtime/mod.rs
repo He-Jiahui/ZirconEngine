@@ -8,6 +8,7 @@ mod events;
 mod frame_clock;
 mod handle;
 mod lifecycle;
+mod module_lifecycle_observer;
 pub mod modules;
 mod runtime;
 mod state;
@@ -27,6 +28,7 @@ pub use handle::CoreHandle;
 pub use lifecycle::{
     InitLevel, LifecycleState, ModuleLifecycle, NoopModuleLifecycle, ServiceKind, StartupMode,
 };
+pub use module_lifecycle_observer::{RuntimeModuleLifecycleBlock, RuntimeModuleLifecycleObserver};
 pub use modules::{
     DiagnosticsCoreModule, FrameCountModule, LogDiagnosticsModule, LogModule, TasksModule,
     TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_DIAGNOSTICS_MODULE_NAME,

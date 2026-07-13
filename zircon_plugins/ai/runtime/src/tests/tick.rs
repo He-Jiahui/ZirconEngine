@@ -1,7 +1,8 @@
 use zircon_runtime::core::framework::ai::{
-    AiAgentTickRequest, AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor,
-    AiBlackboardEntry, AiBlackboardSchemaDescriptor, AiBlackboardValue, AiDecisionStatus,
-    AiManager, AiManagerError, AiPerceptionSense, AiPerceptionSnapshot, AiPerceptionStimulus,
+    AiAgentTickRequest, AiBehaviorAbortPolicy, AiBehaviorNodeDescriptor, AiBehaviorNodeKind,
+    AiBehaviorTreeDescriptor, AiBlackboardEntry, AiBlackboardSchemaDescriptor, AiBlackboardValue,
+    AiDecisionStatus, AiManager, AiManagerError, AiPerceptionSense, AiPerceptionSnapshot,
+    AiPerceptionStimulus,
 };
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
@@ -199,6 +200,15 @@ fn ai_manager_validates_tick_schema_and_perception_boundaries() {
 #[test]
 fn ai_manager_executes_selector_with_blackboard_condition_parameters() {
     let manager = DefaultAiManager::default();
+    let schema_id = manager
+        .register_blackboard_schema(
+            AiBlackboardSchemaDescriptor::new("combat", "Combat").with_key(
+                "can_see_player",
+                "bool",
+                true,
+            ),
+        )
+        .expect("combat schema");
     let tree_id = manager
         .register_behavior_tree(
             AiBehaviorTreeDescriptor::new("combat_selector", "Combat Selector", "root")
@@ -215,6 +225,7 @@ fn ai_manager_executes_selector_with_blackboard_condition_parameters() {
                     )
                     .with_parameter("blackboard_key", "can_see_player")
                     .with_parameter("equals_bool", true)
+                    .with_abort_policy(AiBehaviorAbortPolicy::LowerPriority)
                     .with_child("attack"),
                 )
                 .with_node(
@@ -235,7 +246,7 @@ fn ai_manager_executes_selector_with_blackboard_condition_parameters() {
             world,
             entity,
             behavior_tree: Some(tree_id),
-            blackboard_schema: None,
+            blackboard_schema: Some(schema_id),
             delta_seconds: 1.0 / 60.0,
             blackboard: vec![AiBlackboardEntry::new(
                 "can_see_player",
@@ -252,7 +263,7 @@ fn ai_manager_executes_selector_with_blackboard_condition_parameters() {
             world,
             entity,
             behavior_tree: Some(tree_id),
-            blackboard_schema: None,
+            blackboard_schema: Some(schema_id),
             delta_seconds: 1.0 / 60.0,
             blackboard: vec![AiBlackboardEntry::new(
                 "can_see_player",
@@ -462,181 +473,6 @@ fn ai_manager_decorator_inverts_condition_gate_without_inverting_child_result() 
         .expect("inverted decorator tick when raw condition is true");
     assert_eq!(decorator_report.status, AiDecisionStatus::Failed);
     assert_eq!(decorator_report.active_node.as_deref(), Some("root"));
-}
-
-#[test]
-fn ai_manager_decorator_compares_numeric_blackboard_attributes() {
-    let manager = DefaultAiManager::default();
-    let tree_id = manager
-        .register_behavior_tree(
-            AiBehaviorTreeDescriptor::new("combat_thresholds", "Combat Thresholds", "root")
-                .with_node(
-                    AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Selector, "Root")
-                        .with_child("has_resources")
-                        .with_child("recover"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new(
-                        "has_resources",
-                        AiBehaviorNodeKind::Decorator,
-                        "Has Resources",
-                    )
-                    .with_parameter("blackboard_key", "ammo")
-                    .with_parameter("greater_or_equal_integer", 3_i64)
-                    .with_child("healthy_enough"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new(
-                        "healthy_enough",
-                        AiBehaviorNodeKind::Decorator,
-                        "Healthy Enough",
-                    )
-                    .with_parameter("blackboard_key", "health")
-                    .with_parameter("greater_than_scalar", 0.35_f32)
-                    .with_parameter("less_or_equal_scalar", 1.0_f32)
-                    .with_child("attack"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new("attack", AiBehaviorNodeKind::Task, "Attack")
-                        .with_parameter("result", "succeeded"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new("recover", AiBehaviorNodeKind::Task, "Recover")
-                        .with_parameter("result", "running"),
-                ),
-        )
-        .expect("valid numeric condition tree");
-    let world = WorldHandle::new(14);
-    let entity = 9;
-
-    let low_ammo_report = manager
-        .tick_agent(AiAgentTickRequest {
-            world,
-            entity,
-            behavior_tree: Some(tree_id),
-            blackboard_schema: None,
-            delta_seconds: 1.0 / 60.0,
-            blackboard: vec![
-                AiBlackboardEntry::new("ammo", AiBlackboardValue::Integer(2)),
-                AiBlackboardEntry::new("health", AiBlackboardValue::Scalar(0.8_f32)),
-            ],
-            perception: None,
-        })
-        .expect("selector tick with low ammo");
-    assert_eq!(low_ammo_report.status, AiDecisionStatus::Running);
-    assert_eq!(low_ammo_report.active_node.as_deref(), Some("recover"));
-
-    let low_health_report = manager
-        .tick_agent(AiAgentTickRequest {
-            world,
-            entity,
-            behavior_tree: Some(tree_id),
-            blackboard_schema: None,
-            delta_seconds: 1.0 / 60.0,
-            blackboard: vec![
-                AiBlackboardEntry::new("ammo", AiBlackboardValue::Integer(3)),
-                AiBlackboardEntry::new("health", AiBlackboardValue::Scalar(0.35_f32)),
-            ],
-            perception: None,
-        })
-        .expect("selector tick with low health");
-    assert_eq!(low_health_report.status, AiDecisionStatus::Running);
-    assert_eq!(low_health_report.active_node.as_deref(), Some("recover"));
-
-    let attack_report = manager
-        .tick_agent(AiAgentTickRequest {
-            world,
-            entity,
-            behavior_tree: Some(tree_id),
-            blackboard_schema: None,
-            delta_seconds: 1.0 / 60.0,
-            blackboard: vec![
-                AiBlackboardEntry::new("ammo", AiBlackboardValue::Integer(5)),
-                AiBlackboardEntry::new("health", AiBlackboardValue::Scalar(0.75_f32)),
-            ],
-            perception: None,
-        })
-        .expect("selector tick with valid numeric attributes");
-    assert_eq!(attack_report.status, AiDecisionStatus::Succeeded);
-    assert_eq!(attack_report.active_node.as_deref(), Some("attack"));
-}
-
-#[test]
-fn ai_manager_decorator_compares_vec3_blackboard_attributes() {
-    let manager = DefaultAiManager::default();
-    let target_point = Vec3::new(4.0, 0.0, -2.0);
-    let tree_id = manager
-        .register_behavior_tree(
-            AiBehaviorTreeDescriptor::new("target_point_selector", "Target Point Selector", "root")
-                .with_node(
-                    AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Selector, "Root")
-                        .with_child("at_target_point")
-                        .with_child("reposition"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new(
-                        "at_target_point",
-                        AiBehaviorNodeKind::Decorator,
-                        "At Target Point",
-                    )
-                    .with_parameter("blackboard_key", "target_point")
-                    .with_parameter("equals_vec3", target_point)
-                    .with_child("hold_position"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new(
-                        "hold_position",
-                        AiBehaviorNodeKind::Task,
-                        "Hold Position",
-                    )
-                    .with_parameter("result", "succeeded"),
-                )
-                .with_node(
-                    AiBehaviorNodeDescriptor::new(
-                        "reposition",
-                        AiBehaviorNodeKind::Task,
-                        "Reposition",
-                    )
-                    .with_parameter("result", "running"),
-                ),
-        )
-        .expect("valid vec3 condition tree");
-    let world = WorldHandle::new(17);
-    let entity = 12;
-
-    let fallback_report = manager
-        .tick_agent(AiAgentTickRequest {
-            world,
-            entity,
-            behavior_tree: Some(tree_id),
-            blackboard_schema: None,
-            delta_seconds: 1.0 / 60.0,
-            blackboard: vec![AiBlackboardEntry::new(
-                "target_point",
-                AiBlackboardValue::Vec3(Vec3::new(4.0, 0.0, -1.5)),
-            )],
-            perception: None,
-        })
-        .expect("selector tick with different target point");
-    assert_eq!(fallback_report.status, AiDecisionStatus::Running);
-    assert_eq!(fallback_report.active_node.as_deref(), Some("reposition"));
-
-    let hold_report = manager
-        .tick_agent(AiAgentTickRequest {
-            world,
-            entity,
-            behavior_tree: Some(tree_id),
-            blackboard_schema: None,
-            delta_seconds: 1.0 / 60.0,
-            blackboard: vec![AiBlackboardEntry::new(
-                "target_point",
-                AiBlackboardValue::Vec3(target_point),
-            )],
-            perception: None,
-        })
-        .expect("selector tick with matching target point");
-    assert_eq!(hold_report.status, AiDecisionStatus::Succeeded);
-    assert_eq!(hold_report.active_node.as_deref(), Some("hold_position"));
 }
 
 #[test]

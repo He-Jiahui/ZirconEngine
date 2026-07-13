@@ -116,6 +116,14 @@ pub struct AssetImportContext {
     pub uri: AssetUri,
     pub source_bytes: Vec<u8>,
     pub import_settings: toml::Table,
+    project_resolver: Option<ProjectImportResolver>,
+    reference_repairs: std::sync::Arc<std::sync::Mutex<Vec<crate::asset::ReferenceRepair>>>,
+}
+
+#[derive(Clone, Debug)]
+struct ProjectImportResolver {
+    registry: std::sync::Arc<crate::asset::registry::AssetRegistryIndex>,
+    roots: std::sync::Arc<Vec<(zircon_runtime_interface::project::RelPath, PathBuf)>>,
 }
 
 impl AssetImportContext {
@@ -130,7 +138,59 @@ impl AssetImportContext {
             uri,
             source_bytes,
             import_settings,
+            project_resolver: None,
+            reference_repairs: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
         }
+    }
+
+    pub(crate) fn with_project_resolver(
+        mut self,
+        registry: std::sync::Arc<crate::asset::registry::AssetRegistryIndex>,
+        roots: std::sync::Arc<Vec<(zircon_runtime_interface::project::RelPath, PathBuf)>>,
+    ) -> Self {
+        self.project_resolver = Some(ProjectImportResolver { registry, roots });
+        self
+    }
+
+    pub fn resolve_project_asset_ref(
+        &self,
+        reference: &zircon_runtime_interface::project::PersistedAssetReference,
+    ) -> Result<crate::asset::AssetReference, crate::asset::ReferenceResolutionError> {
+        let Some(reference) = reference.project_ref() else {
+            let locator = reference
+                .builtin_locator()
+                .ok_or_else(|| crate::asset::ReferenceResolutionError::MissingPayload)?;
+            if locator.scheme() != zircon_runtime_interface::resource::ResourceScheme::Builtin {
+                return Err(crate::asset::ReferenceResolutionError::UnsupportedScheme {
+                    locator: locator.clone(),
+                });
+            }
+            return Ok(crate::asset::AssetReference::from_locator(locator.clone()));
+        };
+        let resolver = self.project_resolver.as_ref().ok_or_else(|| {
+            crate::asset::ReferenceResolutionError::ProjectContextRequired {
+                path: self.source_path.clone(),
+            }
+        })?;
+        let resolved = crate::asset::resolve_project_reference(
+            &resolver.registry,
+            &resolver.roots,
+            reference,
+        )?;
+        if let Some(repair) = resolved.repair {
+            self.reference_repairs
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(repair);
+        }
+        Ok(resolved.reference)
+    }
+
+    pub(crate) fn reference_repairs(&self) -> Vec<crate::asset::ReferenceRepair> {
+        self.reference_repairs
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
     }
 
     pub fn source_text(&self) -> Result<String, AssetImportError> {
@@ -140,6 +200,10 @@ impl AssetImportContext {
                 self.source_path.display()
             ))
         })
+    }
+
+    pub(crate) fn has_project_resolver(&self) -> bool {
+        self.project_resolver.is_some()
     }
 }
 
@@ -193,13 +257,26 @@ impl ImportedAssetEntry {
 pub struct AssetImportOutcome {
     #[serde(default)]
     pub entries: Vec<ImportedAssetEntry>,
+    /// Canonical persisted references discovered while importing this source.
+    /// Callers may surface or persist these repairs instead of silently losing them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reference_repairs: Vec<crate::asset::ReferenceRepair>,
 }
 
 impl AssetImportOutcome {
     pub fn new(locator: AssetUri, imported_asset: ImportedAsset) -> Self {
         Self {
             entries: vec![ImportedAssetEntry::new(locator, imported_asset)],
+            reference_repairs: Vec::new(),
         }
+    }
+
+    pub fn with_reference_repairs(
+        mut self,
+        repairs: impl IntoIterator<Item = crate::asset::ReferenceRepair>,
+    ) -> Self {
+        self.reference_repairs.extend(repairs);
+        self
     }
 
     pub fn with_entry(mut self, entry: ImportedAssetEntry) -> Self {

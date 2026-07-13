@@ -1,4 +1,4 @@
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::project::ProjectPluginManifest;
 
 use super::super::super::RuntimePluginRegistrationReport;
 use super::super::lookup::project_selection_for_package;

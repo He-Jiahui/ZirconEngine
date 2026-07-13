@@ -4,14 +4,73 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
+use zircon_runtime::core::manager::{NavigationManagerHandle, NAVIGATION_MANAGER_NAME};
+use zircon_runtime::core::runtime::CoreRuntime;
+use zircon_runtime::core::ServiceKind;
 use zircon_runtime::scene::ecs::{SystemOrderingConstraint, SystemRef};
-use zircon_runtime::scene::SystemStage;
+use zircon_runtime::scene::{
+    SceneNavigationRuntimeHandle, SystemStage, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+};
 
 use crate::{
-    package_manifest, plugin_registration, NAVIGATION_DIST_CRATE_NAME,
-    NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_EVENT_NAMESPACE, NAVIGATION_MODULE_NAME,
-    RUNTIME_CAPABILITIES,
+    module_descriptor, package_manifest, plugin_registration, DefaultNavigationManager,
+    NAVIGATION_DIST_CRATE_NAME, NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_EVENT_NAMESPACE,
+    NAVIGATION_MODULE_NAME, RUNTIME_CAPABILITIES,
 };
+
+#[test]
+fn navigation_module_obeys_driver_manager_dependency_layers() {
+    const IMPLEMENTATION_DRIVER_NAME: &str = "navigation.runtime.Driver.DefaultNavigationRuntime";
+
+    let descriptor = module_descriptor();
+
+    let implementation = descriptor
+        .drivers
+        .iter()
+        .find(|driver| driver.name.as_str() == IMPLEMENTATION_DRIVER_NAME)
+        .expect("navigation implementation must be registered as a driver");
+    assert!(implementation.dependencies.is_empty());
+
+    let scene_driver = descriptor
+        .drivers
+        .iter()
+        .find(|driver| driver.name.as_str() == SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
+        .expect("scene navigation runtime must be registered as a driver");
+    assert_eq!(scene_driver.dependencies.len(), 1);
+    assert_eq!(
+        scene_driver.dependencies[0].name.as_str(),
+        IMPLEMENTATION_DRIVER_NAME
+    );
+    assert_eq!(
+        scene_driver.dependencies[0].name.service_kind(),
+        ServiceKind::Driver
+    );
+
+    let public_manager = descriptor
+        .managers
+        .iter()
+        .find(|manager| manager.name.as_str() == NAVIGATION_MANAGER_NAME)
+        .expect("public navigation facade must be registered as a manager");
+    assert_eq!(public_manager.dependencies.len(), 1);
+    assert_eq!(
+        public_manager.dependencies[0].name.as_str(),
+        IMPLEMENTATION_DRIVER_NAME
+    );
+
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(descriptor)
+        .expect("navigation service dependency layering must be valid");
+    runtime
+        .resolve_driver::<DefaultNavigationManager>(IMPLEMENTATION_DRIVER_NAME)
+        .expect("navigation implementation driver must resolve");
+    runtime
+        .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
+        .expect("scene navigation runtime driver must resolve");
+    runtime
+        .resolve_manager::<NavigationManagerHandle>(NAVIGATION_MANAGER_NAME)
+        .expect("public navigation manager facade must resolve");
+}
 
 #[test]
 fn navigation_registration_contributes_runtime_module_and_components() {
@@ -93,9 +152,9 @@ fn navigation_registration_contributes_runtime_module_and_components() {
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(report.package_manifest.category, "runtime");
@@ -153,15 +212,20 @@ fn agent_tick_registered_after_ai_behavior_tick() {
             .type_name()
             .ends_with("agent::repath::NavRepathBudget")
     }));
+    assert!(report.extensions.plugin_resources().any(|(_, resource)| {
+        resource
+            .type_name()
+            .ends_with("navigation::agent::NavigationDebugCapture")
+    }));
 }
 
 #[test]
 fn navigation_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(manifest
-        .default_packaging
-        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.default_packaging.contains(
+        &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+    ));
 
     let distribution = manifest
         .distribution
@@ -170,7 +234,7 @@ fn navigation_package_manifest_declares_dist_contract() {
     assert_eq!(distribution.forms, vec!["dist".to_string()]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(distribution.engine_compat, ">=0.1, <0.2");
@@ -194,9 +258,9 @@ fn navigation_package_manifest_declares_dist_contract() {
     assert_eq!(
         native_module.target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     for capability in RUNTIME_CAPABILITIES {

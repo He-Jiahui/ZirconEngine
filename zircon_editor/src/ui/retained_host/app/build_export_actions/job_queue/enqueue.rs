@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use std::sync::{atomic::AtomicBool, Arc};
+
+use crate::core::jobs::CancellationToken;
 
 use super::{
     DesktopExportJobPhase, DesktopExportJobQueue, DesktopExportJobSnapshot, DesktopExportQueuedJob,
@@ -30,7 +31,7 @@ impl DesktopExportJobQueue {
             project_root,
             manifest,
             output_root,
-            cancel_requested: Arc::new(AtomicBool::new(false)),
+            cancel: CancellationToken::default(),
         });
         snapshot
     }

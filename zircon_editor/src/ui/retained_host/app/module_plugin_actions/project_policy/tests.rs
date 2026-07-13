@@ -1,6 +1,6 @@
 use super::*;
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::ExportPackagingStrategy;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
 #[test]
 fn module_plugin_policy_cycles_are_deterministic() {
@@ -51,11 +51,12 @@ fn feature_dependency_enable_message_includes_enabled_items_and_diagnostics() {
         plugin_id: "rendering".to_string(),
         feature_id: "rendering.vfx_graph".to_string(),
         enabled: false,
-        project_selection: zircon_runtime::plugin::ProjectPluginSelection::runtime_plugin(
-            zircon_runtime::builtin::RuntimePluginId::Rendering,
-            true,
-            false,
-        ),
+        project_selection:
+            zircon_runtime::core::framework::project::ProjectPluginSelection::runtime_plugin(
+                zircon_runtime::builtin::RuntimePluginId::Rendering,
+                true,
+                false,
+            ),
         enabled_dependency_plugins: vec!["rendering".to_string(), "particles".to_string()],
         enabled_dependency_features: vec!["rendering.shader_graph".to_string()],
         diagnostics: vec![

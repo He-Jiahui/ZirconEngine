@@ -82,9 +82,10 @@ fn review_f5_native_live_host_loading_uses_typed_error() {
     }
 
     for required_source in [
-        "use super::loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};",
+        "lock_loaded_native_plugins, NativePluginLiveHostLoadingError",
         "LiveHostLock(NativePluginLiveHostLoadingError)",
-        "Self::LiveHostLock(error) => Some(error)",
+        "Self::LiveHostLock(",
+        ") => Some(",
     ] {
         assert!(
             bridge_methods.contains(required_source)

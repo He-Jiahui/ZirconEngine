@@ -1,13 +1,8 @@
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/budgets.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_inventory.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD_TREE_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_tree.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_current.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/budgets.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_inventory.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_CHILD_TREE_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_tree.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_current.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_OWNERSHIP_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/ownership.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_STATUS_SYNC_CHILD: &str =
@@ -42,7 +37,6 @@ pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURR
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/split_layout.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_SPLIT_LAYOUT_STATUS_MIRRORS_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/status_mirrors.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_DOC_PARENT_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_doc_parent.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_TYPED_ERROR_PARENT_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/typed_error_parent.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_DOC_PARENT_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_doc_parent.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_TYPED_ERROR_PARENT_CHILD:
+    &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/typed_error_parent.rs";

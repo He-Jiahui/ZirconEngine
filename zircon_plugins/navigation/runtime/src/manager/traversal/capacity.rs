@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use zircon_runtime::asset::NavMeshLinkCapacity;
+use zircon_runtime::core::framework::navigation::NavMeshLinkCapacity;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct BridgeCapacityRuntime {

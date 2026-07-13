@@ -11,6 +11,7 @@ use super::{WorldInspectionField, WorldInspectionHierarchyRow};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct WorldInspection {
+    pub generation: u64,
     pub focused_entity: Option<EntityId>,
     pub hierarchy_rows: Vec<WorldInspectionHierarchyRow>,
     pub fields: Vec<WorldInspectionField>,
@@ -19,26 +20,44 @@ pub struct WorldInspection {
 impl WorldInspection {
     pub fn from_world(world: &World, focused: Option<EntityId>) -> Self {
         let focused_entity = focused.filter(|entity| world.contains_entity(*entity));
+        let mut hierarchy_rows = world.inspect_hierarchy();
+        if let Some(focused_entity) = focused_entity {
+            for row in &mut hierarchy_rows {
+                row.focused = row.entity == focused_entity;
+            }
+        }
         Self {
+            generation: world.world_generation(),
             focused_entity,
-            hierarchy_rows: build_hierarchy_rows(world, focused_entity),
+            hierarchy_rows,
             fields: focused_entity
-                .map(|entity| build_inspection_fields(world, entity))
+                .map(|entity| world.inspect_fields(entity))
                 .unwrap_or_default(),
         }
     }
 }
 
 impl World {
+    /// Builds the composed hierarchy-and-field inspection snapshot.
     pub fn inspect_world(&self, focused: Option<EntityId>) -> WorldInspection {
         WorldInspection::from_world(self, focused)
     }
+
+    /// Builds hierarchy rows without coupling the query to editor focus state.
+    pub fn inspect_hierarchy(&self) -> Vec<WorldInspectionHierarchyRow> {
+        build_hierarchy_rows(self)
+    }
+
+    /// Builds reflected fields for one existing entity.
+    pub fn inspect_fields(&self, entity: EntityId) -> Vec<WorldInspectionField> {
+        if !self.contains_entity(entity) {
+            return Vec::new();
+        }
+        build_inspection_fields(self, entity)
+    }
 }
 
-fn build_hierarchy_rows(
-    world: &World,
-    focused: Option<EntityId>,
-) -> Vec<WorldInspectionHierarchyRow> {
+fn build_hierarchy_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
     let nodes = world.node_records();
     let node_by_entity = nodes
         .iter()
@@ -60,7 +79,6 @@ fn build_hierarchy_rows(
                 world,
                 &node_by_entity,
                 &children_by_parent,
-                focused,
                 *root,
                 0,
                 &mut visited,
@@ -75,7 +93,6 @@ fn build_hierarchy_rows(
                 world,
                 &node_by_entity,
                 &children_by_parent,
-                focused,
                 node.id,
                 0,
                 &mut visited,
@@ -90,43 +107,83 @@ fn push_hierarchy_row(
     world: &World,
     node_by_entity: &HashMap<EntityId, &SceneNode>,
     children_by_parent: &BTreeMap<Option<EntityId>, Vec<EntityId>>,
-    focused: Option<EntityId>,
     entity: EntityId,
     depth: u32,
     visited: &mut HashSet<EntityId>,
     rows: &mut Vec<WorldInspectionHierarchyRow>,
-) {
+) -> Option<u64> {
     if !visited.insert(entity) {
-        return;
+        return None;
     }
     let Some(node) = node_by_entity.get(&entity).copied() else {
-        return;
+        return None;
     };
     let children = children_by_parent.get(&Some(entity));
+    let row_index = rows.len();
     rows.push(WorldInspectionHierarchyRow {
         entity,
         parent: node.parent,
         depth,
         display_name: node.name.clone(),
         kind: node_kind_label(&node.kind).to_string(),
-        focused: focused == Some(entity),
+        subtree_hash: 0,
+        focused: false,
         active_in_hierarchy: world.active_in_hierarchy(entity).unwrap_or(false),
         has_children: children.is_some_and(|children| !children.is_empty()),
     });
 
+    let mut subtree_hasher = StableSubtreeHasher::new(&node.name);
+    subtree_hasher.write_u64(children.map_or(0, Vec::len) as u64);
     if let Some(children) = children {
         for child in children {
-            push_hierarchy_row(
+            let child_hash = push_hierarchy_row(
                 world,
                 node_by_entity,
                 children_by_parent,
-                focused,
                 *child,
                 depth + 1,
                 visited,
                 rows,
             );
+            subtree_hasher.write_u64(*child);
+            subtree_hasher.write_u64(child_hash.unwrap_or_default());
         }
+    }
+    let subtree_hash = subtree_hasher.finish();
+    rows[row_index].subtree_hash = subtree_hash;
+    Some(subtree_hash)
+}
+
+const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+struct StableSubtreeHasher {
+    value: u64,
+}
+
+impl StableSubtreeHasher {
+    fn new(display_name: &str) -> Self {
+        let mut hasher = Self {
+            value: FNV_OFFSET_BASIS,
+        };
+        hasher.write_u64(display_name.len() as u64);
+        hasher.write_bytes(display_name.as_bytes());
+        hasher
+    }
+
+    fn write_u64(&mut self, value: u64) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
+    fn write_bytes(&mut self, bytes: &[u8]) {
+        for byte in bytes {
+            self.value ^= u64::from(*byte);
+            self.value = self.value.wrapping_mul(FNV_PRIME);
+        }
+    }
+
+    const fn finish(self) -> u64 {
+        self.value
     }
 }
 

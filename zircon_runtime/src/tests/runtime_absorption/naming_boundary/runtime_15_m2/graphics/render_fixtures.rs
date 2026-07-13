@@ -196,6 +196,12 @@ fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
         ),
         "render graph compute workload fixture source should be readable",
     );
+    let compute_workload_tests = read_text(
+        &manifest_root.join(
+            "src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs",
+        ),
+        "render graph compute workload test fixture source should be readable",
+    );
     let runtime_15_plan = read_repo_text(
         manifest_root,
         "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
@@ -226,9 +232,11 @@ fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
     let status_slice = read_runtime_15_naming_status_map(manifest_root);
     let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
+    let render_graph_fixture_sources =
+        format!("{advanced_resources}\n{compute_workload}\n{compute_workload_tests}");
     assert_contains_all(
         "render graph fallback fixture names",
-        &(advanced_resources.clone() + "\n" + &compute_workload),
+        &render_graph_fixture_sources,
         &[
             "fallback-virtual-geometry-without-resource-capability",
             "unexpected-compute",
@@ -243,7 +251,7 @@ fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
         "legacy-pipeline",
     ] {
         assert!(
-            !advanced_resources.contains(retired_name) && !compute_workload.contains(retired_name),
+            !render_graph_fixture_sources.contains(retired_name),
             "render graph fallback fixtures should not retain retired `{retired_name}` wording"
         );
     }

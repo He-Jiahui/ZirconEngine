@@ -24,13 +24,15 @@ impl SceneRendererCore {
         screen_space_reflection_history_enabled: bool,
         hzb_history_enabled: bool,
         exposure_history_enabled: bool,
+        volumetric_history_enabled: bool,
     ) -> RenderHistoryCopyReport {
         let requested_copy_count = taa_history_enabled as usize
             + runtime_features.hybrid_global_illumination_enabled as usize
             + runtime_features.ssao_enabled as usize
             + screen_space_reflection_history_enabled as usize
             + hzb_history_enabled as usize
-            + exposure_history_enabled as usize;
+            + exposure_history_enabled as usize
+            + volumetric_history_enabled as usize;
         let history_target_present = history_textures.is_some();
         let mut scene_color_copied = false;
         let mut global_illumination_copied = false;
@@ -38,6 +40,7 @@ impl SceneRendererCore {
         let mut screen_space_reflection_copied = false;
         let mut hzb_furthest_copied = false;
         let mut exposure_copied = false;
+        let mut volumetric_scattering_copied = false;
 
         if let Some(history) = history_textures {
             if taa_history_enabled {
@@ -82,6 +85,11 @@ impl SceneRendererCore {
                 history.flip_exposure_history();
                 exposure_copied = true;
             }
+            if volumetric_history_enabled {
+                volumetric_scattering_copied =
+                    copy_volumetric_scattering_history(encoder, graph_resources, history);
+                history.set_volumetric_history_valid(volumetric_scattering_copied);
+            }
         }
         RenderHistoryCopyReport::new(
             history_target_present,
@@ -93,8 +101,42 @@ impl SceneRendererCore {
             screen_space_reflection_copied,
             hzb_furthest_copied,
             exposure_copied,
+            volumetric_scattering_copied,
         )
     }
+}
+
+fn copy_volumetric_scattering_history(
+    encoder: &mut wgpu::CommandEncoder,
+    graph_resources: &RenderGraphExecutionResources,
+    history: &SceneFrameHistoryTextures,
+) -> bool {
+    let resource_name = PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING;
+    let (Some(source), Some(desc), Some(destination), Some(quality)) = (
+        graph_resources.owned_texture(resource_name),
+        graph_resources.owned_texture_desc(resource_name),
+        history.volumetric_history_texture(),
+        history.volumetric_history_quality(),
+    ) else {
+        return false;
+    };
+    if desc.sample_count != 1
+        || desc.format != crate::rhi::TextureFormat::Rgba16Float
+        || desc.dimension != crate::rhi::TextureDimension::D3
+        || [desc.width, desc.height, desc.depth] != quality.dimensions()
+    {
+        return false;
+    }
+    encoder.copy_texture_to_texture(
+        source.as_image_copy(),
+        destination.as_image_copy(),
+        wgpu::Extent3d {
+            width: desc.width,
+            height: desc.height,
+            depth_or_array_layers: desc.depth,
+        },
+    );
+    true
 }
 
 fn copy_global_illumination_history(

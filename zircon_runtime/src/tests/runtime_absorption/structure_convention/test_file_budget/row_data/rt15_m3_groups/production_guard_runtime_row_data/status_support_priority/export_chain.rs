@@ -18,7 +18,12 @@ pub(super) fn assert_status_support_priority_exports_are_current() {
     );
     assert_contains_all(
         "Runtime 15 and top-level aggregation consume status-support priority child groups",
-        &[runtime_15_m3.as_str(), runtime_15.as_str(), top_level.as_str()].join("\n"),
+        &[
+            runtime_15_m3.as_str(),
+            runtime_15.as_str(),
+            top_level.as_str(),
+        ]
+        .join("\n"),
         &[
             "PRODUCTION_GUARD_SUPPORT_RUNTIME_ROW_DATA_STATUS_SUPPORT_PRIORITY_ROW_DATA_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
             "PRODUCTION_GUARD_SUPPORT_RUNTIME_ROW_DATA_STATUS_SUPPORT_PRIORITY_PRIORITY_PLAN_DOCS_EXPECTED_STATUS_OUTPUT_SLICES",

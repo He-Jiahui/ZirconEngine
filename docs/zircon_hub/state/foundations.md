@@ -7,14 +7,14 @@ related_code:
   - zircon_hub/src/state/action_history.rs
   - zircon_hub/src/state/task_status.rs
   - zircon_hub/src/projects/metadata.rs
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/asset_catalog.rs
-  - zircon_hub/src/app/runtime/plugin_catalog.rs
-  - zircon_hub/src/app/runtime/learn_catalog.rs
-  - zircon_hub/src/app/runtime/team_overview.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/persistence.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/assets/catalog.rs
+  - zircon_hub/src/plugins/catalog.rs
+  - zircon_hub/src/learn/catalog.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/projects
+  - zircon_hub/src/settings/hub_config.rs
   - zircon_hub/src/settings/hub_config.rs
   - zircon_hub/src/settings/mod.rs
   - zircon_hub/src/settings/config_path.rs
@@ -23,23 +23,23 @@ related_code:
   - zircon_hub/src/plugins/catalog.rs
   - zircon_hub/src/learn/catalog.rs
   - zircon_hub/src/team/local_git.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/workspace_actions.rs
-  - zircon_hub/src/app/view_model/assets.rs
-  - zircon_hub/src/app/view_model/plugins.rs
-  - zircon_hub/src/app/view_model/learn.rs
-  - zircon_hub/src/app/view_model/team.rs
-  - zircon_hub/src/app/view_model/cloud.rs
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model
+  - zircon_hub/src/tauri_app/view_model/quick_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/tauri_app/view_model/catalog.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
   - zircon_hub/src/process/editor_launch.rs
   - zircon_hub/src/process/open_folder.rs
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/builds.slint
-  - zircon_hub/ui/builds_page_components.slint
-  - zircon_hub/ui/editor.slint
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/BuildsPage.tsx
+  - zircon_hub/web/src/pages/EditorPage.tsx
 implementation_files:
   - zircon_hub/src/state/scope.rs
   - zircon_hub/src/state/hub_snapshot.rs
@@ -47,25 +47,25 @@ implementation_files:
   - zircon_hub/src/state/project_view.rs
   - zircon_hub/src/state/action_history.rs
   - zircon_hub/src/state/task_status.rs
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
-  - zircon_hub/src/app/runtime/asset_catalog.rs
-  - zircon_hub/src/app/runtime/plugin_catalog.rs
-  - zircon_hub/src/app/runtime/learn_catalog.rs
-  - zircon_hub/src/app/runtime/team_overview.rs
-  - zircon_hub/src/app/runtime/project_workspace.rs
-  - zircon_hub/src/app/runtime/persistence.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
+  - zircon_hub/src/assets/catalog.rs
+  - zircon_hub/src/plugins/catalog.rs
+  - zircon_hub/src/learn/catalog.rs
+  - zircon_hub/src/team
+  - zircon_hub/src/projects
+  - zircon_hub/src/settings/hub_config.rs
   - zircon_hub/src/settings/hub_config.rs
   - zircon_hub/src/settings/mod.rs
   - zircon_hub/src/assets/catalog.rs
   - zircon_hub/src/plugins/catalog.rs
   - zircon_hub/src/learn/catalog.rs
   - zircon_hub/src/team/local_git.rs
-  - zircon_hub/src/app/binding.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/projects.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
-  - zircon_hub/src/app/view_model/workspace_actions.rs
+  - zircon_hub/src/tauri_app/commands.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model
+  - zircon_hub/src/tauri_app/view_model/quick_actions.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
   - zircon_hub/src/process/editor_launch.rs
   - zircon_hub/src/process/open_folder.rs
 plan_sources:
@@ -94,14 +94,14 @@ tests:
   - zircon_hub/src/state/project_view.rs
   - zircon_hub/src/state/action_history.rs
   - zircon_hub/src/state/task_status.rs
-  - zircon_hub/src/app/runtime.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/settings/hub_config.rs
-  - zircon_hub/src/app/runtime/source_scoped_views.rs
+  - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
   - zircon_hub/src/assets/catalog.rs
   - zircon_hub/src/plugins/catalog.rs
   - zircon_hub/src/learn/catalog.rs
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/quick_actions.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/quick_actions.rs
   - zircon_hub/tests/project_management_contract.rs
   - zircon_hub/tests/project_quick_actions_contract.rs
   - zircon_hub/tests/project_source_engine_contract.rs
@@ -149,6 +149,8 @@ doc_type: module-detail
 ---
 
 # Hub foundations state model
+
+> 2026-07-12 hard cut：canonical Hub state 仍由 Rust state/snapshot/scope 契约拥有，但宿主投影已从 Slint binding 改为 `tauri_app::{commands,runtime_state,view_model}`，消费端为 React/MUI `web/src`。页面不得重新推断 project/source-engine scope；旧 `app/view_model.rs`、`app/binding.rs` 与 `ui/*.slint` 仅是历史描述，不再是实现或兼容 surface。
 
 Hub foundations are the shared state contracts that keep pages from each inferring their own selected project or Source Engine target. The scope-model rule is: view-model and binding code derive visible Hub project/source-engine copy from one canonical `HubScope`, and Slint pages consume projected DTO fields instead of recomputing fallback rules.
 

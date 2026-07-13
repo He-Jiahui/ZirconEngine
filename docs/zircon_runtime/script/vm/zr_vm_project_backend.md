@@ -11,8 +11,6 @@ related_code:
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/tests.rs
@@ -21,12 +19,10 @@ related_code:
   - zircon_runtime/src/script/vm/tests/module_surface.rs
   - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
-  - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
+  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
 implementation_files:
   - zircon_runtime/Cargo.toml
   - zircon_app/Cargo.toml
@@ -39,8 +35,6 @@ implementation_files:
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/tests.rs
@@ -49,13 +43,11 @@ implementation_files:
   - zircon_runtime/src/script/vm/tests/module_surface.rs
   - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
-  - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
+  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
 plan_sources:
   - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
@@ -84,6 +76,8 @@ doc_type: module-detail
 ---
 
 # ZrVM Project Backend
+
+The real backend consumes the external `zr_vm_rust_binding` package through the configured Cargo/native-library boundary. That package is not owned by this repository, so its machine-local checkout path is intentionally excluded from `related_code` and `implementation_files`; validation commands may still resolve it through `ZR_VM_RUST_BINDING_LIB_DIR` or an explicit external manifest path.
 
 ## Purpose
 

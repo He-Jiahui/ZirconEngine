@@ -107,6 +107,10 @@ pub enum UiDispatchHostRequestKind {
         target: UiTransientDismissalTarget,
         reason: UiTransientDismissalReason,
     },
+    ActivateLink {
+        target: UiNodeId,
+        href: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

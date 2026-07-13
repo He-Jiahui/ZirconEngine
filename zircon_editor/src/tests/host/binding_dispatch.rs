@@ -19,7 +19,7 @@ use crate::ui::binding_dispatch::{
 };
 use serde_json::json;
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
-use zircon_runtime::plugin::ComponentTypeDescriptor;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
@@ -511,7 +511,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
         "AddBlendNode",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::animation_command(AnimationCommand::AddGraphNode {
-            graph_path: "res://animation/hero.graph.zranim".to_string(),
+            graph_locator: "res://animation/hero.graph.zranim".to_string(),
             node_id: "blend_walk_run".to_string(),
             node_kind: "blend".to_string(),
         }),
@@ -519,7 +519,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
     assert_eq!(
         dispatch_animation_binding(&graph_node).unwrap(),
         AnimationHostEvent::AddGraphNode {
-            graph_path: "res://animation/hero.graph.zranim".to_string(),
+            graph_locator: "res://animation/hero.graph.zranim".to_string(),
             node_id: "blend_walk_run".to_string(),
             node_kind: "blend".to_string(),
         }
@@ -530,7 +530,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
         "CreateTransition",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::animation_command(AnimationCommand::CreateTransition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_frames: 8,
@@ -539,7 +539,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
     assert_eq!(
         dispatch_animation_binding(&state_transition).unwrap(),
         AnimationHostEvent::CreateTransition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_frames: 8,
@@ -551,7 +551,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
         "TransitionCondition",
         EditorUiEventKind::Change,
         EditorUiBindingPayload::animation_command(AnimationCommand::SetTransitionCondition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             parameter_name: "speed".to_string(),
@@ -562,7 +562,7 @@ fn animation_timeline_graph_and_state_machine_bindings_dispatch_into_host_events
     assert_eq!(
         dispatch_animation_binding(&condition).unwrap(),
         AnimationHostEvent::SetTransitionCondition {
-            state_machine_path: "res://animation/hero.state_machine.zranim".to_string(),
+            state_machine_locator: "res://animation/hero.state_machine.zranim".to_string(),
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             parameter_name: "speed".to_string(),
@@ -600,14 +600,14 @@ fn asset_binding_dispatches_into_host_event() {
         "OpenAsset",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::asset_command(AssetCommand::OpenAsset {
-            asset_path: "crate://prefabs/player.prefab".to_string(),
+            asset_locator: "crate://prefabs/player.prefab".to_string(),
         }),
     );
 
     assert_eq!(
         dispatch_asset_binding(&binding).unwrap(),
         AssetHostEvent::OpenAsset {
-            asset_path: "crate://prefabs/player.prefab".to_string(),
+            asset_locator: "crate://prefabs/player.prefab".to_string(),
         }
     );
 }

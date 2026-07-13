@@ -3,7 +3,10 @@ use super::super::lighting_pipeline::create_lighting_pipeline;
 use super::DeferredSceneResources;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::ShadingModelDescriptor;
-use crate::graphics::scene::scene_renderer::environment::ReflectionProbeGpuBindings;
+use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
+use crate::graphics::scene::scene_renderer::environment::{
+    LightmapGpuBindings, ReflectionProbeGpuBindings,
+};
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::types::GraphicsError;
 use wgpu::util::DeviceExt;
@@ -16,6 +19,7 @@ impl DeferredSceneResources {
         _material_layout: &wgpu::BindGroupLayout,
         gpu_scene_layout: &wgpu::BindGroupLayout,
         reflection_probe_bindings: ReflectionProbeGpuBindings,
+        lightmap_bindings: LightmapGpuBindings,
         target_format: wgpu::TextureFormat,
         plugin_shading_models: &[ShadingModelDescriptor],
     ) -> Result<Self, GraphicsError> {
@@ -28,6 +32,17 @@ impl DeferredSceneResources {
             gpu_scene_layout,
             target_format,
             plugin_shading_models,
+            false,
+        )?;
+        let lighting_subsurface_mrt_pipeline = create_lighting_pipeline(
+            device,
+            asset_manager,
+            scene_layout,
+            &lighting_bind_group_layout,
+            gpu_scene_layout,
+            target_format,
+            plugin_shading_models,
+            true,
         )?;
         let shadow_compare_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-deferred-shadow-compare-sampler"),
@@ -53,15 +68,19 @@ impl DeferredSceneResources {
                 contents: bytemuck::bytes_of(&GpuShadowGlobals::disabled(1, 1)),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             });
+        let volumetric_apply = VolumetricApplyFallbackResources::new(device, "zircon-deferred");
 
         Ok(Self {
             lighting_bind_group_layout,
             lighting_pipeline,
+            lighting_subsurface_mrt_pipeline,
             shadow_compare_sampler,
             shadow_atlas_fallback_view,
             shadow_atlas_fallback_slot_buffer,
             shadow_atlas_fallback_globals_buffer,
             reflection_probe_bindings,
+            lightmap_bindings,
+            volumetric_apply,
         })
     }
 }

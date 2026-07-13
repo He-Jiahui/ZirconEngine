@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
-    RenderPluginRendererOutputs,
+    RenderPluginRendererOutputs, SkyboxMode,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
@@ -59,13 +59,21 @@ impl SceneRendererCore {
         render_pass_executors
             .validate_compiled_pipeline(pipeline)
             .map_err(GraphicsError::Asset)?;
+        let realtime_ibl_prepared = matches!(
+            frame.environment().skybox.mode,
+            SkyboxMode::ProceduralGradient
+        )
+        .then_some(frame.environment().skybox.procedural)
+        .filter(|sky| sky.intensity > 0.0)
+        .map(|sky| self.realtime_ibl.prepare_frame(sky));
         self.write_scene_uniform(
             device,
             queue,
             streamer,
             frame,
+            realtime_ibl_prepared.as_ref(),
             runtime_features.reflection_probes_enabled,
-        );
+        )?;
         let shadow_frame_plan =
             crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
                 &mut self.shadow_atlas_allocator,
@@ -84,6 +92,19 @@ impl SceneRendererCore {
             label: Some("zircon-compiled-scene-encoder"),
         });
         insert_marker(&mut encoder, RENDERDOC_MARKER_FRAME_EXTRACT);
+        let realtime_ibl_submission = realtime_ibl_prepared
+            .as_ref()
+            .map(|prepared| {
+                self.realtime_ibl.record_prepared_frame(
+                    device,
+                    &mut encoder,
+                    prepared,
+                    &mut self.ibl_bake_pipeline_cache,
+                )
+            })
+            .transpose()
+            .map_err(GraphicsError::Asset)?
+            .flatten();
         let frame_generation = self.mesh_command_generation;
         let mut compiled_scene_draws = build_compiled_scene_draws(
             &self.advanced_plugin_resources,
@@ -228,6 +249,15 @@ impl SceneRendererCore {
             pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
         let exposure_history_enabled =
             pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::EXPOSURE_CURRENT);
+        let volumetric_history_enabled = pipeline_writes_resource(
+            pipeline,
+            PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING,
+        ) && crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_history_quality(
+            &frame.extract,
+            frame.shader_quality(),
+        )
+        .map_err(GraphicsError::Asset)?
+        .is_some();
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
@@ -244,12 +274,14 @@ impl SceneRendererCore {
             streamer,
             frame,
             target,
+            self.gpu_scene.light_buffer(),
             history_textures.as_deref(),
             CompiledSceneGraphResourceBindingFlags {
                 taa_history_enabled,
                 screen_space_reflection_history_enabled,
                 hzb_history_enabled,
                 exposure_history_enabled,
+                volumetric_history_enabled,
                 history_available,
                 runtime_features,
             },
@@ -293,6 +325,7 @@ impl SceneRendererCore {
             screen_space_reflection_history_enabled,
             hzb_history_enabled,
             exposure_history_enabled,
+            volumetric_history_enabled,
             shadow_frame_plan: &shadow_frame_plan,
             prepared_overlays: &prepared_overlays,
         })?;
@@ -308,6 +341,7 @@ impl SceneRendererCore {
             graph_execution_record: &mut graph_execution_record,
             mesh_pass_indirect_draws: &mesh_pass_indirect_draws,
             environment_ibl_bake_request: pipeline.environment_ibl_bake_request,
+            realtime_ibl_submission,
         })?;
 
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();

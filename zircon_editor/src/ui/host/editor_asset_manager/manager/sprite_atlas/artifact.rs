@@ -10,7 +10,7 @@ use super::packer::{
     atlas_manifest_uri, atlas_texture_uri, PackedSpriteAtlas, SpriteAtlasBuildError,
 };
 
-const ATLAS_LIBRARY_DIR: &str = "editor-sprite-atlases";
+const ATLAS_CACHE_DIR: &str = "editor-sprite-atlases";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpriteAtlasArtifactReport {
@@ -29,7 +29,7 @@ pub fn write_sprite_atlas_artifacts(
         .validate()
         .map_err(SpriteAtlasBuildError::InvalidConfig)?;
 
-    let artifact_root = project.paths().library_root().join(ATLAS_LIBRARY_DIR);
+    let artifact_root = project.paths().cache_root().join(ATLAS_CACHE_DIR);
     fs::create_dir_all(&artifact_root)?;
 
     let atlas_texture = atlas_texture_uri(config)?;
@@ -89,7 +89,9 @@ mod tests {
     fn sprite_atlas_artifact_writer_writes_png_and_runtime_valid_manifest() {
         let root = unique_temp_project_root("sprite_atlas_artifact_writer");
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             "SpriteAtlasArtifactProject",
             AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -141,7 +143,9 @@ mod tests {
     fn sprite_atlas_artifact_writer_rejects_uri_metacharacter_output_stem() {
         let root = unique_temp_project_root("sprite_atlas_artifact_writer_bad_stem");
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             "SpriteAtlasArtifactProject",
             AssetUri::parse("res://scenes/main.scene.toml").unwrap(),

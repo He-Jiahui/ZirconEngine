@@ -4,7 +4,9 @@ use super::*;
 fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     let root = unique_temp_project_root("asset_manager_resource_revision");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -13,12 +15,35 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
+    write_valid_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("pbr.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
+    let material_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("materials")
+        .join("grid.zmaterial");
     write_default_material(material_path.clone());
-    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+    write_default_scene(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
+    );
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
@@ -72,7 +97,9 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
 fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     let root = unique_temp_project_root("asset_manager_unrelated_revision");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -81,13 +108,34 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     .save(paths.manifest_path())
     .unwrap();
 
-    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    let model_path = paths.assets_root().join("models").join("triangle.obj");
+    write_valid_wgsl(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("pbr.wgsl"),
+    );
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    let model_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("models")
+        .join("triangle.obj");
     write_triangle_obj(model_path);
-    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
+    let material_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("materials")
+        .join("grid.zmaterial");
     write_default_material(material_path.clone());
-    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+    write_default_scene(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
+    );
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
@@ -129,7 +177,9 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
 fn shader_reimport_exports_updated_revision_for_prewarm_registry() {
     let root = unique_temp_project_root("asset_manager_shader_revision_export");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Sandbox",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -138,12 +188,35 @@ fn shader_reimport_exports_updated_revision_for_prewarm_registry() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let shader_path = paths.assets_root().join("shaders").join("pbr.wgsl");
+    let shader_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("pbr.wgsl");
     write_valid_wgsl(shader_path.clone());
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
-    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+    write_checker_png(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("textures")
+            .join("checker.png"),
+    );
+    write_triangle_obj(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models")
+            .join("triangle.obj"),
+    );
+    write_default_material(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("materials")
+            .join("grid.zmaterial"),
+    );
+    write_default_scene(
+        paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("scenes")
+            .join("main.scene.toml"),
+    );
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager

@@ -1,4 +1,4 @@
-use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginManifest};
+use crate::core::framework::project::{ProjectPluginFeatureSelection, ProjectPluginManifest};
 
 #[derive(Clone, Debug)]
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) struct ActiveFeatureSelection<'a> {

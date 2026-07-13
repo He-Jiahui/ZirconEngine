@@ -112,7 +112,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/frames/row.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/ellipsis.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/input_kind.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/focus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/values.rs

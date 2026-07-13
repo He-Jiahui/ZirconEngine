@@ -1,13 +1,16 @@
-use zircon_editor::core::editor_authoring_extension::AssetCreationTemplateDescriptor;
-use zircon_editor::core::editor_extension::{
-    AssetEditorDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
-    EditorMenuItemDescriptor,
+use zircon_editor::core::asset::{
+    AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
 };
-use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+use zircon_editor::core::commands::EditorCommandDescriptor;
+use zircon_editor::core::editor_extension::{
+    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorMenuItemDescriptor,
+};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::{
     CAPABILITY, PLUGIN_ID, PREFAB_AUTHORING_VIEW_ID, PREFAB_DRAWER_ID, PREFAB_TEMPLATE_ID,
@@ -92,27 +95,33 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
     let revert = operation("prefab_tools.authoring.revert_overrides");
     let break_instance = operation("prefab_tools.authoring.break_instance");
     EditorAuthoringContributionBatch {
-        operations: vec![
-            EditorOperationDescriptor::new(create.clone(), "Create Prefab From Selection")
-                .with_menu_path("Plugins/Prefab Tools/Create From Selection")
-                .with_payload_schema_id("prefab_tools.create_from_selection.v1")
-                .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(open.clone(), "Open Prefab")
+        commands: vec![
+            EditorCommandDescriptor::pending_operation(
+                create.clone(),
+                "Create Prefab From Selection",
+            )
+            .with_menu_path("Plugins/Prefab Tools/Create From Selection")
+            .with_payload_schema_id("prefab_tools.create_from_selection.v1")
+            .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::pending_operation(open.clone(), "Open Prefab")
                 .with_menu_path("Plugins/Prefab Tools/Open Prefab Asset")
                 .with_payload_schema_id("prefab_tools.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(apply.clone(), "Apply Prefab Overrides")
+            EditorCommandDescriptor::pending_operation(apply.clone(), "Apply Prefab Overrides")
                 .with_menu_path("Plugins/Prefab Tools/Apply Overrides")
                 .with_payload_schema_id("prefab_tools.apply_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(revert.clone(), "Revert Prefab Overrides")
+            EditorCommandDescriptor::pending_operation(revert.clone(), "Revert Prefab Overrides")
                 .with_menu_path("Plugins/Prefab Tools/Revert Overrides")
                 .with_payload_schema_id("prefab_tools.revert_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(break_instance.clone(), "Break Prefab Instance")
-                .with_menu_path("Plugins/Prefab Tools/Break Instance")
-                .with_payload_schema_id("prefab_tools.break_instance.v1")
-                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::pending_operation(
+                break_instance.clone(),
+                "Break Prefab Instance",
+            )
+            .with_menu_path("Plugins/Prefab Tools/Break Instance")
+            .with_payload_schema_id("prefab_tools.break_instance.v1")
+            .with_required_capabilities([CAPABILITY]),
         ],
         menu_items: vec![
             menu_item("Plugins/Prefab Tools/Create From Selection", &create),
@@ -121,26 +130,23 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
             menu_item("Plugins/Prefab Tools/Revert Overrides", &revert),
             menu_item("Plugins/Prefab Tools/Break Instance", &break_instance),
         ],
-        asset_editors: vec![AssetEditorDescriptor::new(
-            "prefab.asset",
-            PREFAB_AUTHORING_VIEW_ID,
-            "Prefab",
-            open,
+        asset_type_contributions: vec![AssetTypeContribution::augment(
+            AssetTypeId::from_resource_kind(ResourceKind::Prefab),
         )
-        .with_required_capabilities([CAPABILITY])],
+        .with_toolkit(
+            AssetToolkitDescriptor::new(PREFAB_AUTHORING_VIEW_ID, open)
+                .with_required_capabilities([CAPABILITY]),
+        )
+        .with_creation_template(
+            AssetCreationTemplateDescriptor::new("prefab_tools.template.prefab", "Prefab", create)
+                .with_default_document("plugins://prefab_tools/templates/default_prefab.toml")
+                .with_required_capabilities([CAPABILITY]),
+        )],
         component_drawers: vec![ComponentDrawerDescriptor::new(
             zircon_plugin_prefab_tools_runtime::PREFAB_INSTANCE_COMPONENT_TYPE,
             "plugins://prefab_tools/editor/prefab_instance.zui",
             "prefab_tools.editor.component",
         )],
-        asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(
-            "prefab_tools.template.prefab",
-            "Prefab",
-            "prefab.asset",
-            create,
-        )
-        .with_default_document("plugins://prefab_tools/templates/default_prefab.toml")
-        .with_required_capabilities([CAPABILITY])],
         ..Default::default()
     }
 }

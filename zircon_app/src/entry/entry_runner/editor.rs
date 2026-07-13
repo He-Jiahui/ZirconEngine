@@ -6,13 +6,12 @@ use std::error::Error;
 use serde_json::Value;
 #[cfg(feature = "target-editor-host")]
 use zircon_editor::{
-    core::editor_event::EditorEventRuntime,
     core::editor_operation::{
         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
         EditorOperationSource,
     },
     run_editor_with_config,
-    ui::host::EditorManager,
+    ui::host::{EditorHostEventController, EditorManager},
     ui::workbench::state::EditorState,
     EditorGuiStartupRequest, EditorHostRunConfig, EDITOR_MANAGER_NAME,
 };
@@ -45,7 +44,7 @@ impl EntryRunner {
         #[cfg(not(feature = "target-editor-host"))]
         {
             let _ = args;
-            return Err("run_editor requires the `target-editor-host` feature".into());
+            Err("run_editor requires the `target-editor-host` feature".into())
         }
         #[cfg(feature = "target-editor-host")]
         {
@@ -71,7 +70,9 @@ impl EntryRunner {
             #[cfg(feature = "profiling")]
             let profile_capture =
                 zircon_runtime::core::diagnostics::profiling::start_capture_from_env("editor");
-            let core = Self::bootstrap(EntryConfig::new(EntryProfile::Editor))?;
+            let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(
+                EntryConfig::new(EntryProfile::Editor),
+            )?;
             let runtime = LoadedRuntime::load_default()?;
             let runtime_client =
                 std::sync::Arc::new(RuntimeSession::create_with_profile(runtime, b"editor")?);
@@ -99,13 +100,15 @@ impl EntryRunner {
         request: EditorCliOperationRequest,
     ) -> Result<zircon_editor::core::editor_operation::EditorOperationControlResponse, Box<dyn Error>>
     {
-        let core = Self::bootstrap(EntryConfig::new(EntryProfile::Editor))?;
+        let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(
+            EntryConfig::new(EntryProfile::Editor),
+        )?;
         let state = EditorState::with_default_selection(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
         );
         let manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
-        let runtime = EditorEventRuntime::new(state, manager);
+        let runtime = EditorHostEventController::new(state, manager);
         Ok(runtime.handle_operation_control_request_from_source(
             EditorOperationSource::Cli,
             request.into_control_request()?,
@@ -270,7 +273,7 @@ struct EditorCliOperationRequest {
     operation_group: Option<String>,
     headless: bool,
     list_operations: bool,
-    query_operation_stack: bool,
+    query_operation_history: bool,
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -279,12 +282,12 @@ impl EditorCliOperationRequest {
         if self.list_operations {
             return Ok(EditorOperationControlRequest::ListOperations);
         }
-        if self.query_operation_stack {
-            return Ok(EditorOperationControlRequest::QueryOperationStack);
+        if self.query_operation_history {
+            return Ok(EditorOperationControlRequest::QueryOperationHistory);
         }
         let Some(operation_id) = self.operation_id else {
             return Err(
-                "--operation is required unless --list-operations or --operation-stack is set"
+                "--operation is required unless --list-operations or --operation-history is set"
                     .into(),
             );
         };
@@ -307,7 +310,7 @@ impl EditorCliOperationRequest {
         let mut operation_group = None;
         let mut headless = false;
         let mut list_operations = false;
-        let mut query_operation_stack = false;
+        let mut query_operation_history = false;
 
         while let Some(arg) = args.next() {
             match arg.as_str() {
@@ -345,11 +348,11 @@ impl EditorCliOperationRequest {
                     }
                     list_operations = true;
                 }
-                "--operation-stack" => {
-                    if query_operation_stack {
-                        return Err("--operation-stack was provided more than once".into());
+                "--operation-history" => {
+                    if query_operation_history {
+                        return Err("--operation-history was provided more than once".into());
                     }
-                    query_operation_stack = true;
+                    query_operation_history = true;
                 }
                 "--headless" => {
                     if headless {
@@ -371,17 +374,17 @@ impl EditorCliOperationRequest {
         }
         let operation_mode_count = usize::from(operation_id.is_some())
             + usize::from(list_operations)
-            + usize::from(query_operation_stack);
+            + usize::from(query_operation_history);
         if operation_mode_count > 1 {
             return Err(
-                "--operation, --list-operations, and --operation-stack are mutually exclusive"
+                "--operation, --list-operations, and --operation-history are mutually exclusive"
                     .into(),
             );
         }
         if operation_mode_count == 0 {
             if headless {
                 return Err(
-                    "--headless requires --operation, --list-operations, or --operation-stack"
+                    "--headless requires --operation, --list-operations, or --operation-history"
                         .into(),
                 );
             }
@@ -396,7 +399,7 @@ impl EditorCliOperationRequest {
             operation_group,
             headless,
             list_operations,
-            query_operation_stack,
+            query_operation_history,
         }))
     }
 }
@@ -413,7 +416,7 @@ mod tests {
     fn editor_cli_operation_parser_accepts_operation_args_and_headless() {
         let request = EditorCliOperationRequest::parse([
             "--operation".to_string(),
-            "Window.Layout.Reset".to_string(),
+            "window.layout.reset".to_string(),
             "--args".to_string(),
             r#"{"source":"ci"}"#.to_string(),
             "--headless".to_string(),
@@ -423,7 +426,7 @@ mod tests {
 
         assert_eq!(
             request.operation_id.as_ref().unwrap().as_str(),
-            "Window.Layout.Reset"
+            "window.layout.reset"
         );
         assert_eq!(request.arguments["source"], "ci");
         assert!(request.headless);
@@ -433,7 +436,7 @@ mod tests {
     fn editor_cli_operation_parser_accepts_operation_group() {
         let request = EditorCliOperationRequest::parse([
             "--operation".to_string(),
-            "Viewport.Transform.Apply".to_string(),
+            "viewport.transform.apply".to_string(),
             "--operation-group".to_string(),
             "Viewport.TransformDrag.42".to_string(),
             "--headless".to_string(),
@@ -499,7 +502,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "--headless requires --operation, --list-operations, or --operation-stack"
+            "--headless requires --operation, --list-operations, or --operation-history"
         );
     }
 
@@ -507,7 +510,7 @@ mod tests {
     fn editor_cli_operation_parser_rejects_operation_mixed_with_list_operations() {
         let error = EditorCliOperationRequest::parse([
             "--operation".to_string(),
-            "Window.Layout.Reset".to_string(),
+            "window.layout.reset".to_string(),
             "--list-operations".to_string(),
             "--headless".to_string(),
         ])
@@ -515,31 +518,31 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "--operation, --list-operations, and --operation-stack are mutually exclusive"
+            "--operation, --list-operations, and --operation-history are mutually exclusive"
         );
     }
 
     #[test]
-    fn editor_cli_operation_parser_rejects_list_operations_mixed_with_stack_query() {
+    fn editor_cli_operation_parser_rejects_list_operations_mixed_with_history_query() {
         let error = EditorCliOperationRequest::parse([
             "--list-operations".to_string(),
-            "--operation-stack".to_string(),
+            "--operation-history".to_string(),
             "--headless".to_string(),
         ])
         .unwrap_err();
 
         assert_eq!(
             error.to_string(),
-            "--operation, --list-operations, and --operation-stack are mutually exclusive"
+            "--operation, --list-operations, and --operation-history are mutually exclusive"
         );
     }
 
     #[test]
     fn editor_cli_operation_parser_rejects_control_request_without_headless() {
         for args in [
-            vec!["--operation".to_string(), "Window.Layout.Reset".to_string()],
+            vec!["--operation".to_string(), "window.layout.reset".to_string()],
             vec!["--list-operations".to_string()],
-            vec!["--operation-stack".to_string()],
+            vec!["--operation-history".to_string()],
         ] {
             let error = EditorCliOperationRequest::parse(args).unwrap_err();
 
@@ -556,9 +559,9 @@ mod tests {
             (
                 vec![
                     "--operation".to_string(),
-                    "Window.Layout.Reset".to_string(),
+                    "window.layout.reset".to_string(),
                     "--operation".to_string(),
-                    "Window.Layout.Reset".to_string(),
+                    "window.layout.reset".to_string(),
                     "--headless".to_string(),
                 ],
                 "--operation was provided more than once",
@@ -566,7 +569,7 @@ mod tests {
             (
                 vec![
                     "--operation".to_string(),
-                    "Window.Layout.Reset".to_string(),
+                    "window.layout.reset".to_string(),
                     "--args".to_string(),
                     "{}".to_string(),
                     "--args".to_string(),
@@ -578,7 +581,7 @@ mod tests {
             (
                 vec![
                     "--operation".to_string(),
-                    "Window.Layout.Reset".to_string(),
+                    "window.layout.reset".to_string(),
                     "--operation-group".to_string(),
                     "Group.1".to_string(),
                     "--operation-group".to_string(),
@@ -597,11 +600,11 @@ mod tests {
             ),
             (
                 vec![
-                    "--operation-stack".to_string(),
-                    "--operation-stack".to_string(),
+                    "--operation-history".to_string(),
+                    "--operation-history".to_string(),
                     "--headless".to_string(),
                 ],
-                "--operation-stack was provided more than once",
+                "--operation-history was provided more than once",
             ),
             (
                 vec![
@@ -681,7 +684,7 @@ mod tests {
     fn editor_gui_startup_parser_leaves_headless_args_for_operation_parser() {
         assert!(EditorGuiStartupRequestArgs::parse([
             "--operation".to_string(),
-            "Window.Layout.Reset".to_string(),
+            "window.layout.reset".to_string(),
             "--headless".to_string(),
         ])
         .unwrap()
@@ -730,22 +733,22 @@ mod tests {
     }
 
     #[test]
-    fn editor_cli_operation_parser_accepts_operation_stack_query() {
+    fn editor_cli_operation_parser_accepts_operation_history_query() {
         let request = EditorCliOperationRequest::parse([
-            "--operation-stack".to_string(),
+            "--operation-history".to_string(),
             "--headless".to_string(),
         ])
         .unwrap()
         .unwrap();
 
-        assert!(request.query_operation_stack);
+        assert!(request.query_operation_history);
         assert!(request.headless);
     }
 
     #[test]
-    fn editor_cli_operation_stack_query_maps_to_control_request() {
+    fn editor_cli_operation_history_query_maps_to_control_request() {
         let request = EditorCliOperationRequest::parse([
-            "--operation-stack".to_string(),
+            "--operation-history".to_string(),
             "--headless".to_string(),
         ])
         .unwrap()
@@ -753,7 +756,7 @@ mod tests {
 
         assert!(matches!(
             request.into_control_request().unwrap(),
-            EditorOperationControlRequest::QueryOperationStack
+            EditorOperationControlRequest::QueryOperationHistory
         ));
     }
 

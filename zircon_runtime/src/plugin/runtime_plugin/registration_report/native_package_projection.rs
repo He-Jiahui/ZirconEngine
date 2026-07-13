@@ -1,7 +1,8 @@
 mod crates;
 mod target_modes;
 
-use crate::plugin::{ExportPackagingStrategy, PluginPackageManifest, ProjectPluginSelection};
+use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginSelection};
+use crate::plugin::PluginPackageManifest;
 
 use self::crates::{native_package_editor_crate, native_package_runtime_crate};
 use self::target_modes::native_package_target_modes;

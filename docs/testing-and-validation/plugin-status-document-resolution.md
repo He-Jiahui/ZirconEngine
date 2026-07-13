@@ -2,7 +2,7 @@
 related_code:
   - tools/tests/plugin_status_document.py
   - tools/tests/test_plugin_status_document.py
-  - tools/tests/test_plugin_docs_current_status*.py
+  - tools/tests
   - docs/plans/zircon_plugins/07-net.md
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/10-editor-integration.md
@@ -10,7 +10,7 @@ related_code:
   - docs/plans/engine-code-review-findings-2026-06.md
 implementation_files:
   - tools/tests/plugin_status_document.py
-  - tools/tests/test_plugin_docs_current_status*.py
+  - tools/tests
 plan_sources:
   - user: 2026-07-10 implement the zircon_plugins plans and prioritize structure/review findings
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md

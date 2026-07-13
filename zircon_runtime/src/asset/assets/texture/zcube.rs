@@ -45,8 +45,8 @@ pub fn texture_asset_from_source_cubemap_zcube(
     cubemap: &SourceCubemapMipChain,
 ) -> TextureAsset {
     let mut bytes = ZcubeSourceCubemapHeader {
-        face_size: cubemap.face_size(),
-        mip_count: cubemap.mip_count(),
+        face_size: cubemap.source_face_size(),
+        mip_count: cubemap.source_mip_count(),
     }
     .encode()
     .to_vec();
@@ -54,14 +54,14 @@ pub fn texture_asset_from_source_cubemap_zcube(
 
     TextureAsset::new_container(
         uri,
-        cubemap.face_size(),
-        cubemap.face_size(),
+        cubemap.source_face_size(),
+        cubemap.source_face_size(),
         ZCUBE_SOURCE_CUBEMAP_FORMAT,
         bytes,
-        cubemap.mip_count(),
+        cubemap.source_mip_count(),
         SOURCE_CUBEMAP_FACE_COUNT as u32,
     )
-    .with_descriptor(zcube_source_cubemap_descriptor(cubemap.mip_count()))
+    .with_descriptor(zcube_source_cubemap_descriptor(cubemap.source_mip_count()))
 }
 
 pub fn decode_zcube_source_cubemap_texture(
@@ -83,22 +83,32 @@ pub fn decode_zcube_source_cubemap_texture(
         });
     }
 
-    let header = ZcubeSourceCubemapHeader::decode(bytes)?;
-    if texture.width != header.face_size || texture.height != header.face_size {
+    let cubemap = decode_zcube_source_cubemap_bytes(bytes)?;
+    if texture.width != cubemap.face_size || texture.height != cubemap.face_size {
         return Err(ZcubeSourceCubemapError::TextureExtentMismatch {
-            expected_face_size: header.face_size,
+            expected_face_size: cubemap.face_size,
             actual_width: texture.width,
             actual_height: texture.height,
         });
     }
-    if *mip_count != header.mip_count || *array_layers != SOURCE_CUBEMAP_FACE_COUNT as u32 {
+    if *mip_count != cubemap.mip_count || *array_layers != SOURCE_CUBEMAP_FACE_COUNT as u32 {
         return Err(ZcubeSourceCubemapError::TextureContainerMetadataMismatch {
-            expected_mip_count: header.mip_count,
+            expected_mip_count: cubemap.mip_count,
             actual_mip_count: *mip_count,
             expected_array_layers: SOURCE_CUBEMAP_FACE_COUNT as u32,
             actual_array_layers: *array_layers,
         });
     }
+
+    Ok(cubemap)
+}
+
+/// Decodes a staged `.zcube` directly from its self-describing container.
+/// This path deliberately does not borrow PMREM artifact dimensions.
+pub fn decode_zcube_source_cubemap_bytes(
+    bytes: &[u8],
+) -> Result<ZcubeSourceCubemap, ZcubeSourceCubemapError> {
+    let header = ZcubeSourceCubemapHeader::decode(bytes)?;
 
     let expected_payload_len = zcube_source_payload_len(header.face_size, header.mip_count).ok_or(
         ZcubeSourceCubemapError::ExtentTooLarge {

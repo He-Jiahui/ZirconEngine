@@ -41,22 +41,37 @@ fn builtin_activity_windows_expose_window_template_documents() {
     let descriptors = manager.descriptors();
 
     for (descriptor_id, template_document_id) in [
-        ("editor.workbench_window", "editor.window.workbench"),
-        ("editor.asset_browser", "editor.window.asset"),
-        ("editor.asset_browser_window", "editor.window.asset"),
-        ("editor.ui_asset", "editor.window.ui_layout_editor"),
+        (
+            "editor.workbench_window",
+            "res://ui/editor/windows/workbench_window.zui",
+        ),
+        (
+            "editor.asset_browser",
+            "res://ui/editor/windows/asset_window.zui",
+        ),
+        (
+            "editor.asset_browser_window",
+            "res://ui/editor/windows/asset_window.zui",
+        ),
+        (
+            "editor.ui_asset",
+            "res://ui/editor/windows/ui_layout_editor_window.zui",
+        ),
         (
             "editor.ui_asset_editor_window",
-            "editor.window.ui_layout_editor",
+            "res://ui/editor/windows/ui_layout_editor_window.zui",
         ),
         (
             "editor.ui_component_showcase",
-            "editor.window.ui_component_showcase",
+            "res://ui/editor/component_showcase.zui",
         ),
-        ("editor.material_demo_window", "editor.window.material_demo"),
+        (
+            "editor.material_demo_window",
+            "res://ui/editor/material_demo_window.zui",
+        ),
         (
             "editor.material_component_lab",
-            "editor.window.material_component_lab",
+            "res://ui/editor/material_component_lab.zui",
         ),
     ] {
         let descriptor = descriptors
@@ -180,7 +195,7 @@ fn material_demo_window_descriptor_opens_as_document_center_demo() {
             .activity_window_template
             .as_ref()
             .map(|template| template.document_id.as_str()),
-        Some("editor.window.material_demo")
+        Some("res://ui/editor/material_demo_window.zui")
     );
 
     let instance_id = manager
@@ -290,7 +305,7 @@ fn material_component_lab_window_descriptor_opens_as_exclusive_demo_page() {
             .activity_window_template
             .as_ref()
             .map(|template| template.document_id.as_str()),
-        Some("editor.window.material_component_lab")
+        Some("res://ui/editor/material_component_lab.zui")
     );
 
     let instance_id = manager
@@ -336,7 +351,7 @@ fn debug_observatory_activity_window_reuses_runtime_diagnostics_payload() {
         .expect("Debug Observatory should reuse the Runtime Diagnostics pane template");
     assert_eq!(
         pane_template.body.document_id,
-        "pane.runtime.diagnostics.body"
+        "res://ui/editor/host/runtime_diagnostics_body.zui"
     );
     assert_eq!(
         pane_template.body.payload_kind,
@@ -376,7 +391,7 @@ fn performance_timeline_activity_view_uses_dedicated_payload_and_diagnostics_cap
         .expect("Performance Timeline should own a pane template");
     assert_eq!(
         pane_template.body.document_id,
-        "pane.performance.timeline.body"
+        "res://ui/editor/host/performance_timeline_body.zui"
     );
     assert_eq!(
         pane_template.body.payload_kind,

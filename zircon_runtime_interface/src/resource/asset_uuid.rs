@@ -18,6 +18,12 @@ impl AssetUuid {
     }
 }
 
+impl Default for AssetUuid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display for AssetUuid {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)

@@ -1,28 +1,28 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
-  - zircon_graphics/src/runtime/hybrid_gi/scene_trace_support.rs
-  - zircon_graphics/src/runtime/hybrid_gi/plan_ingestion.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/collect_pending_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/runtime_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/consume_feedback.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/declarations/hybrid_gi_runtime_state.rs
-  - zircon_graphics/src/runtime/hybrid_gi/scene_trace_support.rs
-  - zircon_graphics/src/runtime/hybrid_gi/plan_ingestion.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/consume_feedback.rs
-  - zircon_graphics/src/runtime/hybrid_gi/pending_completion/complete_gpu_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/collect_pending_updates.rs
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/runtime_state.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/plan_ingestion.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/consume_feedback.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
 plan_sources:
   - user: 2026-04-19 scene-driven screen-probe hierarchy / RT hybrid lighting continuation
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-18-m5-hybrid-gi-scene-driven-lineage-trace-support-runtime-and-gpu-source.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_for_pending_probe_order_after_schedule_clears -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime_state_keeps_recent_lineage_trace_support_in_resolve_runtime_after_schedule_clears -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_runtime -- --nocapture

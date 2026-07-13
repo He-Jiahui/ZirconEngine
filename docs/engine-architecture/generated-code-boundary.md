@@ -54,6 +54,8 @@ doc_type: module-detail
 
 # Generated Code Boundary
 
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../plans/zircon_runtime/frameworks/development-conventions.md)；本文保留生成代码边界主题的细节论证与执行上下文，不再作为并列规则源。
+
 ## Purpose
 
 Generated code is allowed only as a leaf artifact. It may carry data, tables, manifests, schema-shaped DTOs, and thin adapters to an existing owner. It must not own business rules, lifecycle order, runtime state mutation, plugin resolution, module registration, scheduling, or public architecture decisions.

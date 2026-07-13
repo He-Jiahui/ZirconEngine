@@ -7,6 +7,10 @@ pub enum PoseBlendError {
         destination_len: usize,
         source_len: usize,
     },
+    MaskShapeMismatch {
+        pose_len: usize,
+        mask_len: usize,
+    },
     InvalidWeight {
         weight: f32,
     },
@@ -28,6 +32,10 @@ impl fmt::Display for PoseBlendError {
                     "pose blend weight {weight} must be finite and in [0, 1]"
                 )
             }
+            Self::MaskShapeMismatch { pose_len, mask_len } => write!(
+                formatter,
+                "cannot blend pose length {pose_len} with mask length {mask_len}"
+            ),
         }
     }
 }

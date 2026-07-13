@@ -114,6 +114,7 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
 fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
     let parent = read_runtime_src("scene/world/property_access/entries.rs");
     let physics = read_runtime_src("scene/world/property_access/entries/physics.rs");
+    let collider_shape = read_runtime_src("scene/world/property_access/entries/collider_shape.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -153,21 +154,29 @@ fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
         );
     }
     assert_contains_all(
-        "physics child owns rigid body, collider, and joint property-entry projection",
+        "physics child owns rigid body, collider dispatch, and joint property-entry projection",
         &physics,
         &[
             "pub(super) fn visit_physics_property_entries",
             "pub(super) fn physics_property_entry_capacity_hint",
             "RigidBody.kind",
             "Collider.sensor",
-            "Collider.shape.kind",
             "Joint.kind",
-            "ColliderShape::Box",
-            "ColliderShape::Sphere",
-            "ColliderShape::Capsule",
+            "visit_collider_shape_property_entries",
             "combine_rule_label",
             "RigidBodyType::Kinematic",
             "JointKind::Generic6Dof",
+        ],
+    );
+    assert_contains_all(
+        "collider-shape child owns shape-specific property-entry projection",
+        &collider_shape,
+        &[
+            "ColliderShape::Box",
+            "ColliderShape::Sphere",
+            "ColliderShape::Capsule",
+            r#"let path = format!("{prefix}.{}", $suffix);"#,
+            r#"push_shape_entry!("kind""#,
         ],
     );
 
@@ -176,6 +185,10 @@ fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
         (
             "scene/world/property_access/entries/physics.rs",
             physics.as_str(),
+        ),
+        (
+            "scene/world/property_access/entries/collider_shape.rs",
+            collider_shape.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

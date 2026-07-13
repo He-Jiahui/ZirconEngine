@@ -1,7 +1,6 @@
 use super::*;
 
-const SOURCES_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/sources.rs";
+const SOURCES_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/sources.rs";
 
 #[test]
 fn runtime_15_top_level_expected_slice_sources_are_child_owned() {

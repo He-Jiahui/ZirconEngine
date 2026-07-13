@@ -4,6 +4,7 @@ related_code:
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs
+  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/consume.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/lib.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/plugin.rs
   - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
@@ -23,6 +24,7 @@ plan_sources:
 tests:
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
+  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs
   - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
 doc_type: module-detail
@@ -66,8 +68,16 @@ The face-view test derives the renderer's right/down axes from the actual camera
 5. The shared source-cubemap builder creates angular source mips, PMREM and SH9.
 6. `IblSourceCubemapStagingStore` writes the `.zcube` source and matching `.zribl` derived artifact under one `IblBakeArtifactRequest` identity.
 
+## Captured Asset Consumption
+
+`register_captured_reflection_probe` closes the persistence-to-runtime boundary. It validates the capture request and serialized placement, decodes the current `.zribl` with the exact capture bake request, creates a linear RGBA16F PMREM `TextureAsset`, registers that texture in `ProjectAssetManager`, and returns `ReflectionProbeData` whose `baked_cubemap` points to the registered resource. The placement DTO carries influence shape, projection bounds, rotation, intensity, priority, layer mask and bake timing; editor commands store both capture and placement as validated JSON.
+
 The old no-op `reflection-probe-composite` graph pass and executor were removed. Probe shading is already integrated through the shared environment bindings; capture work is invoked only when the editor submits a command, so a feature-disabled graph has no probe capture pass.
 
 ## Current Validation State
 
-Source formatting and whitespace checks are clean, and the root runtime library check passed after the HDR split. The runtime plugin suite passes 5/5 and the editor plugin suite passes 1/1 with `zircon_runtime/default`; the first attempts exposed the active Physics hard-cut dependency window, then the same locked commands passed after that owner moved the remaining import. The capture slice remains in progress because graph-native transient-pool scheduling, a real captured-probe WGPU product, multi-view screenshot comparison and RenderDoc evidence are still required before EL-M2 can be marked complete.
+Source formatting and whitespace checks are clean, and the root runtime library check passed after the HDR split. The runtime plugin suite passes 5/5 and the editor plugin suite passes 1/1 with `zircon_runtime/default`; the first attempts exposed the active Physics hard-cut dependency window, then the same locked commands passed after that owner moved the remaining import.
+
+The runtime plugin suite passes 6/6 plus one ignored WGPU product acceptance. The product test passes 1/1, executes six real WGPU HDR renders, registers the resulting PMREM texture, and verifies the returned `ReflectionProbeData` references the captured resource at the requested world position. It reports source hash `[7cf9b4b6, 1310f030, 78c9e17a, c8161e72]` and writes non-empty `.zcube`/`.zribl` below `docs/tests/runtime/shader/reflection_probe_capture_product_20260711`. The decoded source/PMREM contact sheet and numeric report prove seven valid mips; PMREM luma standard deviation decreases from `0.123635` at mip 0 to `0.000000` at mip 6 while mean luma stays near `0.267`.
+
+Capture render targets now come from the renderer's shared `TransientResourcePool`. The six-face acceptance asserts the sixth face creates zero textures and reuses all three compatible HDR/final/depth backings, with three entries retained after release. The editor command/placement tests pass 2/2. A full editor-host button/panel surface remains outside this rendering plugin crate; the plugin now provides the complete serialized operation payload and execute-and-register trigger used by that host.

@@ -23,19 +23,19 @@ mod slot;
 mod slot_schema;
 mod style;
 mod workbench_atomic_density;
+mod workbench_composites;
 mod workbench_overlay_density;
 mod workbench_primitives;
 mod workbench_shell;
 
 use self::metadata::string_metadata_offender;
 use self::support::{
-    builtin_zui_asset_id_alias_for, collect_ui_root_document_files, collect_zui_document_files,
-    collect_zui_files, collect_zui_view_style_files, editor_asset_root,
-    is_component_directory_path, is_ui_root_kind, is_zui_component_import_asset_id,
-    load_zui_document, pascal_case_file_stem, production_widget_import_asset_ids,
+    collect_ui_root_document_files, collect_zui_document_files, collect_zui_files,
+    collect_zui_view_style_files, editor_asset_root, is_component_directory_path, is_ui_root_kind,
+    is_zui_component_import_asset_id, load_zui_document, pascal_case_file_stem,
     production_widget_import_zui_locators, resolve_res_locator, resource_locator_for_path,
     runtime_asset_root, split_import_fragment, split_widget_component_import,
-    zui_component_import_path, BUILTIN_ZUI_ASSET_ID_ALIASES,
+    zui_component_import_path,
 };
 use crate::ui::workbench::FloatingWindow;
 
@@ -92,11 +92,10 @@ fn push_asset_header_metadata_offenders(
 }
 
 #[test]
-fn production_zui_assets_live_in_component_directories_or_registered_alias_paths() {
+fn production_zui_component_assets_live_in_component_directories() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut checked_assets = 0usize;
     let mut component_directory_assets = 0usize;
-    let mut alias_directory_assets = 0usize;
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
@@ -107,14 +106,8 @@ fn production_zui_assets_live_in_component_directories_or_registered_alias_paths
                 continue;
             }
 
-            let locator = resource_locator_for_path(asset_root, &path);
-            if builtin_zui_asset_id_alias_for(&locator).is_some() {
-                alias_directory_assets += 1;
-                continue;
-            }
-
             offenders.push(format!(
-                "{} is outside a component directory and is not a registered builtin .zui alias path",
+                "{} is outside a component directory",
                 path.display()
             ));
         }
@@ -129,12 +122,8 @@ fn production_zui_assets_live_in_component_directories_or_registered_alias_paths
         "production .zui assets should primarily live under component directories"
     );
     assert!(
-        alias_directory_assets <= BUILTIN_ZUI_ASSET_ID_ALIASES.len(),
-        "registered alias paths are migration exceptions, not a second .zui directory convention"
-    );
-    assert!(
         offenders.is_empty(),
-        "production .zui component assets must live under component directories unless the file path is an explicit builtin alias exception: {offenders:#?}"
+        "production .zui component assets must live under component directories: {offenders:#?}"
     );
 }
 
@@ -148,6 +137,10 @@ fn editor_workbench_zui_assets_are_grouped_by_functional_component_folder() {
         "res://ui/editor/components/workbench/primitives/data/",
         "res://ui/editor/components/workbench/primitives/feedback/",
         "res://ui/editor/components/workbench/primitives/chrome/",
+        "res://ui/editor/components/workbench/composites/animation/",
+        "res://ui/editor/components/workbench/composites/chrome/",
+        "res://ui/editor/components/workbench/composites/feedback/",
+        "res://ui/editor/components/workbench/composites/inputs/",
         "res://ui/editor/components/workbench/floating/",
         "res://ui/editor/components/workbench/shell/",
         "res://ui/editor/components/workbench/modules/core/ai/",
@@ -821,7 +814,6 @@ fn production_zui_widget_imports_do_not_self_reference() {
         for path in collect_zui_document_files(&asset_root.join("ui")) {
             checked_assets += 1;
             let current_locator = resource_locator_for_path(asset_root, &path);
-            let current_alias = builtin_zui_asset_id_alias_for(&current_locator);
             let source = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
             let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -831,10 +823,7 @@ fn production_zui_widget_imports_do_not_self_reference() {
                 checked_imports += 1;
                 let (asset_id, _fragment) = split_import_fragment(import);
                 let asset_id = asset_id.trim();
-                if asset_id == current_locator
-                    || Some(asset_id) == current_alias
-                    || asset_id == document.asset.id.as_str()
-                {
+                if asset_id == current_locator || asset_id == document.asset.id.as_str() {
                     offenders.push(format!(
                         "{} imports itself as widget `{}`",
                         path.display(),
@@ -856,12 +845,9 @@ fn production_zui_widget_imports_do_not_self_reference() {
 }
 
 #[test]
-fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
+fn production_zui_asset_ids_match_res_locator_exactly() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
-    let referenced_widget_asset_ids = production_widget_import_asset_ids(&asset_roots);
     let mut checked_asset_ids = 0usize;
-    let mut locator_asset_ids = 0usize;
-    let mut observed_alias_locators = BTreeSet::new();
     let mut offenders = Vec::new();
 
     for asset_root in &asset_roots {
@@ -874,42 +860,14 @@ fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
                 .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
             let actual_asset_id = document.asset.id.as_str();
 
-            if actual_asset_id == expected_locator {
-                locator_asset_ids += 1;
-                continue;
+            if actual_asset_id != expected_locator {
+                offenders.push(format!(
+                    "{} declares asset.id `{}` but expected exact locator `{}`",
+                    path.display(),
+                    actual_asset_id,
+                    expected_locator
+                ));
             }
-
-            if builtin_zui_asset_id_alias_for(&expected_locator) == Some(actual_asset_id) {
-                observed_alias_locators.insert(expected_locator.clone());
-                if !referenced_widget_asset_ids.contains(actual_asset_id) {
-                    offenders.push(format!(
-                        "{} declares builtin alias `{}` but no production UI root widget import references it",
-                        path.display(),
-                        actual_asset_id
-                    ));
-                }
-                continue;
-            }
-
-            offenders.push(format!(
-                "{} declares asset.id `{}` but expected `{}` or an explicitly registered builtin alias",
-                path.display(),
-                actual_asset_id,
-                expected_locator
-            ));
-        }
-    }
-
-    for (locator, asset_id) in BUILTIN_ZUI_ASSET_ID_ALIASES {
-        if !observed_alias_locators.contains(*locator) {
-            offenders.push(format!(
-                "builtin .zui alias `{asset_id}` for `{locator}` is registered but no matching production .zui asset was found"
-            ));
-        }
-        if !referenced_widget_asset_ids.contains(*asset_id) {
-            offenders.push(format!(
-                "builtin .zui alias `{asset_id}` for `{locator}` is registered but no production UI root widget import references it"
-            ));
         }
     }
 
@@ -918,12 +876,8 @@ fn production_zui_asset_ids_match_res_locator_or_registered_builtin_alias() {
         "production asset roots should contain .zui documents"
     );
     assert!(
-        locator_asset_ids > 0,
-        "production .zui documents should primarily use res:// asset ids"
-    );
-    assert!(
         offenders.is_empty(),
-        ".zui document asset ids must match their res:// locator unless an explicit builtin alias is registered and referenced: {offenders:#?}"
+        ".zui document asset ids must match their res:// locator exactly: {offenders:#?}"
     );
 }
 
@@ -1032,6 +986,28 @@ fn builtin_template_registry_does_not_register_zui_component_assets() {
     assert!(
         offenders.is_empty(),
         "builtin template documents may register .zui view/style roots after suffix migration, but must not directly register .zui component prototypes: {offenders:#?}"
+    );
+}
+
+#[test]
+fn builtin_template_registry_keys_match_zui_asset_ids() {
+    let offenders = crate::ui::template_runtime::builtin::builtin_template_documents()
+        .into_iter()
+        .filter_map(|(document_id, path)| {
+            let document = load_zui_document(&path);
+            (document_id != document.asset.id).then(|| {
+                format!(
+                    "registry key `{document_id}` does not match `{}` from {}",
+                    document.asset.id,
+                    path.display()
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+
+    assert!(
+        offenders.is_empty(),
+        "builtin ZUI documents must use their asset locator as the only runtime registry identity: {offenders:#?}"
     );
 }
 

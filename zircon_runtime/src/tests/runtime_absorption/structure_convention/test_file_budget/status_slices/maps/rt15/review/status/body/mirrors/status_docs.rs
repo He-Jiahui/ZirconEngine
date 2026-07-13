@@ -55,10 +55,6 @@ fn runtime_15_status_support_expected_slice_guard_body_status_mirrors_status_is_
             "module convention doc",
             read_repo("docs/zircon_runtime/structure/module-convention.md"),
         ),
-        (
-            "session note",
-            read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
-        ),
     ] {
         assert_contains_all(
             label,

@@ -5,8 +5,11 @@ fn runtime_15_surface_targets_texture_target_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/surface_targets.rs");
     let texture_target = read_runtime_src("graphics/tests/surface_targets/texture_target.rs");
 
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_09 = read_repo(
+        "docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");

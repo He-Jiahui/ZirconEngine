@@ -14,7 +14,9 @@ use crate::ui::retained_host::callback_dispatch::{
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     BuiltinAssetSurfaceTemplateBridge,
 };
-use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
+use crate::ui::workbench::asset_content_layout::{
+    AssetContentLayoutMetrics, AssetContentSurfaceProfile,
+};
 use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::ResourceKind;
@@ -185,7 +187,14 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
         scrolled.state.clone(),
     );
     let row_index = 3usize;
-    let click_y = 53.0 + 8.0 + row_index as f32 * 46.0 - scrolled.state.scroll_offset + 18.0;
+    let metrics = AssetContentLayoutMetrics::for_surface(
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::List,
+    );
+    let click_y = metrics.first_row_y()
+        + row_index as f32 * (metrics.item_height + metrics.row_gap)
+        - scrolled.state.scroll_offset
+        + metrics.item_height * 0.5;
     let dispatched = dispatch_shared_asset_content_pointer_click(
         &harness.runtime,
         &bridge,
@@ -211,6 +220,40 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
             asset_uuid: asset_ids[row_index].clone(),
         })
     );
+}
+
+#[test]
+fn shared_asset_content_pointer_bridge_hits_thumbnail_grid_columns_and_scrolls_rows() {
+    let item_ids = (0..12)
+        .map(|index| format!("asset-thumbnail-{index:02}"))
+        .collect::<Vec<_>>();
+    let layout = AssetContentListPointerLayout {
+        pane_size: UiSize::new(420.0, 220.0),
+        surface_profile: AssetContentSurfaceProfile::Browser,
+        view_mode: AssetViewMode::Thumbnail,
+        folder_ids: Vec::new(),
+        item_ids: item_ids.clone(),
+    };
+    let mut pointer_bridge = AssetContentListPointerBridge::new();
+    pointer_bridge.sync(layout.clone(), AssetListPointerState::default());
+
+    let second_column = pointer_bridge
+        .handle_click(UiPoint::new(210.0, 80.0))
+        .expect("thumbnail grid should accept pointer input");
+    assert_eq!(
+        second_column.route,
+        Some(AssetPointerContentRoute::Item {
+            row_index: 1,
+            item_index: 1,
+            asset_uuid: item_ids[1].clone(),
+        })
+    );
+
+    pointer_bridge.sync(layout, second_column.state);
+    let scrolled = pointer_bridge
+        .handle_scroll(UiPoint::new(210.0, 160.0), 160.0)
+        .expect("thumbnail grid should scroll by complete card rows");
+    assert!(scrolled.state.scroll_offset > 0.0);
 }
 
 #[test]
@@ -382,7 +425,7 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
         project_name: "Sandbox".to_string(),
         project_root: "E:/Sandbox".to_string(),
         assets_root: "E:/Sandbox/assets".to_string(),
-        library_root: "E:/Sandbox/library".to_string(),
+        cache_root: "E:/Sandbox/.zircon/cache".to_string(),
         default_scene_uri: "res://scenes/main.scene.toml".to_string(),
         catalog_revision: 3,
         folders: vec![
@@ -425,7 +468,8 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 extension: "zmaterial".to_string(),
                 preview_state: PreviewState::Ready,
                 meta_path: "E:/Sandbox/assets/materials/grid.zmaterial.zmeta".to_string(),
-                preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
+                preview_artifact_path: "E:/Sandbox/.zircon/cache/editor-previews/grid.png"
+                    .to_string(),
                 source_mtime_unix_ms: 10,
                 source_hash: "mat".to_string(),
                 dirty: false,
@@ -442,7 +486,8 @@ fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 extension: "toml".to_string(),
                 preview_state: PreviewState::Dirty,
                 meta_path: "E:/Sandbox/assets/scenes/main.scene.toml.zmeta".to_string(),
-                preview_artifact_path: "E:/Sandbox/library/editor-previews/main.png".to_string(),
+                preview_artifact_path: "E:/Sandbox/.zircon/cache/editor-previews/main.png"
+                    .to_string(),
                 source_mtime_unix_ms: 20,
                 source_hash: "scene".to_string(),
                 dirty: true,

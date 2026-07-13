@@ -211,6 +211,9 @@ fn prepare_frame_from_neutral(frame: &RenderHybridGiPreparedFrame) -> HybridGiPr
             .map(|probe| HybridGiPrepareProbe {
                 probe_id: probe.probe_id,
                 slot: probe.slot,
+                stable_instance_key: probe.stable_instance_key,
+                source_mask: probe.source_mask,
+                dynamic_weight_q8: probe.dynamic_weight_q8,
                 ray_budget: probe.ray_budget,
                 irradiance_rgb: probe.irradiance_rgb,
             })
@@ -299,9 +302,14 @@ mod tests {
     #[test]
     fn neutral_prepared_frame_projects_to_gpu_prepare_inputs() {
         let frame = RenderHybridGiPreparedFrame {
+            composite_policy: Default::default(),
+            resolved_settings: None,
             resident_probes: vec![RenderHybridGiPreparedProbe {
                 probe_id: 7,
                 slot: 2,
+                stable_instance_key: 77,
+                source_mask: zircon_runtime::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+                dynamic_weight_q8: u8::MAX,
                 ray_budget: 32,
                 irradiance_rgb: [3, 4, 5],
             }],

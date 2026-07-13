@@ -7,12 +7,40 @@ var scene_hzb_tex: texture_2d<f32>;
 @group(0) @binding(2)
 var<storage, read_write> hybrid_gi_scene_words: array<u32>;
 
+@group(0) @binding(3)
+var scene_normal_tex: texture_2d<f32>;
+
 const HYBRID_GI_SCENE_DEPTH_HANDOFF_MAGIC: u32 = 0x48474944u;
 const DEPTH_Q24_SCALE: f32 = 16777215.0;
 const SCENE_HZB_TILE_GRID_EXTENT: u32 = 8u;
 const SCENE_HZB_TILE_WORD_OFFSET: u32 = 16u;
 const SCENE_HZB_TILE_WORD_COUNT: u32 = 4u;
 const SCENE_HZB_VALID_FLAG: u32 = 1u << 31u;
+const SCENE_NORMAL_CODE_SHIFT: u32 = 8u;
+
+fn normalized_scene_normal(encoded_normal: vec3<f32>) -> vec3<f32> {
+    if (max(encoded_normal.x, max(encoded_normal.y, encoded_normal.z)) <= 0.001) {
+        return vec3<f32>(0.0, 0.0, 1.0);
+    }
+    let decoded = encoded_normal * 2.0 - vec3<f32>(1.0);
+    let normal_length = length(decoded);
+    return select(vec3<f32>(0.0, 0.0, 1.0), decoded / normal_length, normal_length > 0.001);
+}
+
+fn sign_not_zero(value: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(select(-1.0, 1.0, value.x >= 0.0), select(-1.0, 1.0, value.y >= 0.0));
+}
+
+fn pack_octahedral_normal_6bit(encoded_normal: vec3<f32>) -> u32 {
+    let normal = normalized_scene_normal(encoded_normal);
+    var projected = normal.xy / (abs(normal.x) + abs(normal.y) + abs(normal.z));
+    if (normal.z < 0.0) {
+        projected = (vec2<f32>(1.0) - abs(projected.yx)) * sign_not_zero(projected.xy);
+    }
+    let encoded = clamp(projected * 0.5 + vec2<f32>(0.5), vec2<f32>(0.0), vec2<f32>(1.0));
+    let quantized = vec2<u32>(encoded * 7.0 + vec2<f32>(0.5));
+    return quantized.x | (quantized.y << 3u);
+}
 
 fn quantize_depth_q24(depth: f32) -> u32 {
     return u32((clamp(depth, 0.0, 1.0) * DEPTH_Q24_SCALE) + 0.5);
@@ -81,6 +109,9 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let scene_coord = scene_coord_for_tile(tile_coord, dimensions);
     let hzb_coord = hzb_coord_for_tile(tile_coord, dimensions, mip_level);
     let depth = clamp(textureLoad(scene_depth_tex, scene_coord, 0), 0.0, 1.0);
+    let normal_code = pack_octahedral_normal_6bit(
+        textureLoad(scene_normal_tex, scene_coord, 0).rgb,
+    );
     let hzb_range = textureLoad(scene_hzb_tex, hzb_coord, mip_level);
 
     let tile_index = tile_coord.y * SCENE_HZB_TILE_GRID_EXTENT + tile_coord.x;
@@ -89,7 +120,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     hybrid_gi_scene_words[tile_word_offset] = quantize_depth_q24(depth);
     hybrid_gi_scene_words[tile_word_offset + 1u] = quantize_depth_q24(hzb_range.x);
     hybrid_gi_scene_words[tile_word_offset + 2u] = quantize_depth_q24(hzb_range.y);
-    hybrid_gi_scene_words[tile_word_offset + 3u] = mip_level | SCENE_HZB_VALID_FLAG;
+    hybrid_gi_scene_words[tile_word_offset + 3u] =
+        mip_level | (normal_code << SCENE_NORMAL_CODE_SHIFT) | SCENE_HZB_VALID_FLAG;
 
     if (tile_index != 0u) {
         return;

@@ -38,6 +38,12 @@ impl ResourceId {
     }
 }
 
+impl Default for ResourceId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Display for ResourceId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)

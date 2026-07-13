@@ -19,7 +19,10 @@ use crate::ui::retained_host::asset_pointer::asset_list_pointer_state::AssetList
 use crate::ui::retained_host::asset_pointer::common::{
     base_state, item_node_id, register_handled_pointer_node, ROOT_NODE_ID, VIEWPORT_NODE_ID,
 };
-use crate::ui::workbench::asset_content_layout::AssetContentLayoutMetrics;
+use crate::ui::workbench::asset_content_layout::{
+    AssetContentLayoutMetrics, AssetContentSurfaceProfile, AssetThumbnailGridMetrics,
+};
+use crate::ui::workbench::snapshot::AssetViewMode;
 
 const CONTENT_VIEWPORT_Z_INDEX: i32 = 10;
 const CONTENT_ROW_BASE_Z_INDEX: i32 = 20;
@@ -135,11 +138,8 @@ impl AssetContentListPointerBridge {
     }
 
     fn clamp_scroll_offset(&mut self) {
-        let metrics = self.metrics();
-        let max_offset = (metrics
-            .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len())
-            - metrics.viewport_frame(self.layout.pane_size).height)
-            .max(0.0);
+        let viewport = self.viewport_frame();
+        let max_offset = (self.content_extent() - viewport.height).max(0.0);
         self.state.scroll_offset = self.state.scroll_offset.clamp(0.0, max_offset);
     }
 
@@ -160,7 +160,7 @@ impl AssetContentListPointerBridge {
         );
 
         let metrics = self.metrics();
-        let viewport = metrics.viewport_frame(self.layout.pane_size);
+        let viewport = self.viewport_frame();
         surface
             .tree
             .insert_child(
@@ -182,8 +182,7 @@ impl AssetContentListPointerBridge {
                 .with_scroll_state(UiScrollState {
                     offset: self.state.scroll_offset,
                     viewport_extent: viewport.height.max(0.0),
-                    content_extent: metrics
-                        .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len()),
+                    content_extent: self.content_extent(),
                 })
                 .with_state_flags(base_state(true)),
             )
@@ -193,6 +192,49 @@ impl AssetContentListPointerBridge {
             VIEWPORT_NODE_ID,
             AssetContentListPointerTarget::ContentSurface,
         );
+
+        if self.is_browser_thumbnail_grid() {
+            let grid = AssetThumbnailGridMetrics::new(
+                self.layout.pane_size.width,
+                self.layout.item_ids.len(),
+            );
+            for (item_index, asset_uuid) in self.layout.item_ids.iter().enumerate() {
+                let Some(mut frame) = grid.item_frame(item_index) else {
+                    continue;
+                };
+                frame.y -= self.state.scroll_offset;
+                let node_id = item_node_id(item_index);
+                surface
+                    .tree
+                    .insert_child(
+                        VIEWPORT_NODE_ID,
+                        UiTreeNode::new(
+                            node_id,
+                            UiNodePath::new(format!("editor.asset_content/item_{item_index}")),
+                        )
+                        .with_frame(frame)
+                        .with_z_index(CONTENT_ROW_BASE_Z_INDEX + item_index as i32)
+                        .with_input_policy(UiInputPolicy::Receive)
+                        .with_state_flags(base_state(true)),
+                    )
+                    .expect("asset content viewport must exist");
+                register_handled_pointer_node(&mut dispatcher, node_id);
+                targets.insert(
+                    node_id,
+                    AssetContentListPointerTarget::Item {
+                        row_index: item_index,
+                        item_index,
+                        asset_uuid: asset_uuid.clone(),
+                    },
+                );
+            }
+
+            surface.rebuild();
+            self.surface = surface;
+            self.dispatcher = dispatcher;
+            self.targets = targets;
+            return;
+        }
 
         let row_width = metrics.row_width(self.layout.pane_size.width);
         let mut row_y = metrics.first_row_y() - self.state.scroll_offset;
@@ -266,5 +308,33 @@ impl AssetContentListPointerBridge {
 
     fn metrics(&self) -> AssetContentLayoutMetrics {
         AssetContentLayoutMetrics::for_surface(self.layout.surface_profile, self.layout.view_mode)
+    }
+
+    fn is_browser_thumbnail_grid(&self) -> bool {
+        self.layout.surface_profile == AssetContentSurfaceProfile::Browser
+            && self.layout.view_mode == AssetViewMode::Thumbnail
+    }
+
+    fn viewport_frame(&self) -> UiFrame {
+        if self.is_browser_thumbnail_grid() {
+            UiFrame::new(
+                0.0,
+                0.0,
+                self.layout.pane_size.width.max(0.0),
+                self.layout.pane_size.height.max(0.0),
+            )
+        } else {
+            self.metrics().viewport_frame(self.layout.pane_size)
+        }
+    }
+
+    fn content_extent(&self) -> f32 {
+        if self.is_browser_thumbnail_grid() {
+            AssetThumbnailGridMetrics::new(self.layout.pane_size.width, self.layout.item_ids.len())
+                .content_extent()
+        } else {
+            self.metrics()
+                .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len())
+        }
     }
 }

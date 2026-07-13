@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_ui/src/lib.rs
-  - zircon_ui/src/layout/mod.rs
-  - zircon_ui/src/layout/constraints.rs
-  - zircon_ui/src/layout/geometry.rs
-  - zircon_ui/src/layout/pass/mod.rs
-  - zircon_ui/src/layout/scroll.rs
-  - zircon_ui/src/layout/virtualization.rs
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/layout/mod.rs
+  - zircon_runtime/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime/src/ui/layout/pass/mod.rs
+  - zircon_runtime/src/ui/layout/scroll.rs
+  - zircon_runtime/src/ui/layout/virtualization.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
-  - zircon_ui/src/dispatch/mod.rs
-  - zircon_ui/src/tree/mod.rs
-  - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface/mod.rs
+  - zircon_runtime/src/ui/dispatch/mod.rs
+  - zircon_runtime/src/ui/tree/mod.rs
+  - zircon_runtime/src/ui/tree/node/mod.rs
+  - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/layout/pass/axis.rs
   - zircon_runtime/src/ui/layout/pass/material.rs
   - zircon_runtime/src/ui/layout/pass/measure.rs
@@ -35,12 +35,12 @@ related_code:
   - zircon_runtime/src/ui/tree/node/interaction.rs
   - zircon_runtime/src/ui/template/build/interaction.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
-  - zircon_ui/src/template/document.rs
-  - zircon_ui/src/tests/shared_core.rs
+  - zircon_runtime_interface/src/ui/template/document.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
-  - zircon_ui/src/tests/asset.rs
+  - zircon_runtime/src/ui/tests/asset.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -82,7 +82,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/resolution.rs
@@ -94,17 +94,17 @@ related_code:
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/drawer_header_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_host_drawer_header_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/shell_pointer.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/tab_drag.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/floating_windows.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests/support.rs
   - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
@@ -112,23 +112,23 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/lib.rs
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/src/core/editing/ui_asset/session.rs
-  - zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs
-  - zircon_editor/src/core/editing/ui_asset/tree_editing.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
+  - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
@@ -137,24 +137,24 @@ related_code:
   - zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/tests/host/retained_tab_drag/
-  - zircon_editor/tests/workbench_autolayout.rs
-  - zircon_editor/tests/workbench_drag_targets.rs
+  - zircon_editor/tests/integration_contracts/workbench_autolayout.rs
+  - zircon_editor/tests/integration_contracts/host_drag_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
 implementation_files:
-  - zircon_ui/src/lib.rs
-  - zircon_ui/src/layout/mod.rs
-  - zircon_ui/src/layout/constraints.rs
-  - zircon_ui/src/layout/geometry.rs
-  - zircon_ui/src/layout/pass/mod.rs
-  - zircon_ui/src/layout/scroll.rs
-  - zircon_ui/src/layout/virtualization.rs
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/layout/mod.rs
+  - zircon_runtime/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime/src/ui/layout/pass/mod.rs
+  - zircon_runtime/src/ui/layout/scroll.rs
+  - zircon_runtime/src/ui/layout/virtualization.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
-  - zircon_ui/src/dispatch/mod.rs
-  - zircon_ui/src/tree/mod.rs
-  - zircon_ui/src/tree/node/mod.rs
-  - zircon_ui/src/tree/hit_test.rs
-  - zircon_ui/src/surface/mod.rs
+  - zircon_runtime/src/ui/dispatch/mod.rs
+  - zircon_runtime/src/ui/tree/mod.rs
+  - zircon_runtime/src/ui/tree/node/mod.rs
+  - zircon_runtime/src/ui/tree/hit_test.rs
+  - zircon_runtime/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/layout/pass/axis.rs
   - zircon_runtime/src/ui/layout/pass/material.rs
   - zircon_runtime/src/ui/layout/pass/measure.rs
@@ -176,7 +176,7 @@ implementation_files:
   - zircon_runtime/src/ui/tree/node/interaction.rs
   - zircon_runtime/src/ui/template/build/interaction.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
-  - zircon_ui/src/template/document.rs
+  - zircon_runtime_interface/src/ui/template/document.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -212,7 +212,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/resolution.rs
@@ -224,27 +224,27 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
   - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/drawer_header_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/drawer_header_pointer/build_host_drawer_header_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/shell_pointer.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/tab_drag.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/floating_windows.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/src/core/editing/ui_asset/session.rs
-  - zircon_editor/src/core/editing/ui_asset/inspector_semantics.rs
-  - zircon_editor/src/core/editing/ui_asset/tree_editing.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/style/inspector_semantics.rs
+  - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
 plan_sources:
   - user: 2026-04-14 实现运行时/编辑器共享 UI 布局与事件系统架构计划
   - user: 2026-04-15 继续实现 ScrollableBox、scroll state、visible range invalidation 和 pointer dispatcher
@@ -273,7 +273,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-06-widget-behavior-closure.md
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_ui/src/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
@@ -281,7 +281,7 @@ tests:
   - zircon_runtime/src/ui/tests/template.rs
   - tests/acceptance/widget-behavior-closure.md
   - zircon_editor/src/tests/workbench/reflection/widget_reflector.rs
-  - zircon_ui/src/tests/asset.rs
+  - zircon_runtime/src/ui/tests/asset.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_editor/src/tests/host/retained_detail_pointer/mod.rs
@@ -297,15 +297,15 @@ tests:
   - zircon_editor/src/tests/host/retained_tab_drag/
   - zircon_editor/src/ui/retained_host/app/tests/floating_window_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
   - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
   - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
-  - zircon_editor/tests/workbench_autolayout.rs
-  - zircon_editor/tests/workbench_drag_targets.rs
+  - zircon_editor/tests/integration_contracts/workbench_autolayout.rs
+  - zircon_editor/tests/integration_contracts/host_drag_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - cargo test -p zircon_ui shared_core -- --nocapture
   - cargo test -p zircon_runtime --lib render_extract_uses_label_when_schema_text_default_is_empty --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final -- --nocapture
@@ -397,7 +397,7 @@ doc_type: module-detail
 - `activity` drawer 和 exclusive `browser` page 这两条 asset pane 输入链现在都走同一条 `callback size -> cached size -> shared host frame` 顺序，因此 tree/content/reference 三类 retained pointer surface 在真实宿主里也不会再因为 `0x0` callback 失去有效 viewport size
 - 新增的 real-host regressions 已经把这条 authority 锁到 10 个用例一起跑：原有 `Hierarchy` / `Console` / `Inspector` / `AssetBrowser details`，再加上 `activity/browser` 两套 `asset tree/content/reference` 零尺寸 callback fallback
 - `welcome_recent_pointer_*` 这轮也切到了同一条 helper；当 root welcome page 先前已经缓存了有效 viewport size，而 host callback 后续继续上传 `0x0` 时，host 现在会先保留 cached size，再回退 shared projection frame，而不会把 cached size 直接跳成 `PaneSurfaceRoot`
-- `zircon_ui/src/template/document.rs` 里的 `UiBindingRef` 也同步去掉了不成立的 `Eq` 派生，避免 shared template binding payload 的 `UiActionRef/toml::Value` 语义继续阻塞 editor-host 验证链
+- `zircon_runtime_interface/src/ui/template/document.rs` 里的 `UiBindingRef` 也同步去掉了不成立的 `Eq` 派生，避免 shared template binding payload 的 `UiActionRef/toml::Value` 语义继续阻塞 editor-host 验证链
 
 这条收口说明 shared pointer/scroll authority 不只是逻辑上从 legacy host callback glue 移出，连真实宿主里“尺寸事实从哪里来”也开始系统性回到 shared geometry / shared template frame 上。
 
@@ -415,8 +415,8 @@ doc_type: module-detail
 同一轮里，dynamic floating-window 壳层的 frame authority 也开始从“每个 consumer 各自打开 `geometry.floating_window_frame(...)`”收口到统一 helper：
 
 - [`floating_window_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/floating_window_projection.rs) 现在固定导出 floating-window `outer/tab/content` frame，并统一内建“优先 non-zero native host bounds，缺席时回退 geometry”语义
-- [`build_workbench_document_tab_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs) 现在通过 host-bounds-aware `resolve_floating_window_tab_strip_frame_with_host_frame(...)` 构建 floating tab strip，而不是在 builder 内手写 header height 或忽略 native child host bounds
-- [`ui/floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/floating_windows.rs)、[`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/native_windows.rs) 与 [`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs) 现在统一读取同一份 host-bounds-aware outer frame
+- [`build_workbench_document_tab_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs) 现在通过 host-bounds-aware `resolve_floating_window_tab_strip_frame_with_host_frame(...)` 构建 floating tab strip，而不是在 builder 内手写 header height 或忽略 native child host bounds
+- [`ui/floating_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs)、[`app/native_windows.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/native_windows.rs) 与 [`shell_pointer/drag_surface.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs) 现在统一读取同一份 host-bounds-aware outer frame
 - [`app/helpers.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/helpers.rs) 与 [`app/viewport.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/viewport.rs) 现在转吃 host-bounds-aware `resolve_floating_window_content_frame_with_host_frame(...)`，child-window pane callback/toolbar width recovery 不再把整个 floating shell 高度误当成 pane content 高度，也不再忽略 native child host 尺寸
 - [`app/callback_wiring.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/callback_wiring.rs) 现在也把 `hierarchy/asset tree/content/reference` 的 move 回调接回 `with_callback_source_window(...)`，所以 child-window hover/move 零尺寸 callback 也能落回同一份 projected content frame
 - 新增 red/green 回归 `child_window_hierarchy_pointer_move_prefers_projected_floating_window_content_frame_over_outer_window_frame` 已经锁住这条 seam
@@ -424,7 +424,7 @@ doc_type: module-detail
 
 同一轮里，root `host_page` strip 也不再只拿 shared shell 宽度配合 metrics 估算：
 
-- [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 现在直接建模 `HostPageStripRoot`
+- [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 现在直接建模 `HostPageStripRoot`
 - [`BuiltinWorkbenchTemplateBridge`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/host_projection.rs) 会在 builtin root surface 上把 `HostPageStripRoot` 固定到 `top_bar_height + separator_thickness` 的真实 strip frame，并通过 `root_shell_frames()` 导出 `host_page_strip_frame`
 - [`build_workbench_host_page_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/host_page_pointer/build_workbench_host_page_pointer_layout.rs) 现在优先直接消费 shared `host_page_strip_frame`，只有该 frame 缺席时才回退到先前的 shell+metric 估算
 - 新增 focused regressions 已经锁住：
@@ -441,10 +441,10 @@ doc_type: module-detail
 - [`apply_presentation(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/apply_presentation.rs) 新增 `shared_root_frames` 输入，root shell 的 `center_band_frame` / `status_bar_frame` 已经直接对齐到 shared projection，而不是继续只相信 `WorkbenchShellGeometry`
 - `document_region_frame` 现在采用分层 mixed authority：当 `Left/Right/Bottom` drawer region 全部折叠时，root shell 直接消费 `DocumentHostRoot` 的 shared frame；只要有可见 drawer region，就改为用 shared `WorkbenchBody` 提供 `x/y` 与总可用跨度，再由 legacy drawer extents 扣出 document zone，避免 stale `geometry.region_frame(Document)` 继续充当真源
 - visible drawer shell/header 这一层现在已经真正进入 builtin template/shared root projection：
-  - [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 现在直接建模 `Left/Right/BottomDrawerShellRoot` 与对应 `*DrawerHeaderRoot`
+  - [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.zui) 现在直接建模 `Left/Right/BottomDrawerShellRoot` 与对应 `*DrawerHeaderRoot`
   - [`BuiltinWorkbenchTemplateBridge`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 会在 root recompute 时根据 `EditorChromeSnapshot.workbench.drawers[*].extent` 与 shared shell body frame 运行时重建 visible drawer shell/header frame，并通过 `root_shell_frames()` 导出
-  - [`resolve_root_left_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs)、[`resolve_root_right_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs)、[`resolve_root_bottom_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 与 visible-drawer `document_region_frame` 现在优先消费这些 shared drawer shell frame，而不是继续从 legacy `geometry.region_frame(...).width/height` 拿主轴 extent
-  - [`build_workbench_drawer_header_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs) 也会在 shared `*DrawerHeaderRoot` 存在时直接复用 header frame，因此 visible drawer header retained pointer surface 和 root shell presentation 现在共享同一份 header authority
+  - [`resolve_root_left_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs)、[`resolve_root_right_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs)、[`resolve_root_bottom_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs) 与 visible-drawer `document_region_frame` 现在优先消费这些 shared drawer shell frame，而不是继续从 legacy `geometry.region_frame(...).width/height` 拿主轴 extent
+  - [`build_workbench_drawer_header_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/drawer_header_pointer/build_host_drawer_header_pointer_layout.rs) 也会在 shared `*DrawerHeaderRoot` 存在时直接复用 header frame，因此 visible drawer header retained pointer surface 和 root shell presentation 现在共享同一份 header authority
   - focused regressions 已经扩展到 `builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_frames_from_chrome`、`apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_extents`、`shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visible_drawer_regions` 与 real-host `root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_header_frames`
 - `viewport_content_frame` 现在也进入同一套 mixed authority：当 drawer region 全部折叠时，root shell 会从 `PaneSurfaceRoot` 推导 viewport frame；`Scene` 额外叠加 toolbar 高度，`Game` 直接使用 pane surface frame；只要有可见 drawer region，viewport frame 就复用同一份 resolved document frame，而不再回退到 legacy viewport geometry
   - [`host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/host_lifecycle.rs) 的 root recompute 现在会把 `template_bridge.root_shell_frames()` 接进 `apply_presentation(...)`；child native window presenter 路径则显式传 `None`，因此 secondary native window 仍继续走 `WorkbenchShellGeometry + configure_native_floating_window_presentation(...)` 的现有边界
@@ -453,11 +453,11 @@ doc_type: module-detail
   - [`app/tests/projection_geometry.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs) 新增 `root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry`；这条 real-host regression 直接证明，即使 legacy document geometry 被压窄，只要 drawer region 已折叠、shared root projection 仍然给出正确 pane width，toolbar 的 projection-backed hit-test 也必须继续命中并派发 `AlignView`
 - root main `document tab` pointer surface 现在也开始跟这条 shared root-frame seam 对齐：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在把 `DocumentTabsRoot` 一起纳入 builtin root-shell frame bundle
-  - [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 和 [`build_workbench_document_tab_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs) 现在遵循与 `document_region_frame` / `viewport_content_frame` 相同的 mixed-authority 规则：drawer 折叠时优先 shared projection，drawer 可见时回退 legacy geometry
+  - [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs) 和 [`build_workbench_document_tab_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs) 现在遵循与 `document_region_frame` / `viewport_content_frame` 相同的 mixed-authority 规则：drawer 折叠时优先 shared projection，drawer 可见时回退 legacy geometry
   - 这意味着 root-shell `document tab` hit-test 根框不再天然依赖旧 `document_region.width`；当 shared `DocumentTabsRoot` 仍然是正确宽度时，tab pointer surface 也应该继续服从 shared projection
 - root main `activity rail` pointer surface 现在也开始跟这条 shared root-frame seam 对齐：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在把 `ActivityRailRoot` 一起纳入 builtin root-shell frame bundle
-  - [`resolve_root_activity_rail_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs)、[`build_workbench_activity_rail_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs) 和 [`pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pointer_layout.rs) 现在让 root 左侧 rail 遵循与 `document tab` 相同的 mixed-authority 规则：drawer 可见时继续服从 legacy left-region geometry，drawer 全折叠时优先 shared `ActivityRailRoot`
+  - [`resolve_root_activity_rail_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs)、[`build_workbench_activity_rail_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs) 和 [`pointer_layout.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pointer_layout.rs) 现在让 root 左侧 rail 遵循与 `document tab` 相同的 mixed-authority 规则：drawer 可见时继续服从 legacy left-region geometry，drawer 全折叠时优先 shared `ActivityRailRoot`
   - [`app/tests/projection_geometry.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs) 的 `root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale` 与 [`layout_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/retained_activity_rail_pointer/layout_projection.rs) 的 root-frame regression 共同锁住这条 seam：即使 legacy `ShellRegionId::Left` 被压成 `0x0`，root host 仍然必须继续用 shared `ActivityRailRoot` 命中左侧 rail toggle
 - root `host page` strip 这轮也不再继续靠 `TAB_MIN_WIDTH` 估出来的 legacy metric 根框撑住命中链：
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在额外导出 `WorkbenchShellRoot`，让 builtin root-frame bundle 终于覆盖整张 root shell，而不只是一组局部子控件
@@ -941,7 +941,7 @@ Current evidence for this slice is scoped rather than workspace-wide. The M3 for
 
 shared core 这一轮虽然没有为 pane empty-state 按钮单独新增一套 pointer bridge，但又补掉了一个真实宿主逃逸口：条件性 pane surface action 不再通过 root shell 的 handwritten `menu_action(action_id)` callback 直接越过 runtime。
 
-- [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml) 现在定义 builtin `PaneSurface/TriggerAction`
+- [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.zui) 现在定义 builtin `PaneSurface/TriggerAction`
 - [`callback_dispatch/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs) 用 `BuiltinPaneSurfaceTemplateBridge` 把 `control_id + action_id` 收口回 canonical `MenuAction`
 - Rust-owned host callback wiring only uploads `pane_surface_control_clicked(...)` / `surface_control_clicked(...)` generic control facts
 - [`pane_surface_actions.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs) 成为真实宿主的唯一入口
@@ -1031,7 +1031,7 @@ editor shell 的 dock target route 和 splitter route 现在不再各自维护�
 
 共享 layout/slot 语义现在已经被 `UI Asset Editor` 直接消费，而不是在 editor 侧再维护一套平行字段：
 
-- [`UiChildMount.slot`](/E:/Git/ZirconEngine/zircon_ui/src/template/document.rs) 继续是父拥有的 placement 数据；editor inspector 现在按 parent container kind 切换字段，而不是按 child widget type 猜测
+- [`UiChildMount.slot`](/E:/Git/ZirconEngine/zircon_runtime_interface/src/ui/template/document.rs) 继续是父拥有的 placement 数据；editor inspector 现在按 parent container kind 切换字段，而不是按 child widget type 猜测
 - `Overlay` slot 暴露 `layout.anchor / layout.pivot / layout.position / layout.z_index`
 - `GridBox` slot 暴露 `row / column / row_span / column_span`
 - `FlowBox` slot 暴露 `break_before / alignment`
@@ -1167,13 +1167,13 @@ editor shell 的 dock target route 和 splitter route 现在不再各自维护�
 
 当前 shared root projection 又收掉了一层 visible-drawer mixed authority：
 
-- [`resolve_root_document_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 在 `Left/Right/Bottom` drawer 任一可见时，不再直接返回 `geometry.region_frame(Document)`；现在改为以 shared `WorkbenchBody` 为位置真源，只继续复用 legacy drawer extents
+- [`resolve_root_document_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs) 在 `Left/Right/Bottom` drawer 任一可见时，不再直接返回 `geometry.region_frame(Document)`；现在改为以 shared `WorkbenchBody` 为位置真源，只继续复用 legacy drawer extents
 - 这条规则具体表现为：
   - `x` 由 shared body origin 加上 visible left drawer width 与水平 separator 计算
   - `width` 由 shared body width 扣掉 visible left/right drawer widths 与 separator 计算
   - `height` 由 shared body height 扣掉 visible bottom drawer height 与垂直 separator 计算
-- [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 在 visible drawer 下也开始复用同一份 resolved document frame，因此 root document tab pointer strip 不会继续回退到 stale document geometry `x/y/width`
-- [`resolve_root_viewport_content_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/root_shell_projection.rs) 现在也会在 visible drawer 下从 resolved document frame 推导 viewport content，而不是继续信任 legacy viewport geometry
+- [`resolve_root_document_tabs_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs) 在 visible drawer 下也开始复用同一份 resolved document frame，因此 root document tab pointer strip 不会继续回退到 stale document geometry `x/y/width`
+- [`resolve_root_viewport_content_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs) 现在也会在 visible drawer 下从 resolved document frame 推导 viewport content，而不是继续信任 legacy viewport geometry
 - [`apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_positions`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs) 与 `apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_extents` 现在同时锁住 document shell 和 viewport frame：即使 legacy document / viewport frame 故意给出错误 `x/y/width/height`，root shell presentation 仍然必须服从 shared root/body + visible drawer extents 的组合结果
 
 这一步之后，visible drawer 相关 root-shell seam 里仍刻意保留的只剩：
@@ -1197,7 +1197,7 @@ editor shell 的 dock target route 和 splitter route 现在不再各自维护�
 
 这一刀继续减少这条 boundary，但不是再借 root shell 节点，而是把 floating-window outer frame 的 base producer 改成 dedicated builtin template/runtime source。
 
-- [`floating_window_source.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml) 新增一份只服务浮窗 placement 的 builtin 模板文档，直接导出 `FloatingWindowCenterBandRoot` 与 `FloatingWindowDocumentRoot`
+- [`floating_window_source.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/floating_window_source.zui) 新增一份只服务浮窗 placement 的 builtin 模板文档，直接导出 `FloatingWindowCenterBandRoot` 与 `FloatingWindowDocumentRoot`
 - [`callback_dispatch/template_bridge/floating_window_source/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/mod.rs) 现在只保留 structural wiring；[`bridge.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs) 与 [`source_frames.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/source_frames.rs) 共同收口 `BuiltinFloatingWindowSourceTemplateBridge` / `BuiltinFloatingWindowSourceFrames` owner，shared source 不再解析 `DocumentHostRoot + WorkbenchBody`
 - [`floating_window_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/floating_window_projection.rs) 继续只保留一份 `FloatingWindowProjectionSharedSource` 数学入口，但输入现在来自 `BuiltinFloatingWindowSourceFrames`
 - [`app/host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/host_lifecycle.rs) 会在 root recompute 时同步刷新 dedicated source bridge，再把这份 source 同时喂给 native-window projection bounds 和 `FloatingWindowProjectionBundle`

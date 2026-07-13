@@ -14,6 +14,7 @@ use crate::core::framework::render::{
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::write_ibl_bake_runtime_cache_from_graph_resources;
+use crate::graphics::scene::scene_renderer::environment::RealtimeIblPendingSubmission;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
@@ -41,6 +42,7 @@ pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
     pub(super) mesh_pass_indirect_draws: &'a MeshPassIndirectDrawExecutions,
     pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
+    pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
 }
 
 impl SceneRendererCore {
@@ -58,6 +60,7 @@ impl SceneRendererCore {
             graph_execution_record,
             mesh_pass_indirect_draws,
             environment_ibl_bake_request,
+            realtime_ibl_submission,
         } = ctx;
 
         let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
@@ -67,6 +70,12 @@ impl SceneRendererCore {
             graph_execution_record,
         );
         queue.submit([encoder.finish()]);
+        if let Some(submission) = realtime_ibl_submission {
+            self.realtime_ibl
+                .complete_submission(device, queue, submission, true);
+        } else {
+            self.realtime_ibl.poll_gpu_timestamps(device);
+        }
 
         #[cfg(not(test))]
         let _ = (streamer, frame);

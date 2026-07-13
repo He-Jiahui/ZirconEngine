@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::ProjectPluginSelection;
+use zircon_runtime::core::framework::project::ProjectPluginSelection;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorPluginSelectionUpdateReport {

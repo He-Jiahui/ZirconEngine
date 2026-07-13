@@ -186,7 +186,7 @@ EVENT_MESSAGE_ANCHORS = (
     "pub fn clear(&mut self)",
 )
 RESOURCE_IDENTITY_ANCHORS = (
-    "pub trait Resource: 'static + Send + Sync",
+    "pub trait SceneResource: 'static + Send + Sync",
     "pub struct ResourceId(usize)",
     "pub const fn new(index: usize) -> Self",
     "pub const fn index(self) -> usize",

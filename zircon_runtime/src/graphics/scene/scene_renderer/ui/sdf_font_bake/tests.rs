@@ -5,7 +5,10 @@ use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{SdfAtlasPlan, SdfAtl
 use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphAtlasPageKey};
 #[cfg(target_os = "windows")]
 use crate::graphics::text::font::shared_font_database_snapshot;
+use crate::graphics::text::sdf::SdfMode;
 use std::path::PathBuf;
+
+mod offline;
 
 #[test]
 fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
@@ -80,6 +83,85 @@ fn sdf_font_bake_writes_page_indexed_slots_into_matching_layers() {
 }
 
 #[test]
+fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
+    let mut bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let plan = atlas_plan_for_mixed_distance_fields();
+
+    let first = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+    let cached_glyph_count = bake.glyphs.len();
+    let second = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+
+    let page_area = (plan.atlas_size.x * plan.atlas_size.y) as usize;
+    assert_eq!(first.pixels.len(), page_area + page_area * 4);
+    assert_eq!(first.report.r8_byte_len, page_area);
+    assert_eq!(first.report.rgba_byte_len, page_area * 4);
+    assert_eq!(first.report.atlas_byte_len, first.pixels.len());
+    assert_eq!(first.report.visible_glyph_count, 3);
+    assert_eq!(first.report.generation_failure_count, 1);
+    assert_eq!(first.generation_failures.len(), 1);
+    assert_eq!(first.generation_failures[0].slot_index, 3);
+    assert_eq!(
+        first.generation_failures[0].key.bake_params.mode,
+        SdfMode::Msdf
+    );
+    assert!(matches!(
+        first.generation_failures[0].error,
+        SdfGlyphGenerationError::MissingGlyphOutline(_)
+    ));
+    assert_eq!(
+        first.pages,
+        vec![
+            SdfAtlasBakePage {
+                page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0),
+                source_offset: 0,
+                byte_len: page_area,
+            },
+            SdfAtlasBakePage {
+                page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::Msdf, 0),
+                source_offset: page_area,
+                byte_len: page_area * 4,
+            },
+        ]
+    );
+
+    let sdf = slot_pixels_for_bake_page(&first, plan.atlas_size.x, 0, plan.slots[0].rect);
+    let msdf = slot_pixels_for_bake_page(
+        &first,
+        plan.atlas_size.x,
+        1,
+        baked_glyph_rect(plan.slots[1].rect, &first.glyphs[1]),
+    );
+    let mtsdf = slot_pixels_for_bake_page(
+        &first,
+        plan.atlas_size.x,
+        1,
+        baked_glyph_rect(plan.slots[2].rect, &first.glyphs[2]),
+    );
+    assert!(sdf.iter().any(|sample| *sample != 0));
+    assert!(msdf
+        .chunks_exact(4)
+        .filter(|sample| sample[0] != 0 || sample[1] != 0 || sample[2] != 0)
+        .all(|sample| sample[3] == u8::MAX));
+    assert!(msdf
+        .chunks_exact(4)
+        .any(|sample| sample[0] != sample[1] || sample[1] != sample[2]));
+    assert!(mtsdf.chunks_exact(4).any(|sample| sample[3] != u8::MAX));
+    assert!(mtsdf.chunks_exact(4).any(|sample| {
+        let mut rgb = [sample[0], sample[1], sample[2]];
+        rgb.sort_unstable();
+        sample[3] != rgb[1]
+    }));
+
+    assert_eq!(bake.glyphs.len(), cached_glyph_count);
+    assert_eq!(second.pixels, first.pixels);
+    assert_eq!(second.pages, first.pages);
+    assert_eq!(second.generation_failures, first.generation_failures);
+    assert_eq!(second.report, first.report);
+}
+
+#[test]
 fn sdf_font_bake_measures_whitespace_without_atlas_bitmap() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
@@ -138,6 +220,7 @@ fn sdf_font_query_for_key_preserves_font_weight() {
         glyph: 'A',
         glyph_id: None,
         font_id: None,
+        font_instance_id: None,
         font: Some(DEFAULT_FONT_ASSET.to_string()),
         font_family: Some("Studio Mono".to_string()),
         language: None,
@@ -206,6 +289,7 @@ fn sdf_font_bake_prefers_shaped_glyph_id_on_authoritative_face() {
         glyph: '。',
         glyph_id: Some(shaped_id as u32),
         font_id: Some(face.0),
+        font_instance_id: None,
         font: Some(DEFAULT_FONT_ASSET.to_string()),
         font_family: Some("Microsoft YaHei UI".to_string()),
         language: Some("zh-hans".to_string()),
@@ -242,6 +326,11 @@ fn sdf_font_bake_report_handles_empty_atlas_plan() {
             atlas_byte_len: 1,
             nonzero_pixel_count: 0,
             loaded_font_count: 0,
+            generation_failure_count: 0,
+            r8_byte_len: 0,
+            rgba_byte_len: 0,
+            offline_glyph_count: 0,
+            dynamic_glyph_count: 0,
         }
     );
 }
@@ -255,6 +344,7 @@ fn atlas_plan_for_glyphs(glyphs: &[char]) -> SdfAtlasPlan {
                 glyph: *glyph,
                 glyph_id: None,
                 font_id: None,
+                font_instance_id: None,
                 font: Some(DEFAULT_FONT_ASSET.to_string()),
                 font_family: Some("Studio Mono".to_string()),
                 language: None,
@@ -288,6 +378,7 @@ fn atlas_plan_for_page_glyphs(glyphs: &[(char, u32)]) -> SdfAtlasPlan {
                 glyph: *glyph,
                 glyph_id: None,
                 font_id: None,
+                font_instance_id: None,
                 font: Some(DEFAULT_FONT_ASSET.to_string()),
                 font_family: Some("Studio Mono".to_string()),
                 language: None,
@@ -313,6 +404,52 @@ fn atlas_plan_for_page_glyphs(glyphs: &[(char, u32)]) -> SdfAtlasPlan {
     }
 }
 
+fn atlas_plan_for_mixed_distance_fields() -> SdfAtlasPlan {
+    let mut sdf = SdfBakeParams::default();
+    sdf.mode = SdfMode::Sdf;
+    let mut msdf = sdf;
+    msdf.mode = SdfMode::Msdf;
+    let mut mtsdf = sdf;
+    mtsdf.mode = SdfMode::Mtsdf;
+    let glyphs = [
+        ('A', sdf, GlyphAtlasFormat::Sdf, 0),
+        ('M', msdf, GlyphAtlasFormat::Msdf, 0),
+        ('W', mtsdf, GlyphAtlasFormat::Msdf, 64),
+        ('\u{10ffff}', msdf, GlyphAtlasFormat::Msdf, 128),
+    ];
+    let slots = glyphs
+        .into_iter()
+        .map(|(glyph, bake_params, format, x)| SdfAtlasSlot {
+            key: SdfAtlasGlyphKey {
+                glyph,
+                glyph_id: None,
+                font_id: None,
+                font_instance_id: None,
+                font: Some(DEFAULT_FONT_ASSET.to_string()),
+                font_family: Some("Studio Mono".to_string()),
+                language: None,
+                font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
+                bake_params,
+            },
+            page_key: GlyphAtlasPageKey::new(format, 0),
+            rect: SdfAtlasRect {
+                x,
+                y: 0,
+                width: 64,
+                height: 64,
+            },
+        })
+        .collect();
+    SdfAtlasPlan {
+        atlas_size: UVec2::new(256, 256),
+        atlas_set: Default::default(),
+        slots,
+        runs: Vec::new(),
+        rebuilt_pages: Vec::new(),
+        allocation_failures: Vec::new(),
+    }
+}
+
 fn atlas_plan_for_asset(glyph: char, asset_ref: &str) -> SdfAtlasPlan {
     SdfAtlasPlan {
         atlas_size: UVec2::new(64, 64),
@@ -322,6 +459,7 @@ fn atlas_plan_for_asset(glyph: char, asset_ref: &str) -> SdfAtlasPlan {
                 glyph,
                 glyph_id: None,
                 font_id: None,
+                font_instance_id: None,
                 font: Some(asset_ref.to_string()),
                 font_family: Some("Fira Unsupported Face".to_string()),
                 language: None,
@@ -409,6 +547,32 @@ fn slot_pixels_for_page(
         slot.extend_from_slice(&pixels[start..end]);
     }
     slot
+}
+
+fn slot_pixels_for_bake_page(
+    bake: &SdfAtlasBake,
+    atlas_width: u32,
+    page_index: usize,
+    rect: SdfAtlasRect,
+) -> Vec<u8> {
+    let page = bake.pages[page_index];
+    let bytes_per_pixel = page.page_key.format.storage_format().bytes_per_pixel() as usize;
+    let mut slot = Vec::with_capacity(rect.width as usize * rect.height as usize * bytes_per_pixel);
+    for y in rect.y..rect.y + rect.height {
+        let start = page.source_offset
+            + (y as usize * atlas_width as usize + rect.x as usize) * bytes_per_pixel;
+        let end = start + rect.width as usize * bytes_per_pixel;
+        slot.extend_from_slice(&bake.pixels[start..end]);
+    }
+    slot
+}
+
+fn baked_glyph_rect(slot: SdfAtlasRect, glyph: &SdfBakedGlyph) -> SdfAtlasRect {
+    SdfAtlasRect {
+        width: glyph.metrics.bitmap_width.min(slot.width),
+        height: glyph.metrics.bitmap_height.min(slot.height),
+        ..slot
+    }
 }
 
 fn old_rounded_rect_placeholder(width: u32, height: u32) -> Vec<u8> {

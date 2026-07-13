@@ -13,8 +13,8 @@ fn prefab_authoring_registration_exposes_menu_items_and_payload_schemas() {
     let operation = EditorOperationPath::parse("prefab_tools.authoring.apply_overrides")
         .expect("operation path");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("apply overrides operation registered");
 
     assert_eq!(

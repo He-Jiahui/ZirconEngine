@@ -160,7 +160,7 @@ mod tests {
         Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-test-prev-transform-skinned-palette-buffer"),
             size: test_skinned_joint_palette_min_binding_size().get(),
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
         }))
     }
@@ -170,7 +170,7 @@ mod tests {
             TEST_SKINNED_JOINT_MATRIX_COUNT * TEST_SKINNED_JOINT_MATRIX_BYTES
                 + TEST_SKINNED_JOINT_PARAMS_BYTES,
         )
-        .expect("test skinned joint palette uniform size is non-zero")
+        .expect("test skinned joint palette storage size is non-zero")
     }
 
     fn test_primitive_data() -> GpuPrimitiveData {

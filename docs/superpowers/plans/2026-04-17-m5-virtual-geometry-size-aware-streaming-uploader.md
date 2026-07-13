@@ -1,21 +1,21 @@
 ---
 related_code:
-  - zircon_graphics/src/types/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_runtime/src/graphics/types/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/buffer_helpers/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/buffer_helpers/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/execute_prepare/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/buffer_helpers/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/gpu_pending_request_input/gpu_pending_request_input.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_uploader_params/virtual_geometry_uploader_params.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
 plan_sources:
   - user: 2026-04-17 Virtual Geometry should continue from refine and uploader baseline into a more real cluster streaming path
   - user: 2026-04-17 continue the remaining M5 Virtual Geometry route without waiting for confirmation
@@ -23,7 +23,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-gpu-uploader-readback.md
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-indirect-raster-consumption.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
   - cargo test -p zircon_graphics virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepare_snapshot --locked
   - cargo test -p zircon_graphics virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_pages --locked
   - cargo test -p zircon_graphics virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evictable_pages --locked

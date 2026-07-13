@@ -74,6 +74,13 @@ async fn handle_route_request(
             .map(|entry| (method, entry.response.clone(), entry.handler.clone()))
     });
     let Some((method, route_response, route_handler)) = matched else {
+        // Keep the HTTP/1 request lifecycle valid without buffering an unmatched payload.
+        if discard_route_request_body(request.into_body())
+            .await
+            .is_err()
+        {
+            return Ok(internal_server_error());
+        }
         return Ok(route_not_found());
     };
 
@@ -134,6 +141,13 @@ async fn collect_route_request_body(body: Incoming) -> Result<Vec<u8>, RouteBody
                 RouteBodyError::ReadFailed
             }
         })
+}
+
+async fn discard_route_request_body(mut body: Incoming) -> Result<(), RouteBodyError> {
+    while let Some(frame) = body.frame().await {
+        frame.map_err(|_| RouteBodyError::ReadFailed)?;
+    }
+    Ok(())
 }
 
 fn route_not_found() -> Response<Full<Bytes>> {

@@ -1,4 +1,5 @@
-use crate::plugin::{ExportPackagingStrategy, PluginFeatureBundleManifest};
+use crate::core::framework::project::ExportPackagingStrategy;
+use crate::plugin::PluginFeatureBundleManifest;
 
 pub(super) fn feature_project_selection_packaging(
     feature: &PluginFeatureBundleManifest,

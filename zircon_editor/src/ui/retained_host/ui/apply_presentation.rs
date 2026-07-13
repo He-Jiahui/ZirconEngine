@@ -626,7 +626,7 @@ fn to_host_contract_asset_selection(
         locator: data.locator.clone(),
         kind: data.kind.clone(),
         meta_path: data.meta_path.clone(),
-        adapter_key: data.adapter_key.clone(),
+        toolkit_view_id: data.toolkit_view_id.clone(),
         state: data.state.clone(),
         revision: data.revision.clone(),
         diagnostics: data.diagnostics.clone(),

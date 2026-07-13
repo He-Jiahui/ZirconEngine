@@ -7,9 +7,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
   - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/floating_window_projection.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs
@@ -20,8 +20,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs
   - zircon_editor/src/ui/retained_host/tab_drag/strip_hitbox.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/shell_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_tabs.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - tests/acceptance/ui-m8-final-cleanup-acceptance.md
   - zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs
@@ -43,7 +42,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/tests/floating_window_projection.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 implementation_files:
   - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/app/helpers.rs
@@ -52,9 +51,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
   - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/build_workbench_document_tab_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/floating_window_projection.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs
@@ -65,8 +64,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs
   - zircon_editor/src/ui/retained_host/tab_drag/strip_hitbox.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/shell_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_tabs.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/pointer_bridge.rs
@@ -83,7 +81,7 @@ implementation_files:
   - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
@@ -154,7 +152,7 @@ tests:
   - cargo test -p zircon_editor --lib retained_drawer_resize --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m8-current --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib workbench_projection_cutover --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m8-current --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib retained_tab_drag --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m8-current --message-format short --color never -- --nocapture
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/root_shell_projection.rs zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs zircon_editor/src/ui/retained_host/drawer_resize.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/app/workspace_docking.rs zircon_editor/src/ui/retained_host/tab_drag/bridge.rs zircon_editor/src/ui/retained_host/tab_drag/drop_resolution.rs zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs zircon_editor/src/tests/host/retained_tab_drag/support.rs zircon_editor/src/tests/host/retained_tab_drag/drag_target_groups.rs zircon_editor/src/tests/host/retained_tab_drag/drop_resolution.rs zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs zircon_editor/src/tests/host/retained_tab_drag/document_routes.rs zircon_editor/src/tests/host/retained_tab_drag/floating_routes.rs zircon_editor/src/tests/host/retained_tab_drag/floating_pointer.rs zircon_editor/src/tests/host/retained_drawer_resize/surface_contract.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs zircon_editor/src/ui/retained_host/drawer_resize.rs zircon_editor/src/ui/retained_host/app/host_lifecycle.rs zircon_editor/src/ui/retained_host/app/workspace_docking.rs zircon_editor/src/ui/retained_host/tab_drag/bridge.rs zircon_editor/src/ui/retained_host/tab_drag/drop_resolution.rs zircon_editor/src/ui/retained_host/tab_drag/route_resolution.rs zircon_editor/src/tests/host/retained_tab_drag/support.rs zircon_editor/src/tests/host/retained_tab_drag/drag_target_groups.rs zircon_editor/src/tests/host/retained_tab_drag/drop_resolution.rs zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs zircon_editor/src/tests/host/retained_tab_drag/document_routes.rs zircon_editor/src/tests/host/retained_tab_drag/floating_routes.rs zircon_editor/src/tests/host/retained_tab_drag/floating_pointer.rs zircon_editor/src/tests/host/retained_drawer_resize/surface_contract.rs
 doc_type: module-detail
 ---
 
@@ -389,7 +387,7 @@ Host-contract side originally added one reusable struct:
   - `cargo test -p zircon_editor tests::host::retained_window::ui_asset_editor_host_genericizes_collection_event_dispatch -- --exact`
   - `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked workbench_retained_ui_asset_authoring_shell -- --exact`
   - `cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked workbench_retained_ui_asset_authoring_shell -- --exact`
-  - `rustfmt --edition 2021 --check zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs zircon_editor/src/ui/retained_host/root_shell_projection.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs`
+  - `rustfmt --edition 2021 --check zircon_editor/src/tests/host/retained_tab_drag/root_projection.rs zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs`
   - `cargo test -p zircon_editor --lib workbench_root_shell_projection_uses_shared_frames_without_geometry_fallback --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m8 --message-format short --color never -- --nocapture`
   - `cargo test -p zircon_editor --lib retained_tab_drag::root_projection --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m8 --message-format short --color never -- --nocapture`
   - `cargo test -p zircon_editor --lib workbench_projection_cutover --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m8 --message-format short --color never -- --nocapture`

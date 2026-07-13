@@ -3,7 +3,7 @@ use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
-use super::labels::{asset_state_label, summary_resource_kind_label};
+use super::labels::asset_state_label;
 use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 
@@ -123,7 +123,7 @@ fn selected_asset(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetItemSnapsho
 }
 
 fn summary_type_label(asset: &AssetItemSnapshot) -> String {
-    summary_resource_kind_label(asset.kind).to_string()
+    asset.asset_type.display_name.clone()
 }
 
 fn summary_revision_label(asset: &AssetItemSnapshot) -> String {
@@ -230,6 +230,10 @@ mod tests {
                 file_name: "A.zui".to_string(),
                 extension: "zui".to_string(),
                 kind: ResourceKind::UiLayout,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::UiLayout,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -276,6 +280,10 @@ mod tests {
                 file_name: "NavigationSettingsRuntimeProfile".to_string(),
                 extension: String::new(),
                 kind: ResourceKind::Data,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Data,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -330,6 +338,10 @@ mod tests {
                 file_name: wide_name.to_string(),
                 extension: String::new(),
                 kind: ResourceKind::Data,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Data,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -372,6 +384,10 @@ mod tests {
                 file_name: "workbench_page_chrome.zui".to_string(),
                 extension: "zui".to_string(),
                 kind: ResourceKind::UiLayout,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::UiLayout,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),

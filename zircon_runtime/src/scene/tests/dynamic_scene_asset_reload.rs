@@ -303,7 +303,11 @@ impl SceneReloadFixture {
     }
 
     fn copy_main_scene_as(&self, file_name: &str) -> AssetUri {
-        let scenes_root = self.project.paths().assets_root().join("scenes");
+        let scenes_root = self
+            .project
+            .primary_project_asset_root()
+            .unwrap()
+            .join("scenes");
         fs::copy(
             scenes_root.join("main.scene.toml"),
             scenes_root.join(file_name),

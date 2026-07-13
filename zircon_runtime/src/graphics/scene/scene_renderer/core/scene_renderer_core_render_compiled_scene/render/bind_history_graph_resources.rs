@@ -12,6 +12,7 @@ struct HistoryGraphResourceBindingFlags
     pub hzb: bool,
     pub hybrid_global_illumination: bool,
     pub exposure: bool,
+    pub volumetric_scattering: bool,
 }
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_history_graph_resources(
@@ -90,6 +91,17 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             history_textures.exposure_current_buffer(),
         );
     }
+
+    if flags.volumetric_scattering && history_textures.volumetric_history_valid() {
+        if let Some(view) = history_textures.volumetric_history_view() {
+            bind_live_texture_view(
+                graph,
+                resources,
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING,
+                view,
+            );
+        }
+    }
 }
 
 fn bind_live_texture_view(
@@ -116,6 +128,7 @@ fn bind_live_buffer(
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::FroxelGridQuality;
     use crate::core::math::UVec2;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
@@ -132,12 +145,14 @@ mod tests {
         let Ok(backend) = RenderBackend::new_offscreen() else {
             return;
         };
-        let history_textures = SceneFrameHistoryTextures::new(
+        let mut history_textures = SceneFrameHistoryTextures::new_with_volumetric_history(
             &backend.device,
             &backend.queue,
             UVec2::new(16, 16),
             UVec2::new(16, 16),
+            Some(FroxelGridQuality::High),
         );
+        history_textures.set_volumetric_history_valid(true);
         let graph = full_history_graph();
         let mut resources = RenderGraphExecutionResources::new();
 
@@ -151,6 +166,7 @@ mod tests {
                 hzb: true,
                 hybrid_global_illumination: true,
                 exposure: true,
+                volumetric_scattering: true,
             },
         );
 
@@ -169,14 +185,17 @@ mod tests {
         ));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT));
+        assert!(resources.has_texture_view(
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING
+        ));
 
         let report = resources
             .validate_materialized_graph_resources(&graph)
             .expect("live history externals should be bound before validation");
         assert_eq!(report.required_external_count, 0);
-        assert_eq!(report.report_only_external_count, 8);
-        assert_eq!(report.bound_report_only_external_count, 8);
-        assert_eq!(report.bound_external_count(), 8);
+        assert_eq!(report.report_only_external_count, 9);
+        assert_eq!(report.bound_report_only_external_count, 9);
+        assert_eq!(report.bound_external_count(), 9);
         assert_eq!(report.missing_external_count(), 0);
     }
 
@@ -204,6 +223,7 @@ mod tests {
                 hzb: true,
                 hybrid_global_illumination: true,
                 exposure: true,
+                volumetric_scattering: false,
             },
         );
 
@@ -254,6 +274,10 @@ mod tests {
             &mut builder,
             PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
         );
+        let volumetric_scattering_history = report_only_texture(
+            &mut builder,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_VOLUMETRIC_SCATTERING,
+        );
         let pass = side_effect_pass(&mut builder, "history-use");
         builder.read_external(pass, taa_previous).unwrap();
         builder.write_external(pass, taa_current).unwrap();
@@ -264,6 +288,9 @@ mod tests {
             .write_external(pass, hybrid_gi_temporal_metadata_history)
             .unwrap();
         builder.read_external(pass, exposure_previous).unwrap();
+        builder
+            .read_external(pass, volumetric_scattering_history)
+            .unwrap();
         builder
             .write_storage_external(pass, exposure_current)
             .unwrap();

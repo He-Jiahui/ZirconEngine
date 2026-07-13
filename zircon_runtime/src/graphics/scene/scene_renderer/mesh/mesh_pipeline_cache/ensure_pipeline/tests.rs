@@ -77,6 +77,7 @@ fn runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss() {
     let gpu_scene = test_gpu_scene(&device);
     let mut cache = MeshPipelineCache::new(
         &device,
+        &queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,
         &scene_layout,
         &material_layout,
@@ -145,6 +146,7 @@ fn runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_
     let gpu_scene = test_gpu_scene(&device);
     let mut cache = MeshPipelineCache::new(
         &device,
+        &queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,
         &scene_layout,
         &material_layout,
@@ -168,6 +170,56 @@ fn runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_
     assert!(
         error.is_none(),
         "streamed builtin fallback shader should not replace the standard material template: {error:?}"
+    );
+}
+
+#[test]
+fn runtime_oit_mesh_pipeline_creates_depth_only_fragment_store_variant_on_wgpu() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let RenderBackend { device, queue, .. } = backend;
+    if device.limits().max_storage_buffers_per_shader_stage < 3 {
+        return;
+    }
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let mut pipeline_key = default_pipeline_key();
+    pipeline_key.alpha_blend = true;
+    let variant_id = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::Medium,
+    );
+    let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+
+    assert!(
+        cache
+            .ensure_oit_pipeline_for_base_variant(&device, &streamer, variant_id)
+            .is_some(),
+        "transparent Base mesh should create the dedicated OIT fragment-store pipeline"
+    );
+
+    let error = pollster::block_on(error_scope.pop());
+    assert!(
+        error.is_none(),
+        "OIT mesh fragment-store variant should pass WGPU validation: {error:?}"
     );
 }
 
@@ -221,6 +273,7 @@ fn runtime_project_plugin_registry_shader_keys_use_staged_prewarm_without_compil
     let gpu_scene = test_gpu_scene(&device);
     let mut cache = MeshPipelineCache::new(
         &device,
+        &queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,
         &scene_layout,
         &material_layout,
@@ -317,6 +370,7 @@ fn runtime_custom_geometry_descriptor_pipeline_uses_staged_prewarm_without_compi
     let gpu_scene = test_gpu_scene(&device);
     let mut cache = MeshPipelineCache::new(
         &device,
+        &queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,
         &scene_layout,
         &material_layout,
@@ -406,6 +460,7 @@ fn runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_with
     let gpu_scene = test_gpu_scene(&device);
     let mut cache = MeshPipelineCache::new(
         &device,
+        &queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,
         &scene_layout,
         &material_layout,
@@ -699,7 +754,7 @@ fn test_gpu_scene(device: &wgpu::Device) -> GpuScene {
         Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-test-runtime-staged-cache-joint-palette"),
             size: 256 * 64 + 16,
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
         })),
         wgpu::BufferSize::new(256 * 64 + 16).expect("test joint palette size"),

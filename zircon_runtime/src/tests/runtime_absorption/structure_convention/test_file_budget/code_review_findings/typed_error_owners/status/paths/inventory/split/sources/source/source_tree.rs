@@ -6,8 +6,7 @@ use super::super::super::super::super::root_paths::{
     TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_SOURCES_SPLIT_LAYOUT_CHILDREN_CHILD,
 };
 
-const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_SOURCE_SPLIT_CHILDREN:
-    &[&str] = &[
+const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_SOURCE_SPLIT_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/source/source_tree.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/source/status_current.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/source/folder_backed.rs",

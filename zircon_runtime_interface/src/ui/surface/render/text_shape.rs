@@ -5,8 +5,9 @@ use crate::ui::layout::UiFrame;
 
 use super::{
     UiRenderResourceKey, UiResolvedStyle, UiResolvedTextLayout, UiResourceUvRect, UiTextCaret,
-    UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
-    UiTextRunKind, UiTextSelection, UiTextWritingMode,
+    UiTextComposition, UiTextDecorations, UiTextDirection, UiTextDistanceFieldEffects,
+    UiTextOverflow, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
+    UiTextWritingMode,
 };
 
 fn default_text_font_weight() -> u16 {
@@ -26,6 +27,10 @@ pub struct UiTextPaint {
     #[serde(default)]
     pub writing_mode: UiTextWritingMode,
     pub render_mode: UiTextRenderMode,
+    #[serde(default)]
+    pub text_effects: UiTextDistanceFieldEffects,
+    #[serde(default)]
+    pub text_decorations: UiTextDecorations,
     pub overflow: UiTextOverflow,
     pub shaped: Option<UiShapedText>,
     #[serde(default)]
@@ -62,6 +67,8 @@ impl UiTextPaint {
             line_height: shaped.line_height,
             writing_mode: shaped.writing_mode,
             render_mode: shaped.render_mode,
+            text_effects: UiTextDistanceFieldEffects::default(),
+            text_decorations: UiTextDecorations::default(),
             overflow: shaped.overflow,
             shaped: Some(shaped),
             selection: None,
@@ -131,6 +138,8 @@ pub struct UiTextPaintDecoration {
     pub range: UiTextRange,
     pub frame: UiFrame,
     pub color: String,
+    #[serde(default = "default_text_decoration_thickness")]
+    pub thickness: f32,
 }
 
 impl UiTextPaintDecoration {
@@ -140,6 +149,7 @@ impl UiTextPaintDecoration {
             range,
             frame,
             color: color.into(),
+            thickness: default_text_decoration_thickness(),
         }
     }
 
@@ -153,8 +163,42 @@ impl UiTextPaintDecoration {
             range,
             frame,
             color: color.into(),
+            thickness: default_text_decoration_thickness(),
         }
     }
+
+    pub fn table_cell_background(
+        range: UiTextRange,
+        frame: UiFrame,
+        color: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind: UiTextPaintDecorationKind::TableCellBackground,
+            range,
+            frame,
+            color: color.into(),
+            thickness: default_text_decoration_thickness(),
+        }
+    }
+
+    pub fn table_cell_border(
+        range: UiTextRange,
+        frame: UiFrame,
+        color: impl Into<String>,
+        thickness: f32,
+    ) -> Self {
+        Self {
+            kind: UiTextPaintDecorationKind::TableCellBorder,
+            range,
+            frame,
+            color: color.into(),
+            thickness: thickness.max(0.0),
+        }
+    }
+}
+
+const fn default_text_decoration_thickness() -> f32 {
+    1.0
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -164,6 +208,8 @@ pub enum UiTextPaintDecorationKind {
     Caret,
     CompositionUnderline,
     Outline,
+    TableCellBackground,
+    TableCellBorder,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

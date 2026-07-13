@@ -1,6 +1,6 @@
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::behavior_tree::{
     BehaviorNodeCategory, BehaviorNodeDescriptor, BehaviorNodeRegistry, BehaviorNodeRuntime,
@@ -153,13 +153,13 @@ fn ai_package_manifest_declares_dist_contract() {
         .as_ref()
         .expect("ai dist distribution");
 
-    assert!(manifest
-        .default_packaging
-        .contains(&zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic));
+    assert!(manifest.default_packaging.contains(
+        &zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic
+    ));
     assert_eq!(distribution.forms, vec!["dist"]);
     assert_eq!(
         distribution.default_packaging,
-        vec![zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic]
+        vec![zircon_runtime::core::framework::project::ExportPackagingStrategy::NativeDynamic]
     );
     assert_eq!(distribution.abi_version, Some(3));
     assert_eq!(distribution.engine_compat, ">=0.1, <0.2");

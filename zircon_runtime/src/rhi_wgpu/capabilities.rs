@@ -5,6 +5,7 @@ pub fn wgpu_backend_caps(
     features: wgpu::Features,
     limits: wgpu::Limits,
     supports_surface: bool,
+    supports_fragment_writable_storage: bool,
 ) -> RenderBackendCaps {
     RenderBackendCaps::new(backend_name)
         .with_queue(RenderQueueClass::Graphics)
@@ -15,7 +16,9 @@ pub fn wgpu_backend_caps(
         .with_async_copy(true)
         .with_pipeline_cache(false)
         .with_storage_buffers(true)
+        .with_fragment_writable_storage(supports_fragment_writable_storage)
         .with_max_storage_buffers_per_shader_stage(limits.max_storage_buffers_per_shader_stage)
+        .with_max_storage_buffer_binding_size(u64::from(limits.max_storage_buffer_binding_size))
         .with_indirect_draw(true)
         .with_multi_draw_indirect(features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT))
         .with_indirect_first_instance(features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE))

@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pool.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/tasks/thread_assignment.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/core/framework/tasks/mod.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_kind.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_descriptor.rs
@@ -24,10 +24,10 @@ implementation_files:
   - zircon_runtime/src/core/framework/tasks/async_task_descriptor.rs
   - zircon_runtime/src/core/framework/tasks/async_task_state.rs
   - zircon_runtime/src/core/framework/tasks/async_task_status.rs
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pool.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/tasks/thread_assignment.rs
+  - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs

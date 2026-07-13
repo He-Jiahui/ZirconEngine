@@ -192,7 +192,7 @@ fn asset_browser_projected_selection_does_not_impersonate_keyboard_focus() {
         "AssetBrowserKindTextureChip",
         "AssetBrowserMetadataTabButton",
         "AssetBrowserMetaPathPanel",
-        "AssetBrowserAdapterPanel",
+        "AssetBrowserToolkitPanel",
         "AssetBrowserDiagnosticsPanel",
     ] {
         let node = find_node(&nodes, control_id);
@@ -212,8 +212,6 @@ fn asset_browser_projected_selection_does_not_impersonate_keyboard_focus() {
         "AssetBrowserPreviewTabButton",
         "AssetBrowserReferencesTabButton",
         "AssetBrowserPluginsTabButton",
-        "AssetBrowserPreviewPanel",
-        "AssetBrowserPluginsPanel",
     ] {
         let node = find_node(&nodes, control_id);
         assert!(
@@ -286,12 +284,40 @@ fn list_view_selected_asset_row_does_not_impersonate_keyboard_focus() {
 }
 
 #[test]
+fn list_view_projects_every_catalog_asset_into_the_clipped_table() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::List,
+        visible_assets: (1..=7).map(|index| asset_item(index, false)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let table = find_node(&nodes, "AssetBrowserAssetTablePanel");
+    let header = find_node(&nodes, "WorkbenchAssetBrowserTableHeader");
+    let seventh = find_node(&nodes, "WorkbenchAssetBrowserAssetRow07");
+
+    assert_control_absent(&nodes, "WorkbenchAssetBrowserAssetRow08");
+    assert_eq!(table.value_number, 7.0 * 28.0);
+    assert_eq!(seventh.frame.height, 28.0);
+    assert_eq!(
+        seventh.frame.y,
+        header.frame.y + header.frame.height + 6.0 * 28.0
+    );
+    assert!(table.frame.height > header.frame.height);
+    assert!(seventh.text.as_str().contains("Asset_07.mesh"));
+}
+
+#[test]
 fn list_view_summary_keeps_file_like_selected_name_single_line() {
     let mut asset = asset_item(1, true);
     asset.display_name = "workbench_page_chrome.zui".to_string();
     asset.file_name = "workbench_page_chrome.zui".to_string();
     asset.extension = "zui".to_string();
     asset.kind = ResourceKind::UiLayout;
+    asset.asset_type =
+        crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::UiLayout,
+        );
     let snapshot = AssetWorkspaceSnapshot {
         view_mode: AssetViewMode::List,
         selected_asset_uuid: Some("asset-01".to_string()),
@@ -327,6 +353,10 @@ fn list_view_summary_uses_square_icon_slot_and_compact_field_row() {
     asset.file_name = "workbench_page_chrome.zui".to_string();
     asset.extension = "zui".to_string();
     asset.kind = ResourceKind::UiLayout;
+    asset.asset_type =
+        crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::UiLayout,
+        );
     let snapshot = AssetWorkspaceSnapshot {
         view_mode: AssetViewMode::List,
         selected_asset_uuid: Some("asset-01".to_string()),
@@ -371,13 +401,14 @@ fn list_view_summary_uses_square_icon_slot_and_compact_field_row() {
     assert_eq!(state.frame.y, revision.frame.y);
     assert_eq!(type_label.text.as_str(), "UI Layout");
     assert!(
-        type_badge.frame.width > 48.0 && type_badge.frame.width >= type_label.frame.width,
+        type_badge.frame.width > type_label.frame.width && type_badge.frame.width <= 76.0,
         "summary type badge should use a readable label and adapt to its text frame: badge={:?}, label={:?}",
         type_badge.frame,
         type_label.frame
     );
     assert!(
-        type_badge.frame.y > name.frame.y && type_badge.frame.y < visual.frame.y + visual.frame.height,
+        type_badge.frame.y > name.frame.y
+            && type_badge.frame.y < visual.frame.y + visual.frame.height,
         "type/state/revision row should stay inside the icon-slot vertical rhythm: badge={:?}, visual={:?}, name={:?}",
         type_badge.frame,
         visual.frame,
@@ -617,10 +648,10 @@ fn thumbnail_view_uses_slate_tile_name_area_typography_and_row_rhythm() {
 #[test]
 fn thumbnail_view_uses_short_readable_type_badges_for_dense_resource_tiles() {
     let resource_kinds = [
-        (ResourceKind::UiLayout, "UI"),
-        (ResourceKind::UiStyle, "STY"),
+        (ResourceKind::UiLayout, "UIL"),
+        (ResourceKind::UiStyle, "UIS"),
         (ResourceKind::Texture, "TEX"),
-        (ResourceKind::UiWidget, "WDG"),
+        (ResourceKind::UiWidget, "UIW"),
         (ResourceKind::Material, "MAT"),
         (ResourceKind::Scene, "SCN"),
         (ResourceKind::Shader, "SHD"),
@@ -635,6 +666,10 @@ fn thumbnail_view_uses_short_readable_type_badges_for_dense_resource_tiles() {
             .map(|(index, (kind, _))| {
                 let mut asset = asset_item(index + 1, index == 0);
                 asset.kind = *kind;
+                asset.asset_type =
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        *kind,
+                    );
                 asset
             })
             .collect(),
@@ -784,6 +819,9 @@ fn asset_item(index: usize, selected: bool) -> AssetItemSnapshot {
         file_name: format!("Asset_{index:02}.mesh"),
         extension: "mesh".to_string(),
         kind: ResourceKind::Mesh,
+        asset_type: crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+            ResourceKind::Mesh,
+        ),
         preview_artifact_path: String::new(),
         dirty: false,
         diagnostics: Vec::new(),

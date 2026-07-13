@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::asset::{AnimationSkeletonAsset, MeshAsset, ModelPrimitiveAsset};
+use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::animation::AnimationPoseOutput;
+use crate::core::framework::animation::AnimationSkeletonAsset;
 use crate::core::math::{Mat4, Transform, Vec3};
-use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
 #[derive(Clone, Debug)]
 pub(super) struct SkinnedMeshJointPalette {
@@ -35,8 +36,8 @@ impl SkinnedMeshJointPalette {
         &self.joint_matrices
     }
 
-    pub(super) fn to_uniform(&self) -> Result<SkinnedMeshJointPaletteUniform, String> {
-        SkinnedMeshJointPaletteUniform::from_matrices(&self.joint_matrices)
+    pub(super) fn to_storage(&self) -> Result<SkinnedMeshJointPaletteStorage, String> {
+        SkinnedMeshJointPaletteStorage::from_matrices(&self.joint_matrices)
     }
 }
 
@@ -44,7 +45,7 @@ impl SkinnedMeshJointPalette {
 pub(super) struct SkinnedMeshPreparedPrimitive {
     pub(super) primitive: ModelPrimitiveAsset,
     pub(super) shader_skinning_source_primitive: ModelPrimitiveAsset,
-    pub(super) joint_palette_uniform: Option<SkinnedMeshJointPaletteUniform>,
+    pub(super) joint_palette_storage: Option<SkinnedMeshJointPaletteStorage>,
 }
 
 pub(super) fn skin_mesh_asset_primitive(
@@ -87,14 +88,14 @@ pub(super) fn prepare_skinned_model_primitive(
     pose: &AnimationPoseOutput,
 ) -> Result<SkinnedMeshPreparedPrimitive, String> {
     let joint_palette = SkinnedMeshJointPalette::from_skeleton_pose(skeleton, pose)?;
-    let joint_palette_uniform = joint_palette.to_uniform().ok();
+    let joint_palette_storage = joint_palette.to_storage().ok();
     let source_primitive = primitive.clone();
     let primitive = skin_model_primitive_with_palette(primitive, &joint_palette);
 
     Ok(SkinnedMeshPreparedPrimitive {
         primitive,
         shader_skinning_source_primitive: source_primitive,
-        joint_palette_uniform,
+        joint_palette_storage,
     })
 }
 
@@ -115,7 +116,9 @@ fn skin_model_primitive_with_palette(
     }
 }
 
-fn bind_transform(bone: &crate::asset::AnimationSkeletonBoneAsset) -> Transform {
+fn bind_transform(
+    bone: &crate::core::framework::animation::AnimationSkeletonBoneAsset,
+) -> Transform {
     Transform {
         translation: Vec3::from_array(bone.local_translation),
         rotation: crate::core::math::Quat::from_array(bone.local_rotation).normalize(),

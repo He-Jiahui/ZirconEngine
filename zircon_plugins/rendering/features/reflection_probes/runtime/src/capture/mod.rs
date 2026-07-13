@@ -1,7 +1,13 @@
+mod consume;
 mod execute;
 mod face_view;
 mod request;
 
+pub use consume::{
+    register_captured_reflection_probe, CapturedReflectionProbeAsset,
+    CapturedReflectionProbeConsumeError, CapturedReflectionProbeInfluence,
+    CapturedReflectionProbePlacement,
+};
 pub use execute::{
     capture_and_persist_reflection_probe, ReflectionProbeCaptureError, ReflectionProbeCaptureReport,
 };

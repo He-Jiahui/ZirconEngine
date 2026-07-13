@@ -1,6 +1,6 @@
 use super::*;
 use zircon_runtime::{
-    builtin::RuntimeTargetMode,
+    core::framework::platform::RuntimeTargetMode,
     plugin::{ExportPackagingStrategy, PluginModuleKind},
 };
 
@@ -13,7 +13,7 @@ fn ui_asset_authoring_plugin_contributes_view_template_and_capability() {
     assert_eq!(registration.package_manifest.category, "authoring");
     assert_eq!(
         registration.package_manifest.supported_targets,
-        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
     );
     assert_eq!(
         registration.package_manifest.capabilities,
@@ -41,9 +41,29 @@ fn ui_asset_authoring_plugin_contributes_view_template_and_capability() {
         .any(|menu| menu.operation().as_str() == "view.editor.ui_asset.open"));
     assert!(registration
         .extensions
-        .operations()
-        .descriptors()
-        .any(|operation| operation.path().as_str() == "view.editor.ui_asset.open"));
+        .pending_commands()
+        .any(|operation| operation.id().as_str() == "view.editor.ui_asset.open"));
+    assert_eq!(registration.extensions.asset_type_contributions().len(), 3);
+    for kind in [
+        zircon_runtime_interface::resource::ResourceKind::UiLayout,
+        zircon_runtime_interface::resource::ResourceKind::UiWidget,
+        zircon_runtime_interface::resource::ResourceKind::UiStyle,
+    ] {
+        let asset_type = zircon_editor::core::asset::AssetTypeId::from_resource_kind(kind);
+        let contribution = registration
+            .extensions
+            .asset_type_contributions()
+            .into_iter()
+            .find(|contribution| contribution.asset_type() == &asset_type)
+            .expect("UI asset type contribution");
+        assert_eq!(contribution.toolkit().unwrap().view_id(), UI_ASSET_VIEW_ID);
+        assert_eq!(contribution.creation_templates().len(), 1);
+        assert_eq!(contribution.context_commands().len(), 1);
+        assert_eq!(
+            contribution.context_commands()[0].operation().as_str(),
+            "view.editor.ui_asset.open"
+        );
+    }
 }
 
 #[test]

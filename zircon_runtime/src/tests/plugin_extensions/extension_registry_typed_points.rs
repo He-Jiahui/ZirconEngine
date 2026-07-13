@@ -129,6 +129,7 @@ fn render_feature(name: &str) -> RenderFeatureDescriptor {
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
         stage_passes: Vec::new(),
+        pass_resource_extensions: Vec::new(),
     }
 }
 

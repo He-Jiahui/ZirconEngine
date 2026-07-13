@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/primary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
 implementation_files:
   - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
@@ -22,7 +22,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/primary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/engine-code-structure-convention.md

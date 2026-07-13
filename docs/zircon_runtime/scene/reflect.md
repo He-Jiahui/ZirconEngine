@@ -3,25 +3,21 @@ related_code:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/active_in_hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/active_self.rs
-  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights/write_fields.rs
-  - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
-  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
-  - zircon_runtime/src/scene/reflect/fixed/mod.rs
-  - zircon_runtime/src/scene/reflect/fixed/name.rs
-  - zircon_runtime/src/scene/reflect/fixed/render_layer_mask.rs
-  - zircon_runtime/src/scene/reflect/fixed/rigid_body_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/shared.rs
+  - zircon_reflect_derive/src/derive.rs
+  - zircon_reflect_derive/src/fields.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/reflection
+  - zircon_runtime/src/scene/reflect/builtin_reflection
+  - zircon_runtime/src/scene/reflect/derived
   - zircon_runtime/src/scene/reflect/mod.rs
   - zircon_runtime/src/scene/reflect/reflect_component.rs
   - zircon_runtime/src/scene/reflect/reflect_resource.rs
   - zircon_runtime/src/scene/reflect/registration.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/change_detection.rs
@@ -29,31 +25,28 @@ related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/world.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_type_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
 implementation_files:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/active_in_hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/active_self.rs
-  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights/write_fields.rs
-  - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
-  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
-  - zircon_runtime/src/scene/reflect/fixed/mod.rs
-  - zircon_runtime/src/scene/reflect/fixed/name.rs
-  - zircon_runtime/src/scene/reflect/fixed/render_layer_mask.rs
-  - zircon_runtime/src/scene/reflect/fixed/rigid_body_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/shared.rs
+  - zircon_reflect_derive/src/attributes.rs
+  - zircon_reflect_derive/src/derive.rs
+  - zircon_reflect_derive/src/fields.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect.rs
+  - zircon_runtime_interface/src/reflect/zr_reflect_value.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/reflection
+  - zircon_runtime/src/scene/reflect/builtin_reflection
+  - zircon_runtime/src/scene/reflect/derived
   - zircon_runtime/src/scene/reflect/mod.rs
   - zircon_runtime/src/scene/reflect/reflect_component.rs
   - zircon_runtime/src/scene/reflect/reflect_resource.rs
   - zircon_runtime/src/scene/reflect/registration.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/change_detection.rs
@@ -71,6 +64,7 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md
   - docs/superpowers/plans/2026-05-08-reflection-type-registry-implementation.md
+  - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
@@ -163,7 +157,7 @@ Acceptance evidence is recorded in `tests/acceptance/reflection-type-registry.md
 
 M8.3 adds value conversion helpers, turns the component/resource adapter placeholders into function-table contracts, and implements the `WorldReflection` DTO facade. It intentionally does not add concrete fixed component adapters, dynamic plugin component adapters, production resource adapters, editor integration, or remote transport.
 
-The reflection module root now also wires `conversion.rs`, which owns conversion between runtime scene property values and reflection DTO values. `reflected_from_json` preserves arbitrary input as `ReflectedValue::Json` so this milestone does not invent lossy type inference from JSON.
+The reflection module root wires `conversion.rs` only for runtime scene-property and reflection DTO conversion. Persisted reflected JSON is owned separately by the folder-backed `reflect/json_document` module. Its public load/save functions accept versioned text documents rather than raw `serde_json::Value` values.
 
 ## Value Conversion
 
@@ -174,9 +168,9 @@ The reflection module root now also wires `conversion.rs`, which owns conversion
 
 `scene_value_from_reflected` maps the supported scalar, vector, enum, entity, and resource variants back into `ScenePropertyValue`. `Null`, `List`, `Map`, and `Json` are intentionally rejected because they do not have a stable scene property representation in M8.3.
 
-Non-finite float values are rejected before converting `ReflectedValue::Scalar`, `Vec2`, `Vec3`, `Vec4`, or `Quaternion` to `ScenePropertyValue`. The same finite check runs before serializing any reflected value to JSON, including nested values inside `List` and `Map`. The nested validation path uses direct loops for `List`, `Map`, and vector lanes, and scalar validation returns through a direct finite branch before constructing the structured conversion error. Successful DTO serialization therefore avoids iterator-adapter or error-closure setup on every finite check. The final serde JSON projection also uses a direct `match` on `serde_json::to_value(...)`; its rare error branch builds the `ReflectedValue::<kind>` source string through a pre-sized helper instead of a closure and format macro.
+Non-finite float values are rejected before converting `ReflectedValue::Scalar`, `Vec2`, `Vec3`, `Vec4`, or `Quaternion` to `ScenePropertyValue`. Persisted JSON finite-number enforcement belongs to the canonical versioned writer and returns `ReflectedJsonError::Write` with the typed shared serialization source.
 
-`json_from_reflected` currently preserves the tagged reflection DTO shape by using serde after finite validation. For example, `ReflectedValue::Vec3([1.0, 2.0, 3.0])` serializes as `{"kind":"Vec3","value":[1.0,2.0,3.0]}`, and `ReflectedValue::Entity(Some(7))` serializes as `{"kind":"Entity","value":7}`. This deterministic shape is documented in `scene::tests::ecs_reflect` so later editor or remote callers can rely on the DTO contract instead of ad hoc JSON inference.
+`json_from_reflected(&ReflectedValue)` writes schema `zircon.scene.reflected-json` through the shared `$zircon` envelope and canonical text writer. `reflected_from_json(&str)` returns `Loaded<ReflectedValue>`. Unwrapped v0 JSON is migrated unconditionally to `ReflectedValue::Json` after exact legacy asset-reference migration; even an object shaped like `{"kind":"Entity","value":7}` remains arbitrary JSON and is never guessed as a tagged reflection variant. Current enveloped payloads retain the normal tagged `ReflectedValue` DTO shape.
 
 ## Adapter Function Tables
 
@@ -186,9 +180,11 @@ Non-finite float values are rejected before converting `ReflectedValue::Scalar`,
 - `read_field(&World, EntityId, &str, &str) -> Result<ReflectedValue, ReflectError>`
 - `read_fields(&World, EntityId, &str) -> Result<Vec<ReflectFieldValue>, ReflectError>`
 - `write_field(&mut World, EntityId, &str, &str, ReflectedValue) -> Result<bool, ReflectError>`
+- `read_field_by_slot(&World, EntityId, &str, u32) -> Result<ReflectedValue, ReflectError>`
+- `write_field_by_slot(&mut World, EntityId, &str, u32, ReflectedValue) -> Result<bool, ReflectError>`
 - `remove(&mut World, EntityId, &str) -> Result<bool, ReflectError>`
 
-The forwarding methods keep the public adapter call shape unchanged for callers while passing the stored full type path into the function table. Fixed adapters ignore that argument and use their compile-time constants; dynamic adapters use it to resolve descriptor-backed JSON metadata and property paths. `ReflectResource` is the matching resource function table with world-level `contains`, `read_field`, `read_fields`, and `write_field` callbacks.
+The name-based forwarding methods remain the tooling/inspector surface. Plugins 08 M1 adds optional dense callbacks used after `ScriptCallTable` resolves names at module load; missing dense callbacks return a structured invalid-registration error instead of falling back to name dispatch. Built-in derived adapters, the two invariant-sensitive special adapters, and dynamic JSON adapters all install dense callbacks. `ReflectResource` is the matching resource function table with world-level `contains`, `read_field`, `read_fields`, and `write_field` callbacks.
 
 ## WorldReflection Facade
 
@@ -224,9 +220,9 @@ M8.3 `cargo check -p zircon_runtime --lib --locked --message-format short` passe
 
 That support-layer fix is intentionally narrow: it only affects diagnostic formatting for failed `Result::unwrap_err()` paths and does not change resource parameter access, borrow checking, or reflection routing behavior. The passing focused reflection run reported `10 passed; 0 failed; 0 ignored; 1119 filtered out` with unrelated dead-code warnings in graphics/plugin test helpers.
 
-## M8.4 Fixed Component Adapters
+## Historical M8.4 Fixed Component Adapters (Retired)
 
-M8.4 adds the first production component adapters under `zircon_runtime::scene::reflect::fixed`. The `fixed/mod.rs` file only wires child modules. Each concrete adapter owns one component schema and function table, while `fixed/shared.rs` owns repeated entity/component lookup and structured error construction.
+This section records the original M8.4 state. The `zircon_runtime::scene::reflect::fixed` implementation and its handwritten schemas were retired by the unified derived-reflection hard cut described below; these paths are historical evidence, not current ownership.
 
 `register_builtin_reflection(world)` still clears the builtin runtime registry first, then registers these fixed component type paths with component adapters:
 
@@ -289,37 +285,48 @@ cargo test -p zircon_editor --lib viewport_edit_mode_projection_consumes_runtime
 
 The runtime command passed 2 tests with 0 failures and 1458 filtered out. The editor command passed 1 test with 0 failures and 1341 filtered out. A crate-level `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short` currently fails outside this reflection slice in `zircon_runtime/src/scene/world/render.rs`, where the active rendering parity work has a `PostProcessExtract` initializer missing `graph` and `stack` fields.
 
-## Runtime 15 M4 scene fixed light reflection write-field owner split
+## Unified Derived Reflection Cutover
 
-状态：`runtime_15_scene_fixed_light_reflection_write_fields_owner_split_static_passed_cargo_lock_blocked`。
+Plugins 08 M1 makes `zircon_runtime_interface::reflect` the single reflection contract. Builtin
+scene components now own canonical type paths, field metadata, script visibility and field access
+through `#[derive(ZrReflect)]`; the former `scene/reflect/fixed/**` implementation tree has been
+deleted. Ambient, directional, point, rect and spot lights are ordinary derived components and
+register through `derived_component_registration::<T>()`.
 
-Runtime 15 M4 的当前新增落地部分是 fixed light reflection adapter 的生产文件减压。`scene/reflect/fixed/lights.rs` 继续拥有 Ambient/Directional/Point/Rect/Spot light 的 schema registration、adapter construction、contains、read/read_fields 与 remove callbacks；`scene/reflect/fixed/lights/write_fields.rs` 承接五类 light 的 editable field write callbacks、typed component presence checks、Vec2/Vec3/scalar/bool value validation 与 no-op mutation comparisons。
+`scene/reflect/derived/component_adapter.rs` is the generic World bridge. Reads call the derived
+field accessors; writes clone the typed component, apply the derived setter, then reinsert through
+`World::insert`. Reinsertion is required because World remains the owner of ECS synchronization,
+mobility validation and dirty-state behavior. The success and error paths use direct branches and
+preserve structured `ReflectError` values.
 
-该切片不改变 `ReflectComponent` 函数表、不改变 fixed light type path、字段名、错误模型或 `World` typed ECS mutation path。守卫：`runtime_15_scene_fixed_light_reflection_write_fields_are_child_owner` 验证父/子 owner 挂载、write helper 不回流、两侧低于 800 行预算，并验证 Runtime 15 计划、runtime index、审查发现、结构规范、module-convention、本文档和 status-output expectations 的状态锚同步。验证：scoped rustfmt/static scans、父子行数预算扫描、moved owner 扫描、docs/status 锚点扫描和 scoped `git diff --check` 通过；focused locked Cargo 被当前 `Cargo.lock`/`Cargo.toml` 漂移在编译前阻断，不计 Cargo 通过。完整 `large_file_ownership_gate`、`module_convention_gate` 与全量 scene reflection Cargo sweep 仍 pending。
+The same derive emits numeric `u32` field-slot accessors in schema order. `ReflectComponent`
+captures those accessors, and ZrVM `ScriptCallTable` retains only type/member slots after module
+loading. Steady-state VM reads and writes therefore never route through the name-based callback;
+dynamic JSON storage uses the slot to select schema metadata before addressing its JSON field.
 
-## Fixed Error Model
+Only two builtin components keep explicit runtime adapters:
 
-Every fixed adapter returns structured errors consistently:
+- `Hierarchy` writes must call `World::set_parent_checked` so cycle validation is not bypassed.
+- `ActiveInHierarchy` is computed from World hierarchy state and remains read-only.
+
+Custom value conversion for local transforms, mesh resource handles and rigid-body fields lives
+beside the component definitions under `scene/components/scene/reflection/`; those helpers do not
+own duplicate type metadata or registration tables. Runtime 15's stable reproduction guard
+`runtime_15_scene_fixed_light_reflection_write_fields_are_child_owner` now verifies this final
+ownership shape and the production-file budget instead of reading retired files.
+
+## Derived Reflection Error Model
+
+The unified derive and World adapter return structured errors consistently:
 
 - Missing entity: `ReflectError::MissingEntity { entity }`.
-- Existing entity without that fixed component: `ReflectError::MissingComponent { entity, type_path }`.
+- Existing entity without the requested component: `ReflectError::MissingComponent { entity, type_path }`.
 - Absent field name: `ReflectError::UnknownField { type_path, field_name }`.
-- Write to a read-only fixed field: `ReflectError::NonEditableField { type_path, field_name }`.
-- Wrong reflected value kind, non-finite scalar/vector input, or out-of-range render layer mask: `ReflectError::TypeMismatch { type_path, field_name, expected, actual }`.
+- Write to a read-only field: `ReflectError::NonEditableField { type_path, field_name }`.
+- Wrong reflected value kind, non-finite scalar/vector input or invalid enum value: typed `TypeMismatch` or `UnsupportedConversion` results.
 
-`WorldReflection::reflect_write` still reads the field back after the adapter write succeeds, so callers receive the normalized `ReflectWriteResponse.field` value after fixed component mutation.
-
-## M5 Fixed Shared Helper Direct Branch Pass
-
-The M5 performance pass keeps the fixed adapter error model unchanged while tightening the shared helper path in `reflect/fixed/shared.rs`. Entity presence, immutable component access, mutable component access, and component-existence probes now use direct success and error branches. Missing entities still return `ReflectError::MissingEntity`, and existing entities without the requested fixed component still return `ReflectError::MissingComponent`.
-
-The same shared helper pass removes adapter projection from the narrow integer conversion, fixed-vector validation, and removal paths. `expect_i32` now matches the `i32::try_from` result directly before constructing the out-of-range `TypeMismatch`. `expect_vec2`, `expect_vec3`, and `expect_vec4` call fixed-size finite predicates that index their arrays directly instead of routing every successful vector write through iterator `all` adapters. `remove_component` matches `World::remove` directly while preserving the previous successful removal, absent component, and defensive lower-layer error outcomes.
-
-Static coverage for this M5 slice lives in `zircon_runtime/src/scene/tests/ecs_reflect/structure.rs`. The guards check that fixed shared helpers keep direct branches and reject the previous `.then_some(...).ok_or(...)`, `.ok_or_else(...)`, `.map_err(...)`, and `.iter().all(...)` projections. Cargo execution remains deferred to the M5 milestone testing stage; this slice relies on rustfmt, focused source guards, documentation guards, whitespace/conflict scans, and the runtime structure audit during implementation.
-
-The adjacent simple fixed adapters also keep their public behavior while removing closure adapters from the narrow read/write paths. `ActiveInHierarchy.value` now converts the derived active state through a direct `let Some(value) = ... else` branch before returning `ReflectedValue::Bool(value)`. `ActiveSelf.value`, `Name.value`, and `RenderLayerMask.mask` now match `World::insert(...)` directly and map the defensive error branch to the same fixed-component `MissingComponent` error as before. The structure guard rejects the previous `.map(ReflectedValue::Bool).ok_or_else(...)` and `.map_err(...)` forms in those adapters.
-
-Hierarchy and mobility fixed writes now use the same direct-branch shape for world-level conversion errors. `Hierarchy.parent` matches `World::set_parent_checked(...)`, and `Mobility.kind` matches `World::set_mobility(...)`; each success branch returns the existing changed flag, and each error branch constructs `ReflectError::UnsupportedConversion` with the same `type_path.field_name` target. The target string is built by `shared::field_target(...)`, which pre-sizes the buffer from the type path, separator, and field name instead of using a format macro inside every error branch.
+`WorldReflection::reflect_write` continues to read the field back after a successful adapter write,
+so callers receive the normalized `ReflectWriteResponse.field` value after World-owned mutation.
 
 ## M8.4 Validation
 
@@ -341,7 +348,7 @@ The focused `ecs_reflect` filter currently reports 25 passing tests because M8.5
 
 ## M8.5 Dynamic Plugin JSON Component Reflection
 
-M8.5 adds `reflect/dynamic_component.rs`, which projects plugin-facing `ComponentTypeDescriptor` values into runtime reflection registrations and supplies one dynamic `ReflectComponent` adapter implementation. `ComponentTypeDescriptor` remains the descriptor cache/input path for plugins; `TypeRegistry` becomes the schema/read/write reflection path used by `WorldReflection`.
+M8.5 adds `reflect/dynamic_component.rs`, which projects plugin-contributed `ComponentTypeDescriptor` values into runtime reflection registrations and supplies one dynamic `ReflectComponent` adapter implementation. The descriptor's unique declaration owner is now the neutral `core/framework/scene/component_type_descriptor` module; plugin manifests remain contribution inputs, while `TypeRegistry` becomes the schema/read/write reflection path used by `WorldReflection`.
 
 Descriptor projection is deterministic:
 
@@ -351,7 +358,7 @@ Descriptor projection is deterministic:
 - Each `ComponentPropertyDescriptor` becomes one `ReflectFieldInfo` in descriptor order. `name` and constructor-default `display_name` use the property name, `value_type_path` uses `value_type`, and `editable` uses the descriptor editability flag.
 - Empty dynamic field names or value-type paths return `ReflectError::InvalidRegistration` before either registry is mutated.
 
-`World::register_component_type` now creates the reflected registration and checks the reflection registry before mutating the plugin descriptor registry. The mutation sequence is: project `ReflectTypeRegistration`, reject a duplicate reflected path through `TypeRegistry::contains`, register the cloned `ComponentTypeDescriptor`, then insert a `RuntimeTypeRegistration` carrying the dynamic component adapter. Invalid reflection metadata or duplicate reflection paths leave both registries unchanged; descriptor registry errors still occur before reflection insertion, so reflection state is not partially updated.
+`World::register_component_type` now creates the reflected registration and checks the reflection registry before mutating the scene component descriptor registry. The mutation sequence is: project `ReflectTypeRegistration`, reject a duplicate reflected path through `TypeRegistry::contains`, register the cloned `ComponentTypeDescriptor`, then insert a `RuntimeTypeRegistration` carrying the dynamic component adapter. Invalid reflection metadata or duplicate reflection paths leave both registries unchanged; descriptor registry errors still occur before reflection insertion, so reflection state is not partially updated.
 
 Dynamic component adapters route through existing world JSON helpers rather than replacing them:
 

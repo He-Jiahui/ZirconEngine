@@ -1,7 +1,5 @@
-pub(super) const STATUS_SUPPORT_EXPECTED_SLICE_ROWS: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs";
-pub(super) const STATUS_SUPPORT_EXPECTED_SLICE_ROWS_CHILD: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps.rs";
+pub(super) const STATUS_SUPPORT_EXPECTED_SLICE_ROWS: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs";
+pub(super) const STATUS_SUPPORT_EXPECTED_SLICE_ROWS_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps.rs";
 pub(super) const STATUS_SUPPORT_EXPECTED_SLICE_ROW_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/expected_slice_map_rows.rs",
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/guard_body_rows.rs",

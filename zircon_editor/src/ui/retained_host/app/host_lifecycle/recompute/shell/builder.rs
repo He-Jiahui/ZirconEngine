@@ -27,7 +27,9 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_build_workbench_model"
             );
-            WorkbenchViewModel::build(&chrome)
+            let context = self.runtime.project_command_eval_snapshot(&chrome);
+            let commands = self.runtime.commands().lock();
+            WorkbenchViewModel::build_with_context(&commands, &chrome, &context)
         };
         let geometry = {
             zircon_runtime::profile_scope!("editor", "retained_host", "recompute_shell_geometry");

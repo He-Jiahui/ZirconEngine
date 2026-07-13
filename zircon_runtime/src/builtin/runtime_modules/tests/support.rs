@@ -1,7 +1,8 @@
 use crate::builtin::RuntimePluginId;
+use crate::core::framework::project::ProjectPluginSelection;
 use crate::plugin::{
-    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
-    RuntimePluginAvailabilityEntry, RuntimePluginRegistrationReport,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimePluginAvailabilityEntry,
+    RuntimePluginRegistrationReport,
 };
 
 pub(super) fn linked_runtime_registration(

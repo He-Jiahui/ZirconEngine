@@ -17,6 +17,23 @@ pub struct ChangeDetectionScanStats {
 }
 
 impl ChangeDetectionScanStats {
+    pub(crate) fn diagnostic_values(&self) -> [(&'static str, f64); 3] {
+        [
+            (
+                ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+                self.scanned_marks as f64,
+            ),
+            (
+                ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
+                self.added_matches as f64,
+            ),
+            (
+                ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+                self.changed_matches as f64,
+            ),
+        ]
+    }
+
     pub fn saturating_delta_since(self, baseline: Self) -> Self {
         Self {
             scanned_marks: self.scanned_marks.saturating_sub(baseline.scanned_marks),
@@ -52,32 +69,17 @@ impl ChangeDetectionScanStats {
     }
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
-        record_count(
-            store,
-            ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
-            frame_index,
-            self.scanned_marks,
-        );
-        record_count(
-            store,
-            ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
-            frame_index,
-            self.added_matches,
-        );
-        record_count(
-            store,
-            ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-            frame_index,
-            self.changed_matches,
-        );
+        for (path, value) in self.diagnostic_values() {
+            record_count(store, path, frame_index, value);
+        }
     }
 }
 
-fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: u64) {
+fn record_count(store: &mut DiagnosticStore, path: &'static str, frame_index: u64, value: f64) {
     store.record(
         path,
         frame_index,
-        value as f64,
+        value,
         Some("count"),
         ["ecs", "change_detection"],
     );

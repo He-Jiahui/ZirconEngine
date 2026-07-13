@@ -269,9 +269,11 @@ fn test_scene_uniform() -> SceneUniform {
         sky_horizon_color: [0.0, 0.0, 0.0, 1.0],
         sky_zenith_color: [0.0, 0.0, 0.0, 1.0],
         sky_ground_color: [0.0, 0.0, 0.0, 1.0],
+        sky_sun_direction: [0.0, 0.0, 0.0, 0.0],
+        sky_sun_color_radius: [0.0, 0.0, 0.0, 0.0],
+        sky_sun_params: [0.0, 0.0, 0.0, 0.0],
         environment_params: [0.0, 0.0, 0.0, 0.0],
         environment_sample_params: [0.0, 0.0, 0.0, 0.0],
-        environment_sh9: [[0.0; 4]; 9],
     }
 }
 
@@ -287,7 +289,7 @@ fn test_skinned_joint_palette_buffer(device: &wgpu::Device) -> Arc<wgpu::Buffer>
     Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("zircon-test-empty-skinned-joint-palette-buffer"),
         size: test_skinned_joint_palette_min_binding_size().get(),
-        usage: wgpu::BufferUsages::UNIFORM,
+        usage: wgpu::BufferUsages::STORAGE,
         mapped_at_creation: false,
     }))
 }
@@ -297,7 +299,7 @@ fn test_skinned_joint_palette_min_binding_size() -> wgpu::BufferSize {
         TEST_SKINNED_JOINT_MATRIX_COUNT * TEST_SKINNED_JOINT_MATRIX_BYTES
             + TEST_SKINNED_JOINT_PARAMS_BYTES,
     )
-    .expect("test skinned joint palette uniform size is non-zero")
+    .expect("test skinned joint palette storage size is non-zero")
 }
 
 fn sync_occlusion_test_entry(
@@ -336,6 +338,8 @@ fn test_instance_data(translate_z: f32) -> GpuInstanceData {
         flags: 0,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
         morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        lightmap_uv_rect: [0.0; 4],
+        lightmap_params: [0; 4],
     }
 }
 

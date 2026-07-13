@@ -7,7 +7,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/plugins/mod.rs
   - zircon_runtime/src/prelude.rs
-  - zircon_runtime/src/core/state/mod.rs
+  - zircon_runtime/src/core/framework/state/mod.rs
 implementation_files:
   - zircon_app/src/prelude.rs
   - zircon_app/src/lib.rs
@@ -45,7 +45,7 @@ The app prelude exports:
 
 - entry types: `BuiltinEngineEntry`, `EngineEntry`, `EntryConfig`, `EntryProfile`, `EntryRunMode`, `EntryRunner`, `EntryModuleSelection`, `EntryModuleSelectionReport`, base and provider-aware runner-level module selection diagnostics, and `NativePluginRuntimeBootstrap`,
 - plugin group types: `PluginGroup`, `PluginGroupBuilder`, `PluginGroupError`, `ResolvedPluginGroup`, `MinimalPlugins`, `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins`,
-- all stable runtime prelude exports through `zircon_runtime::prelude::*`, including M3 state contracts once they are owned by `zircon_runtime::core::state`.
+- all stable runtime prelude exports through `zircon_runtime::prelude::*`, including M3 state contracts owned by `zircon_runtime::core::framework::state`.
 
 ## Non-Goals
 

@@ -1,13 +1,11 @@
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_mirrors.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/budgets.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_CHILD_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/child_inventory.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_mirrors.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/budgets.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_CHILD_INVENTORY_CHILD:
+    &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/child_inventory.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_FOLDER_BACKED_STATUS_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/folder_backed_status.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/status_current.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_CHILD:
+    &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/status_current.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_OWNERSHIP_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/ownership.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MIRRORS_STATUS_CURRENT_STATUS_SYNC_CHILD: &str =

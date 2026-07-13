@@ -40,10 +40,10 @@ This split keeps diagnostic consumers source-compatible across Runtime profiles 
 
 ## Current Integration State
 
-The neutral DTO and enabled/disabled collectors are staged but not yet mounted from `diagnostics/mod.rs`; existing production collection remains active while shared Runtime builds are running. This hard cut is incomplete until the declaration adapters are selected, `physics.rs` uses the neutral DTO, `collect.rs` delegates collection, Editor fixtures and presentation code use the neutral fields, and all old optional-contract imports are removed in the same public cutover.
+The neutral DTO and enabled/disabled collectors are mounted from `diagnostics/mod.rs`. `physics.rs` stores `RuntimePhysicsBackendDiagnostics`, the common `collect.rs` delegates through the declaration-selected collector, and Editor fixtures consume only the neutral fields. No compatibility alias from `PhysicsBackendStatus` to the neutral DTO exists.
 
-No compatibility alias from `PhysicsBackendStatus` to the neutral DTO is permitted.
+The Runtime projection intentionally emits stable snake-case strings such as `ready`. The separate Editor UI 08 handoff `runtime-diagnostics-physics-state-format` concerns presentation capitalization and accidental `Debug` quoting in a pane builder; it does not reopen the Runtime DTO or optional Physics dependency boundary.
 
 ## Validation
 
-The Frameworks 03 static boundary test requires both declaration-selected collectors, rejects `resolve_physics_manager` in the common collector, rejects optional Physics imports in the neutral DTO, and requires the neutral backend projection in `RuntimePhysicsDiagnostics`. Profile checks must then prove Client and Editor collect Physics when enabled while Server and `core-min` compile the unavailable projection without Physics declarations.
+The Frameworks 03 static boundary suite passes 27/27. The current Runtime `physics` filter passes 35/35, including `backend_contract_enum_names_are_complete_and_stable` and `backend_contract_projects_to_stable_neutral_diagnostics`. Nightly `core-min + physics-contracts` passes independently; the parent Frameworks plan owns the remaining profile-wide gates.

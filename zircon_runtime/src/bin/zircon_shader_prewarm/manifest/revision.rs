@@ -1,11 +1,11 @@
 pub(super) const ASSET_SCAN_INITIAL_RESOURCE_REVISION: u64 = 1;
 
-pub(super) fn asset_scan_revision_from_source_hash(source_hash: &str) -> u64 {
-    let source_hash = source_hash.trim();
-    if source_hash.is_empty() {
+pub(super) fn asset_scan_revision_from_source_digest(source_digest: &str) -> u64 {
+    let source_digest = source_digest.trim();
+    if source_digest.is_empty() {
         return ASSET_SCAN_INITIAL_RESOURCE_REVISION;
     }
-    non_zero_revision_from_bytes(source_hash.as_bytes())
+    non_zero_revision_from_bytes(source_digest.as_bytes())
 }
 
 pub(super) fn asset_scan_revision_from_content_hashes(include_content_hashes: &[String]) -> u64 {

@@ -100,6 +100,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         stats.voxel_dirty_clipmap_count(),
         stats.voxel_invalidated_clipmap_count(),
     )
+    .with_resolved_settings(stats.resolved_settings())
 }
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn update_virtual_geometry_runtime(

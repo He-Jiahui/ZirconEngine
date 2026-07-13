@@ -478,6 +478,7 @@ fn effect_variant_name(effect: &UiDispatchEffect) -> &'static str {
         UiDispatchEffect::DismissTransientUi { .. } => "DismissTransientUi",
         UiDispatchEffect::RequestInputMethod { .. } => "RequestInputMethod",
         UiDispatchEffect::RequestClipboard { .. } => "RequestClipboard",
+        UiDispatchEffect::RequestLinkActivation { .. } => "RequestLinkActivation",
         UiDispatchEffect::DirtyRedraw { .. } => "DirtyRedraw",
         UiDispatchEffect::EmitComponentEvent { .. } => "EmitComponentEvent",
     }

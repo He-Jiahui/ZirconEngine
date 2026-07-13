@@ -1,32 +1,32 @@
 ---
 related_code:
-  - zircon_graphics/src/feature/mod.rs
-  - zircon_graphics/src/pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/tests/pipeline_compile.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/lib.rs
-  - zircon_render_server/src/tests.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - zircon_runtime/src/graphics/feature/mod.rs
+  - zircon_runtime/src/graphics/pipeline/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/pipeline/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/tests/pipeline_compile.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/types.rs
-  - zircon_render_server/src/lib.rs
-  - zircon_render_server/src/tests.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - zircon_runtime/src/graphics/pipeline/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
 plan_sources:
   - user: 2026-04-16 continue the next clustered-lighting/SSAO/history slice and finish the remaining tasks as much as possible in one pass
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m4-clustered-lighting-ssao-history.md
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 tests:
-  - zircon_graphics/src/tests/pipeline_compile.rs
-  - zircon_graphics/src/tests/render_server_bridge.rs
-  - zircon_render_server/src/tests.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
   - cargo test -p zircon_graphics pipeline_compile --locked
   - cargo test -p zircon_graphics render_server_bridge --locked
   - cargo test -p zircon_render_server --locked
@@ -50,8 +50,8 @@ doc_type: milestone-detail
 ### Task 1: Add Compile Options For Feature Gating And Queue Fallback
 
 **Files:**
-- Modify: `zircon_graphics/src/pipeline/mod.rs`
-- Test: `zircon_graphics/src/tests/pipeline_compile.rs`
+- Modify: `zircon_runtime/src/graphics/pipeline/mod.rs`
+- Test: `zircon_runtime/src/graphics/tests/pipeline_compile.rs`
 
 - [ ] **Step 1: Write the failing compile-option tests**
 
@@ -137,18 +137,18 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add zircon_graphics/src/pipeline/mod.rs zircon_graphics/src/tests/pipeline_compile.rs
+git add zircon_runtime/src/graphics/pipeline/mod.rs zircon_runtime/src/graphics/tests/pipeline_compile.rs
 git commit -m "feat: add configurable pipeline compile options"
 ```
 
 ### Task 2: Map Quality Profile And Capabilities Into Effective Pipeline Compilation
 
 **Files:**
-- Modify: `zircon_render_server/src/types.rs`
-- Modify: `zircon_render_server/src/lib.rs`
-- Modify: `zircon_render_server/src/tests.rs`
-- Modify: `zircon_graphics/src/runtime/server/mod.rs`
-- Test: `zircon_graphics/src/tests/render_server_bridge.rs`
+- Modify: `zircon_runtime/src/core/framework/render`
+- Modify: `zircon_runtime/src/core/framework/render/mod.rs`
+- Modify: `zircon_runtime/src/core/framework/render/backend_types/tests.rs`
+- Modify: `zircon_runtime/src/graphics/runtime/render_framework/mod.rs`
+- Test: `zircon_runtime/src/graphics/tests/render_framework_bridge.rs`
 
 - [ ] **Step 1: Write the failing render-server tests**
 
@@ -259,14 +259,14 @@ Expected: PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add zircon_render_server/src/types.rs zircon_render_server/src/lib.rs zircon_render_server/src/tests.rs zircon_graphics/src/runtime/server/mod.rs zircon_graphics/src/tests/render_server_bridge.rs
+git add zircon_runtime/src/core/framework/render zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/framework/render/backend_types/tests.rs zircon_runtime/src/graphics/runtime/render_framework/mod.rs zircon_runtime/src/graphics/tests/render_framework_bridge.rs
 git commit -m "feat: gate m4 behavior features through quality profiles"
 ```
 
 ### Task 3: Update Architecture Docs And Run Expanded Validation
 
 **Files:**
-- Modify: `docs/assets-and-rendering/srp-rhi-render-server-architecture.md`
+- Modify: `docs/assets-and-rendering/render-framework-architecture.md`
 
 - [ ] **Step 1: Update the architecture document**
 
@@ -296,7 +296,7 @@ Expected: PASS
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+git add docs/assets-and-rendering/render-framework-architecture.md
 git commit -m "docs: record configurable m4 behavior layer"
 ```
 

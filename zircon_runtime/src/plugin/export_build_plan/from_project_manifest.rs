@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use crate::asset::project::ProjectManifest;
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::RuntimePluginCatalog, plugin::RuntimePluginDescriptor,
+    core::framework::project::ExportPackagingStrategy, plugin::RuntimePluginCatalog,
+    plugin::RuntimePluginDescriptor,
 };
 
 mod feature_selection;
@@ -38,20 +39,22 @@ use super::project_manifest_validation::{
     sanitize_project_identity_rows, sanitize_project_target_mode_rows,
 };
 use super::source_template_build_plan::source_template_build_validation_plan;
-use super::{ExportBuildPlan, ExportLinkedRuntimeCrate};
+use super::{ExportBuildPlan, ExportBuildPlanError, ExportLinkedRuntimeCrate};
 
 impl ExportBuildPlan {
     pub fn from_project_manifest(
         manifest: &ProjectManifest,
         profile_name: &str,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, ExportBuildPlanError> {
         let mut profile = manifest
             .export_profiles
             .iter()
             .find(|profile| profile.name == profile_name)
             .cloned()
             .or_else(|| default_profile(profile_name))
-            .ok_or_else(|| format!("missing export profile {profile_name}"))?;
+            .ok_or_else(|| ExportBuildPlanError::MissingProfile {
+                profile_name: profile_name.to_string(),
+            })?;
         let profile_duplicate_name_fatal_diagnostics =
             export_profile_duplicate_name_fatal_diagnostics(
                 &manifest.export_profiles,
@@ -409,7 +412,32 @@ impl ExportBuildPlan {
     }
 }
 
-fn linked_rust_strategy_enabled(profile: &crate::plugin::ExportProfile) -> bool {
+fn linked_rust_strategy_enabled(profile: &crate::core::framework::project::ExportProfile) -> bool {
     profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
         || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::asset::AssetUri;
+
+    #[test]
+    fn missing_profile_returns_typed_plan_error() {
+        let manifest = ProjectManifest::new(
+            "typed-error-contract",
+            AssetUri::parse("res://scenes/main.scene.toml").expect("fixture asset URI"),
+            1,
+        );
+
+        let error = ExportBuildPlan::from_project_manifest(&manifest, "missing-profile")
+            .expect_err("unknown profile must fail");
+
+        assert_eq!(
+            error,
+            ExportBuildPlanError::MissingProfile {
+                profile_name: "missing-profile".to_string(),
+            }
+        );
+    }
 }

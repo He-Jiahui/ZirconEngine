@@ -4,12 +4,14 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{AssetUri, ProjectManifest};
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::native::NativePluginLoadManifest;
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ExportValidateReport, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, plugin::RuntimeProfileId,
+    core::framework::project::ExportPackagingStrategy, core::framework::project::ExportProfile,
+    core::framework::project::ExportTargetPlatform,
+    core::framework::project::ProjectPluginManifest,
+    core::framework::project::ProjectPluginSelection, core::framework::project::RuntimeProfileId,
+    plugin::ExportBuildPlan, plugin::ExportValidateReport,
 };
 use zip::ZipArchive;
 

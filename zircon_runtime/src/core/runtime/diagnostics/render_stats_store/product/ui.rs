@@ -26,6 +26,48 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.ui.text.glyph_count",
+        frame_index,
+        stats.last_ui_text_glyph_count,
+        &["render", "ui", "text"],
+    );
+    record_count(
+        store,
+        "render.ui.text.unmapped_glyph_count",
+        frame_index,
+        stats.last_ui_text_unmapped_glyph_count,
+        &["render", "ui", "text"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.visible_glyph_count",
+        frame_index,
+        stats.last_ui_text_visible_raster_glyph_count,
+        &["render", "ui", "text", "raster"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.source_image_count",
+        frame_index,
+        stats.last_ui_text_raster_source_image_count,
+        &["render", "ui", "text", "raster"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.worker_pending_count",
+        frame_index,
+        stats.last_ui_text_raster_worker_pending_count,
+        &["render", "ui", "text", "raster", "worker"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.worker_failed_count",
+        frame_index,
+        stats.last_ui_text_raster_worker_failed_count,
+        &["render", "ui", "text", "raster", "worker"],
+    );
+    record_count(
+        store,
         "render.ui.image_payload_count",
         frame_index,
         stats.last_ui_image_payload_count,

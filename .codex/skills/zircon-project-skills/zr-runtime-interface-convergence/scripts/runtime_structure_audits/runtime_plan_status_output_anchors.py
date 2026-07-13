@@ -13,7 +13,7 @@ RUNTIME_03_MODULE_DOC_STATUS_INDEX_ANCHORS = (
     "frame schedule module-doc anchors 3/3",
     "guard/test files 11/11",
     "Runtime 03 guard anchors 14/14",
-    "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates",
+    "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
 )
 RUNTIME_03_MODULE_DOC_STATUS_GUARD_ANCHORS = (
     "Runtime 03 Schedule/frame-loop module-doc 镜像元数据",

@@ -51,7 +51,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/new.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs
@@ -166,7 +166,7 @@ Variant id `0` is intentionally left outside the registry for any remaining fixe
 
 Concrete WGPU pipeline lookup now has variant-id bridge methods for cache-backed mesh pipelines. Forward/base mesh recording uses `ensure_pipeline_for_variant(...)`; Deferred GBuffer uses `ensure_gbuffer_pipeline_for_variant(...)`; the current normal-target DepthPrepass uses `ensure_depth_prepass_pipeline_for_variant(...)`; Velocity uses `ensure_velocity_pipeline_for_variant(...)`; TAA reactive masks use `ensure_taa_reactive_mask_pipeline_for_variant(...)`; and Shadow uses `ensure_shadow_pipeline_for_variant(...)`. Each method looks up the registry key for the variant id, verifies the expected `MeshPassPipelineKind`, then delegates to its focused WGPU pipeline construction path.
 
-`ensure_pipeline(...)` now checks the shader variant disk cache before creating the base mesh shader module. It hashes the selected WGSL source with blake3, combines that hash with the derived `ShaderVariantKey`, and stores compressed WGSL plus metadata under `.zircon-cache/shader_variants` or `ZR_SHADER_CACHE_DIR`. It also has a read-only staged fallback root at `cache/shader_variants`, which is where the build prewarm tool writes packaged cache entries. Disk corruption falls back to the current source and increments the report error count.
+`ensure_pipeline(...)` now checks the shader variant disk cache before creating the base mesh shader module. It hashes the selected WGSL source with blake3, combines that hash with the derived `ShaderVariantKey`, and stores compressed WGSL plus metadata under `.zircon/cache/shader_variants` or `ZR_SHADER_CACHE_DIR`. It also has a read-only staged fallback root at `cache/shader_variants`, which is where the build prewarm tool writes packaged cache entries. Disk corruption falls back to the current source and increments the report error count.
 
 Builtin fallback prewarm template source alignment is the source-owner boundary that keeps this cache path and staged prewarm path identical. `builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source` and `runtime_15_builtin_fallback_prewarm_uses_template_source` lock that `dynamic_api/shader_prewarm.rs` emits the same `mesh_pipeline_standard_material_template_source(...)` payload, content hashes, and template revision that `ensure_pipeline(...)` consumes. Status: `render_plan08_builtin_fallback_prewarm_template_source_static_passed_cargo_deferred_implementation_cadence`.
 

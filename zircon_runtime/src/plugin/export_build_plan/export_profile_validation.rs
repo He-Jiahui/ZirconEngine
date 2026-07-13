@@ -1,4 +1,5 @@
-use crate::plugin::{ExportPackagingStrategy, ExportProfile, RuntimeProfileDescriptor};
+use crate::core::framework::project::{ExportPackagingStrategy, ExportProfile};
+use crate::plugin::RuntimeProfileDescriptor;
 
 pub(super) fn export_profile_duplicate_name_fatal_diagnostics(
     profiles: &[ExportProfile],

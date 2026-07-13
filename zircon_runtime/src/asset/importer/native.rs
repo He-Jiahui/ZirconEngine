@@ -8,14 +8,47 @@ use super::{
     AssetSchemaMigrationReport, ImportedAssetEntry,
 };
 use crate::asset::{asset_kind_for_imported_asset, AssetImportError, AssetUri};
-use crate::plugin::native::{
-    LoadedNativePlugin, NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
-};
 
 const REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NativeAssetImportCommandStatus {
+    Ok,
+    Error,
+    Denied,
+    Panic,
+    Unknown(u32),
+}
+
+impl NativeAssetImportCommandStatus {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Error => "error",
+            Self::Denied => "denied",
+            Self::Panic => "panic",
+            Self::Unknown(_) => "unknown",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeAssetImportCommandReport {
+    pub status: NativeAssetImportCommandStatus,
+    pub diagnostics: Vec<String>,
+    pub payload: Option<Vec<u8>>,
+}
+
+pub trait NativeAssetImportCommandHost: Send + Sync {
+    fn command_host_id(&self) -> &str;
+
+    fn invoke_asset_import_command(
+        &self,
+        command: &str,
+        payload: &[u8],
+    ) -> NativeAssetImportCommandReport;
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NativeAssetImportRequestMetadata {
@@ -48,12 +81,18 @@ pub struct NativeAssetImportEntryMetadata {
 #[derive(Clone)]
 pub struct NativeAssetImporterHandler {
     descriptor: AssetImporterDescriptor,
-    plugin: Arc<LoadedNativePlugin>,
+    command_host: Arc<dyn NativeAssetImportCommandHost>,
 }
 
 impl NativeAssetImporterHandler {
-    pub fn new(descriptor: AssetImporterDescriptor, plugin: Arc<LoadedNativePlugin>) -> Self {
-        Self { descriptor, plugin }
+    pub fn new(
+        descriptor: AssetImporterDescriptor,
+        command_host: Arc<dyn NativeAssetImportCommandHost>,
+    ) -> Self {
+        Self {
+            descriptor,
+            command_host,
+        }
     }
 }
 
@@ -62,7 +101,7 @@ impl fmt::Debug for NativeAssetImporterHandler {
         formatter
             .debug_struct("NativeAssetImporterHandler")
             .field("descriptor", &self.descriptor)
-            .field("plugin_id", &self.plugin.plugin_id)
+            .field("command_host_id", &self.command_host.command_host_id())
             .finish_non_exhaustive()
     }
 }
@@ -83,7 +122,9 @@ impl AssetImporterHandler for NativeAssetImporterHandler {
             },
             &context.source_bytes,
         )?;
-        let report = self.plugin.invoke_runtime_command(&command, &request);
+        let report = self
+            .command_host
+            .invoke_asset_import_command(&command, &request);
         let payload = native_command_payload(report)?;
         let response = decode_response(&payload)?;
         native_response_to_outcome(&self.descriptor, response)
@@ -146,24 +187,18 @@ fn decode_envelope<'payload, T: for<'de> Deserialize<'de>>(
     Ok((metadata, &payload[metadata_end..]))
 }
 
-fn native_status_error(status: u32, detail: &str) -> AssetImportError {
-    let status_name = match status {
-        ZIRCON_NATIVE_PLUGIN_STATUS_OK => "ok",
-        ZIRCON_NATIVE_PLUGIN_STATUS_ERROR => "error",
-        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED => "denied",
-        ZIRCON_NATIVE_PLUGIN_STATUS_PANIC => "panic",
-        _ => "unknown",
-    };
+fn native_status_error(status: NativeAssetImportCommandStatus, detail: &str) -> AssetImportError {
     AssetImportError::Native(format!(
-        "native importer command returned {status_name}: {detail}"
+        "native importer command returned {}: {detail}",
+        status.label()
     ))
 }
 
 fn native_command_payload(
-    report: NativePluginBehaviorCallReport,
+    report: NativeAssetImportCommandReport,
 ) -> Result<Vec<u8>, AssetImportError> {
-    let status = report.status_code;
-    if status != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
+    let status = report.status;
+    if status != NativeAssetImportCommandStatus::Ok {
         let detail = if report.diagnostics.is_empty() {
             "native importer returned no diagnostics".to_string()
         } else {
@@ -218,6 +253,7 @@ fn native_response_to_outcome(
                 imported
             })
             .collect(),
+        reference_repairs: Vec::new(),
     })
 }
 
@@ -331,8 +367,8 @@ mod tests {
 
     #[test]
     fn native_import_command_errors_preserve_status_diagnostics_without_payload() {
-        let report = NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        let report = NativeAssetImportCommandReport {
+            status: NativeAssetImportCommandStatus::Denied,
             diagnostics: vec!["denied native command unknown".to_string()],
             payload: None,
         };
@@ -345,8 +381,8 @@ mod tests {
 
     #[test]
     fn native_import_command_requires_payload_only_after_ok_status() {
-        let report = NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        let report = NativeAssetImportCommandReport {
+            status: NativeAssetImportCommandStatus::Ok,
             diagnostics: Vec::new(),
             payload: None,
         };

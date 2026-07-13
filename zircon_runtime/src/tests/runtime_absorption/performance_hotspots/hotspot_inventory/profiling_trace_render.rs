@@ -110,6 +110,7 @@ fn assert_trace_and_schedule_docs(sources: &HotspotInventorySources) {
     ] {
         assert!(
             sources.runtime_07_plan.contains(required_trace_export_anchor)
+                || sources.runtime_07_archive.contains(required_trace_export_anchor)
                 || sources.runtime_index.contains(required_trace_export_anchor)
                 || sources.render_index.contains(required_trace_export_anchor)
                 || sources.hotspot_doc.contains(required_trace_export_anchor)
@@ -128,6 +129,9 @@ fn assert_trace_and_schedule_docs(sources: &HotspotInventorySources) {
             sources
                 .runtime_07_plan
                 .contains(required_schedule_doc_anchor)
+                || sources
+                    .runtime_07_archive
+                    .contains(required_schedule_doc_anchor)
                 || sources.runtime_index.contains(required_schedule_doc_anchor)
                 || sources.hotspot_doc.contains(required_schedule_doc_anchor)
                 || sources
@@ -167,6 +171,7 @@ fn assert_render_diversion_docs(sources: &HotspotInventorySources) {
     ] {
         assert!(
             sources.runtime_07_plan.contains(required_render_anchor)
+                || sources.runtime_07_archive.contains(required_render_anchor)
                 || sources.hotspot_doc.contains(required_render_anchor),
             "Runtime 07 plan/docs should retain render diversion anchor `{required_render_anchor}`"
         );

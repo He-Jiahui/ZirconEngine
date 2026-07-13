@@ -1,13 +1,14 @@
 use super::*;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_editor::EditorPlugin;
-use zircon_runtime::asset::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{
     AnimationStateAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
-use zircon_runtime::asset::{AssetReference, AssetUri};
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
-use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::plugin::PluginModuleKind;
 
 #[test]
 fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas() {
@@ -18,8 +19,8 @@ fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas
     let operation = EditorOperationPath::parse("animation_graph.authoring.compile")
         .expect("valid animation graph operation path");
     let descriptor = registry
-        .operations()
-        .descriptor(&operation)
+        .commands()
+        .command(&operation)
         .expect("compile operation registered");
 
     assert_eq!(
@@ -36,6 +37,26 @@ fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas
 }
 
 #[test]
+fn blend_space_graph_nodes_are_registered() {
+    let mut registry = zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+    editor_plugin()
+        .register_editor_extensions(&mut registry)
+        .expect("animation graph authoring registration");
+
+    let graph_node_palettes = registry.graph_node_palettes();
+    let graph_palette = graph_node_palettes
+        .iter()
+        .find(|palette| palette.asset_type().as_str() == "animation.graph")
+        .expect("animation graph palette");
+    for node_id in ["blend_space_1d", "blend_space_2d"] {
+        assert!(graph_palette
+            .nodes()
+            .iter()
+            .any(|node| node.id() == node_id));
+    }
+}
+
+#[test]
 fn animation_graph_package_manifest_declares_editor_only_metadata() {
     let manifest = package_manifest();
     let editor_module = manifest
@@ -47,7 +68,7 @@ fn animation_graph_package_manifest_declares_editor_only_metadata() {
     assert_eq!(manifest.category, "authoring");
     assert_eq!(
         manifest.supported_targets,
-        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost]
     );
     assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
     assert_eq!(editor_module.capabilities, manifest.capabilities);
@@ -166,20 +187,23 @@ fn animation_state_machine_validation_reports_illegal_transition_and_condition()
     let machine = AnimationStateMachineAsset {
         name: Some("Locomotion".to_string()),
         entry_state: "Idle".to_string(),
-        states: vec![AnimationStateAsset {
-            name: "Idle".to_string(),
-            graph: asset_ref("res://animation/idle.anim_graph"),
-        }],
+        states: vec![AnimationStateAsset::graph_ref(
+            "Idle",
+            asset_ref("res://animation/idle.anim_graph"),
+        )],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: -0.1,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: " ".to_string(),
                 operator: AnimationConditionOperatorAsset::Triggered,
                 value: Some(AnimationParameterValue::Bool(true)),
             }],
         }],
+        layers: Vec::new(),
     };
 
     let diagnostics = validate_animation_state_machine_asset(&machine);
@@ -204,25 +228,22 @@ fn animation_state_machine_compile_reports_entry_state_and_counts() {
         name: Some("Locomotion".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: asset_ref("res://animation/idle.anim_graph"),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: asset_ref("res://animation/run.anim_graph"),
-            },
+            AnimationStateAsset::graph_ref("Idle", asset_ref("res://animation/idle.anim_graph")),
+            AnimationStateAsset::graph_ref("Run", asset_ref("res://animation/run.anim_graph")),
         ],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: 0.2,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "speed".to_string(),
                 operator: AnimationConditionOperatorAsset::Greater,
                 value: Some(AnimationParameterValue::Scalar(0.1)),
             }],
         }],
+        layers: Vec::new(),
     };
 
     assert_eq!(

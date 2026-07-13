@@ -1,9 +1,11 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use crate::core::diagnostics::DiagnosticStore;
+use crate::core::diagnostics::{
+    DiagnosticStore, RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
+};
 use crate::core::framework::state::StateRegistry;
-use crate::plugin::RuntimePluginBridgeLifecycleState;
+use crate::core::RuntimeModuleLifecycleObserver;
 
 use super::super::config_store::ConfigStore;
 use super::super::descriptors::RegistryName;
@@ -11,7 +13,7 @@ use super::super::events::EventBus;
 use super::super::frame_clock::FrameClock;
 use super::super::tasks::{JobScheduler, TaskPools};
 use super::super::time::RuntimeTimeClocks;
-use super::{ModuleEntry, SceneRuntimeHookSet, ServiceEntry, WorldRuntimeExtensionSet};
+use super::{ModuleEntry, ServiceEntry};
 
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
@@ -24,7 +26,8 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) time: Mutex<RuntimeTimeClocks>,
     pub(crate) diagnostics: Mutex<DiagnosticStore>,
     pub(crate) states: Mutex<StateRegistry>,
-    pub(crate) scene_hooks: Mutex<SceneRuntimeHookSet>,
-    pub(crate) world_extensions: Mutex<WorldRuntimeExtensionSet>,
-    pub(crate) plugin_bridge_lifecycle: Mutex<Option<RuntimePluginBridgeLifecycleState>>,
+    pub(crate) scene_hook_snapshots: Mutex<Vec<RuntimeDevtoolsSceneHookSnapshot>>,
+    pub(crate) devtools_plugin_catalog_entries: Mutex<Vec<RuntimeDevtoolsPluginCatalogEntry>>,
+    pub(crate) runtime_module_lifecycle_observer:
+        Mutex<Option<Arc<dyn RuntimeModuleLifecycleObserver>>>,
 }

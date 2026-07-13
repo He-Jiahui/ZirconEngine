@@ -81,7 +81,7 @@ pub fn collect_runtime_devtools_snapshot(core: &CoreHandle) -> RuntimeDevtoolsSn
         modules: collect_module_snapshots(core),
         services: collect_service_snapshots(core),
         scene_hooks: collect_scene_hook_snapshots(core),
-        plugin_catalog: collect_plugin_catalog_entries(),
+        plugin_catalog: collect_plugin_catalog_entries(core),
         native_backend_status: RuntimeDevtoolsBackendStatus {
             backend: "native_dynamic".to_string(),
             available: true,
@@ -143,20 +143,7 @@ fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSna
 }
 
 fn collect_scene_hook_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsSceneHookSnapshot> {
-    let hooks = lock_poison_recovered(&core.inner.scene_hooks);
-    let mut snapshots = hooks
-        .ordered()
-        .iter()
-        .map(|hook| {
-            let descriptor = hook.descriptor();
-            RuntimeDevtoolsSceneHookSnapshot {
-                id: descriptor.id.clone(),
-                plugin_id: descriptor.plugin_id.clone(),
-                stage: format!("{:?}", descriptor.stage),
-                order: descriptor.order,
-            }
-        })
-        .collect::<Vec<_>>();
+    let mut snapshots = lock_poison_recovered(&core.inner.scene_hook_snapshots).clone();
     snapshots.sort_by(|left, right| {
         left.stage
             .cmp(&right.stage)
@@ -166,21 +153,8 @@ fn collect_scene_hook_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsSceneHo
     snapshots
 }
 
-fn collect_plugin_catalog_entries() -> Vec<RuntimeDevtoolsPluginCatalogEntry> {
-    let mut entries = crate::plugin::RuntimePluginDescriptor::builtin_catalog()
-        .into_iter()
-        .map(|descriptor| RuntimeDevtoolsPluginCatalogEntry {
-            package_id: descriptor.package_id().to_string(),
-            display_name: descriptor.display_name().to_string(),
-            crate_name: descriptor.crate_name().to_string(),
-            capabilities: descriptor.capabilities().to_vec(),
-            target_modes: descriptor
-                .target_modes()
-                .iter()
-                .map(|mode| format!("{:?}", mode))
-                .collect(),
-        })
-        .collect::<Vec<_>>();
+fn collect_plugin_catalog_entries(core: &CoreHandle) -> Vec<RuntimeDevtoolsPluginCatalogEntry> {
+    let mut entries = lock_poison_recovered(&core.inner.devtools_plugin_catalog_entries).clone();
     entries.sort_by(|left, right| left.package_id.cmp(&right.package_id));
     entries
 }
@@ -210,7 +184,7 @@ mod tests {
         CoreRuntime, DriverDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
     };
 
-    use super::collect_runtime_devtools_snapshot;
+    use super::{collect_runtime_devtools_snapshot, RuntimeDevtoolsPluginCatalogEntry};
 
     #[test]
     fn devtools_snapshot_lists_modules_services_and_builtin_catalog() {
@@ -227,6 +201,13 @@ mod tests {
                 ),
             )
             .unwrap();
+        runtime.replace_devtools_plugin_catalog_entries(vec![RuntimeDevtoolsPluginCatalogEntry {
+            package_id: "physics".to_string(),
+            display_name: "Physics".to_string(),
+            crate_name: "zircon_plugin_physics_runtime".to_string(),
+            capabilities: vec!["runtime.plugin.physics".to_string()],
+            target_modes: vec!["ClientRuntime".to_string()],
+        }]);
 
         let snapshot = collect_runtime_devtools_snapshot(&runtime.handle());
 
@@ -266,13 +247,18 @@ mod tests {
             panic!("poison devtools services registry");
         }));
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.scene_hooks.lock().unwrap();
-            panic!("poison devtools scene hooks registry");
+            let _guard = handle.inner.scene_hook_snapshots.lock().unwrap();
+            panic!("poison devtools scene hook diagnostics snapshots");
+        }));
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.devtools_plugin_catalog_entries.lock().unwrap();
+            panic!("poison devtools plugin catalog entries");
         }));
 
         let snapshot = collect_runtime_devtools_snapshot(&handle);
         assert!(snapshot.modules.is_empty());
         assert!(snapshot.services.is_empty());
         assert!(snapshot.scene_hooks.is_empty());
+        assert!(snapshot.plugin_catalog.is_empty());
     }
 }

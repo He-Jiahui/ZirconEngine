@@ -4,6 +4,7 @@ mod compile_pipeline;
 mod environment_ibl_compile_options;
 mod resolve_enabled_features;
 mod resolve_viewport_record_state;
+mod subsurface_profile_extract;
 mod target_resolution;
 mod viewport_record_state;
 

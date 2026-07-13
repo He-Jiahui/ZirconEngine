@@ -81,7 +81,7 @@ The second test rejects a zero dispatch group before opening a WGPU pass.
 
 The graph-context tests attach an `IblBakeWgpuPipelineCache` to the test GPU context and verify that materialized PMREM mip0, SH9, and IEM graph passes resolve source/output resources, record one compute dispatch audit entry, and submit successfully. The negative graph-context test still rejects a PMREM pass name that lacks the required `.mipN` suffix before GPU resource lookup.
 
-The final PMREM mip test builds an asymmetric 16x16x6 source cubemap with five mip levels, dispatches PMREM mip4 into an `Rgba16Float` 1x1x6 storage output, reads the output back, and asserts every face receives the same nonzero value. This locks the WGPU shader's cmft-style final 1x1 six-face average instead of allowing the roughest mip to preserve per-face direction noise.
+The final PMREM mip test builds an asymmetric 16x16x6 source cubemap with five mip levels, dispatches PMREM mip4 into an `Rgba16Float` 1x1x6 storage output, reads the output back, and asserts every face receives the same nonzero value. This locks the WGPU shader's GGX/cosine final 1x1 six-face average instead of allowing the roughest mip to preserve per-face direction noise.
 
 The reference-parity child tests exercise the production compute kernels rather than a test-only approximation:
 
@@ -102,3 +102,7 @@ This helper closes shader-module creation, compute-pipeline creation, command-en
 Status `runtime_15_production_file_budget_ui_ibl_project_owner_split_static_passed_cargo_check_offline_locked_blocked` moves the dispatch helper's large private test body out of `ibl_bake_wgpu_dispatch.rs` and into `ibl_bake_wgpu_dispatch/tests.rs`. The production file keeps command encoding, graph-context bridging, and pipeline-cache dispatch logic; the child test file owns the focused WGPU dispatch, zero-dispatch rejection, graph-context materialization, and final PMREM mip readback regressions. No compatibility module, shim, or re-export was introduced.
 
 Verification passed scoped rustfmt, standalone structure-convention `production_file_budget` 104/104, and no-default-features runtime tests offline cargo check with warnings only. The locked Cargo gate is blocked by current non-slice `Cargo.lock` drift.
+
+## 2026-07-13 Reference Parity Repair
+
+The GPU kernel remains the production UE-style GGX/FIS implementation. The shared CPU source-cubemap PMREM foundation was hard-converged to the same sequence, roughness, PDF, source-LOD, cosine-tail, and sample-budget contract after the current all-face/all-mip parity test exposed the old CPU cosine-power branch. The tolerance remains `0.006`; no shader fork, test-only algorithm, or relaxed assertion was introduced. Static implementation gates passed, while the fresh WGPU parity and broad Runtime scene results are owned by the subsequent Windows testing stage.

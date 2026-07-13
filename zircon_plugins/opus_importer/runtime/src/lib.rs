@@ -20,7 +20,7 @@ pub(crate) const MISSING_BACKEND_DIAGNOSTIC: &str =
 mod tests {
     use super::*;
     use zircon_runtime::asset::{AssetImportContext, AssetImporterRegistry, AssetKind, AssetUri};
-    use zircon_runtime::plugin::ExportPackagingStrategy;
+    use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_opus_native_dynamic_importer() {
@@ -114,12 +114,12 @@ mod tests {
             zircon_runtime::plugin::PluginModuleKind::Native
         );
         assert_eq!(dist_module.crate_name, OPUS_IMPORTER_DIST_CRATE_NAME);
+        assert!(dist_module.target_modes.contains(
+            &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
+        ));
         assert!(dist_module
             .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime));
-        assert!(dist_module
-            .target_modes
-            .contains(&zircon_runtime::builtin::RuntimeTargetMode::EditorHost));
+            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
         assert!(dist_module
             .capabilities
             .contains(&OPUS_IMPORTER_CAPABILITY.to_string()));

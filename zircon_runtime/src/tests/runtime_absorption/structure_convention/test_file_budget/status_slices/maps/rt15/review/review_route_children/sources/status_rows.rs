@@ -1,11 +1,8 @@
 use super::*;
 
-const STATUS_SUPPORT_EXPECTED_SLICE_ROWS: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs";
-const STATUS_SUPPORT_EXPECTED_SLICE_STRUCTURE_SUPPORT_ROWS: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support.rs";
-const STATUS_SUPPORT_EXPECTED_SLICE_REVIEW_GUARD_STRUCTURE_ROWS: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure.rs";
+const STATUS_SUPPORT_EXPECTED_SLICE_ROWS: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs";
+const STATUS_SUPPORT_EXPECTED_SLICE_STRUCTURE_SUPPORT_ROWS: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support.rs";
+const STATUS_SUPPORT_EXPECTED_SLICE_REVIEW_GUARD_STRUCTURE_ROWS: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure.rs";
 const STATUS_SUPPORT_EXPECTED_SLICE_STRUCTURE_SUPPORT_ROW_CHILDREN: &[&str] = &[
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/foundation_rows.rs",
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/guard_rows.rs",

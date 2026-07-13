@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "e0cca9ad-973a-4dfd-a306-8116b9930c93"
 url = "res://textures/jungle_ground_albedo.png"
 asset_kind = "Texture"
@@ -8,11 +8,12 @@ artifact_locator = "lib://textures/f792b3a7-a64e-c0bc-a422-1109d0c75813.zasset"
 importer_id = "texture_importer.image"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1781056081665
-source_hash = "ae73852a65e9c03c"
+source_digest = "ae73852a65e9c03c"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""
 dependencies = []
+tags = []
 
 [import_settings]
 
@@ -22,3 +23,4 @@ url = "res://textures/jungle_ground_albedo.png"
 asset_kind = "Texture"
 artifact_locator = "lib://textures/f792b3a7-a64e-c0bc-a422-1109d0c75813.zasset"
 dependencies = []
+tags = []

@@ -1,12 +1,13 @@
 mod graph;
 mod parameters;
+mod poison_recovery;
 mod pose;
 mod sampling;
 mod state_machine;
 
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
 };
 use zircon_runtime::core::framework::animation::{
@@ -14,11 +15,12 @@ use zircon_runtime::core::framework::animation::{
     AnimationPlaybackSettings, AnimationPoseOutput, AnimationStateMachineEvaluation,
     AnimationTrackPath,
 };
-use zircon_runtime::core::{CoreError, CoreHandle};
+use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 
 #[derive(Clone, Debug)]
 pub struct DefaultAnimationManager {
-    core: Option<CoreHandle>,
+    // The registry owns this service, so its runtime back-reference must not complete an Arc cycle.
+    core: Option<CoreWeak>,
     playback_settings: Arc<Mutex<AnimationPlaybackSettings>>,
 }
 
@@ -29,13 +31,12 @@ impl Default for DefaultAnimationManager {
 }
 
 impl DefaultAnimationManager {
-    pub fn new(core: Option<CoreHandle>) -> Self {
+    pub fn new(core: Option<&CoreHandle>) -> Self {
         let playback_settings = core
-            .as_ref()
             .and_then(|core| core.load_config(crate::ANIMATION_PLAYBACK_CONFIG_KEY).ok())
             .unwrap_or_default();
         Self {
-            core,
+            core: core.map(CoreHandle::downgrade),
             playback_settings: Arc::new(Mutex::new(playback_settings)),
         }
     }
@@ -44,11 +45,8 @@ impl DefaultAnimationManager {
         &self,
         playback_settings: AnimationPlaybackSettings,
     ) -> Result<(), CoreError> {
-        *self
-            .playback_settings
-            .lock()
-            .expect("animation playback mutex poisoned") = playback_settings.clone();
-        if let Some(core) = &self.core {
+        *poison_recovery::lock_recover(&self.playback_settings) = playback_settings.clone();
+        if let Some(core) = self.core.as_ref().and_then(CoreWeak::upgrade) {
             core.store_config(crate::ANIMATION_PLAYBACK_CONFIG_KEY, &playback_settings)?;
         }
         Ok(())
@@ -57,10 +55,7 @@ impl DefaultAnimationManager {
 
 impl AnimationManager for DefaultAnimationManager {
     fn playback_settings(&self) -> AnimationPlaybackSettings {
-        self.playback_settings
-            .lock()
-            .expect("animation playback mutex poisoned")
-            .clone()
+        poison_recovery::lock_recover(&self.playback_settings).clone()
     }
 
     fn normalize_track_path(&self, path: &AnimationTrackPath) -> AnimationTrackPath {
@@ -113,16 +108,5 @@ impl AnimationManager for DefaultAnimationManager {
         looping: bool,
     ) -> Result<AnimationPoseOutput, String> {
         pose::sample_clip_pose(skeleton, clip, time_seconds, looping)
-    }
-
-    fn apply_sequence_to_world(
-        &self,
-        world: &mut zircon_runtime::scene::World,
-        sequence: &zircon_runtime::asset::AnimationSequenceAsset,
-        time_seconds: zircon_runtime::core::math::Real,
-        looping: bool,
-    ) -> Result<zircon_runtime::core::framework::animation::AnimationSequenceApplyReport, String>
-    {
-        crate::sequence::apply_sequence_to_world(world, sequence, time_seconds, looping)
     }
 }

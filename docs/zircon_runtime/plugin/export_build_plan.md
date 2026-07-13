@@ -1,7 +1,12 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/export/mod.rs
+  - zircon_runtime_interface/src/export/artifact.rs
+  - zircon_runtime_interface/src/export/report.rs
+  - zircon_runtime_interface/src/export/stage.rs
+  - zircon_runtime_interface/src/export/preset.rs
   - zircon_runtime/src/asset/project/manifest.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
@@ -35,8 +40,13 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
 implementation_files:
+  - zircon_runtime_interface/src/export/mod.rs
+  - zircon_runtime_interface/src/export/artifact.rs
+  - zircon_runtime_interface/src/export/report.rs
+  - zircon_runtime_interface/src/export/stage.rs
+  - zircon_runtime_interface/src/export/preset.rs
   - zircon_runtime/src/asset/project/manifest.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
@@ -69,9 +79,12 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
 plan_sources:
+  - docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/index.md
 tests:
+  - zircon_runtime_interface/src/export/tests.rs
+  - zircon_editor/src/core/export/tests.rs
   - export_profile_map_table_parses_planned_profile_asset_fields
   - profile_with_features_compiles_to_build_plan
   - invalid_plugin_combination_rejected_with_diagnostic
@@ -142,14 +155,15 @@ of a required plugin or required feature are reported as fatal export-plan diagn
 
 ## Validate Report
 
-`export_validate_report.rs` is the shared report DTO consumed by the M1 `zircon_export` CLI. It
-keeps the runtime crate as the owner of export diagnostics while allowing process-level tools to
-serialize the result without reimplementing validation.
+`export_validate_report.rs` is the Validate-stage report DTO consumed by the M1 `zircon_export`
+CLI. Runtime owns its build-plan diagnostics, while the neutral stage and pipeline-report contracts
+live in `zircon_runtime_interface::export`.
 
-The shared `ExportPipelineStage` enum now mirrors the full export CLI pipeline:
-`Validate`, `CompileHost`, `SourceTemplate`, `CookAssets`, `Pack`, `PlatformBundle`, and `Report`.
-Only the Validate binary writes `ExportValidateReport` today, but editor tooling and later report
-aggregation can use the same stage identities instead of maintaining a separate editor-only enum.
+`ExportStage` is the only eight-stage identity and includes `Validate`, `SourceTemplate`,
+`NativeDynamic`, `CompileHost`, `CookAssets`, `Pack`, `PlatformBundle`, and `Report`. The runtime
+module imports that type directly; it does not re-export an alias. CLI ids, report names, artifact
+references, typed digests, stage I/O, stage status, and aggregate pipeline reports therefore remain
+usable by editor, runtime binaries, and plugin packages without depending on runtime internals.
 
 `ExportValidateReport::from_build_plan(...)` records:
 

@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/animation/runtime/mod.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/physics/mod.rs
   - zircon_runtime/src/core/framework/scene/world_handle.rs
-  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/animation/runtime/mod.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/physics/mod.rs
   - zircon_runtime/src/core/framework/scene/world_handle.rs
-  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
 plan_sources:
   - user: 2026-04-20 focus graphics/rendering recovery first, but keep current absorbed runtime layout compiling while continuing M5
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md

@@ -1,13 +1,9 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::core::framework::bridge::{BridgeInterfaceStatus, BridgeInvocationTable, InterfaceSlot};
 use crate::core::framework::script::{
     ScriptHostError, ScriptHostFunctionDescriptor, ScriptHostParameterDescriptor, ScriptHostResult,
     ScriptHostValue, ScriptHostValueKind,
-};
-use crate::plugin::{
-    BridgeInterfaceStatus, FrozenBridgeTable, InterfaceSlot, PluginInterfaceMethodManifest,
-    PluginPackageManifest, RuntimeExtensionRegistryError,
 };
 
 use super::super::VmError;
@@ -90,101 +86,16 @@ impl ScriptBridgeMethodDescriptor {
     pub const fn method_slot(&self) -> u32 {
         self.method_slot
     }
-
-    pub fn from_manifest_method(
-        interface_id: &str,
-        method: &PluginInterfaceMethodManifest,
-        bridge_method: ScriptBridgeMethodFn,
-    ) -> Self {
-        let mut required_capabilities = vec![BRIDGE_HOST_CAPABILITY.to_string()];
-        required_capabilities.extend(method.required_capabilities.iter().cloned());
-        required_capabilities.sort();
-        required_capabilities.dedup();
-        Self {
-            function_name: method.name.clone(),
-            interface_id: interface_id.to_string(),
-            method_slot: method.method_slot,
-            return_value_kind: method.return_value_kind,
-            parameters: method.parameters.clone(),
-            required_capabilities,
-            documentation: method.documentation.clone(),
-            method: bridge_method,
-        }
-    }
 }
 
-#[derive(Clone)]
-pub struct ScriptBridgeMethodBinding {
-    interface_id: String,
-    method_name: String,
-    method: ScriptBridgeMethodFn,
-}
-
-impl ScriptBridgeMethodBinding {
-    pub fn new<F>(
-        interface_id: impl Into<String>,
-        method_name: impl Into<String>,
-        method: F,
-    ) -> Self
-    where
-        F: Fn(ScriptBridgeCall) -> ScriptHostResult + Send + Sync + 'static,
-    {
-        Self {
-            interface_id: interface_id.into(),
-            method_name: method_name.into(),
-            method: Arc::new(method),
-        }
-    }
-}
-
-pub fn script_bridge_method_descriptors_from_manifest(
-    manifest: &PluginPackageManifest,
-    bindings: impl IntoIterator<Item = ScriptBridgeMethodBinding>,
-) -> Result<Vec<ScriptBridgeMethodDescriptor>, VmError> {
-    let mut bindings_by_method = BTreeMap::new();
-    for binding in bindings {
-        let key = (binding.interface_id, binding.method_name);
-        if bindings_by_method
-            .insert(key.clone(), binding.method)
-            .is_some()
-        {
-            return Err(VmError::Operation(format!(
-                "duplicate script bridge method binding `{}.{}`",
-                key.0, key.1
-            )));
-        }
-    }
-
-    let mut descriptors = Vec::new();
-    for (interface, method) in manifest.bridge_methods() {
-        let key = (interface.id.clone(), method.name.clone());
-        let Some(bridge_method) = bindings_by_method.remove(&key) else {
-            return Err(VmError::Operation(format!(
-                "script bridge method `{}.{}` is declared but has no binding",
-                key.0, key.1
-            )));
-        };
-        descriptors.push(ScriptBridgeMethodDescriptor::from_manifest_method(
-            &interface.id,
-            method,
-            bridge_method,
-        ));
-    }
-
-    if let Some(((interface_id, method_name), _)) = bindings_by_method.into_iter().next() {
-        return Err(VmError::Operation(format!(
-            "script bridge method binding `{interface_id}.{method_name}` is not declared by the package manifest"
-        )));
-    }
-
-    Ok(descriptors)
-}
-
-pub fn register_bridge_host_module(
+pub fn register_bridge_host_module<Table>(
     exports: &HostExportRegistry,
-    bridge_table: FrozenBridgeTable,
+    bridge_table: Table,
     methods: impl IntoIterator<Item = ScriptBridgeMethodDescriptor>,
-) -> Result<(), VmError> {
+) -> Result<(), VmError>
+where
+    Table: BridgeInvocationTable,
+{
     let methods = methods.into_iter().collect::<Vec<_>>();
     let mut descriptor = crate::core::framework::script::ScriptHostModuleDescriptor::new(
         BRIDGE_HOST_MODULE,
@@ -196,14 +107,12 @@ pub fn register_bridge_host_module(
 
     for method in methods {
         let slot = bridge_table
-            .resolve_slot(method.interface_id())
+            .resolve_interface_slot(method.interface_id())
             .ok_or_else(|| {
-                VmError::Operation(
-                    RuntimeExtensionRegistryError::MissingPluginInterface(
-                        method.interface_id().to_string(),
-                    )
-                    .to_string(),
-                )
+                VmError::Operation(format!(
+                    "missing plugin interface `{}`",
+                    method.interface_id()
+                ))
             })?;
         for capability in &method.required_capabilities {
             descriptor = descriptor.with_capability(capability.clone());
@@ -214,16 +123,6 @@ pub fn register_bridge_host_module(
 
     exports.register_module(descriptor, callbacks)?;
     Ok(())
-}
-
-pub fn register_bridge_host_module_from_manifest(
-    exports: &HostExportRegistry,
-    bridge_table: FrozenBridgeTable,
-    manifest: &PluginPackageManifest,
-    bindings: impl IntoIterator<Item = ScriptBridgeMethodBinding>,
-) -> Result<(), VmError> {
-    let descriptors = script_bridge_method_descriptors_from_manifest(manifest, bindings)?;
-    register_bridge_host_module(exports, bridge_table, descriptors)
 }
 
 fn function_descriptor(method: &ScriptBridgeMethodDescriptor) -> ScriptHostFunctionDescriptor {
@@ -245,11 +144,14 @@ fn function_descriptor(method: &ScriptBridgeMethodDescriptor) -> ScriptHostFunct
     descriptor
 }
 
-fn function_callback(
-    bridge_table: FrozenBridgeTable,
+fn function_callback<Table>(
+    bridge_table: Table,
     slot: InterfaceSlot,
     method: ScriptBridgeMethodDescriptor,
-) -> HostExportFunction {
+) -> HostExportFunction
+where
+    Table: BridgeInvocationTable,
+{
     let function_name = method.function_name.clone();
     HostExportFunction::new(function_name.clone(), move |context| {
         ensure_bridge_enabled(&bridge_table, slot, &method.interface_id)?;
@@ -267,17 +169,21 @@ fn function_callback(
     })
 }
 
-fn ensure_bridge_enabled(
-    bridge_table: &FrozenBridgeTable,
+fn ensure_bridge_enabled<Table>(
+    bridge_table: &Table,
     slot: InterfaceSlot,
     interface_id: &str,
-) -> Result<(), ScriptHostError> {
-    let Some(snapshot) = bridge_table.interface_snapshot(slot) else {
+) -> Result<(), ScriptHostError>
+where
+    Table: BridgeInvocationTable,
+{
+    let status = bridge_table.interface_status_at(slot);
+    if status == BridgeInterfaceStatus::Absent {
         return Err(ScriptHostError::new(format!(
             "bridge interface `{interface_id}` is absent"
         )));
-    };
-    if snapshot.status != BridgeInterfaceStatus::Enabled {
+    }
+    if status != BridgeInterfaceStatus::Enabled {
         bridge_table.record_not_enabled_call(slot);
         return Err(ScriptHostError::new(format!(
             "bridge interface `{interface_id}` is not enabled"

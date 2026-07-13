@@ -1,5 +1,5 @@
 use crate::core::framework::scene::ComponentPropertyPath;
-use crate::plugin::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
+use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use crate::scene::{
     reflect::{reflected_from_scene_value, scene_value_from_reflected, ReflectComponent},
     EntityId, World,
@@ -49,6 +49,7 @@ pub fn reflect_component_for_dynamic_descriptor(
         write_field,
         remove,
     )
+    .with_dense_field_slots(read_dense_slot, write_dense_slot)
 }
 
 fn field_from_property_descriptor(
@@ -99,6 +100,26 @@ fn read_field(
 ) -> Result<ReflectedValue, ReflectError> {
     let registration = world.type_registry().registration(type_path)?;
     ensure_declared_field(registration, field_name)?;
+    read_declared_field(world, entity, type_path, field_name)
+}
+
+fn read_dense_slot(
+    world: &World,
+    entity: EntityId,
+    type_path: &str,
+    field_slot: u32,
+) -> Result<ReflectedValue, ReflectError> {
+    let registration = world.type_registry().registration(type_path)?;
+    let field = declared_field_by_slot(registration, field_slot)?;
+    read_declared_field(world, entity, type_path, &field.name)
+}
+
+fn read_declared_field(
+    world: &World,
+    entity: EntityId,
+    type_path: &str,
+    field_name: &str,
+) -> Result<ReflectedValue, ReflectError> {
     ensure_json_field_present(world, entity, type_path, field_name)?;
     let property_path = dynamic_property_path(type_path, field_name)?;
     let Some(value) = world.dynamic_component_property(entity, &property_path) else {
@@ -133,9 +154,37 @@ fn write_field(
     field_name: &str,
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
-    let registration = world.type_registry().registration(type_path)?;
-    let field = ensure_declared_field(registration, field_name)?;
-    if !field.editable {
+    let editable = {
+        let registration = world.type_registry().registration(type_path)?;
+        ensure_declared_field(registration, field_name)?.editable
+    };
+    write_declared_field(world, entity, type_path, field_name, editable, value)
+}
+
+fn write_dense_slot(
+    world: &mut World,
+    entity: EntityId,
+    type_path: &str,
+    field_slot: u32,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    let (field_name, editable) = {
+        let registration = world.type_registry().registration(type_path)?;
+        let field = declared_field_by_slot(registration, field_slot)?;
+        (field.name.clone(), field.editable)
+    };
+    write_declared_field(world, entity, type_path, &field_name, editable, value)
+}
+
+fn write_declared_field(
+    world: &mut World,
+    entity: EntityId,
+    type_path: &str,
+    field_name: &str,
+    editable: bool,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    if !editable {
         return Err(ReflectError::NonEditableField {
             type_path: type_path.to_string(),
             field_name: field_name.to_string(),
@@ -196,6 +245,19 @@ fn ensure_declared_field<'a>(
         type_path: registration.type_path.type_path.clone(),
         field_name: field_name.to_string(),
     })
+}
+
+fn declared_field_by_slot(
+    registration: &ReflectTypeRegistration,
+    field_slot: u32,
+) -> Result<&ReflectFieldInfo, ReflectError> {
+    let Some(field) = registration.type_info.fields.get(field_slot as usize) else {
+        return Err(ReflectError::UnknownField {
+            type_path: registration.type_path.type_path.clone(),
+            field_name: format!("#{field_slot}"),
+        });
+    };
+    Ok(field)
 }
 
 fn ensure_json_field_present(

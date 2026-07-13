@@ -1,9 +1,9 @@
 #[cfg(test)]
-pub(super) use zircon_runtime::asset::assets::AnimationConditionOperatorAsset;
-use zircon_runtime::asset::assets::{
+pub(super) use zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset;
+use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationSequenceAsset, AnimationStateMachineAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
 mod graph;
 mod lifecycle;

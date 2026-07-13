@@ -1,11 +1,8 @@
 use std::fs;
 
-use zircon_runtime::scene::DefaultLevelManager;
-
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
-use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::support::*;
 
@@ -259,10 +256,7 @@ fn editor_manager_resolves_ui_asset_imports_and_interactive_session_commands() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    create_project_with_default_world(&project_root);
 
     let widget_path = project_root
         .join("assets")

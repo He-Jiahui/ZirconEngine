@@ -1,6 +1,22 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use zircon_runtime_interface::project::{
+    validate_project_name, ProjectNameError, ProjectTemplateId,
+};
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum CreateProjectRequestError {
+    #[error("project name is invalid: {source}")]
+    ProjectName {
+        #[from]
+        #[source]
+        source: ProjectNameError,
+    },
+    #[error("project location is required")]
+    MissingLocation,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CreateProjectRequest {
@@ -15,7 +31,7 @@ impl CreateProjectRequest {
         location: impl Into<PathBuf>,
         template: ProjectTemplate,
     ) -> Self {
-        let project_name = project_name.into().trim().to_string();
+        let project_name = project_name.into();
         Self {
             project_name,
             location: location.into(),
@@ -23,12 +39,10 @@ impl CreateProjectRequest {
         }
     }
 
-    pub fn validate_launch_fields(&self) -> Result<(), &'static str> {
-        if self.project_name.is_empty() {
-            return Err("Project name is required");
-        }
+    pub fn validate_launch_fields(&self) -> Result<(), CreateProjectRequestError> {
+        validate_project_name(&self.project_name)?;
         if self.location.as_os_str().is_empty() {
-            return Err("Project location is required");
+            return Err(CreateProjectRequestError::MissingLocation);
         }
         Ok(())
     }
@@ -45,6 +59,12 @@ pub enum ProjectTemplate {
 }
 
 impl ProjectTemplate {
+    pub const fn pack_id(self) -> ProjectTemplateId {
+        match self {
+            Self::RenderableEmpty => ProjectTemplateId::RenderableEmpty,
+        }
+    }
+
     pub fn id(self) -> &'static str {
         match self {
             Self::RenderableEmpty => "renderable-empty",
@@ -129,12 +149,9 @@ mod tests {
     }
 
     #[test]
-    fn create_request_trims_name_and_validates_launch_fields() {
-        let request = CreateProjectRequest::new(
-            "  My Game  ",
-            "E:/Projects",
-            ProjectTemplate::RenderableEmpty,
-        );
+    fn create_request_preserves_name_and_validates_launch_fields() {
+        let request =
+            CreateProjectRequest::new("My Game", "E:/Projects", ProjectTemplate::RenderableEmpty);
 
         assert_eq!(request.project_name, "My Game");
         assert_eq!(
@@ -143,15 +160,37 @@ mod tests {
         );
         assert_eq!(request.validate_launch_fields(), Ok(()));
 
+        let padded_name = CreateProjectRequest::new("  My Game  ", "E:/Projects", request.template);
+        assert!(matches!(
+            padded_name.validate_launch_fields(),
+            Err(CreateProjectRequestError::ProjectName {
+                source: ProjectNameError::SurroundingWhitespace { .. }
+            })
+        ));
+
         let missing_name = CreateProjectRequest::new("   ", "E:/Projects", request.template);
         assert_eq!(
             missing_name.validate_launch_fields(),
-            Err("Project name is required")
+            Err(CreateProjectRequestError::ProjectName {
+                source: ProjectNameError::Empty
+            })
         );
         let missing_location = CreateProjectRequest::new("Game", "", request.template);
         assert_eq!(
             missing_location.validate_launch_fields(),
-            Err("Project location is required")
+            Err(CreateProjectRequestError::MissingLocation)
         );
+    }
+
+    #[test]
+    fn create_request_rejects_unsafe_filename_components() {
+        for name in ["..", "folder/Game", r"folder\Game", "NUL", "Game.", "Game "] {
+            let request =
+                CreateProjectRequest::new(name, "E:/Projects", ProjectTemplate::RenderableEmpty);
+            assert!(
+                request.validate_launch_fields().is_err(),
+                "accepted {name:?}"
+            );
+        }
     }
 }

@@ -177,7 +177,9 @@ mod tests {
         let decoded = ReflectionProbeCaptureRequest::decode_json(&json).unwrap();
 
         assert_eq!(decoded, request);
-        assert_eq!(decoded.ibl_bake_request([1, 2, 3, 4]).mip_count(), 9);
+        let ibl_request = decoded.ibl_bake_request([1, 2, 3, 4]);
+        assert_eq!(ibl_request.source_mip_count(), 9);
+        assert_eq!(ibl_request.pmrem_mip_count(), 8);
     }
 
     #[test]

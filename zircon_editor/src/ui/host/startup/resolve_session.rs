@@ -1,8 +1,8 @@
-use crate::ui::workbench::project::EditorProjectDocument;
-use crate::ui::workbench::startup::{
-    EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft, RecentProjectEntry,
-    RecentProjectValidation,
+use crate::core::project::{
+    NewProjectDraft, ProjectAuthority, RecentProjectEntry, RecentProjectValidation,
 };
+use crate::ui::workbench::project::EditorProjectDocument;
+use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
@@ -12,10 +12,15 @@ impl EditorUiHost {
         zircon_runtime::profile_scope!("editor", "startup_session", "resolve_startup_session");
 
         let stored = self.load_startup_session()?;
-        let recent_projects = stored.recent_projects_with_validation(|path| {
-            zircon_runtime::profile_scope!("editor", "startup_session", "validate_recent_project");
-            self.validate_recent_project(path)
-        });
+        let recent_projects =
+            ProjectAuthority::default().recent_projects_with_validation(&stored, |path| {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "startup_session",
+                    "validate_recent_project"
+                );
+                ProjectAuthority::default().validate_recent_project(path)
+            });
 
         let Some(last_project_path) = stored
             .last_project_path
@@ -29,8 +34,9 @@ impl EditorUiHost {
         };
 
         let last_project_validation =
-            validation_for_recent_project(&recent_projects, last_project_path)
-                .unwrap_or_else(|| self.validate_recent_project(last_project_path));
+            validation_for_recent_project(&recent_projects, last_project_path).unwrap_or_else(
+                || ProjectAuthority::default().validate_recent_project(last_project_path),
+            );
         if last_project_validation != RecentProjectValidation::Valid {
             return Ok(component_showcase_startup_session(
                 recent_projects,

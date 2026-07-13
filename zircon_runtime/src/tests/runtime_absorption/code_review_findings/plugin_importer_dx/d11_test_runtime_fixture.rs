@@ -132,7 +132,8 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
             "pub fn with_runtime_plugin(mut self, plugin: &dyn RuntimePlugin) -> Self",
             "pub fn create_default_level(&self)",
             "pub fn tick_level_seconds(&self, level: &scene::LevelSystem, seconds: f64)",
-            "install_world_runtime_extensions",
+            "world_runtime_extension_plan",
+            "install_world_runtime_extension_plan",
         ],
     );
     assert_contains_all(

@@ -9,16 +9,11 @@ mod folder_backed;
 #[path = "mirrors/structure_guard_rows.rs"]
 mod structure_guard_rows;
 
-const STATUS_MIRROR_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/child_split_status.rs";
-const CODE_REVIEW_OWNER_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/code_review_owner.rs";
-const STRUCTURE_GUARD_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/structure_guard_rows.rs";
-const FOLDER_BACKED_STATUS_MIRROR_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/folder_backed.rs";
+const STATUS_MIRROR_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/child_split_status.rs";
+const CODE_REVIEW_OWNER_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/code_review_owner.rs";
+const STRUCTURE_GUARD_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/structure_guard_rows.rs";
+const FOLDER_BACKED_STATUS_MIRROR_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/folder_backed.rs";
 
 const STATUS_MIRROR_CHILDREN: &[(&str, &str, &str)] = &[
     (

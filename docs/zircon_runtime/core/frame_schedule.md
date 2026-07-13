@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/world_driver.rs
-  - zircon_runtime/src/scene/ecs/system_stage.rs
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
 implementation_files:
   - docs/zircon_runtime/core/frame_schedule.md
+  - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
@@ -79,7 +80,7 @@ This document is the runtime-owned frame-loop record for plan 03. It records the
 
 ## Current Conclusion
 
-The runtime has a single authoritative stage enum, fixed-loop stages, and a single time-advance handoff for the dynamic session frame path. `RuntimeDynamicSession::tick_frame` advances time once through `tick_time(...)`, passes the resulting `RuntimeTimeAdvance` through `LevelSystem`, and `WorldDriver` consumes that plan without calling `advance_time_by(...)` again.
+The runtime has a single authoritative stage enum, fixed-loop stages, and a single time-advance handoff for the dynamic session frame path. The `SystemStage` declaration is owned by the neutral `core/framework/scene` contract layer; the scene scheduler consumes that declaration and owns execution, with no second scene-local enum. `RuntimeDynamicSession::tick_frame` advances time once through `tick_time(...)`, passes the resulting `RuntimeTimeAdvance` through `LevelSystem`, and `WorldDriver` consumes that plan without calling `advance_time_by(...)` again.
 
 The remaining higher-level design choice is whether a future UI/render plan wants to move UI extraction into a scheduled `RenderExtract` producer. For the runtime 03 plan, the current contract is explicit: UI extraction is a legal dynamic-session side path.
 
@@ -102,7 +103,7 @@ The old gap was step 9: `WorldDriver` used to advance time again after the dynam
 
 ## Stage Table
 
-`SystemStage` is the single runtime stage authority. Current source has 9 stages, not the older 7-stage shape:
+`SystemStage` in `core/framework/scene/system_stage.rs` is the single runtime stage authority. Current source has 9 stages, not the older 7-stage shape; `scene/ecs` only consumes and exposes that contract for scheduling APIs and does not define another stage enum:
 
 | Rank | Stage | Fixed loop role |
 |---:|---|---|
@@ -118,10 +119,10 @@ The old gap was step 9: `WorldDriver` used to advance time again after the dynam
 
 The authority points are:
 
-- `SystemStage::COUNT = 9` at `zircon_runtime/src/scene/ecs/system_stage.rs:17`.
-- `SystemStage::ORDER` at `zircon_runtime/src/scene/ecs/system_stage.rs:18`.
-- `SystemStage::FIXED_LOOP = [FixedFirst, FixedUpdate, FixedPostUpdate]` at `zircon_runtime/src/scene/ecs/system_stage.rs:29`.
-- `SystemStage::rank()` and `is_fixed_loop()` at `zircon_runtime/src/scene/ecs/system_stage.rs:31` and `:45`.
+- `SystemStage::COUNT = 9` at `zircon_runtime/src/core/framework/scene/system_stage.rs:18`.
+- `SystemStage::ORDER` at `zircon_runtime/src/core/framework/scene/system_stage.rs:19`.
+- `SystemStage::FIXED_LOOP = [FixedFirst, FixedUpdate, FixedPostUpdate]` at `zircon_runtime/src/core/framework/scene/system_stage.rs:30`.
+- `SystemStage::rank()` and `is_fixed_loop()` at `zircon_runtime/src/core/framework/scene/system_stage.rs:32` and `:46`.
 
 ## Extract Path
 

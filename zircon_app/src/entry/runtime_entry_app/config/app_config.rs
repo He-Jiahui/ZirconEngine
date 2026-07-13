@@ -26,6 +26,7 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    #[cfg(test)]
     pub(in crate::entry) fn with_close_when_requested(
         mut self,
         close_when_requested: bool,
@@ -49,22 +50,22 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    #[cfg(test)]
     pub(in crate::entry) fn window_descriptor(&self) -> &WindowDescriptor {
         &self.window_descriptor
     }
 
+    #[cfg(test)]
     pub(in crate::entry) fn event_loop_policy(&self) -> EventLoopPolicy {
         self.event_loop_policy
     }
 
-    pub(in crate::entry) fn close_when_requested(&self) -> bool {
-        self.window_lifecycle_policy.close_when_requested
-    }
-
+    #[cfg(test)]
     pub(in crate::entry) fn window_lifecycle_policy(&self) -> WindowLifecyclePolicy {
         self.window_lifecycle_policy
     }
 
+    #[cfg(test)]
     pub(in crate::entry) fn exit_after_first_presented_frame(&self) -> bool {
         self.exit_after_first_presented_frame
     }
@@ -114,7 +115,7 @@ mod tests {
     fn runtime_entry_app_config_can_disable_close_when_requested_policy() {
         let config = RuntimeEntryAppConfig::default().with_close_when_requested(false);
 
-        assert!(!config.close_when_requested());
+        assert!(!config.window_lifecycle_policy.close_when_requested);
         assert!(!config
             .window_lifecycle_policy()
             .should_exit_after_primary_close());

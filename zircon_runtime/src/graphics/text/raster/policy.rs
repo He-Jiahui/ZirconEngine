@@ -1,4 +1,5 @@
 use crate::graphics::text::atlas::GlyphAtlasFormat;
+use crate::graphics::text::sdf::SdfMode;
 
 const DEFAULT_SDF_MIN_SIZE_PX: f32 = 24.0;
 
@@ -7,6 +8,7 @@ pub(crate) enum GlyphRasterPath {
     Bitmap,
     Sdf,
     Msdf,
+    Mtsdf,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -14,11 +16,16 @@ pub(crate) struct GlyphRasterEffects {
     pub(crate) outline: bool,
     pub(crate) shadow: bool,
     pub(crate) glow: bool,
+    pub(crate) true_distance_effects: bool,
 }
 
 impl GlyphRasterEffects {
     fn requires_distance_field(self) -> bool {
         self.outline || self.shadow || self.glow
+    }
+
+    fn requires_true_distance(self) -> bool {
+        self.requires_distance_field() && self.true_distance_effects
     }
 }
 
@@ -64,6 +71,17 @@ pub(crate) fn raster_path_for_request(request: GlyphRasterPolicyRequest) -> Glyp
     GlyphRasterPolicy::default().path_for_request(request)
 }
 
+pub(crate) fn distance_field_mode_for_request(
+    request: GlyphRasterPolicyRequest,
+) -> Option<SdfMode> {
+    match raster_path_for_request(request) {
+        GlyphRasterPath::Bitmap => None,
+        GlyphRasterPath::Sdf => Some(SdfMode::Sdf),
+        GlyphRasterPath::Msdf => Some(SdfMode::Msdf),
+        GlyphRasterPath::Mtsdf => Some(SdfMode::Mtsdf),
+    }
+}
+
 impl GlyphRasterPolicy {
     pub(crate) fn path_for(self, size_px: f32, scalable: bool) -> GlyphRasterPath {
         self.path_for_request(GlyphRasterPolicyRequest::new(size_px, scalable))
@@ -74,9 +92,20 @@ impl GlyphRasterPolicy {
             GlyphAtlasFormat::SubpixelMask | GlyphAtlasFormat::Color => {
                 return GlyphRasterPath::Bitmap;
             }
+            GlyphAtlasFormat::AlphaMask | GlyphAtlasFormat::Sdf | GlyphAtlasFormat::Msdf => {}
+        }
+
+        if request.effects.requires_true_distance() {
+            return GlyphRasterPath::Mtsdf;
+        }
+
+        match request.requested_format {
             GlyphAtlasFormat::Sdf => return GlyphRasterPath::Sdf,
             GlyphAtlasFormat::Msdf => return GlyphRasterPath::Msdf,
             GlyphAtlasFormat::AlphaMask => {}
+            GlyphAtlasFormat::SubpixelMask | GlyphAtlasFormat::Color => {
+                unreachable!("bitmap-only glyph formats return before distance-field selection")
+            }
         }
 
         if request.effects.requires_distance_field() {
@@ -132,6 +161,7 @@ mod tests {
             outline: false,
             shadow: true,
             glow: false,
+            true_distance_effects: false,
         };
         assert_eq!(raster_path_for_request(request), GlyphRasterPath::Sdf);
     }
@@ -158,5 +188,41 @@ mod tests {
         request.effects.outline = true;
 
         assert_eq!(raster_path_for_request(request), GlyphRasterPath::Bitmap);
+    }
+
+    #[test]
+    fn text_raster_policy_selects_mtsdf_only_for_explicit_true_distance_effects() {
+        let mut request = GlyphRasterPolicyRequest::new(48.0, false);
+        request.effects = GlyphRasterEffects {
+            outline: true,
+            true_distance_effects: true,
+            ..GlyphRasterEffects::default()
+        };
+
+        assert_eq!(raster_path_for_request(request), GlyphRasterPath::Mtsdf);
+        assert_eq!(
+            distance_field_mode_for_request(request),
+            Some(SdfMode::Mtsdf)
+        );
+        request.effects.true_distance_effects = false;
+        assert_eq!(distance_field_mode_for_request(request), Some(SdfMode::Sdf));
+    }
+
+    #[test]
+    fn text_raster_policy_upgrades_explicit_sdf_or_msdf_when_glow_needs_true_distance() {
+        for requested_format in [GlyphAtlasFormat::Sdf, GlyphAtlasFormat::Msdf] {
+            let mut request = GlyphRasterPolicyRequest::new(12.0, false);
+            request.requested_format = requested_format;
+            request.effects = GlyphRasterEffects {
+                glow: true,
+                true_distance_effects: true,
+                ..GlyphRasterEffects::default()
+            };
+
+            assert_eq!(
+                distance_field_mode_for_request(request),
+                Some(SdfMode::Mtsdf)
+            );
+        }
     }
 }

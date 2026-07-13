@@ -10,15 +10,17 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
     let material_sources =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");
     let mesh_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "dynamic API exposes neutral builtin standard material template prewarm builder",
@@ -115,7 +117,6 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
         ("mesh pipeline cache doc", mesh_cache_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

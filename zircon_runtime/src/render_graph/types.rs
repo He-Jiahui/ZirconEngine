@@ -285,6 +285,8 @@ pub struct RenderGraphPassResourceAccess {
 pub enum RenderGraphComputeDispatchExtent {
     Viewport,
     ClusterGrid,
+    FroxelGrid,
+    FroxelGridXy,
     HzbFurthest,
     IndirectArgs,
     Fixed([u32; 3]),
@@ -325,6 +327,22 @@ impl RenderGraphComputeWorkload {
             pipeline_label,
             workgroup_size,
             RenderGraphComputeDispatchExtent::ClusterGrid,
+        )
+    }
+
+    pub fn froxel_grid(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::FroxelGrid,
+        )
+    }
+
+    pub fn froxel_grid_xy(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::FroxelGridXy,
         )
     }
 

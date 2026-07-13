@@ -13,6 +13,8 @@ pub(super) fn workbench_window_view_descriptor() -> ViewDescriptor {
     .with_default_constraints(
         crate::ui::workbench::autolayout::default_constraints_for_content(ViewContentKind::Scene),
     )
-    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.workbench"))
+    .with_activity_window_template(ActivityWindowTemplateSpec::new(
+        "res://ui/editor/windows/workbench_window.zui",
+    ))
     .with_icon_key("workbench")
 }

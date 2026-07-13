@@ -16,7 +16,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-use crate::graphics::{RenderPipelineAsset, WgpuRenderFramework};
+use crate::graphics::WgpuRenderFramework;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const CAMERA_TEXTURE_TARGET_ASSET_CAPABILITY: &str = "camera texture render target asset";
@@ -460,13 +460,6 @@ impl RenderFramework for UnsupportedSurfaceFramework {
         _pipeline: RenderPipelineHandle,
     ) -> Result<(), RenderFrameworkError> {
         Ok(())
-    }
-
-    fn register_pipeline_asset(
-        &self,
-        _pipeline: RenderPipelineAsset,
-    ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
-        Ok(RenderPipelineHandle::new(1))
     }
 
     fn reload_pipeline(&self, _pipeline: RenderPipelineHandle) -> Result<(), RenderFrameworkError> {

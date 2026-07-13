@@ -31,7 +31,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-14
 ---
 
 # 11 多线程 JobSystem 任务模型与调度
@@ -235,3 +235,4 @@ last_refined: 2026-07-10
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`11/2026-07-09-job-system-task-model-output-records.md`](11/2026-07-09-job-system-task-model-output-records.md)
+- 当前失败交接（`open / Editor full harness Runtime 三池与 asset worker 双预算`）：[`11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md`](11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)

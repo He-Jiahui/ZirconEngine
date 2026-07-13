@@ -8,6 +8,10 @@ pub enum HubError {
     TomlEncode(#[from] toml::ser::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("project manifest summary error: {0}")]
+    ProjectManifestSummary(#[from] zircon_runtime_interface::project::ProjectManifestSummaryError),
+    #[error("project template pack error: {0}")]
+    ProjectTemplatePack(#[from] zircon_runtime_interface::project::ProjectTemplatePackError),
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
     #[error("{}", detail.render(crate::settings::HubLanguage::English))]

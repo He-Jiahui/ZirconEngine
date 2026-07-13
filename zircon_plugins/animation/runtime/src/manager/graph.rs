@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use zircon_runtime::asset::{AnimationGraphAsset, AnimationGraphNodeAsset};
+use zircon_runtime::core::framework::animation::{AnimationGraphAsset, AnimationGraphNodeAsset};
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationGraphClipInstance, AnimationGraphEvaluation,
     AnimationParameterMap,

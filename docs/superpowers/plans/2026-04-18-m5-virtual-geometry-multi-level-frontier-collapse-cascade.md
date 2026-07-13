@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry unified indirect / deeper cluster raster / residency-manager cascade
   - user: 2026-04-18 列出后续所有 tasks，把它们作为 todo，然后继续深入
@@ -12,7 +12,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-17-m5-virtual-geometry-page-table-residency-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-merge-back-child-hysteresis.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_when_frontier_collapses_multiple_levels
   - cargo test -p zircon_graphics --offline --locked visibility
   - cargo test -p zircon_graphics --offline --locked virtual_geometry

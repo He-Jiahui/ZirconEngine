@@ -1,7 +1,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::RuntimeProfileId;
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::framework::window::{
     WindowDescriptor, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
@@ -12,7 +14,7 @@ use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
 };
 use zircon_runtime::plugin::{
-    RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimeProfileId,
+    RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimePluginDescriptor,
 };
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
@@ -258,6 +260,12 @@ impl BuiltinEngineEntry {
         &self.runtime_plugin_availability
     }
 
+    pub fn runtime_plugin_bridge_lifecycle_state(
+        &self,
+    ) -> Option<&RuntimePluginBridgeLifecycleState> {
+        self.plugin_bridge_lifecycle_state.as_ref()
+    }
+
     pub fn module_selection_report(&self) -> EntryModuleSelectionReport {
         EntryModuleSelectionReport {
             profile: self.profile,
@@ -329,8 +337,9 @@ impl EngineEntry for BuiltinEngineEntry {
         let descriptors = self.module_descriptors();
 
         self.store_entry_config(&runtime);
+        runtime.replace_devtools_plugin_catalog_entries(builtin_plugin_catalog_entries());
         if let Some(state) = self.plugin_bridge_lifecycle_state.clone() {
-            runtime.install_plugin_bridge_lifecycle_state(state);
+            runtime.install_runtime_module_lifecycle_observer(Arc::new(state));
         }
         for descriptor in &descriptors {
             runtime.register_module(descriptor.clone())?;
@@ -340,6 +349,23 @@ impl EngineEntry for BuiltinEngineEntry {
 
         Ok(runtime.handle())
     }
+}
+
+fn builtin_plugin_catalog_entries() -> Vec<RuntimeDevtoolsPluginCatalogEntry> {
+    RuntimePluginDescriptor::builtin_catalog()
+        .into_iter()
+        .map(|descriptor| RuntimeDevtoolsPluginCatalogEntry {
+            package_id: descriptor.package_id().to_string(),
+            display_name: descriptor.display_name().to_string(),
+            crate_name: descriptor.crate_name().to_string(),
+            capabilities: descriptor.capabilities().to_vec(),
+            target_modes: descriptor
+                .target_modes()
+                .iter()
+                .map(|mode| format!("{:?}", mode))
+                .collect(),
+        })
+        .collect()
 }
 
 fn plugin_group_for_config(
@@ -353,7 +379,9 @@ fn plugin_group_for_config(
         if builder.contains(module.module_name()) {
             builder = builder.set(module).map_err(plugin_group_core_error)?;
         } else if append_unmatched_modules {
-            builder = builder.add(module).map_err(plugin_group_core_error)?;
+            builder = builder
+                .add_module(module)
+                .map_err(plugin_group_core_error)?;
         }
     }
     builder.try_finish().map_err(plugin_group_core_error)
@@ -364,12 +392,12 @@ fn plugin_group_builder_for_config(
 ) -> Result<PluginGroupBuilder, PluginGroupError> {
     match config.runtime_profile() {
         Some(RuntimeProfileId::Minimal) => return MinimalPlugins.build(),
-        Some(RuntimeProfileId::Dev) => return DevPlugins::default().build(),
+        Some(RuntimeProfileId::Dev) => return DevPlugins.build(),
         _ => {}
     }
     match config.profile {
-        EntryProfile::Editor | EntryProfile::Runtime => DefaultPlugins::default().build(),
-        EntryProfile::Headless => HeadlessPlugins::default().build(),
+        EntryProfile::Editor | EntryProfile::Runtime => DefaultPlugins.build(),
+        EntryProfile::Headless => HeadlessPlugins.build(),
     }
 }
 

@@ -298,7 +298,7 @@ mod tests {
             report.approximated_families,
             labels(["depth-of-field", "motion-blur", "screen-space-reflection"])
         );
-        assert_eq!(report.missing_resource_count, 9);
+        assert_eq!(report.missing_resource_count, 10);
         assert_eq!(
             report.missing_resources,
             labels([
@@ -308,6 +308,7 @@ mod tests {
                 "effect-stack.motion-blur.motion-vector",
                 "effect-stack.motion-blur.velocity-prepass",
                 "effect-stack.motion-blur.velocity-prepass.camera",
+                "effect-stack.motion-blur.velocity-prepass.object",
                 "effect-stack.motion-blur.velocity-prepass.tile-max",
                 "effect-stack.motion-blur.velocity-prepass.tile-max-coarse",
                 "effect-stack.motion-blur.velocity-prepass.neighbor-max",

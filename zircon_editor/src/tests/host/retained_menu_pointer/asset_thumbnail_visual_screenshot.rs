@@ -363,6 +363,10 @@ fn wide_name_asset_snapshot() -> AssetWorkspaceSnapshot {
             file_name: "NavigationSettingsRuntimeProfile".to_string(),
             extension: String::new(),
             kind: ResourceKind::Data,
+            asset_type:
+                crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                    ResourceKind::Data,
+                ),
             preview_artifact_path: String::new(),
             dirty: false,
             diagnostics: Vec::new(),

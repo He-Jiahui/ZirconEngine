@@ -6,6 +6,8 @@ import argparse
 import sys
 from typing import Sequence
 
+from .preset_contract import load_export_preset
+
 
 STAGES = (
     "validate",
@@ -48,6 +50,11 @@ Examples:
 """.strip(),
     )
     parser.add_argument("--profile", required=True, help="Export profile name.")
+    parser.add_argument(
+        "--preset",
+        default=None,
+        help="Versioned .zpreset selected by the editor export wizard.",
+    )
     parser.add_argument(
         "--project",
         default="zircon-project.toml",
@@ -320,6 +327,30 @@ Examples:
     args.pack_file_explicit = pack_file_explicit
     args.delta_pack_explicit = delta_pack_explicit
     args.host_executable_explicit = host_executable_explicit
+    args.export_preset = None
+    if args.preset:
+        try:
+            args.export_preset = load_export_preset(args.preset)
+        except ValueError as error:
+            parser.error(str(error))
+        preset_profile = args.export_preset["profile_ref"]
+        if args.profile != preset_profile:
+            parser.error(
+                f"--profile {args.profile} does not match preset profile_ref {preset_profile}"
+            )
+        if args.asset_filter is None and args.export_preset.get("include_filter"):
+            args.asset_filter = args.export_preset["include_filter"]
+        # Preserve the complete strict contract on the namespace. Individual
+        # stages consume their owned fields without reparsing the preset.
+        args.preset_target_mode = args.export_preset["target_mode"]
+        args.preset_debug = args.export_preset["debug"]
+        args.preset_include_filter = args.export_preset["include_filter"]
+        args.preset_exclude_filter = args.export_preset["exclude_filter"]
+        args.preset_entry_scenes = args.export_preset["entry_scenes"]
+        args.preset_keep_list = args.export_preset["keep_list"]
+        args.preset_plugin_subset = args.export_preset["plugin_subset"]
+        args.preset_cook = args.export_preset["cook"]
+        args.preset_customized_files = args.export_preset["customized_files"]
     if args.resume_from and stage_explicit:
         parser.error("--resume-from runs the main pipeline and cannot be combined with --stage")
     return args

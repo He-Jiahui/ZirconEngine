@@ -1,6 +1,7 @@
 use crate::graphics::resource_limits::{
     HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
     MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+    OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
     POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
     REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS,
 };
@@ -33,6 +34,11 @@ fn required_render_features(adapter_features: wgpu::Features) -> wgpu::Features 
             requested_features |= feature;
         }
     }
+    let timestamp_features =
+        wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
+    if adapter_features.contains(timestamp_features) {
+        requested_features |= timestamp_features;
+    }
     requested_features
 }
 
@@ -46,7 +52,7 @@ fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
     };
     let required_storage_buffers_per_shader_stage =
         HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
-            .max(MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE);
+            .max(OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE);
     if adapter_limits.max_storage_buffers_per_shader_stage
         >= required_storage_buffers_per_shader_stage
     {
@@ -65,6 +71,7 @@ mod tests {
     use crate::graphics::resource_limits::{
         HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
         MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+        OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
         POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
         REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS,
     };
@@ -85,6 +92,18 @@ mod tests {
     }
 
     #[test]
+    fn offscreen_device_features_request_gpu_timestamps_only_when_fully_supported() {
+        let timestamp_features =
+            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
+        let supported = required_render_features(timestamp_features);
+        let partial = required_render_features(wgpu::Features::TIMESTAMP_QUERY);
+
+        assert!(supported.contains(timestamp_features));
+        assert!(!partial.contains(wgpu::Features::TIMESTAMP_QUERY));
+        assert!(!partial.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS));
+    }
+
+    #[test]
     fn offscreen_device_features_require_rg11b10_render_target_for_post_process() {
         let features = required_render_features(wgpu::Features::empty());
 
@@ -95,7 +114,8 @@ mod tests {
     fn offscreen_device_limits_cover_renderer_layout_requirements() {
         let limits = required_render_limits(&wgpu::Limits {
             max_storage_buffers_per_shader_stage:
-                HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+                    .max(OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE),
             ..wgpu::Limits::default()
         });
 
@@ -112,6 +132,24 @@ mod tests {
         assert!(
             limits.max_storage_buffers_per_shader_stage
                 >= MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+        assert!(
+            limits.max_storage_buffers_per_shader_stage
+                >= OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+    }
+
+    #[test]
+    fn offscreen_device_limits_cover_oit_fragment_store_bindings() {
+        let limits = required_render_limits(&wgpu::Limits {
+            max_storage_buffers_per_shader_stage:
+                OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+            ..wgpu::Limits::default()
+        });
+
+        assert_eq!(
+            limits.max_storage_buffers_per_shader_stage,
+            OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
         );
     }
 

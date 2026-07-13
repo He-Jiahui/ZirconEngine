@@ -18,7 +18,6 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let advanced_doc = read_repo("docs/zircon_runtime/core/framework/render/advanced.md");
     let anti_alias_doc = read_repo("docs/zircon_runtime/core/framework/render/anti_alias.md");
-    let session_note = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "frame submission context parent keeps submit context production responsibilities and test mount",
@@ -93,7 +92,6 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
         ("structure convention", structure_convention.as_str()),
         ("advanced docs", advanced_doc.as_str()),
         ("anti alias docs", anti_alias_doc.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,

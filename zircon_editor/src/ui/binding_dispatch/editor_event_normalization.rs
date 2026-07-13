@@ -1,3 +1,4 @@
+use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
 use crate::core::editor_event::{
     EditorAnimationEvent, EditorAssetEvent, EditorDraftEvent, EditorEvent, EditorInspectorEvent,
     EditorViewportEvent,
@@ -8,11 +9,12 @@ use crate::ui::binding_dispatch::{
     dispatch_draft_binding, dispatch_inspector_binding, dispatch_selection_binding,
     dispatch_viewport_binding, AnimationHostEvent, AssetHostEvent, DraftHostEvent,
 };
-use crate::ui::host::EditorCommandRegistry;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 pub(crate) fn normalize_editor_event_binding(
     binding: &EditorUiBinding,
+    commands: &EditorCommandRegistry,
+    context: &CommandEvalCtx,
 ) -> Result<EditorEvent, String> {
     match binding.payload() {
         EditorUiBindingPayload::MenuAction { .. } => {
@@ -20,11 +22,9 @@ pub(crate) fn normalize_editor_event_binding(
                 dispatch_editor_host_binding(binding).map_err(|error| error.to_string())?;
             Ok(EditorEvent::WorkbenchMenu(action))
         }
-        EditorUiBindingPayload::EditorCommand { command_id } => {
-            EditorCommandRegistry::default_workbench()
-                .event_for_command(command_id)
-                .map_err(|error| error.to_string())
-        }
+        EditorUiBindingPayload::EditorCommand { command_id } => commands
+            .event_for_command(command_id, context)
+            .map_err(|error| error.to_string()),
         EditorUiBindingPayload::DockCommand(_) => Ok(EditorEvent::Layout(
             dispatch_docking_binding(binding).map_err(|error| error.to_string())?,
         )),
@@ -34,8 +34,8 @@ pub(crate) fn normalize_editor_event_binding(
         EditorUiBindingPayload::AssetCommand(_) => {
             let event = dispatch_asset_binding(binding).map_err(|error| error.to_string())?;
             Ok(EditorEvent::Asset(match event {
-                AssetHostEvent::OpenAsset { asset_path } => {
-                    EditorAssetEvent::OpenAsset { asset_path }
+                AssetHostEvent::OpenAsset { asset_locator } => {
+                    EditorAssetEvent::OpenAsset { asset_locator }
                 }
                 AssetHostEvent::SelectFolder { folder_id } => {
                     EditorAssetEvent::SelectFolder { folder_id }
@@ -129,100 +129,100 @@ pub(crate) fn normalize_editor_event_binding(
                     speed,
                 },
                 AnimationHostEvent::AddGraphNode {
-                    graph_path,
+                    graph_locator,
                     node_id,
                     node_kind,
                 } => EditorAnimationEvent::AddGraphNode {
-                    graph_path,
+                    graph_locator,
                     node_id,
                     node_kind,
                 },
                 AnimationHostEvent::RemoveGraphNode {
-                    graph_path,
+                    graph_locator,
                     node_id,
                 } => EditorAnimationEvent::RemoveGraphNode {
-                    graph_path,
+                    graph_locator,
                     node_id,
                 },
                 AnimationHostEvent::ConnectGraphNodes {
-                    graph_path,
+                    graph_locator,
                     from_node_id,
                     to_node_id,
                 } => EditorAnimationEvent::ConnectGraphNodes {
-                    graph_path,
+                    graph_locator,
                     from_node_id,
                     to_node_id,
                 },
                 AnimationHostEvent::DisconnectGraphNodes {
-                    graph_path,
+                    graph_locator,
                     from_node_id,
                     to_node_id,
                 } => EditorAnimationEvent::DisconnectGraphNodes {
-                    graph_path,
+                    graph_locator,
                     from_node_id,
                     to_node_id,
                 },
                 AnimationHostEvent::SetGraphParameter {
-                    graph_path,
+                    graph_locator,
                     parameter_name,
                     value_literal,
                 } => EditorAnimationEvent::SetGraphParameter {
-                    graph_path,
+                    graph_locator,
                     parameter_name,
                     value_literal,
                 },
                 AnimationHostEvent::CreateState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
-                    graph_path,
+                    graph_locator,
                 } => EditorAnimationEvent::CreateState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
-                    graph_path,
+                    graph_locator,
                 },
                 AnimationHostEvent::RemoveState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
                 } => EditorAnimationEvent::RemoveState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
                 },
                 AnimationHostEvent::SetEntryState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
                 } => EditorAnimationEvent::SetEntryState {
-                    state_machine_path,
+                    state_machine_locator,
                     state_name,
                 },
                 AnimationHostEvent::CreateTransition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                     duration_frames,
                 } => EditorAnimationEvent::CreateTransition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                     duration_frames,
                 },
                 AnimationHostEvent::RemoveTransition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                 } => EditorAnimationEvent::RemoveTransition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                 },
                 AnimationHostEvent::SetTransitionCondition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                     parameter_name,
                     operator,
                     value_literal,
                 } => EditorAnimationEvent::SetTransitionCondition {
-                    state_machine_path,
+                    state_machine_locator,
                     from_state,
                     to_state,
                     parameter_name,

@@ -437,7 +437,7 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
         "self.host.create_project_and_open(draft)",
         "self.host.recent_projects_snapshot()",
         "self.host.forget_recent_project(path)",
-        "self.host.update_recent_project(path, display_name)",
+        "self.host.update_recent_project(path)",
         "self.host.show_welcome_page()",
         "self.host.dismiss_welcome_page()",
     ] {

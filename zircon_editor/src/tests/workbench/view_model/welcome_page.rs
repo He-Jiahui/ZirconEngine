@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::core::project::RecentProjectValidation;
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
 use crate::ui::workbench::model::{DocumentWorkspaceModel, WorkbenchViewModel};
@@ -8,8 +9,7 @@ use crate::ui::workbench::snapshot::{
     ViewContentKind,
 };
 use crate::ui::workbench::startup::{
-    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, RecentProjectValidation,
-    WelcomePaneSnapshot,
+    EditorSessionMode, NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot,
 };
 use crate::ui::workbench::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
@@ -91,9 +91,13 @@ fn welcome_startup_projects_into_exclusive_page_model() {
         },
         vec![welcome_instance],
         descriptors,
+        None,
     );
 
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     assert!(!model.drawer_ring.visible);
     assert!(matches!(

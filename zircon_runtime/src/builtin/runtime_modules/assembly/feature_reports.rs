@@ -1,10 +1,11 @@
+use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
-    ProjectPluginManifest, RuntimePluginCatalog, RuntimePluginFeatureDependencyReport,
+    RuntimePluginCatalog, RuntimePluginFeatureDependencyReport,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
-use super::super::ids::RuntimeTargetMode;
-use super::super::load_report::RuntimeModuleLoadReport;
+use super::super::load_report::{RuntimeModuleLoadDiagnostic, RuntimeModuleLoadReport};
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(super) struct RuntimeModuleFeatureReports<'a> {
     dependency_report: RuntimePluginFeatureDependencyReport,
@@ -19,14 +20,18 @@ impl<'a> RuntimeModuleFeatureReports<'a> {
     }
 
     pub(super) fn extend_load_report_diagnostics(self, report: &mut RuntimeModuleLoadReport) {
-        for blocked in self.dependency_report.blocked_features {
-            if blocked.required {
-                report.errors.push(blocked.to_diagnostic());
-            } else {
-                report.warnings.push(blocked.to_diagnostic());
-            }
-        }
-        report.errors.extend(self.dependency_report.diagnostics);
+        report.extend_diagnostics(
+            self.dependency_report
+                .blocked_features
+                .into_iter()
+                .map(RuntimeModuleLoadDiagnostic::FeatureBlocked)
+                .chain(
+                    self.dependency_report
+                        .diagnostics
+                        .into_iter()
+                        .map(RuntimeModuleLoadDiagnostic::FeatureDefinition),
+                ),
+        );
     }
 }
 

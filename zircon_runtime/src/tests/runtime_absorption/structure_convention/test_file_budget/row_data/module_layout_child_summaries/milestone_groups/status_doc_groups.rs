@@ -8,8 +8,12 @@ fn runtime_15_module_layout_child_summary_status_doc_groups_are_child_owned() {
     let module_layout_status_docs = format!(
         "{}\n{}\n{}",
         module_layout_status_docs_parent,
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/historical_status.rs")
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/mirrors/historical_status.rs"
+        )
     );
     let module_layout_child_summary_status_docs_parent = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status_docs.rs",
@@ -17,9 +21,15 @@ fn runtime_15_module_layout_child_summary_status_doc_groups_are_child_owned() {
     let module_layout_child_summary_status_docs = format!(
         "{}\n{}\n{}\n{}",
         module_layout_child_summary_status_docs_parent,
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_statuses.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/status_mirrors.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/mirrors/historical_status.rs")
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_statuses.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/status_mirrors.rs"
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_child_summary_status/mirrors/historical_status.rs"
+        )
     );
 
     assert_contains_all(

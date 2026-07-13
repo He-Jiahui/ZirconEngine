@@ -44,7 +44,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/node_expander.rs
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/legacy_template.rs
+  - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/surface.rs
@@ -114,7 +114,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/node_expander.rs
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - zircon_runtime/src/ui/template/asset/schema/legacy_template.rs
+  - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/surface.rs
@@ -132,10 +132,6 @@ implementation_files:
   - zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
-  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs (passed)
-  - git diff --check -- zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs docs/zircon_runtime_interface/ui/contract-spine.md (covered by Workbench Chrome slice diff-check; passed with existing LF-to-CRLF warnings only)
-  - cargo test -p zircon_runtime_interface --lib ui_painter_style_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-chrome-interface-0611 --message-format short --color never -- --nocapture --test-threads=1 (3 passed, 0 failed, 139 filtered out)
-  - cargo test -p zircon_runtime_interface --lib ui_painter_state_contracts_round_trip_and_resolve_button_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-chrome-interface-0611 --message-format short --color never -- --nocapture --test-threads=1 (1 passed, 0 failed, 141 filtered out)
   - zircon_runtime_interface/src/tests/ui_ecs_projection_contracts.rs
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
   - zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs
@@ -153,6 +149,10 @@ plan_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
 tests:
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs (passed)
+  - git diff --check -- zircon_runtime_interface/src/ui/style.rs zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs docs/zircon_runtime_interface/ui/contract-spine.md (covered by Workbench Chrome slice diff-check; passed with existing LF-to-CRLF warnings only)
+  - cargo test -p zircon_runtime_interface --lib ui_painter_style_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-chrome-interface-0611 --message-format short --color never -- --nocapture --test-threads=1 (3 passed, 0 failed, 139 filtered out)
+  - cargo test -p zircon_runtime_interface --lib ui_painter_state_contracts_round_trip_and_resolve_button_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-chrome-interface-0611 --message-format short --color never -- --nocapture --test-threads=1 (1 passed, 0 failed, 141 filtered out)
   - zircon_runtime_interface/src/tests/mod.rs
   - zircon_runtime_interface/src/tests/dispatch_reply_contracts.rs
   - zircon_runtime_interface/src/tests/ui_painter_style_contracts.rs

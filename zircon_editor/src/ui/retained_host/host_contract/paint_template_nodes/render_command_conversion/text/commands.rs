@@ -231,6 +231,8 @@ mod tests {
             line_height: RUNLESS_TEXT_METRICS.line_height(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             render_mode: UiTextRenderMode::Native,
+            text_effects: Default::default(),
+            text_decorations: Default::default(),
             overflow: UiTextOverflow::Clip,
             shaped: Some(UiShapedText {
                 source_text: "Name id".to_string(),
@@ -306,6 +308,8 @@ mod tests {
             line_height: FRAGMENTED_TEXT_METRICS.line_height(),
             writing_mode: UiTextWritingMode::HorizontalTb,
             render_mode: UiTextRenderMode::Native,
+            text_effects: Default::default(),
+            text_decorations: Default::default(),
             overflow: UiTextOverflow::Ellipsis,
             shaped: Some(UiShapedText {
                 source_text: "folder-open-line.svg".to_string(),

@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/ui/workbench/preset/mod.rs
   - zircon_editor/src/ui/workbench/preset/panel_preset.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation.rs
+  - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/ui/workbench/preset/mod.rs

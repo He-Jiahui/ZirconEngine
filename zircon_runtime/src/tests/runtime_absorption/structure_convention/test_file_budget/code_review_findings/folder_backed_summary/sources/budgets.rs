@@ -41,7 +41,9 @@ pub(super) fn assert_code_review_findings_line_budgets(sources: &CodeReviewFindi
         ),
         (
             "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/constructor_retirement.rs",
-            sources.f8_descriptor_privacy_constructor_retirement.as_str(),
+            sources
+                .f8_descriptor_privacy_constructor_retirement
+                .as_str(),
         ),
         (
             "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/status_mirrors.rs",

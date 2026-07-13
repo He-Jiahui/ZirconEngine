@@ -55,6 +55,7 @@ pub(super) fn editable_text_decorations(
             },
             frame,
             color: TEXT_CARET_COLOR.to_string(),
+            thickness: TEXT_CARET_WIDTH,
         });
     }
     decorations

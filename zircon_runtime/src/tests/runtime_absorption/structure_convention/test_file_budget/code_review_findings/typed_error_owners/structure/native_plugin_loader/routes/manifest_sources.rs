@@ -15,7 +15,10 @@ pub(super) fn assert_typed_error_native_manifest_sources_route_is_folder_backed(
         ],
     );
     assert_eq!(
-        sources.native_manifest_sources_parent.matches("#[test]").count(),
+        sources
+            .native_manifest_sources_parent
+            .matches("#[test]")
+            .count(),
         0,
         "typed_error_convergence/native_plugin_loader/manifest_sources.rs should only mount child test owners"
     );

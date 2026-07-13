@@ -88,6 +88,7 @@ const READ_ONLY_TEXTURE_INPUT_KINDS: &[RenderGraphResourceKind] = &[
     RenderGraphResourceKind::TransientTexture,
 ];
 const SCENE_DEPTH_RESOURCE: &str = PostProcessGraphResourceNames::SCENE_DEPTH;
+const SCENE_NORMAL_RESOURCE: &str = PostProcessGraphResourceNames::GBUFFER_NORMAL;
 const SCENE_HZB_RESOURCE: &str = PostProcessGraphResourceNames::HZB_FURTHEST;
 const SCENE_VELOCITY_RESOURCE: &str = PostProcessGraphResourceNames::SCENE_VELOCITY;
 pub(crate) const HYBRID_GI_SCENE_RESOURCE: &str = PostProcessGraphResourceNames::HYBRID_GI_SCENE;
@@ -102,11 +103,16 @@ const HYBRID_GI_TEMPORAL_METADATA_HISTORY_RESOURCE: &str =
 // Fixed packet headers and 8x8 tile records must fit even when the viewport is one pixel.
 pub(crate) const HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES: u64 =
     SCENE_TRACE_INPUT_TOTAL_WORD_COUNT as u64 * 4;
-pub(crate) const HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES: u64 = 512 * 4;
+pub(crate) const HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES: u64 = 576 * 4;
 
 const SCENE_PREPARE_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::any_of(
         SCENE_DEPTH_RESOURCE,
+        READ_ONLY_TEXTURE_INPUT_KINDS,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::any_of(
+        SCENE_NORMAL_RESOURCE,
         READ_ONLY_TEXTURE_INPUT_KINDS,
         RenderGraphResourceAccessKind::Read,
     ),
@@ -146,9 +152,9 @@ const RESOLVE_RESOURCES: &[ExpectedResource] = &[
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Read,
     ),
-    ExpectedResource::new(
+    ExpectedResource::any_of(
         SCENE_VELOCITY_RESOURCE,
-        RenderGraphResourceKind::TransientTexture,
+        READ_ONLY_TEXTURE_INPUT_KINDS,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
@@ -446,6 +452,26 @@ mod tests {
         scene_prepare.resources[0].kind = RenderGraphResourceKind::TransientTexture;
         hybrid_gi_scene_prepare_executor(&mut scene_prepare)
             .unwrap_or_else(|error| panic!("scene-depth transient texture failed: {error}"));
+    }
+
+    #[test]
+    fn hybrid_gi_resolve_accepts_external_or_transient_scene_velocity() {
+        for kind in [
+            RenderGraphResourceKind::External,
+            RenderGraphResourceKind::TransientTexture,
+        ] {
+            let mut resolve = context_for_contract(&RESOLVE_CONTRACT);
+            resolve
+                .resources
+                .iter_mut()
+                .find(|resource| resource.name == SCENE_VELOCITY_RESOURCE)
+                .expect("resolve scene-velocity resource")
+                .kind = kind;
+
+            hybrid_gi_resolve_executor(&mut resolve).unwrap_or_else(|error| {
+                panic!("{kind:?} scene-velocity should be accepted: {error}")
+            });
+        }
     }
 
     #[test]

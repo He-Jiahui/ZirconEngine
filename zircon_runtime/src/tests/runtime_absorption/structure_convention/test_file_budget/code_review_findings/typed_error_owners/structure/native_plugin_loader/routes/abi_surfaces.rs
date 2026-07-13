@@ -17,7 +17,10 @@ pub(super) fn assert_typed_error_native_abi_surfaces_route_is_folder_backed(
         ],
     );
     assert_eq!(
-        sources.native_abi_surfaces_parent.matches("#[test]").count(),
+        sources
+            .native_abi_surfaces_parent
+            .matches("#[test]")
+            .count(),
         0,
         "typed_error_convergence/native_plugin_loader/abi_surfaces.rs should only mount child test owners"
     );

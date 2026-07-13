@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
+use crate::core::commands::DocumentKind;
 use crate::ui::asset_editor::{
     UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorMode, UiAssetPreviewPreset,
     UiDesignerToolMode,
@@ -23,16 +24,21 @@ use crate::ui::workbench::view::{
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::super::project_access::normalize_ui_asset_asset_id;
+use super::super::project_access::{
+    normalize_ui_asset_asset_id, open_project_manager_for_paths, resolve_project_asset_write_path,
+};
 use super::super::ui_asset_promotion::{
     resolve_external_style_target, resolve_external_widget_target,
 };
 
 pub(crate) const UI_ASSET_EDITOR_DESCRIPTOR_ID: &str = "editor.ui_asset";
 
-fn ui_asset_effect_source_path(project_root: &Path, asset_id: &str) -> PathBuf {
-    let relative = asset_id.strip_prefix("res://").unwrap_or(asset_id);
-    project_root.join("assets").join(relative)
+fn ui_asset_effect_source_path(
+    project_root: &Path,
+    asset_id: &str,
+) -> Result<PathBuf, EditorError> {
+    let project = open_project_manager_for_paths(project_root)?;
+    resolve_project_asset_write_path(&project, asset_id)
 }
 
 pub(crate) fn ui_asset_editor_view_descriptor() -> ViewDescriptor {
@@ -41,13 +47,14 @@ pub(crate) fn ui_asset_editor_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "UI Asset Editor",
     )
+    .with_document_kind(DocumentKind::ui_asset())
     .with_multi_instance(true)
     .with_preferred_host(PreferredHost::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::UiAssetEditor,
     ))
     .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "editor.window.ui_layout_editor",
+        "res://ui/editor/windows/ui_layout_editor_window.zui",
     ))
     .with_icon_key("ui-asset")
 }
@@ -61,7 +68,7 @@ impl EditorUiHost {
         match effect {
             UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source }
             | UiAssetEditorExternalEffect::RestoreAssetSource { asset_id, source } => {
-                let source_path = ui_asset_effect_source_path(project_root, asset_id);
+                let source_path = ui_asset_effect_source_path(project_root, asset_id)?;
                 if let Some(parent) = source_path.parent() {
                     fs::create_dir_all(parent)
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;
@@ -73,7 +80,7 @@ impl EditorUiHost {
                 Ok(normalized)
             }
             UiAssetEditorExternalEffect::RemoveAssetSource { asset_id } => {
-                let source_path = ui_asset_effect_source_path(project_root, asset_id);
+                let source_path = ui_asset_effect_source_path(project_root, asset_id)?;
                 if source_path.exists() {
                     fs::remove_file(&source_path)
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;

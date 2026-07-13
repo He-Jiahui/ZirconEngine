@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
 implementation_files:
-  - zircon_graphics/src/scene/scene_renderer/virtual_geometry/shaders/uploader.wgsl
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders/uploader.wgsl
 plan_sources:
   - user: 2026-04-18 下一步是更深的 unified-indirect / residency-manager cascade，把同一套 frontier truth 继续推进到真实 GPU uploader / page-table / split-merge frontier policy
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -11,7 +11,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-frontier-rank-uploader-and-page-table-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-replacement-runtime-host-and-stats-closure.md
 tests:
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
   - cargo test -p zircon_graphics --offline --locked virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_contract -- --nocapture
 doc_type: milestone-detail
 ---

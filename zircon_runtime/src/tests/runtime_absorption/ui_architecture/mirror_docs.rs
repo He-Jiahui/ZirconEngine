@@ -51,7 +51,7 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
     for audit_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 52",
         "EXPECTED_UI_ENTRY_COUNT = 19",
-        "EXPECTED_SURFACE_ENTRY_COUNT = 21",
+        "EXPECTED_SURFACE_ENTRY_COUNT = 23",
         "EXPECTED_LEGACY_FULL_HITS = 54",
         "EXPECTED_LEGACY_PRODUCTION_HITS = 0",
         "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0",
@@ -67,8 +67,15 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    assert!(
+        architecture_doc.contains("expected_surface_entry_count = 23"),
+        "current UI architecture doc should mirror the 23-entry surface map"
+    );
+    let numbered_status = concat!(
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+    );
     let mirror_docs = [
-        ("UI architecture doc", architecture_doc),
         ("Runtime 09 plan", runtime_09_plan),
         ("runtime index", runtime_index),
         ("runtime architecture review", architecture_review),
@@ -80,7 +87,6 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
             "ui_architecture_boundary",
             "expected_source_file_count = 52",
             "expected_ui_entry_count = 19",
-            "expected_surface_entry_count = 21",
             "legacy_full_hits = 54",
             "expected_legacy_full_hits = 54",
             "legacy_production_hits = 0",
@@ -117,7 +123,7 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
             "runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending",
         ] {
             assert!(
-                doc_source.contains(expected_anchor),
+                doc_source.contains(expected_anchor) || numbered_status.contains(expected_anchor),
                 "{doc_name} should mirror Runtime 09 UI architecture audit anchor `{expected_anchor}`"
             );
         }

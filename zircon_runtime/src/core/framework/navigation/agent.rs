@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::SceneResource;
 use crate::core::math::Real;
 
 use super::constants::{NavAreaMask, DEFAULT_AREA_MASK};
 use super::handle::NavMeshHandle;
+use super::query::NavPathStatus;
 use super::settings::NavigationAgentSettings;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +88,24 @@ impl Default for NavMeshAgentDescriptor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct NavigationAgentDebugState {
+    pub entity: u64,
+    pub position: [Real; 3],
+    pub destination: Option<[Real; 3]>,
+    pub desired_velocity: [Real; 3],
+    pub avoidance_velocity: [Real; 3],
+    pub path_status: Option<NavPathStatus>,
+    pub path: Vec<[Real; 3]>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NavigationDebugCapture {
+    pub enabled: bool,
+}
+
+impl SceneResource for NavigationDebugCapture {}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct NavAgentTickReport {
     pub scanned_agents: usize,
     pub moved_agents: usize,
@@ -94,4 +114,7 @@ pub struct NavAgentTickReport {
     pub queued_link_agents: usize,
     pub off_mesh_events: Vec<super::off_mesh_link::OffMeshTraverseEvent>,
     pub diagnostics: Vec<String>,
+    /// Optional typed debug payload populated only while `NavigationDebugCapture` is enabled.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub debug_agents: Vec<NavigationAgentDebugState>,
 }

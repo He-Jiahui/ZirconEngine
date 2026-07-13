@@ -1,8 +1,9 @@
 use zircon_runtime::asset::AssetImporterDescriptor;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, ExportTargetPlatform, PluginDistributionManifest,
-    PluginModuleManifest, PluginPackageManifest, RuntimePluginDescriptor,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
+    RuntimePluginDescriptor,
 };
 
 pub const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";

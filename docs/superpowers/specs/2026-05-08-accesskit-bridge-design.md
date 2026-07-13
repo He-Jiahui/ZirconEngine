@@ -10,8 +10,8 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
-  - zircon_runtime/src/ui/tree/node/tree_node.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_runtime/src/ui/tree/node/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/accessibility.rs
@@ -26,9 +26,7 @@ implementation_files:
   - zircon_runtime/src/ui/accessibility/accesskit.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
-  - zircon_app/src/entry/runtime_accessibility/mod.rs
-  - zircon_app/src/entry/runtime_accessibility/accesskit_host.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 plan_sources:
   - user: 2026-05-08 AccessKit Bridge missing gap list

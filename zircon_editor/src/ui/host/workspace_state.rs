@@ -18,6 +18,22 @@ use super::layout_hosts::{
     repair_builtin_shell_layout::repair_builtin_shell_layout,
 };
 
+fn active_main_page_view(session: &EditorSessionState) -> Option<ViewInstanceId> {
+    session
+        .layout
+        .main_pages
+        .iter()
+        .find(|page| page.id() == &session.layout.active_main_page)
+        .and_then(|page| match page {
+            MainHostPageLayout::WorkbenchPage {
+                document_workspace, ..
+            } => active_tab_from_document(document_workspace),
+            MainHostPageLayout::ExclusiveActivityWindowPage {
+                window_instance, ..
+            } => Some(window_instance.clone()),
+        })
+}
+
 impl EditorUiHost {
     pub(super) fn current_layout(&self) -> WorkbenchLayout {
         self.lock_session().layout.clone()
@@ -29,6 +45,10 @@ impl EditorUiHost {
             .values()
             .cloned()
             .collect()
+    }
+
+    pub(super) fn current_focused_view(&self) -> Option<ViewInstanceId> {
+        self.lock_session().focused_view.clone()
     }
 
     pub(super) fn update_view_instance_metadata(
@@ -127,7 +147,7 @@ impl EditorUiHost {
             .cloned()
             .collect::<Vec<_>>();
         repair_builtin_shell_layout(&mut session.layout, &open_instances, &subsystem_report);
-        session.active_center_tab = workspace.active_center_tab;
+        session.focused_view = workspace.focused_view;
         session.active_drawers = workspace.active_drawers;
         self.layout_manager
             .normalize(&mut session.layout, &registry);
@@ -159,7 +179,7 @@ impl EditorUiHost {
             layout_version: 1,
             workbench: session.layout.clone(),
             open_view_instances: session.open_view_instances.values().cloned().collect(),
-            active_center_tab: session.active_center_tab.clone(),
+            focused_view: session.focused_view.clone(),
             active_drawers: session.active_drawers.clone(),
         }
     }
@@ -221,19 +241,13 @@ impl EditorUiHost {
             .into_iter()
             .filter_map(|(slot, drawer)| drawer.visible.then_some(slot))
             .collect();
-        session.active_center_tab = session
-            .layout
-            .main_pages
-            .iter()
-            .find(|page| page.id() == &session.layout.active_main_page)
-            .and_then(|page| match page {
-                MainHostPageLayout::WorkbenchPage {
-                    document_workspace, ..
-                } => active_tab_from_document(document_workspace),
-                MainHostPageLayout::ExclusiveActivityWindowPage {
-                    window_instance, ..
-                } => Some(window_instance.clone()),
-            });
+        if session
+            .focused_view
+            .as_ref()
+            .is_none_or(|instance_id| !session.open_view_instances.contains_key(instance_id))
+        {
+            session.focused_view = active_main_page_view(session);
+        }
         self.lock_animation_editor_sessions()
             .retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
         self.lock_ui_asset_sessions()

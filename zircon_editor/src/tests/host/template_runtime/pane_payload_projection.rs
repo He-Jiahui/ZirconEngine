@@ -84,6 +84,7 @@ fn pane_body_spec(descriptor_id: &str) -> PaneBodySpec {
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),

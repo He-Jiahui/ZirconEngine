@@ -5,32 +5,22 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/compile.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/change.rs
+  - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
   - zircon_runtime/src/ui/template/asset/invalidation/diagnostic.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/impact.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/report.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/stage.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
 implementation_files:
   - zircon_runtime/src/ui/template/asset/resource_ref/mod.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/resource_ref.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/resource_kind.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/fallback_policy.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/dependency.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/diagnostic.rs
+  - zircon_runtime/src/ui/template/asset/resource_ref/resolve.rs
   - zircon_runtime/src/ui/template/asset/resource_ref/collect.rs
+  - zircon_runtime/src/ui/template/asset/resource_ref/resolution_report.rs
   - zircon_runtime/src/ui/template/asset/compiler/compile.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/change.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/impact.rs
-  - zircon_runtime/src/ui/template/asset/invalidation/stage.rs
+  - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
 plan_sources:

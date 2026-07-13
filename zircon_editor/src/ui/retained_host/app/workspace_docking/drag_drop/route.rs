@@ -17,7 +17,9 @@ impl RetainedEditorHost {
         let layout = self.runtime.current_layout();
         let chrome = self.build_chrome();
         record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
-        let model = WorkbenchViewModel::build(&chrome);
+        let context = self.runtime.project_command_eval_snapshot(&chrome);
+        let commands = self.runtime.commands().lock();
+        let model = WorkbenchViewModel::build_with_context(&commands, &chrome, &context);
         let pointer_route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
         if target_group.is_empty() && pointer_route.is_none() {
             Some(detached_window_drop_route(tab_id, source_group))

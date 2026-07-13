@@ -4,7 +4,10 @@ use super::*;
 fn scene_document_pane_uses_viewport_dimensions_and_enables_toolbar() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let ui_asset_panes = BTreeMap::new();
 
     let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new(), None);
@@ -31,7 +34,10 @@ fn scene_document_pane_projects_viewport_toolbar_state() {
     fixture.editor.scene_viewport_settings.scale_step = 0.25;
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let ui_asset_panes = BTreeMap::new();
     let pane = document_pane(&model, &chrome, &ui_asset_panes, &BTreeMap::new(), None);
 

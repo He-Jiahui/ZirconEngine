@@ -19,8 +19,10 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     let renderer_construct_new_with_icon_source = include_str!(
         "../../../../graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs"
     );
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
@@ -36,10 +38,15 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
         .expect("F19 review findings top row");
 
     assert!(
-        f19_row.contains(
+        f19_row.contains("scene renderer construction owner")
+            && f19_row.ends_with("| Runtime 15 + render |"),
+        "F19 overview row should keep only the finding and delegated owners"
+    );
+    assert!(
+        review_findings.contains(
             "f19_scene_renderer_construction_top_row_closed_status_static_passed_cargo_deferred"
-        ) && f19_row.ends_with("| convention + render index / review closed |"),
-        "F19 top row should record scene renderer construction naming review closed status"
+        ),
+        "F19 numbered output should record scene renderer construction naming review closed status"
     );
 
     let core_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

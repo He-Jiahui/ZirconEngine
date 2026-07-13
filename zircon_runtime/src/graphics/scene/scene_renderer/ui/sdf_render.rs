@@ -2,40 +2,38 @@ use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::GlyphAtlasStorageFormat;
 use crate::graphics::text::font::FontDatabase;
+use crate::graphics::text::sdf::SdfGlyphGenerationError;
 
-use super::atlas_texture_upload::{
-    create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
-    write_glyph_atlas_texture_upload_command,
-};
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::sdf_atlas::{
-    sdf_atlas_layer_count, SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan,
+    SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasGlyphKey, SdfAtlasPlan,
 };
 use super::sdf_char_run::sdf_scalar_is_invisible_format;
 use super::sdf_font_bake::{SdfAtlasBakeReport, SdfFontBakeCache};
-use super::sdf_upload::{sdf_atlas_upload_commands, sdf_atlas_upload_report, SdfAtlasUploadReport};
+use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadReport};
 
+mod atlas_resources;
+mod decorations;
+mod material;
 mod vertices;
 
-use self::vertices::{build_sdf_vertices, ScreenSpaceUiSdfVertex};
+use self::atlas_resources::DistanceFieldAtlasResources;
+use self::decorations::build_text_decoration_vertices;
+use self::material::{SdfTextMaterialDrawPlan, SdfTextMaterialResources};
+use self::vertices::{build_sdf_vertex_plan, ScreenSpaceUiSdfVertex};
 
-const SDF_TEXT_SHADER: &str = include_str!("shaders/sdf_text.wgsl");
-const SDF_ATLAS_TEXTURE_LABEL: &str = "zircon-screen-space-ui-sdf-atlas";
-const SDF_ATLAS_VIEW_LABEL: &str = "zircon-screen-space-ui-sdf-atlas-view";
+const SDF_TEXT_SHADER: &str = include_str!("shaders/zr_text_sdf.wgsl");
 
 pub(super) struct ScreenSpaceUiSdfRenderer {
     font_bake: SdfFontBakeCache,
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
-    atlas_texture: wgpu::Texture,
-    atlas_view: wgpu::TextureView,
-    bind_group: wgpu::BindGroup,
-    atlas_size: UVec2,
-    atlas_page_count: u32,
+    atlas: DistanceFieldAtlasResources,
+    material: SdfTextMaterialResources,
+    draw_plan: SdfTextMaterialDrawPlan,
     vertex_buffer: Option<wgpu::Buffer>,
     vertex_count: u32,
     last_report: ScreenSpaceUiSdfPrepareReport,
@@ -47,6 +45,7 @@ pub(super) struct ScreenSpaceUiSdfPrepareReport {
     pub(super) atlas_slot_count: usize,
     pub(super) atlas_size: UVec2,
     pub(super) atlas_page_count: u32,
+    pub(super) msdf_atlas_page_count: u32,
     pub(super) atlas_allocation_failure_count: usize,
     pub(super) atlas_page_limit_failure_count: usize,
     pub(super) atlas_oversized_failure_count: usize,
@@ -56,10 +55,17 @@ pub(super) struct ScreenSpaceUiSdfPrepareReport {
     pub(super) atlas_upload_full_texture: bool,
     pub(super) atlas_upload: SdfAtlasUploadReport,
     pub(super) vertex_count: u32,
+    pub(super) decoration_vertex_count: u32,
+    pub(super) material_count: usize,
+    pub(super) draw_count: usize,
+    pub(super) outline_batch_count: usize,
+    pub(super) shadow_batch_count: usize,
+    pub(super) glow_batch_count: usize,
 }
 
 impl ScreenSpaceUiSdfRenderer {
     pub(super) fn new(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
+        let material = SdfTextMaterialResources::new(device);
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("zircon-screen-space-ui-sdf-bind-group-layout"),
             entries: &[
@@ -79,8 +85,23 @@ impl ScreenSpaceUiSdfRenderer {
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
             ],
         });
+        let reserved_view_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-screen-space-ui-sdf-reserved-view-layout"),
+                entries: &[],
+            });
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-screen-space-ui-sdf-sampler"),
             mag_filter: wgpu::FilterMode::Linear,
@@ -90,7 +111,11 @@ impl ScreenSpaceUiSdfRenderer {
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-screen-space-ui-sdf-pipeline-layout"),
-            bind_group_layouts: &[Some(&bind_group_layout)],
+            bind_group_layouts: &[
+                Some(&bind_group_layout),
+                Some(&reserved_view_layout),
+                Some(&material.bind_group_layout),
+            ],
             immediate_size: 0,
         });
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -130,14 +155,13 @@ impl ScreenSpaceUiSdfRenderer {
             multiview_mask: None,
             cache: None,
         });
-        let atlas_size = UVec2::new(1, 1);
-        let atlas_page_count = 1;
-        let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
+        let atlas = DistanceFieldAtlasResources::new(
             device,
             &bind_group_layout,
             &sampler,
-            atlas_size,
-            atlas_page_count,
+            UVec2::new(1, 1),
+            1,
+            1,
         );
 
         Self {
@@ -145,11 +169,9 @@ impl ScreenSpaceUiSdfRenderer {
             pipeline,
             bind_group_layout,
             sampler,
-            atlas_texture,
-            atlas_view,
-            bind_group,
-            atlas_size,
-            atlas_page_count,
+            atlas,
+            material,
+            draw_plan: SdfTextMaterialDrawPlan::default(),
             vertex_buffer: None,
             vertex_count: 0,
             last_report: ScreenSpaceUiSdfPrepareReport::default(),
@@ -162,27 +184,28 @@ impl ScreenSpaceUiSdfRenderer {
         queue: &wgpu::Queue,
         viewport_size: UVec2,
         texts: &[ScreenSpaceUiTextBatch],
+        native_decoration_texts: &[ScreenSpaceUiTextBatch],
         atlas_plan: &SdfAtlasPlan,
         atlas_cache: SdfAtlasCacheReport,
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) {
-        let atlas_page_count = sdf_atlas_layer_count(atlas_plan);
-        let atlas_resized =
-            atlas_plan.atlas_size != self.atlas_size || atlas_page_count != self.atlas_page_count;
+        let (atlas_page_count, msdf_atlas_page_count) =
+            DistanceFieldAtlasResources::page_counts(atlas_plan);
+        let atlas_resized = !self.atlas.matches(
+            atlas_plan.atlas_size,
+            atlas_page_count,
+            msdf_atlas_page_count,
+        );
         if atlas_resized {
-            let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
+            self.atlas = DistanceFieldAtlasResources::new(
                 device,
                 &self.bind_group_layout,
                 &self.sampler,
                 atlas_plan.atlas_size,
                 atlas_page_count,
+                msdf_atlas_page_count,
             );
-            self.atlas_texture = atlas_texture;
-            self.atlas_view = atlas_view;
-            self.bind_group = bind_group;
-            self.atlas_size = atlas_plan.atlas_size;
-            self.atlas_page_count = atlas_page_count;
         }
 
         let atlas_bake = self
@@ -195,15 +218,25 @@ impl ScreenSpaceUiSdfRenderer {
             atlas_bake.pixels.len(),
             atlas_resized,
         );
-        write_sdf_atlas_texture(
-            queue,
-            &self.atlas_texture,
-            atlas_plan,
-            &atlas_bake.pixels,
-            &atlas_upload,
-        );
+        self.atlas
+            .write(queue, atlas_plan, &atlas_bake.pixels, &atlas_upload);
 
-        let vertices = build_sdf_vertices(
+        let mut vertices = build_text_decoration_vertices(
+            native_decoration_texts,
+            &mut self.font_bake,
+            font_database,
+            asset_manager,
+            viewport_size,
+        );
+        vertices.extend(build_text_decoration_vertices(
+            texts,
+            &mut self.font_bake,
+            font_database,
+            asset_manager,
+            viewport_size,
+        ));
+        let decoration_vertex_count = vertices.len() as u32;
+        let glyph_plan = build_sdf_vertex_plan(
             texts,
             atlas_plan,
             &atlas_bake,
@@ -212,6 +245,15 @@ impl ScreenSpaceUiSdfRenderer {
             asset_manager,
             viewport_size,
         );
+        self.draw_plan = SdfTextMaterialDrawPlan::from_ranges(
+            texts,
+            atlas_plan.atlas_size,
+            decoration_vertex_count,
+            &glyph_plan.text_ranges,
+        );
+        self.material
+            .prepare(device, queue, &self.draw_plan.materials);
+        vertices.extend(glyph_plan.vertices);
         self.vertex_count = vertices.len() as u32;
         self.vertex_buffer = (!vertices.is_empty()).then(|| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -225,10 +267,23 @@ impl ScreenSpaceUiSdfRenderer {
             atlas_plan,
             atlas_resized,
             atlas_page_count,
+            msdf_atlas_page_count,
             atlas_bake.report,
             atlas_upload,
             self.vertex_count,
+            decoration_vertex_count,
+            &self.draw_plan,
         );
+    }
+
+    pub(super) fn generation_failures_for_plan(
+        &mut self,
+        atlas_plan: &SdfAtlasPlan,
+        font_database: &mut FontDatabase,
+        asset_manager: &ProjectAssetManager,
+    ) -> std::collections::HashMap<SdfAtlasGlyphKey, SdfGlyphGenerationError> {
+        self.font_bake
+            .generation_failures_for_plan(atlas_plan, font_database, asset_manager)
     }
 
     pub(super) fn prepare_report(&self) -> ScreenSpaceUiSdfPrepareReport {
@@ -284,9 +339,13 @@ impl ScreenSpaceUiSdfRenderer {
         }
 
         pass.set_pipeline(&self.pipeline);
-        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_bind_group(0, &self.atlas.bind_group, &[]);
         pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        pass.draw(0..self.vertex_count, 0..1);
+        for draw in &self.draw_plan.draws {
+            let dynamic_offset = self.material.dynamic_offset(draw.material_index);
+            pass.set_bind_group(2, &self.material.bind_group, &[dynamic_offset]);
+            pass.draw(draw.vertices.clone(), 0..1);
+        }
     }
 }
 
@@ -295,15 +354,19 @@ fn sdf_prepare_report(
     atlas_plan: &SdfAtlasPlan,
     atlas_resized: bool,
     atlas_page_count: u32,
+    msdf_atlas_page_count: u32,
     bake: SdfAtlasBakeReport,
     atlas_upload: SdfAtlasUploadReport,
     vertex_count: u32,
+    decoration_vertex_count: u32,
+    draw_plan: &SdfTextMaterialDrawPlan,
 ) -> ScreenSpaceUiSdfPrepareReport {
     ScreenSpaceUiSdfPrepareReport {
         text_batch_count,
         atlas_slot_count: atlas_plan.slots.len(),
         atlas_size: atlas_plan.atlas_size,
         atlas_page_count,
+        msdf_atlas_page_count,
         atlas_allocation_failure_count: atlas_plan.allocation_failures.len(),
         atlas_page_limit_failure_count: atlas_plan
             .allocation_failures
@@ -321,54 +384,25 @@ fn sdf_prepare_report(
         atlas_upload_full_texture: atlas_upload.full_texture,
         atlas_upload,
         vertex_count,
+        decoration_vertex_count,
+        material_count: draw_plan.materials.len(),
+        draw_count: draw_plan.draws.len(),
+        outline_batch_count: draw_plan
+            .materials
+            .iter()
+            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_OUTLINE != 0)
+            .count(),
+        shadow_batch_count: draw_plan
+            .materials
+            .iter()
+            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_SHADOW != 0)
+            .count(),
+        glow_batch_count: draw_plan
+            .materials
+            .iter()
+            .filter(|material| material.effect_flags & material::SDF_TEXT_EFFECT_GLOW != 0)
+            .count(),
     }
-}
-
-fn write_sdf_atlas_texture(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    atlas_plan: &SdfAtlasPlan,
-    pixels: &[u8],
-    upload: &SdfAtlasUploadReport,
-) {
-    if pixels.is_empty() {
-        return;
-    }
-    for command in sdf_atlas_upload_commands(atlas_plan, upload.clone(), pixels.len()) {
-        write_glyph_atlas_texture_upload_command(queue, texture, pixels, command);
-    }
-}
-
-fn create_atlas_resources(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-    sampler: &wgpu::Sampler,
-    atlas_size: UVec2,
-    atlas_page_count: u32,
-) -> (wgpu::Texture, wgpu::TextureView, wgpu::BindGroup) {
-    let spec = glyph_atlas_texture_array_spec(
-        SDF_ATLAS_TEXTURE_LABEL,
-        SDF_ATLAS_VIEW_LABEL,
-        GlyphAtlasStorageFormat::R8Unorm,
-        atlas_size,
-        atlas_page_count,
-    );
-    let resources = create_glyph_atlas_texture_array_resources(device, spec);
-    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("zircon-screen-space-ui-sdf-bind-group"),
-        layout: bind_group_layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&resources.view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::Sampler(sampler),
-            },
-        ],
-    });
-    (resources.texture, resources.view, bind_group)
 }
 
 #[cfg(test)]

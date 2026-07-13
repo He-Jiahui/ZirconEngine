@@ -8,7 +8,8 @@ fn runtime_15_render_graph_materialization_tests_are_child_owner_split() {
         read_runtime_src("graphics/scene/scene_renderer/graph_execution/materialization/tests.rs");
 
     let plan_01 = read_repo("docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let transient_materialization_docs = read_repo(

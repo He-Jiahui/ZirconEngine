@@ -184,7 +184,7 @@ fn assert_repr_c_before_struct(source: &str, source_path: &str, name: &str) {
     let previous_struct_index = prefix.rfind("pub struct ");
 
     assert!(
-        previous_struct_index.map_or(true, |index| index < repr_index),
+        previous_struct_index.is_none_or(|index| index < repr_index),
         "{source_path}::{name} must have a #[repr(C)] attribute in its own attribute block"
     );
 }

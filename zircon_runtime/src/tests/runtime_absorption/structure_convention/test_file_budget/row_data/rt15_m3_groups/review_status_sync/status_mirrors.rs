@@ -1,9 +1,7 @@
 use super::super::*;
 
-const STATUS_ROW_DATA_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/status_row_data_support_maps.rs";
-const STATUS_ROW_DATA_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/status_row_data_support_maps.rs";
+const STATUS_ROW_DATA_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/status_row_data_support_maps.rs";
+const STATUS_ROW_DATA_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/status_row_data_support_maps.rs";
 
 pub(super) fn assert_review_status_sync_status_mirrors_are_current() {
     let status_map = read_runtime_src(STATUS_ROW_DATA_STATUS_MAP_PATH);
@@ -44,10 +42,6 @@ pub(super) fn assert_review_status_sync_status_mirrors_are_current() {
         (
             "module convention doc",
             read_repo("docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "session note",
-            read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
         ),
     ] {
         assert_contains_all(

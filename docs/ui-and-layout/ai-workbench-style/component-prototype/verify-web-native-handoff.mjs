@@ -698,9 +698,9 @@ check(matrix.startsWith("---\nrelated_code:"), "matrix uses required docs header
 check(matrix.includes("doc_type: workflow-detail"), "matrix is classified as a workflow detail");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/modules.js"), "matrix header mentions modules.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/component-lab/module.js"), "matrix header mentions Component Lab module");
-check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-modules.js"), "matrix header mentions extension-modules.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-modules.js"), "matrix header mentions extension-modules.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-surfaces.js"), "matrix header mentions extension-surfaces.js");
-check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/extension-handoff.js"), "matrix header mentions extension-handoff.js");
+check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/src/modules/extensions/extension-handoff.js"), "matrix header mentions extension-handoff.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/action-paths.js"), "matrix header mentions action-paths.js");
 check(matrix.includes("docs/ui-and-layout/ai-workbench-style/component-prototype/verify-action-naming-contract.mjs"), "matrix header mentions action naming contract verifier");
 check(actionPathsSource.includes("export function actionPath") && actionPathsSource.includes("export function actionRouteKey"), "action path helper exports naming and route-key helpers");

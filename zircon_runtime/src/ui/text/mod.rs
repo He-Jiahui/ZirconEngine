@@ -29,5 +29,6 @@ pub(crate) use measure_cache::{UiTextMeasureCache, UiTextShapePrewarmRequest};
 pub(crate) use resolved_layout::{
     resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest, UiTextLayoutResolution,
 };
+pub(crate) use rich_text::link_at_layout_point;
 pub use shaper::layout_text;
 pub(crate) use shaper::{measure_text_size, measure_text_source_range_width};

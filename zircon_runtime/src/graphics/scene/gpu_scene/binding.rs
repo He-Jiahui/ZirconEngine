@@ -81,11 +81,11 @@ pub(crate) fn create_gpu_scene_bind_group(
             storage_binding(GPU_SCENE_PRIMITIVE_DATA_BINDING, primitive_buffer),
             storage_binding(GPU_SCENE_INSTANCE_DATA_BINDING, instance_buffer),
             storage_binding(GPU_SCENE_LIGHT_DATA_BINDING, light_buffer),
-            uniform_binding(
+            storage_binding(
                 GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING,
                 skinned_joint_palette_buffer,
             ),
-            uniform_binding(
+            storage_binding(
                 GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING,
                 previous_skinned_joint_palette_buffer,
             ),
@@ -158,7 +158,7 @@ fn skinned_joint_palette_layout_entry(
         binding,
         visibility: wgpu::ShaderStages::VERTEX,
         ty: wgpu::BindingType::Buffer {
-            ty: wgpu::BufferBindingType::Uniform,
+            ty: wgpu::BufferBindingType::Storage { read_only: true },
             has_dynamic_offset: false,
             min_binding_size: Some(min_binding_size),
         },
@@ -290,11 +290,11 @@ mod tests {
             assert_eq!(entry.visibility, wgpu::ShaderStages::VERTEX);
             match &entry.ty {
                 wgpu::BindingType::Buffer {
-                    ty,
+                    ty: wgpu::BufferBindingType::Storage { read_only },
                     has_dynamic_offset,
                     min_binding_size,
                 } => {
-                    assert!(matches!(ty, wgpu::BufferBindingType::Uniform));
+                    assert!(*read_only);
                     assert!(!*has_dynamic_offset);
                     assert_eq!(
                         min_binding_size
@@ -304,7 +304,7 @@ mod tests {
                         test_joint_palette_min_binding_size().get()
                     );
                 }
-                other => panic!("expected skinned palette uniform binding, got {other:?}"),
+                other => panic!("expected skinned palette storage binding, got {other:?}"),
             }
         }
 

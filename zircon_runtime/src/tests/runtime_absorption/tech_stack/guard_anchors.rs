@@ -10,12 +10,12 @@ pub(super) fn assert_runtime_01_guard_anchors() {
         "interface_and_editor_dependency_boundaries_stay_documented_and_guarded",
         "removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack",
         "export_archive_policy_allows_zip_only_for_archive_materializer",
-        "physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned",
+        "physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned",
         "editor_only_dependency_candidates_have_editor_backlog_owner",
         "fontdue_editor_retained_host_dependency_has_migration_owner",
         "complex_text_backends_can_only_enter_through_ui_text_shaper",
         "runtime_text_doc_records_three_layer_stack_and_cross_reference",
-        "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+        "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
         "runtime_01_tech_stack_mirror_docs_match_structure_audit_counts",
     ] {
         assert!(

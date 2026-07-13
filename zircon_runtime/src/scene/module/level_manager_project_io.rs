@@ -56,7 +56,7 @@ impl DefaultLevelManager {
             std::io::Error::new(std::io::ErrorKind::NotFound, "world handle not found")
         })?;
         let scene = SceneAssetSerializer::serialize_world(project, &level.snapshot())?;
-        let path = project.source_path_for_uri(uri)?;
+        let path = project.existing_or_primary_project_source_path_for_uri(uri)?;
         if let Some(parent) = path.parent() {
             if !parent.as_os_str().is_empty() {
                 fs::create_dir_all(parent)?;
@@ -64,9 +64,8 @@ impl DefaultLevelManager {
         }
         fs::write(
             path,
-            scene.to_toml_string().map_err(|error| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
-            })?,
+            scene
+                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))?,
         )?;
         Ok(())
     }

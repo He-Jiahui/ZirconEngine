@@ -1,4 +1,5 @@
 mod asset_workspace;
+mod context_transactions;
 mod editor_projection;
 mod history;
 mod import;
@@ -7,6 +8,7 @@ mod node_ops;
 mod reflected_command;
 mod state;
 mod support;
+mod transaction_engine;
 mod ui_asset;
 mod ui_asset_palette_drop;
 mod ui_asset_preview_binding_authoring;

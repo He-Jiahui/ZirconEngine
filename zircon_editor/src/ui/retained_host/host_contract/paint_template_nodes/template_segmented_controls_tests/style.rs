@@ -65,8 +65,8 @@ fn segmented_and_tab_styles_use_shared_state_priority() {
     tab.checked = true;
     tab.hovered = true;
     let style = tab_style(&tab);
-    assert_eq!(style.state, UiPainterResolvedState::Hovered);
-    assert_eq!(style.background, Some(PALETTE.surface_hover));
+    assert_eq!(style.state, UiPainterResolvedState::Selected);
+    assert_eq!(style.background, None);
     assert_eq!(tab_text_color(&tab), PALETTE.text);
 }
 

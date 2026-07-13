@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
     metrics: HostControlMetrics,
 ) -> WorkbenchSectionTitleGlyphMetrics {
     WorkbenchSectionTitleGlyphMetrics {
-        icon_size: metrics.font_large,
+        icon_size: metrics.font_body,
         icon_gap: metrics.gap_m,
     }
 }

@@ -4,27 +4,43 @@ use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     normalize_ui_text_language_tag, UiPaintPayload, UiRenderCommand, UiRenderCommandKind,
-    UiRenderExtract, UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextPaintDecorationKind,
-    UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
+    UiRenderExtract, UiResolvedStyle, UiTextAlign, UiTextDecorations, UiTextDirection,
+    UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+    UiTextWritingMode,
 };
 
 use crate::core::framework::render::SkyboxMode;
+use crate::graphics::scene::resources::{ui_image_resource_id, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::text::sdf::SdfMode;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
+use super::image::ScreenSpaceUiImageBatch;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 
 mod background;
 mod color;
 mod geometry;
+mod rich_text;
 mod text_advances;
+pub(in crate::graphics::scene::scene_renderer::ui) mod text_decorations;
+mod text_distance_field;
+pub(in crate::graphics::scene::scene_renderer::ui) mod text_effects;
+mod text_paint;
+pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
 
 use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
 use color::parse_color;
 pub(super) use geometry::ScreenSpaceUiVertex;
-use geometry::{frame_to_scissor, push_rect, ScreenSpaceUiScissor};
+pub(super) use geometry::{frame_to_scissor, ScreenSpaceUiScissor};
+use geometry::{push_border, push_rect};
 pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
+use text_decorations::{
+    resolve_text_decorations, resolved_text_decoration_baseline, ScreenSpaceUiTextDecorations,
+};
+use text_distance_field::resolved_text_distance_field_mode;
+use text_effects::{resolve_text_effects, ScreenSpaceUiTextEffects};
 
 struct PreparedScreenSpaceUi {
     vertex_buffer: Option<wgpu::Buffer>,
@@ -33,6 +49,7 @@ struct PreparedScreenSpaceUi {
     auto_texts: Vec<ScreenSpaceUiTextBatch>,
     native_texts: Vec<ScreenSpaceUiTextBatch>,
     sdf_texts: Vec<ScreenSpaceUiTextBatch>,
+    images: Vec<ScreenSpaceUiImageBatch>,
 }
 
 struct ScreenSpaceUiDraw {
@@ -61,6 +78,11 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) writing_mode: UiTextWritingMode,
     pub(super) wrap: UiTextWrap,
     pub(super) style: UiTextRunPaintStyle,
+    pub(super) distance_field_mode: SdfMode,
+    pub(super) text_effects: ScreenSpaceUiTextEffects,
+    pub(super) text_decorations: ScreenSpaceUiTextDecorations,
+    pub(super) text_decoration_baseline: Option<f32>,
+    pub(super) clip_transform: Option<text_projection::ScreenSpaceUiTextClipTransform>,
 }
 
 impl ScreenSpaceUiRenderer {
@@ -72,6 +94,7 @@ impl ScreenSpaceUiRenderer {
         color_view: &wgpu::TextureView,
         frame: &ViewportRenderFrame,
         attachment_ops: RenderGraphAttachmentOps,
+        streamer: Option<&ResourceStreamer>,
     ) {
         let pass_clear_color = wgpu::Color::TRANSPARENT;
         let Some(prepared) =
@@ -90,6 +113,9 @@ impl ScreenSpaceUiRenderer {
             &prepared.sdf_texts,
         );
         self.last_text_prepare_report = self.text_system.prepare_report();
+        let prepared_images =
+            self.image_system
+                .prepare(device, frame.viewport_size, &prepared.images, streamer);
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("zircon-screen-space-ui-pass"),
@@ -118,6 +144,7 @@ impl ScreenSpaceUiRenderer {
             );
             pass.draw(draw.vertices.clone(), 0..1);
         }
+        self.image_system.render(&mut pass, &prepared_images);
         pass.set_scissor_rect(
             0,
             0,
@@ -173,6 +200,7 @@ fn prepare_screen_space_ui(
         && plan.auto_texts.is_empty()
         && plan.native_texts.is_empty()
         && plan.sdf_texts.is_empty()
+        && plan.images.is_empty()
     {
         return None;
     }
@@ -192,6 +220,7 @@ fn prepare_screen_space_ui(
         auto_texts: plan.auto_texts,
         native_texts: plan.native_texts,
         sdf_texts: plan.sdf_texts,
+        images: plan.images,
     })
 }
 
@@ -202,6 +231,7 @@ struct PlannedScreenSpaceUi {
     auto_texts: Vec<ScreenSpaceUiTextBatch>,
     native_texts: Vec<ScreenSpaceUiTextBatch>,
     sdf_texts: Vec<ScreenSpaceUiTextBatch>,
+    images: Vec<ScreenSpaceUiImageBatch>,
 }
 
 fn plan_screen_space_ui_batches(
@@ -236,6 +266,7 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
         auto_texts: Vec::new(),
         native_texts: Vec::new(),
         sdf_texts: Vec::new(),
+        images: Vec::new(),
     };
     let mut backgrounds = ScreenSpaceUiBackgroundTracker::with_framebuffer_background(
         viewport,
@@ -386,7 +417,18 @@ fn plan_command_batches(
         }
     }
 
-    if command.image.is_some() || matches!(command.kind, UiRenderCommandKind::Image) {
+    if let Some(zircon_runtime_interface::ui::surface::UiVisualAssetRef::Image(source)) =
+        command.image.as_ref()
+    {
+        if let Some(texture) = ui_image_resource_id(source) {
+            plan.images.push(ScreenSpaceUiImageBatch {
+                texture,
+                frame: command.frame,
+                clip_frame: command.clip_frame,
+                tint: [1.0, 1.0, 1.0, command.opacity.clamp(0.0, 1.0)],
+            });
+        }
+    } else if command.image.is_some() || matches!(command.kind, UiRenderCommandKind::Image) {
         let extent = (frame.width.min(frame.height) * 0.68).max(8.0);
         let icon = UiFrame::new(
             frame.x + (frame.width - extent) * 0.5,
@@ -426,8 +468,11 @@ fn push_text_decoration_vertices(
             continue;
         };
         for decoration in text.decorations {
-            let decoration_before_text =
-                matches!(decoration.kind, UiTextPaintDecorationKind::Selection);
+            let decoration_before_text = matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::Selection
+                    | UiTextPaintDecorationKind::TableCellBackground
+            );
             if decoration_before_text != before_text {
                 continue;
             }
@@ -440,7 +485,11 @@ fn push_text_decoration_vertices(
                 command.opacity,
             )
             .unwrap_or_else(|| text_decoration_fallback_color(decoration.kind));
-            push_rect(vertices, frame, color, viewport);
+            if matches!(decoration.kind, UiTextPaintDecorationKind::TableCellBorder) {
+                push_border(vertices, frame, decoration.thickness, color, viewport);
+            } else {
+                push_rect(vertices, frame, color, viewport);
+            }
         }
     }
 }
@@ -451,6 +500,8 @@ fn text_decoration_fallback_color(kind: UiTextPaintDecorationKind) -> [f32; 4] {
         UiTextPaintDecorationKind::CompositionUnderline => [0.30, 0.54, 1.0, 1.0],
         UiTextPaintDecorationKind::Caret => [0.91, 0.93, 0.97, 1.0],
         UiTextPaintDecorationKind::Outline => [0.91, 0.93, 0.97, 1.0],
+        UiTextPaintDecorationKind::TableCellBackground => [0.0, 0.0, 0.0, 0.0],
+        UiTextPaintDecorationKind::TableCellBorder => [0.91, 0.93, 0.97, 1.0],
     }
 }
 
@@ -467,7 +518,10 @@ fn push_text_batches(
         .as_ref()
         .filter(|layout| !layout.lines.is_empty())
     {
-        if !command.style.rich_text {
+        if matches!(
+            command.style.rich_text_format,
+            zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
+        ) {
             push_resolved_text_layout_line_batches(
                 command,
                 layout,
@@ -480,32 +534,44 @@ fn push_text_batches(
         }
     }
 
-    if let Some(text_paint) = command_text_paint(command) {
+    if let Some(text_paint) = text_paint::command_text_paint(command) {
         if !text_paint.runs.is_empty() {
+            let parsed_rich = rich_text::parse_command_rich_text(command);
             for run in text_paint.runs {
-                let font = run.font.or_else(|| command.style.font.clone());
-                let font_family = run
-                    .font_family
-                    .or_else(|| command.style.font_family.clone());
-                let run_color =
-                    parse_color(run.color.as_deref(), color, command.opacity).unwrap_or(color);
+                let rich_run = parsed_rich
+                    .as_ref()
+                    .and_then(|parsed| rich_text::run_for_range(parsed, run.source_range));
+                if rich_text::plan_inline_run(
+                    command,
+                    &run,
+                    rich_run,
+                    viewport,
+                    color,
+                    backgrounds,
+                    plan,
+                ) {
+                    continue;
+                }
+                let presentation =
+                    rich_text::prepare_text_run(command, &run, rich_run, viewport, color, plan);
                 push_text_batch(
                     command,
                     run.text,
                     run.frame,
                     Some(run.source_range),
                     Vec::new(),
-                    font,
-                    font_family,
-                    run.font_weight,
-                    run.font_size,
-                    run.line_height,
-                    run_color,
+                    presentation.font,
+                    presentation.font_family,
+                    presentation.font_weight,
+                    presentation.font_size,
+                    presentation.line_height,
+                    presentation.color,
                     UiTextAlign::Left,
                     command.style.text_direction,
                     text_paint.writing_mode,
                     UiTextWrap::None,
                     run.style,
+                    presentation.text_decorations,
                     viewport,
                     backgrounds,
                     plan,
@@ -538,6 +604,7 @@ fn push_text_batches(
                 layout.writing_mode,
                 command.style.wrap,
                 UiTextRunPaintStyle::default(),
+                command.style.text_decorations.clone(),
                 viewport,
                 backgrounds,
                 plan,
@@ -565,6 +632,7 @@ fn push_text_batches(
             command.style.text_writing_mode,
             command.style.wrap,
             UiTextRunPaintStyle::default(),
+            command.style.text_decorations.clone(),
             viewport,
             backgrounds,
             plan,
@@ -598,23 +666,12 @@ fn push_resolved_text_layout_line_batches(
             layout.writing_mode,
             UiTextWrap::None,
             UiTextRunPaintStyle::default(),
+            command.style.text_decorations.clone(),
             viewport,
             backgrounds,
             plan,
         );
     }
-}
-
-fn command_text_paint(
-    command: &UiRenderCommand,
-) -> Option<zircon_runtime_interface::ui::surface::UiTextPaint> {
-    command
-        .to_paint_elements(0)
-        .into_iter()
-        .find_map(|element| match element.payload {
-            UiPaintPayload::Text { text } => Some(text),
-            _ => None,
-        })
 }
 
 fn push_text_batch(
@@ -634,6 +691,7 @@ fn push_text_batch(
     writing_mode: UiTextWritingMode,
     wrap: UiTextWrap,
     style: UiTextRunPaintStyle,
+    text_decorations: UiTextDecorations,
     viewport: UiFrame,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
@@ -647,45 +705,32 @@ fn push_text_batch(
         start: 0,
         end: text.len(),
     });
-    let mut shaped_glyphs = Vec::new();
-    let glyph_advances = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
-        let shaping_style = UiResolvedStyle {
-            font: font.clone(),
-            font_family: font_family.clone(),
-            language: language.clone(),
+    let resolved_glyphs = text_advances::resolve_screen_space_text_glyphs(
+        text_advances::ScreenSpaceTextShapingRequest {
+            text: text.as_str(),
+            font: font.as_deref(),
+            font_family: font_family.as_deref(),
+            language: language.as_deref(),
             font_weight,
             font_size,
             line_height,
-            text_direction,
-            text_writing_mode: writing_mode,
-            ..UiResolvedStyle::default()
-        };
-        shaped_glyphs = text_advances::resolved_vertical_text_glyphs(
-            text.as_str(),
-            &shaping_style,
-            text_direction,
-            resolved_source_range,
-        );
-        let resolved_advances = if glyph_advances.is_empty() {
-            text_advances::vertical_advances_by_source_grapheme(
-                text.as_str(),
-                resolved_source_range,
-                &shaped_glyphs,
-            )
-        } else {
-            glyph_advances
-        };
-        text_advances::apply_resolved_vertical_advances(
-            text.as_str(),
-            resolved_source_range,
-            resolved_advances.as_slice(),
-            &mut shaped_glyphs,
-        );
-        resolved_advances
-    } else {
-        glyph_advances
-    };
+            direction: text_direction,
+            writing_mode,
+            source_range: resolved_source_range,
+        },
+        glyph_advances,
+    );
+    let text_advances::ResolvedScreenSpaceTextGlyphs {
+        glyph_advances,
+        shaped_glyphs,
+    } = resolved_glyphs;
 
+    let text_effects = command.style.text_effects.normalized();
+    let distance_field_mode =
+        resolved_text_distance_field_mode(command.style.text_render_mode, font_size, &text_effects);
+    let text_decoration_baseline =
+        resolved_text_decoration_baseline(command, source_range, writing_mode);
+    let text_decorations = resolve_text_decorations(&text_decorations, color, command.opacity);
     let batch = ScreenSpaceUiTextBatch {
         text,
         frame,
@@ -706,58 +751,24 @@ fn push_text_batch(
         writing_mode,
         wrap,
         style,
+        distance_field_mode,
+        text_effects: resolve_text_effects(&text_effects, command.opacity),
+        text_decorations,
+        text_decoration_baseline,
+        clip_transform: None,
     };
-    match command.style.text_render_mode {
-        UiTextRenderMode::Auto => plan.auto_texts.push(batch),
-        UiTextRenderMode::Native => plan.native_texts.push(batch),
-        UiTextRenderMode::Sdf => plan.sdf_texts.push(batch),
+    match (
+        command.style.text_render_mode,
+        text_effects.requires_distance_field(),
+    ) {
+        (UiTextRenderMode::Auto | UiTextRenderMode::Native, true) => plan.sdf_texts.push(batch),
+        (UiTextRenderMode::Auto, false) => plan.auto_texts.push(batch),
+        (UiTextRenderMode::Native, false) => plan.native_texts.push(batch),
+        (UiTextRenderMode::Sdf | UiTextRenderMode::Msdf | UiTextRenderMode::Mtsdf, _) => {
+            plan.sdf_texts.push(batch)
+        }
     }
 }
 
-fn push_border(
-    vertices: &mut Vec<ScreenSpaceUiVertex>,
-    frame: UiFrame,
-    border_width: f32,
-    color: [f32; 4],
-    viewport: UiFrame,
-) {
-    let width = border_width
-        .min(frame.width * 0.5)
-        .min(frame.height * 0.5)
-        .max(1.0);
-
-    push_rect(
-        vertices,
-        UiFrame::new(frame.x, frame.y, frame.width, width),
-        color,
-        viewport,
-    );
-    push_rect(
-        vertices,
-        UiFrame::new(frame.x, frame.bottom() - width, frame.width, width),
-        color,
-        viewport,
-    );
-    if frame.height > width * 2.0 {
-        push_rect(
-            vertices,
-            UiFrame::new(frame.x, frame.y + width, width, frame.height - width * 2.0),
-            color,
-            viewport,
-        );
-        push_rect(
-            vertices,
-            UiFrame::new(
-                frame.right() - width,
-                frame.y + width,
-                width,
-                frame.height - width * 2.0,
-            ),
-            color,
-            viewport,
-        );
-    }
-}
-
-#[cfg(test)]
+#[cfg(all(test, feature = "ui"))]
 mod tests;

@@ -20,7 +20,7 @@
   - `zircon_runtime_interface/src/ui/surface/render/brush.rs`: brush colors, tints, gradient stops, and material fallback colors are `String` / `Option<String>`.
   - `zircon_runtime_interface/src/ui/surface/render/text_shape.rs`: text paint colors and decoration colors are strings.
   - `zircon_runtime_interface/src/ui/text.rs`: `UiTextCursorStyle.color` is `Option<String>`.
-  - `zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs`: local `parse_style_color(...)` converts `#rgb/#rgba/#rrggbb/#rrggbbaa` to `[u8; 4]`.
+  - `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs`: local `parse_style_color(...)` converts `#rgb/#rgba/#rrggbb/#rrggbbaa` to `[u8; 4]`.
   - `zircon_runtime/src/asset/assets/material.rs`: `MaterialAsset.base_color` is `[f32; 4]`, `emissive` is `[f32; 3]`.
   - `zircon_runtime/src/asset/assets/texture.rs`: `TextureAsset.rgba` has no texture color-space metadata.
   - `zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs`: runtime material colors are `Vec4` / `Vec3`.
@@ -96,7 +96,7 @@
 
 ### Editor Painter And Inspector Cutover
 
-- Modify: `zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs`
+- Modify: `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs`
   - Delete local `parse_style_color`, `parse_hex_pair`, and `parse_nibble`; replace painter conversion with shared `Color::to_srgba().to_u8_array()` or `Srgba::to_u8_array()`.
 - Modify: `zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs`
   - Keep `[u8; 4]` only as final pixel framebuffer representation; do not expose it as semantic color input.
@@ -273,7 +273,7 @@ Rules:
 - [ ] Update `visualizer.rs` overlay color literals to construct `Color` values.
 - [ ] Update `UiTextCursorStyle.color` in `zircon_runtime_interface/src/ui/text.rs` to `Option<Color>`.
 - [ ] Update all UI contract tests and template parsing tests to use canonical color TOML/JSON objects, not bare `"#ffffff"` strings.
-- [ ] Delete local hex parsing from `zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs` and convert colors through shared `Color` APIs at the `[u8; 4]` framebuffer boundary.
+- [ ] Delete local hex parsing from `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs` and convert colors through shared `Color` APIs at the `[u8; 4]` framebuffer boundary.
 - [ ] Update editor painter/theme constants so semantic constants are `Color` or `Srgba`; `[u8; 4]` remains only inside final pixel drawing functions.
 - [ ] Update Slint conversion paths in `template_node_conversion.rs` and related host data code so `UiValue::Color(Color)` maps to `slint::Color::from_argb_u8(a, r, g, b)` using `Srgba::to_u8_array()`.
 - [ ] Update editor showcase/demo state to emit `UiValue::Color(Color::hex("#ffcc33").expect("valid demo color"))`, not `UiValue::Color("#ffcc33".to_string())`.
@@ -283,7 +283,7 @@ Rules:
 
 ### Lightweight Checks
 
-- Run `rustfmt --edition 2021 --check` on every Rust file changed in M2. The minimum expected set is `zircon_runtime_interface/src/ui/component/value.rs`, `zircon_runtime_interface/src/ui/surface/render/resolved_style.rs`, `zircon_runtime_interface/src/ui/surface/render/brush.rs`, `zircon_runtime_interface/src/ui/surface/render/text_shape.rs`, `zircon_runtime_interface/src/ui/surface/render/command.rs`, `zircon_runtime_interface/src/ui/surface/render/visualizer.rs`, `zircon_runtime_interface/src/ui/text.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/text.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs`, `zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs`, `zircon_editor/src/ui/slint_host/host_contract/data/template_nodes.rs`, `zircon_editor/src/scene/viewport/edit_mode_projection/build.rs`, and `zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs`. Include any additional files changed by the UI/template search slice.
+- Run `rustfmt --edition 2021 --check` on every Rust file changed in M2. The minimum expected set is `zircon_runtime_interface/src/ui/component/value.rs`, `zircon_runtime_interface/src/ui/surface/render/resolved_style.rs`, `zircon_runtime_interface/src/ui/surface/render/brush.rs`, `zircon_runtime_interface/src/ui/surface/render/text_shape.rs`, `zircon_runtime_interface/src/ui/surface/render/command.rs`, `zircon_runtime_interface/src/ui/surface/render/visualizer.rs`, `zircon_runtime_interface/src/ui/text.rs`, `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/text.rs`, `zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs`, `zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs`, `zircon_editor/src/ui/slint_host/host_contract/data/template_nodes.rs`, `zircon_editor/src/scene/viewport/edit_mode_projection/build.rs`, and `zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs`. Include any additional files changed by the UI/template search slice.
 - `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-color-ui-interface" --message-format short --color never`.
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-color-editor" --message-format short --color never` if unrelated active editor drift does not block; otherwise record exact external blocker.
 

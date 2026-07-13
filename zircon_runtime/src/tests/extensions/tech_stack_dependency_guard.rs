@@ -61,6 +61,39 @@ fn runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate() {
 }
 
 #[test]
+fn wgpu_windows_dependency_family_stays_on_one_compatible_patch_line() {
+    let lock = read_repo_file("Cargo.lock");
+    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+
+    for package in [
+        "wgpu",
+        "wgpu-core",
+        "wgpu-core-deps-windows-linux-android",
+        "wgpu-hal",
+        "wgpu-naga-bridge",
+        "wgpu-types",
+    ] {
+        let block = lock_package_block(&lock, package);
+        assert!(
+            block.contains("version = \"29.0.3\""),
+            "{package} must remain on the validated 29.0.3 patch line so DX12 does not split Windows COM types"
+        );
+    }
+
+    let allocator = lock_package_block(&lock, "gpu-allocator");
+    assert!(
+        allocator.contains("version = \"0.28.0\"") && allocator.contains("\"windows 0.62.2\""),
+        "gpu-allocator 0.28.0 must resolve Windows 0.62.2 with wgpu-hal 29.0.3"
+    );
+    assert!(
+        tech_stack.contains("WGPU 29.0.3 patch family")
+            && tech_stack.contains("gpu-allocator 0.28.0")
+            && tech_stack.contains("windows 0.62.2"),
+        "runtime tech-stack authority must record the validated Windows dependency convergence"
+    );
+}
+
+#[test]
 fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() {
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
@@ -434,13 +467,16 @@ fn runtime_text_doc_records_three_layer_stack_and_cross_reference() {
     );
 }
 
-fn all_manifest_sources() -> Vec<String> {
-    collect_manifest_sources(&repo_root())
+fn all_manifest_sources() -> &'static [String] {
+    static MANIFEST_SOURCES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    MANIFEST_SOURCES
+        .get_or_init(|| collect_manifest_sources(&repo_root()))
+        .as_slice()
 }
 
 fn collect_manifest_sources(root: &std::path::Path) -> Vec<String> {
-    let mut pending = vec![root.to_path_buf()];
     let mut sources = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
 
     while let Some(path) = pending.pop() {
         let entries = match std::fs::read_dir(&path) {
@@ -452,12 +488,30 @@ fn collect_manifest_sources(root: &std::path::Path) -> Vec<String> {
             let path = entry.path();
             let file_name = entry.file_name();
             let file_name = file_name.to_string_lossy();
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(_) => continue,
+            };
 
-            if path.is_dir() {
+            if file_type.is_dir() && !file_type.is_symlink() {
                 if matches!(
                     file_name.as_ref(),
-                    ".git" | "target" | "dev" | "node_modules"
+                    ".git"
+                        | ".zircon/cache"
+                        | "target"
+                        | "dev"
+                        | "docs"
+                        | "node_modules"
+                        | "tests"
+                        | "tools"
                 ) {
+                    continue;
+                }
+                if path == root.join("zircon_plugins") {
+                    pending.push(path);
+                    continue;
+                }
+                if path.parent() == Some(root) && !file_name.starts_with("zircon_") {
                     continue;
                 }
                 pending.push(path);
@@ -478,4 +532,14 @@ fn manifest_declares_dependency(source: &str, crate_name: &str) -> bool {
             || line.starts_with(&format!("{crate_name} ="))
             || line.starts_with(&format!("{crate_name}.workspace"))
     })
+}
+
+fn lock_package_block<'a>(lock: &'a str, package_name: &str) -> &'a str {
+    lock.split("[[package]]")
+        .find(|block| {
+            block
+                .lines()
+                .any(|line| line.trim() == format!("name = \"{package_name}\""))
+        })
+        .unwrap_or_else(|| panic!("Cargo.lock should contain package {package_name}"))
 }

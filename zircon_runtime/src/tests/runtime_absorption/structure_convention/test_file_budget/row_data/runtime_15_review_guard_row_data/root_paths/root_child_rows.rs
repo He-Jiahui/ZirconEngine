@@ -1,20 +1,10 @@
-pub(in super::super) const ROOT_CHILD_ROWS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_TOP_LEVEL_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/top_level.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_DELEGATION_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/delegation.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_TYPED_ERROR_ROWS_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/typed_error_rows.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_AGGREGATION_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/aggregation.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split_layout.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_ROUTE_MOUNTS_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/route_mounts.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_STATUS_CURRENT_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/status_current.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_BUDGETS_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/budgets.rs";
-pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_SPLIT_LAYOUT_CHILD_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/split_layout.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_TOP_LEVEL_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/top_level.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_DELEGATION_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/delegation.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_TYPED_ERROR_ROWS_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/typed_error_rows.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_AGGREGATION_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/aggregation.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split_layout.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_ROUTE_MOUNTS_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/route_mounts.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_STATUS_CURRENT_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/status_current.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_BUDGETS_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/budgets.rs";
+pub(in super::super) const ROOT_CHILD_ROWS_SPLIT_LAYOUT_SPLIT_LAYOUT_CHILD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/split_layout.rs";

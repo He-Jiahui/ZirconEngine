@@ -49,6 +49,7 @@ pub(super) struct CompiledSceneGraphStageContext<'a, 'graph, 'mesh> {
     pub(super) screen_space_reflection_history_enabled: bool,
     pub(super) hzb_history_enabled: bool,
     pub(super) exposure_history_enabled: bool,
+    pub(super) volumetric_history_enabled: bool,
     pub(super) shadow_frame_plan: &'a ShadowFramePlan,
     pub(super) prepared_overlays: &'a PreparedOverlayBuffers,
 }
@@ -77,6 +78,7 @@ impl SceneRendererCore {
             screen_space_reflection_history_enabled,
             hzb_history_enabled,
             exposure_history_enabled,
+            volumetric_history_enabled,
             shadow_frame_plan,
             prepared_overlays,
         } = ctx;
@@ -104,11 +106,6 @@ impl SceneRendererCore {
             if is_depth_prepass {
                 push_group(encoder, RENDERDOC_MARKER_PREPASS);
             }
-            let overlay_renderer = if is_depth_prepass {
-                Some(&mut self.overlay_renderer)
-            } else {
-                None
-            };
             let stage_streamer = uses_mesh_pipeline_context.then_some(streamer);
             let stage_mesh_pipelines = if uses_mesh_pipeline_context {
                 Some(&mut self.mesh_pipelines)
@@ -129,7 +126,7 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
-                overlay_renderer,
+                None,
                 None,
                 None,
                 None,
@@ -253,7 +250,8 @@ impl SceneRendererCore {
                 || runtime_features.ssao_enabled
                 || screen_space_reflection_history_enabled
                 || hzb_history_enabled
-                || exposure_history_enabled);
+                || exposure_history_enabled
+                || volumetric_history_enabled);
         if history_copy_required {
             insert_marker(encoder, RENDERDOC_MARKER_HISTORY_COPY);
         }
@@ -268,6 +266,7 @@ impl SceneRendererCore {
             screen_space_reflection_history_enabled,
             hzb_history_enabled,
             exposure_history_enabled,
+            volumetric_history_enabled,
         );
         graph_execution
             .record
@@ -299,7 +298,7 @@ impl SceneRendererCore {
                 None,
                 None,
                 None,
-                None,
+                Some(streamer),
                 None,
                 Some(&mut self.ibl_bake_pipeline_cache),
                 None,

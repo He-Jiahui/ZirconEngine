@@ -86,10 +86,12 @@ fn invalid_clip_revision_emits_one_typed_diagnostic_per_revision() {
     assert_eq!(second[0].clip.revision(), 2);
 }
 
-fn invalid_translation_clip(skeleton_uri: &AssetUri) -> zircon_runtime::asset::AnimationClipAsset {
+fn invalid_translation_clip(
+    skeleton_uri: &AssetUri,
+) -> zircon_runtime::core::framework::animation::AnimationClipAsset {
     let mut clip = single_hand_translation_clip(skeleton_uri, 1.0);
     clip.tracks[0].translation.keys[0].value =
-        zircon_runtime::asset::AnimationChannelValueAsset::Scalar(1.0);
+        zircon_runtime::core::framework::animation::AnimationChannelValueAsset::Scalar(1.0);
     clip
 }
 

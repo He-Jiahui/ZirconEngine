@@ -37,7 +37,8 @@ fn hdr_equirect_import_stages_current_zcube_and_zribl_bundle() {
     let request = *staged.request().expect("staged request");
 
     assert_eq!(staged.status(), EnvironmentIblSourceStagingStatus::Written);
-    assert_eq!(request.face_size(), 64);
+    assert_eq!(request.source_face_size(), 64);
+    assert_eq!(request.pmrem_face_size(), 128);
     assert_eq!(
         request.required_contents(),
         IblBakeArtifactContents::PMREM_SH9_IEM
@@ -113,8 +114,10 @@ fn stage_polyhaven_lakes_2k_validation_bundle() {
         .read_source_cubemap_environment(&request, context.uri.clone())
         .expect("restore staged Poly Haven environment");
 
-    assert_eq!(request.face_size(), 256);
-    assert_eq!(environment.mip_chain.face_size(), 256);
+    assert_eq!(request.source_face_size(), 256);
+    assert_eq!(request.pmrem_face_size(), 128);
+    assert_eq!(environment.mip_chain.source_face_size(), 256);
+    assert_eq!(environment.mip_chain.pmrem_face_size(), 128);
     assert!(environment
         .mip_chain
         .source_texels()
@@ -130,8 +133,8 @@ fn stage_polyhaven_lakes_2k_validation_bundle() {
     let report = format!(
         "status={:?}\nface_size={}\nmip_count={}\nsource_zcube={}\nasset_derived={}\nbake_artifact_hash={:08x?}\n",
         staged.status(),
-        request.face_size(),
-        request.mip_count(),
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
         staged.source_zcube_path().expect("zcube path").display(),
         staged.asset_derived_path().expect("asset-derived path").display(),
         environment.bake_artifact_hash,

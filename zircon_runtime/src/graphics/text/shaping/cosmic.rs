@@ -12,6 +12,7 @@ use crate::core::framework::render::{
 use crate::graphics::text::font::FontDatabase;
 
 use super::bidi::BidiParagraph;
+use super::horizontal::apply_horizontal_backend_shaping;
 use super::line_break::{ClusterLineBreakFlags, LineBreakOpportunityMap};
 use super::normalize::ShapingTextView;
 use super::script_segment::{
@@ -116,6 +117,7 @@ fn shape_with_cosmic(
             measured_height,
             lines,
         };
+        apply_horizontal_backend_shaping(&mut shaped, request, font_database);
         apply_vertical_layout(&mut shaped, request, Some(font_database));
         Some(shaped)
     })
@@ -224,9 +226,18 @@ fn glyph_from_layout_glyph(
 
     let (offset_x, offset_y) =
         glyph_layout_offset_px(glyph.font_size, glyph.x_offset, glyph.y_offset);
+    let font_id = font_database.font_face_id(glyph.font_id);
     ShapedGlyph {
         glyph_id: glyph.glyph_id as u32,
-        font_id: font_database.font_face_id(glyph.font_id),
+        font_id,
+        font_instance_id: font_id.and_then(|face| {
+            font_database
+                .effective_instance_id(
+                    face,
+                    UiResolvedStyle::normalized_font_weight(request.style.font_weight),
+                )
+                .ok()
+        }),
         source_range,
         visual_range: UiTextRange {
             start: glyph.start,
@@ -324,6 +335,7 @@ fn fallback_shape(
         glyphs.push(ShapedGlyph {
             glyph_id: synthetic_glyph_id(grapheme),
             font_id: None,
+            font_instance_id: None,
             source_range: {
                 let projected = text_view.source_range_for_shaping_range(visual_start..visual_end);
                 absolute_range(request.source_range.start, projected.start, projected.end)

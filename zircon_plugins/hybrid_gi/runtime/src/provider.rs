@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::render::{
     RenderHybridGiExtract, RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
     RenderHybridGiPreparedProbeRtLighting, RenderHybridGiPreparedProbeSceneData,
     RenderHybridGiPreparedTraceRegionSceneData, RenderHybridGiPreparedUpdateRequest,
-    RenderHybridGiQuality, RenderHybridGiReadbackOutputs,
+    RenderHybridGiQuality, RenderHybridGiReadbackOutputs, RenderHybridGiResolvedSettings,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
     RenderHybridGiSurfaceCachePageRecord, RenderHybridGiTraceTileRecord,
     RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
@@ -40,6 +40,7 @@ struct PluginHybridGiRuntimeState {
     last_surface_cache_depth_sample_count: usize,
     last_probe_trace_tile_count: usize,
     last_probe_trace_dispatch_group_count: [usize; 3],
+    last_resolved_settings: Option<RenderHybridGiResolvedSettings>,
 }
 
 impl RuntimeStateContract for PluginHybridGiRuntimeState {
@@ -53,13 +54,25 @@ impl RuntimeStateContract for PluginHybridGiRuntimeState {
             input.directional_lights(),
             input.point_lights(),
             input.spot_lights(),
+            input.baked_lighting(),
+            input.has_baked_probe_grid(),
         );
         if let Some(plan) = input.update_plan() {
             self.state.ingest_plan(input.generation(), plan);
         }
         let prepare = self.state.build_prepare_frame();
         let resolve_runtime = self.state.build_resolve_runtime();
-        let prepared_frame = neutral_prepared_frame_from_prepare(&prepare, &resolve_runtime);
+        let resolved_settings = input
+            .extract()
+            .filter(|extract| extract.enabled)
+            .map(|_| self.state.resolved_settings());
+        self.last_resolved_settings = resolved_settings;
+        let prepared_frame = neutral_prepared_frame_from_prepare(
+            &prepare,
+            &resolve_runtime,
+            self.state.composite_policy(),
+            resolved_settings,
+        );
         let scene_prepare_frame = self.state.build_scene_prepare_frame();
         let renderer_outputs =
             renderer_outputs_from_scene_prepare_frame(&scene_prepare_frame, input.extract());
@@ -82,26 +95,29 @@ impl RuntimeStateContract for PluginHybridGiRuntimeState {
         }
 
         let snapshot = self.state.snapshot();
-        HybridGiRuntimeUpdate::new(HybridGiRuntimeStats::new(
-            snapshot.cache_entry_count(),
-            snapshot.resident_probe_count(),
-            snapshot.pending_update_count(),
-            snapshot.scheduled_trace_region_count(),
-            snapshot.scene_card_count(),
-            snapshot.scene_screen_probe_count(),
-            snapshot.scene_radiance_cache_entry_count(),
-            snapshot.surface_cache_resident_page_count(),
-            snapshot.surface_cache_dirty_page_count(),
-            snapshot.surface_cache_feedback_card_count(),
-            snapshot.surface_cache_capture_slot_count(),
-            snapshot.surface_cache_invalidated_page_count(),
-            self.last_surface_cache_depth_sample_count,
-            self.last_probe_trace_tile_count,
-            self.last_probe_trace_dispatch_group_count,
-            snapshot.voxel_resident_clipmap_count(),
-            snapshot.voxel_dirty_clipmap_count(),
-            snapshot.voxel_invalidated_clipmap_count(),
-        ))
+        HybridGiRuntimeUpdate::new(
+            HybridGiRuntimeStats::new(
+                snapshot.cache_entry_count(),
+                snapshot.resident_probe_count(),
+                snapshot.pending_update_count(),
+                snapshot.scheduled_trace_region_count(),
+                snapshot.scene_card_count(),
+                snapshot.scene_screen_probe_count(),
+                snapshot.scene_radiance_cache_entry_count(),
+                snapshot.surface_cache_resident_page_count(),
+                snapshot.surface_cache_dirty_page_count(),
+                snapshot.surface_cache_feedback_card_count(),
+                snapshot.surface_cache_capture_slot_count(),
+                snapshot.surface_cache_invalidated_page_count(),
+                self.last_surface_cache_depth_sample_count,
+                self.last_probe_trace_tile_count,
+                self.last_probe_trace_dispatch_group_count,
+                snapshot.voxel_resident_clipmap_count(),
+                snapshot.voxel_dirty_clipmap_count(),
+                snapshot.voxel_invalidated_clipmap_count(),
+            )
+            .with_resolved_settings(self.last_resolved_settings),
+        )
     }
 }
 
@@ -136,6 +152,10 @@ impl PluginHybridGiRuntimeState {
 fn neutral_prepared_frame_from_prepare(
     prepare: &HybridGiPrepareFrame,
     resolve_runtime: &HybridGiResolveRuntime,
+    composite_policy: zircon_runtime::core::framework::render::RenderHybridGiCompositePolicy,
+    resolved_settings: Option<
+        zircon_runtime::core::framework::render::RenderHybridGiResolvedSettings,
+    >,
 ) -> RenderHybridGiPreparedFrame {
     let probe_ids = prepare
         .resident_probes
@@ -169,12 +189,17 @@ fn neutral_prepared_frame_from_prepare(
         .collect();
 
     RenderHybridGiPreparedFrame {
+        composite_policy,
+        resolved_settings,
         resident_probes: prepare
             .resident_probes
             .iter()
             .map(|probe| RenderHybridGiPreparedProbe {
                 probe_id: probe.probe_id,
                 slot: probe.slot,
+                stable_instance_key: probe.stable_instance_key,
+                source_mask: probe.source_mask,
+                dynamic_weight_q8: probe.dynamic_weight_q8,
                 ray_budget: probe.ray_budget,
                 irradiance_rgb: probe.irradiance_rgb,
             })

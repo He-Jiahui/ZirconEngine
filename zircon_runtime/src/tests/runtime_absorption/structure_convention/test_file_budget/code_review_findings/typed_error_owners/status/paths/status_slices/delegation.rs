@@ -10,8 +10,7 @@ pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_GUAR
     "runtime_15_typed_error_status_doc_delegation_status_is_current";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_SPLIT_NAME:
     &str = "Runtime 15 M3 typed-error status-doc delegation status-current child split";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_SPLIT_ID: &str =
-    "runtime_15_typed_error_status_doc_delegation_status_current_child_split_static_passed_cargo_deferred";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_SPLIT_ID: &str = "runtime_15_typed_error_status_doc_delegation_status_current_child_split_static_passed_cargo_deferred";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_SPLIT_DATE:
     &str = "2026-07-05";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DELEGATION_STATUS_CURRENT_GUARD: &str =

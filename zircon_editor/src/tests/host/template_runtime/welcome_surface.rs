@@ -14,10 +14,13 @@ fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_retaine
     );
 
     let projection = runtime
-        .project_document("startup.welcome_controls")
+        .project_document("res://ui/editor/host/startup_welcome_controls.zui")
         .unwrap();
 
-    assert_eq!(projection.document_id, "startup.welcome_controls");
+    assert_eq!(
+        projection.document_id,
+        "res://ui/editor/host/startup_welcome_controls.zui"
+    );
     assert_eq!(projection.root.component, "VerticalGroup");
     assert_eq!(
         projection

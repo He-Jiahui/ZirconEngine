@@ -45,7 +45,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/sliders.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/tests/render_text_fields.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
@@ -118,7 +118,7 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
@@ -169,7 +169,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/sliders.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/tests/render_text_fields.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
@@ -238,7 +238,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui

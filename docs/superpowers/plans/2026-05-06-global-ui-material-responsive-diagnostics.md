@@ -37,53 +37,53 @@ zircon_editor/assets/ui/theme/*.ui.toml
 Current concrete files discovered during planning include:
 
 ```text
-zircon_editor/assets/ui/editor/material_meta_components.ui.toml
-zircon_editor/assets/ui/theme/editor_material.ui.toml
-zircon_editor/assets/ui/theme/editor_base.ui.toml
-zircon_editor/assets/ui/editor/component_showcase.ui.toml
-zircon_editor/assets/ui/editor/asset_browser.ui.toml
-zircon_editor/assets/ui/editor/assets_activity.ui.toml
-zircon_editor/assets/ui/editor/animation_editor.ui.toml
+zircon_editor/assets/ui/editor/material_components
+zircon_editor/assets/ui/theme/editor_material.zui
+zircon_editor/assets/ui/theme/editor_base.zui
+zircon_editor/assets/ui/editor/component_showcase.zui
+zircon_editor/assets/ui/editor/asset_browser.zui
+zircon_editor/assets/ui/editor/assets_activity.zui
+zircon_editor/assets/ui/editor/animation_editor.zui
 zircon_editor/assets/ui/editor/binding_browser.ui.toml
-zircon_editor/assets/ui/editor/component_widgets.ui.toml
-zircon_editor/assets/ui/editor/console.ui.toml
+zircon_editor/assets/ui/editor/components/showcase
+zircon_editor/assets/ui/editor/console.zui
 zircon_editor/assets/ui/editor/editor_widgets.ui.toml
-zircon_editor/assets/ui/editor/hierarchy.ui.toml
-zircon_editor/assets/ui/editor/inspector.ui.toml
+zircon_editor/assets/ui/editor/hierarchy.zui
+zircon_editor/assets/ui/editor/inspector.zui
 zircon_editor/assets/ui/editor/layout_workbench.ui.toml
 zircon_editor/assets/ui/editor/preview_state_lab.ui.toml
-zircon_editor/assets/ui/editor/project_overview.ui.toml
+zircon_editor/assets/ui/editor/project_overview.zui
 zircon_editor/assets/ui/editor/theme_browser.ui.toml
 zircon_editor/assets/ui/editor/ui_asset_editor.zui
-zircon_editor/assets/ui/editor/welcome.ui.toml
-zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml
+zircon_editor/assets/ui/editor/welcome.zui
+zircon_editor/assets/ui/editor/workbench_activity_rail.zui
 zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
 zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
 zircon_editor/assets/ui/editor/workbench_menu_popup.ui.toml
 zircon_editor/assets/ui/editor/workbench_page_chrome.ui.toml
 zircon_editor/assets/ui/editor/workbench_status_bar.ui.toml
 zircon_editor/assets/ui/editor/host/activity_drawer_window.ui.toml
-zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
-zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
-zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
-zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
-zircon_editor/assets/ui/editor/host/console_body.ui.toml
+zircon_editor/assets/ui/editor/host/animation_graph_body.zui
+zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
+zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
+zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+zircon_editor/assets/ui/editor/host/console_body.zui
 zircon_editor/assets/ui/editor/host/editor_main_frame.ui.toml
-zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
-zircon_editor/assets/ui/editor/host/hierarchy_body.ui.toml
+zircon_editor/assets/ui/editor/host/floating_window_source.zui
+zircon_editor/assets/ui/editor/host/hierarchy_body.zui
 zircon_editor/assets/ui/editor/host/inspector_body.ui.toml
-zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
-zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
+zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
+zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
+zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
 zircon_editor/assets/ui/editor/host/workbench_bottom_dock_header.ui.toml
 zircon_editor/assets/ui/editor/host/workbench_document_dock_header.ui.toml
-zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
+zircon_editor/assets/ui/editor/components/workbench
 zircon_editor/assets/ui/editor/host/workbench_menu_chrome.ui.toml
 zircon_editor/assets/ui/editor/host/workbench_page_chrome.ui.toml
-zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+zircon_editor/assets/ui/editor/host/workbench_shell.zui
 zircon_editor/assets/ui/editor/host/workbench_side_dock_header.ui.toml
 zircon_editor/assets/ui/editor/windows/asset_window.ui.toml
 zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.ui.toml
@@ -97,10 +97,10 @@ zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.zui
 
 ## Current Repository Baseline
 
-- Material meta components already exist in `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` and carry layout metadata such as `layout_padding_left`, `layout_min_height`, `layout_icon_size`, and Material classes.
+- Material meta components already exist in `zircon_editor/assets/ui/editor/material_components` and carry layout metadata such as `layout_padding_left`, `layout_min_height`, `layout_icon_size`, and Material classes.
 - `zircon_runtime/src/ui/layout/pass/material.rs` already centralizes Material layout metric measurement for Button, IconButton, ToggleButton, Checkbox, InputField, TextField, ListRow, ComboBox, RangeField, NumberField, and Switch.
 - `zircon_runtime/src/ui/layout/pass/measure.rs` already calls `measure_material_content(...)` and still has fallback button padding for non-Material controls.
-- `zircon_editor/assets/ui/theme/editor_material.ui.toml` already contains Material-like color tokens and class rules, but `editor_base.ui.toml` and many layout assets still use legacy `.editor-shell`, `.panel`, fixed sizes, or no Material style import.
+- `zircon_editor/assets/ui/theme/editor_material.zui` already contains Material-like color tokens and class rules, but `editor_base.ui.toml` and many layout assets still use legacy `.editor-shell`, `.panel`, fixed sizes, or no Material style import.
 - `zircon_editor/src/ui/slint_host/host_contract/presenter.rs` already tracks `present_count`, `full_paint_count`, `region_paint_count`, and `painted_pixel_count` internally and writes diagnostic logs, but the top-right overlay receives a static string through `HostWindowShellData.debug_refresh_rate`.
 - `HostRedrawRequest` and retained `SoftbufferHostPresenter` already support full vs region redraw and backbuffer region repaint.
 - `HostInvalidationRoot` already has invalidation masks and counters for layout, presentation, render, paint-only, hit-test, and window metrics requests.
@@ -139,9 +139,9 @@ Every `.ui.toml` surface must satisfy these contracts when the plan is complete:
 
 ### Editor UI Assets And Theme
 
-- Modify `zircon_editor/assets/ui/theme/editor_material.ui.toml` as the global Material token/style owner.
-- Modify `zircon_editor/assets/ui/theme/editor_base.ui.toml` to either import/delegate to Material tokens or shrink to compatibility chrome tokens only.
-- Modify `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` as the global Material component asset.
+- Modify `zircon_editor/assets/ui/theme/editor_material.zui` as the global Material token/style owner.
+- Modify `zircon_editor/assets/ui/theme/editor_base.zui` to either import/delegate to Material tokens or shrink to compatibility chrome tokens only.
+- Modify `zircon_editor/assets/ui/editor/material_components` as the global Material component asset.
 - Modify all `.ui.toml` surfaces listed in the Global Scope Rule so they import Material style and use Material classes/components consistently.
 - Add `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` and register it in `zircon_editor/src/tests/ui/boundary/mod.rs` to enforce global `.ui.toml` conformance.
 - Modify `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs` or add focused host/template tests only when projection coverage is needed.
@@ -153,7 +153,7 @@ Every `.ui.toml` surface must satisfy these contracts when the plan is complete:
 - Modify `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`, `shell_presentation.rs`, and `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs` to project live diagnostics instead of static text.
 - Modify `zircon_editor/src/ui/slint_host/host_contract/presenter.rs` to expose a small `HostPresenterDiagnostics` snapshot without leaking softbuffer internals.
 - Modify `zircon_editor/src/ui/slint_host/app/invalidation.rs` to expose counters that the overlay can summarize.
-- Modify `zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs` only for overlay rendering and Material-aware host chrome colors that cannot come from template nodes yet. This file is near 1000 lines; if new overlay helpers grow beyond a small function, extract a focused `painter/diagnostics_overlay.rs` module and wire it from `painter/mod.rs`.
+- Modify `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs` only for overlay rendering and Material-aware host chrome colors that cannot come from template nodes yet. This file is near 1000 lines; if new overlay helpers grow beyond a small function, extract a focused `painter/diagnostics_overlay.rs` module and wire it from `painter/mod.rs`.
 - Add or extend tests in `zircon_editor/src/tests/host/slint_window/shell_window.rs`, `native_host_contract.rs`, or a new `native_diagnostics.rs` module.
 
 ### Documentation And Acceptance
@@ -307,7 +307,7 @@ impl HostRefreshDiagnostics {
 Run targeted formatting for changed files:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs" "zircon_editor/src/ui/slint_host/host_contract/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/host_contract/window.rs" "zircon_editor/src/ui/slint_host/app/invalidation.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs" "zircon_editor/src/tests/host/slint_window/shell_window.rs"
+rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs" "zircon_editor/src/ui/slint_host/host_contract/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/host_contract/window.rs" "zircon_editor/src/ui/slint_host/app/invalidation.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs" "zircon_editor/src/tests/host/slint_window/shell_window.rs"
 ```
 
 The gate intentionally includes changed host-contract wiring files plus the invalidation and native snapshot fixture files used by the diagnostics path.
@@ -377,7 +377,7 @@ layout_leading_slot_width
 layout_trailing_slot_width
 ```
 
-- [x] Update `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` so Material menu items, tabs, table rows, progress/spinner labels, and text edit roots include layout metrics when they present visible text or interactive rows.
+- [x] Update `zircon_editor/assets/ui/editor/material_components` so Material menu items, tabs, table rows, progress/spinner labels, and text edit roots include layout metrics when they present visible text or interactive rows.
 - [x] Extend shared visible-text resolution so Material leaf measurement derives intrinsic text from `text`, `label`, visible string/numeric `value`, `placeholder`, or authored scalar `options` labels before Material padding/min-height is applied; `value`/`placeholder`/`options` fallback is restricted to text-bearing/control roles so Image/Icon asset values still render as images/icons.
 - [x] Add `MaterialTableRow` coverage to the Material meta asset, Component Showcase imports, and boundary markers so table rows have a real TOML meta component instead of only a synthetic runtime unit test.
 - [x] Add Material layout metrics to the visible Button controls in `runtime_hud`, `pause_dialog`, `settings_dialog`, `inventory_dialog`, and `quest_log_dialog` so runtime dialog/HUD controls participate in shared Material measurement without a painter-side workaround.
@@ -517,7 +517,7 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 
 ### Implementation Slices
 
-- [x] Normalize `zircon_editor/assets/ui/theme/editor_material.ui.toml` token names so all Material classes use one palette:
+- [x] Normalize `zircon_editor/assets/ui/theme/editor_material.zui` token names so all Material classes use one palette:
 
 ```text
 material_surface
@@ -571,7 +571,7 @@ material-runtime-dialog
 Run targeted formatting if Rust painter/test files change:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs" "zircon_editor/src/tests/host/slint_window/native_material_painter.rs" "zircon_editor/src/tests/host/slint_window/mod.rs" "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
+rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs" "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs" "zircon_editor/src/tests/host/slint_window/native_material_painter.rs" "zircon_editor/src/tests/host/slint_window/mod.rs" "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
 ```
 
 Run focused tests:

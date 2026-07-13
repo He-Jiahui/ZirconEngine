@@ -1,12 +1,53 @@
-use crate::graphics::scene::scene_renderer::SkinnedMeshJointPaletteUniform;
+use std::sync::Arc;
+
+use crate::graphics::scene::scene_renderer::SkinnedMeshJointPaletteStorage;
 
 use super::gpu_scene::GpuScene;
+use super::skinned_palette_buffer_slots::SkinnedPaletteBufferSlots;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct GpuSceneSkinnedJointPaletteState {
     pub(crate) signature: u64,
     pub(crate) morph_shape_signature: Option<u64>,
-    pub(crate) uniform: SkinnedMeshJointPaletteUniform,
+    pub(crate) storage: SkinnedMeshJointPaletteStorage,
+}
+
+pub(super) struct GpuSceneSkinnedJointPaletteBuffers {
+    buffers: [Arc<wgpu::Buffer>; 2],
+    slots: SkinnedPaletteBufferSlots,
+}
+
+impl GpuSceneSkinnedJointPaletteBuffers {
+    fn new(device: &wgpu::Device, storage: &SkinnedMeshJointPaletteStorage) -> Self {
+        Self {
+            buffers: [storage.create_buffer(device), storage.create_buffer(device)],
+            slots: SkinnedPaletteBufferSlots::default(),
+        }
+    }
+
+    fn stage(
+        &mut self,
+        queue: &wgpu::Queue,
+        storage: &SkinnedMeshJointPaletteStorage,
+    ) -> Arc<wgpu::Buffer> {
+        let staged_slot = self.slots.stage();
+        storage.write_buffer(queue, &self.buffers[staged_slot]);
+        self.buffers[staged_slot].clone()
+    }
+
+    fn committed_buffer(&self) -> Option<Arc<wgpu::Buffer>> {
+        self.slots
+            .committed()
+            .map(|committed_slot| self.buffers[committed_slot].clone())
+    }
+
+    fn commit_staged_after_success(&mut self) {
+        self.slots.commit_after_success();
+    }
+
+    fn discard_staged(&mut self) {
+        self.slots.discard_staged();
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -17,6 +58,32 @@ pub(crate) struct GpuScenePrevSkinnedPaletteRollReport {
 }
 
 impl GpuScene {
+    pub(crate) fn stage_skinned_joint_palette_buffers(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        stable_instance_key: u64,
+        current_storage: Option<&SkinnedMeshJointPaletteStorage>,
+        use_previous: bool,
+    ) -> (Option<Arc<wgpu::Buffer>>, Option<Arc<wgpu::Buffer>>) {
+        let Some(current_storage) = current_storage else {
+            if let Some(buffers) = self
+                .skinned_joint_palette_buffers
+                .get_mut(&stable_instance_key)
+            {
+                buffers.discard_staged();
+            }
+            return (None, None);
+        };
+        let buffers = self
+            .skinned_joint_palette_buffers
+            .entry(stable_instance_key)
+            .or_insert_with(|| GpuSceneSkinnedJointPaletteBuffers::new(device, current_storage));
+        let previous = use_previous.then(|| buffers.committed_buffer()).flatten();
+        let current = buffers.stage(queue, current_storage);
+        (Some(current), previous)
+    }
+
     pub(crate) fn previous_skinned_joint_palette_state(
         &self,
         stable_instance_key: u64,
@@ -54,6 +121,11 @@ impl GpuScene {
                 .iter()
                 .map(|(key, palette)| (*key, *palette)),
         );
+        self.skinned_joint_palette_buffers
+            .retain(|key, _| self.current_skinned_joint_palettes.contains_key(key));
+        for buffers in self.skinned_joint_palette_buffers.values_mut() {
+            buffers.commit_staged_after_success();
+        }
 
         let previous_palette_count = self.previous_skinned_joint_palettes.len();
         GpuScenePrevSkinnedPaletteRollReport {
@@ -97,8 +169,8 @@ mod tests {
         assert_eq!(
             scene
                 .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
-                .map(|state| state.uniform),
-            Some(first.uniform)
+                .map(|state| state.storage),
+            Some(first.storage)
         );
 
         scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(second));
@@ -106,8 +178,8 @@ mod tests {
         assert_eq!(
             scene
                 .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
-                .map(|state| state.uniform),
-            Some(first.uniform)
+                .map(|state| state.storage),
+            Some(first.storage)
         );
 
         let second_report = scene.roll_prev_skinned_palettes_after_success();
@@ -118,8 +190,8 @@ mod tests {
         assert_eq!(
             scene
                 .previous_skinned_joint_palette_state(TEST_STABLE_INSTANCE_KEY)
-                .map(|state| state.uniform),
-            Some(second.uniform)
+                .map(|state| state.storage),
+            Some(second.storage)
         );
     }
 
@@ -151,9 +223,61 @@ mod tests {
         assert_eq!(
             scene
                 .previous_skinned_joint_palette_state(TEST_OTHER_STABLE_INSTANCE_KEY)
-                .map(|state| state.uniform),
-            Some(test_palette(2.0).uniform)
+                .map(|state| state.storage),
+            Some(test_palette(2.0).storage)
         );
+    }
+
+    #[test]
+    fn render_gpu_scene_palette_storage_buffers_swap_reuse_and_preserve_cpu_fallback() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut scene = test_gpu_scene(&backend.device);
+        let first = test_palette(1.0);
+        let second = test_palette(2.0);
+        let third = test_palette(3.0);
+
+        scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(first));
+        let (first_current, first_previous) = scene.stage_skinned_joint_palette_buffers(
+            &backend.device,
+            &backend.queue,
+            TEST_STABLE_INSTANCE_KEY,
+            Some(&first.storage),
+            false,
+        );
+        let first_current = first_current.expect("first frame current palette buffer");
+        assert!(first_previous.is_none());
+        let _ = scene.roll_prev_skinned_palettes_after_success();
+
+        scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(second));
+        // A CPU fallback draw does not bind this buffer, but staging it keeps the
+        // committed previous-pose resource correct if GPU skinning resumes.
+        let (second_current, second_previous) = scene.stage_skinned_joint_palette_buffers(
+            &backend.device,
+            &backend.queue,
+            TEST_STABLE_INSTANCE_KEY,
+            Some(&second.storage),
+            false,
+        );
+        let second_current = second_current.expect("second frame current palette buffer");
+        assert!(second_previous.is_none());
+        assert!(!Arc::ptr_eq(&second_current, &first_current));
+        let _ = scene.roll_prev_skinned_palettes_after_success();
+
+        scene.stage_current_skinned_joint_palette(TEST_STABLE_INSTANCE_KEY, Some(third));
+        let (third_current, third_previous) = scene.stage_skinned_joint_palette_buffers(
+            &backend.device,
+            &backend.queue,
+            TEST_STABLE_INSTANCE_KEY,
+            Some(&third.storage),
+            true,
+        );
+        let third_current = third_current.expect("third frame current palette buffer");
+        let third_previous = third_previous.expect("third frame previous palette buffer");
+        assert!(Arc::ptr_eq(&third_current, &first_current));
+        assert!(Arc::ptr_eq(&third_previous, &second_current));
+        assert!(!Arc::ptr_eq(&third_previous, &first_current));
     }
 
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {
@@ -174,7 +298,7 @@ mod tests {
         Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-test-prev-skinned-palette-buffer"),
             size: test_skinned_joint_palette_min_binding_size().get(),
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
         }))
     }
@@ -184,17 +308,17 @@ mod tests {
             TEST_SKINNED_JOINT_MATRIX_COUNT * TEST_SKINNED_JOINT_MATRIX_BYTES
                 + TEST_SKINNED_JOINT_PARAMS_BYTES,
         )
-        .expect("test skinned joint palette uniform size is non-zero")
+        .expect("test skinned joint palette storage size is non-zero")
     }
 
     fn test_palette(translate_x: f32) -> GpuSceneSkinnedJointPaletteState {
         GpuSceneSkinnedJointPaletteState {
             signature: translate_x.to_bits() as u64,
             morph_shape_signature: None,
-            uniform: SkinnedMeshJointPaletteUniform::from_matrices(&[Mat4::from_translation(
+            storage: SkinnedMeshJointPaletteStorage::from_matrices(&[Mat4::from_translation(
                 crate::core::math::Vec3::new(translate_x, 0.0, 0.0),
             )])
-            .expect("test palette fits fixed uniform ABI"),
+            .expect("test palette fits fixed storage ABI"),
         }
     }
 }

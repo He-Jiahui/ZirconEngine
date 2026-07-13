@@ -11,16 +11,13 @@ impl RetainedEditorHost {
         &mut self,
     ) -> Option<RecomputeInvalidationDecision> {
         let pending_reasons = self.invalidation.take_recompute_reasons();
-        let recompute_reasons = if pending_reasons.is_empty() {
-            HostInvalidationMask::from_dirty_flags(
-                self.layout_dirty,
-                self.presentation_dirty,
-                self.window_metrics_dirty,
-                self.render_dirty,
-            )
-        } else {
-            pending_reasons
-        };
+        let legacy_dirty_reasons = HostInvalidationMask::from_dirty_flags(
+            self.layout_dirty,
+            self.presentation_dirty,
+            self.window_metrics_dirty,
+            self.render_dirty,
+        );
+        let recompute_reasons = pending_reasons.union(legacy_dirty_reasons);
         let paint_only_reasons = recompute_reasons.intersection(
             HostInvalidationMask::PAINT_ONLY
                 .union(HostInvalidationMask::POINTER_HOVER)

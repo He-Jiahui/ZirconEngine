@@ -1,9 +1,7 @@
 use super::*;
 
-const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/priority_plan_doc_maps.rs";
-const STATUS_SUPPORT_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/priority_plan_doc_maps.rs";
+const STATUS_SUPPORT_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/priority_plan_doc_maps.rs";
+const STATUS_SUPPORT_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/priority_plan_doc_maps.rs";
 
 #[path = "mirrors/child_split_status.rs"]
 mod child_split_status;
@@ -14,16 +12,11 @@ mod owner_guard_status;
 #[path = "mirrors/row_owner_status.rs"]
 mod row_owner_status;
 
-const STATUS_MIRRORS_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/status_mirrors.rs";
-const CHILD_SPLIT_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/child_split_status.rs";
-const ROW_OWNER_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/row_owner_status.rs";
-const FOLDER_BACKED_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/folder_backed_status.rs";
-const OWNER_GUARD_STATUS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/owner_guard_status.rs";
+const STATUS_MIRRORS_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/status_mirrors.rs";
+const CHILD_SPLIT_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/child_split_status.rs";
+const ROW_OWNER_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/row_owner_status.rs";
+const FOLDER_BACKED_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/folder_backed_status.rs";
+const OWNER_GUARD_STATUS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/owner_guard_status.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_NAME: &str =
     "Runtime 15 M3 priority plan docs status-mirror child split";

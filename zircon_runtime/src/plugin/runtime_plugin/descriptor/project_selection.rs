@@ -1,7 +1,7 @@
 mod features;
 mod packaging;
 
-use crate::plugin::ProjectPluginSelection;
+use crate::core::framework::project::ProjectPluginSelection;
 
 use self::{
     features::project_feature_selection, packaging::descriptor_project_selection_packaging,

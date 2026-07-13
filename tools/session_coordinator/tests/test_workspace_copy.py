@@ -96,6 +96,7 @@ class WorkspaceCopyTests(unittest.TestCase):
 
     def test_run_uses_adjacent_target_and_records_evidence(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))
+        record_path = self.target_root.parent / "target-path.txt"
 
         evidence = self.service.run(
             "session-a",
@@ -103,13 +104,21 @@ class WorkspaceCopyTests(unittest.TestCase):
             command=(
                 sys.executable,
                 "-c",
-                "import os, pathlib; pathlib.Path('target-path.txt').write_text(os.environ['CARGO_TARGET_DIR'])",
+                "import os, pathlib; "
+                f"pathlib.Path({str(record_path)!r}).write_text(os.environ['CARGO_TARGET_DIR'])",
             ),
         )
 
         self.assertEqual(0, evidence.exit_code)
-        recorded = (result.source_root / "target-path.txt").read_text(encoding="utf-8")
+        recorded = record_path.read_text(encoding="utf-8")
         self.assertEqual(str(result.target_root), recorded)
+        self.assertFalse(result.job_root.exists())
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()["status"]
+        self.assertEqual("removed", status)
 
     def test_start_returns_running_job_that_can_be_cancelled(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))
@@ -117,7 +126,7 @@ class WorkspaceCopyTests(unittest.TestCase):
         started = self.service.start(
             "session-a",
             result.job_id,
-            command=(sys.executable, "-c", "import time; time.sleep(30)"),
+            command=(sys.executable, "-c", "import time; time.sleep(2)"),
         )
 
         self.assertEqual("running", started["status"])
@@ -133,7 +142,7 @@ class WorkspaceCopyTests(unittest.TestCase):
             if status != "running":
                 break
             threading.Event().wait(0.05)
-        self.assertEqual("materialized", status)
+        self.assertEqual("removed", status)
 
     def test_async_completion_uses_the_shared_mutation_gate(self) -> None:
         gate = threading.Lock()
@@ -168,10 +177,10 @@ class WorkspaceCopyTests(unittest.TestCase):
                     "SELECT status FROM validation_copies WHERE job_id = ?",
                     (result.job_id,),
                 ).fetchone()["status"]
-            if status == "materialized":
+            if status == "removed":
                 break
             threading.Event().wait(0.05)
-        self.assertEqual("materialized", status)
+        self.assertEqual("removed", status)
 
     def test_cleanup_rejects_paths_outside_managed_verify_job(self) -> None:
         with self.assertRaises(CoordinatorError):
@@ -274,9 +283,9 @@ class WorkspaceCopyTests(unittest.TestCase):
                 )
             }
         self.assertEqual("materialized", statuses[first.job_id])
-        self.assertEqual("materialized", statuses[second.job_id])
+        self.assertEqual("removed", statuses[second.job_id])
 
-    def test_periodic_recovery_never_releases_cleanup_in_progress(self) -> None:
+    def test_periodic_recovery_retries_cleanup_pending_job(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))
         with self.database.transaction() as connection:
             connection.execute(
@@ -288,13 +297,43 @@ class WorkspaceCopyTests(unittest.TestCase):
             process_alive=lambda _pid: False, startup=False
         )
 
-        self.assertEqual((0, 0), recovered)
+        self.assertEqual((0, 1), recovered)
         with self.database.connect() as connection:
             status = connection.execute(
                 "SELECT status FROM validation_copies WHERE job_id = ?",
                 (result.job_id,),
             ).fetchone()["status"]
-        self.assertEqual("cleanup_pending", status)
+        self.assertEqual("removed", status)
+
+    def test_cleanup_failure_stays_pending_until_periodic_retry_succeeds(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.shutil.rmtree",
+            side_effect=OSError("locked by another process"),
+        ):
+            with self.assertRaises(OSError):
+                self.service.cleanup("session-a", result.job_root)
+
+        with self.database.connect() as connection:
+            pending = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()["status"]
+        self.assertEqual("cleanup_pending", pending)
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False, startup=False
+        )
+
+        self.assertEqual((0, 1), recovered)
+        self.assertFalse(result.job_root.exists())
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()["status"]
+        self.assertEqual("removed", status)
 
     def test_run_preparation_failure_releases_running_state(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))

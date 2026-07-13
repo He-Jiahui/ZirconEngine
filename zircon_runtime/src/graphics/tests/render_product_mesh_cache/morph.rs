@@ -3,14 +3,14 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetUri, MaterialAsset, MeshAsset,
-    MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset, MESH_ATTRIBUTE_COLOR,
-    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
+    MeshSkinAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
+use crate::core::framework::animation::{AnimationSkeletonAsset, AnimationSkeletonBoneAsset};
 use crate::core::framework::render::{
     AntiAliasSettings, CameraRenderDescriptor, CapturedFrame, GeometryExtract, ProjectionMode,
     RenderCameraClear, RenderFrameExtract, RenderFramework, RenderLayerSet,

@@ -2,7 +2,8 @@ mod crates;
 mod packaging;
 mod target_modes;
 
-use crate::plugin::{PluginFeatureBundleManifest, ProjectPluginFeatureSelection};
+use crate::core::framework::project::ProjectPluginFeatureSelection;
+use crate::plugin::PluginFeatureBundleManifest;
 
 use self::crates::assign_feature_project_selection_crates;
 use self::packaging::feature_project_selection_packaging;

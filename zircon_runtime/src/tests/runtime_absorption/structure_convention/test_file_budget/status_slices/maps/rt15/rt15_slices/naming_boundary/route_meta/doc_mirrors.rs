@@ -14,24 +14,26 @@ fn runtime_15_naming_boundary_expected_slice_route_metadata_docs_are_synced() {
         ),
         (
             "Runtime index",
-            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+            read_repo(
+                "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+            ),
         ),
         ("Frameworks 02", frameworks_02.clone()),
         (
             "review findings",
-            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+            read_repo(
+                "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+            ),
         ),
         (
             "structure convention",
-            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+            read_repo(
+                "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+            ),
         ),
         (
             "module convention doc",
             read_repo("docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "session note",
-            read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
         ),
     ] {
         assert_contains_all(

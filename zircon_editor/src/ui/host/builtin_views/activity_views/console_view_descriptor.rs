@@ -15,7 +15,7 @@ pub(super) fn console_view_descriptor() -> ViewDescriptor {
     .with_preferred_drawer_slot(ActivityDrawerSlot::Bottom)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Console))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.console.body",
+        "res://ui/editor/host/console_body.zui",
         PanePayloadKind::ConsoleV1,
         PaneRouteNamespace::Dock,
         PaneInteractionMode::TemplateOnly,

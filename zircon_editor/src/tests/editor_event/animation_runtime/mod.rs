@@ -1,5 +1,3 @@
-use std::fs;
-
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventSource};
 use crate::ui::binding::{
     AnimationCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,

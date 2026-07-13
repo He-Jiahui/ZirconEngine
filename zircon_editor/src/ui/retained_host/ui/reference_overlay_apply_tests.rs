@@ -103,15 +103,11 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
     workbench_window_bridge
         .open_command_palette(WorkbenchCommandPaletteOpenState {
             commands: ui_string_values([
-                "workbench.project.open|label=Open Project",
-                "workbench.project.save|label=Save Project|disabled=true",
+                "file.project.open|label=Open Project",
+                "file.project.save|label=Save Project",
             ]),
-            filtered_commands: ui_string_values([
-                "workbench.project.open",
-                "workbench.project.save",
-            ]),
-            disabled_commands: ui_string_values(["workbench.project.save"]),
-            selected_command_id: "workbench.project.open".to_string(),
+            filtered_commands: ui_string_values(["file.project.open", "file.project.save"]),
+            selected_command_id: "file.project.open".to_string(),
             focused_index: 0,
         })
         .expect("command palette state should apply to the workbench window bridge");
@@ -131,7 +127,7 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
         .structured_options
         .row_data(0)
         .expect("open project command should project as a command palette row");
-    assert_eq!(open_project.id.as_str(), "workbench.project.open");
+    assert_eq!(open_project.id.as_str(), "file.project.open");
     assert_eq!(open_project.label.as_str(), "Open Project");
     assert!(open_project.focused);
     assert!(open_project.selected);
@@ -140,9 +136,9 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
     let save_project = palette
         .structured_options
         .row_data(1)
-        .expect("save project command should project as a disabled command palette row");
-    assert_eq!(save_project.id.as_str(), "workbench.project.save");
-    assert!(save_project.disabled);
+        .expect("save project command should project as a command palette row");
+    assert_eq!(save_project.id.as_str(), "file.project.save");
+    assert!(!save_project.disabled);
 }
 
 fn reference_sized_host_window() -> UiHostWindow {
@@ -159,7 +155,10 @@ fn reference_sized_host_window() -> UiHostWindow {
 fn apply_template_projection_from_host_template_bridge(ui: &UiHostWindow) {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
 
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(
         WORKBENCH_REFERENCE_WIDTH as f32,
@@ -213,7 +212,10 @@ fn apply_template_projection_from_workbench_window_projection(
 ) {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let ui_asset_panes: BTreeMap<String, UiAssetEditorPanePresentation> = BTreeMap::new();
     let animation_panes: BTreeMap<String, AnimationEditorPanePresentation> = BTreeMap::new();
     let module_plugins =

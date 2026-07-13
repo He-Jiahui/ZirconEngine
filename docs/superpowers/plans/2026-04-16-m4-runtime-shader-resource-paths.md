@@ -1,43 +1,43 @@
 ---
 related_code:
-  - zircon_graphics/src/backend/render_backend/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/scene/mod.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/history/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/prepass.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - zircon_render_server/src/types.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/mod.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - zircon_runtime/src/core/framework/render
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/backend/render_backend/mod.rs
-  - zircon_graphics/src/runtime/server/mod.rs
-  - zircon_graphics/src/scene/mod.rs
-  - zircon_graphics/src/scene/resources/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/core/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/history/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/mesh/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/post_process/mod.rs
-  - zircon_graphics/src/scene/scene_renderer/prepass.rs
-  - zircon_graphics/src/tests/project_render.rs
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
-  - docs/assets-and-rendering/index.md
+  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
+  - zircon_runtime/src/graphics/scene/resources/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/mod.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 plan_sources:
   - user: 2026-04-16 下一段真正剩下的是把 SSAO、clustered lighting、history resolve 的真实 shader/resource/runtime 数据路径接进固定 pass 和 profile/capability 边界
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m4-clustered-lighting-ssao-history.md
   - docs/superpowers/plans/2026-04-16-m4-clustered-lighting-ssao-history-remaining.md
-  - docs/assets-and-rendering/srp-rhi-render-server-architecture.md
+  - docs/assets-and-rendering/render-framework-architecture.md
 tests:
-  - zircon_graphics/src/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_graphics/src/tests/render_server_bridge.rs
   - cargo test -p zircon_graphics history_resolve_blends_previous_scene_color_when_enabled --locked
   - cargo test -p zircon_graphics ssao_quality_profile_darkens_scene_when_enabled --locked
@@ -84,7 +84,7 @@ doc_type: milestone-detail
 
 ### Task 4: Docs And Validation
 
-- [x] 更新 `docs/assets-and-rendering/srp-rhi-render-server-architecture.md`，把 compile skeleton 提升为真实 runtime 资源链说明
+- [x] 更新 `docs/assets-and-rendering/render-framework-architecture.md`，把 compile skeleton 提升为真实 runtime 资源链说明
 - [x] 跑 targeted tests，再跑 `cargo test -p zircon_graphics --lib --locked`
 - [x] 跑 `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_graphics`
 

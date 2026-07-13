@@ -3,8 +3,8 @@ related_code:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/font_source.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs

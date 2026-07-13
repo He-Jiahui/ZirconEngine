@@ -13,7 +13,6 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_framework_architecture =
         read_repo("docs/assets-and-rendering/render-framework-architecture.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "material runtime parent keeps remaining streamer coverage and child mount",
@@ -86,7 +85,6 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
             "render framework architecture",
             render_framework_architecture.as_str(),
         ),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

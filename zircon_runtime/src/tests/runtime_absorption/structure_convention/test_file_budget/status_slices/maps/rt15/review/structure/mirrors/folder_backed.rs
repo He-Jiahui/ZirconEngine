@@ -2,8 +2,9 @@ use super::*;
 
 #[test]
 fn runtime_15_structure_support_expected_slice_status_mirrors_are_folder_backed() {
-    let parent =
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/status_mirrors.rs");
+    let parent = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/status_mirrors.rs",
+    );
     let children = STRUCTURE_SUPPORT_STATUS_MIRROR_CHILDREN
         .iter()
         .map(|path| read_runtime_src(&format!("tests/runtime_absorption/{path}")))

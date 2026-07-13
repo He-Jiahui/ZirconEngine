@@ -1,4 +1,5 @@
 mod errors;
+mod host_interfaces;
 mod host_modules;
 mod instance;
 mod lock;

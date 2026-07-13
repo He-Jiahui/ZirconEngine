@@ -72,6 +72,7 @@ fn render_shadow_frame_plan_assigns_first_directional_cascade_slots() {
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 2.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T1024)),
         }],
         ..LightingExtract::default()
@@ -126,6 +127,7 @@ fn render_shadow_frame_plan_builds_distinct_directional_cascade_matrices() {
             direction: Vec3::new(0.0, -1.0, -1.0),
             color: Vec3::ONE,
             intensity: 2.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T1024)),
         }],
         ..LightingExtract::default()
@@ -157,6 +159,7 @@ fn render_shadow_frame_plan_caps_directional_cascade_tier_to_atlas_row() {
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 2.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T2048)),
         }],
         ..LightingExtract::default()
@@ -188,6 +191,7 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             color: Vec3::ONE,
             intensity: 4.0,
             range: 8.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T256)),
         }],
         ..LightingExtract::default()
@@ -251,6 +255,7 @@ fn render_shadow_frame_plan_assigns_spot_light_slot_view_key() {
             range: 6.0,
             inner_angle_radians: 0.25,
             outer_angle_radians: 0.5,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T512)),
         }],
         ..LightingExtract::default()
@@ -283,6 +288,7 @@ fn render_shadow_frame_plan_encodes_per_light_pcf_quality() {
             color: Vec3::ONE,
             intensity: 4.0,
             range: 8.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow_with_quality(
                 ShadowResolutionTier::T256,
                 ShadowPcfQuality::Low,
@@ -299,6 +305,7 @@ fn render_shadow_frame_plan_encodes_per_light_pcf_quality() {
             range: 6.0,
             inner_angle_radians: 0.25,
             outer_angle_radians: 0.5,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow_with_quality(
                 ShadowResolutionTier::T512,
                 ShadowPcfQuality::Medium,
@@ -340,6 +347,7 @@ fn render_shadow_light_slot_assignments_patch_packed_light_contract() {
             range: 6.0,
             inner_angle_radians: 0.25,
             outer_angle_radians: 0.5,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: Some(shadow(ShadowResolutionTier::T512)),
         }],
         ..LightingExtract::default()

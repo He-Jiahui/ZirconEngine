@@ -41,7 +41,7 @@ fn runtime_15_render_shader_template_wgsl_contracts_are_child_owner() {
         &[
             "@group(3) @binding(0) var<storage, read> zr_primitive_data",
             "@group(3) @binding(1) var<storage, read> zr_instance_data",
-            "@group(3) @binding(3) var<uniform> zr_skinned_joint_palette",
+            "@group(3) @binding(3) var<storage, read> zr_skinned_joint_palette",
             "fn zr_world_from_local(instance_index: u32) -> mat4x4<f32>",
             "fn zr_previous_world_from_local(instance_index: u32) -> mat4x4<f32>",
             "fn zr_skinned_joint_matrix(joint_index: u32) -> mat4x4<f32>",

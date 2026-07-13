@@ -8,6 +8,21 @@
 
 把 `zircon_plugins/zr_vm_language` 从 wrapper 推进到完整 VM 集成层：完备的双向反射（宿主类型导出给 VM、VM 类型注册回宿主）、接口注册（VM 实现引擎扩展点）、GC 与宿主句柄生命周期协约、热替换状态迁移生产化。`E:\Git\zr_vm` 后端经 `real-zr-vm` feature 接入的既定路线不变。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-plugins-zr-vm",
+  "goal": "完成 ZrVM 插件的双向反射、接口注册、GC 生命周期、真实后端和热替换架构",
+  "milestones": [
+    {"id": "M1", "title": "反射注册表统一", "depends_on": []},
+    {"id": "M2", "title": "接口注册四通道", "depends_on": ["M1"]},
+    {"id": "M3", "title": "GC 与宿主句柄生命周期协约", "depends_on": ["M1"]},
+    {"id": "M4", "title": "real-zr-vm 全链路接通", "depends_on": ["M2", "M3"]},
+    {"id": "M5", "title": "热替换状态迁移生产化", "depends_on": ["M1"]}
+  ]
+}
+```
+
 ## 2. 现状基线（实查）
 
 **反射地基比早期假设厚实**——统一反射模型的 DTO 与宿主侧注册表已在，缺的是 derive、反向通道与性能层：
@@ -144,6 +159,20 @@ zircon_plugins/zr_vm_language/runtime/src/
 | M5-T1 | VmStateBlob v2（schema 版本 + 类型表） | instance.rs | M1 | `state_blob_round_trips_with_schema` |
 | M5-T2 | 字段级迁移（缺省填充 + 改名映射）+ 回滚 | state_migration.rs | M5-T1、01-M5 | `schema_change_migrates_fields`、`migration_failure_rolls_back_old_module` |
 
+### 当前实施状态（2026-07-14）
+
+| 里程碑 | 状态 | 产出记录 / 边界 |
+|---|---|---|
+| M1 | 代码与验证完成（服务收口待共享暂存释放） | [`08/2026-07-14-zr-vm-m1-output-records.md`](08/2026-07-14-zr-vm-m1-output-records.md)；derive/统一注册契约、`fixed/**` 硬切、VM 反向注册与 dense call-site 已完成，Runtime 15 原复现 1/1、`ecs_reflect` 61/61、插件默认路径 13/13 通过。共享 main 存在其他 Session 的 staged 内容，按 closeout gate 未执行 M1 服务提交。 |
+| M2 | 完成 | [`08/2026-07-13-zr-vm-m2-output-records.md`](08/2026-07-13-zr-vm-m2-output-records.md)；四通道、capability gate、世代回调与 Windows/default/真实后端验证已有记录。 |
+| M3 | 完成 | [`08/2026-07-13-zr-vm-m3-output-records.md`](08/2026-07-13-zr-vm-m3-output-records.md)；runtime-neutral GC 协约与默认插件路径通过 81 + 11 项 Windows 测试。逻辑 `script.gc_step` 使用包所有权注册 ID `zr_vm_language.script.gc_step`。 |
+| M4 | 待实施 | 当前 `E:/Git/zr_vm/build` 不存在；真实 ZrVM root/collector 接通与 feature 矩阵仍属本里程碑。 |
+| M5 | 完成（真实后端 feature 验证归 M4） | [`08/2026-07-14-zr-vm-m5-output-records.md`](08/2026-07-14-zr-vm-m5-output-records.md)；v2 完整 envelope、权威类型表、统一反射 schema、缺省/改名迁移和精确回滚已通过 86 项 Script VM 回归。真实 ZrVM 已接 `saveState`/`restoreState` 完整 blob + 可选 `stateSchema` 协议，但 `E:/Git/zr_vm/build` 缺失，feature 编译/执行仍由 M4 验收。 |
+
+- fixed 已修复：[derived-reflection-hard-cut-guard](08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
+
+- fixed 已修复：[derived-reflection-visibility-compilation](../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)
+
 ## 6. 验收命令
 
 ```bash
@@ -168,4 +197,3 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_lang
 | 编译期反射注入（TypeMeta/FieldAccessor/MethodAccessor） | `dev/Piccolo/engine/source/runtime/core/meta/` + 生成器 `dev/Piccolo/engine/source/meta_parser/` | 字段/方法访问器的生成形态与注册流——derive 宏（M1-T1）输出结构的判例 |
 | Rust 反射 derive 工程实践 | `dev/bevy/crates/bevy_reflect/`（含 derive 子 crate） | derive 宏的属性解析、容器类型（Vec/Map/Option）反射、TypeRegistry 形态——我们复用自有 ReflectTypeInfo，但宏实现技法以此为准 |
 | 跨语言注册/函数表/世代句柄 | `dev/godot/core/extension/gdextension_interface.cpp`、`gdextension.cpp` | class/method 注册流、object instance binding 生命周期、版本化函数表 |
-

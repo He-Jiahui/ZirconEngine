@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/asset/assets/scene/camera.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
@@ -35,7 +35,6 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
@@ -101,7 +100,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/asset/assets/scene/camera.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
@@ -113,7 +112,6 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
@@ -217,10 +215,7 @@ tests:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_rejects_destination_size_mismatch
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_prepare_render_target_only_without_sampled_binding
   - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_preserve_copy_and_sampled_authoring_flags
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_readiness
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
   - zircon_runtime/src/core/framework/render/capture.rs::tests::texture_capture_report_distinguishes_direct_import_and_conversion_sources
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target

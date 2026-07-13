@@ -60,14 +60,14 @@ When packing fails because the configured `max_size` cannot contain the padded s
 
 ## Artifact Output
 
-`write_sprite_atlas_artifacts` returns `SpriteAtlasBuildError` and writes under `ProjectPaths::library_root()/editor-sprite-atlases/`:
+`write_sprite_atlas_artifacts` returns `SpriteAtlasBuildError` and writes under `ProjectPaths::cache_root()/editor-sprite-atlases/` (`<project>/.zircon/cache/editor-sprite-atlases/`):
 
 - `<output_stem>.png` contains the atlas RGBA image.
 - `<output_stem>.toml` contains the runtime `SpriteAtlasAsset` manifest.
 
 The report returns both library URIs, `lib://editor-sprite-atlases/<output_stem>.png` and `lib://editor-sprite-atlases/<output_stem>.toml`, plus the concrete output paths. The artifact writer rewrites the manifest's `atlas_texture` URI to the actual written PNG URI before serializing and revalidating the manifest.
 
-`output_stem` must be a single safe file stem: ASCII letters, digits, `-`, `_`, and `.` only; no leading/trailing whitespace, no trailing dot, no Windows reserved device stems, and not `.` or `..`. This keeps editor-generated atlas artifacts inside the configured project-library folder and keeps generated `lib://editor-sprite-atlases/<stem>` URIs stable.
+`output_stem` must be a single safe file stem: ASCII letters, digits, `-`, `_`, and `.` only; no leading/trailing whitespace, no trailing dot, no Windows reserved device stems, and not `.` or `..`. This keeps editor-generated atlas artifacts inside the configured project cache folder and keeps generated `lib://editor-sprite-atlases/<stem>` URIs stable.
 
 ## Test Coverage
 

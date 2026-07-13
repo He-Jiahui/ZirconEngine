@@ -67,8 +67,6 @@ fn runtime_15_ui_shared_core_guard_child_owners_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
 
     assert_contains_all(
         "UI shared core guard parent mounts child owners",
@@ -171,7 +169,6 @@ fn runtime_15_ui_shared_core_guard_child_owners_are_folder_backed() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("UI architecture doc", ui_doc.as_str()),
-        ("session note", session_note.as_str()),
     ] {
         assert_contains_all(
             label,

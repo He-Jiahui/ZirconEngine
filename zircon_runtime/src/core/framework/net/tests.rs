@@ -310,7 +310,7 @@ fn reliable_datagram_and_download_contracts_record_recovery_state() {
         "https://cdn.zircon.dev/world.bin",
         0,
         1024,
-        "sha256-demo",
+        [7; 32],
     )
     .with_resume_from_byte(512);
     assert_eq!(chunk.resume_from_byte, Some(512));

@@ -5,7 +5,9 @@ fn project_manager_scans_package_asset_roots_as_package_uris() {
     let root = unique_temp_project_root("project_manager_package_zmeta");
     let package_root = unique_temp_project_root("navigation_package_zmeta");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "PackageSandbox",
         AssetUri::parse("res://data/project.json").unwrap(),
@@ -14,7 +16,10 @@ fn project_manager_scans_package_asset_roots_as_package_uris() {
     .save(paths.manifest_path())
     .unwrap();
 
-    let project_path = paths.assets_root().join("data").join("project.json");
+    let project_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("data")
+        .join("project.json");
     fs::create_dir_all(project_path.parent().unwrap()).unwrap();
     fs::write(&project_path, r#"{ "project": true }"#).unwrap();
 
@@ -26,7 +31,11 @@ fn project_manager_scans_package_asset_roots_as_package_uris() {
         .with_package_identity("com", "zircon", "navigation");
     let mut manager = ProjectManager::open(&root).unwrap();
     manager
-        .register_package_manifest_asset_roots(&package_manifest, &package_root)
+        .register_package_asset_roots(
+            package_manifest.package_id(),
+            package_manifest.asset_roots_or_default(),
+            &package_root,
+        )
         .unwrap();
     manager.scan_and_import().unwrap();
 

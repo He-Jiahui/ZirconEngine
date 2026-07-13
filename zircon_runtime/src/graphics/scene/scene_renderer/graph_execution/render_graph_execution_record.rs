@@ -489,11 +489,40 @@ impl RenderGraphExecutionRecord {
             .sum()
     }
 
+    pub fn compute_dispatch_count_for_executor_prefix(&self, executor_prefix: &str) -> usize {
+        self.compute_dispatches_for_executor_prefix(executor_prefix)
+            .count()
+    }
+
+    pub fn compute_dispatch_group_volume_total_for_executor_prefix(
+        &self,
+        executor_prefix: &str,
+    ) -> usize {
+        self.compute_dispatches_for_executor_prefix(executor_prefix)
+            .map(RenderGraphComputeDispatchRecord::dispatch_group_volume)
+            .fold(0, usize::saturating_add)
+    }
+
+    pub fn compute_uploaded_bytes_total_for_executor_prefix(&self, executor_prefix: &str) -> u64 {
+        self.compute_dispatches_for_executor_prefix(executor_prefix)
+            .map(|dispatch| dispatch.uploaded_bytes)
+            .fold(0, u64::saturating_add)
+    }
+
     pub fn compute_storage_write_resource_count(&self) -> usize {
         self.compute_dispatches
             .iter()
             .map(|dispatch| dispatch.storage_write_resources.len())
             .sum()
+    }
+
+    fn compute_dispatches_for_executor_prefix<'a>(
+        &'a self,
+        executor_prefix: &'a str,
+    ) -> impl Iterator<Item = &'a RenderGraphComputeDispatchRecord> {
+        self.compute_dispatches
+            .iter()
+            .filter(move |dispatch| dispatch.executor_id.starts_with(executor_prefix))
     }
 
     pub fn compute_workload_planned_count(&self) -> usize {

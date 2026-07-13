@@ -3,6 +3,10 @@ use std::fmt;
 
 use zircon_runtime_interface::reflect::{ReflectError, ReflectTypeRegistration};
 
+use crate::core::framework::scene::ComponentTypeDescriptor;
+
+use super::vm_type_backing::VmTypeBacking;
+
 #[derive(Clone)]
 pub struct RuntimeTypeRegistration {
     pub registration: ReflectTypeRegistration,
@@ -78,6 +82,37 @@ impl TypeRegistry {
         })
     }
 
+    pub fn register_vm_type(
+        &mut self,
+        registration: ReflectTypeRegistration,
+        backing: VmTypeBacking,
+    ) -> Result<(), ReflectError> {
+        let plugin_id = validate_vm_registration(&registration, backing)?.to_string();
+        match backing {
+            VmTypeBacking::DynamicComponent => {
+                let mut descriptor = ComponentTypeDescriptor::new(
+                    registration.type_path.type_path.clone(),
+                    plugin_id,
+                    registration.display_name.clone(),
+                );
+                for field in &registration.type_info.fields {
+                    descriptor = descriptor.with_property(
+                        field.name.clone(),
+                        field.value_type_path.clone(),
+                        field.editable,
+                    );
+                }
+                let component =
+                    super::dynamic_component::reflect_component_for_dynamic_descriptor(&descriptor);
+                self.register(RuntimeTypeRegistration {
+                    registration,
+                    component: Some(component),
+                    resource: None,
+                })
+            }
+        }
+    }
+
     pub fn registration(&self, type_path: &str) -> Result<&ReflectTypeRegistration, ReflectError> {
         Ok(&self.runtime_registration(type_path)?.registration)
     }
@@ -91,10 +126,13 @@ impl TypeRegistry {
         }
 
         if let Some(resolved) = self.short_paths.get(type_path) {
-            return Ok(self
-                .registrations
-                .get(resolved)
-                .expect("short-path reflected type lookup must point at a registered type"));
+            if let Some(registration) = self.registrations.get(resolved) {
+                return Ok(registration);
+            }
+            return Err(ReflectError::InvalidRegistration {
+                type_path: resolved.clone(),
+                reason: format!("short type path `{type_path}` points at a missing registration"),
+            });
         }
 
         if self.ambiguous_short_paths.contains(type_path) {
@@ -167,6 +205,50 @@ impl TypeRegistry {
                     .insert(short_type_path.to_string());
             }
         }
+    }
+}
+
+fn validate_vm_registration(
+    registration: &ReflectTypeRegistration,
+    backing: VmTypeBacking,
+) -> Result<&str, ReflectError> {
+    let type_path = registration.type_path.type_path.as_str();
+    if !registration.plugin_owned {
+        return Err(invalid_vm_registration(
+            type_path,
+            "VM types must be plugin-owned",
+        ));
+    }
+    let Some(plugin_id) = registration.plugin_id.as_deref() else {
+        return Err(invalid_vm_registration(
+            type_path,
+            "VM types must declare a plugin id",
+        ));
+    };
+    if registration.type_path.plugin_id.as_deref() != Some(plugin_id) {
+        return Err(invalid_vm_registration(
+            type_path,
+            "VM type path and registration plugin ids must match",
+        ));
+    }
+
+    match backing {
+        VmTypeBacking::DynamicComponent
+            if !registration.is_component || registration.is_resource =>
+        {
+            Err(invalid_vm_registration(
+                type_path,
+                "dynamic VM backing requires a component-only registration",
+            ))
+        }
+        VmTypeBacking::DynamicComponent => Ok(plugin_id),
+    }
+}
+
+fn invalid_vm_registration(type_path: &str, reason: &str) -> ReflectError {
+    ReflectError::InvalidRegistration {
+        type_path: type_path.to_string(),
+        reason: reason.to_string(),
     }
 }
 

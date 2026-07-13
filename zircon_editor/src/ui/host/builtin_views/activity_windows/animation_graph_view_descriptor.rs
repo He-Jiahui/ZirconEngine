@@ -1,3 +1,4 @@
+use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{
@@ -11,13 +12,14 @@ pub(super) fn animation_graph_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "Animation Graph",
     )
+    .with_document_kind(DocumentKind::animation_graph())
     .with_multi_instance(true)
     .with_preferred_host(PreferredHost::DocumentCenter)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::AnimationGraphEditor,
     ))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.animation.graph.body",
+        "res://ui/editor/host/animation_graph_body.zui",
         PanePayloadKind::AnimationGraphV1,
         PaneRouteNamespace::Animation,
         PaneInteractionMode::HybridNativeSlot,

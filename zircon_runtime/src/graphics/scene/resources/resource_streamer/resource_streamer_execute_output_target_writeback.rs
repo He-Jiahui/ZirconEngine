@@ -210,6 +210,7 @@ mod tests {
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
         ViewportRenderOutputTarget, ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+        LINEAR_OUTPUT_FORMAT_LABEL,
     };
 
     use super::{
@@ -225,8 +226,13 @@ mod tests {
             size: UVec2::new(128, 72),
             format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
+        let conversion_target = ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(128, 72),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
+        };
         let ready = target.writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
-        let conversion = target.writeback_plan(Some("rgba8unorm"));
+        let conversion = conversion_target.writeback_plan(Some(LINEAR_OUTPUT_FORMAT_LABEL));
         let blocked = target.writeback_plan(Some("rgba16float"));
         let non_texture = ViewportRenderOutputTarget::PrimarySurface
             .writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL));
@@ -253,11 +259,17 @@ mod tests {
             size: UVec2::new(128, 72),
             format: FRAMEWORK_OUTPUT_FORMAT_LABEL,
         };
+        let conversion_target = ViewportRenderOutputTarget::Texture {
+            handle: texture,
+            size: UVec2::new(128, 72),
+            format: LINEAR_OUTPUT_FORMAT_LABEL,
+        };
         let ready = output_target_writeback_report_for_plan(
             &target.writeback_plan(Some(FRAMEWORK_OUTPUT_FORMAT_LABEL)),
         );
-        let conversion =
-            output_target_writeback_report_for_plan(&target.writeback_plan(Some("rgba8unorm")));
+        let conversion = output_target_writeback_report_for_plan(
+            &conversion_target.writeback_plan(Some(LINEAR_OUTPUT_FORMAT_LABEL)),
+        );
         let blocked =
             output_target_writeback_report_for_plan(&target.writeback_plan(Some("rgba16float")));
 

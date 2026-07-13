@@ -246,10 +246,7 @@ impl HubRuntimeSession {
                     "Editor launch project state is missing the project path",
                 ));
             };
-            self.remember_project(RecentProject::with_now(
-                pending_launch.target.clone(),
-                project_path,
-            ))?;
+            self.remember_project(RecentProject::with_now(project_path)?)?;
         }
         self.record_action_and_persist(HubActionRecord {
             finished_unix_ms: crate::projects::now_unix_ms(),
@@ -542,7 +539,7 @@ mod tests {
         let mut config = HubConfig::default();
         config.settings.default_source_dir = PathBuf::new();
         config.settings.default_build_output_dir = temp.join("out");
-        config.recent_projects = vec![RecentProject::new(name, project, 1)];
+        config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(

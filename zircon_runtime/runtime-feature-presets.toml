@@ -1,0 +1,171 @@
+schema_version = 1
+
+[[profiles]]
+id = "minimal"
+rust_variant = "Minimal"
+cargo_feature = "core-min"
+runtime_features = ["core-min"]
+app_features = ["zircon_runtime/core-min"]
+
+[[profiles]]
+id = "client2d"
+rust_variant = "Client2d"
+cargo_feature = "target-client"
+runtime_features = [
+    "core-min",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+app_features = [
+    "zircon_runtime/target-client",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+
+[[profiles]]
+id = "client3d"
+rust_variant = "Client3d"
+cargo_feature = "target-client"
+runtime_features = [
+    "core-min",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+app_features = [
+    "zircon_runtime/target-client",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+
+[[profiles]]
+id = "editor"
+rust_variant = "Editor"
+cargo_feature = "target-editor-host"
+runtime_features = [
+    "core-min",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+app_features = [
+    "zircon_runtime/target-editor-host",
+    "first-party-advanced-render-runtime-plugins",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "dep:zircon_editor",
+    "default-platform",
+]
+
+[[profiles]]
+id = "dev"
+rust_variant = "Dev"
+cargo_feature = "target-editor-host"
+runtime_features = [
+    "core-min",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+app_features = [
+    "zircon_runtime/target-editor-host",
+    "first-party-advanced-render-runtime-plugins",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "dep:zircon_editor",
+    "default-platform",
+]
+
+[[profiles]]
+id = "server"
+rust_variant = "Server"
+cargo_feature = "target-server"
+runtime_features = ["core-min", "diagnostic-log", "platform-headless"]
+app_features = [
+    "zircon_runtime/target-server",
+    "diagnostic-log",
+    "platform-headless",
+]

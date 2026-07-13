@@ -34,10 +34,6 @@ fn runtime_15_module_layout_historical_status_rows_are_current() {
             "module convention doc",
             "docs/zircon_runtime/structure/module-convention.md",
         ),
-        (
-            "session note",
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-        ),
     ] {
         let source = read_repo(path);
         assert_contains_all(label, &source, &historical_anchors);

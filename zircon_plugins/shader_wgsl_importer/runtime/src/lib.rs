@@ -76,7 +76,7 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zircon_runtime::plugin::ExportPackagingStrategy;
+    use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 
     #[test]
     fn package_declares_wgsl_importer() {

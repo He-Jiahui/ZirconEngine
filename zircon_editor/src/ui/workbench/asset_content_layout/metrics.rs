@@ -1,7 +1,10 @@
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorDensityTokens};
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
-use super::AssetContentSurfaceProfile;
+use super::{
+    AssetContentSurfaceProfile, BROWSER_CONTENT_LIST_ROW_HEIGHT,
+    BROWSER_CONTENT_TABLE_HEADER_HEIGHT,
+};
 use crate::ui::workbench::snapshot::AssetViewMode;
 
 const BROWSER_HEADER_VERTICAL_GAP_COUNT: f32 = 2.0;
@@ -27,6 +30,16 @@ impl AssetContentLayoutMetrics {
     ) -> Self {
         let density = EditorDensityTokens::workbench_dense();
         let controls = EditorControlTokens::workbench_dense();
+        if surface == AssetContentSurfaceProfile::Browser && view_mode == AssetViewMode::List {
+            return Self {
+                viewport_offset_y: BROWSER_CONTENT_TABLE_HEADER_HEIGHT,
+                row_x: 0.0,
+                row_y: 0.0,
+                row_gap: 0.0,
+                folder_height: BROWSER_CONTENT_LIST_ROW_HEIGHT,
+                item_height: BROWSER_CONTENT_LIST_ROW_HEIGHT,
+            };
+        }
         let browser_header_height =
             density.row_height + density.gap_large * BROWSER_HEADER_VERTICAL_GAP_COUNT;
         let viewport_offset_y = match surface {

@@ -662,17 +662,17 @@ fn plugin_api_table_records_optional_event_callback() {
 
 #[test]
 fn plugin_event_callback_request_preserves_payload_slices() {
-    let request = ZrPluginEventCallbackRequestV1::new(
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
-        ZrByteSlice::from_static(b"sound.dynamic_events"),
-        ZrByteSlice::from_static(b"native_sound"),
-        ZrByteSlice::from_static(b"impact"),
-        ZrByteSlice::from_static(b"sound.dynamic.impact"),
-        ZrByteSlice::from_static(b"Timeline/Combat/Impact"),
-        1.25,
-        ZrByteSlice::from_static(b"sound.dynamic.impact.v1"),
-        ZrByteSlice::from_static(b"{\"gain\":0.5}"),
-    );
+    let request = ZrPluginEventCallbackRequestV1 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+        namespace: ZrByteSlice::from_static(b"sound.dynamic_events"),
+        plugin_id: ZrByteSlice::from_static(b"native_sound"),
+        handler_id: ZrByteSlice::from_static(b"impact"),
+        event_id: ZrByteSlice::from_static(b"sound.dynamic.impact"),
+        source_path: ZrByteSlice::from_static(b"Timeline/Combat/Impact"),
+        time_seconds: 1.25,
+        payload_schema: ZrByteSlice::from_static(b"sound.dynamic.impact.v1"),
+        payload: ZrByteSlice::from_static(b"{\"gain\":0.5}"),
+    };
     let result = ZrPluginEventCallbackResultV1::failed(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         ZrByteSlice::from_static(b"handler rejected event"),
@@ -1506,7 +1506,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
             wrap: UiTextWrap::Word,
             text_direction: crate::ui::surface::UiTextDirection::Auto,
             text_overflow: crate::ui::surface::UiTextOverflow::Ellipsis,
-            rich_text: true,
+            rich_text_format: crate::ui::surface::UiRichTextFormat::Markdown,
             ..UiResolvedStyle::default()
         },
         text_layout: Some(crate::ui::surface::UiResolvedTextLayout {
@@ -1538,6 +1538,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
                 }],
                 ellipsized: false,
             }],
+            boxes: Vec::new(),
             overflow_clipped: false,
             editable: Some(editable),
         }),
@@ -1841,7 +1842,7 @@ fn ui_input_event_contract_constructs_every_event_family() {
             kind: UiDragDropInputEventKind::Drop,
             session_id: Some(UiDragSessionId::new(42)),
             point: UiPoint::new(4.0, 8.0),
-            payload: Some(payload),
+            payload: Some(Box::new(payload)),
         }),
         UiInputEvent::Popup(UiPopupInputEvent {
             metadata: metadata.clone(),
@@ -2299,10 +2300,10 @@ fn ui_input_payloads_round_trip_through_serde() {
         kind: UiDragDropInputEventKind::Over,
         session_id: Some(UiDragSessionId::new(12)),
         point: UiPoint::new(9.0, 10.0),
-        payload: Some(UiDragPayload::new(
+        payload: Some(Box::new(UiDragPayload::new(
             UiDragPayloadKind::SceneInstance,
             "scene://entity/hero",
-        )),
+        ))),
     });
     let popup = UiInputEvent::Popup(UiPopupInputEvent {
         metadata: metadata.clone(),

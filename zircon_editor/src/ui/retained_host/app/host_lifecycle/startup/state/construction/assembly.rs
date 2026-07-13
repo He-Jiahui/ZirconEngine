@@ -33,6 +33,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         resource_change_events,
     } = startup_managers;
     let interaction = StartupInteractionState::new(viewport_size);
+    let editor_jobs = editor_manager.context().jobs().clone();
+    viewport.bind_jobs(editor_jobs.clone());
 
     RetainedEditorHost {
         ui,
@@ -43,10 +45,10 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         runtime_client,
         module_plugin_live_host_backend: Box::new(native_plugin_live_host),
         desktop_export_reports: BTreeMap::new(),
-        desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
+        desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
         desktop_export_output_overrides: BTreeMap::new(),
         desktop_export_wizard_sessions:
-            build_export_wizard_session::DesktopExportWizardSessions::default(),
+            build_export_wizard_session::DesktopExportWizardSessions::new(editor_jobs),
         viewport,
         asset_manager,
         editor_asset_manager,

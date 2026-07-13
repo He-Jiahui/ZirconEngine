@@ -1,7 +1,7 @@
 mod presence;
 mod strategies;
 
-use crate::plugin::ExportPackagingStrategy;
+use crate::core::framework::project::ExportPackagingStrategy;
 
 use self::{
     presence::validate_runtime_plugin_default_packaging_presence,

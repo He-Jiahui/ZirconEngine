@@ -15,7 +15,7 @@ const HYBRID_GI_HZB_TRACE_MAGIC: u32 = 0x48475a42u;
 const TRACE_DEPTH_SOURCE_VALID_FLAG: u32 = 1u;
 const TRACE_HZB_TILE_GRID_EXTENT: u32 = 8u;
 const TRACE_HZB_TILE_WORD_OFFSET: u32 = 64u;
-const TRACE_HZB_TILE_WORD_COUNT: u32 = 7u;
+const TRACE_HZB_TILE_WORD_COUNT: u32 = 8u;
 const TRACE_HZB_TILE_HIT_FLAG: u32 = 1u << 8u;
 const TRACE_SURFACE_CACHE_HIT_FLAG: u32 = 1u << 10u;
 const TRACE_VOXEL_FALLBACK_FLAG: u32 = 1u << 11u;
@@ -23,11 +23,17 @@ const TRACE_RADIANCE_VALID_FLAG: u32 = 1u << 12u;
 const DEPTH_Q24_MAX: f32 = 16777215.0;
 const SCENE_SIGNATURE_MASK: u32 = 1023u;
 const SCENE_SIGNATURE_SCALE: f32 = 1.0 / 1023.0;
-const TRACE_SOURCE_NONE: f32 = 0.0;
-const TRACE_SOURCE_SURFACE_CACHE: f32 = 1.0;
-const TRACE_SOURCE_VOXEL: f32 = 2.0;
-const TRACE_SOURCE_SCREEN_HIT: f32 = 3.0;
-const TRACE_SOURCE_DEPTH_FALLBACK: f32 = 4.0;
+const TRACE_SOURCE_NONE: u32 = 0u;
+const TRACE_SOURCE_SURFACE_CACHE: u32 = 1u;
+const TRACE_SOURCE_VOXEL: u32 = 2u;
+const TRACE_SOURCE_SCREEN_HIT: u32 = 3u;
+const TRACE_SOURCE_DEPTH_FALLBACK: u32 = 4u;
+const TEMPORAL_NORMAL_CODE_MASK: u32 = 63u;
+const TEMPORAL_SOURCE_STRIDE: u32 = 64u;
+const TEMPORAL_NORMAL_DOT_THRESHOLD: f32 = 0.75;
+const SPATIAL_DEPTH_REJECTION_THRESHOLD: f32 = 0.02;
+const SPATIAL_SIGNATURE_REJECTION_THRESHOLD: f32 = 0.00075;
+const DEFAULT_NORMAL_CODE: u32 = 36u;
 const RESET_CONFIDENCE: f32 = 0.25;
 
 struct VertexOutput {
@@ -38,8 +44,9 @@ struct VertexOutput {
 struct CurrentGiSample {
     radiance: vec3<f32>,
     depth: f32,
-    source: f32,
+    source: u32,
     signature: f32,
+    normal_code: u32,
     valid: f32,
 };
 
@@ -102,12 +109,49 @@ fn normalized_support_signature(signature: u32) -> f32 {
     return f32(signature & SCENE_SIGNATURE_MASK) * SCENE_SIGNATURE_SCALE;
 }
 
+fn sign_not_zero(value: vec2<f32>) -> vec2<f32> {
+    return vec2<f32>(select(-1.0, 1.0, value.x >= 0.0), select(-1.0, 1.0, value.y >= 0.0));
+}
+
+fn decode_octahedral_normal_6bit(code: u32) -> vec3<f32> {
+    var projected = vec2<f32>(
+        f32(code & 7u),
+        f32((code >> 3u) & 7u),
+    ) / 7.0 * 2.0 - vec2<f32>(1.0);
+    var normal = vec3<f32>(
+        projected,
+        1.0 - abs(projected.x) - abs(projected.y),
+    );
+    if (normal.z < 0.0) {
+        projected = (vec2<f32>(1.0) - abs(projected.yx)) * sign_not_zero(projected.xy);
+        normal = vec3<f32>(projected, normal.z);
+    }
+    return normalize(normal);
+}
+
+fn pack_temporal_source_and_normal(source: u32, normal_code: u32) -> f32 {
+    return f32(source * TEMPORAL_SOURCE_STRIDE + (normal_code & TEMPORAL_NORMAL_CODE_MASK));
+}
+
+fn unpack_temporal_source_and_normal(packed: f32) -> vec2<u32> {
+    let value = u32(max(packed, 0.0) + 0.5);
+    return vec2<u32>(value / TEMPORAL_SOURCE_STRIDE, value & TEMPORAL_NORMAL_CODE_MASK);
+}
+
+fn temporal_normal_matches(current_code: u32, history_code: u32) -> bool {
+    return dot(
+        decode_octahedral_normal_6bit(current_code),
+        decode_octahedral_normal_6bit(history_code),
+    ) >= TEMPORAL_NORMAL_DOT_THRESHOLD;
+}
+
 fn invalid_current_sample() -> CurrentGiSample {
     return CurrentGiSample(
         vec3<f32>(0.0),
         1.0,
         TRACE_SOURCE_NONE,
         current_scene_signature(),
+        DEFAULT_NORMAL_CODE,
         0.0,
     );
 }
@@ -144,6 +188,7 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
         );
         let tile_flags = hybrid_gi_trace_words[tile_word_offset + 3u];
         let support_signature = hybrid_gi_trace_words[tile_word_offset + 6u];
+        let normal_code = hybrid_gi_trace_words[tile_word_offset + 7u] & TEMPORAL_NORMAL_CODE_MASK;
         let signature = select(
             fallback_signature,
             normalized_support_signature(support_signature),
@@ -157,6 +202,7 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
                     depth,
                     TRACE_SOURCE_SURFACE_CACHE,
                     signature,
+                    normal_code,
                     1.0,
                 );
             }
@@ -166,6 +212,7 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
                     depth,
                     TRACE_SOURCE_VOXEL,
                     signature,
+                    normal_code,
                     1.0,
                 );
             }
@@ -176,6 +223,7 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
                 depth,
                 TRACE_SOURCE_SCREEN_HIT,
                 signature,
+                normal_code,
                 1.0,
             );
         }
@@ -184,6 +232,7 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
             depth,
             TRACE_SOURCE_NONE,
             signature,
+            normal_code,
             0.0,
         );
     }
@@ -194,10 +243,66 @@ fn current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
             clamp(f32(hybrid_gi_trace_words[4]) / DEPTH_Q24_MAX, 0.0, 1.0),
             TRACE_SOURCE_DEPTH_FALLBACK,
             fallback_signature,
+            DEFAULT_NORMAL_CODE,
             1.0,
         );
     }
     return invalid_current_sample();
+}
+
+fn current_gi_sample_at_tile(tile_coord: vec2<u32>) -> CurrentGiSample {
+    let tile_uv =
+        (vec2<f32>(tile_coord) + vec2<f32>(0.5)) / f32(TRACE_HZB_TILE_GRID_EXTENT);
+    return current_gi_sample(tile_uv);
+}
+
+fn spatial_sample_is_compatible(center: CurrentGiSample, candidate: CurrentGiSample) -> bool {
+    if (candidate.valid == 0.0 || candidate.source != center.source) {
+        return false;
+    }
+    if (abs(candidate.depth - center.depth) > SPATIAL_DEPTH_REJECTION_THRESHOLD ||
+        abs(candidate.signature - center.signature) >= SPATIAL_SIGNATURE_REJECTION_THRESHOLD) {
+        return false;
+    }
+    return temporal_normal_matches(center.normal_code, candidate.normal_code);
+}
+
+fn spatial_kernel_weight(offset: vec2<i32>) -> f32 {
+    let x_weight = select(1.0, 2.0, offset.x == 0);
+    let y_weight = select(1.0, 2.0, offset.y == 0);
+    return x_weight * y_weight;
+}
+
+fn spatially_filtered_current_gi_sample(uv: vec2<f32>) -> CurrentGiSample {
+    let center = current_gi_sample(uv);
+    if (center.valid == 0.0 || hybrid_gi_trace_words[10] != HYBRID_GI_HZB_TRACE_MAGIC) {
+        return center;
+    }
+
+    let center_coord = vec2<i32>(trace_tile_coord(uv));
+    var radiance_sum = vec3<f32>(0.0);
+    var weight_sum = 0.0;
+    for (var offset_y = -1; offset_y <= 1; offset_y += 1) {
+        for (var offset_x = -1; offset_x <= 1; offset_x += 1) {
+            let offset = vec2<i32>(offset_x, offset_y);
+            let candidate_coord = center_coord + offset;
+            if (any(candidate_coord < vec2<i32>(0)) ||
+                any(candidate_coord >= vec2<i32>(i32(TRACE_HZB_TILE_GRID_EXTENT)))) {
+                continue;
+            }
+            let candidate = current_gi_sample_at_tile(vec2<u32>(candidate_coord));
+            if (!spatial_sample_is_compatible(center, candidate)) {
+                continue;
+            }
+            let weight = spatial_kernel_weight(offset);
+            radiance_sum += candidate.radiance * weight;
+            weight_sum += weight;
+        }
+    }
+
+    var filtered = center;
+    filtered.radiance = radiance_sum / max(weight_sum, 1.0);
+    return filtered;
 }
 
 fn reproject_history_pixel(coord: vec2<u32>, velocity: vec2<f32>, size: vec2<u32>) -> vec2<f32> {
@@ -226,9 +331,11 @@ fn temporal_history_weight(
     }
     let depth_matches =
         abs(history_metadata.x - current.depth) <= temporal_params.blend_and_rejection.z;
-    let source_matches = abs(history_metadata.y - current.source) < 0.25;
+    let history_source_and_normal = unpack_temporal_source_and_normal(history_metadata.y);
+    let source_matches = history_source_and_normal.x == current.source;
+    let normal_matches = temporal_normal_matches(current.normal_code, history_source_and_normal.y);
     let signature_matches = abs(history_metadata.z - current.signature) < 0.00075;
-    if (!depth_matches || !source_matches || !signature_matches) {
+    if (!depth_matches || !source_matches || !normal_matches || !signature_matches) {
         return 0.0;
     }
 
@@ -268,7 +375,7 @@ fn fs_main(input: VertexOutput) -> HybridGiTemporalResolveOutput {
         vec2<u32>(u32(input.position.x), u32(input.position.y)),
         size - vec2<u32>(1u),
     );
-    let current = current_gi_sample(input.uv);
+    let current = spatially_filtered_current_gi_sample(input.uv);
     let velocity = textureLoad(scene_velocity_tex, vec2<i32>(coord), 0).xy;
     let history_pixel = reproject_history_pixel(coord, velocity, size);
     let history_coord = clamp_coord(
@@ -297,7 +404,7 @@ fn fs_main(input: VertexOutput) -> HybridGiTemporalResolveOutput {
     output.lighting = vec4<f32>(resolved, 1.0);
     output.temporal_metadata = vec4<f32>(
         current.depth,
-        current.source,
+        pack_temporal_source_and_normal(current.source, current.normal_code),
         current.signature,
         confidence,
     );

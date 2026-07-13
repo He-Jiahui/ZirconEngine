@@ -8,17 +8,19 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::{
-    AlphaMode, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
+    AlphaMode, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
+    AssetImporterDescriptor, AssetKind, AssetReference, AssetUri, FunctionAssetImporter,
+    ImportedAsset, MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+};
+use crate::core::framework::animation::{
+    AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
     AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
     AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetImportContext,
-    AssetImportError, AssetImportOutcome, AssetImporter, AssetImporterDescriptor, AssetKind,
-    AssetReference, AssetUri, FunctionAssetImporter, ImportedAsset, MaterialAsset,
-    PhysicsMaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
-    SceneMobilityAsset, SoundAsset, TransformAsset, UiV2ComponentAsset, UiV2StyleAsset,
-    UiV2ViewAsset,
+    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
+    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
@@ -67,6 +69,7 @@ pub(crate) fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
     importer
 }
 
+#[cfg(feature = "ui")]
 pub(crate) fn ui_document_importer_fixture() -> FunctionAssetImporter {
     FunctionAssetImporter::new(
         AssetImporterDescriptor::new(
@@ -83,6 +86,7 @@ pub(crate) fn ui_document_importer_fixture() -> FunctionAssetImporter {
     )
 }
 
+#[cfg(feature = "ui")]
 fn import_ui_zui_document_fixture(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
@@ -433,18 +437,24 @@ pub(crate) fn sample_animation_state_machine_asset() -> AnimationStateMachineAss
         entry_state: "Locomotion".to_string(),
         states: vec![AnimationStateAsset {
             name: "Locomotion".to_string(),
-            graph: asset_reference("res://animation/hero.graph.zranim"),
+            kind: AnimationStateKindAsset::GraphRef {
+                graph: asset_reference("res://animation/hero.graph.zranim"),
+            },
         }],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Locomotion".to_string(),
             to_state: "Locomotion".to_string(),
             duration_seconds: 0.1,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "advance".to_string(),
-                operator: crate::asset::AnimationConditionOperatorAsset::Triggered,
+                operator:
+                    crate::core::framework::animation::AnimationConditionOperatorAsset::Triggered,
                 value: None,
             }],
         }],
+        layers: Vec::new(),
     }
 }
 

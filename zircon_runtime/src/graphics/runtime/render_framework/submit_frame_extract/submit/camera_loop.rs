@@ -1,9 +1,9 @@
 use crate::core::framework::render::{
-    resolve_camera_sequence_borrowed, CameraRenderDescriptor, CameraSequenceEntry,
-    PostProcessExtract, PostProcessPassGraph, PostProcessStackDescriptor, PostProcessVolumeExtract,
-    RenderBloomSettings, RenderCameraTarget, RenderColorGradingSettings, RenderFrameExtract,
-    RenderFrameworkError, RenderHybridGiExtract, RenderPostProcessEffectStackSettings,
-    RenderViewportHandle, RenderVirtualGeometryExtract,
+    derive_planar_reflection_camera, resolve_camera_sequence_borrowed, CameraRenderDescriptor,
+    CameraSequenceEntry, PlanarReflectionUpdateState, PostProcessExtract, PostProcessPassGraph,
+    PostProcessStackDescriptor, PostProcessVolumeExtract, RenderBloomSettings, RenderCameraTarget,
+    RenderColorGradingSettings, RenderFrameExtract, RenderFrameworkError, RenderHybridGiExtract,
+    RenderPostProcessEffectStackSettings, RenderViewportHandle, RenderVirtualGeometryExtract,
 };
 use crate::graphics::visibility::FrameVisibility;
 use crate::graphics::{
@@ -29,11 +29,12 @@ pub(super) fn submit_camera_loop(
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
-    let submissions = camera_loop_submissions(&extract)?;
-    stream_camera_loop_extract_submissions(
+    let plan = camera_loop_submissions_for_submit(framework, &extract)?;
+    let submission_count = plan.submissions.len();
+    let result = stream_camera_loop_extract_submissions(
         extract,
         ui,
-        submissions,
+        plan.submissions,
         |extract, source_payloads, ui, output_policy| {
             submit_selected_camera(
                 framework,
@@ -44,7 +45,11 @@ pub(super) fn submit_camera_loop(
                 output_policy,
             )
         },
-    )
+    );
+    if result.is_ok() {
+        record_successful_camera_loop(framework, submission_count, &plan.planar_probe_ids);
+    }
+    result
 }
 
 pub(super) fn viewport_terminal_camera_target(
@@ -65,7 +70,13 @@ pub(super) fn viewport_terminal_camera_target(
 fn camera_loop_submissions(
     extract: &RenderFrameExtract,
 ) -> Result<Vec<CameraLoopSubmission>, RenderFrameworkError> {
-    let sequence = resolve_camera_sequence_borrowed(&extract.view.cameras);
+    camera_loop_submissions_from_cameras(&extract.view.cameras)
+}
+
+fn camera_loop_submissions_from_cameras(
+    cameras: &[CameraRenderDescriptor],
+) -> Result<Vec<CameraLoopSubmission>, RenderFrameworkError> {
+    let sequence = resolve_camera_sequence_borrowed(cameras);
     if sequence.sequence.is_empty() {
         return Err(RenderFrameworkError::UnsupportedCapability {
             capability: "active camera sequence".to_string(),
@@ -91,21 +102,85 @@ pub(super) fn submit_camera_loop_frame(
         CameraLoopOutputPolicy,
     ) -> Result<(), RenderFrameworkError>,
 ) -> Result<(), RenderFrameworkError> {
-    let submissions = match camera_loop_submissions(&frame.extract) {
-        Ok(submissions) => submissions,
+    let plan = match camera_loop_submissions_for_submit(framework, &frame.extract) {
+        Ok(plan) => plan,
         Err(error) => {
             fail_preflight_error(framework, viewport, &error);
             return Err(error);
         }
     };
 
-    stream_camera_loop_frame_submissions(
+    let submission_count = plan.submissions.len();
+    let result = stream_camera_loop_frame_submissions(
         frame,
-        submissions,
+        plan.submissions,
         |frame, source_payloads, output_policy| {
             submit_selected_frame(framework, viewport, frame, source_payloads, output_policy)
         },
-    )
+    );
+    if result.is_ok() {
+        record_successful_camera_loop(framework, submission_count, &plan.planar_probe_ids);
+    }
+    result
+}
+
+struct CameraLoopSubmissionPlan {
+    submissions: Vec<CameraLoopSubmission>,
+    planar_probe_ids: Vec<u64>,
+}
+
+fn camera_loop_submissions_for_submit(
+    framework: &WgpuRenderFramework,
+    extract: &RenderFrameExtract,
+) -> Result<CameraLoopSubmissionPlan, RenderFrameworkError> {
+    let updates = framework.lock_planar_reflection_updates();
+    camera_loop_submissions_with_planar_updates(extract, &updates)
+}
+
+fn camera_loop_submissions_with_planar_updates(
+    extract: &RenderFrameExtract,
+    updates: &PlanarReflectionUpdateState,
+) -> Result<CameraLoopSubmissionPlan, RenderFrameworkError> {
+    let mut cameras = extract.view.cameras.clone();
+    let mut planar_probe_ids = Vec::new();
+    if let Some(main_camera) = extract.view.selected_camera_descriptor() {
+        for probe in &extract.lighting.advanced_lighting.planar_probes {
+            let Some(target) = probe.capture_target() else {
+                continue;
+            };
+            let already_submitted = cameras.iter().any(|camera| {
+                matches!(&camera.target, RenderCameraTarget::Texture(existing) if *existing == target)
+            });
+            if !updates.should_capture(probe) || already_submitted {
+                continue;
+            }
+            if let Some(camera) = derive_planar_reflection_camera(main_camera, probe, target) {
+                cameras.push(camera);
+                planar_probe_ids.push(probe.probe_id);
+            }
+        }
+    }
+    Ok(CameraLoopSubmissionPlan {
+        submissions: camera_loop_submissions_from_cameras(&cameras)?,
+        planar_probe_ids,
+    })
+}
+
+fn record_successful_camera_loop(
+    framework: &WgpuRenderFramework,
+    submission_count: usize,
+    planar_probe_ids: &[u64],
+) {
+    {
+        let mut updates = framework.lock_planar_reflection_updates();
+        for probe_id in planar_probe_ids {
+            updates.mark_captured(*probe_id);
+        }
+    }
+    framework
+        .lock_state()
+        .stats
+        .last_camera_loop_submission_count = submission_count;
 }
 
 fn stream_camera_loop_frame_submissions(

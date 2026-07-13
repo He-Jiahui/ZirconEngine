@@ -7,12 +7,13 @@ use super::super::default_desktop_export_output_root;
 use super::super::output_folder::{
     pick_output_folder, reveal_path_in_file_browser, stable_picker_initial_dir,
 };
+use super::super::DesktopExportActionError;
 
 impl RetainedEditorHost {
     pub(super) fn choose_desktop_export_output(&mut self, profile_name: &str) {
         let project_path = self.runtime.editor_snapshot().project_path;
         let result = project_root_path(&project_path)
-            .map_err(|error| error.to_string())
+            .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {
                 let current_output =
                     self.effective_desktop_export_output_root(&project_root, profile_name);
@@ -40,15 +41,15 @@ impl RetainedEditorHost {
     pub(super) fn reveal_desktop_export_output(&mut self, profile_name: &str) {
         let project_path = self.runtime.editor_snapshot().project_path;
         let result = project_root_path(&project_path)
-            .map_err(|error| error.to_string())
+            .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {
                 let output_root =
                     self.effective_desktop_export_output_root(&project_root, profile_name);
-                std::fs::create_dir_all(&output_root).map_err(|error| {
-                    format!(
-                        "failed to create desktop export output folder {}: {error}",
-                        output_root.display()
-                    )
+                std::fs::create_dir_all(&output_root).map_err(|source| {
+                    DesktopExportActionError::CreateOutput {
+                        path: output_root.clone(),
+                        source,
+                    }
                 })?;
                 reveal_path_in_file_browser(&output_root)?;
                 Ok(output_root)

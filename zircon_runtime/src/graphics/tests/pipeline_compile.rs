@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    AntiAliasSettings, FallbackSkyboxKind, PostProcessGraphResourceNames,
+    AntiAliasSettings, CorePipelineKind, FallbackSkyboxKind, PostProcessGraphResourceNames,
     PostProcessStackDescriptor, PreviewEnvironmentExtract, ProjectionMode, RenderCameraTarget,
     RenderDynamicResolutionSettings, RenderFrameExtract, RenderPhase,
     RenderPostProcessEffectStackSettings, RenderSceneGeometryExtract, RenderSceneSnapshot,
@@ -312,11 +312,12 @@ fn graph_resource_lifetime<'a>(
 }
 
 fn orthographic_extract() -> RenderFrameExtract {
-    RenderFrameExtract::from_snapshot(
+    let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(2),
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
                 camera: ViewportCameraSnapshot {
+                    core_pipeline: CorePipelineKind::Core2d,
                     projection_mode: ProjectionMode::Orthographic,
                     ..ViewportCameraSnapshot::default()
                 },
@@ -337,5 +338,7 @@ fn orthographic_extract() -> RenderFrameExtract {
             },
             virtual_geometry_debug: None,
         },
-    )
+    );
+    extract.view.core_pipeline = extract.view.camera.core_pipeline_kind();
+    extract
 }

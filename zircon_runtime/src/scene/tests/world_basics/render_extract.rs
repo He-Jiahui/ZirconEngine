@@ -36,7 +36,7 @@ fn mesh_renderer_sort_fields_feed_geometry_phase_queue() {
     let material_later = world.spawn_node(NodeKind::Mesh);
 
     let fixtures = [
-        (render_first, -10, 90, 90, 0.0),
+        (render_first, -10, 0, 90, 0.0),
         (depth_earlier, 0, 0, 0, 2.0),
         (depth_later, 0, 0, 0, 0.0),
         (order_middle, 0, 0, 10, 0.0),

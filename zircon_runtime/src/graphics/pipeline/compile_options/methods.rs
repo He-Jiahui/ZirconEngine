@@ -1,4 +1,6 @@
-use crate::core::framework::render::{IblBakeArtifactRequest, PostProcessStackDescriptor};
+use crate::core::framework::render::{
+    IblBakeArtifactRequest, PostProcessStackDescriptor, ShaderQualityTier,
+};
 use crate::render_graph::QueueLane;
 
 use crate::graphics::feature::{
@@ -64,6 +66,11 @@ impl RenderPipelineCompileOptions {
 
     pub fn without_graph_msaa_sample_count(mut self) -> Self {
         self.graph_msaa_sample_count = None;
+        self
+    }
+
+    pub fn with_shader_quality(mut self, quality: ShaderQualityTier) -> Self {
+        self.shader_quality = quality;
         self
     }
 

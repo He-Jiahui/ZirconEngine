@@ -3,11 +3,12 @@ use std::time::Duration;
 
 use crate::core::math::Real;
 use crate::core::CoreRuntime;
-use crate::plugin::{
-    RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
-    SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
-};
+use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{create_default_level, module_descriptor, SystemStage, SCENE_MODULE_NAME};
+use crate::scene::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
+};
 
 #[test]
 fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
@@ -78,7 +79,11 @@ fn install_fixed_update_recorder(runtime: &CoreRuntime, events: Arc<Mutex<Vec<Re
             FixedUpdateRecorder { events },
         ))
         .unwrap();
-    runtime.install_scene_runtime_hooks(&registry).unwrap();
+    crate::scene::install_scene_runtime_hooks(
+        &runtime.handle(),
+        registry.scene_hooks().iter().cloned(),
+    )
+    .unwrap();
 }
 
 #[derive(Debug)]

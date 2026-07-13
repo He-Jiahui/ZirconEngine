@@ -20,8 +20,7 @@ pub(super) const IMPORTER_REVIEW: &str = "review_d13_native_fixture_importer_is_
 
 pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_SLICE: &str =
     "Runtime 15 M3 P0 native fixture leaf-owner root inventory child split";
-pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_STATUS: &str =
-    "runtime_15_p0_native_fixture_leaf_owner_root_inventory_child_split_static_passed_cargo_deferred";
+pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_STATUS: &str = "runtime_15_p0_native_fixture_leaf_owner_root_inventory_child_split_static_passed_cargo_deferred";
 pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_DATE: &str = "2026-07-04";
 pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_GUARD: &str =
     "runtime_15_p0_native_fixture_leaf_owner_root_inventory_is_child_owned";

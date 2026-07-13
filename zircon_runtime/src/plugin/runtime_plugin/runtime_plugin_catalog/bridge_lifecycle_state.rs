@@ -1,4 +1,6 @@
-use crate::plugin::{BridgeOwnerTransitionMode, BridgeTableDiagnosticsSummary, FrozenBridgeTable};
+use crate::core::framework::bridge::BridgeOwnerTransitionMode;
+use crate::core::{RuntimeModuleLifecycleBlock, RuntimeModuleLifecycleObserver};
+use crate::plugin::{BridgeTableDiagnosticsSummary, FrozenBridgeTable};
 
 use super::{
     RuntimeExtensionCatalogReport, RuntimePluginBridgeLifecycleError,
@@ -174,5 +176,27 @@ impl RuntimePluginBridgeLifecycleState {
             &self.bridge_table,
             provider_package_id,
         )
+    }
+}
+
+impl RuntimeModuleLifecycleObserver for RuntimePluginBridgeLifecycleState {
+    fn runtime_module_activated(&self, module_name: &str) {
+        if let Some(provider_package_id) = self.provider_package_id_for_runtime_module(module_name)
+        {
+            self.activate_provider_at_frame_boundary(&provider_package_id);
+        }
+    }
+
+    fn runtime_module_deactivating(
+        &self,
+        module_name: &str,
+    ) -> Result<(), RuntimeModuleLifecycleBlock> {
+        let Some(provider_package_id) = self.provider_package_id_for_runtime_module(module_name)
+        else {
+            return Ok(());
+        };
+        self.deactivate_provider_at_frame_boundary(&provider_package_id)
+            .map(|_| ())
+            .map_err(|error| RuntimeModuleLifecycleBlock::new(error.diagnostic()))
     }
 }

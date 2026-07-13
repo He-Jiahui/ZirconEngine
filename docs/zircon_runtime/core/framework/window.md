@@ -21,15 +21,15 @@ related_code:
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
-  - zircon_app/src/entry/runtime_entry_app/config.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy/control_flow.rs
+  - zircon_app/src/entry/runtime_entry_app/config/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/builder.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/fullscreen.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/monitor.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/position.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/video_mode.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
 implementation_files:
   - zircon_runtime/src/core/framework/window/mod.rs
@@ -48,9 +48,9 @@ implementation_files:
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
-  - zircon_app/src/entry/runtime_entry_app/config.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
+  - zircon_app/src/entry/runtime_entry_app/config/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy/control_flow.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/builder.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/fullscreen.rs
@@ -73,9 +73,9 @@ tests:
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
-  - zircon_app/src/entry/runtime_entry_app/config.rs
-  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/config/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy/control_flow.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/builder.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes/fullscreen.rs
@@ -143,9 +143,9 @@ The first app-host conversion lives in `zircon_app/src/entry/runtime_entry_app/w
 
 The runtime-preview host now consumes the descriptor through `RuntimeEntryAppConfig` instead of constructing only `WindowDescriptor::default()` internally. `zircon_app/src/entry/entry_runner/runtime.rs` derives this config from the already-parsed runtime session profile: `runtime` keeps the default primary window, `EventLoopPolicy::Game`, and `WindowLifecyclePolicy::default()`; `editor` and `dev` keep the primary window and use `EventLoopPolicy::DesktopApp`; `minimal` and `headless` use `WindowDescriptor::without_primary_window()`, `EventLoopPolicy::Headless`, and `WindowExitCondition::DontExit`. `ApplicationHandler::can_create_surfaces()` checks `primary_window` before calling winit window creation, so profile-level no-window policy reaches the concrete host path. `RuntimeEntryAppConfig` carries Bevy-style close/exit policy through `WindowLifecyclePolicy`, whose default keeps `close_when_requested = true` like `WindowPlugin::close_when_requested`.
 
-Event-loop update mode remains a separate platform policy rather than a window descriptor field. `zircon_runtime::platform::EventLoopPolicy` names the runtime-facing policy, while `zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs` owns the current winit `ControlFlow` mapping for the runtime-preview host.
+Event-loop update mode remains a separate platform policy rather than a window descriptor field. `zircon_runtime::platform::EventLoopPolicy` names the runtime-facing policy, while `zircon_app/src/entry/runtime_entry_app/event_loop_policy/control_flow.rs` owns the current winit `ControlFlow` mapping for the runtime-preview host.
 
-Window lifecycle forwarding is host behavior layered on top of the neutral descriptor and lifecycle policy. `zircon_app/src/entry/runtime_entry_app/application_handler.rs` keeps close, destroyed, moved, occluded, theme, scale-factor, and focus changes in the winit host surface, then emits neutral `ZrRuntimeEventV1` records. The close path forwards `window_close_requested` before applying `WindowLifecyclePolicy::should_close_on_request()` and `should_exit_after_primary_close()`; focus maps to foreground/background lifecycle states; scale-factor changes keep backend and logical notifications separate. This mirrors Bevy's separation between `bevy_window` event vocabulary/policy and `bevy_winit` event translation in `dev/bevy/crates/bevy_window/src/event.rs`, `dev/bevy/crates/bevy_window/src/lib.rs`, `dev/bevy/crates/bevy_window/src/system.rs`, and `dev/bevy/crates/bevy_winit/src/state.rs`.
+Window lifecycle forwarding is host behavior layered on top of the neutral descriptor and lifecycle policy. `zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs` keeps close, destroyed, moved, occluded, theme, scale-factor, and focus changes in the winit host surface, then emits neutral `ZrRuntimeEventV1` records. The close path forwards `window_close_requested` before applying `WindowLifecyclePolicy::should_close_on_request()` and `should_exit_after_primary_close()`; focus maps to foreground/background lifecycle states; scale-factor changes keep backend and logical notifications separate. This mirrors Bevy's separation between `bevy_window` event vocabulary/policy and `bevy_winit` event translation in `dev/bevy/crates/bevy_window/src/event.rs`, `dev/bevy/crates/bevy_window/src/lib.rs`, `dev/bevy/crates/bevy_window/src/system.rs`, and `dev/bevy/crates/bevy_winit/src/state.rs`.
 
 The app bootstrap path now exposes the same descriptor through `EntryModuleSelectionReport::diagnostic_lines()` before `CoreRuntime` activation. The stable lines include `window.primary_window`, `window.title`, `window.present_mode`, `window.mode`, `window.position`, `window.physical_size`, `window.logical_size`, `window.scale_factor`, `window.scale_factor_override`, `window.resize_constraints`, and the host-visible booleans. These lines are diagnostic text, not a second runtime API.
 

@@ -9,24 +9,15 @@ mod guard_names;
 #[path = "folder_backed/sources.rs"]
 mod sources;
 
-const ASSERTIONS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs";
-const ASSERTIONS_ASSET_CHILDREN_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/asset_children.rs";
-const ASSERTIONS_PARENT_MOUNTS_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/parent_mounts.rs";
-const ASSERTIONS_RENDER_STATUS_CHILDREN_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/render_status_children.rs";
-const ASSERTIONS_RUNTIME_SCENE_CHILDREN_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/runtime_scene_children.rs";
-const ASSERTIONS_UI_CHILDREN_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/ui_children.rs";
-const ASSERTIONS_SPLIT_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions_split.rs";
-const GUARD_NAMES_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs";
-const SOURCES_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/sources.rs";
+const ASSERTIONS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs";
+const ASSERTIONS_ASSET_CHILDREN_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/asset_children.rs";
+const ASSERTIONS_PARENT_MOUNTS_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/parent_mounts.rs";
+const ASSERTIONS_RENDER_STATUS_CHILDREN_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/render_status_children.rs";
+const ASSERTIONS_RUNTIME_SCENE_CHILDREN_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/runtime_scene_children.rs";
+const ASSERTIONS_UI_CHILDREN_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions/ui_children.rs";
+const ASSERTIONS_SPLIT_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions_split.rs";
+const GUARD_NAMES_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/guard_names.rs";
+const SOURCES_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/sources.rs";
 
 #[test]
 fn runtime_15_test_file_budget_guard_is_folder_backed() {

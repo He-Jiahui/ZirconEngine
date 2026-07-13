@@ -10,8 +10,6 @@ use crate::graphics::scene::resources::{
 use super::super::mesh_draw::{
     MaterialTextureSet, MeshDraw, MeshDrawGeometrySource, VirtualGeometrySubmissionDetail,
 };
-use super::super::skinning::SkinnedMeshJointPaletteUniform;
-
 pub(super) fn create_mesh_draw(
     device: &wgpu::Device,
     gpu_scene: &GpuScene,
@@ -32,8 +30,8 @@ pub(super) fn create_mesh_draw(
     has_previous_velocity_transform: bool,
     mesh_lod: Option<RenderMeshLodSelection>,
     skinned: bool,
-    skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
-    previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+    previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
     previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     skinned_gpu_source_uses_cpu_morphed_source: bool,
@@ -44,10 +42,6 @@ pub(super) fn create_mesh_draw(
     indirect_args_offset: u64,
     virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
 ) -> MeshDraw {
-    let skinned_joint_palette_buffer =
-        skinned_joint_palette.map(|uniform| uniform.create_buffer(device));
-    let previous_skinned_joint_palette_buffer =
-        previous_skinned_joint_palette.map(|uniform| uniform.create_buffer(device));
     let gpu_scene_bind_group = (skinned_joint_palette_buffer.is_some()
         || previous_skinned_joint_palette_buffer.is_some())
     .then(|| {

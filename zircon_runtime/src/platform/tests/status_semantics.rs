@@ -18,7 +18,7 @@ fn default_desktop_report_support_predicate_tracks_implemented_host_paths() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Windows,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert!(report.window_backend.is_supported());
@@ -53,7 +53,7 @@ fn default_desktop_report_support_predicate_tracks_implemented_host_paths() {
 fn headless_fixture_support_predicate_keeps_disabled_input_unavailable() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::headless()).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::ServerRuntime,
+        crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
     );
 
     assert!(report.window_backend.is_supported());
@@ -84,7 +84,7 @@ fn synthetic_input_backend_counts_as_supported_when_input_gate_is_enabled() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Headless,
-            crate::builtin::RuntimeTargetMode::ClientRuntime,
+            crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         );
 
     assert!(report.mouse_input.is_supported());

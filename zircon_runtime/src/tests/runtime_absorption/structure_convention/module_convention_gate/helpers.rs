@@ -17,7 +17,6 @@ pub(super) const CORE_DOCS_WITH_SESSION: &[&str] = &[
     "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     "docs/zircon_runtime/structure/module-convention.md",
-    ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
 ];
 
 pub(super) fn read_repo(relative: &str) -> String {

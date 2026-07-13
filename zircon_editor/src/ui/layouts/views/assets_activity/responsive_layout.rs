@@ -320,7 +320,7 @@ fn layout_preview(
         nodes,
         &[
             "AssetsActivityPreviewIdentityText",
-            "AssetsActivityPreviewAdapterText",
+            "AssetsActivityPreviewToolkitText",
             "AssetsActivityPreviewMetaPathText",
             "AssetsActivityPreviewDiagnosticsText",
         ],
@@ -471,7 +471,7 @@ const PREVIEW_CONTROLS: &[&str] = &[
     "AssetsActivityPreviewLocatorText",
     "AssetsActivityPreviewKindText",
     "AssetsActivityPreviewIdentityText",
-    "AssetsActivityPreviewAdapterText",
+    "AssetsActivityPreviewToolkitText",
     "AssetsActivityPreviewMetaPathText",
     "AssetsActivityPreviewDiagnosticsText",
 ];

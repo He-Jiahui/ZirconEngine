@@ -50,7 +50,7 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
@@ -120,7 +120,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/shutdown.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
@@ -223,6 +223,8 @@ The focused behavior tests cover descriptor defaults, level/dependency ordering,
 The second M1 slice connects the lifecycle vocabulary to single-module activation without changing builtin profile assembly yet. `ModuleDescriptor` now owns an `Arc<dyn ModuleLifecycle>` and defaults to `NoopModuleLifecycle`, so descriptors that do not opt into hooks keep the previous activation behavior without a compatibility branch. `CoreHandle::activate_module_with_ready_timeout(...)` runs build, resolves immediate services, polls ready within the caller-supplied budget, runs finish, and only then marks the module Running. `activate_module(...)` uses a zero ready budget, which is behavior-preserving for the default ready=true path and returns a typed `ModuleReadyTimeout` for modules that explicitly report not ready.
 
 `core/runtime/handle/activation/module_lifecycle.rs` owns the hook invocation, ready polling, typed timeout construction, and startup-service rollback helper. Activation failures after startup now reset the initializing module and the module's immediate startup service entries to Registered with no instance, avoiding a half-running module after ready timeout or finish failure. Deactivation calls cleanup before plugin bridge deactivation and service unload, keeping cleanup in the PreDeactivation window while services are still available.
+
+Frameworks 02 M1 correction now also treats a successful `build` as an acquired lifecycle resource. If service resolution, `ready`, `finish`, or final activation fails, the single-module path calls `cleanup` before clearing services and state. Batch activation tracks the successfully built prefix and cleans it in reverse dependency order. Cleanup is best-effort across the whole built prefix; typed `ModuleActivationRollback` and `ModuleBatchActivationRollback` errors preserve the primary activation error when cleanup also fails instead of silently discarding either failure.
 
 Focused tests were added for hook order across activation/deactivation, ready polling that becomes true, ready timeout rollback, and finish-error rollback. Scoped rustfmt passed for the touched activation/runtime/test files. Cargo validation is currently blocked by unrelated active shader/material work: `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-0702 --message-format short --color never` stops in `asset/artifact/cache_payload.rs` (`ZMaterialQueueOverride` not exported from `asset`) and `graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs` (new `RenderMaterialValidationError` variants not covered). This section does not claim Cargo or focused test green for the activation lifecycle slice.
 

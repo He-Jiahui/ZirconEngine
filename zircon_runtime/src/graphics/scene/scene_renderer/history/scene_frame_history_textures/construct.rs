@@ -1,3 +1,4 @@
+use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::post_process::params::exposure_params::default_exposure_buffer_words;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
@@ -9,6 +10,7 @@ use wgpu::util::DeviceExt;
 use super::super::clear_texture::clear_texture;
 use super::super::texture_extent::texture_extent;
 use super::scene_frame_history_textures::SceneFrameHistoryTextures;
+use super::VolumetricHistoryTexture;
 
 const RGBA16_FLOAT_BYTES_PER_TEXEL: u32 = 8;
 const RGBA16_FLOAT_BLACK_CONFIDENCE_ZERO: [u8; RGBA16_FLOAT_BYTES_PER_TEXEL as usize] =
@@ -20,6 +22,16 @@ impl SceneFrameHistoryTextures {
         queue: &wgpu::Queue,
         size: UVec2,
         render_size: UVec2,
+    ) -> Self {
+        Self::new_with_volumetric_history(device, queue, size, render_size, None)
+    }
+
+    pub(crate) fn new_with_volumetric_history(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        size: UVec2,
+        render_size: UVec2,
+        volumetric_quality: Option<FroxelGridQuality>,
     ) -> Self {
         let hzb_plan = HzbBuilder::new(render_size).build_plan();
         let taa_scene_color_read = create_scene_color_history_texture(
@@ -126,6 +138,8 @@ impl SceneFrameHistoryTextures {
             global_illumination_temporal_metadata,
             global_illumination_temporal_metadata_view,
             global_illumination_history_valid: false,
+            volumetric_scattering: volumetric_quality
+                .map(|quality| VolumetricHistoryTexture::new(device, quality)),
             ambient_occlusion,
             ambient_occlusion_view,
             screen_space_reflection,

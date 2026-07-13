@@ -145,7 +145,8 @@ fn search_field_paint_rect_clamps_tall_authored_frames_to_compact_control_height
     );
 
     assert_eq!(rect.height, workbench_field_metrics().search_max_height);
-    assert_eq!(rect.y, 16.0);
+    let expected_y = (8.0 + (44.0 - workbench_field_metrics().search_max_height) * 0.5).round();
+    assert_eq!(rect.y, expected_y);
     assert_eq!(rect.x, 12.0);
     assert_eq!(rect.width, 170.0);
 

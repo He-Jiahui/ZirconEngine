@@ -180,7 +180,7 @@ pub struct UiDragDropInputEvent {
     pub session_id: Option<UiDragSessionId>,
     pub point: UiPoint,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub payload: Option<UiDragPayload>,
+    pub payload: Option<Box<UiDragPayload>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

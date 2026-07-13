@@ -368,6 +368,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 direction: Vec3::new(-0.4, -1.0, -0.2),
                 color: Vec3::new(1.0, 0.9, 0.8),
                 intensity: 3.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             }],
             point_lights: vec![RenderPointLightSnapshot {
@@ -378,6 +379,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 color: Vec3::new(0.2, 0.6, 1.0),
                 intensity: 4.5,
                 range: 9.0,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             }],
             spot_lights: vec![RenderSpotLightSnapshot {
@@ -391,6 +393,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 range: 14.0,
                 inner_angle_radians: 0.25,
                 outer_angle_radians: 0.5,
+                mobility: crate::core::framework::scene::Mobility::Dynamic,
                 shadow: None,
             }],
             ambient_lights: vec![RenderAmbientLightSnapshot {

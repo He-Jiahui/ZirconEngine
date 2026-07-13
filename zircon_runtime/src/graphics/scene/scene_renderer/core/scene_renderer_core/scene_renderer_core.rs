@@ -1,7 +1,8 @@
 use crate::graphics::scene::gpu_scene::GpuScene;
 
 use super::super::super::deferred::DeferredSceneResources;
-use super::super::super::environment::IblBakeWgpuPipelineCache;
+use super::super::super::environment::realtime_ibl_time_slice::IblRealtimeBufferSlot;
+use super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
 use super::super::super::graph_execution::TransientResourcePool;
 use super::super::super::hzb::HzbOcclusionCuller;
 use super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
@@ -23,6 +24,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) scene_uniform_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_environment_sh9_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core) scene_environment_cubemap:
         SceneEnvironmentCubemap,
     pub(in crate::graphics::scene::scene_renderer::core) scene_environment_brdf_lut:
@@ -37,6 +39,9 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) mesh_pipelines: MeshPipelineCache,
     pub(in crate::graphics::scene::scene_renderer::core) ibl_bake_pipeline_cache:
         IblBakeWgpuPipelineCache,
+    pub(in crate::graphics::scene::scene_renderer::core) realtime_ibl: RealtimeIblRuntime,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group_realtime_ibl_slot:
+        Option<IblRealtimeBufferSlot>,
     pub(in crate::graphics::scene::scene_renderer::core) cached_mesh_draw_commands:
         CachedMeshDrawCommands,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_scene: GpuScene,

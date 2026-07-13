@@ -22,7 +22,7 @@ fn workbench_info_alert_paints_tinted_surface_icon_and_label() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 192, 80, 24), WORKBENCH_ALERT_INFO_SURFACE);
+    assert_eq!(pixel_at(&bytes, 192, 150, 24), WORKBENCH_ALERT_INFO_SURFACE);
     assert_eq!(pixel_at(&bytes, 192, 25, 24), PALETTE.info);
     assert!(changed_pixel_count(&bytes, 192, 38, 16, 62, 18) > 0);
     assert_eq!(pixel_at(&bytes, 192, 176, 24), [0, 0, 0, 255]);

@@ -6,9 +6,11 @@ use crate::graphics::text::layout::{
 use crate::graphics::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
-    UiTextWritingMode,
+    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextOverflow,
+    UiTextRange, UiTextWritingMode,
 };
+
+use crate::core::framework::render::ParagraphOverride;
 
 use super::rich_text::parse_source_text;
 
@@ -17,7 +19,11 @@ mod direction;
 mod ellipsis;
 mod line_box;
 mod overflow_style;
+mod paragraph_layout;
 mod range_mapping;
+mod rich_inline;
+mod rich_inline_vertical;
+mod rich_table;
 mod vertical;
 mod visual_order;
 mod wrapping;
@@ -32,7 +38,7 @@ use wrapping::wrap_source_runs_with_provider;
 pub(crate) use direction::resolve_direction as resolve_text_direction;
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
-    let parsed = parse_source_text(text, style.rich_text);
+    let parsed = parse_source_text(text, style.rich_text_format);
     measure_backend_text_size(&parsed.text, style)
 }
 
@@ -44,7 +50,7 @@ pub(crate) fn measure_text_size_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    let parsed = parse_source_text(text, style.rich_text);
+    let parsed = parse_source_text(text, style.rich_text_format);
     measure_backend_text_size_with_provider(&parsed.text, style, provider)
 }
 
@@ -53,7 +59,7 @@ pub(crate) fn measure_text_source_range_width(
     style: &UiResolvedStyle,
     range: UiTextRange,
 ) -> f32 {
-    let parsed = parse_source_text(text, style.rich_text);
+    let parsed = parse_source_text(text, style.rich_text_format);
     measure_backend_text_source_range_width(&parsed.text, style, range)
 }
 
@@ -77,7 +83,38 @@ pub(crate) fn layout_text_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    let parsed = parse_source_text(text, style.rich_text);
+    let parsed = parse_source_text(text, style.rich_text_format);
+    layout_parsed_text_with_provider(&parsed, style, frame, clip_frame, provider)
+}
+
+pub(super) fn layout_parsed_text_with_provider<P>(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    provider: &mut P,
+) -> UiResolvedTextLayout
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    if let Some(layout) =
+        rich_table::layout_rich_tables_with_provider(parsed, style, frame, clip_frame, provider)
+    {
+        return layout;
+    }
+    layout_parsed_text_without_tables_with_provider(parsed, style, frame, clip_frame, provider)
+}
+
+pub(super) fn layout_parsed_text_without_tables_with_provider<P>(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    provider: &mut P,
+) -> UiResolvedTextLayout
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     let visible_text = parsed.text.as_str();
     let effective_style =
         resolve_overflow_style_with_provider(visible_text, style, frame, provider);
@@ -92,10 +129,19 @@ where
     }
 
     let direction = resolve_text_direction(visible_text, style.text_direction);
-    let source_runs = parsed.runs;
+    if let Some(layout) = rich_inline::layout_inline_rich_text_with_provider(
+        &parsed, style, frame, clip_frame, font_size, direction, provider,
+    ) {
+        return layout;
+    }
+    let source_runs = &parsed.runs;
     let max_width = frame.width.max(text_advance(font_size));
-    let mut lines =
-        wrap_source_runs_with_provider(&source_runs, style.wrap, max_width, style, provider);
+    let block_layout = paragraph_layout::has_block_layout(&parsed);
+    let mut lines = if block_layout {
+        paragraph_layout::wrap_block_paragraphs_with_provider(&parsed, style, frame.width, provider)
+    } else {
+        wrap_source_runs_with_provider(source_runs, style.wrap, max_width, style, provider)
+    };
     let clip = clip_frame.unwrap_or(frame);
     let line_capacity = (frame.height.max(line_height) / line_height)
         .floor()
@@ -109,16 +155,36 @@ where
             merge_clipped_lines_for_tail_preserving_ellipsis(&mut lines, line_capacity);
         }
         lines.truncate(line_capacity);
+        let last_index = lines.len().saturating_sub(1);
+        let available_width =
+            block_line_constraints(&parsed, style, frame.width, &lines, last_index, provider)
+                .max_width;
         if let Some(last) = lines.last_mut() {
-            ellipsize_line_with_provider(last, max_width, style, style.text_overflow, provider);
+            ellipsize_line_with_provider(
+                last,
+                available_width,
+                style,
+                style.text_overflow,
+                provider,
+            );
         }
     }
     if is_ellipsis_overflow(style.text_overflow) {
-        for line in &mut lines {
+        for index in 0..lines.len() {
+            let available_width =
+                block_line_constraints(&parsed, style, frame.width, &lines, index, provider)
+                    .max_width;
+            let line = &mut lines[index];
             if !line.ellipsized
-                && line_overflows_horizontally_with_provider(line, max_width, style, provider)
+                && line_overflows_horizontally_with_provider(line, available_width, style, provider)
             {
-                ellipsize_line_with_provider(line, max_width, style, style.text_overflow, provider);
+                ellipsize_line_with_provider(
+                    line,
+                    available_width,
+                    style,
+                    style.text_overflow,
+                    provider,
+                );
                 overflow_clipped = true;
             }
         }
@@ -131,15 +197,22 @@ where
     for (index, line) in lines.iter().enumerate() {
         let y = frame.y + index as f32 * line_height;
         let is_last_line = index + 1 == lines.len();
+        let constraints =
+            block_line_constraints(&parsed, style, frame.width, &lines, index, provider);
+        let line_align = constraints.align;
+        let mut line_style = style.clone();
+        line_style.text_align = line_align;
         let (measured_width, glyph_advances, line_width) = resolve_line_widths_with_provider(
             line,
-            style,
-            frame.width.max(0.0),
+            &line_style,
+            constraints.max_width,
             is_last_line,
             provider,
         );
+        let content_frame =
+            paragraph_layout::inset_logical_start(frame, constraints.inset, direction);
         let line_frame = UiFrame::new(
-            aligned_x(frame, line_width, style.text_align, direction),
+            aligned_x(content_frame, line_width, line_align, direction),
             y,
             line_width,
             line_height,
@@ -185,9 +258,52 @@ where
             end: visible_text.len(),
         },
         lines: resolved_lines,
+        boxes: Vec::new(),
         overflow_clipped,
         editable: None,
     }
+}
+
+fn block_line_constraints<P>(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame_width: f32,
+    lines: &[candidate_line::CandidateLine],
+    index: usize,
+    provider: &mut P,
+) -> paragraph_layout::LineConstraints
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let line = &lines[index];
+    let paragraph_start =
+        paragraph_layout::physical_paragraph_start(&parsed.text, line.source_range.start);
+    let first_physical_line = index == 0
+        || paragraph_layout::physical_paragraph_start(
+            &parsed.text,
+            lines[index - 1].source_range.start,
+        ) != paragraph_start;
+    paragraph_layout::line_constraints_with_provider(
+        parsed,
+        style,
+        frame_width,
+        line.source_range.start,
+        first_physical_line,
+        provider,
+    )
+}
+
+fn paragraph_align_for_offset(
+    paragraphs: &[((u32, u32), ParagraphOverride)],
+    offset: usize,
+    fallback: UiTextAlign,
+) -> UiTextAlign {
+    let offset = u32::try_from(offset).unwrap_or(u32::MAX);
+    paragraphs
+        .iter()
+        .find(|(range, _)| range.0 <= offset && offset < range.1)
+        .and_then(|(_, paragraph)| paragraph.align)
+        .unwrap_or(fallback)
 }
 
 fn resolve_overflow_style_with_provider<P>(

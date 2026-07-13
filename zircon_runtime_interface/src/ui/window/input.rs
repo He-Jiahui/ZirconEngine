@@ -723,7 +723,7 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 session_id,
                 point,
-                payload,
+                payload: payload.map(Box::new),
             }),
             UiWindowPlatformInputEventKind::Popup {
                 kind,

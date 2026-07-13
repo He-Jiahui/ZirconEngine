@@ -1,4 +1,6 @@
-use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection};
+use crate::core::framework::project::{
+    ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
+};
 
 use super::RuntimePluginFeatureRegistrationReport;
 

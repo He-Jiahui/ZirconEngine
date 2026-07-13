@@ -36,7 +36,7 @@ fn build_runtime_snapshot(state: &AiRuntimeState) -> AiRuntimeSnapshot {
             blackboard: state
                 .blackboards
                 .get(&(world, entity))
-                .cloned()
+                .map(|blackboard| blackboard.entries())
                 .unwrap_or_default(),
             perception: state.perceptions.get(&(world, entity)).cloned(),
         })

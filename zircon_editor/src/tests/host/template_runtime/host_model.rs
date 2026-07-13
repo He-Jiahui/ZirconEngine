@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use super::support::*;
 use crate::ui::template_runtime::{RetainedUiHostModel, RetainedUiHostNodeProjection};
 
-const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
-const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
+const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
+const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/workbench_window.zui";
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]

@@ -96,8 +96,8 @@ mod tests {
             2.0,
         );
 
-        state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[]);
-        state.register_scene_extract(Some(&extract), &[mesh], &[], &[], &[]);
+        state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[], None, false);
+        state.register_scene_extract(Some(&extract), &[mesh], &[], &[], &[], None, false);
         state
             .scene_representation_mut()
             .surface_cache_mut()
@@ -124,6 +124,8 @@ mod tests {
     fn hybrid_gi_settings(card_budget: u32) -> RenderHybridGiExtract {
         RenderHybridGiExtract {
             enabled: true,
+            mode: Default::default(),
+            profile: Default::default(),
             quality: Default::default(),
             trace_budget: 0,
             card_budget,

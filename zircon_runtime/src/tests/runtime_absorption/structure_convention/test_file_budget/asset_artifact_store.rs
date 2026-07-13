@@ -4,7 +4,8 @@ use super::*;
 fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
     let parent = read_runtime_src("asset/tests/assets/artifact_store.rs");
     let binary_payloads = read_runtime_src("asset/tests/assets/artifact_store/binary_payloads.rs");
-    let library_assets = read_runtime_src("asset/tests/assets/artifact_store/library_assets.rs");
+    let artifact_cache_assets =
+        read_runtime_src("asset/tests/assets/artifact_store/artifact_cache_assets.rs");
     let material_data = read_runtime_src("asset/tests/assets/artifact_store/material_data.rs");
     let scene_components =
         read_runtime_src("asset/tests/assets/artifact_store/scene_components.rs");
@@ -25,7 +26,7 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
         &parent,
         &[
             "mod binary_payloads;",
-            "mod library_assets;",
+            "mod artifact_cache_assets;",
             "mod material_data;",
             "mod scene_components;",
             "mod scene_script;",
@@ -45,10 +46,10 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
         "fn artifact_store_bincode_roundtrips_scene_mesh_instance_asset",
         "fn artifact_store_roundtrips_mesh_assets_with_binary_attribute_payloads",
         "fn artifact_store_roundtrips_texture_assets_with_binary_payloads",
-        "fn artifact_store_roundtrips_physics_material_assets_in_library",
+        "fn artifact_store_roundtrips_physics_material_assets_in_artifact_cache",
         "fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata",
-        "fn artifact_store_roundtrips_animation_sequence_assets_in_binary_library",
-        "fn artifact_store_rejects_text_library_artifacts",
+        "fn artifact_store_roundtrips_animation_sequence_assets_in_binary_artifact_cache",
+        "fn artifact_store_rejects_text_artifact_cache_artifacts",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -66,7 +67,7 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
         scene_script.as_str(),
         scene_components.as_str(),
         binary_payloads.as_str(),
-        library_assets.as_str(),
+        artifact_cache_assets.as_str(),
     ];
     assert_eq!(
         migrated_child_sources
@@ -117,14 +118,14 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
         ],
     );
     assert_contains_all(
-        "artifact store library child owns library artifact contracts",
-        &library_assets,
+        "artifact store cache child owns artifact-cache contracts",
+        &artifact_cache_assets,
         &[
             "use super::*;",
-            "fn artifact_store_roundtrips_physics_material_assets_in_library",
+            "fn artifact_store_roundtrips_physics_material_assets_in_artifact_cache",
             "fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata",
-            "fn artifact_store_roundtrips_animation_sequence_assets_in_binary_library",
-            "fn artifact_store_rejects_text_library_artifacts",
+            "fn artifact_store_roundtrips_animation_sequence_assets_in_binary_artifact_cache",
+            "fn artifact_store_rejects_text_artifact_cache_artifacts",
         ],
     );
 
@@ -147,8 +148,8 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
             binary_payloads.as_str(),
         ),
         (
-            "asset/tests/assets/artifact_store/library_assets.rs",
-            library_assets.as_str(),
+            "asset/tests/assets/artifact_store/artifact_cache_assets.rs",
+            artifact_cache_assets.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -175,7 +176,7 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
                 "runtime_15_asset_artifact_store_tests_folder_split_static_passed_cargo_deferred",
                 "asset/tests/assets/artifact_store.rs",
                 "asset/tests/assets/artifact_store/binary_payloads.rs",
-                "asset/tests/assets/artifact_store/library_assets.rs",
+                "asset/tests/assets/artifact_store/artifact_cache_assets.rs",
                 "runtime_15_asset_artifact_store_tests_are_folder_backed",
             ],
         );

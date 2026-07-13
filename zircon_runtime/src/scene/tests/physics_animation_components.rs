@@ -4,8 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::physics::{
-    PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
-    PhysicsSkeletonJointBinding,
+    PhysicsCcdMode, PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive,
+    PhysicsMassProperties, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
+    PhysicsSleepPolicy,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::core::resource::{
@@ -27,12 +28,14 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
     let rigid_body = RigidBodyComponent {
         body_type: RigidBodyType::Dynamic,
         mass: 3.5,
+        mass_properties: PhysicsMassProperties::AutoFromShape { density: 2.25 },
         linear_velocity: Vec3::new(0.25, 0.0, 0.0),
         angular_velocity: Vec3::new(0.0, 0.5, 0.0),
         linear_damping: 0.2,
         angular_damping: 0.15,
         gravity_scale: 0.8,
-        can_sleep: true,
+        ccd_mode: PhysicsCcdMode::LinearCast,
+        sleep_policy: PhysicsSleepPolicy::Never,
         lock_translation: [false, false, false],
         lock_rotation: [false, true, false],
     };

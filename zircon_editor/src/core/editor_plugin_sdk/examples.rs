@@ -1,12 +1,13 @@
+use crate::core::asset::{AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId};
+use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_extension::{
-    AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
-    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
-    EditorUiTemplateDescriptor, ViewDescriptor,
+    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
+    EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
+    ViewDescriptor,
 };
-use crate::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationPath, UndoableEditorOperation,
-};
+use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
 use crate::core::editor_plugin::{EditorPlugin, EditorPluginDescriptor};
+use zircon_runtime_interface::resource::ResourceKind;
 
 #[derive(Clone, Debug)]
 pub struct ExampleWindowEditorPlugin {
@@ -36,9 +37,12 @@ impl EditorPlugin for ExampleWindowEditorPlugin {
         registry: &mut EditorExtensionRegistry,
     ) -> Result<(), EditorExtensionRegistryError> {
         let operation_path = parse_operation("sdk.example.toggle_weather_window")?;
-        registry.register_operation(
-            EditorOperationDescriptor::new(operation_path.clone(), "Toggle SDK Weather Window")
-                .with_menu_path("Tools/SDK Examples/Toggle Weather Window"),
+        registry.register_command(
+            EditorCommandDescriptor::pending_operation(
+                operation_path.clone(),
+                "Toggle SDK Weather Window",
+            )
+            .with_menu_path("Tools/SDK Examples/Toggle Weather Window"),
         )?;
         registry.register_view(ViewDescriptor::new(
             "sdk.example.weather_window",
@@ -81,12 +85,15 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
     ) -> Result<(), EditorExtensionRegistryError> {
         let import_operation = parse_operation("sdk.example.import_model")?;
         let open_operation = parse_operation("sdk.example.open_model_inspector")?;
-        registry.register_operation(
-            EditorOperationDescriptor::new(import_operation.clone(), "Import SDK Model")
-                .with_menu_path("Assets/SDK Examples/Import Model")
-                .with_undoable(UndoableEditorOperation::new("Import SDK Model")),
+        registry.register_command(
+            EditorCommandDescriptor::pending_operation(
+                import_operation.clone(),
+                "Import SDK Model",
+            )
+            .with_menu_path("Assets/SDK Examples/Import Model")
+            .with_undoable(UndoableEditorOperation::new("Import SDK Model")),
         )?;
-        registry.register_operation(EditorOperationDescriptor::new(
+        registry.register_command(EditorCommandDescriptor::pending_operation(
             open_operation.clone(),
             "Open SDK Model Inspector",
         ))?;
@@ -103,14 +110,15 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
             )
             .with_source_extension("glb")
             .with_source_extension("gltf")
-            .with_output_kind("Model"),
+            .with_output_type(AssetTypeId::from_resource_kind(ResourceKind::Model)),
         )?;
-        registry.register_asset_editor(AssetEditorDescriptor::new(
-            "Model",
-            "sdk.example.asset_inspector",
-            "SDK Model Inspector",
-            open_operation,
-        ))?;
+        registry.register_asset_type_contribution(
+            AssetTypeContribution::augment(AssetTypeId::from_resource_kind(ResourceKind::Model))
+                .with_toolkit(AssetToolkitDescriptor::new(
+                    "sdk.example.asset_inspector",
+                    open_operation,
+                )),
+        )?;
         registry.register_ui_template(EditorUiTemplateDescriptor::new(
             "sdk.example.asset_inspector",
             "asset://sdk_examples/editor/model_inspector.zui",
@@ -124,5 +132,5 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
 }
 
 fn parse_operation(path: &str) -> Result<EditorOperationPath, EditorExtensionRegistryError> {
-    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::Operation)
+    EditorOperationPath::parse(path).map_err(EditorExtensionRegistryError::OperationPath)
 }

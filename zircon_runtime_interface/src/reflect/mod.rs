@@ -5,10 +5,13 @@ mod object_address;
 mod read_write;
 mod reflected_value;
 mod schema;
+mod script_visibility;
 mod type_info;
 mod type_kind;
 mod type_path;
 mod type_registration;
+mod zr_reflect;
+mod zr_reflect_value;
 
 pub use editor_hint::{ReflectEditorHint, ReflectEnumOption, ReflectNumericRange};
 pub use error::ReflectError;
@@ -20,7 +23,10 @@ pub use read_write::{
 };
 pub use reflected_value::ReflectedValue;
 pub use schema::{ReflectSchemaFilter, ReflectSchemaRequest, ReflectSchemaResponse};
+pub use script_visibility::ReflectScriptVisibility;
 pub use type_info::ReflectTypeInfo;
 pub use type_kind::ReflectTypeKind;
 pub use type_path::ReflectTypePath;
 pub use type_registration::{ReflectSerializationStrategy, ReflectTypeRegistration};
+pub use zr_reflect::ZrReflect;
+pub use zr_reflect_value::ZrReflectValue;

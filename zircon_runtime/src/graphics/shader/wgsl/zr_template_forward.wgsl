@@ -29,7 +29,25 @@ fn zr_apply_alpha_clip(surface: ZrSurfaceOutput) {
 fn zr_fs_main_impl(input: ZrVertexOutput) -> vec4<f32> {
     let surface = zr_material_surface(input);
     zr_apply_alpha_clip(surface);
-    return vec4<f32>(shade_forward(surface, zr_build_shading_context(input)), surface.base_color.a);
+    let shaded = shade_forward(surface, zr_build_shading_context(input));
+    var baked_indirect = vec3<f32>(0.0);
+    if (surface.unlit < 0.5 && surface.shading_model_id != 0u) {
+        var diffuse_color = surface.base_color.rgb * (1.0 - surface.metallic * 0.45);
+        if (surface.shading_model_id == 1u) {
+            diffuse_color = surface.base_color.rgb;
+        }
+        baked_indirect = diffuse_color * clamp(surface.occlusion, 0.0, 1.0)
+            * zr_lightmap_baked_irradiance(
+                input.instance_index,
+                input.uv1,
+                input.position_ws,
+                surface.normal_ws,
+            );
+    }
+    return vec4<f32>(
+        zr_volumetric_apply(shaded + baked_indirect, input.clip_position.xy, input.clip_position.z),
+        surface.base_color.a,
+    );
 }
 
 @fragment

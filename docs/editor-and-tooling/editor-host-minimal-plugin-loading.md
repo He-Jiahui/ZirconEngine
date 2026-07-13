@@ -48,7 +48,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
+  - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
   - zircon_editor/src/ui/host/editor_asset_manager/api.rs
   - zircon_editor/fixtures/workbench/default-layout.json
@@ -100,7 +100,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
+  - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
   - zircon_editor/fixtures/workbench/default-layout.json
   - zircon_editor/fixtures/workbench/view-descriptors.json
@@ -114,6 +114,10 @@ plan_sources:
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
   - docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md
   - docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md
+  - user: 2026-07-13 follow the Editor M1 failure handoff and repair current-source regressions
+  - docs/plans/zircon_editor/editor/01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/script/vm/tests.rs
@@ -139,6 +143,9 @@ tests:
   - 2026-05-03 Milestone 4: focused Milestone 1-3 filters including Plugin Manager projection/action coverage (11/11 passed)
   - 2026-05-03 Milestone 4: .\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput (passed build and test; existing warnings remain)
   - cargo test -p zircon_editor --lib inspector_pane_projects_editable_field_nodes_and_actions --locked --jobs 1
+  - tests::host::manager::minimal_host_contract::editor_manager_registers_minimal_host_capabilities_as_vm_handles_when_script_is_available
+  - tests::host::manager::minimal_host_contract::optional_features::editor_manager_plugin_status_lists_owner_optional_feature_dependencies
+  - tests::host::manager::minimal_host_contract::native_plugins::native_aware_catalog_enables_external_feature_extension_provider
 doc_type: module-detail
 ---
 
@@ -226,12 +233,13 @@ Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane 
 
 `zircon_runtime::script::vm::HostRegistry` 现在保存 `HostCapabilityRecord { handle, label }`，并提供：
 
-- `register_capability(label)` 创建稳定 `HostHandle`
-- `capability(handle)` 查询 handle 对应的 label record
+- `register_capability(label) -> Result<HostHandle, HostRegistryError>` 创建带 generation 的稳定句柄，并显式报告 slot index 耗尽
+- `resolve(handle)` 校验 index、vacant 状态和 generation 后返回对应的 label record
+- `revoke(handle)` 释放记录并递增 generation，使旧句柄立即失效且不能错误解析到复用 slot
 - `capabilities()` 以 handle 顺序返回快照
 - `is_valid(handle)` 保留轻量有效性检查
 
-`zircon_editor/src/ui/host/host_capability_bridge.rs` 在 `EditorUiHost::new(...)` 中尝试解析 `ScriptModule.Driver.PluginHostDriver`，并把最小 host 白名单注册到 VM host registry。注册成功后，`EditorManager::vm_extension_capability_report()` 能返回每个 capability 对应的 `HostHandle`。
+`zircon_editor/src/ui/host/host_capability_bridge.rs` 在 `EditorUiHost::new(...)` 中尝试解析 `ScriptModule.Driver.PluginHostDriver`，并把最小 host 白名单注册到 VM host registry。bridge 不再假定注册必定成功：每次注册都显式匹配 `Result`；成功的 handle 进入 report，首个注册错误转换为带 capability id 的诊断并停止后续注册。这样既不恢复旧的 infallible 兼容 API，也不会因 registry 容量或 generation 故障让 editor host panic。注册成功后，`EditorManager::vm_extension_capability_report()` 能返回每个 capability 对应的 `HostHandle`；测试通过 canonical `resolve(handle)` 检查 record，不保留退役的 `capability(handle)` 调用。
 
 如果 `ScriptModule` 不在当前 runtime 中，bridge 只记录诊断并返回空 handle 集。这个行为是刻意的：最小 editor host 不应该因为工具插件通道缺失而启动失败。
 
@@ -240,6 +248,7 @@ Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane 
 扩展加载失败不会 panic，也不会让 `EditorManager` 不可用：
 
 - 缺少 `PluginHostDriver` 时，`vm_extension_capability_report().diagnostics()` 记录缺失 driver。
+- `HostRegistry::register_capability(...)` 失败时，bridge 保留此前成功的 handle，把失败 capability 与 typed registry error 写入 diagnostics，并停止继续注册。
 - 缺少 `VmPluginManager` 时，`load_vm_extension_package(...)` 返回诊断而不是错误传播到 host 生命周期。
 - 默认 unavailable backend 拒绝包时，`EditorVmExtensionLoadReport` 记录 `BackendUnavailable`，`loaded_slot()` 为 `None`。
 
@@ -252,6 +261,7 @@ Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane 
 - `bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contributes_module` 验证 app 入口能通过 linked runtime plugin registration 满足 required 外部插件并注册其 EngineModule。
 - `host_registry_exposes_stable_capability_records_without_concrete_objects` 验证 VM host registry 只暴露稳定 handle record，不暴露具体对象。
 - `minimal_host_contract` 测试组验证最小能力白名单、扩展黑名单、ScriptModule 缺席时不中断 host、ScriptModule 存在时注册 VM handles，以及 unavailable backend 失败被报告而不是破坏 host。
+- 2026-07-13 current-source Windows lib-test 重新链接成功后，`editor_manager_registers_minimal_host_capabilities_as_vm_handles_when_script_is_available` 为 `1 passed / 0 failed`，证明 Editor 消费端已完整迁移到 `register_capability -> Result` 与 `resolve(handle)`；同一二进制的 builtin/native provider 两个 Editor M1 精确门禁均为 `1 passed / 0 failed`，没有恢复 provider fallback、HostRegistry alias 或兼容 shim。
 - `editor_plugin_sdk` 测试组验证 SDK 示例插件能聚合窗口和资源 authoring 贡献、注册后 lifecycle dispatch 能写回 registration/catalog report、未知插件不会误触发 hook、生命周期失败不会丢弃 extension registry、asset importer/editor 描述符会规范化扩展名和 capability gate。
 - `pane_payload_builders_emit_stable_body_metadata_for_first_wave_views` 验证 Plugin Manager pane payload 会携带插件行启用/禁用、打包策略切换、target mode 切换、Unload 和 Hot Reload action id。
 - `live_backend_dispatch_routes_unload_and_hot_reload_commands` 验证 Plugin Manager 的 Unload/Hot Reload action 会路由到可替换 live host backend seam；`runtime_native_live_backend_reports_missing_editor_package_on_hot_reload` 和 runtime `native_live_host_reports_missing_editor_package_on_hot_reload` 验证默认 runtime-owned native backend 在项目根缺失或 editor native package 不存在时会给出明确失败诊断；`native_live_host_loads_runtime_export_diagnostics_without_handles` 锁定从导出根目录加载 runtime native packages 时的诊断和注册报告 contract；`native_live_host_runtime_behavior_calls_report_unloaded_plugin` 锁定 runtime behavior descriptor、command、save-state 和 restore-state 在插件未加载时返回同一 live-host 诊断；`native_live_host_runtime_broadcasts_and_snapshots_empty_when_no_plugins_loaded` 与 `native_live_host_runtime_snapshot_restore_reports_unloaded_plugins` 锁定广播 command、play-mode 状态快照和卸载后 restore 诊断 contract；`native_live_host_treats_missing_unload_hook_as_noop_unload` 锁定缺少 unload callback/behavior table 时释放 handle 并保留诊断的降级策略。

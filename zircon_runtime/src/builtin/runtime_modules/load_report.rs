@@ -1,6 +1,5 @@
 mod diagnostics;
-mod missing;
 mod report;
 
-pub use missing::RuntimeRequiredPluginMissing;
+pub use diagnostics::RuntimeModuleLoadDiagnostic;
 pub use report::RuntimeModuleLoadReport;

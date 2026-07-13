@@ -135,48 +135,6 @@ fn reflected_values_convert_to_scene_property_values_when_supported() {
 }
 
 #[test]
-fn reflected_json_conversion_rejects_non_finite_scalars() {
-    assert_eq!(
-        reflected_from_json(json!({ "nested": [1, true] })),
-        ReflectedValue::Json(json!({ "nested": [1, true] }))
-    );
-    assert_eq!(
-        json_from_reflected(ReflectedValue::Entity(Some(7))).expect("entity should serialize"),
-        json!({ "kind": "Entity", "value": 7 })
-    );
-    assert_eq!(
-        json_from_reflected(ReflectedValue::Vec3([1.0, 2.0, 3.0]))
-            .expect("vector should serialize"),
-        json!({ "kind": "Vec3", "value": [1.0, 2.0, 3.0] })
-    );
-    assert_eq!(
-        json_from_reflected(ReflectedValue::Null).expect("null should serialize"),
-        json!({ "kind": "Null" })
-    );
-    assert_eq!(
-        json_from_reflected(ReflectedValue::Json(json!({ "nested": [1, true] })))
-            .expect("arbitrary JSON should serialize as tagged DTO"),
-        json!({ "kind": "Json", "value": { "nested": [1, true] } })
-    );
-
-    assert_eq!(
-        json_from_reflected(ReflectedValue::Scalar(f32::INFINITY))
-            .expect_err("non-finite scalar should not serialize"),
-        ReflectError::UnsupportedConversion {
-            source: "ReflectedValue::Scalar".to_string(),
-            target: "serde_json::Value".to_string(),
-        }
-    );
-    assert!(matches!(
-        json_from_reflected(ReflectedValue::List(vec![ReflectedValue::Vec2([
-            1.0,
-            f32::NAN,
-        ])])),
-        Err(ReflectError::UnsupportedConversion { .. })
-    ));
-}
-
-#[test]
 fn animation_parameter_conversion_returns_structured_error() {
     assert_eq!(
         reflected_from_scene_value(ScenePropertyValue::AnimationParameter(

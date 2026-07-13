@@ -4,8 +4,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::asset::project::AssetMetaDocument;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use crate::asset::tests::project::binary_library_assertions::{
-    assert_binary_library_artifact, assert_library_files_are_zassets,
+use crate::asset::tests::project::binary_artifact_cache_assertions::{
+    assert_artifact_cache_files_are_zassets, assert_binary_artifact_cache,
 };
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
@@ -24,7 +24,7 @@ use crate::core::resource::ResourceState;
 
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
-mod library_imports;
+mod artifact_cache_imports;
 mod restore_failure_migration;
 mod subassets_errors;
 

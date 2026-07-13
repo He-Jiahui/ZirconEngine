@@ -3,15 +3,15 @@ use super::document_sources::RecentStaticGuardSources;
 
 pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources) {
     let runtime_01_plan_anchors = [
-        "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+        "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
         "runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate",
         "zr_vm_path_dependency_gate_is_documented_with_version_pairing",
         "plugin physics Cargo gates",
     ];
     let runtime_01_doc_anchors = [
-        "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+        "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
         "runtime_text_doc_records_three_layer_stack_and_cross_reference",
-        "physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned",
+        "physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned",
         "export_archive_policy_allows_zip_only_for_archive_materializer",
         "editor_only_dependency_candidates_have_editor_backlog_owner",
     ];
@@ -29,7 +29,7 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
         "classified-and-clear",
     ];
     let runtime_03_anchors = [
-        "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
+        "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
         "ecs_schedule/time/session/schedule_parallel",
         "RuntimeTimeAdvance",
         "fixed_step_plan_reports_overstep_fraction_in_unit_range",
@@ -72,7 +72,8 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
         &[
             runtime_01_doc_anchors[0],
             runtime_01_doc_anchors[2],
-            "only executable V1 backend",
+            "selected native backend",
+            "backend-jolt",
         ],
     );
     assert_contains_all(

@@ -14,6 +14,8 @@ pub(super) fn asset_browser_view_descriptor() -> ViewDescriptor {
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::AssetBrowser,
     ))
-    .with_activity_window_template(ActivityWindowTemplateSpec::new("editor.window.asset"))
+    .with_activity_window_template(ActivityWindowTemplateSpec::new(
+        "res://ui/editor/windows/asset_window.zui",
+    ))
     .with_icon_key("asset-browser")
 }

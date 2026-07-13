@@ -23,7 +23,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_command_is_wired
     let structure_convention = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "native dynamic fixture exposes distribution assets",
@@ -97,7 +96,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_production_command_is_wired
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

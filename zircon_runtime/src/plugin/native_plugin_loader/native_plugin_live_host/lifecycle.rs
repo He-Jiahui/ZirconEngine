@@ -75,10 +75,7 @@ impl std::fmt::Display for NativePluginLiveHostLifecycleError {
                 "plugin {plugin_id} is not loaded in the {} live host; run Hot Reload after building its native dynamic package",
                 module_kind_label(*module_kind)
             ),
-            Self::UnloadBehavior {
-                source,
-                ..
-            } => write!(formatter, "{source}"),
+            Self::UnloadBehavior { source, .. } => write!(formatter, "{source}"),
             Self::HotReloadDidNotLoad {
                 plugin_id,
                 module_kind,
@@ -92,10 +89,7 @@ impl std::fmt::Display for NativePluginLiveHostLifecycleError {
                 root.display()
             ),
             Self::HotReloadSnapshot { source } => write!(formatter, "{source}"),
-            Self::HotReloadUnloadBeforeReload {
-                source,
-                ..
-            } => write!(formatter, "{source}"),
+            Self::HotReloadUnloadBeforeReload { source, .. } => write!(formatter, "{source}"),
             Self::HotReloadRestore {
                 source,
                 rollback_diagnostics,

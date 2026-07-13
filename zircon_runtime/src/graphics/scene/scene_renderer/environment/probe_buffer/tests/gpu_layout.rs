@@ -4,7 +4,8 @@ use crate::core::framework::render::{ProbeInfluenceShape, ReflectionProbeData, R
 use crate::core::math::{Quat, Vec3};
 
 use super::super::gpu_layout::{
-    reflection_probe_bind_group_layout_entries, GpuReflectionProbe,
+    reflection_probe_bind_group_layout_entries, GpuPlanarReflection, GpuReflectionProbe,
+    PLANAR_REFLECTION_PARAMS_BINDING, PLANAR_REFLECTION_TEXTURE_BINDING,
     REFLECTION_PROBE_CUBEMAP_BINDING, REFLECTION_PROBE_HEADER_BINDING,
     REFLECTION_PROBE_STORAGE_BINDING,
 };
@@ -18,6 +19,16 @@ fn render_probe_gpu_layout_is_96_bytes_with_documented_offsets() {
     assert_eq!(offset_of!(GpuReflectionProbe, proj_params), 48);
     assert_eq!(offset_of!(GpuReflectionProbe, rotation), 64);
     assert_eq!(offset_of!(GpuReflectionProbe, misc), 80);
+}
+
+#[test]
+fn planar_reflection_gpu_layout_is_176_bytes_with_documented_offsets() {
+    assert_eq!(size_of::<GpuPlanarReflection>(), 176);
+    assert_eq!(offset_of!(GpuPlanarReflection, clip_from_world), 0);
+    assert_eq!(offset_of!(GpuPlanarReflection, local_from_world), 64);
+    assert_eq!(offset_of!(GpuPlanarReflection, bounds_min), 128);
+    assert_eq!(offset_of!(GpuPlanarReflection, bounds_max), 144);
+    assert_eq!(offset_of!(GpuPlanarReflection, sample_params), 160);
 }
 
 #[test]
@@ -56,6 +67,8 @@ fn render_probe_pass_layout_uses_reserved_bindings_and_cube_array_dimension() {
             REFLECTION_PROBE_STORAGE_BINDING,
             REFLECTION_PROBE_HEADER_BINDING,
             REFLECTION_PROBE_CUBEMAP_BINDING,
+            PLANAR_REFLECTION_TEXTURE_BINDING,
+            PLANAR_REFLECTION_PARAMS_BINDING,
         ]
     );
     assert!(matches!(
@@ -77,6 +90,21 @@ fn render_probe_pass_layout_uses_reserved_bindings_and_cube_array_dimension() {
         wgpu::BindingType::Texture {
             view_dimension: wgpu::TextureViewDimension::CubeArray,
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            ..
+        }
+    ));
+    assert!(matches!(
+        entries[3].ty,
+        wgpu::BindingType::Texture {
+            view_dimension: wgpu::TextureViewDimension::D2,
+            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+            ..
+        }
+    ));
+    assert!(matches!(
+        entries[4].ty,
+        wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
             ..
         }
     ));

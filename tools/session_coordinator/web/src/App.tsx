@@ -36,7 +36,7 @@ function ControlShell() {
   const navigate = (path: string) => { window.history.pushState({}, "", path); setRoute(routeForPath(path)); setMobileOpen(false); };
   const nav = <List component="nav" aria-label="控制中心页面">{routes.map((item) => <ListItemButton key={item.key} selected={route === item.key} onClick={() => navigate(item.path)}><ListItemText primary={item.label} /></ListItemButton>)}</List>;
   const activeSessions = state.snapshot?.sessions.filter((session) => ["active", "resolving_failure", "waiting_validation", "finalizing"].includes(session.status)).length ?? 0;
-  const runningTasks = state.snapshot?.validation.cargoJobs.filter((job) => job.status === "running").length ?? 0;
+  const runningTasks = state.snapshot?.validation.currentCargoTargets.filter((job) => job.status === "running").length ?? 0;
   const openFailures = state.snapshot?.failures.nodes.filter((failure) => failure.status === "open").length ?? 0;
 
   return <Box sx={{ minHeight: "100vh" }}>

@@ -131,6 +131,10 @@ fn script_type_expansion_preserves_metadata_and_skips_fields() {
     assert!(tokens.contains("ScriptHostValueKind :: Float"));
     assert!(tokens.contains("ScriptHostPrototypeKind :: Struct"));
     assert!(tokens.contains("allow_value_construction (true)"));
+    assert!(tokens.contains("fn reflect_type_registration"));
+    assert!(tokens.contains("ReflectTypeRegistration"));
+    assert!(tokens.contains("ReflectScriptVisibility :: Public"));
+    assert!(tokens.contains("fn script_host_type_projection"));
     assert!(tokens.contains("with_documentation (\"vector docs\")"));
     assert!(tokens.contains("with_documentation (\"x docs\")"));
     assert!(!tokens.contains("cached_length"));

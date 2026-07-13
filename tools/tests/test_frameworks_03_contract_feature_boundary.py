@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -81,6 +82,18 @@ RUNTIME_DIAGNOSTICS_ROOT = (
     REPO_ROOT / "zircon_runtime" / "src" / "core" / "runtime" / "diagnostics"
 )
 LEVEL_SYSTEM_SOURCE = REPO_ROOT / "zircon_runtime" / "src" / "scene" / "level_system.rs"
+GRAPHICS_RICH_TEXT_RENDER_SOURCE = (
+    REPO_ROOT
+    / "zircon_runtime"
+    / "src"
+    / "graphics"
+    / "scene"
+    / "scene_renderer"
+    / "ui"
+    / "render"
+    / "rich_text.rs"
+)
+GRAPHICS_TYPES_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "graphics" / "types"
 
 PERSISTENT_PHYSICS_TYPES = {
     "combine_rule.rs": "pub enum PhysicsCombineRule",
@@ -89,6 +102,16 @@ PERSISTENT_PHYSICS_TYPES = {
     "material_metadata.rs": "pub struct PhysicsMaterialMetadata",
     "skeleton_joint_binding.rs": "pub struct PhysicsSkeletonJointBinding",
 }
+
+
+def references_optional_physics_owner(source: str, type_name: str) -> bool:
+    escaped_type = re.escape(type_name)
+    optional_owner_path = re.compile(
+        rf"\bcore\s*::\s*framework\s*::\s*physics\s*::\s*"
+        rf"(?:\{{[^;]*\b{escaped_type}\b[^;]*\}}|\b{escaped_type}\b)",
+        re.DOTALL,
+    )
+    return optional_owner_path.search(source) is not None
 
 
 class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
@@ -418,7 +441,44 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
                     continue
                 for declaration in PERSISTENT_PHYSICS_TYPES.values():
                     type_name = declaration.rsplit(" ", maxsplit=1)[-1]
-                    self.assertNotIn(type_name, content, source)
+                    self.assertFalse(
+                        references_optional_physics_owner(content, type_name),
+                        source,
+                    )
+
+    def test_persistent_physics_owner_guard_allows_scene_consumers(self) -> None:
+        legal_mixed_imports = """
+use zircon_runtime::core::framework::physics::{PhysicsJointSyncState, PhysicsJointType};
+use zircon_runtime::core::framework::scene::physics::PhysicsJointDrive;
+"""
+        stale_direct_import = (
+            "use zircon_runtime::core::framework::physics::PhysicsJointDrive;"
+        )
+        stale_grouped_import = """
+use zircon_runtime::core::framework::physics::{
+    PhysicsJointDrive,
+    PhysicsJointSyncState,
+};
+"""
+
+        self.assertFalse(
+            references_optional_physics_owner(
+                legal_mixed_imports,
+                "PhysicsJointDrive",
+            )
+        )
+        self.assertTrue(
+            references_optional_physics_owner(
+                stale_direct_import,
+                "PhysicsJointDrive",
+            )
+        )
+        self.assertTrue(
+            references_optional_physics_owner(
+                stale_grouped_import,
+                "PhysicsJointDrive",
+            )
+        )
 
     def test_optional_physics_runtime_state_uses_declaration_adapters(self) -> None:
         level_system = LEVEL_SYSTEM_SOURCE.read_text(encoding="utf-8")
@@ -470,6 +530,19 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
             '#[path = "physics_collection_disabled.rs"]\n'
             "mod physics_collection;",
             diagnostics_root,
+        )
+
+    def test_graphics_does_not_require_the_ui_domain(self) -> None:
+        rich_text_render = GRAPHICS_RICH_TEXT_RENDER_SOURCE.read_text(encoding="utf-8")
+        graphics_types = (GRAPHICS_TYPES_ROOT / "mod.rs").read_text(encoding="utf-8")
+
+        self.assertNotIn("crate::ui", rich_text_render)
+        self.assertNotIn(
+            "viewport_render_frame_from_public_runtime",
+            graphics_types,
+        )
+        self.assertFalse(
+            (GRAPHICS_TYPES_ROOT / "viewport_render_frame_from_public_runtime.rs").exists()
         )
 
 

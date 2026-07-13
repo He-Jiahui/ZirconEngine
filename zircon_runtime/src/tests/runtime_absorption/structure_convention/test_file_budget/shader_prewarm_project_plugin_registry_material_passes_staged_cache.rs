@@ -1,30 +1,19 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_staged_cache_static_passed_cargo_timeout_no_result";
-const OWNER_SPLIT_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_owner_split_static_passed_cargo_deferred_active_lanes";
-const VELOCITY_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_velocity_runtime_contract_static_passed_cargo_deferred_active_lanes";
-const SECOND_LAUNCH_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_second_launch_static_passed_wgpu_timeout_no_result";
-const SECOND_LAUNCH_CARGO_WRAPPER_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_second_launch_cargo_wrapper_wgpu_passed_renderdoc_deferred";
-const SECOND_LAUNCH_DEFAULT_FEATURE_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred";
-const CUSTOM_PRODUCT_GROUP_DEFAULT_FEATURE_REFRESH_STATUS: &str =
-    "render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred";
-const LIVE_REGISTRY_SOURCE_LABEL_PRODUCT_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_live_registry_source_label_product_wgpu_passed_renderdoc_deferred";
-const LIVE_REGISTRY_RECORD_PRODUCT_STATUS: &str =
-    "render_plan08_project_plugin_registry_material_passes_asset_root_records_wgpu_passed_renderdoc_deferred";
-const SHARED_RESOURCE_RECORD_EXPORT_PRODUCT_STATUS: &str =
-    "render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_project_plugin_registry_material_passes_staged_cache_static_passed_cargo_timeout_no_result";
+const OWNER_SPLIT_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_owner_split_static_passed_cargo_deferred_active_lanes";
+const VELOCITY_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_velocity_runtime_contract_static_passed_cargo_deferred_active_lanes";
+const SECOND_LAUNCH_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_second_launch_static_passed_wgpu_timeout_no_result";
+const SECOND_LAUNCH_CARGO_WRAPPER_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_second_launch_cargo_wrapper_wgpu_passed_renderdoc_deferred";
+const SECOND_LAUNCH_DEFAULT_FEATURE_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred";
+const CUSTOM_PRODUCT_GROUP_DEFAULT_FEATURE_REFRESH_STATUS: &str = "render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred";
+const LIVE_REGISTRY_SOURCE_LABEL_PRODUCT_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_live_registry_source_label_product_wgpu_passed_renderdoc_deferred";
+const LIVE_REGISTRY_RECORD_PRODUCT_STATUS: &str = "render_plan08_project_plugin_registry_material_passes_asset_root_records_wgpu_passed_renderdoc_deferred";
+const SHARED_RESOURCE_RECORD_EXPORT_PRODUCT_STATUS: &str = "render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired() {
-    let product_dir =
-        "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache";
+    let product_dir = "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache";
     assert!(
         !repo_path("zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache.rs").exists(),
         "material-pass registry product owner should stay folder-backed instead of returning to one near-budget file"
@@ -63,12 +52,14 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
     let project_record_export =
         read_repo("zircon_runtime/src/asset/project/shader_resource_records.rs");
     let parent_mod = read_repo("zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "project/plugin registry material-pass staged-cache product test is wired",
@@ -131,7 +122,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
             "shader_resource_records_from_asset_roots",
             "deduplicate_shader_resource_records",
             "AssetMetaDocument::load",
-            "asset_scan_revision_from_source_hash",
+            "asset_scan_revision_from_source_digest",
             "ResourceKind::Shader",
             "ResourceState::Ready",
         ],
@@ -224,7 +215,6 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

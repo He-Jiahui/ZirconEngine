@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/node_visual_data.rs
@@ -21,7 +21,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
@@ -53,7 +53,7 @@ related_code:
   - zircon_runtime/src/ui/tests/render_segmented_controls.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/render_text_fields.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/render_painter_state.rs
   - zircon_runtime/src/ui/tests/runtime_drag_drop_component_state.rs
   - zircon_runtime/src/ui/tests/runtime_loading_component_state.rs
@@ -63,7 +63,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/node_visual_data.rs
@@ -83,7 +83,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
@@ -116,7 +116,7 @@ implementation_files:
   - zircon_runtime/src/ui/tests/render_segmented_controls.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/render_text_fields.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/ui/tests/render_painter_state.rs
   - zircon_runtime/src/ui/tests/runtime_drag_drop_component_state.rs
   - zircon_runtime/src/ui/tests/runtime_loading_component_state.rs
@@ -125,7 +125,7 @@ plan_sources:
   - user: 2026-06-01 workbench design recreation and engine implementation
   - user: 2026-06-03 native editor workbench window comparison screenshot request
 tests:
-  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/ui/tests/text_layout.rs zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-06-30 LB-M2 WordSmart wrap contract entry: passed)
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/typography.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/text/layout_engine/wrapping.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/ui/tests/text_layout zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs (2026-06-30 LB-M2 WordSmart wrap contract entry: passed)
   - cargo check -p zircon_runtime_interface --lib --tests --locked --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-interface --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart interface contract: passed)
   - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0630-word-smart-runtime --message-format short --color never --quiet (2026-06-30 LB-M2 WordSmart runtime contract: passed with existing warnings only)
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/tests/render_segmented_controls.rs zircon_runtime/src/ui/tests/render_selection_controls.rs zircon_runtime/src/ui/tests/render_sliders.rs zircon_runtime/src/ui/text/layout_engine/line_box.rs zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs (2026-07-06 UI render dynamic state fixture unblock: passed; log docs/tests/runtime/text/runtime_text_spacing_cache_layout_rustfmt_check_20260706.log SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855)

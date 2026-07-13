@@ -4,8 +4,10 @@ pub(super) fn title_node(control_id: &str, text: &str) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
         control_id: control_id.into(),
         role: "Label".into(),
+        component_role: "label".into(),
+        component_variant: "section-title".into(),
         text: text.into(),
-        font_weight: 700,
+        font_weight: 600,
         frame: TemplateNodeFrameData {
             x: 10.0,
             y: 8.0,

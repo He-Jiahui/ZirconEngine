@@ -5,7 +5,7 @@ mod off_mesh_bridge;
 mod off_mesh_link;
 mod surface;
 
-use zircon_runtime::plugin::ComponentTypeDescriptor;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 
 pub fn navigation_component_descriptors() -> Vec<ComponentTypeDescriptor> {
     vec![

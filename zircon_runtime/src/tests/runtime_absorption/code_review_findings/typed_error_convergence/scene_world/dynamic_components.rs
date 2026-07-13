@@ -14,8 +14,10 @@ fn review_f5_dynamic_component_errors_preserve_scene_error_sources() {
     let dynamic_scene_tests = include_str!("../../../../../scene/tests/dynamic_scene.rs");
     let dynamic_scene_patch_tests =
         include_str!("../../../../../scene/tests/dynamic_scene/scene_patch_document.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let runtime_08_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
     );

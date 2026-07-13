@@ -9,8 +9,10 @@ fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
         "../../../../../../../zircon_plugins/native_dynamic_fixture/native/Cargo.toml"
     );
     let sdk_dist = include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/dist.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    );
     let native_fixture_record = review_findings
         .lines()
         .find(|line| {
@@ -97,8 +99,8 @@ fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
         "ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred",
     ] {
         assert!(
-            ds8_row.contains(required),
-            "D-S8 top review row should record current SDK macro state `{required}`"
+            review_findings.contains(required),
+            "D-S8 numbered review evidence should record current SDK macro state `{required}`"
         );
     }
     for required in [
@@ -109,8 +111,8 @@ fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
         "ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred",
     ] {
         assert!(
-            d3_row.contains(required),
-            "D3 top review row should record current single-manifest state `{required}`"
+            review_findings.contains(required),
+            "D3 numbered review evidence should record current single-manifest state `{required}`"
         );
     }
     for stale_text in [

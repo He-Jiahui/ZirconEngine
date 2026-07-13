@@ -131,9 +131,10 @@ impl Default for UiGap {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiDimension {
+    #[default]
     Auto,
     Px(f32),
     /// Normalized percentage in the 0.0..=1.0 range.
@@ -252,12 +253,6 @@ pub struct UiOverflowPair {
     pub x: UiOverflow,
     #[serde(default)]
     pub y: UiOverflow,
-}
-
-impl Default for UiDimension {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 fn zero_dimension() -> UiDimension {

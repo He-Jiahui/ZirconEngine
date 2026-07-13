@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime_interface/src/ui/event_ui.rs
+  - zircon_runtime_interface/src/ui/event_ui/mod.rs
   - zircon_runtime/src/ui/surface/input
   - zircon_editor/src/ui/retained_host/host_contract
 plan_sources:

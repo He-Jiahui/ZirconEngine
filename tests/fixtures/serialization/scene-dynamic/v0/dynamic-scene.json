@@ -1,0 +1,21 @@
+{
+  "format_version": 1,
+  "entities": [],
+  "resources": [
+    {
+      "type_path": "legacy.material-binding",
+      "fields": [
+        {
+          "field_name": "material",
+          "value": {
+            "kind": "Json",
+            "value": {
+              "uuid": "3d6f0a55-a138-4cab-a54a-1c8c7262d101",
+              "url": "res://materials/hero.zmaterial#surface"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

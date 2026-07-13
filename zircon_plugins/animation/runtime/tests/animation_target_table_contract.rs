@@ -3,11 +3,11 @@ use std::sync::Arc;
 use zircon_plugin_animation_runtime::{
     AnimationClipCompileError, CompiledAnimationClip, SkeletonTargetTable,
 };
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::AnimationTargetId;
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationClipBoneTrackAsset, AnimationInterpolationAsset,
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
-use zircon_runtime::core::framework::animation::AnimationTargetId;
 use zircon_runtime::core::framework::scene::EntityPath;
 
 #[test]

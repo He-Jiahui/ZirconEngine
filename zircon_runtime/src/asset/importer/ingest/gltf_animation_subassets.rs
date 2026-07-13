@@ -4,10 +4,13 @@ use gltf::animation::util::ReadOutputs;
 
 use super::gltf_labeled_subassets::{gltf_label_reference, gltf_label_uri};
 use crate::asset::{
+    AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset, DataAssetFormat,
+    ImportedAsset, ImportedAssetEntry,
+};
+use crate::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationInterpolationAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AssetImportError, AssetImportOutcome,
-    AssetReference, AssetUri, DataAsset, DataAssetFormat, ImportedAsset, ImportedAssetEntry,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
 
 pub(crate) fn add_gltf_animation_and_skin_subassets(

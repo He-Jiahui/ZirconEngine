@@ -36,5 +36,7 @@ pub(crate) use scene_inputs::HybridGiSceneInputs;
 pub(crate) use scene_representation::HybridGiRuntimeScenePrepareResources;
 pub(crate) use scene_representation::HybridGiScenePrepareResourceSamples;
 #[cfg(test)]
-pub(crate) use scene_representation::{HybridGiInputSet, HybridGiSceneRepresentation};
+pub(crate) use scene_representation::{
+    HybridGiInputSet, HybridGiSceneRepresentation, HybridGiSurfaceParticipation,
+};
 pub(crate) use types::*;

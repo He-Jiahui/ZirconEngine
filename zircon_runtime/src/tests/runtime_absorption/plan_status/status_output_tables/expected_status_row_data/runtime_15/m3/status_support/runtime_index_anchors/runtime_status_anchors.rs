@@ -10,7 +10,7 @@ pub(super) const RUNTIME_03_MODULE_DOC_STATUS_INDEX_ANCHOR_SYNC: Slice = (
         "frame schedule module-doc anchors 3/3",
         "guard/test files 11/11",
         "Runtime 03 guard anchors 14/14",
-        "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates",
+        "runtime_03_schedule_frame_loop_cargo_gate_records_completed_schedule_validation",
         "runtime_15_runtime_03_module_doc_status_index_anchors_are_locked",
     ],
 );

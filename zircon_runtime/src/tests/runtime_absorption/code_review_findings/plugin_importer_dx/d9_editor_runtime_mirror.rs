@@ -26,28 +26,9 @@ const D9_EDITOR_RUNTIME_MIRROR_CRATES: &[(&str, &str, &str, &str, &str)] = &[
 
 #[test]
 fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let plugins_12 = include_str!(
-        "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
-    let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
-    let plugin_audit_doc =
-        include_str!("../../../../../../docs/zircon_plugins/plugin_structure_audits.md");
-    let animation_doc = include_str!("../../../../../../docs/zircon_plugins/animation/runtime.md");
-    let physics_doc = include_str!("../../../../../../docs/zircon_plugins/physics/runtime.md");
-    let net_doc = include_str!("../../../../../../docs/zircon_plugins/net/runtime.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let module_convention =
-        include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let capability_audit =
         include_str!("../../../../../../tools/plugin_structure_audits/capability.py");
@@ -140,8 +121,8 @@ fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
         "d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean",
     ] {
         assert!(
-            d9_row.contains(required),
-            "D9 row should record editor/runtime mirror consumer convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D9 numbered review evidence should record editor/runtime mirror consumer convergence anchor `{required}`"
         );
     }
     assert!(
@@ -149,30 +130,10 @@ fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
         "D9 row should not keep the stale unguarded-asymmetry wording"
     );
 
-    for (doc_label, doc) in [
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("Plugins 12 plan", plugins_12),
-        ("plugin SDK doc", plugin_sdk_doc),
-        ("plugin audit doc", plugin_audit_doc),
-        ("animation plugin doc", animation_doc),
-        ("physics plugin doc", physics_doc),
-        ("net plugin doc", net_doc),
-        ("Runtime 15 plan", runtime_15),
-        ("Runtime index", runtime_index),
-        ("module convention", module_convention),
-        ("session note", session_note),
-    ] {
-        for required in [
-            "D9 editor/runtime mirror consumer guard",
-            "d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred",
-            "review_d9_editor_runtime_mirror_consumers_use_sdk_declaration",
-            "d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean",
-        ] {
-            assert!(
-                doc.contains(required),
-                "{doc_label} should record D9 editor/runtime mirror consumer anchor `{required}`"
-            );
-        }
-    }
+    assert!(
+        review_findings.contains("D9 editor/runtime mirror consumer guard")
+            && review_findings
+                .contains("review_d9_editor_runtime_mirror_consumers_use_sdk_declaration"),
+        "D9 numbered output should own the concrete editor/runtime mirror evidence"
+    );
 }

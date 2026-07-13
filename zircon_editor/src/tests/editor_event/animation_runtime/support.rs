@@ -1,24 +1,34 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::path::Path;
 
-use zircon_runtime::asset::assets::{
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationConditionOperatorAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
     AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
     AnimationSequenceTrackAsset, AnimationStateAsset, AnimationStateMachineAsset,
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
-use zircon_runtime::asset::{AssetReference, AssetUri};
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 
-pub(super) fn unique_temp_dir(prefix: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("{prefix}_{unique}"))
+use crate::tests::editor_event::support::EventRuntimeHarness;
+
+pub(super) fn open_indexed_animation_asset(
+    harness: &mut EventRuntimeHarness,
+    prefix: &str,
+    locator: &str,
+    write_asset: impl FnOnce(&Path),
+) -> String {
+    harness.register_animation_asset_toolkits();
+    let catalog = harness.open_project_with_assets(prefix, |project| {
+        write_asset(&project.source_path(locator));
+    });
+    assert!(
+        catalog.assets.iter().any(|asset| asset.locator == locator),
+        "animation fixture asset {locator} should be indexed by the real project catalog"
+    );
+    locator.to_string()
 }
 
 pub(super) fn scalar_channel(value: f32) -> AnimationChannelAsset {
@@ -81,16 +91,11 @@ pub(super) fn write_state_machine_asset(path: &Path) {
         name: Some("Hero State Machine".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: graph_reference.clone(),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: graph_reference,
-            },
+            AnimationStateAsset::graph_ref("Idle", graph_reference.clone()),
+            AnimationStateAsset::graph_ref("Run", graph_reference),
         ],
         transitions: Vec::new(),
+        layers: Vec::new(),
     };
     fs::write(path, asset.to_bytes().unwrap()).unwrap();
 }
@@ -103,25 +108,22 @@ pub(super) fn write_state_machine_asset_with_transition(path: &Path) {
         name: Some("Hero State Machine".to_string()),
         entry_state: "Idle".to_string(),
         states: vec![
-            AnimationStateAsset {
-                name: "Idle".to_string(),
-                graph: graph_reference.clone(),
-            },
-            AnimationStateAsset {
-                name: "Run".to_string(),
-                graph: graph_reference,
-            },
+            AnimationStateAsset::graph_ref("Idle", graph_reference.clone()),
+            AnimationStateAsset::graph_ref("Run", graph_reference),
         ],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Idle".to_string(),
             to_state: "Run".to_string(),
             duration_seconds: 0.25,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "speed".to_string(),
                 operator: AnimationConditionOperatorAsset::GreaterEqual,
                 value: Some(AnimationParameterValue::Scalar(1.0)),
             }],
         }],
+        layers: Vec::new(),
     };
     fs::write(path, asset.to_bytes().unwrap()).unwrap();
 }

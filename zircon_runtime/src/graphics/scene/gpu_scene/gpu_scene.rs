@@ -14,7 +14,9 @@ use super::layout::{
     GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
     GPU_PRIMITIVE_DATA_STRIDE,
 };
-use super::prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
+use super::prev_skinned_palette::{
+    GpuSceneSkinnedJointPaletteBuffers, GpuSceneSkinnedJointPaletteState,
+};
 use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
 use super::update_queue::GpuSceneUpdateQueue;
 use super::upload::{write_full_pod_buffer, write_upload_ranges};
@@ -115,6 +117,7 @@ pub(crate) struct GpuScene {
     pub(super) entries: HashMap<u64, GpuSceneEntry>,
     pub(super) current_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
     pub(super) previous_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
+    pub(super) skinned_joint_palette_buffers: HashMap<u64, GpuSceneSkinnedJointPaletteBuffers>,
     pub(super) current_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) previous_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) current_morph_weights: HashMap<u64, Vec<f32>>,
@@ -237,6 +240,7 @@ impl GpuScene {
             entries: HashMap::new(),
             current_skinned_joint_palettes: HashMap::new(),
             previous_skinned_joint_palettes: HashMap::new(),
+            skinned_joint_palette_buffers: HashMap::new(),
             current_skinned_gpu_sources: HashMap::new(),
             previous_skinned_gpu_sources: HashMap::new(),
             current_morph_weights: HashMap::new(),
@@ -311,6 +315,8 @@ impl GpuScene {
             .remove(&stable_instance_key);
         self.previous_skinned_joint_palettes
             .remove(&stable_instance_key);
+        self.skinned_joint_palette_buffers
+            .remove(&stable_instance_key);
         self.current_skinned_gpu_sources
             .remove(&stable_instance_key);
         self.previous_skinned_gpu_sources
@@ -337,6 +343,8 @@ impl GpuScene {
         self.current_skinned_joint_palettes
             .retain(|key, _| live_keys.contains(key));
         self.previous_skinned_joint_palettes
+            .retain(|key, _| live_keys.contains(key));
+        self.skinned_joint_palette_buffers
             .retain(|key, _| live_keys.contains(key));
         self.current_skinned_gpu_sources
             .retain(|key, _| live_keys.contains(key));

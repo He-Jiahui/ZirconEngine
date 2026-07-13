@@ -13,21 +13,14 @@ const PRIORITY_DOC_FRONTMATTER_SYNC_NAME: &str =
     "Runtime 15 M3 foundation row-data priority-doc frontmatter sync";
 const PRIORITY_DOC_FRONTMATTER_SYNC_ID: &str =
     "runtime_15_foundation_row_data_priority_doc_frontmatter_sync_static_passed_cargo_deferred";
-const ROW_COUNT_CHILD_FRONTMATTER_PATH: &str =
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs";
-const STATUS_SUPPORT_ROW_DATA_AND_BUDGET_FRONTMATTER_PATH: &str =
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs";
-const STATUS_SUPPORT_STATUS_MAP_FRONTMATTER_PATH: &str =
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs";
-const STATUS_SUPPORT_DATE_MAP_FRONTMATTER_PATH: &str =
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs";
+const ROW_COUNT_CHILD_FRONTMATTER_PATH: &str = "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs";
+const STATUS_SUPPORT_ROW_DATA_AND_BUDGET_FRONTMATTER_PATH: &str = "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs";
+const STATUS_SUPPORT_STATUS_MAP_FRONTMATTER_PATH: &str = "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs";
+const STATUS_SUPPORT_DATE_MAP_FRONTMATTER_PATH: &str = "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs";
 
-const ROW_COUNT_ROUTE_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs";
-const CURRENT_COUNTS_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/current_counts.rs";
-const PRIORITY_FRONTMATTER_PATH: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/priority_frontmatter.rs";
+const ROW_COUNT_ROUTE_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs";
+const CURRENT_COUNTS_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/current_counts.rs";
+const PRIORITY_FRONTMATTER_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/priority_frontmatter.rs";
 
 const ROW_COUNT_CHILD_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 foundation row-data row-count child split";

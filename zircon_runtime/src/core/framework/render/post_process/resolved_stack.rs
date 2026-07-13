@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderExposureSettings,
-    RenderPostProcessEffectStackSettings,
+    RenderPostProcessEffectStackSettings, VolumetricFogSettings,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -9,6 +9,7 @@ pub struct RenderResolvedPostProcessSettings {
     pub exposure: RenderExposureSettings,
     pub color_grading: RenderColorGradingSettings,
     pub effect_stack: RenderPostProcessEffectStackSettings,
+    pub volumetric_fog: VolumetricFogSettings,
 }
 
 impl RenderResolvedPostProcessSettings {
@@ -23,6 +24,7 @@ impl RenderResolvedPostProcessSettings {
             exposure,
             color_grading,
             effect_stack,
+            volumetric_fog: VolumetricFogSettings::DEFAULT,
         }
     }
 }

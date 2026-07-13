@@ -91,7 +91,7 @@ plan_sources:
 |----|------|------|------|
 | RT-1 | MUST | core 脊柱角色固定：`runtime`=生命周期/调度内核，`manager`=服务名/resolver/handle 访问层，`framework(zr_contracts)`=纯契约零实现零重依赖，`math/resource`=共享地基。放错层的代码按 owner 迁移 | G2 |
 | RT-2 | MUST | 新模块必经内核：声明 `ModuleDescriptor`（name/init_level/dependencies/drivers/managers/systems/features），实现 build/ready/finish/cleanup 四阶段；禁止绕过 CoreRuntime 自行构造与手工排序 | 评审→G2 |
-| RT-3 | MUST | 依赖规则：Driver 只依赖 Driver；Manager 可依赖 Driver/Manager；业务对象不缓存跨生命周期强引用；服务命名 `ModuleName.ServiceKind.ServiceName` | 内核 KernelError + 单测 |
+| RT-3 | MUST | 依赖规则：Driver 只依赖 Driver；Manager 可依赖 Driver/Manager；业务对象不缓存跨生命周期强引用；服务命名 `ModuleName.ServiceKind.ServiceName` | 内核 `CoreError` + 单测 |
 | RT-4 | MUST | 跨域引用只准三形态：extract/snapshot DTO（数据面）、registry 注册（扩展面）、handle+resolver（服务面）；禁止 `use crate::<邻域>::` 触内部类型（计划 05） | G1 |
 | RT-5 | MUST | 可选子系统必须 feature 门控且满足可加性：任一域单开/单关都可编译；cfg 门开在模块声明与组装表，不开在业务逻辑深处 | G4 |
 | RT-6 | MUST | world 权威在 scene(ECS)：`WorldTransform` 等派生数据由系统计算；序列化不含作者态；渲染侧只见 RenderExtract 产物 | 契约测试 |

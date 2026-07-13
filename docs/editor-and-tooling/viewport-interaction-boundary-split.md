@@ -29,17 +29,15 @@ related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
-  - zircon_editor/src/core/editor_event/runtime/accessors.rs
-  - zircon_app/src/entry/runtime_entry_app.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_app/src/entry/runtime_entry_app/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/mod.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/accessors.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/tests.rs
-  - zircon_graphics/src/lib.rs
-  - zircon_graphics/src/types/viewport_render_frame.rs
-  - zircon_graphics/src/types/viewport_render_frame_from_extract.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/dynamic_api/camera_controller.rs
+  - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
 implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/Cargo.toml
@@ -69,20 +67,14 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
-  - zircon_app/src/entry/runtime_entry_app.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/mod.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/accessors.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/new.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/resize.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/orbit.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/pan.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/zoom.rs
-  - zircon_graphics/src/lib.rs
-  - zircon_graphics/src/types/viewport_render_frame.rs
-  - zircon_graphics/src/types/viewport_render_frame_from_extract.rs
-  - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/dynamic_api/camera_controller.rs
+  - zircon_runtime/src/graphics/mod.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
 plan_sources:
   - user: 2026-04-17 功能性拆分要求，先找明显错包模块并迁回合理包
   - user: 2026-04-17 Viewport 交互边界重构计划
@@ -98,12 +90,12 @@ tests:
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_app/src/entry/tests.rs
-  - zircon_app/src/entry/runtime_entry_app/camera_controller/tests.rs
-  - zircon_graphics/src/tests/project_render.rs
+  - zircon_runtime/src/dynamic_api/camera_controller.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
-  - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics --locked
   - cargo test -p zircon_app --locked
   - cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked
@@ -176,7 +168,7 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
 
 ## Runtime Preview
 
-- `zircon_app` 不再复用 editor viewport controller，而是在 `entry/runtime_entry_app/camera_controller/` 下持有 crate-private `RuntimeCameraController`。
+- `zircon_app` 已进一步收缩为动态 Runtime ABI 的窗口/输入宿主；运行时相机控制统一由 `zircon_runtime/src/dynamic_api/camera_controller.rs` 持有，不再在 App 或 Editor 中保留第二套 controller。
 - runtime 控制器只实现 `resize / orbit / pan / zoom / orbit target sync`，不再依赖 `GizmoAxis` 或任何对象编辑语义。
 - runtime 左键拖拽现在是显式 no-op；选中节点的 transform 不会再被 runtime preview 隐式修改。
 - 为适配当前 `winit 0.31.0-beta.2` / `softbuffer` 接口，runtime 窗口与 presenter 也同步切到了 `dyn Window` + `SurfaceResized` / `PointerMoved` / `PointerButton` 事件模型。
@@ -184,7 +176,7 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
 ## Validation
 
 - `cargo test -p zircon_graphics --locked` 通过。
-- `cargo test -p zircon_app --locked` 通过，包含新的 `camera_controller` unit tests 与 runtime boundary regression。
+- 历史 `zircon_app` camera-controller 测试已随 owner 吸收退休；当前回归由 `zircon_runtime/src/dynamic_api/camera_controller.rs` 内的 dynamic Runtime camera test 与 App ABI/entry tests 分别承担。
 - `cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked` 通过。
 - `cargo test -p zircon_editor editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings --locked` 通过。
 - `cargo test -p zircon_editor viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_only`

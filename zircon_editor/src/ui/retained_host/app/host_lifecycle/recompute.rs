@@ -72,8 +72,24 @@ impl RetainedEditorHost {
         self.presentation_dirty = false;
         self.layout_dirty = false;
         self.window_metrics_dirty = false;
-        if !paint_only_reasons.is_empty() && !paint_only_reasons.requires_layout() {
-            self.render_dirty = false;
-        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn recompute_preserves_pending_render_work_until_render_submission_consumes_it() {
+        let decision_source = include_str!("recompute/invalidation/decision.rs");
+        let recompute_source = include_str!("recompute.rs");
+        let production = recompute_source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("recompute source should expose its production section");
+
+        assert!(decision_source.contains("pending_reasons.union(legacy_dirty_reasons)"));
+        assert!(
+            !production.contains("self.render_dirty = false"),
+            "only render submission may consume a pending render request"
+        );
     }
 }

@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/media.rs
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/display.rs
   - zircon_hub/assets/brand/zircon-mark.svg
   - zircon_hub/assets/icons/nav/projects.svg
   - zircon_hub/assets/icons/nav/editor.svg
@@ -37,11 +37,11 @@ related_code:
   - zircon_editor/assets/icons/zircon_editor_shell/status/info.svg
   - zircon_editor/assets/icons/zircon_editor_shell/viewport/axis-gizmo.svg
 implementation_files:
-  - zircon_hub/ui/app.slint
-  - zircon_hub/ui/shared.slint
-  - zircon_hub/ui/projects.slint
-  - zircon_hub/src/app/view_model.rs
-  - zircon_hub/src/app/view_model/media.rs
+  - zircon_hub/web/src/App.tsx
+  - zircon_hub/web/src/components
+  - zircon_hub/web/src/pages/ProjectsDashboard.tsx
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/display.rs
   - zircon_hub/assets/brand/zircon-mark.svg
   - zircon_hub/assets/icons/nav/projects.svg
   - zircon_hub/assets/icons/nav/editor.svg
@@ -84,6 +84,8 @@ doc_type: milestone-detail
 
 # Hub And Editor SVG Resource Design
 
+> 2026-07-12 hard cut：本设计最初的 Slint image-property 接线已退休。Hub 当前以 Tauri + React/MUI 渲染，静态 SVG owner 是 `zircon_hub/assets`，前端消费 owner 是 `zircon_hub/web/src`，Rust `tauri_app/view_model` 只投影可序列化状态与资源标识，不加载 `slint::Image`。下文 Slint 集成段落仅记录历史验收，不得作为当前实现路径或新增兼容层依据。
+
 ## Goal
 
 Generate the image assets implied by the Hub and Editor reference screenshots as repository-owned SVG files, then wire the Hub shell to use those assets without changing the existing Hub data or launch behavior.
@@ -113,7 +115,7 @@ Editor resources live under `zircon_editor/assets`:
 
 Slint component properties keep using `image` values instead of string paths so rendering remains simple in `app.slint` and `projects.slint`. Rust loads bundled SVGs through `slint::Image::load_from_path` and projects them into the existing data models.
 
-`zircon_hub/src/app/view_model/media.rs` owns asset path selection and image loading. This keeps `view_model.rs` focused on snapshot projection and avoids adding media-path constants and fallback loading to an already large file.
+`zircon_hub/src/tauri_app/view_model/display.rs` owns asset path selection and image loading. This keeps `view_model.rs` focused on snapshot projection and avoids adding media-path constants and fallback loading to an already large file.
 
 The existing project-cover discovery remains authoritative for real user projects. For a recent project card, the Hub first tries `.zircon/cover.*`, `.zircon/thumbnail.*`, root-level cover files, and project asset thumbnails through `project_cover_path`. If none can be loaded, it falls back to one of the bundled cover SVGs by card index. This preserves the current real-project behavior while ensuring the dashboard has image resources even for missing local cover files.
 

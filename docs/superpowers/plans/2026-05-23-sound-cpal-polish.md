@@ -18,7 +18,7 @@
 - Modify `zircon_plugins/sound/runtime/src/output/software.rs`: add deterministic software picker row construction.
 - Modify `zircon_plugins/sound/runtime/src/output/cpal.rs`: add feature-gated CPAL enumeration, picker IDs, selected-device lookup, and queue diagnostics.
 - Modify `zircon_plugins/sound/runtime/src/output/mod.rs`: expose device enumeration, status latency diagnostics, and CPAL queue-status merging.
-- Modify `zircon_plugins/sound/runtime/src/service_types.rs`: implement `available_output_devices()` by forwarding to the output facade with current config.
+- Modify `zircon_plugins/sound/runtime/src/service_types/mod.rs`: implement `available_output_devices()` by forwarding to the output facade with current config.
 - Modify `zircon_plugins/sound/runtime/src/tests/output_device.rs`: add deterministic enumeration/status tests and feature-gated CPAL assertions.
 - Update `docs/engine-architecture/runtime-sound-extension.md`: record the picker contract, latency diagnostics, and validation.
 - Update `.codex/sessions/20260523-0748-sound-sequential-milestones.md`: record this active slice and evidence.

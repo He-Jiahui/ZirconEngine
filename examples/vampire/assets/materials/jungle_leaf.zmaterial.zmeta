@@ -1,4 +1,4 @@
-format_version = 6
+format_version = 7
 uuid = "78ab0aa0-71f2-4b5c-bf44-faef4ffb348a"
 url = "res://materials/jungle_leaf.zmaterial"
 asset_kind = "Material"
@@ -8,7 +8,7 @@ artifact_locator = "lib://materials/a834ec71-7a02-6b58-4e65-787d55498aff.zasset"
 importer_id = "zircon.builtin.zmaterial"
 config_hash = "bd60acb658c79e45"
 source_mtime_unix_ms = 1783010487897
-source_hash = "7778c5b89f9df2dd"
+source_digest = "7778c5b89f9df2dd"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

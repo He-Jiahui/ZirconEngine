@@ -1,15 +1,13 @@
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_LIST_SPLIT_NAME: &str =
     "Runtime 15 M3 code review findings status-doc child-anchor list child split";
-pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_LIST_SPLIT_ID: &str =
-    "runtime_15_code_review_findings_status_docs_child_anchor_list_child_split_static_passed_cargo_deferred";
+pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_LIST_SPLIT_ID: &str = "runtime_15_code_review_findings_status_docs_child_anchor_list_child_split_static_passed_cargo_deferred";
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_LIST_SPLIT_DATE: &str = "2026-07-05";
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_LIST_SPLIT_GUARD: &str =
     "runtime_15_code_review_findings_status_docs_child_anchor_list_is_child_owned";
 
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT_NAME: &str =
     "Runtime 15 M3 code review findings status-doc child-anchor route folder-backed split";
-pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT_ID: &str =
-    "runtime_15_code_review_findings_status_docs_child_anchor_route_folder_backed_static_passed_cargo_deferred";
+pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT_ID: &str = "runtime_15_code_review_findings_status_docs_child_anchor_route_folder_backed_static_passed_cargo_deferred";
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT_DATE: &str =
     "2026-07-05";
 pub(in super::super) const STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT_GUARD: &str =

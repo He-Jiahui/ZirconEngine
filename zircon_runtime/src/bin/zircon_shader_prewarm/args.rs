@@ -480,7 +480,7 @@ mod tests {
                 "--asset-root",
                 "assets",
                 "--resource-registry",
-                "Project/library/resources.json",
+                "Project/.zircon/cache/resources.json",
             ]
             .into_iter()
             .map(OsString::from),
@@ -490,7 +490,7 @@ mod tests {
 
         assert_eq!(
             args.resource_registry.unwrap(),
-            std::path::PathBuf::from("Project/library/resources.json")
+            std::path::PathBuf::from("Project/.zircon/cache/resources.json")
         );
     }
 
@@ -501,7 +501,7 @@ mod tests {
                 "--asset-root",
                 "assets",
                 "--shader-permutation-registry",
-                "Project/library/shader_permutation_registry.json",
+                "Project/.zircon/cache/shader_permutation_registry.json",
             ]
             .into_iter()
             .map(OsString::from),
@@ -512,7 +512,7 @@ mod tests {
         assert_eq!(
             args.permutation_registries,
             vec![std::path::PathBuf::from(
-                "Project/library/shader_permutation_registry.json"
+                "Project/.zircon/cache/shader_permutation_registry.json"
             )]
         );
     }

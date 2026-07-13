@@ -82,8 +82,8 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
             "zircon_plugin_net_websocket_runtime",
         )
         .with_target_modes([
-            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
         ])
         .with_capabilities([NET_WEBSOCKET_FEATURE_CAPABILITY.to_string()]),
     )

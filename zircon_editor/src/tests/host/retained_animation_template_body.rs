@@ -21,6 +21,7 @@ use crate::ui::workbench::view::{
 
 fn chrome_fixture() -> EditorChromeSnapshot {
     EditorChromeSnapshot {
+        focused_document_kind: None,
         workbench: WorkbenchSnapshot {
             active_main_page: MainPageId::workbench(),
             main_pages: Vec::new(),
@@ -154,7 +155,7 @@ fn animation_sequence_template_body_projects_hybrid_timeline_slot_for_retained_c
     let animation = animation_fixture("sequence");
     let projected = to_host_contract_animation_editor_pane_from_host_pane(
         &animation_pane(
-            "pane.animation.sequence.body",
+            "res://ui/editor/host/animation_sequence_body.zui",
             PanePayloadKind::AnimationSequenceV1,
             PaneRouteNamespace::Animation,
             &animation,
@@ -186,7 +187,7 @@ fn animation_graph_template_body_projects_hybrid_canvas_slot_for_retained_conver
     let animation = animation_fixture("graph");
     let projected = to_host_contract_animation_editor_pane_from_host_pane(
         &animation_pane(
-            "pane.animation.graph.body",
+            "res://ui/editor/host/animation_graph_body.zui",
             PanePayloadKind::AnimationGraphV1,
             PaneRouteNamespace::Animation,
             &animation,

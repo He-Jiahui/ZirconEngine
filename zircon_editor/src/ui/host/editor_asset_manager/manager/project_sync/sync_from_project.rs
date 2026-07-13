@@ -7,7 +7,6 @@ use zircon_runtime::core::framework::render::ShaderIdePreviewVariant;
 use zircon_runtime::core::resource::{ResourceKind, ResourceState};
 use zircon_runtime::graphics::write_shader_ide_env_for_project;
 
-use crate::ui::host::editor_asset_manager::{editor_meta_path_for_source, EditorAssetMetaDocument};
 use crate::ui::host::editor_asset_manager::{
     AssetCatalogRecord, PreviewArtifactKey, PreviewCache, PreviewScheduler, ReferenceGraph,
 };
@@ -22,7 +21,7 @@ use super::{
 
 impl DefaultEditorAssetManager {
     pub fn sync_from_project(&self, project: ProjectManager) -> Result<(), AssetImportError> {
-        let preview_cache = PreviewCache::new(project.paths().library_root())?;
+        let preview_cache = PreviewCache::new(project.paths().cache_root())?;
         let mut catalog_by_uuid = HashMap::new();
         let mut uuid_by_locator = HashMap::new();
         let mut preview_scheduler = PreviewScheduler::default();
@@ -35,8 +34,6 @@ impl DefaultEditorAssetManager {
             let source_path = project.source_path_for_uri(&locator)?;
             let meta_path = meta_path_for_source(&source_path);
             let meta = AssetMetaDocument::load(&meta_path)?;
-            let editor_meta_path = editor_meta_path_for_source(&source_path);
-            let editor_meta = EditorAssetMetaDocument::load_or_default(&editor_meta_path)?;
             let preview_state = meta.preview_state;
             let direct_references = if metadata.state == ResourceState::Ready {
                 let imported = project.load_artifact_by_id(metadata.id())?;
@@ -73,8 +70,6 @@ impl DefaultEditorAssetManager {
                 extension,
                 meta_path,
                 meta,
-                editor_meta_path,
-                editor_meta,
                 source_mtime_unix_ms: preview_source_mtime(&source_path),
                 source_hash: metadata.source_hash.clone(),
                 preview_state,
@@ -93,14 +88,15 @@ impl DefaultEditorAssetManager {
 
         let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
         refresh_shader_ide_env_after_import(&project)?;
+        let primary_asset_root = project.primary_project_asset_root()?.to_path_buf();
         let change = {
             let mut state = self
                 .state
                 .write()
                 .expect("editor asset state lock poisoned");
             state.project_root = Some(project.paths().root().to_path_buf());
-            state.assets_root = Some(project.paths().assets_root().to_path_buf());
-            state.library_root = Some(project.paths().library_root().to_path_buf());
+            state.assets_root = Some(primary_asset_root);
+            state.cache_root = Some(project.paths().cache_root().to_path_buf());
             state.project_name = project.manifest().name.clone();
             state.default_scene_uri = Some(project.manifest().default_scene.clone());
             state.catalog_revision += 1;
@@ -158,7 +154,9 @@ mod tests {
     fn sync_from_project_keeps_error_assets_without_artifacts_in_catalog() {
         let root = unique_temp_project_root("sync_error_asset_without_artifact");
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             "BrokenAssetProject",
             AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -167,7 +165,7 @@ mod tests {
         .save(paths.manifest_path())
         .unwrap();
         let material_path = paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("materials")
             .join("broken.material.toml");
         fs::create_dir_all(material_path.parent().unwrap()).unwrap();
@@ -198,7 +196,9 @@ mod tests {
         let root = unique_temp_project_root("sync_zmeta_compound_shader");
         let package_root = unique_temp_project_root("sync_zmeta_package");
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             "ZMetaEditorProject",
             AssetUri::parse("res://shaders/unlit_shader").unwrap(),
@@ -209,7 +209,7 @@ mod tests {
 
         let shader_uri = AssetUri::parse("res://shaders/unlit_shader").unwrap();
         let shader_meta_path = paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("shaders")
             .join("unlit_shader.zmeta");
         let mut shader_meta =
@@ -217,7 +217,10 @@ mod tests {
         shader_meta.unit = AssetSourceUnit::Compound;
         shader_meta.save(&shader_meta_path).unwrap();
 
-        let shader_dir = paths.assets_root().join("shaders").join("unlit_shader");
+        let shader_dir = paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("unlit_shader");
         fs::create_dir_all(&shader_dir).unwrap();
         fs::write(
             shader_dir.join("unlit.zshader"),
@@ -249,7 +252,11 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
 
         let mut project = ProjectManager::open(&root).unwrap();
         project
-            .register_package_manifest_asset_roots(&package_manifest, &package_root)
+            .register_package_asset_roots(
+                package_manifest.package_id(),
+                package_manifest.asset_roots_or_default(),
+                &package_root,
+            )
             .unwrap();
         project.scan_and_import().unwrap();
 
@@ -317,7 +324,9 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
     fn sync_from_project_refreshes_shader_ide_environment_after_import() {
         let root = unique_temp_project_root("sync_shader_ide_env");
         let paths = ProjectPaths::from_root(&root).unwrap();
-        paths.ensure_layout().unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
         ProjectManifest::new(
             "Shader Ide Sandbox",
             AssetUri::parse("res://shaders/hero").unwrap(),
@@ -334,7 +343,10 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
         manager.sync_from_project(project).unwrap();
 
         let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
-        let ide_root = root.join(zircon_runtime::core::framework::render::SHADER_IDE_ENV_CACHE_DIR);
+        let ide_root = ProjectPaths::from_root(&root)
+            .unwrap()
+            .cache_root()
+            .join(zircon_runtime::core::framework::render::SHADER_IDE_ENV_CACHE_DIR);
         let module_map_path =
             ide_root.join(zircon_runtime::core::framework::render::SHADER_IDE_MODULE_MAP_FILE);
         let preview_path = ide_root.join(
@@ -365,14 +377,20 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
 
     fn write_shader_ide_surface_package(paths: &ProjectPaths) {
         let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
-        let shader_meta_path = paths.assets_root().join("shaders").join("hero.zmeta");
+        let shader_meta_path = paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("hero.zmeta");
         let mut shader_meta =
             AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
         shader_meta.unit = AssetSourceUnit::Compound;
         fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
         shader_meta.save(&shader_meta_path).unwrap();
 
-        let shader_dir = paths.assets_root().join("shaders").join("hero");
+        let shader_dir = paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("shaders")
+            .join("hero");
         fs::create_dir_all(&shader_dir).unwrap();
         fs::write(
             shader_dir.join("hero.zshader"),

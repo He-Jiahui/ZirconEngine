@@ -119,7 +119,7 @@ impl VmPluginInstance for FallbackLifecycleInstance {
             "export": export_name,
             "arguments": arguments,
         });
-        self.state.bytes = serde_json::to_vec(&call)
+        self.state.payload = serde_json::to_vec(&call)
             .map_err(|error| VmError::Operation(format!("fallback call encode failed: {error}")))?;
         Ok(Some(ScriptHostValue::Null))
     }

@@ -1,20 +1,26 @@
 use crate::core::CoreError;
 
+mod component_type_descriptor;
 mod entity_path;
 mod level_summary;
 mod mobility;
 pub mod physics;
 mod property_value;
+mod resource;
+mod system_stage;
 mod world_handle;
 
 pub type EntityId = u64;
 pub type NodeId = EntityId;
 
+pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use entity_path::{ComponentPropertyPath, EntityPath, PathParseError};
 pub use level_summary::LevelSummary;
 pub use mobility::Mobility;
 pub(crate) use property_value::ScenePropertyEntry;
 pub use property_value::ScenePropertyValue;
+pub use resource::SceneResource;
+pub use system_stage::SystemStage;
 pub use world_handle::WorldHandle;
 
 pub trait LevelManager: Send + Sync {

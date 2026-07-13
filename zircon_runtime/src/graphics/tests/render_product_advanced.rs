@@ -258,6 +258,8 @@ pub(super) fn advanced_product_extract() -> crate::core::framework::render::Rend
     });
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
+        mode: Default::default(),
+        profile: Default::default(),
         quality: Default::default(),
         trace_budget: 2,
         card_budget: 1,

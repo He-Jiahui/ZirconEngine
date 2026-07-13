@@ -14,10 +14,6 @@ fn filtered_commands_preserve_order_and_project_state() {
             Value::Array(vec![Value::String("project.open".into())]),
         ),
         (
-            "disabled_commands",
-            Value::Array(vec![Value::String("project.open".into())]),
-        ),
-        (
             "filtered_commands",
             Value::Array(vec![
                 Value::String("project.open".into()),
@@ -53,7 +49,7 @@ fn filtered_commands_preserve_order_and_project_state() {
     assert_eq!(rows[0].id.as_str(), "project.open");
     assert_eq!(rows[0].label.as_str(), "Open Project");
     assert_eq!(rows[0].description.as_str(), "Ctrl+O");
-    assert!(rows[0].disabled);
+    assert!(!rows[0].disabled);
     assert!(rows[0].special);
     assert!(rows[0].matched);
     assert_eq!(rows[1].id.as_str(), "build.run");

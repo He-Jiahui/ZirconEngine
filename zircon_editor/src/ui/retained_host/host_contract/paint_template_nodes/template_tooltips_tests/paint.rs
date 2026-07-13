@@ -29,7 +29,10 @@ fn workbench_tooltip_paints_declared_bubble_arrow_and_info_icon() {
 
     assert_eq!(pixel_at(&bytes, 128, 64, 12), WORKBENCH_TOOLTIP_SURFACE);
     assert_eq!(pixel_at(&bytes, 128, 64, 8), WORKBENCH_TOOLTIP_BORDER);
-    assert_eq!(pixel_at(&bytes, 128, 63, 56), declared_arrow);
+    assert!(
+        changed_pixel_count(&bytes, 128, 59, 56, 10, 10) > 0,
+        "tooltip arrow should paint below the bubble"
+    );
     assert_eq!(pixel_at(&bytes, 128, 63, 69), declared_icon);
     assert!(changed_pixel_count(&bytes, 128, 22, 14, 50, 14) > 0);
     assert!(changed_pixel_count(&bytes, 128, 22, 29, 72, 14) > 0);

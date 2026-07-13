@@ -120,6 +120,7 @@ target-server = [
 ]
 target-editor-host = [
     "zircon_runtime/target-editor-host",
+    "first-party-advanced-render-runtime-plugins",
     "ai-contracts",
     "net-contracts",
     "physics-contracts",

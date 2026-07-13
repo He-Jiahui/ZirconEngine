@@ -47,9 +47,9 @@ Backend status, simulation settings, query packets, world-sync packets, events, 
 
 ## Current Integration State
 
-The target files are staged but not yet mounted from `core::framework::scene::mod.rs`. The active hard-cut slice intentionally keeps them non-public while other sessions compile the current Runtime source graph. The production cutover is incomplete until every consumer imports this owner directly and the superseded declarations under `core/framework/physics` are deleted.
+The hard cut is mounted and complete. `core::framework::scene::mod.rs` always publishes `scene::physics`; scene assets, ECS components, project IO, property conversion, framework sync DTOs, Runtime tests, Editor consumers, and Physics plugin code import this owner directly. The superseded `combine_rule.rs`, `joint_constraint_metadata.rs`, `joint_drive.rs`, `material_metadata.rs`, and `skeleton_joint_binding.rs` declarations under the optional Physics contract root are deleted.
 
-No compatibility re-export from the old Physics root is permitted. A state in which both paths are public is invalid.
+There is no compatibility re-export, alias, or duplicate schema under `core::framework::physics`. The optional simulation contract depends on this always-on scene schema in one direction.
 
 ## Module Shape
 
@@ -81,16 +81,9 @@ Zircon places the schema inside the existing framework scene contract instead of
 
 ## Test Coverage
 
-The staged module tests cover material JSON round-trip, sparse joint-limit TOML, compact defaults, the map form, and the three-slot sequence form. They are not yet compiled because the module is intentionally unmounted during the active implementation window.
+The mounted module tests cover material JSON round-trip, sparse joint-limit TOML, compact defaults, the map form, the three-slot sequence form, and rejection of duplicate/unknown/oversized axis input. The 2026-07-11 current Runtime test binary executed the complete `physics` filter as 35 passed / 0 failed; this includes three direct scene-schema tests plus scene asset, artifact, project IO, reflection, and framework-sync consumers.
 
-The Frameworks 03 static boundary test was observed RED before implementation and remains RED at the expected missing `pub mod physics;` mount. The milestone testing stage must later prove:
-
-- the static boundary is fully green;
-- `core-min` can use scene schema without Physics simulation contracts;
-- `physics-contracts` compiles alone with `core-min`;
-- `target-server` excludes the optional Physics contract;
-- the Physics plugin compiles with an explicit feature request;
-- scene, asset, editor, Runtime, App, and full domain-matrix gates pass.
+The Frameworks 03 static suite passes 27/27, including the six Physics ownership/feature/adapter gates. Nightly `core-min + physics-contracts` passes independently in 12m39s with 52 existing warnings, and nightly `target-server` passes in 15m14s with 53 existing warnings. Full Frameworks M1 profile/App gates remain tracked by the parent plan and are not implied by this module-level acceptance.
 
 ## Plan Sources
 
@@ -98,9 +91,5 @@ This ownership cut is part of Frameworks 03 M1 and implements the plan rule that
 
 ## Open Work
 
-- Mount the scene schema and update every caller directly.
-- Gate the optional Physics framework and manager surfaces.
-- Install enabled/disabled declaration adapters for LevelSystem state and Runtime diagnostics collection.
-- Replace the editor diagnostic fixture with the neutral Runtime projection.
-- Delete the superseded Physics schema files and remove old-path references.
-- Run the declared WSL-first testing stage and promote the acceptance record only after all gates pass.
+- No scene-schema hard-cut work remains in this slice.
+- Backend-specific validation, native constraint coverage, and later authored-shape expansion remain Physics plugin milestones; they must extend this owner rather than recreate a plugin-local persistence schema.

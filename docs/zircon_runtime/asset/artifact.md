@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
+  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
@@ -38,7 +38,7 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
+  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
   - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
@@ -68,7 +68,7 @@ doc_type: module-detail
 
 Current Runtime 04 owner sync (2026-07-10): `expected_source_file_count = 22`, `expected_guard_file_count = 17`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. The artifact scene-component and scene-script child tests are now counted as real guard owners, superseding the earlier 11-owner historical mirror without changing artifact behavior.
 
-`zircon_runtime::asset::artifact` owns imported asset artifact persistence under the project library root. It writes runtime cache files as `lib://.../*.zasset` URIs and reads those artifacts back into `ImportedAsset` values during project open and resource synchronization.
+`zircon_runtime::asset::artifact` owns imported asset persistence under the explicit project artifact-cache root `.zircon/cache/assets`. It keeps `lib://.../*.zasset` as the runtime resource-locator scheme and reads those cache entries back into `ImportedAsset` values during project open and resource synchronization.
 
 This module is a cache boundary, not an authoring format boundary. Authoring assets may use TOML, JSON, flattened serde fields, internally tagged enums, and custom deserializers. The `.zasset` cache uses bincode plus zstd compression, so every cached payload shape must be compatible with bincode's deserializer capabilities.
 
@@ -76,7 +76,7 @@ The module also owns the IBL bake artifact file entries for Shader 06 / Render 1
 
 ## Store Contract
 
-`ArtifactStore::write(...)` derives the library path from the asset kind and resource id, serializes the imported asset into the cache wire type, prepends the artifact cache magic header, compresses the payload, and writes it below `ProjectPaths::library_root()`.
+`ArtifactStore::write(...)` derives the artifact-cache path from the asset kind and resource id, serializes the imported asset into the cache wire type, prepends the artifact cache magic header, compresses the payload, and writes it below `ProjectPaths::asset_artifact_root()`.
 
 `ArtifactStore::read(...)` only accepts `lib://` URIs and `.zasset` paths. It validates the cache magic header, decompresses the payload, deserializes the cache wire type, converts it back into `ImportedAsset`, and checks that the artifact path kind matches the decoded asset kind when the path is recognized.
 
@@ -84,13 +84,13 @@ The store deliberately exposes no partial-update API. Importers produce complete
 
 ## IBL Bake Artifact Stores
 
-`ibl_bake_artifact_cache.rs` owns runtime filesystem placement for reusable environment bake blobs. `IblBakeArtifactCacheStore::new(cache_root)` expects the project cache root, normally `.zircon-cache`, and writes raw `IblBakeArtifactBlob` bytes below `render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/{request_hash}/face_####_mips_##.zribl`.
+`ibl_bake_artifact_cache.rs` owns runtime filesystem placement for reusable environment bake blobs. `IblBakeArtifactCacheStore::new(cache_root)` expects the project cache root, normally `.zircon/cache`, and writes raw `IblBakeArtifactBlob` bytes below `render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/{request_hash}/face_####_mips_##.zribl`.
 
 The request hash is a deterministic BLAKE3 digest of `IblBakeKey`, face size, and mip count. Content bits remain inside the blob descriptor, so a cache hit is accepted only when `IblBakeArtifactBlob::decode_current_for_request(...)` proves the stored descriptor still satisfies the requested PMREM/SH9/IEM contents and current algorithm version.
 
 `read_runtime_cache(...)` reports three cache states: `Hit(blob)`, `Missing`, or `Rejected(error)`. Missing and rejected cache files are non-fatal because Plan 06 §4.7 falls back to runtime compute. `IblBakeArtifactCacheRead::candidate()` converts only a valid hit into `IblBakeArtifactCandidate::runtime_cache(...)`, preserving the derived artifact > runtime cache > runtime compute source priority.
 
-`ibl_bake_artifact_asset_derived.rs` owns asset-derived companion artifact placement for source 1. `IblBakeArtifactAssetDerivedStore::new(library_root)` writes the same raw `.zribl` blob format below `render/ibl-derived/v{IBL_BAKE_ALGORITHM_VERSION}/{request_hash}/face_####_mips_##.zribl`. The staged helper `write_source_cubemap_asset_derived_artifact(...)` builds a current PMREM/SH9(+IEM) blob from a `SourceCubemapMipChain`, and `read_asset_derived_artifact(...)` returns `Hit`, `Missing`, or `Rejected` without making fallback paths fatal.
+`ibl_bake_artifact_asset_derived.rs` owns asset-derived companion artifact placement for source 1. `IblBakeArtifactAssetDerivedStore::new(cache_root)` writes the same raw `.zribl` blob format below `.zircon/cache/render/ibl-derived/v{IBL_BAKE_ALGORITHM_VERSION}/{request_hash}/face_####_mips_##.zribl`. The staged helper `write_source_cubemap_asset_derived_artifact(...)` builds a current PMREM/SH9(+IEM) blob from a `SourceCubemapMipChain`, and `read_asset_derived_artifact(...)` returns `Hit`, `Missing`, or `Rejected` without making fallback paths fatal.
 
 ## Cache Wire Types
 
@@ -142,7 +142,7 @@ Focused artifact store tests cover scene artifact round-trips with mesh referenc
 
 Static validation for this slice includes rustfmt over `cache_payload.rs`, `cache_payload/scene.rs`, and `artifact_store.rs`, plus conflict-marker checks over the changed runtime, docs, and session files. The first focused Cargo retry passed the camera-target and physics-component scene cache cases, then exposed the existing mesh-reference case as the same cache-wire boundary problem. Scene mesh payloads now use cache-local structs as well. The clean retry `cargo test -p zircon_runtime --lib artifact_store_roundtrips_scene_assets_with --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --nocapture` passed 4/4; the watcher acceptance rerun `cargo test -p zircon_runtime --lib watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --test-threads=1 --nocapture` passed 7/7.
 
-On 2026-07-06, the IBL runtime cache store passed `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-payload-0706 --message-format short --color never -- --nocapture --test-threads=1`. The log `docs/tests/runtime/render/plan11_ibl_bake_artifact_payload_roundtrip_current_source_cargo_20260706.out.log` reports 9/9 tests passed; the matching `.exit.txt` records elapsed 00:05:41.7209590. The cache cases cover `.zircon-cache/render/ibl` path placement, `.zribl` extension, current blob readback, conversion to a runtime-cache candidate, missing-cache fallback, stale algorithm rejection, and truncated blob rejection.
+On 2026-07-06, the IBL runtime cache store passed `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-payload-0706 --message-format short --color never -- --nocapture --test-threads=1`. The log `docs/tests/runtime/render/plan11_ibl_bake_artifact_payload_roundtrip_current_source_cargo_20260706.out.log` reports 9/9 tests passed; the matching `.exit.txt` records elapsed 00:05:41.7209590. The cache cases cover `.zircon/cache/render/ibl` path placement, `.zribl` extension, current blob readback, conversion to a runtime-cache candidate, missing-cache fallback, stale algorithm rejection, and truncated blob rejection.
 
 On 2026-06-16, the shader cache fix passed `cargo test -p zircon_runtime --lib artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata --features backend-zr-vm --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-06-real-backend-0616 -- --nocapture --test-threads=1` 1/1. The same target then passed `project_manager_imports_compound_zshader_package_with_subassets` 1/1, proving compound `.zshader` packages with redirected and unredirected imports plus empty optional texture slots read back from `.zasset`. Full `vampire_project_session` real-backend validation no longer fails at shader artifact parse, but the broader session gate still times out in the runtime session path and remains pending. On 2026-06-21, Runtime 11 full-lib triage exposed `SceneMeshInstanceAsset` direct bincode failure `InvalidTagEncoding(36)` when skipped authoring fields shifted the following `AssetReference` bytes into an enum tag. The mesh asset serializer now writes every mesh instance and LOD field for non-human-readable serializers and keeps compact output only for human-readable formats; `artifact_store_bincode_roundtrips_scene_mesh_instance_asset` covers that direct binary guard. The same triage moved UI v1/v2 document artifacts behind the normalized TOML cache boundary so `project_manager_scans_ui_assets_and_assigns_ui_asset_kinds` and `project_manager_scans_zui_assets_and_restores_component_payloads` restore from `.zasset` without bincode attempting `deserialize_any` on interface document values. The direct core-min asset namespace rerun `target\codex-runtime11-coremin-tasks-0621\debug\deps\zircon_runtime-c339c28ec98a5de7.exe asset::tests:: --test-threads=1 --nocapture` passed 363/363 with 4334 filtered out, covering the mesh cache guard and UI cache restore path together.
 

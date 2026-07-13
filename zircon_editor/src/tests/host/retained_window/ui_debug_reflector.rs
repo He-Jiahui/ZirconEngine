@@ -21,7 +21,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
-fn runtime_diagnostics_host_conversion_projects_debug_reflector_overlay_primitives() {
+fn runtime_diagnostics_host_conversion_hides_debug_reflector_overlay_primitives_by_default() {
     let pane = runtime_diagnostics_pane_with_overlay(UiDebugOverlayPrimitive {
         kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
         node_id: Some(UiNodeId::new(42)),
@@ -33,19 +33,11 @@ fn runtime_diagnostics_host_conversion_projects_debug_reflector_overlay_primitiv
     let projected =
         to_host_contract_runtime_diagnostics_pane_from_host_pane(&pane, pane_size(180.0, 120.0));
 
-    assert_eq!(projected.overlay_primitives.row_count(), 1);
-    let primitive = projected
-        .overlay_primitives
-        .row_data(0)
-        .expect("overlay primitive should project");
-    assert_eq!(primitive.kind, UiDebugOverlayPrimitiveKind::SelectedFrame);
-    assert_eq!(primitive.node_id.as_str(), "42");
-    assert_eq!(primitive.frame, host_frame(11.0, 13.0, 24.0, 18.0));
-    assert_eq!(primitive.label.as_str(), "selected");
+    assert_eq!(projected.overlay_primitives.row_count(), 0);
 }
 
 #[test]
-fn runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay() {
+fn runtime_diagnostics_host_conversion_prioritizes_runtime_status_and_keeps_reflector_text() {
     let pane = runtime_diagnostics_pane_with_overlay(UiDebugOverlayPrimitive {
         kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
         node_id: Some(UiNodeId::new(7)),
@@ -57,17 +49,24 @@ fn runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay(
     let projected =
         to_host_contract_runtime_diagnostics_pane_from_host_pane(&pane, pane_size(220.0, 120.0));
 
-    assert!(model_texts(&projected.nodes)
+    let texts = model_texts(&projected.nodes);
+    assert!(texts.iter().any(|text| text == "runtime"));
+    assert!(texts.iter().any(|text| text == "render"));
+    assert!(texts
         .iter()
-        .any(|text| text == "summary"));
-    assert!(model_texts(&projected.nodes)
+        .any(|text| text == "Hybrid GI effective: balanced / software / high"));
+    assert!(texts
         .iter()
-        .any(|text| text == "Layout Engine:"));
-    assert!(model_texts(&projected.nodes)
+        .any(|text| text == "Hybrid GI fallback: hardware ray query unavailable"));
+    assert!(texts.iter().any(|text| text == "physics"));
+    assert!(texts.iter().any(|text| text == "animation"));
+    assert!(texts.iter().any(|text| text == "summary"));
+    assert!(texts.iter().any(|text| text == "Layout Engine:"));
+    assert!(texts
         .iter()
         .any(|text| text == "  selected: taffy=1 zircon=1"));
     assert!(
-        model_texts(&projected.nodes).iter().any(|text| {
+        texts.iter().any(|text| {
             text.contains("node=2")
                 && text.contains("family=Overlay")
                 && text.contains("selected=Zircon")
@@ -75,14 +74,11 @@ fn runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay(
         }),
         "payload route detail should survive host conversion"
     );
-    assert_eq!(projected.overlay_primitives.row_count(), 1);
-    let primitive = projected
-        .overlay_primitives
-        .row_data(0)
-        .expect("payload overlay primitive should project");
-    assert_eq!(primitive.kind, UiDebugOverlayPrimitiveKind::SelectedFrame);
-    assert_eq!(primitive.node_id.as_str(), "7");
-    assert_eq!(primitive.label.as_str(), "from-payload");
+    assert!(
+        text_index(&texts, "render") < text_index(&texts, "summary"),
+        "runtime status must stay above debug-reflector rows"
+    );
+    assert_eq!(projected.overlay_primitives.row_count(), 0);
 }
 
 #[test]
@@ -133,15 +129,8 @@ fn runtime_diagnostics_body_refresh_preserves_active_payload_reflector() {
     );
     assert_eq!(
         host_pane.runtime_diagnostics.overlay_primitives.row_count(),
-        1
+        0
     );
-    let primitive = host_pane
-        .runtime_diagnostics
-        .overlay_primitives
-        .row_data(0)
-        .expect("active payload overlay should remain");
-    assert_eq!(primitive.node_id.as_str(), "7");
-    assert_eq!(primitive.label.as_str(), "from-payload");
 }
 
 #[test]
@@ -190,7 +179,7 @@ fn rust_owned_host_window_snapshot_draws_debug_reflector_overlay_from_host_data(
 }
 
 #[test]
-fn runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_overlays() {
+fn runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_without_overlay_noise() {
     let mut pane = runtime_diagnostics_dock(Vec::new()).pane;
     pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(220.0, 84.0));
 
@@ -220,10 +209,7 @@ fn runtime_diagnostics_live_body_surface_populates_debug_reflector_rows_and_over
             .any(|text| text == "Layout Engine:"),
         "layout-engine routing diagnostics should be projected into live reflector rows"
     );
-    assert!(
-        pane.runtime_diagnostics.overlay_primitives.row_count() > 0,
-        "live body surface should expose snapshot overlay primitives"
-    );
+    assert_eq!(pane.runtime_diagnostics.overlay_primitives.row_count(), 0);
 }
 
 fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> WorkbenchPaneData {
@@ -258,7 +244,7 @@ fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> 
                     blank_viewport_chrome(),
                 ),
                 PaneBodyPresentation {
-                    document_id: "pane.runtime.diagnostics.body".to_string(),
+                    document_id: "res://ui/editor/host/runtime_diagnostics_body.zui".to_string(),
                     payload_kind: crate::ui::workbench::view::PanePayloadKind::RuntimeDiagnosticsV1,
                     route_namespace: crate::ui::workbench::view::PaneRouteNamespace::Dock,
                     interaction_mode: crate::ui::workbench::view::PaneInteractionMode::TemplateOnly,
@@ -267,7 +253,10 @@ fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> 
                         render_status: "render".to_string(),
                         physics_status: "physics".to_string(),
                         animation_status: "animation".to_string(),
-                        detail_items: Vec::new(),
+                        detail_items: vec![
+                            "Hybrid GI effective: balanced / software / high".to_string(),
+                            "Hybrid GI fallback: hardware ray query unavailable".to_string(),
+                        ],
                         ui_debug_reflector_summary: "summary".to_string(),
                         ui_debug_reflector_nodes: Vec::new(),
                         ui_debug_reflector_details: Vec::new(),
@@ -369,6 +358,13 @@ fn model_texts(model: &ModelRc<TemplatePaneNodeData>) -> Vec<String> {
         .filter_map(|row| model.row_data(row))
         .map(|node| node.text.to_string())
         .collect()
+}
+
+fn text_index(texts: &[String], expected: &str) -> usize {
+    texts
+        .iter()
+        .position(|text| text == expected)
+        .unwrap_or_else(|| panic!("missing projected diagnostics text: {expected}"))
 }
 
 fn host_frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

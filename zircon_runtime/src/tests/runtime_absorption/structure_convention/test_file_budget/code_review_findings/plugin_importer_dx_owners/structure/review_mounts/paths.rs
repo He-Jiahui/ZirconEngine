@@ -2,8 +2,7 @@ pub(super) const PLUGIN_IMPORTER_DX_REVIEW_SOURCE_PATH: &str =
     "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs";
 pub(super) const PLUGIN_IMPORTER_DX_D10_SOURCE_PATH: &str =
     "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs";
-pub(super) const PLUGIN_IMPORTER_DX_D1_SOURCE_PATH: &str =
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs";
+pub(super) const PLUGIN_IMPORTER_DX_D1_SOURCE_PATH: &str = "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs";
 pub(super) const PLUGIN_IMPORTER_DX_D1_CHILD_SOURCE_PATHS: &[&str] = &[
     "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/audit_surfaces.rs",
     "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/runtime_roots.rs",

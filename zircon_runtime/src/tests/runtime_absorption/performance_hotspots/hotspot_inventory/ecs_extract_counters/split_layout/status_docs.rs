@@ -23,7 +23,7 @@ pub(super) fn assert_ecs_extract_counters_split_docs(sources: &SplitLayoutSource
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
         ("status-output row data", sources.status_rows),
-        ("session note", sources.session_note),
+        ("Runtime 07 numbered archive", sources.runtime_07_archive),
     ] {
         assert_contains_all(
             label,
@@ -58,7 +58,7 @@ pub(super) fn assert_ecs_extract_counters_split_docs(sources: &SplitLayoutSource
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
         ("status-output row data", sources.status_rows),
-        ("session note", sources.session_note),
+        ("Runtime 07 numbered archive", sources.runtime_07_archive),
     ] {
         assert_contains_all(
             label,

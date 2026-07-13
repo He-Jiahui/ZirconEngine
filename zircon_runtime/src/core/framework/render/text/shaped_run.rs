@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
-use super::font::FontFaceId;
+use super::font::{FontFaceId, InstancedFaceId};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TextOrientation {
@@ -74,6 +74,8 @@ pub struct ShapedGlyph {
     pub glyph_id: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub font_id: Option<FontFaceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_instance_id: Option<InstancedFaceId>,
     pub source_range: UiTextRange,
     pub visual_range: UiTextRange,
     pub advance: f32,

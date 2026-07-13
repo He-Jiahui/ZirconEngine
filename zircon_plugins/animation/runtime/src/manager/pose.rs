@@ -1,4 +1,4 @@
-use zircon_runtime::asset::{
+use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationSkeletonAsset,
     AnimationSkeletonBoneAsset,
 };

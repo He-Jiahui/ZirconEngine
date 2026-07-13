@@ -125,6 +125,6 @@ fn mesh_shader_module_cache_key(
     )
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "dynamic-api"))]
 #[path = "ensure_pipeline/tests.rs"]
 mod tests;

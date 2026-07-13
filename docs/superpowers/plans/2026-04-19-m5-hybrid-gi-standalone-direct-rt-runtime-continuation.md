@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - docs/assets-and-rendering/render-framework-architecture.md
 implementation_files:
-  - zircon_graphics/src/runtime/hybrid_gi/build_resolve_runtime.rs
-  - zircon_graphics/src/scene/scene_renderer/hybrid_gi/gpu_resources/execute_prepare/runtime_trace_source.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 plan_sources:
   - user: 2026-04-19 继续完成全部的虚拟几何体任务，不要中途确认，然后完善 Hybrid GI
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-requested-lineage-rt-runtime-source.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-runtime-resolve-gpu-prepare-rt-lighting-continuation.md
 tests:
-  - zircon_graphics/src/tests/hybrid_gi_gpu_runtime_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_pending_probe_gpu_trace_lighting_uses_runtime_direct_rt_history_when_hierarchy_weight_is_flat -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_runtime_source -- --nocapture
   - cargo check -p zircon_graphics --offline --locked

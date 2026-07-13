@@ -11,6 +11,7 @@ crate-type = ["rlib", "cdylib"]
 [[bin]]
 name = "zircon_host_reflection_docs"
 path = "src/bin/zircon_host_reflection_docs.rs"
+required-features = ["script"]
 
 [[bin]]
 name = "zircon_export_validate"
@@ -23,10 +24,17 @@ path = "src/bin/zircon_export_pack/main.rs"
 [[bin]]
 name = "zircon_shader_prewarm"
 path = "src/bin/zircon_shader_prewarm/main.rs"
+required-features = ["dynamic-api"]
 
 [[bin]]
 name = "zircon_shader_ide_env"
 path = "src/bin/zircon_shader_ide_env/main.rs"
+required-features = ["graphics"]
+
+[[bin]]
+name = "zircon_font_sdf_bake"
+path = "src/bin/zircon_font_sdf_bake/main.rs"
+required-features = ["font-sdf-build-tool"]
 
 [features]
 default = ["target-client"]
@@ -55,10 +63,14 @@ graphics = [
     "dep:raw-window-handle",
     "dep:wgpu",
 ]
+font-sdf-build-tool = ["graphics"]
 navigation = []
 script = ["diagnostic-log"]
 text = [
+    "dep:fdsm",
+    "dep:fdsm-ttf-parser",
     "dep:fontsdf",
+    "dep:nalgebra",
     "dep:rustybuzz",
     "dep:swash",
     "dep:ttf-parser",
@@ -149,12 +161,15 @@ bytemuck.workspace = true
 chrono = { version = "0.4.44", default-features = false, features = ["clock"] }
 crossbeam-channel.workspace = true
 crossbeam-utils = "0.8.21"
+fdsm = { version = "0.8.0", optional = true }
+fdsm-ttf-parser = { version = "0.2.0", optional = true }
+fontsdf = { version = "0.5.3", optional = true }
 glam.workspace = true
 gltf.workspace = true
 glyphon = { version = "0.11.0", optional = true }
-fontsdf = { version = "0.5.3", optional = true }
 image.workspace = true
 naga = { workspace = true, optional = true }
+nalgebra = { version = "0.34.1", optional = true }
 notify.workspace = true
 pollster = { workspace = true, optional = true }
 raw-window-handle = { version = "0.6.2", optional = true }
@@ -186,9 +201,14 @@ libloading = "0.9.0"
 zstd = "0.13.3"
 zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
+zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
 zr_vm_rust_binding = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
 zr_vm_rust_binding_sys = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
+
+[build-dependencies]
+serde.workspace = true
+toml.workspace = true
 
 [dev-dependencies]
 ttf2woff2 = { version = "0.13.1", default-features = false }

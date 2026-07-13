@@ -161,7 +161,9 @@ pub struct RenderCapabilitySummary {
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
     pub supports_storage_buffers: bool,
+    pub supports_fragment_writable_storage: bool,
     pub max_storage_buffers_per_shader_stage: u32,
+    pub max_storage_buffer_binding_size: u64,
     pub supports_indirect_draw: bool,
     pub supports_multi_draw_indirect: bool,
     pub supports_indirect_first_instance: bool,
@@ -201,6 +203,14 @@ impl RenderCapabilitySummary {
 
     pub const fn storage_buffer_binding_capacity_supported(&self, required: u32) -> bool {
         self.max_storage_buffers_per_shader_stage >= required
+    }
+
+    pub const fn oit_supported(&self, required_storage_buffers_per_shader_stage: u32) -> bool {
+        self.supports_storage_buffers
+            && self.supports_fragment_writable_storage
+            && self.storage_buffer_binding_capacity_supported(
+                required_storage_buffers_per_shader_stage,
+            )
     }
 
     pub const fn hzb_occlusion_culling_supported(

@@ -143,7 +143,7 @@ fn append_shader_records_from_meta(
             source,
         }
     })?;
-    let revision = asset_scan_revision_from_source_hash(&meta.source_hash);
+    let revision = asset_scan_revision_from_source_digest(&meta.source_digest);
 
     if meta.entries.is_empty() {
         if meta.asset_kind == ResourceKind::Shader {
@@ -161,7 +161,7 @@ fn append_shader_records_from_meta(
             entry.asset_kind,
             entry.url.clone(),
         )
-        .with_source_hash(meta.source_hash.clone())
+        .with_source_hash(meta.source_digest.clone())
         .with_importer_id(meta.importer_id.clone())
         .with_importer_version(meta.importer_version)
         .with_config_hash(meta.config_hash.clone())
@@ -181,7 +181,7 @@ fn shader_record_for_meta_root(meta: &AssetMetaDocument, revision: u64) -> Resou
         meta.asset_kind,
         meta.url.clone(),
     )
-    .with_source_hash(meta.source_hash.clone())
+    .with_source_hash(meta.source_digest.clone())
     .with_importer_id(meta.importer_id.clone())
     .with_importer_version(meta.importer_version)
     .with_config_hash(meta.config_hash.clone())
@@ -193,12 +193,12 @@ fn shader_record_for_meta_root(meta: &AssetMetaDocument, revision: u64) -> Resou
     record
 }
 
-fn asset_scan_revision_from_source_hash(source_hash: &str) -> u64 {
-    let source_hash = source_hash.trim();
-    if source_hash.is_empty() {
+fn asset_scan_revision_from_source_digest(source_digest: &str) -> u64 {
+    let source_digest = source_digest.trim();
+    if source_digest.is_empty() {
         return 1;
     }
-    non_zero_revision_from_hash(blake3::hash(source_hash.as_bytes()))
+    non_zero_revision_from_hash(blake3::hash(source_digest.as_bytes()))
 }
 
 fn non_zero_revision_from_hash(hash: blake3::Hash) -> u64 {

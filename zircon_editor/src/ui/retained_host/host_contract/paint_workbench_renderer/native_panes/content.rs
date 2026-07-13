@@ -42,7 +42,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
                 assets::draw_browser_asset_tree_hover_overlay(frame, pane, body, clip, interaction);
             let scrollbar =
                 scrollbar::draw_browser_asset_tree_scrollbar(frame, pane, body, clip, interaction);
-            hover || scrollbar
+            let content_scrollbar = scrollbar::draw_browser_asset_content_scrollbar(
+                frame,
+                pane,
+                body,
+                clip,
+                interaction,
+            );
+            hover || scrollbar || content_scrollbar
         }
         _ => false,
     }

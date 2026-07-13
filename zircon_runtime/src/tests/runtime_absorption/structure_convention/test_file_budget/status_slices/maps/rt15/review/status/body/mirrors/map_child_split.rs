@@ -28,10 +28,6 @@ fn runtime_15_status_support_expected_slice_status_mirrors_are_registered() {
             "module convention doc",
             &read_repo("docs/zircon_runtime/structure/module-convention.md"),
         ),
-        (
-            "session note",
-            &read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
-        ),
     ] {
         assert_contains_all(
             label,

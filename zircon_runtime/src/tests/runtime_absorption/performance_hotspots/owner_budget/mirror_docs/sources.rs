@@ -6,13 +6,7 @@ mod load_sources;
 mod views;
 
 pub(super) struct MirrorDocsSources {
-    pub(super) runtime_07_plan: &'static str,
-    pub(super) runtime_index: &'static str,
-    pub(super) hotspot_doc: &'static str,
-    pub(super) dynamic_session_doc: &'static str,
-    pub(super) ecs_doc: &'static str,
-    pub(super) interface_doc: &'static str,
-    pub(super) architecture_review: &'static str,
+    pub(super) runtime_07_archive: &'static str,
     pub(super) audit_script: &'static str,
     pub(super) audit_source_inventory: &'static str,
     pub(super) audit_anchor_inventory: &'static str,

@@ -4,7 +4,9 @@ use super::*;
 fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
     let root = unique_temp_project_root("project_manager_zshader_capture_diagnostics");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "ShaderCaptureSandbox",
         AssetUri::parse("res://shaders/capture_shader").unwrap(),
@@ -15,7 +17,7 @@ fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
 
     let shader_uri = AssetUri::parse("res://shaders/capture_shader").unwrap();
     let shader_meta_path = paths
-        .assets_root()
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("capture_shader.zmeta");
     let mut shader_meta =
@@ -23,7 +25,10 @@ fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
     shader_meta.unit = AssetSourceUnit::Compound;
     shader_meta.save(&shader_meta_path).unwrap();
 
-    let shader_dir = paths.assets_root().join("shaders").join("capture_shader");
+    let shader_dir = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders")
+        .join("capture_shader");
     fs::create_dir_all(&shader_dir).unwrap();
     fs::write(
         shader_dir.join("capture.zshader"),

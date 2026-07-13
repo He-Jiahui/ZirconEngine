@@ -446,6 +446,7 @@ mod tests {
             direction,
             color: Vec3::new(1.0, 0.1, 0.05),
             intensity: 2.0,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }
     }
@@ -459,6 +460,7 @@ mod tests {
             color: Vec3::new(0.05, 1.0, 0.1),
             intensity: 4.0,
             range,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }
     }
@@ -475,6 +477,7 @@ mod tests {
             range: 5.0,
             inner_angle_radians: 0.2,
             outer_angle_radians: 0.7,
+            mobility: zircon_runtime::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         }
     }

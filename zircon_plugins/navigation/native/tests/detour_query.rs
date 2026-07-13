@@ -1,5 +1,7 @@
 use zircon_plugin_navigation_recast::RecastBackend;
-use zircon_runtime::asset::{NavMeshAsset, NavMeshPolygonAsset, NavMeshTileAsset};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAsset, NavMeshPolygonAsset, NavMeshTileAsset,
+};
 use zircon_runtime::core::framework::navigation::{
     NavPathQuery, NavPathStatus, NavRaycastQuery, NavSampleQuery, AREA_WALKABLE, DEFAULT_AREA_MASK,
 };

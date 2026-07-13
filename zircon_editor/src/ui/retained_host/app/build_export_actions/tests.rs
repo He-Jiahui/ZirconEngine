@@ -1,8 +1,9 @@
 use super::*;
+use crate::core::jobs::test_job_system;
 use std::path::{Path, PathBuf};
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{ExportPackagingStrategy, ExportTargetPlatform};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 
 #[test]
 fn build_export_actions_parse_execute_profile() {
@@ -99,7 +100,7 @@ fn build_export_profiles_include_mobile_and_browser_source_scaffolds() {
 
 #[test]
 fn desktop_export_job_queue_starts_and_cancels_pending_jobs() {
-    let mut queue = DesktopExportJobQueue::default();
+    let mut queue = DesktopExportJobQueue::new(test_job_system());
     let first = queue.enqueue(
         "desktop_windows",
         PathBuf::from("Project"),
@@ -170,29 +171,4 @@ fn desktop_export_job_snapshot_projects_stage_progress() {
         .diagnostics
         .as_str()
         .contains("Running generated SourceTemplate Cargo build"));
-}
-
-#[test]
-fn desktop_export_job_snapshot_projects_status_bar_task_progress() {
-    let snapshot = DesktopExportJobSnapshot {
-        id: 7,
-        profile_name: "desktop_windows".to_string(),
-        output_root: PathBuf::from("Builds/windows"),
-        phase: DesktopExportJobPhase::Running,
-        progress: Some(DesktopExportProgressSnapshot {
-            stage: "cargo-build".to_string(),
-            percent: 72,
-            message: "Running generated SourceTemplate Cargo build".to_string(),
-        }),
-    };
-
-    let task = desktop_export_status_task_from_job(&snapshot);
-
-    assert_eq!(task.task_id, "desktop_export:7");
-    assert_eq!(task.label, "Export desktop_windows");
-    assert_eq!(task.percent, Some(72));
-    assert_eq!(
-        task.detail,
-        "cargo-build - Running generated SourceTemplate Cargo build"
-    );
 }

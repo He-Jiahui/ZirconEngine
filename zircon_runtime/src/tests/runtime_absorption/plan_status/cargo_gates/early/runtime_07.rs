@@ -1,5 +1,5 @@
 #[test]
-fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation() {
+fn runtime_07_performance_hotpath_records_completed_authoritative_validation() {
     let runtime_07_plan = runtime_plan_source_with_archive(
         "07",
         include_str!(
@@ -7,10 +7,8 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
     ),
     );
     let runtime_07_plan = runtime_07_plan.as_str();
-    let runtime_index = runtime_index_with_numbered_archives(include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-    ));
-    let runtime_index = runtime_index.as_str();
+    let runtime_index =
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc =
         include_str!("../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
     let dynamic_session_doc =
@@ -22,40 +20,24 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
 
     assert_eq!(
         frontmatter_status(runtime_07_plan),
-        Some("in_progress"),
-        "Runtime 07 should stay in progress until performance Cargo/profiling/FPS validation closes"
+        Some("completed"),
+        "Runtime 07 should be complete after authoritative FPS, trace and ECS/extract evidence closes"
     );
 
-    for (row_name, status_anchor) in [
-        ("0.3 帧分解 span", "frame_spans_static_passed_trace_pending"),
-        (
-            "1.1 计数点",
-            "scoped_counter_points_extract_implemented_cargo_blocked",
-        ),
-        (
-            "1.2 计数断言",
-            "named_assertions_static_passed_cargo_blocked",
-        ),
-        (
-            "1.3 热点清单",
-            "inventory_scaffold_static_passed_pending_authoritative_values",
-        ),
-    ] {
-        let row_anchor = format!("| {row_name} |");
-        let row = runtime_07_plan
-            .lines()
-            .find(|line| line.contains(&row_anchor))
-            .unwrap_or_else(|| panic!("Runtime 07 should keep status row `{row_name}`"));
-        assert_contains_all(
-            "Runtime 07 pending status row",
-            row,
-            &[status_anchor, "Cargo"],
-        );
-        assert!(
-            !row.contains("completed |"),
-            "Runtime 07 row `{row_name}` must not claim completed before performance validation closes"
-        );
-    }
+    assert_contains_all(
+        "Runtime 07 completion evidence",
+        runtime_07_plan,
+        &[
+            "frame_spans_trace_accepted_completed",
+            "scoped_counter_points_runtime_published_completed",
+            "named_assertions_behavior_accepted_completed",
+            "authoritative_inventory_completed",
+            "9.521868%",
+            "headless_session_tick_publishes_ecs_frame_diagnostics",
+            "frame_extract_rebuild` 2/2",
+            "`ecs_query` 58/58",
+        ],
+    );
 
     assert_contains_all(
         "Runtime 07 validation gate commands",
@@ -65,7 +47,7 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
             "cargo check -p zircon_runtime --lib --locked",
             "cargo test -p zircon_runtime --lib extract --locked -- --nocapture",
             "cargo test -p zircon_runtime --lib ecs_query --locked -- --nocapture",
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
+            "runtime_07_performance_hotpath_records_completed_authoritative_validation",
             "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
             "query_state_reuses_archetype_matches_across_unchanged_frames",
             "change_detection_scan_skips_unmarked_archetypes",
@@ -79,11 +61,7 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
     assert_contains_all(
         "Runtime 07 index row",
         runtime_07_index_row,
-        &[
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
-            "extract/ecs_query/performance profiling/FPS gates",
-            "Cargo/profiling/FPS 待",
-        ],
+        &["completed", "双次 Vampire FPS", "ECS/extract 计数"],
     );
 
     let runtime_07_problem_row =
@@ -92,9 +70,8 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
         "Runtime index P5 row",
         runtime_07_problem_row,
         &[
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
-            "profiling 构建",
-            "runtime 真实后端验证",
+            "性能热路径、权威 FPS、trace 与 ECS/extract 诊断已完成",
+            "共享工作区全包编译",
         ],
     );
 
@@ -104,8 +81,8 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
         &[
             "Evidence Gate",
             "No Runtime 07 M2 optimization slice may start from an unmeasured suspicion",
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
-            "extract/ecs_query/performance profiling/FPS gates",
+            "9.521868%",
+            "EcsFramePerformanceDiagnostics::publish(...)",
         ],
     );
     assert_contains_all(
@@ -133,8 +110,8 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
         review,
         &[
             "Runtime 07 Performance Hotpath Guard",
-            "runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation",
-            "extract/ecs_query/performance profiling/FPS gates",
+            "runtime_07_performance_hotpath_records_completed_authoritative_validation",
+            "9.521868%",
         ],
     );
 }

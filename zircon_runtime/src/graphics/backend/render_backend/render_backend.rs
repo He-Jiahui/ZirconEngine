@@ -30,6 +30,10 @@ impl RenderBackend {
             self.adapter.features(),
             self.device.limits(),
             false,
+            self.adapter
+                .get_downlevel_capabilities()
+                .flags
+                .contains(wgpu::DownlevelFlags::FRAGMENT_WRITABLE_STORAGE),
         )
     }
 }

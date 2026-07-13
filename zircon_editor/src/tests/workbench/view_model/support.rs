@@ -104,6 +104,7 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
         &layout,
         vec![scene_instance, hierarchy_instance],
         descriptors,
+        None,
     )
 }
 
@@ -163,6 +164,7 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
         },
         vec![prefab_instance],
         descriptors,
+        None,
     )
 }
 
@@ -269,5 +271,6 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
         },
         vec![scene_instance, floating_scene_instance, prefab_instance],
         descriptors,
+        None,
     )
 }

@@ -5,6 +5,9 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     let runtime_07_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
     );
+    let runtime_07_archive = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    );
     let runtime_index =
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc =
@@ -81,6 +84,7 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     ] {
         assert!(
             runtime_07_plan.contains(required_runtime_07_owner_gate_anchor)
+                || runtime_07_archive.contains(required_runtime_07_owner_gate_anchor)
                 || runtime_index.contains(required_runtime_07_owner_gate_anchor)
                 || hotspot_doc.contains(required_runtime_07_owner_gate_anchor)
                 || architecture_review.contains(required_runtime_07_owner_gate_anchor)
@@ -97,8 +101,10 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     ] {
         assert!(
             runtime_07_plan.contains(required_mirror_anchor)
+                || runtime_07_archive.contains(required_mirror_anchor)
                 || runtime_index.contains(required_mirror_anchor)
                 || hotspot_doc.contains(required_mirror_anchor)
+                || large_file_doc.contains(required_mirror_anchor)
                 || architecture_review.contains(required_mirror_anchor)
                 || interface_doc.contains(required_mirror_anchor),
             "Runtime 07 mirror docs should retain exact large-file gate summary `{required_mirror_anchor}`"

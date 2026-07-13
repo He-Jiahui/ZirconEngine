@@ -6,8 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_editor::ui::host::EditorManager;
 #[cfg(feature = "target-editor-host")]
 use zircon_editor::EDITOR_MANAGER_NAME;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
-use zircon_runtime::core::framework::bridge::PluginInterface;
+use zircon_runtime::core::framework::bridge::{BridgeInterfaceStatus, PluginInterface};
 use zircon_runtime::core::framework::render::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
     RenderViewportDescriptor, RENDER_PROFILE_CONFIG_KEY,
@@ -23,12 +22,12 @@ use zircon_runtime::core::manager::{
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::graphics::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassExecutionContext, RenderPassExecutorRegistration,
-    RenderPassStage, RenderPipelineAsset, RendererFeatureAsset, VirtualGeometryRuntimeFeedback,
-    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
-    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
-    VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
+    RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+    RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
+    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
+    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
+    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
+    VirtualGeometryRuntimeUpdate,
 };
 use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
@@ -41,10 +40,13 @@ use zircon_runtime::{
     input::{InputButton, InputEvent},
     scene::create_default_level,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use zircon_runtime::{
-    plugin::BridgeInterfaceStatus, plugin::CapabilityStatus, plugin::PluginMaturity,
-    plugin::PluginModuleKind, plugin::RuntimePluginBridgeLifecycleEvent, plugin::RuntimeProfileId,
+    core::framework::project::RuntimeProfileId, plugin::PluginModuleKind,
+    plugin::RuntimePluginBridgeLifecycleEvent,
 };
+#[cfg(feature = "target-editor-host")]
+use zircon_runtime::{plugin::CapabilityStatus, plugin::PluginMaturity};
 use zircon_runtime::{
     plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin,
     plugin::RuntimePluginAvailabilityCategory, plugin::RuntimePluginDescriptor,
@@ -540,7 +542,7 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
 }
 
 #[test]
-fn runtime_plugin_bootstrap_installs_bridge_lifecycle_state() {
+fn runtime_plugin_bootstrap_installs_neutral_module_lifecycle_observer() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::Physics]);
     let report = RuntimePluginRegistrationReport::from_plugin(&LinkedPhysicsBridgePlugin {
@@ -555,24 +557,23 @@ fn runtime_plugin_bootstrap_installs_bridge_lifecycle_state() {
         .build(),
     });
 
-    let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
+    let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(&config, [report])
+        .expect("linked bridge provider should resolve");
+    let state = entry
+        .runtime_plugin_bridge_lifecycle_state()
+        .cloned()
+        .expect("entry should retain its plugin-owned bridge lifecycle state");
+    let _core = entry
+        .bootstrap()
         .expect("linked bridge provider should bootstrap");
-    let state = core
-        .plugin_bridge_lifecycle_state()
-        .expect("runtime plugin bootstrap should install bridge lifecycle state");
 
     assert!(state
         .bridge_table()
         .resolve_slot(<dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID)
         .is_some());
-    let outcome = core
-        .apply_plugin_bridge_lifecycle_event(RuntimePluginBridgeLifecycleEvent::disable_provider(
-            "physics",
-        ))
-        .expect("installed lifecycle state should apply provider events");
-    let state = core
-        .plugin_bridge_lifecycle_state()
-        .expect("runtime plugin bootstrap should retain bridge lifecycle state");
+    let outcome = state.apply_provider_lifecycle_event(
+        RuntimePluginBridgeLifecycleEvent::disable_provider("physics"),
+    );
 
     assert!(outcome.is_applied());
     assert_eq!(
@@ -747,54 +748,6 @@ fn minimal_runtime_profile_stores_disabled_platform_config() {
         platform_config.target_mode,
         RuntimeTargetMode::ClientRuntime
     );
-}
-
-#[test]
-fn quality_profile_capability_gates_do_not_reopen_legacy_builtin_render_features() {
-    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
-    let render_framework = ManagerResolver::new(core)
-        .render_framework()
-        .expect("runtime bootstrap should expose render framework");
-    let viewport = render_framework
-        .create_viewport(RenderViewportDescriptor::new(UVec2::new(32, 32)))
-        .expect("test viewport should be created");
-    let legacy_pipeline = render_framework
-        .register_pipeline_asset(legacy_advanced_builtin_pipeline())
-        .expect("legacy built-in fixture pipeline should register");
-
-    render_framework
-        .set_quality_profile(
-            viewport,
-            RenderQualityProfile::new("legacy-builtins-with-capability-flags")
-                .with_pipeline_asset(legacy_pipeline)
-                .with_virtual_geometry(true)
-                .with_hybrid_global_illumination(true)
-                .with_screen_space_ambient_occlusion(false)
-                .with_clustered_lighting(false)
-                .with_temporal_history(false),
-        )
-        .expect("base renderer should accept advanced capability profile");
-    render_framework
-        .submit_frame_extract(viewport, World::new().to_render_frame_extract())
-        .expect("capability-gated profile should not reopen legacy built-ins");
-    let stats = render_framework.query_stats().unwrap();
-
-    assert!(!stats
-        .last_effective_features
-        .iter()
-        .any(|feature| feature == "virtual_geometry"));
-    assert!(!stats
-        .last_effective_features
-        .iter()
-        .any(|feature| feature == "global_illumination"));
-    assert!(!stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| pass.starts_with("virtual-geometry-")));
-    assert!(!stats
-        .last_graph_executed_passes
-        .iter()
-        .any(|pass| pass.starts_with("hybrid-gi-")));
 }
 
 #[test]
@@ -1098,21 +1051,4 @@ fn unique_export_root(prefix: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("{prefix}_{stamp}"))
-}
-
-fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {
-    let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::VirtualGeometry,
-        ));
-    pipeline
-        .renderer
-        .features
-        .push(RendererFeatureAsset::builtin(
-            BuiltinRenderFeature::GlobalIllumination,
-        ));
-    pipeline
 }

@@ -10,14 +10,13 @@ mod particle_extract_policy;
 pub use geometry::{GeometryExtract, GeometryPhaseInput, StaticMeshBatchExtract};
 
 use super::{
-    build_sprite_phase_queue, AntiAliasSettings, CameraRenderDescriptor, CorePipelineKind,
-    DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PostProcessPassGraph,
+    build_sprite_phase_queue, AdvancedLightingExtract, AntiAliasSettings, CameraRenderDescriptor,
+    CorePipelineKind, DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PostProcessPassGraph,
     PostProcessStackDescriptor, PostProcessVolumeExtract, PreviewEnvironmentExtract,
-    RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderBloomSettings,
-    RenderCameraOrderReport, RenderCameraTarget, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFramePhaseQueueSummary,
-    RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
-    RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
+    RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
+    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExposureSettings,
+    RenderFramePhaseQueueSummary, RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode,
+    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderQueueValue,
     RenderRectLightSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
@@ -340,8 +339,8 @@ pub struct LightingExtract {
     pub spot_lights: Vec<RenderSpotLightSnapshot>,
     pub ambient_lights: Vec<RenderAmbientLightSnapshot>,
     pub rect_lights: Vec<RenderRectLightSnapshot>,
-    pub baked_lighting: Option<RenderBakedLightingExtract>,
     pub hybrid_global_illumination: Option<RenderHybridGiExtract>,
+    pub advanced_lighting: AdvancedLightingExtract,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -591,8 +590,8 @@ impl RenderFrameExtract {
                 spot_lights: snapshot.scene.spot_lights.clone(),
                 ambient_lights: snapshot.scene.ambient_lights.clone(),
                 rect_lights: snapshot.scene.rect_lights.clone(),
-                baked_lighting: None,
                 hybrid_global_illumination: None,
+                advanced_lighting: AdvancedLightingExtract::default(),
             },
             environment: snapshot.environment.clone(),
             post_process: {

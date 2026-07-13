@@ -24,8 +24,8 @@ impl DefaultEditorAssetManager {
                 .as_ref()
                 .map(|path| path.to_string_lossy().into_owned())
                 .unwrap_or_default(),
-            library_root: state
-                .library_root
+            cache_root: state
+                .cache_root
                 .as_ref()
                 .map(|path| path.to_string_lossy().into_owned())
                 .unwrap_or_default(),

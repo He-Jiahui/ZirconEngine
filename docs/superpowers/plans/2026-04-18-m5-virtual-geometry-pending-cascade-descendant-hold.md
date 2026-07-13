@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 implementation_files:
-  - zircon_graphics/src/visibility/planning/build_virtual_geometry_plan/build.rs
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - user: 2026-04-18 Virtual Geometry 的更深 residency-manager cascade / split-merge policy
   - user: 2026-04-18 继续任务
@@ -12,7 +12,7 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-multi-level-frontier-collapse-cascade.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-merge-back-child-hysteresis.md
 tests:
-  - zircon_graphics/src/tests/visibility.rs
+  - zircon_runtime/src/graphics/tests/visibility.rs
   - cargo test -p zircon_graphics --offline --locked visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_cascade_request_remains_pending
   - cargo test -p zircon_graphics --offline --locked visibility
 doc_type: milestone-detail

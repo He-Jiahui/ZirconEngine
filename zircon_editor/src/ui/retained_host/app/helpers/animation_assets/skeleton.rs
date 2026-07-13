@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::asset::{AnimationSkeletonAsset, AnimationSkeletonBoneAsset};
+use zircon_runtime::core::framework::animation::{
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
+};
 use zircon_runtime_interface::resource::ResourceLocator;
 
 #[derive(Clone)]

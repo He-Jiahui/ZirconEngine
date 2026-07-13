@@ -2,7 +2,7 @@ use std::os::raw::c_void;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::asset::NavMeshAsset;
+use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{NavPathQuery, NavPathResult, NavQueryFilter};
 use zircon_runtime::core::math::Real;
 

@@ -2,6 +2,7 @@ mod component_event;
 mod drag_drop;
 mod focus_pointer;
 mod host_request;
+mod link;
 mod navigation;
 mod node;
 mod popup_tooltip;
@@ -13,6 +14,7 @@ use component_event::{apply_component_event_effect, component_event_report_for_e
 use drag_drop::apply_drag_drop_effect;
 use focus_pointer::apply_focus_pointer_effect;
 use host_request::host_request_for_effect;
+use link::apply_link_activation_effect;
 use navigation::apply_navigation_effect;
 use popup_tooltip::apply_popup_tooltip_effect;
 use redraw::apply_redraw_effect;
@@ -206,6 +208,9 @@ fn apply_effect(
         }
         UiDispatchEffect::RequestInputMethod { .. } | UiDispatchEffect::RequestClipboard { .. } => {
             apply_text_service_effect(surface, effect)
+        }
+        UiDispatchEffect::RequestLinkActivation { .. } => {
+            apply_link_activation_effect(surface, effect)
         }
         UiDispatchEffect::DirtyRedraw { .. } => apply_redraw_effect(surface, effect),
         UiDispatchEffect::EmitComponentEvent { .. } => {

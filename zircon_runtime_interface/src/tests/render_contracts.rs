@@ -10,11 +10,67 @@ use crate::ui::{
         UiRenderVisualizerSnapshot, UiRendererParityPayloadKind, UiRendererParitySnapshot,
         UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
         UiResourceUvRect, UiShapedGlyph, UiShapedGlyphRotation, UiShapedText, UiTextCaret,
-        UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextOverflow, UiTextPaint,
-        UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode,
-        UiTextRunKind, UiTextSelection, UiTextWritingMode, UiVisualAssetRef,
+        UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextDistanceFieldEffects,
+        UiTextGlowEffect, UiTextOutlineEffect, UiTextOverflow, UiTextPaint, UiTextPaintDecoration,
+        UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
+        UiTextShadowEffect, UiTextWritingMode, UiVisualAssetRef,
     },
 };
+
+#[test]
+fn text_paint_projects_normalized_distance_field_effects_from_resolved_style() {
+    let command = UiRenderCommand {
+        node_id: UiNodeId::new(9001),
+        kind: UiRenderCommandKind::Text,
+        frame: UiFrame::new(0.0, 0.0, 120.0, 32.0),
+        clip_frame: None,
+        z_index: 0,
+        style: UiResolvedStyle {
+            text_effects: UiTextDistanceFieldEffects {
+                outline: Some(UiTextOutlineEffect {
+                    width_px: 2.0,
+                    color: " #123456ff ".to_string(),
+                }),
+                shadow: Some(UiTextShadowEffect {
+                    offset_x_px: 3.0,
+                    offset_y_px: 4.0,
+                    color: "#00000080".to_string(),
+                }),
+                glow: Some(UiTextGlowEffect {
+                    radius_px: f32::NAN,
+                    color: "#ffffffff".to_string(),
+                }),
+            },
+            ..UiResolvedStyle::default()
+        },
+        text_layout: None,
+        text: Some("effects".to_string()),
+        image: None,
+        opacity: 1.0,
+    };
+
+    let paint = command
+        .to_paint_elements(0)
+        .into_iter()
+        .find_map(|element| match element.payload {
+            UiPaintPayload::Text { text } => Some(text),
+            _ => None,
+        })
+        .expect("text paint payload");
+
+    assert_eq!(
+        paint
+            .text_effects
+            .outline
+            .as_ref()
+            .map(|effect| effect.color.as_str()),
+        Some("#123456ff")
+    );
+    assert!(paint.text_effects.shadow.is_some());
+    assert!(paint.text_effects.glow.is_none());
+}
+
+mod rich_table;
 
 fn solid_command(node_id: u64, x: f32, clip_x: f32) -> UiRenderCommand {
     UiRenderCommand {
@@ -456,7 +512,7 @@ fn ui_brush_material_and_resource_payloads_are_serializable() {
 
 #[test]
 fn ui_batch_plan_merges_same_key_and_explains_splits() {
-    let commands = vec![
+    let commands = [
         solid_command(1, 0.0, 0.0),
         solid_command(2, 48.0, 0.0),
         solid_command(3, 96.0, 8.0),

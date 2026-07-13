@@ -44,4 +44,7 @@ UI resource-ref folder-backed hard cutover 只迁移了 owner module declaration
 
 ## 修复结果与回传
 
-Fixed and returned on 2026-07-13; AI M1 validation resumed successfully.
+- 根因：UI resource-ref folder-backed hard cutover 删除旧 owner 后，`dependency.rs` 的 sibling import 未同步迁移，导致共享 `zircon_runtime_interface` 在 AI crate 编译前失败。
+- 架构修复：Editor UI 05 owner 将唯一导入硬切到 `super::value::UiResourceRef`；未恢复旧模块、`pub use` facade、compatibility shim 或重复定义。
+- 验证：AI owner/revoke 聚焦测试 3/3、完整 AI runtime 44/44 tests 与标准验证矩阵均通过；M2 后续完整回归为 58/58 tests。
+- 回传：`docs/plans/zircon_plugins/06-ai.md` 的 M1 owner revoke barrier 验证已恢复并完成，AI M2 可继续在同一 typed runtime-interface 边界上执行。

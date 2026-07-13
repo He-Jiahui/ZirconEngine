@@ -1,6 +1,7 @@
+#[cfg(feature = "graphics")]
 mod asset_flow_sample;
-mod binary_library_artifacts;
-mod binary_library_assertions;
+mod binary_artifact_cache;
+mod binary_artifact_cache_assertions;
 mod example_vampire;
 mod manager;
 mod manifest;

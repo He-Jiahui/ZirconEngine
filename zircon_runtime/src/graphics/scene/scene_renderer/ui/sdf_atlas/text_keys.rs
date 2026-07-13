@@ -6,7 +6,7 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
 use crate::graphics::scene::scene_renderer::ui::sdf_char_run::sdf_scalar_requires_atlas_slot;
-use crate::graphics::scene::scene_renderer::ui::sdf_params::SdfBakeParams;
+use crate::graphics::text::sdf::SdfBakeParams;
 
 use super::SdfAtlasGlyphKey;
 
@@ -36,7 +36,7 @@ fn scalar_keys(text: &ScreenSpaceUiTextBatch) -> Vec<Option<SdfAtlasGlyphKey>> {
     text.text
         .chars()
         .map(|glyph| {
-            sdf_scalar_requires_atlas_slot(glyph).then(|| glyph_key(text, glyph, None, None))
+            sdf_scalar_requires_atlas_slot(glyph).then(|| glyph_key(text, glyph, None, None, None))
         })
         .collect()
 }
@@ -58,6 +58,7 @@ fn shaped_key(
             glyph.source_scalar,
             Some(glyph.glyph_id),
             glyph.font_id.map(|font_id| font_id.0),
+            glyph.font_instance_id.map(|font_id| font_id.0),
         )
     })
 }
@@ -67,15 +68,20 @@ fn glyph_key(
     glyph: char,
     glyph_id: Option<u32>,
     font_id: Option<u64>,
+    font_instance_id: Option<u64>,
 ) -> SdfAtlasGlyphKey {
     SdfAtlasGlyphKey {
         glyph,
         glyph_id,
         font_id,
+        font_instance_id,
         font: text.font.clone(),
         font_family: text.font_family.clone(),
         language: normalize_ui_text_language_tag(text.language.as_deref()),
         font_weight: UiResolvedStyle::normalized_font_weight(text.font_weight),
-        bake_params: SdfBakeParams::default(),
+        bake_params: SdfBakeParams {
+            mode: text.distance_field_mode,
+            ..SdfBakeParams::default()
+        },
     }
 }

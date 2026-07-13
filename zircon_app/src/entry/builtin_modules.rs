@@ -6,13 +6,13 @@ use zircon_runtime::builtin::{
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
     runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
-    RuntimeTargetMode,
 };
-use zircon_runtime::core::{CoreError, ModuleDescriptor};
+use zircon_runtime::core::framework::project::ProjectPluginManifest;
+use zircon_runtime::core::{framework::platform::RuntimeTargetMode, CoreError, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::plugin::{
-    ProjectPluginManifest, RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState,
-    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
 use super::{entry_profile::EntryProfile, EntryConfig};
@@ -28,9 +28,7 @@ pub(super) fn builtin_modules_for_config(
 ) -> Result<BuiltinModuleSelection, CoreError> {
     let manifest = config.project_plugin_manifest();
     let report = runtime_modules_for_target(config.target_mode, manifest.as_ref());
-    for warning in &report.warnings {
-        eprintln!("[zircon_app] runtime plugin warning: {warning}");
-    }
+    log_load_report_warnings(&report);
     ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
 
     let runtime_plugin_availability = report.runtime_plugin_availability;
@@ -76,9 +74,7 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_registrations(
             registrations,
         )
     };
-    for warning in &report.warnings {
-        eprintln!("[zircon_app] runtime plugin warning: {warning}");
-    }
+    log_load_report_warnings(&report);
     ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
 
     let runtime_plugin_availability = report.runtime_plugin_availability;
@@ -153,9 +149,7 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
             feature_registrations,
         )
     };
-    for warning in &report.warnings {
-        eprintln!("[zircon_app] runtime plugin warning: {warning}");
-    }
+    log_load_report_warnings(&report);
     ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime feature selection")?;
 
     let runtime_plugin_availability = report.runtime_plugin_availability;
@@ -241,9 +235,7 @@ pub(super) fn builtin_modules_for_config_with_available_runtime_plugins(
         manifest.as_ref(),
         available_plugin_ids.iter().map(String::as_str),
     );
-    for warning in &report.warnings {
-        eprintln!("[zircon_app] runtime plugin warning: {warning}");
-    }
+    log_load_report_warnings(&report);
     ensure_load_report_has_no_fatal_diagnostics(&report, "zircon_app runtime module selection")?;
 
     let runtime_plugin_availability = report.runtime_plugin_availability;
@@ -288,14 +280,7 @@ fn ensure_load_report_has_no_fatal_diagnostics(
     report: &RuntimeModuleLoadReport,
     context: &str,
 ) -> Result<(), CoreError> {
-    let required_missing = report.effective_required_missing();
-    if !required_missing.is_empty() {
-        return Err(CoreError::Initialization(
-            context.to_string(),
-            report.required_missing_summary(),
-        ));
-    }
-    let errors = report.effective_errors();
+    let errors = report.fatal_messages();
     if !errors.is_empty() {
         return Err(CoreError::Initialization(
             context.to_string(),
@@ -303,6 +288,12 @@ fn ensure_load_report_has_no_fatal_diagnostics(
         ));
     }
     Ok(())
+}
+
+fn log_load_report_warnings(report: &RuntimeModuleLoadReport) {
+    for warning in report.warning_messages() {
+        eprintln!("[zircon_app] runtime plugin warning: {warning}");
+    }
 }
 
 fn project_manifest_for_plugin_selection(

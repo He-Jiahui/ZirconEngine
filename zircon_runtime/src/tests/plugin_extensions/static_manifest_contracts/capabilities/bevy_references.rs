@@ -59,7 +59,10 @@ fn assert_bevy_reference_path(
         !reference_path.components().any(|component| {
             matches!(
                 component,
-                Component::ParentDir | Component::CurDir | Component::RootDir | Component::Prefix(_)
+                Component::ParentDir
+                    | Component::CurDir
+                    | Component::RootDir
+                    | Component::Prefix(_)
             )
         }),
         "plugin manifest {relative_path:?} {context} bevy reference `{reference}` should not contain root, current, parent, or drive-prefix path components"

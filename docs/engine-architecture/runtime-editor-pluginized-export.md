@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/plugin/scene_hook/mod.rs
+  - zircon_runtime/src/scene/runtime_hook/mod.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime/src/plugin/package_manifest/mod.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_module_kind.rs
@@ -10,10 +10,10 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/mod.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_type_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/constructors.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/constructors.rs
   - zircon_runtime/src/plugin/ui_component_descriptor.rs
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
@@ -39,8 +39,8 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
-  - zircon_runtime/src/ui/component/catalog.rs
-  - zircon_runtime/src/ui/component/descriptor.rs
+  - zircon_runtime/src/ui/component/catalog/mod.rs
+  - zircon_runtime/src/ui/component/descriptor/mod.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/mod.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
@@ -175,8 +175,8 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
@@ -671,55 +671,19 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/scene_renderer_advanced_plugin_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_cull_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_render_path_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_indirect_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_cull_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_render_path_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_indirect_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/virtual_geometry_readback_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/cull_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/render_path_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/indirect_output_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/virtual_geometry_output_updates/last_output_update.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_readback_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/store_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/records.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_hardware_rasterization_pass/buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/store_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/entries.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_visbuffer64_pass/buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_node_and_cluster_cull_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_node_and_cluster_cull_pass/output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_node_and_cluster_cull_pass/store_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_node_and_cluster_cull_pass/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_node_and_cluster_cull_pass/page_requests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/selection_collection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/selection_filter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/ordering.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/frontier_ranking.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/build_records.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/build_selections.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/collect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats/virtual_geometry_indirect_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats/collect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats/execution_segments.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats/execution_owned_buffers.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_hardware_rasterization_pass/records.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_visbuffer64_pass/entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_node_and_cluster_cull_pass/page_requests.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/selection_collection.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/ordering.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/frontier_ranking.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/state.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/build_records.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/build_selections.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_indirect_stats/execution_segments.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_indirect_stats/execution_owned_buffers.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs
@@ -744,25 +708,24 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_hierarchy.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_runtime_source.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_history.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/runtime_trace_source.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/temporal_history.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_args_source_authority.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_args_authority.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_gpu.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_node_and_cluster_cull_execution.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_prepare_render.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_submission_execution_order.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_unified_indirect.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_submission_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_args_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_node_and_cluster_cull_execution.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_execution_order.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_authority.rs
   - zircon_app/src/entry/mod.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/builtin_modules.rs
@@ -772,7 +735,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
@@ -833,11 +796,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - .github/workflows/ci.yml
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
@@ -862,7 +825,7 @@ related_code:
   - zircon_plugins/sound/runtime/src/package/options.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/module.rs
-  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/service_types/mod.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
   - zircon_plugins/sound/editor/Cargo.toml
   - zircon_plugins/sound/editor/src/lib.rs
@@ -875,7 +838,7 @@ related_code:
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/editor/Cargo.toml
   - zircon_plugins/net/editor/src/lib.rs
   - zircon_plugins/navigation/plugin.toml
@@ -885,7 +848,7 @@ related_code:
   - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/runtime/src/lib.rs
   - zircon_plugins/particles/runtime/src/package.rs
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
   - zircon_plugins/particles/editor/Cargo.toml
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/animation/plugin.toml
@@ -933,7 +896,7 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/plugin/scene_hook/mod.rs
+  - zircon_runtime/src/scene/runtime_hook/mod.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime/src/plugin/package_manifest/mod.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_module_kind.rs
@@ -942,10 +905,10 @@ implementation_files:
   - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/mod.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_type_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/constructors.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/constructors.rs
   - zircon_runtime/src/plugin/ui_component_descriptor.rs
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
@@ -1094,8 +1057,8 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
@@ -1605,7 +1568,7 @@ implementation_files:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
+  - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
@@ -1660,14 +1623,14 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - .github/workflows/ci.yml
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
-  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
+  - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
   - zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs
@@ -1691,7 +1654,7 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/package/options.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/module.rs
-  - zircon_plugins/sound/runtime/src/service_types.rs
+  - zircon_plugins/sound/runtime/src/service_types/mod.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
   - zircon_plugins/sound/editor/Cargo.toml
   - zircon_plugins/sound/editor/src/lib.rs
@@ -1704,7 +1667,7 @@ implementation_files:
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/service_types.rs
-  - zircon_plugins/net/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/editor/Cargo.toml
   - zircon_plugins/net/editor/src/lib.rs
   - zircon_plugins/navigation/plugin.toml
@@ -1714,7 +1677,7 @@ implementation_files:
   - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/runtime/src/lib.rs
   - zircon_plugins/particles/runtime/src/package.rs
-  - zircon_plugins/particles/runtime/src/tests.rs
+  - zircon_plugins/particles/runtime/src/tests/mod.rs
   - zircon_plugins/particles/editor/Cargo.toml
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/animation/plugin.toml
@@ -2352,7 +2315,7 @@ tests:
   - WSL: cargo test -p zircon_runtime --lib export_build_plan --no-default-features --features core-min --locked --jobs 1 -- --nocapture (blocked before export tests by active render test unresolved import `VirtualGeometryNodeAndClusterCullPassStoreParts` in `virtual_geometry_executed_cluster_selection_pass/tests/mod.rs`)
   - WSL red/green: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_plugin_id --no-default-features --features core-min --locked --jobs 1 -- --nocapture (first failed with duplicate native package ids, then passed with one native package and one loader manifest row)
   - TDD red: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_output_directory --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-directory-dedupe -- --nocapture (failed because `native_dynamic_packages` contained both `physics.debug` and `physics_debug` even though both sanitize to `plugins/physics_debug`)
-  - blocked green: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_output_directory --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-directory-dedupe -- --nocapture (blocked before the export test by active-owner compile errors in `zircon_runtime/src/ui/component/descriptor.rs` duplicate `state`/`slot` methods and private VG pass accessors in the seed-backed execution-selection owner)
+  - blocked green: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_output_directory --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-directory-dedupe -- --nocapture (blocked before the export test by active-owner compile errors in `zircon_runtime/src/ui/component/descriptor/mod.rs` duplicate `state`/`slot` methods and private VG pass accessors in the seed-backed execution-selection owner)
   - inconclusive green retry: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_output_directory --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-directory-dedupe -- --nocapture (progressed to compiling `zircon_runtime`, emitted an unrelated VG unused-import warning, then timed out before a test summary while many active Cargo/rustc jobs were present)
   - not rerun: 2026-04-28 18:22 process scan still showed unrelated active Cargo/rustc jobs for editor build/menu/operation tests, hybrid-GI tests, and SRP/RHI checks, so no NativeDynamic output-directory GREEN claim was made
   - green: cargo test -p zircon_runtime --test export_build_plan_contract native_dynamic_deduplicates_loader_manifest_packages_by_output_directory --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-directory-dedupe -- --nocapture (1 passed, 0 failed)
@@ -2456,7 +2419,6 @@ tests:
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_net_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-source -- --nocapture
   - cargo test -p zircon_app --lib linked_runtime_render_feature_descriptors_rebuild_default_pipelines --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-source -- --nocapture
   - cargo test -p zircon_app --lib runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightweight --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-source -- --nocapture
-  - cargo test -p zircon_app --lib quality_profile_capability_gates_do_not_reopen_legacy_builtin_render_features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-source -- --nocapture
   - cargo test -p zircon_app --lib profile_bootstrap --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-source -- --nocapture
   - cargo test -p zircon_editor --lib editor_runtime_consumes_plugin_registration_reports_with_capability_gate --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-plugin-source -- --nocapture
   - cargo test --workspace --locked --jobs 1 --target-dir target/codex-editor-plugin-red -- --nocapture
@@ -2502,7 +2464,7 @@ Integration tests that exercise optional runtime plugins follow the same rule. P
 
 `ExportBuildPlan::write_generated_files(root)` materializes those generated files into an export directory and creates parent directories as needed. Generated paths are now resolved by `materialize/paths.rs` as portable export-relative paths before any write, rejecting empty paths, absolute/root/prefix paths, `.` or `..` components, trailing separators, and backslash separators. `ExportBuildPlan::materialize(root)` wraps generated file writing in an `ExportMaterializeReport` that carries the plan diagnostics even when the selected profile generates no files, while `materialize_with_native_packages(plugin_root, output_root)` additionally copies selected `NativeDynamic` plugin packages into `output_root/plugins/<sanitized-plugin-id>`. Mutating materialization preflights `effective_fatal_diagnostics()` before filesystem writes: fatal plans return an empty generated/copy set plus an explicit materialization-blocked diagnostic, `write_generated_files(...)` no-ops in the same state, and NativeDynamic package copying is skipped. `preview_materialize(...)` and `preview_materialize_with_native_packages(...)` return the same report shape without creating directories, writing files, copying package payloads, or writing package reports; their `generated_files` and `copied_packages` rows are planned output paths and their diagnostics reuse the mutating path resolver, package lookup, duplicate-output, native-artifact, and symlink rules. The materialization owner is split across `materialize/{mod,archive,generated,paths,native,package_lookup,copy,report}.rs`: the root wires the public methods, `archive.rs` owns `materialize_zip_archive(...)` and `preview_zip_archive(...)`, generated-file writes are separate from native package orchestration, package lookup remains under the configured plugin root, copy filtering stays isolated, and per-package ABI report writing has its own leaf. Native dynamic materialization copies `plugin.toml`, resource directories such as `assets/` or `resources/`, and only compiled native artifacts from `native/` (`.dll`, `.so`, `.dylib`, plus symbol sidecars); runtime/editor source crates and native crate source files stay out of the runtime distribution. If a selected native package has no `native/` directory or no compiled artifact under `native/`, the materializer records a diagnostic instead of silently publishing source-only native payloads, and duplicate sanitized output directories are rejected with diagnostics. Source package lookup also avoids treating package ids with path components as direct child directories; those packages must be discovered by scanning real `plugin.toml` files under real directories in the configured plugin root, which keeps ids such as `../external` from escaping the plugin root during materialization. Symlinked package roots, symlinked manifests, symlinked resource children, and symlinked native artifacts are skipped instead of followed, with top-level skipped payloads reported as materialization diagnostics. ZIP archive materialization now writes generated files, NativeDynamic runtime payloads, and `native_dynamic_package.toml` reports into a single archive while reusing the same portable path validator for entry names; archive preview reports `archive_file` without creating the archive. The only admitted archive-container dependency is `zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }` in `zircon_runtime`; `tar` remains gated on a later server/CI artifact policy. `EditorExportBuildReport` now carries generated files, copied packages, the plan, the generated SourceTemplate Cargo invocation, native plugin Cargo invocations, stdout/stderr/status, and diagnostics; `EditorExportCargoInvocation` is re-exported with the report from `zircon_editor::ui::host` and the crate root so external callers can name the public report fields. `EditorManager::execute_native_aware_export_build(...)` now discovers native packages once, reuses that `NativePluginLoadReport` to complete the native-aware project manifest, and then uses the same report for package preparation diagnostics. Fatal plans are checked before native package preparation; they reuse the runtime no-op materialization report, write diagnostics, and return without staging/copying native packages or invoking native/source Cargo. Non-fatal native-aware exports still stage native packages before materialization: the runner copies static package metadata/resources into `.native-dynamic-staging/<sanitized-plugin-id>`, reuses existing compiled native artifacts when present, and when a package exposes `native/Cargo.toml` it builds that cdylib into `.native-dynamic-build/<sanitized-plugin-id>` before publishing only the produced library into the exported package. Those staging/build roots are temporary and are removed after materialization; cleanup failures are diagnostic-only so export diagnostics capture them without aborting the minimal editor host. `EditorManager::execute_export_build(...)` and `execute_native_aware_export_build(...)` invoke Cargo against the generated manifest after materialization when a SourceTemplate `Cargo.toml` exists; build failures are reported as diagnostics instead of breaking the minimal editor host. The native-aware export runner validates the exported `plugins/native_plugins.toml` with the loader matching the export target mode: client/server profiles use runtime-only native loading, while editor-host profiles use editor-only native loading. Both editor export execution paths merge materialization diagnostics, native discovery diagnostics, target-specific native loader diagnostics, and Cargo status into one deduplicated report before writing `export-diagnostics.txt`; the diagnostics directory is created even for profiles that generate no files, so strategy mismatches and skipped-Cargo notices are still persisted for dynamic-only or intentionally empty exports.
 
-The editor shell now has a built-in Desktop Export pane (`editor.build_export_desktop`) in the bottom-right tool area. The pane projects Windows, Linux, and macOS export plans from the active project manifest, shows strategies, plugin counts, linked crates, native package counts, generated file counts, fatal state, and joined diagnostics, and uses the same `EditorManager::generate_native_aware_export_plan(...)` path as programmatic exports. Build Export projection now lives in `pane_data_conversion/build_export/`: `mod.rs` keeps the pane conversion entry and target DTO mapping, while `target_rows.rs` owns fallback row/action button projection instead of growing the generic pane conversion module further. Each row exposes `BuildExport.Execute.<profile>` and switches to `BuildExport.Cancel.<profile>` while that profile is queued, running, or cancel-requested. The row also projects `BuildExport.RevealOutput.<profile>` and `BuildExport.ClearOutput.<profile>` as visible `Open` and `Default` buttons, so the row actions and rendered controls consume the same stable ids. The retained host routes execution through a single-job `DesktopExportJobQueue`, runs `EditorManager::execute_native_aware_export_build_with_cancellation_and_progress(...)` on a background thread with a project-local default output root at `Builds/zircon/<profile>`, and stores the latest `EditorExportBuildReport` summary per profile after the backend returns. The queue projects coarse progress states (`Queued`, `Running`, `Cancel requested`, `Exported`, `Failed`, `Cancelled`), copied package/generated file counts, output root, and diagnostics onto the next pane projection. Active jobs also consume `EditorExportBuildProgress` stage telemetry, so the row diagnostics can show percentages and stage names for native package discovery, plan resolution, package preparation, materialization, cleanup, Cargo build, exported native manifest probing, diagnostics writing, and completion. Cancellation now propagates into SourceTemplate Cargo builds and native dynamic plugin Cargo builds; the shared Cargo helper drains stdout/stderr on reader threads, polls the cancellation token, and terminates the running build tree before returning a cancelled invocation. Windows cancellation uses `taskkill /PID <cargo-pid> /T /F`; Unix hosts start Cargo in an isolated process group and kill that group, with single-process kill kept as a fallback. `BuildExport.SetOutput.<profile>|<path>`, `BuildExport.ClearOutput.<profile>`, and `BuildExport.RevealOutput.<profile>` provide the host-side output override/reveal contract, and the row-level native picker uses the same override path.
+The editor shell now has a built-in Desktop Export pane (`editor.build_export_desktop`) in the bottom-right tool area. The pane projects Windows, Linux, and macOS export plans from the active project manifest, shows strategies, plugin counts, linked crates, native package counts, generated file counts, fatal state, and joined diagnostics, and uses the same `EditorManager::generate_native_aware_export_plan(...)` path as programmatic exports. Build Export projection now lives in `pane_data_conversion/build_export/`: `mod.rs` keeps the pane conversion entry and target DTO mapping, while `target_rows.rs` owns fallback row/action button projection instead of growing the generic pane conversion module further. Each row exposes `BuildExport.Execute.<profile>` and switches to `BuildExport.Cancel.<profile>` while that profile is queued, running, or cancel-requested. The row also projects `BuildExport.RevealOutput.<profile>` and `BuildExport.ClearOutput.<profile>` as visible `Open` and `Default` buttons, so the row actions and rendered controls consume the same stable ids. The retained host routes execution through a single-job `DesktopExportJobQueue`, submits `EditorManager::execute_native_aware_export_build_with_cancellation_and_progress(...)` as `JobCategory::Export` through the Context-owned `EditorJobSystem`, and stores the latest `EditorExportBuildReport` summary per profile after the typed `JobTicket` reaches a terminal result. The queue projects coarse progress states (`Queued`, `Running`, `Cancel requested`, `Exported`, `Failed`, `Cancelled`), copied package/generated file counts, output root, and diagnostics onto the next pane projection. Active jobs consume `EditorExportBuildProgress` stage telemetry through a business progress channel while the ticket remains the sole terminal truth, so the row diagnostics can show percentages and stage names for native package discovery, plan resolution, package preparation, materialization, cleanup, Cargo build, exported native manifest probing, diagnostics writing, and completion. Cancellation uses the shared `CancellationToken` for queued jobs, active export work, SourceTemplate Cargo builds, and native dynamic plugin Cargo builds. The shared process helper redirects stdout/stderr to temporary capture files, reads at most 64 KiB per stream per poll before yielding, performs a final double-EOF drain, and terminates the running process tree before returning a cancelled invocation; no editor-owned pipe-reader thread survives. An armed child RAII guard also terminates and waits during error or unwind paths. Windows cancellation uses `taskkill /PID <cargo-pid> /T /F`; Unix hosts start the process in an isolated process group and kill that group, with single-process kill kept as a fallback. `BuildExport.SetOutput.<profile>|<path>`, `BuildExport.ClearOutput.<profile>`, and `BuildExport.RevealOutput.<profile>` provide the host-side output override/reveal contract, and the row-level native picker uses the same override path.
 
 The same Desktop Export row now also exposes `BuildExport.ChooseOutput.<profile>` as a visible `Choose` button. The retained host handles it by opening the platform-native folder picker from `build_export_actions/output_folder.rs`, starting from the current output folder or its nearest existing parent, then storing the selected directory through the same per-profile output override used by `BuildExport.SetOutput.<profile>|<path>`. `Open` and `Default` remain separate row actions for revealing the effective output directory and clearing the override back to `Builds/zircon/<profile>`.
 
@@ -2588,6 +2550,8 @@ Native ABI fixture packages may instead use `zircon_plugins/<plugin_id>/native/C
 
 `RuntimeExtensionRegistry` is the first strongly typed registration layer for runtime plugins. It accepts manager descriptors, module descriptors, scene hooks, render feature descriptors, render pass executors, Virtual Geometry runtime providers, component type descriptors, runtime UI component descriptors, plugin options, plugin event catalogs, and asset importer handlers/descriptors before those contributions are applied to startup, scene tick, render, UI, asset import, or scene runtime surfaces. `RuntimePluginRegistrationReport::from_plugin(...)` now mirrors package-manifest-declared options, event catalogs, component descriptors, UI component descriptors, and asset importer descriptors into the registry, while preserving a real importer backend when the plugin already registered one. Duplicate manager service names, module names, scene hook ids, render feature names, executor ids, provider ids, component type ids, UI component ids, option keys, event namespaces, and importer matchers are rejected with explicit diagnostics, so plugin manifests and VM host handles can share the same id authority before `CoreRuntime::register_module(...)` or the asset pipeline sees the merged service table. Programmatic module descriptor names and descriptions must be non-empty and trimmed before duplicate module checks run. Manager contribution `plugin_id` values must be lowercase package tokens before manager duplicates are evaluated. Programmatic scene hook ids must be lowercase dot-separated ids under their contributing lowercase plugin id, while retaining hyphen support for existing schedule-style hook names such as `weather.scene.post-update`. Component and runtime UI component contribution `plugin_id` values must be lowercase package tokens before prefix ownership is checked, but component ids themselves keep their dotted type form such as `weather.Component.CloudLayer`; runtime UI component ids must also stay under the contributing plugin prefix, such as `weather.Ui.CloudLayerInspector`, matching the ECS component id rule, and their `ui_document` must reference a `.zui` component asset. The registry is split into declaration, registration behavior, read access, and module/UI/world-application files; manager and module registration methods live in `extension_registry/register/runtime_core.rs`, metadata registration methods for component, runtime UI component, option, and event catalog rows live in `extension_registry/register/metadata.rs`, scene-hook registration and ordering lives in `extension_registry/register/scene_hook.rs`, manager/module read access lives in `extension_registry/access/runtime_core.rs`, metadata read access lives in `extension_registry/access/metadata.rs`, scene-hook read access lives in `extension_registry/access/scene_hook.rs`, runtime-core module application lives in `extension_registry/apply_to_module/runtime_core.rs`, runtime UI component application lives in `extension_registry/apply_to_ui/component.rs`, component world application lives in `extension_registry/apply_to_world/component.rs`, manager/module validation lives in `extension_registry/validation/runtime_core.rs`, component and runtime UI component validation lives in `extension_registry/validation/component.rs`, scene-hook validation lives in `extension_registry/validation/scene_hook.rs`, shared lowercase plugin-token validation lives in `extension_registry/validation/token.rs`, and the root registration file stays focused on render/provider and asset-importer registration flow plus child module wiring.
 
+Scene hook registration remains a plugin-extension capability, but the executable hook protocol and storage are scene-owned. `RuntimeExtensionRegistry` validates and orders `scene::SceneRuntimeHookRegistration` contributions; `scene::WorldDriver` installs and dispatches them. The retired plugin hook facade and kernel hook store are not compatibility paths.
+
 Component contribution metadata follows the same boundary rule: component type declarations, component property declarations, and constructors live in separate files under `component_type_descriptor/`.
 
 `RuntimePluginDescriptor` and `RuntimePlugin` are split into declaration, builder, package-manifest projection, project-selection projection, and trait child modules. This keeps native Rust plugin packages and future VM-backed plugin descriptors on the same contract without centralizing all projection behavior in one file. Descriptor builder behavior is now folder-backed: `descriptor/builder.rs` wires builder children, `descriptor/builder/construction.rs` owns default construction, and `descriptor/builder/fluent.rs` owns the fluent `with_*` mutation methods. Descriptor package-manifest projection follows the same owner/child split: `descriptor/package_manifest.rs` orchestrates package metadata shell construction, `descriptor/package_manifest/runtime_module.rs` owns the descriptor-derived runtime module row, and `descriptor/package_manifest/rows.rs` owns capability, capability-status, optional-feature, and default-packaging row transfer. Descriptor-derived project selections now honor descriptor `default_packaging`: linkable Rust plugin descriptors still prefer `LibraryEmbed` when it is available, while NativeDynamic-only descriptors project a NativeDynamic default selection instead of silently falling back to LibraryEmbed. The project-selection owner is also folder-backed: `descriptor/project_selection.rs` orchestrates package selection, `descriptor/project_selection/packaging.rs` owns package default-packaging fallback selection, and `descriptor/project_selection/features.rs` owns optional-feature selection projection, feature packaging fallback selection, and runtime/editor module crate assignment. `RuntimePluginRegistrationReport::from_plugin(...)` validates descriptor package ids, display names, Rust crate names, and explicit duplicate-free default packaging before catalog aggregation so malformed programmatic descriptors cannot silently project broken package manifests or source-template crate calls. The same report path now validates the returned `PluginPackageManifest` identity surface, requiring package ids to stay lowercase token ids, linked package ids to match the descriptor package id, display names to be trimmed, package/API versions to use MAJOR.MINOR.PATCH core version syntax, and package manifests to declare at least one duplicate-free default packaging strategy.
@@ -2648,7 +2612,7 @@ The package manifest implementation is split by responsibility: module-kind decl
 
 Plugin component ids are full dotted names such as `weather.Component.CloudLayer`. They are intentionally not collapsed into a special `World` branch. `World` stores dynamic plugin component payloads per entity, exposes them through `dynamic_component(...)` and `dynamic_components_for_entity(...)`, and routes property reads/writes through the same `ComponentPropertyPath` surface used by built-in components. Built-in components keep their existing high-performance maps; plugin components sit beside them for serialization, inspector property enumeration, and editor mutation.
 
-`ComponentTypeRegistry` is now the scene-side type layer for plugin component descriptors. A world can register `ComponentTypeDescriptor` values from runtime plugin contributions, reject duplicate component type ids, and validate that registered ids stay under the contributing plugin namespace. `RuntimeExtensionRegistry::apply_component_types_to_world(...)` is the shared install point from plugin registration reports into an active `World`, so native Rust plugins and future VM host handles converge on the same ECS type table before entity attachment. When the registry is populated, attaching or property-writing an unregistered dynamic component is rejected; an empty registry remains permissive for legacy scene data and transitional tests. If a registered descriptor declares properties, `World::set_property(...)` also enforces that dynamic component writes target a declared property and that the property is marked `editable`; descriptors with no property list remain schemaless for early plugin experiments. `DynamicComponentInstance` pairs stored JSON payloads with the currently loaded descriptor when one exists; when a plugin schema is absent, the payload is still enumerable so editor Inspector views can show a protected degraded row instead of deleting serialized component data. The registry itself remains runtime metadata, while `DynamicScene` now serializes the subset of plugin component descriptors required by captured plugin-owned dynamic components and installs them into target worlds before scene apply.
+`ComponentTypeRegistry` is now the scene-side type layer for plugin component descriptors. The unique DTO declaration owner is `core/framework/scene/component_type_descriptor`; plugin manifests contribute those neutral records but no longer define or re-export them from the plugin facade. A world can register `ComponentTypeDescriptor` values from runtime plugin contributions, reject duplicate component type ids, and validate that registered ids stay under the contributing plugin namespace. `RuntimeExtensionRegistry::apply_component_types_to_world(...)` is the shared install point from plugin registration reports into an active `World`, so native Rust plugins and future VM host handles converge on the same ECS type table before entity attachment. When the registry is populated, attaching or property-writing an unregistered dynamic component is rejected; an empty registry remains permissive for legacy scene data and transitional tests. If a registered descriptor declares properties, `World::set_property(...)` also enforces that dynamic component writes target a declared property and that the property is marked `editable`; descriptors with no property list remain schemaless for early plugin experiments. `DynamicComponentInstance` pairs stored JSON payloads with the currently loaded descriptor when one exists; when a plugin schema is absent, the payload is still enumerable so editor Inspector views can show a protected degraded row instead of deleting serialized component data. The registry itself remains runtime metadata, while `DynamicScene` now serializes the subset of plugin component descriptors required by captured plugin-owned dynamic components and installs them into target worlds before scene apply.
 
 Runtime UI component contributions now install into the same `UiComponentDescriptorRegistry` used by engine UI component metadata. `RuntimeExtensionRegistry::apply_ui_components_to_registry(...)` converts the lightweight plugin declaration `{ component_id, plugin_id, ui_document }` into a runtime `UiComponentDescriptor` with `ui-component` role, `plugin_id` / `ui_document` required props, and a generic `content` slot. Registration rejects legacy `.ui.toml` and `.v2.ui.toml` documents; plugin-authored UI component documents must be single-component `.zui` assets backed by the v2 prototype/cache payload path.
 

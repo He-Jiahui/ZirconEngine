@@ -10,19 +10,122 @@ styles = ["res://ui/theme/editor_base.zui"]
 [root]
 node = "navigation_bake_root"
 
-[nodes.navigation_bake_toolbar]
+[nodes.navigation_bake_scene_button]
+component = "Button"
+control_id = "NavigationBakeSceneButton"
+props = { text = "Bake Scene", button_variant = "filled", button_color = "accent" }
+layout = { width = { min = 104.0, preferred = 112.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Navigation/BakeScene", event = "Click", route = "navigation.bake.scene" }]
+
+[nodes.navigation_bake_selected_button]
+component = "Button"
+control_id = "NavigationBakeSelectedButton"
+props = { text = "Bake Selected", button_variant = "outlined", button_color = "secondary" }
+layout = { width = { min = 112.0, preferred = 120.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Navigation/BakeSelected", event = "Click", route = "navigation.bake.surface" }]
+
+[nodes.navigation_clear_button]
+component = "Button"
+control_id = "NavigationClearBakeButton"
+props = { text = "Clear Selected", button_variant = "outlined", button_color = "warning" }
+layout = { width = { min = 112.0, preferred = 120.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Navigation/ClearSelected", event = "Click", route = "navigation.bake.clear_surface" }]
+
+[nodes.navigation_bake_toolbar_fill]
 component = "Space"
+control_id = "NavigationBakeToolbarFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_bake_toolbar]
+component = "HorizontalGroup"
 control_id = "NavigationBakeToolbar"
-layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, stretch = "Fixed" } }
+classes = ["editor-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" } }
+children = [{ node = "navigation_bake_scene_button" }, { node = "navigation_bake_selected_button" }, { node = "navigation_clear_button" }, { node = "navigation_bake_toolbar_fill" }]
+
+[nodes.navigation_surface_title]
+component = "Label"
+control_id = "NavigationBakeSurfaceTitle"
+props = { text = "SURFACES" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_surface_list]
+component = "Table"
+control_id = "NavigationBakeSurfaceList"
+props = { selected_index = 0 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_surface_column]
+component = "VerticalGroup"
+control_id = "NavigationBakeSurfaceColumn"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 230.0, preferred = 260.0, max = 300.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_surface_title" }, { node = "navigation_surface_list" }]
+
+[nodes.navigation_settings_title]
+component = "Label"
+control_id = "NavigationBakeSettingsTitle"
+props = { text = "BAKE SETTINGS" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_force_full_rebuild]
+component = "Checkbox"
+control_id = "NavigationForceFullRebuild"
+props = { text = "Force full rebuild", checked = false, value = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, stretch = "Fixed" } }
+
+[nodes.navigation_tile_summary]
+component = "Label"
+control_id = "NavigationBakeTileSummary"
+props = { text = "Tiles and source geometry are collected from the selected NavMeshSurface." }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 64.0, stretch = "Fixed" } }
+
+[nodes.navigation_settings_column]
+component = "VerticalGroup"
+control_id = "NavigationBakeSettingsColumn"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_settings_title" }, { node = "navigation_force_full_rebuild" }, { node = "navigation_tile_summary" }]
+
+[nodes.navigation_output_title]
+component = "Label"
+control_id = "NavigationBakeOutputTitle"
+props = { text = "OUTPUT" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, stretch = "Fixed" } }
 
 [nodes.navigation_bake_diagnostics]
-component = "Space"
+component = "Table"
 control_id = "NavigationBakeDiagnostics"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_output_column]
+component = "VerticalGroup"
+control_id = "NavigationBakeOutputColumn"
+classes = ["editor-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 280.0, preferred = 320.0, max = 360.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_output_title" }, { node = "navigation_bake_diagnostics" }]
+
+[nodes.navigation_bake_workspace]
+component = "HorizontalGroup"
+control_id = "NavigationBakeWorkspace"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_surface_column" }, { node = "navigation_settings_column" }, { node = "navigation_output_column" }]
+
+[nodes.navigation_bake_progress]
+component = "ProgressBar"
+control_id = "NavigationBakeProgress"
+props = { value = 0.0, min = 0.0, max = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.navigation_bake_status]
+component = "Label"
+control_id = "NavigationBakeStatus"
+props = { text = "Ready" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, stretch = "Fixed" } }
 
 [nodes.navigation_bake_root]
 component = "VerticalGroup"
 control_id = "NavigationBakeRoot"
 classes = ["editor-shell"]
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "navigation_bake_toolbar" }, { node = "navigation_bake_diagnostics" }]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_bake_toolbar" }, { node = "navigation_bake_workspace" }, { node = "navigation_bake_progress" }, { node = "navigation_bake_status" }]

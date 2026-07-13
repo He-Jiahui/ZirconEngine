@@ -2,8 +2,9 @@ use super::*;
 
 #[test]
 fn runtime_15_status_output_expected_slice_legacy_guard_body_is_folder_backed() {
-    let legacy_parent =
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps.rs");
+    let legacy_parent = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps.rs",
+    );
     let parent = read_runtime_src(&format!(
         "tests/runtime_absorption/{LEGACY_GUARD_BODY_PARENT}"
     ));

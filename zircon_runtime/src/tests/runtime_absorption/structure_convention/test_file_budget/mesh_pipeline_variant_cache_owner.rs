@@ -36,12 +36,14 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
     let velocity_execute = read_runtime_src(
         "graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "mesh pipeline cache stores all pass pipelines by resolved variant id",
@@ -219,7 +221,6 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
         ("shader doc", shader_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("session note", session.as_str()),
     ] {
         assert_contains_all(
             label,

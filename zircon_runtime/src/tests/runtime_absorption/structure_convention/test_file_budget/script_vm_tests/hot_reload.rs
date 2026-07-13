@@ -29,6 +29,7 @@ pub(super) fn assert_hot_reload_coordinator_tests_are_folder_backed() {
         "fn hot_reload_policy_preserves_state_and_increments_generation_by_default",
         "fn stateless_hot_reload_policy_skips_state_transfer",
         "fn disabled_hot_reload_policy_rejects_reload_without_deactivating_slot",
+        "fn failed_hot_reload_load_discards_generation_registrations_before_retry",
         "fn hot_reload_hooks_can_query_slot_lifecycle_without_deadlocking",
         "fn hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock",
     ] {
@@ -47,14 +48,15 @@ pub(super) fn assert_hot_reload_coordinator_tests_are_folder_backed() {
             "struct LifecycleQueryBackend",
             "struct CoordinatorSlotLifecycle",
             "fn hot_reload_policy_preserves_state_and_increments_generation_by_default",
+            "fn failed_hot_reload_load_discards_generation_registrations_before_retry",
             "fn hot_reload_hooks_can_query_slot_lifecycle_without_deadlocking",
             "fn hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock",
         ],
     );
     assert_eq!(
         child.matches("#[test]").count(),
-        5,
-        "hot reload coordinator child should preserve the original 5 module-local tests"
+        6,
+        "hot reload coordinator child should preserve the 5 split-time tests plus the failed-generation registration retry regression"
     );
 
     for (path, source) in [

@@ -20,7 +20,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
         &parent,
         &[
             "mod visual_order;",
-            "visual_order::apply_visual_order(line, text, direction);",
+            "visual_order::apply_visual_order(line, visible_text, direction);",
             "pub(crate) fn measure_text_size",
             "pub(crate) fn layout_text",
             "mod range_mapping;",

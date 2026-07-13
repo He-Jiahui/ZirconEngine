@@ -116,7 +116,11 @@ fn native_live_host_rollback_plan_reports_when_previous_plugin_was_restored() {
 
 #[test]
 fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
-    restored_payloads().lock().unwrap().clear();
+    let _fixture_guard = hot_reload_payload_fixture_lock();
+    restored_payloads()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clear();
     let existing = native_live_host_test_plugin_with_behavior(
         "physics",
         NativePluginBehavior {
@@ -169,7 +173,10 @@ fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
     assert!(diagnostics.is_empty());
     assert_eq!(snapshot.blob, b"state:physics".to_vec());
     assert_eq!(
-        restored_payloads().lock().unwrap().as_slice(),
+        restored_payloads()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_slice(),
         &[b"state:physics".to_vec()]
     );
 }
@@ -279,7 +286,11 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
 
 #[test]
 fn hot_reload_failure_rolls_back_to_snapshot() {
-    restored_payloads().lock().unwrap().clear();
+    let _fixture_guard = hot_reload_payload_fixture_lock();
+    restored_payloads()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clear();
     let existing = native_live_host_test_plugin_with_behavior(
         "physics",
         NativePluginBehavior {
@@ -337,7 +348,10 @@ fn hot_reload_failure_rolls_back_to_snapshot() {
         .contains("snapshot state schema Some(7) does not match loaded state schema Some(8)"));
     assert!(rollback_diagnostics.is_empty());
     assert_eq!(
-        restored_payloads().lock().unwrap().as_slice(),
+        restored_payloads()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_slice(),
         &[b"state:physics".to_vec()]
     );
 }

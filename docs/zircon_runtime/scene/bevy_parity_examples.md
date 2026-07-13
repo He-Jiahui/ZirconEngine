@@ -23,13 +23,13 @@ related_code:
   - zircon_runtime/src/scene/ecs/observer/entry.rs
   - zircon_runtime/src/scene/ecs/observer/id.rs
   - zircon_runtime/src/scene/ecs/observer/store.rs
-  - zircon_runtime/src/scene/ecs/observer/utils.rs
+  - zircon_runtime/src/scene/ecs/observer/callback_registry.rs
   - zircon_runtime/src/scene/ecs/messages/mod.rs
   - zircon_runtime/src/scene/ecs/messages/cursor.rs
   - zircon_runtime/src/scene/ecs/messages/id.rs
   - zircon_runtime/src/scene/ecs/messages/queue.rs
   - zircon_runtime/src/scene/ecs/messages/store.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - dev/bevy/crates/bevy_ecs/src/world/mod.rs
   - dev/bevy/crates/bevy_ecs/src/system/query.rs
@@ -63,13 +63,13 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/observer/entry.rs
   - zircon_runtime/src/scene/ecs/observer/id.rs
   - zircon_runtime/src/scene/ecs/observer/store.rs
-  - zircon_runtime/src/scene/ecs/observer/utils.rs
+  - zircon_runtime/src/scene/ecs/observer/callback_registry.rs
   - zircon_runtime/src/scene/ecs/messages/mod.rs
   - zircon_runtime/src/scene/ecs/messages/cursor.rs
   - zircon_runtime/src/scene/ecs/messages/id.rs
   - zircon_runtime/src/scene/ecs/messages/queue.rs
   - zircon_runtime/src/scene/ecs/messages/store.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
 plan_sources:
   - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation

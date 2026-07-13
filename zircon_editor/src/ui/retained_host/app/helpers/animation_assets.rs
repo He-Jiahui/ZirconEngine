@@ -12,10 +12,11 @@ use super::asset_uri_from_relative_path;
 use clip::derive_clip_asset;
 use paths::{sanitize_animation_asset_segment, sibling_relative_path, write_animation_asset_bytes};
 use skeleton::{derive_skeleton_asset, node_parent_indices};
+use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime_interface::resource::ResourceLocator;
 
 pub(crate) fn derive_animation_assets_from_model_source(
-    assets_root: &Path,
+    project: &ProjectManager,
     model_source: &Path,
 ) -> Result<Vec<ResourceLocator>, String> {
     let extension = model_source
@@ -27,13 +28,12 @@ pub(crate) fn derive_animation_assets_from_model_source(
         return Ok(Vec::new());
     }
 
-    let relative_model_path = model_source.strip_prefix(assets_root).map_err(|_| {
-        format!(
-            "model source {} is not inside project assets {}",
-            model_source.display(),
-            assets_root.display()
-        )
-    })?;
+    let assets_root = project
+        .project_asset_root_for_source_path(model_source)
+        .map_err(|error| error.to_string())?;
+    let relative_model_path = model_source
+        .strip_prefix(assets_root)
+        .map_err(|error| error.to_string())?;
     let base_name = relative_model_path
         .file_stem()
         .and_then(|value| value.to_str())

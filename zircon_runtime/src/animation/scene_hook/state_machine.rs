@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::asset::{AnimationStateMachineAsset, ProjectAssetManager};
+use crate::asset::ProjectAssetManager;
+use crate::core::framework::animation::AnimationStateMachineAsset;
 use crate::core::framework::animation::{
     AnimationManager, AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
     AnimationStateTransitionEvaluation,
@@ -291,5 +292,5 @@ fn state_machine_graph_reference<'a>(
         .states
         .iter()
         .find(|state| state.name == state_name)
-        .map(|state| &state.graph)
+        .and_then(|state| state.kind.graph_reference())
 }

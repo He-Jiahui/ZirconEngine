@@ -15,12 +15,14 @@ use super::{
     backend::MockVmBackend, builtin_host_module_descriptors, module_descriptor,
     render_script_host_modules_markdown, write_script_host_modules_markdown,
     BuiltinVmBackendFamily, CapabilitySet, HostExportFunction, HostExportRegistry, HostRegistry,
-    HotReloadCoordinator, PluginHostDriver, ScriptBridgeMethodBinding,
-    ScriptBridgeMethodDescriptor, ScriptHostInterfaceMarkdownOptions, UnavailableVmBackend,
-    VmBackend, VmBackendFamily, VmError, VmPluginHostContext, VmPluginInstance, VmPluginManager,
-    VmPluginManifest, VmPluginPackage, VmPluginPackageSource, VmPluginSlotLifecycle,
-    VmPluginSlotRecord, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE, PLUGIN_HOST_DRIVER_NAME,
-    SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+    HotReloadCoordinator, PluginHostDriver, ScriptBridgeMethodDescriptor,
+    ScriptHostInterfaceMarkdownOptions, UnavailableVmBackend, VmBackend, VmBackendFamily, VmError,
+    VmHostInterfaceError, VmHostInterfaceRegistry, VmInterfaceCaller, VmPluginHostContext,
+    VmPluginInstance, VmPluginManager, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
+    VmPluginSlotLifecycle, VmPluginSlotRecord, VmSystemStage, BRIDGE_HOST_CAPABILITY,
+    BRIDGE_HOST_MODULE, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_BT_NODE_CAPABILITY,
+    VM_EDITOR_OPERATION_CAPABILITY, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+    VM_RPC_HANDLER_CAPABILITY, VM_SYSTEM_CAPABILITY,
 };
 #[cfg(test)]
 use crate::core::framework::bridge::PluginInterface;
@@ -33,15 +35,14 @@ use crate::core::framework::script::{
 #[cfg(test)]
 use crate::core::{CoreRuntime, PluginContext};
 #[cfg(test)]
-use crate::plugin::{
-    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry,
-};
+use crate::plugin::RuntimeExtensionRegistry;
 
 #[cfg(test)]
 mod bridge_host;
 #[cfg(test)]
 mod host_exports;
+#[cfg(test)]
+mod host_interfaces;
 #[cfg(test)]
 mod module_surface;
 #[cfg(test)]

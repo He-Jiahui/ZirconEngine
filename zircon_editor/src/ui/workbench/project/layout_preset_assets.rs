@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::scene::world::SceneProjectError;
 
 use super::constants::{EDITOR_LAYOUT_PRESET_FORMAT_VERSION, EDITOR_LAYOUT_PRESET_SUFFIX};
@@ -48,15 +48,24 @@ pub(crate) fn list_layout_preset_assets(
     root: impl AsRef<std::path::Path>,
 ) -> Result<Vec<String>, SceneProjectError> {
     let root = project_root_path(root)?;
-    let paths = ProjectPaths::from_root(&root)?;
-    let preset_dir = paths
-        .assets_root()
-        .join(super::constants::EDITOR_LAYOUT_PRESET_DIR);
-    if !preset_dir.exists() {
-        return Ok(Vec::new());
-    }
-
     let mut preset_names = Vec::new();
+    let project = ProjectManager::open(&root)?;
+    for asset_root in project.project_asset_roots() {
+        let preset_dir = asset_root.join(super::constants::EDITOR_LAYOUT_PRESET_DIR);
+        if !preset_dir.exists() {
+            continue;
+        }
+        collect_layout_preset_names(&preset_dir, &mut preset_names)?;
+    }
+    preset_names.sort();
+    preset_names.dedup();
+    Ok(preset_names)
+}
+
+fn collect_layout_preset_names(
+    preset_dir: &std::path::Path,
+    preset_names: &mut Vec<String>,
+) -> Result<(), SceneProjectError> {
     for entry in fs::read_dir(preset_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -87,7 +96,5 @@ pub(crate) fn list_layout_preset_assets(
             preset_names.push(name);
         }
     }
-    preset_names.sort();
-    preset_names.dedup();
-    Ok(preset_names)
+    Ok(())
 }

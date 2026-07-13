@@ -184,7 +184,17 @@ impl LevelSystem {
     }
 
     pub fn record_animation_poses(&self, animation_poses: BTreeMap<EntityId, AnimationPoseOutput>) {
-        self.lock_runtime_state().animation_poses = animation_poses;
+        let mut runtime_state = self.lock_runtime_state();
+        runtime_state
+            .animation_poses
+            .retain(|entity, _| animation_poses.contains_key(entity));
+        for (entity, pose) in animation_poses {
+            if let Some(existing) = runtime_state.animation_poses.get_mut(&entity) {
+                existing.clone_from_reusing_storage(&pose);
+            } else {
+                runtime_state.animation_poses.insert(entity, pose);
+            }
+        }
     }
 
     pub fn record_animation_playback_times(

@@ -1,4 +1,5 @@
-use crate::plugin::{RuntimeExtensionRegistryError, SceneRuntimeHookRegistration};
+use crate::plugin::RuntimeExtensionRegistryError;
+use crate::scene::SceneRuntimeHookRegistration;
 use crate::scene::SystemStage;
 
 use super::super::validation::validate_scene_hook_registration;

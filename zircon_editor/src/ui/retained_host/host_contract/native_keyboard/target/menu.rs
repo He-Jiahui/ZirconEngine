@@ -29,6 +29,7 @@ pub(in crate::ui::retained_host::host_contract) fn menu_popup_keyboard_target(
                 search_text: item.label,
                 focused: item.focused || item.hovered || item.pressed,
                 selected: item.checked,
+                source_index: None,
                 frame: menu_item_row_frame(&menu_frame, row_count, row)?,
             })
         })

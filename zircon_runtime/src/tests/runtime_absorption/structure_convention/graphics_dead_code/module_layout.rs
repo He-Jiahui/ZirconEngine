@@ -298,8 +298,6 @@ fn runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_b
     let structure_convention_doc =
         super::read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = super::read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        super::read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = super::read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
@@ -328,7 +326,6 @@ fn runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_b
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention_doc.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

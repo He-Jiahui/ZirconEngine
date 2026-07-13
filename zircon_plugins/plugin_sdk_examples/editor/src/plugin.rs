@@ -3,10 +3,10 @@ use zircon_editor::core::editor_extension::{
 };
 use zircon_plugin_sdk::editor::authoring_plugin;
 use zircon_plugin_sdk::prelude::PluginMaturity;
-use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    ExportPackagingStrategy, PluginDistributionManifest, PluginModuleManifest,
-    PluginPackageManifest,
+    PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };
 
 use crate::capability::{

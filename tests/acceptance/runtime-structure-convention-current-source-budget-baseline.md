@@ -4,6 +4,8 @@ Date: 2026-07-10
 
 Status: `runtime_15_structure_convention_current_source_non_budget_guards_green_801_passed_502_budget_failures`
 
+Superseded by [runtime structure-convention current-source budget convergence](./runtime-structure-convention-current-source-budget-convergence.md).
+
 | Check | Result |
 |---|---:|
 | selected | 1303 |

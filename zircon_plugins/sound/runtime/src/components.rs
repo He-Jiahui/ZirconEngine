@@ -1,7 +1,7 @@
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
-use zircon_runtime::plugin::ComponentTypeDescriptor;
 
 use crate::PLUGIN_ID;
 

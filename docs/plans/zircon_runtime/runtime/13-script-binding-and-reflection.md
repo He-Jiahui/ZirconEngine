@@ -38,7 +38,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/zircon_runtime/script/vm/host/function_ledger.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-13
 ---
 
 # 13 脚本绑定面与反射收束
@@ -113,3 +113,4 @@ Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` repo
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`13/2026-07-09-script-binding-and-reflection-output-records.md`](13/2026-07-09-script-binding-and-reflection-output-records.md)
+- fixed 已修复：[host-registry-generational-handle-consumer-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-host-registry-generational-handle-consumer-cutover.md)

@@ -30,10 +30,12 @@ pub(crate) struct UiTextHitTest {
 /// geometry source.
 pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint) -> UiTextHitTest {
     let vertical_rl = is_vertical_rl(layout);
-    let Some(line_index) = (if vertical_rl {
-        text_column_index_for_vertical_rl_x(layout, point.x)
-    } else {
-        text_line_index_for_y(layout, point.y)
+    let Some(line_index) = containing_line_index(layout, point).or_else(|| {
+        if vertical_rl {
+            text_column_index_for_vertical_rl_x(layout, point.x)
+        } else {
+            text_line_index_for_y(layout, point.y)
+        }
     }) else {
         return UiTextHitTest {
             line_index: None,
@@ -71,6 +73,19 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
         affinity,
         inside_line: line.frame.contains_point(point),
     }
+}
+
+/// Prefers the resolved physical line that actually contains the point.
+///
+/// Rich-table cells can share the writing-mode block coordinate, so selecting
+/// only by y (HorizontalTb) or x (VerticalRl) can choose a sibling cell before
+/// the full-frame containment check. The nearest-axis fallback remains below
+/// for ordinary caret placement outside all resolved line frames.
+fn containing_line_index(layout: &UiResolvedTextLayout, point: UiPoint) -> Option<usize> {
+    layout
+        .lines
+        .iter()
+        .position(|line| line.frame.contains_point(point))
 }
 
 fn text_line_index_for_y(layout: &UiResolvedTextLayout, y: f32) -> Option<usize> {

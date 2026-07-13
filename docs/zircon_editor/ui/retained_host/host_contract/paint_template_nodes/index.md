@@ -95,10 +95,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/scale_link.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/identity/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/scale_link/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/style/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/text/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/paint.rs
@@ -232,7 +232,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/metrics.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/content.rs
@@ -246,7 +246,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/colors/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/severity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/variants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
@@ -272,7 +271,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/body.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/title.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs/arrows.rs
@@ -510,9 +508,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/flags.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/assets/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/segments.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/segments/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols/check.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols/chevron.rs
@@ -528,12 +526,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/options/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/background.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/separator.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/label.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/shortcut.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/adornment.rs
@@ -590,7 +586,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/test_accessors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/chips.rs
@@ -617,9 +612,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/base.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/info.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/success.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/warning.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/identity.rs
@@ -943,7 +935,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/roles.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/ripple.rs
@@ -1014,7 +1005,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/labels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/root.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip.rs
@@ -1038,7 +1028,6 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/delete.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/foreground.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/lookup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/token.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/surface.rs
@@ -1299,10 +1288,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/scale_link.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/identity/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/scale_link/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/style/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels/text/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests/paint.rs
@@ -1436,7 +1425,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/metrics.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/content.rs
@@ -1450,7 +1439,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/colors/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/severity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/variants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
@@ -1476,7 +1464,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/body.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips/text/title.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs/arrows.rs
@@ -1713,9 +1700,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/flags.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/assets/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/segments.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/segments/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols/check.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/glyphs/symbols/chevron.rs
@@ -1731,12 +1718,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/options/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/background.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/separator.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/label.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/shortcut.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/adornment.rs
@@ -1793,7 +1778,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/identity.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/signals/test_accessors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/chips.rs
@@ -1820,9 +1804,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/segments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/base.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/info.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/success.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/signals/warning.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/frame.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/identity.rs
@@ -2146,7 +2127,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/roles.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/ripple.rs
@@ -2217,7 +2197,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/labels.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/root.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip.rs
@@ -2241,7 +2220,6 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/delete.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/foreground.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/lookup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style/palette/token.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/surface.rs
@@ -2881,7 +2859,7 @@ Current template style ownership is folder-backed: `template_style.rs` owns only
 
 Current template style test ownership is folder-backed: `template_style.rs` points test builds at `template_style_tests/mod.rs`; `state.rs` owns shared button interaction/disabled priority regressions, `surface.rs` owns surface-color priority and declared-background regressions, and `support.rs` owns button fixtures plus resolved background style construction.
 
-Current template style-color ownership is folder-backed: `template_style_color.rs` owns only the structural export surface; `template_style_color/constants.rs` owns MUI tooltip/snackbar/on-dark constants, `roles.rs` owns `UiStyleColor` and material-role resolution, and `buttons.rs` owns typed button container/tone/primary-contained rules.
+Current template style-color ownership is folder-backed: `template_style_color.rs` owns only the structural export surface; `roles.rs` projects `UiStyleColor` and material roles from the current host palette, while `buttons.rs` owns typed button container/tone/primary-contained rules. The former local `constants.rs` palette is retired and must not be restored.
 
 Current style-selector root ownership is folder-backed: `style_selector/mod.rs` owns only child module declarations and stable re-exports; `style_selector/state.rs` owns template-node to `UiPainterState` projection, including button interaction-state overrides and retained node flags for hover/press/focus/disabled/checked/selected/open/drag/drop/loading state.
 
@@ -3113,7 +3091,7 @@ The 2026-06-21 template style surface color entry/severity/interaction/variant s
 
 The 2026-06-22 template style test owner-tree split deleted the old single `template_style_tests.rs` file and moved regressions into `template_style_tests/{mod,state,surface,support}.rs`, with `mod.rs` as the structural test entry. The split keeps shared button interaction-state priority, surface-color priority, declared-background fallback, and shared fixture/resolved-style construction in separate owners while keeping `template_style.rs` as a small production/test hook entry. Validation used direct touched-file `rustfmt --edition 2021 --check`, a template style test owner-tree ownership scan, conflict marker scan, and scoped `git diff --check`; package-level Cargo checks remain deferred because active runtime compile lanes are already saturating validation and earlier editor package/test-compile attempts timed out without diagnostics.
 
-The 2026-06-20 template style-color role/button/constant split reduced `template_style_color.rs` from 96 lines to an 8-line structural export entry. `template_style_color/constants.rs` is 3 lines and owns MUI tooltip/snackbar/on-dark constants; `roles.rs` is 36 lines and owns `UiStyleColor` plus material-role resolution; `buttons.rs` is 60 lines and owns typed button container/tone/primary-contained rules. Validation for that slice used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a template style-color role/button/constant ownership scan, scoped whitespace scan, and scoped `git diff --check`; editor Cargo check remains pending because current package checks are blocked in unrelated `zircon_runtime` render-history errors before editor diagnostics.
+The 2026-06-20 split first separated style-color roles, buttons, and constants; the later palette convergence deleted the local constants child. Current `roles.rs` resolves `UiStyleColor` and material roles through `current_host_palette()`, while `buttons.rs` owns typed button container/tone/primary-contained rules. The old constants file is migration history rather than a current owner. Validation history for the original split used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an ownership scan, scoped whitespace scan, and scoped `git diff --check`.
 
 The 2026-06-17 chip glyph split reduced `template_chips.rs` from 315 lines to 248 by moving Workbench chip chevron reserve, size/right constants, chevron availability checks, chevron rect construction, segment drawing, and segment scaling into `template_chip_glyphs.rs`, which is now 78 lines. `template_chips.rs` keeps chip recognition, surface/border/text/glyph color selection, label text command sequencing, and pixel-aligned chip frames. Validation for that slice used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a chip glyph ownership scan, touched-file trailing whitespace scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only.
 

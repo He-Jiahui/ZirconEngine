@@ -1,7 +1,7 @@
 use super::super::sdf_font_bake::{
-    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
+    SdfFontBakeCache, SdfGlyphMetrics,
 };
-use super::super::sdf_params::SdfBakeParams;
 use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
@@ -24,15 +24,19 @@ use crate::graphics::text::atlas::{
     GlyphSmoothingMode,
 };
 use crate::graphics::text::font::{FontDatabase, SystemFontPolicy};
+use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
 use crate::graphics::text::shaping::vertical_glyph_rotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
+mod decoration_geometry;
 mod draw_plan;
 mod layout_placement;
+mod material;
 mod prepare_report;
+mod product_framebuffer;
 mod shader_contract;
 
 fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
@@ -52,6 +56,7 @@ fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
                 glyph: 'A',
                 glyph_id: None,
                 font_id: None,
+                font_instance_id: None,
                 font: Some("res://fonts/default.font.toml".to_string()),
                 font_family: Some("Zircon Sans".to_string()),
                 language: None,
@@ -84,6 +89,7 @@ fn allocation_failure(
             glyph,
             glyph_id: None,
             font_id: None,
+            font_instance_id: None,
             font: Some("res://fonts/default.font.toml".to_string()),
             font_family: Some("Zircon Sans".to_string()),
             language: None,
@@ -99,6 +105,7 @@ fn allocation_failure(
 fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
     SdfAtlasBake {
         pixels: vec![0; plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2],
+        pages: Vec::new(),
         glyphs: vec![SdfBakedGlyph {
             metrics: SdfGlyphMetrics {
                 bitmap_width: 16,
@@ -110,6 +117,7 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
             },
             visible: true,
         }],
+        generation_failures: Vec::new(),
         report: SdfAtlasBakeReport {
             slot_count: 1,
             visible_glyph_count: 1,
@@ -117,6 +125,11 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
             atlas_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,
             nonzero_pixel_count: 0,
             loaded_font_count: 0,
+            generation_failure_count: 0,
+            r8_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,
+            rgba_byte_len: 0,
+            offline_glyph_count: 0,
+            dynamic_glyph_count: 0,
         },
     }
 }
@@ -200,5 +213,10 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         writing_mode: UiTextWritingMode::HorizontalTb,
         wrap: UiTextWrap::None,
         style: Default::default(),
+        distance_field_mode: SdfMode::Sdf,
+        text_effects: Default::default(),
+        text_decorations: Default::default(),
+        text_decoration_baseline: None,
+        clip_transform: None,
     }
 }

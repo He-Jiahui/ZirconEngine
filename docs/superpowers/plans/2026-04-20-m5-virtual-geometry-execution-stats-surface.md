@@ -7,10 +7,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_execution_summary.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_indirect_stats/virtual_geometry_indirect_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_stats.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
@@ -19,17 +18,16 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/virtual_geometry_indirect_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_execution_summary.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_indirect_stats/virtual_geometry_indirect_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
 plan_sources:
   - user: 2026-04-20 continue M5 Virtual Geometry on the current absorbed runtime graphics layout and make actual execution truth feed a real runtime-facing consumer
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
 tests:
-  - zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_submission_execution_order.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_args_source_authority.rs
-  - zircon_runtime/src/graphics/tests/virtual_geometry_unified_indirect.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_submission_execution_order.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_args_source_authority.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
 doc_type: milestone-detail
 ---
@@ -113,7 +111,7 @@ doc_type: milestone-detail
 
 ## Regression Coverage
 
-新增 `zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs`：
+新增 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_execution_stats.rs`：
 
 - `renderer_execution_stats_follow_actual_virtual_geometry_cluster_states`
   - 直接验证 renderer last-state 的 execution summary 会跟随真实 resident/pending execution subset，而不是只跟随 prepare superset。

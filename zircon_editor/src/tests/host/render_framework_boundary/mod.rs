@@ -4,16 +4,32 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     let viewport_new_source = include_str!("../../../ui/retained_host/viewport/new.rs");
     let viewport_state_source =
         include_str!("../../../ui/retained_host/viewport/viewport_state.rs");
+    let viewport_resolve_job_source =
+        include_str!("../../../ui/retained_host/viewport/render_framework_resolve_job.rs");
     let viewport_submit_source =
         include_str!("../../../ui/retained_host/viewport/submit_extract.rs");
     let viewport_poll_source = include_str!("../../../ui/retained_host/viewport/poll_image.rs");
+    let startup_assembly_source = include_str!(
+        "../../../ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs"
+    );
     let manifest = include_str!("../../../../Cargo.toml");
 
     assert!(
         viewport_new_source.contains("ViewportState::lazy(core)")
-            && viewport_state_source.contains("resolve_render_framework(&core)")
-            && viewport_state_source.contains("async_resolve_render_framework"),
+            && viewport_state_source.contains("RenderFrameworkResolveJob::new(core)")
+            && viewport_state_source.contains("JobTicket<Arc<dyn RenderFramework>>")
+            && viewport_state_source.contains("JobCategory::Misc")
+            && viewport_resolve_job_source.contains("resolve_render_framework(&self.core)")
+            && viewport_resolve_job_source.contains("context.check_cancelled()?")
+            && startup_assembly_source.contains("viewport.bind_jobs(editor_jobs.clone())"),
         "editor viewport controller should lazily resolve RenderFramework from core"
+    );
+    let thread_builder = ["std::thread", "::Builder"].concat();
+    let join_handle = ["Join", "Handle"].concat();
+    assert!(
+        !viewport_state_source.contains(&thread_builder)
+            && !viewport_state_source.contains(&join_handle),
+        "viewport lazy resolve must be owned by EditorJobSystem typed tickets"
     );
     assert!(
         viewport_submit_source.contains("submit_frame_extract"),

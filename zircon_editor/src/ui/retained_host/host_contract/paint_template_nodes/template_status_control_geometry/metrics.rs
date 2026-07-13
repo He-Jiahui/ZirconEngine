@@ -35,10 +35,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         text_inset: metrics.gap_s,
         text_value_gap: metrics.gap_s,
         text_clip_guard: metrics.text_clip_guard,
-        icon_glyph_size: (metrics.font_large + metrics.border_width * 2.0)
+        // Status icons share the compact Icon16 slot with panel buttons.
+        icon_glyph_size: (metrics.row_height - metrics.gap_l)
             .min(metrics.row_height)
             .max(1.0),
-        signal_icon_left: metrics.gap_l * 2.0,
+        signal_icon_left: metrics.gap_m,
         signal_text_gap: metrics.gap_m,
         signal_marker_size: metrics.gap_m,
     }
@@ -84,6 +85,7 @@ mod tests {
         host.gap_s = 5.0;
         host.gap_m = 9.0;
         host.gap_l = 13.0;
+        host.row_height = 28.0;
         host.text_clip_guard = 7.0;
 
         let metrics = workbench_status_metrics_from_host(host);
@@ -95,8 +97,8 @@ mod tests {
         assert_eq!(metrics.text_inset, 5.0);
         assert_eq!(metrics.text_value_gap, 5.0);
         assert_eq!(metrics.text_clip_guard, 7.0);
-        assert_eq!(metrics.icon_glyph_size, 18.0);
-        assert_eq!(metrics.signal_icon_left, 26.0);
+        assert_eq!(metrics.icon_glyph_size, 15.0);
+        assert_eq!(metrics.signal_icon_left, 9.0);
         assert_eq!(metrics.signal_text_gap, 9.0);
         assert_eq!(metrics.signal_marker_size, 9.0);
     }

@@ -48,6 +48,39 @@ class RuntimeDomainDependencyAuditTests(unittest.TestCase):
                 ],
             )
 
+    def test_reports_domains_inside_grouped_crate_use_statements(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "asset").mkdir(parents=True)
+            (source_root / "asset" / "project.rs").write_text(
+                "use crate::{\n"
+                "    core::resource::ResourceLocator,\n"
+                "    plugin::{ExportProfile, ProjectPluginManifest},\n"
+                "    plugin::RuntimeProfileId,\n"
+                "};\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 3)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "asset",
+                        "target_domain": "core",
+                        "reference_count": 1,
+                    },
+                    {
+                        "source_domain": "asset",
+                        "target_domain": "plugin",
+                        "reference_count": 2,
+                    },
+                ],
+            )
+
     def test_ignores_root_files_and_test_owners(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             repo_root = Path(temporary_directory)
@@ -70,6 +103,79 @@ class RuntimeDomainDependencyAuditTests(unittest.TestCase):
 
             self.assertEqual(report["production_reference_count"], 0)
             self.assertEqual(report["matrix"], [])
+
+    def test_ignores_inline_cfg_test_items_without_hiding_production_items(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "graphics").mkdir(parents=True)
+            (source_root / "graphics" / "render.rs").write_text(
+                "use crate::asset::AssetId;\n"
+                '#[cfg(all(test, feature = "graphics"))]\n'
+                "mod tests {\n"
+                "    use crate::scene::SceneHandle;\n"
+                "    fn nested() {\n"
+                "        let _ = crate::ui::UiTree::default();\n"
+                "    }\n"
+                "}\n"
+                "use crate::render_graph::RenderGraph;\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 2)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "graphics",
+                        "target_domain": "asset",
+                        "reference_count": 1,
+                    },
+                    {
+                        "source_domain": "graphics",
+                        "target_domain": "render_graph",
+                        "reference_count": 1,
+                    },
+                ],
+            )
+
+    def test_ignores_support_files_reachable_only_from_cfg_test_modules(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            owner_root = source_root / "graphics" / "registry"
+            owner_root.mkdir(parents=True)
+            (source_root / "graphics" / "registry.rs").write_text(
+                "use crate::asset::AssetId;\n"
+                "#[cfg(test)]\n"
+                "mod tests;\n",
+                encoding="utf-8",
+            )
+            (owner_root / "tests.rs").write_text(
+                '#[path = "support.rs"]\n'
+                "mod support;\n",
+                encoding="utf-8",
+            )
+            (owner_root / "support.rs").write_text(
+                "use crate::scene::world::World;\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 1)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "graphics",
+                        "target_domain": "asset",
+                        "reference_count": 1,
+                    }
+                ],
+            )
 
 
 if __name__ == "__main__":

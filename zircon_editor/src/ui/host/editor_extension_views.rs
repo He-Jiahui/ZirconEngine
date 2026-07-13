@@ -94,6 +94,7 @@ fn extension_view_descriptor(
         descriptor.display_name(),
     )
     .with_icon_key(descriptor.id());
+    view.document_kind = descriptor.document_kind().cloned();
     view.required_capabilities = required_capabilities.to_vec();
     view
 }

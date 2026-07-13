@@ -1,9 +1,9 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_collects_module_contributions() {
@@ -61,16 +61,18 @@ fn runtime_plugin_registration_report_rejects_invalid_module_contributions() {
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
 
     assert!(!registration.is_success());
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("invalid module contribution")
-        && diagnostic.contains("name `` must be non-empty and trimmed")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("invalid module contribution")
+            && diagnostic.contains("name `` must be non-empty and trimmed")
+    }));
 
     let catalog = RuntimePluginCatalog::from_plugins([&plugin as &dyn RuntimePlugin]);
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("invalid module contribution")
-        && diagnostic.contains("name `` must be non-empty and trimmed")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("invalid module contribution")
+            && diagnostic.contains("name `` must be non-empty and trimmed")
+    }));
 }
 
 fn assert_invalid_module_message(error: RuntimeExtensionRegistryError, expected: &str) {

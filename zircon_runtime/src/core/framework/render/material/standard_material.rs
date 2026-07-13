@@ -62,6 +62,8 @@ pub struct StandardMaterialDescriptor {
     pub depth_bias: f32,
     #[serde(default)]
     pub taa_reactive_mask_strength: f32,
+    #[serde(default)]
+    pub subsurface_profile_index: u32,
     pub fallback_policy: RenderMaterialFallbackPolicy,
 }
 

@@ -2,7 +2,7 @@
 related_code:
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/tests/mod.rs
@@ -13,7 +13,7 @@ related_code:
   - docs/zircon_plugins/texture_importer/container.md
 implementation_files:
   - zircon_plugins/texture_importer/runtime/src/lib.rs
-  - zircon_plugins/texture_importer/runtime/src/registration.rs
+  - zircon_plugins/texture_importer/runtime/src/plugin.rs
   - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_plugins/texture_importer/runtime/src/container/mod.rs
   - zircon_plugins/texture_importer/runtime/src/tests/mod.rs
@@ -26,8 +26,8 @@ plan_sources:
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
 tests:
-  - rustfmt --edition 2021 --check zircon_plugins/texture_importer/runtime/src/lib.rs zircon_plugins/texture_importer/runtime/src/importers.rs zircon_plugins/texture_importer/runtime/src/registration.rs zircon_plugins/texture_importer/runtime/src/tests/mod.rs zircon_plugins/texture_importer/runtime/src/tests/registration.rs zircon_plugins/texture_importer/runtime/src/tests/image.rs zircon_plugins/texture_importer/runtime/src/tests/psd.rs zircon_plugins/texture_importer/runtime/src/tests/support.rs
-  - git diff --check -- zircon_plugins/texture_importer/runtime/src/lib.rs zircon_plugins/texture_importer/runtime/src/importers.rs zircon_plugins/texture_importer/runtime/src/registration.rs zircon_plugins/texture_importer/runtime/src/tests.rs zircon_plugins/texture_importer/runtime/src/tests
+  - rustfmt --edition 2021 --check zircon_plugins/texture_importer/runtime/src/lib.rs zircon_plugins/texture_importer/runtime/src/importers.rs zircon_plugins/texture_importer/runtime/src/plugin.rs zircon_plugins/texture_importer/runtime/src/tests/mod.rs zircon_plugins/texture_importer/runtime/src/tests/registration.rs zircon_plugins/texture_importer/runtime/src/tests/image.rs zircon_plugins/texture_importer/runtime/src/tests/psd.rs zircon_plugins/texture_importer/runtime/src/tests/support.rs
+  - git diff --check -- zircon_plugins/texture_importer/runtime/src/lib.rs zircon_plugins/texture_importer/runtime/src/importers.rs zircon_plugins/texture_importer/runtime/src/plugin.rs zircon_plugins/texture_importer/runtime/src/tests.rs zircon_plugins/texture_importer/runtime/src/tests
 doc_type: module-detail
 ---
 

@@ -43,7 +43,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         qualified_name(SCENE_MODULE_NAME, ServiceKind::Driver, "WorldDriver"),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|_| Ok(Arc::new(WorldDriver) as ServiceObject)),
+        factory(|_| Ok(Arc::new(WorldDriver::default()) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
@@ -69,6 +69,30 @@ pub fn module_descriptor() -> ModuleDescriptor {
             Ok(Arc::new(LevelManagerHandle::new(manager)) as ServiceObject)
         }),
     ))
+}
+
+pub fn install_scene_runtime_hooks(
+    core: &CoreHandle,
+    registrations: impl IntoIterator<Item = crate::scene::SceneRuntimeHookRegistration>,
+) -> Result<(), CoreError> {
+    let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
+    driver.install_scene_runtime_hooks(core, registrations)
+}
+
+pub fn scene_runtime_hooks_for_stage(
+    core: &CoreHandle,
+    stage: crate::core::framework::scene::SystemStage,
+) -> Result<Vec<crate::scene::SceneRuntimeHookRegistration>, CoreError> {
+    let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
+    Ok(driver.scene_runtime_hooks_for_stage(stage))
+}
+
+pub fn install_world_runtime_extension_plan(
+    core: &CoreHandle,
+    plan: crate::scene::WorldRuntimeExtensionPlan,
+) -> Result<(), CoreError> {
+    let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
+    driver.install_world_runtime_extension_plan(plan)
 }
 
 pub fn create_default_level(core: &CoreHandle) -> Result<crate::scene::LevelSystem, CoreError> {
@@ -102,8 +126,8 @@ fn apply_world_runtime_extensions_to_level(
     level: &crate::scene::LevelSystem,
 ) -> Result<(), CoreError> {
     level.with_world_mut(|world| {
-        core.apply_world_runtime_extensions(world)
-            .map_err(|error| scene_core_error(error.to_string()))
+        let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
+        driver.apply_world_runtime_extensions(world)
     })
 }
 

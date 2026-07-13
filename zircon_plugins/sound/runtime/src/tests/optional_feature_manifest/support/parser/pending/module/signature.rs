@@ -7,7 +7,7 @@ pub(super) fn take_optional_feature_module(
     name: &mut Option<String>,
     kind: &mut Option<zircon_runtime::plugin::PluginModuleKind>,
     crate_name: &mut Option<String>,
-    target_modes: &mut Vec<zircon_runtime::builtin::RuntimeTargetMode>,
+    target_modes: &mut Vec<zircon_runtime::core::framework::platform::RuntimeTargetMode>,
     capabilities: &mut Vec<String>,
 ) -> Option<OptionalFeatureModuleSignature> {
     let name = name.take()?;

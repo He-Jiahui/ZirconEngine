@@ -5,8 +5,8 @@ use super::{
     SourceTemplateBuildValidationPlan,
 };
 use crate::{
-    plugin::ExportPlatformPolicy, plugin::ExportProfile, plugin::ProjectPluginSelection,
-    plugin::RuntimePluginAvailabilityReport,
+    core::framework::project::ExportPlatformPolicy, core::framework::project::ExportProfile,
+    core::framework::project::ProjectPluginSelection, plugin::RuntimePluginAvailabilityReport,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

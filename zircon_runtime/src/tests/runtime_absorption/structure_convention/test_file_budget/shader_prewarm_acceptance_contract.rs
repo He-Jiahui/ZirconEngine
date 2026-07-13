@@ -6,14 +6,12 @@ const NONEMPTY_STATUS: &str =
     "render_plan08_build_tool_staged_prewarm_nonempty_success_report_python_passed_cargo_deferred";
 const WRITTEN_VARIANTS_STATUS: &str =
     "render_plan08_build_tool_staged_prewarm_written_variant_identity_python_passed_cargo_deferred";
-const WRITTEN_SOURCE_LABEL_STATUS: &str =
-    "render_plan08_build_tool_staged_prewarm_written_source_label_identity_python_passed_cargo_deferred";
+const WRITTEN_SOURCE_LABEL_STATUS: &str = "render_plan08_build_tool_staged_prewarm_written_source_label_identity_python_passed_cargo_deferred";
 const COMPLETE_WRITTEN_STATUS: &str =
     "render_plan08_build_tool_staged_prewarm_complete_written_count_python_passed_cargo_deferred";
 const PRODUCT_PASS_STATUS: &str =
     "render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred";
-const PRODUCT_MATERIAL_PASS_STATUS: &str =
-    "render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred";
+const PRODUCT_MATERIAL_PASS_STATUS: &str = "render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred";
 const WRITTEN_VARIANT_UNIQUENESS_STATUS: &str =
     "render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred";
 const WRITTEN_HASH_SHAPE_STATUS: &str =
@@ -22,8 +20,7 @@ const SOURCE_LABEL_NONBLANK_STATUS: &str =
     "render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred";
 const SOURCE_LABEL_TRIM_STATUS: &str =
     "render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred";
-const EXPLICIT_REGISTRY_STATUS: &str =
-    "render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred";
+const EXPLICIT_REGISTRY_STATUS: &str = "render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
@@ -39,13 +36,15 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
     let prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let permutation_registry_tests =
         read_repo("tools/tests/test_zircon_build_shader_permutation_registry_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "staged shader prewarm acceptance helper owns the success bundle",
@@ -170,7 +169,10 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
     );
 
     for (path, source) in [
-        ("tools/zircon_build_shader_prewarm_acceptance.py", acceptance_helper.as_str()),
+        (
+            "tools/zircon_build_shader_prewarm_acceptance.py",
+            acceptance_helper.as_str(),
+        ),
         (
             "tools/zircon_build_shader_prewarm_written_variants.py",
             written_variants_helper.as_str(),
@@ -202,7 +204,6 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
         ("build tool doc", build_tool_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

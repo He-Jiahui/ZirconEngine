@@ -1,5 +1,6 @@
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::plugin::{ExportPackagingStrategy, PluginModuleKind};
+use zircon_runtime::plugin::PluginModuleKind;
 
 use super::*;
 
@@ -28,6 +29,29 @@ fn animation_registration_contributes_runtime_module() {
             report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
                 && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
         }));
+    assert!(report.extensions.plugin_events().any(|(owner, event)| {
+        report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+            && event.type_name() == std::any::type_name::<AnimationClipEvent>()
+    }));
+    assert!(report.extensions.plugin_events().any(|(owner, event)| {
+        report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+            && event.type_name() == std::any::type_name::<AnimationIkDiagnostic>()
+    }));
+    assert!(report.extensions.plugin_events().any(|(owner, event)| {
+        report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+            && event.type_name() == std::any::type_name::<AnimationStateMachineLayerDiagnostic>()
+    }));
+    assert!(report
+        .extensions
+        .plugin_event_catalogs()
+        .iter()
+        .any(|catalog| {
+            catalog.namespace == "animation.events"
+                && catalog.events.iter().any(|event| {
+                    event.id == ANIMATION_CLIP_EVENT
+                        && event.payload_schema == ANIMATION_CLIP_EVENT_SCHEMA
+                })
+        }));
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]
@@ -39,9 +63,9 @@ fn animation_registration_contributes_runtime_module() {
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(report.package_manifest.category, "runtime");
@@ -119,9 +143,9 @@ fn animation_package_manifest_declares_dist_contract() {
     assert_eq!(
         native_module.target_modes,
         vec![
-            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost,
         ]
     );
     for capability in RUNTIME_CAPABILITIES {

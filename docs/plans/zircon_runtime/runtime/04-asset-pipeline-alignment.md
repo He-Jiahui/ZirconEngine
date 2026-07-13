@@ -53,7 +53,7 @@ plan_sources:
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-14
 ---
 
 # 04 资产管线对齐
@@ -232,3 +232,5 @@ last_refined: 2026-07-10
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`04/2026-07-09-asset-pipeline-alignment-output-records.md`](04/2026-07-09-asset-pipeline-alignment-output-records.md)
+- fixed 已修复：[stale-subasset-reference-repair](../frameworks/02/fixed-2026-07-14-stale-subasset-reference-repair.md)
+- fixed 已修复：[zrpack-blake3-contract-drift](../../zircon_plugins/07/fixed-2026-07-14-zrpack-blake3-contract-drift.md)

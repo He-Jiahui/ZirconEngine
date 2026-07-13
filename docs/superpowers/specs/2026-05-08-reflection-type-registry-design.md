@@ -10,12 +10,12 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/typed_api.rs
-  - zircon_runtime/src/scene/ecs/component_registry.rs
-  - zircon_runtime/src/scene/ecs/resource_registry.rs
-  - zircon_runtime/src/scene/ecs/resource_store.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_type_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/plugin/component_type_descriptor/constructors.rs
+  - zircon_runtime/src/scene/ecs/component/registry.rs
+  - zircon_runtime/src/scene/ecs/resource/registry.rs
+  - zircon_runtime/src/scene/ecs/resource_store/store.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
+  - zircon_runtime/src/core/framework/scene/component_type_descriptor/constructors.rs
 implementation_files:
   - zircon_runtime_interface/src/reflect/mod.rs
   - zircon_runtime_interface/src/reflect/type_path.rs
@@ -37,7 +37,7 @@ implementation_files:
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
-  - zircon_runtime/src/scene/reflect/world_api.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/fixed/mod.rs
   - zircon_runtime/src/scene/reflect/fixed/name.rs
   - zircon_runtime/src/scene/reflect/fixed/local_transform.rs

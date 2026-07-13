@@ -11,14 +11,14 @@ use crate::runtime_system::{
     register_runtime_systems, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
 };
 use crate::PLUGIN_ID;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
+    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "physics.runtime";
 pub const PHYSICS_DIST_CRATE_NAME: &str = "zircon_plugin_physics_dist";

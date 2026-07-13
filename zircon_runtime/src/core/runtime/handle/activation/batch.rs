@@ -26,9 +26,11 @@ impl CoreHandle {
             return Ok(());
         }
 
+        let mut built_module_count = 0;
         let result = (|| {
             for pending_module in &pending_modules {
                 self.build_module(&pending_module.module_name)?;
+                built_module_count += 1;
             }
 
             for pending_module in &pending_modules {
@@ -50,20 +52,24 @@ impl CoreHandle {
             }
 
             for pending_module in &pending_modules {
-                self.activate_plugin_bridge_provider_for_runtime_module(
-                    pending_module.module_name.as_str(),
-                );
+                self.notify_runtime_module_activated(pending_module.module_name.as_str());
             }
 
             Ok(())
         })();
 
-        if result.is_err() {
+        if let Err(activation_error) = result {
+            let rollback_errors =
+                self.cleanup_built_batch_modules(&pending_modules[..built_module_count]);
             self.reset_batch_started_services(&pending_modules);
             self.reset_batch_initializing_modules(&pending_modules);
+            return Err(CoreError::module_batch_activation_failed(
+                activation_error,
+                rollback_errors,
+            ));
         }
 
-        result
+        Ok(())
     }
 
     fn sorted_registered_module_order(&self) -> Result<Vec<String>, CoreError> {
@@ -116,6 +122,21 @@ impl CoreHandle {
                 }
             }
         }
+    }
+
+    fn cleanup_built_batch_modules(
+        &self,
+        built_modules: &[BatchModuleActivation],
+    ) -> Vec<(String, CoreError)> {
+        built_modules
+            .iter()
+            .rev()
+            .filter_map(|pending_module| {
+                self.cleanup_module(&pending_module.module_name)
+                    .err()
+                    .map(|error| (pending_module.module_name.clone(), error))
+            })
+            .collect()
     }
 
     fn reset_batch_initializing_modules(&self, pending_modules: &[BatchModuleActivation]) {

@@ -10,7 +10,7 @@ mod snapshot;
 mod tick;
 
 pub use behavior_tree::{
-    AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorNodeParameter,
+    AiBehaviorAbortPolicy, AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorNodeParameter,
     AiBehaviorNodeParameterValue, AiBehaviorTreeDescriptor, AI_BEHAVIOR_TREE_FORMAT_VERSION,
 };
 pub use blackboard::{

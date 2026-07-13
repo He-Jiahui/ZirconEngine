@@ -38,7 +38,7 @@ fn runtime_15_plan_status_closeout_guards_are_folder_backed() {
     );
 
     for moved_anchor in [
-        "fn runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
+        "fn runtime_05_closeout_status_records_completed_scene_cargo_gate",
         "fn runtime_05_full_scene_failure_clusters_keep_support_first_triage_visible",
         "fn runtime_05_scene_failure_triage_records_minimum_lower_layer_diagnostics",
         "const GRAPHICS_SCENE_DIAGNOSTIC_SOURCE_ANCHORS",

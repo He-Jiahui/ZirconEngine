@@ -12,18 +12,25 @@ impl PreviewSkyPass {
     pub(crate) fn record(
         &self,
         encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         sky_pipeline: &wgpu::RenderPipeline,
+        volumetric_layout: &wgpu::BindGroupLayout,
+        volumetric_apply: &crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
         frame: &ViewportRenderFrame,
     ) {
         self.record_with_attachment_ops(
             encoder,
+            device,
             color_view,
             depth_view,
             scene_bind_group,
             sky_pipeline,
+            volumetric_layout,
+            volumetric_apply,
+            None,
             frame,
             frame.render_region(),
             RenderGraphAttachmentOps::clear_store(),
@@ -35,15 +42,32 @@ impl PreviewSkyPass {
     pub(crate) fn record_with_attachment_ops(
         &self,
         encoder: &mut wgpu::CommandEncoder,
+        device: &wgpu::Device,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         sky_pipeline: &wgpu::RenderPipeline,
+        volumetric_layout: &wgpu::BindGroupLayout,
+        volumetric_apply: &crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
+        integrated_volumetric_view: Option<&wgpu::TextureView>,
         frame: &ViewportRenderFrame,
         render_region: ViewportRenderRegion,
         color_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
+        let volumetric_params_buffer = volumetric_apply.create_params_buffer(
+            device,
+            frame,
+            render_region,
+            integrated_volumetric_view.is_some(),
+            "zircon-sky-volumetric-params",
+        );
+        let volumetric_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("zircon-sky-volumetric-bind-group"),
+            layout: volumetric_layout,
+            entries: &volumetric_apply
+                .bind_group_entries(&volumetric_params_buffer, integrated_volumetric_view),
+        });
         let clear_color = frame.preview().clear_color;
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("PreviewSkyPass"),
@@ -75,6 +99,7 @@ impl PreviewSkyPass {
         }
         if !matches!(frame.environment().skybox.mode, SkyboxMode::Disabled) {
             pass.set_bind_group(0, scene_bind_group, &[]);
+            pass.set_bind_group(1, &volumetric_bind_group, &[]);
             pass.set_pipeline(sky_pipeline);
             pass.draw(0..3, 0..1);
         }

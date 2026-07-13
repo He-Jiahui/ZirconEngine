@@ -127,6 +127,8 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   array(collaboration.patches, "协作.patches").forEach((item, index) => validatePatch(item, `协作.patches[${index}]`));
   const validation = object(root.validation, "验证投影");
   array(validation.cargoJobs, "验证.cargoJobs").forEach((item, index) => validateCargoJob(item, `验证.cargoJobs[${index}]`));
+  array(validation.currentCargoTargets, "验证.currentCargoTargets").forEach((item, index) => validateCargoJob(item, `验证.currentCargoTargets[${index}]`));
+  validateArtifactLifecycle(validation.artifactLifecycle, "验证.artifactLifecycle");
   array(validation.validationCopies, "验证.validationCopies").forEach((item, index) => validateValidationCopy(item, `验证.validationCopies[${index}]`));
   const git = object(root.git, "Git 投影");
   array(git.finalizeRequests, "Git.finalizeRequests").forEach((item, index) => validateFinalizeRequest(item, `Git.finalizeRequests[${index}]`));
@@ -377,6 +379,13 @@ function validateValidationCopy(value: unknown, label: string): void {
   else stringArray(copy.manifest, `${label}.manifest`);
   enumeration(copy.status, ["planned", "materialized", "running", "cleanup_pending", "removed", "failed"], `${label}.status`);
   nullableString(copy.removed_at, `${label}.removed_at`);
+}
+
+function validateArtifactLifecycle(value: unknown, label: string): void {
+  const lifecycle = object(value, label);
+  exactKeys(lifecycle, ["reusablePools", "ephemeralTargets", "pendingCleanup", "failedCleanup"], label);
+  for (const key of ["reusablePools", "ephemeralTargets", "pendingCleanup", "failedCleanup"])
+    nonnegativeInteger(lifecycle[key], `${label}.${key}`);
 }
 
 function validateFinalizeRequest(value: unknown, label: string): void {

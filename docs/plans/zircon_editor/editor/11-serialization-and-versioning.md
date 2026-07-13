@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/serialization
   - zircon_runtime/src/scene/reflect/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
@@ -18,12 +19,16 @@ plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md
-status: planned
+status: in_progress
 ---
 
 # 11 数据序列化与版本迁移
 
 横切基座（W1）：为所有持久化面提供统一版本壳与迁移链。
+
+- fixed 已修复：[wgpu-hal-windows-version-split](11/fixed-2026-07-12-wgpu-hal-windows-version-split.md)
+- fixed 已修复：[target-server-libtest-feature-gating](11/fixed-2026-07-11-target-server-libtest-feature-gating.md)
+- fixed 已修复：[wsl-vhdx-sharing-violation](11/fixed-2026-07-11-wsl-vhdx-sharing-violation.md)
 
 ## 参照证据（dev/）
 
@@ -111,3 +116,10 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 - canonical 浮点 writer 只覆盖创作态文本面；维护负担超预期则退让「键序稳定+浮点原样」记 diff 噪声债。
 - 迁移链堆积：允许「基线重置」（v1..vN 合并新 v1 + 全量重存 commandlet），公约写入模块文档。
 - `library_version` 与壳 version 的双版本语义（10 已识别）：壳只管结构版本，内容版本是业务字段——模块文档显式区分。
+
+## 产出记录与时间
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
+|---|---|---|---|---|
+| M1 | 1.1 统一版本壳与迁移链内核 | `实现完成-接口门禁通过-独立审查闭环` | 2026-07-11 | `zircon_runtime_interface/src/serialization/` 已按 schema id/header/trait/loaded、text wire、migration step/chain/error/validate/execute、load/format/typed error 拆为 folder-backed owner；`SchemaId` 支持 const 声明与 owned 反序列化。Text envelope 只由保留 `$zircon` magic 识别，无包头 v0 可合法拥有 `header`/`payload` 业务字段；整张迁移表在任何 payload decode 前强制等于升序唯一 `0..VERSION-1`，断链、重复、乱序、多余 step 与 step failure 均返回带 schema/version/source 的 typed error。`Format::Binary` 在 M3 选型前显式 `UnsupportedFormat`，不落临时 wire/兼容 reader。TDD 首轮 RED 为八个合同符号 E0432；独立审查两轮指出并闭环 magic 歧义、整链校验、owner 拆分、分阶段错误和上下文测试。最终 focused 17/17；完整 `cargo test -p zircon_runtime_interface --locked --offline -- --test-threads=1` 为 203/203，doc-tests 0 项。模块文档：`docs/zircon_runtime_interface/serialization.md`。M1.2 场景反射/canonical writer 尚未开始，本计划保持 in_progress。 |
+| M1 | 1.2 场景版本壳、值域迁移与 canonical writer | `实现完成-规格质量复审通过-聚焦门通过-完整门待下层修复` | 2026-07-11 | 场景反射 JSON 与 `DynamicScene` 已接入 `$zircon` 版本壳；v0→v1 只按精确 `{uuid,url}` 形状迁移为 Plan10 `AssetRef`，额外字段、单字段和当前 `AssetRef` 均保持原值，任意 tagged JSON 不再猜测为 typed `ReflectedValue`。旧 `V1ProjectDocument` DTO/模块已硬删除，project-world 迁移只操作 `serde_json::Value`；`RuntimeSessionArchive` 内嵌场景信封在 payload decode 前验证 future header，writer 强制壳头与仍处于 M2.2 双写期的内嵌 `format_version=1` 一致。真实旧 writer 夹具 `tests/fixtures/serialization/scene-dynamic/v0/dynamic-scene.json` 无壳且保留历史内嵌版本 1，迁移→保存→重载同字节；独立 `plan11_scene_serialization_contract` 5/5。target-server production lib check exit 0；规格复审 `APPROVED`、质量复审整改真实夹具/单一测试 owner/迁移负例/API 文档后 `QUALITY APPROVED`，限定 rustfmt 与 `git diff --check` 通过。完整默认 Runtime 门仍由 Runtime01 `wgpu-hal` Windows 版本分裂阻断；target-server lib-test/全目标门由 Frameworks03 未按 profile 门控的 graphics/UI/script/dynamic-api/physics-contract 测试与可执行目标阻断，均已有对应 open failure 记录，故 M1 测试阶段不关闭。模块文档：`docs/zircon_runtime/scene/serialization.md`、`docs/zircon_runtime_interface/serialization.md`。 |

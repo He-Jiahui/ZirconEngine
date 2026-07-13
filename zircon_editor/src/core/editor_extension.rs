@@ -3,14 +3,21 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::asset::{
+    AssetTypeContribution, AssetTypeId, AssetTypeIdError, AssetTypeRegistryError,
+};
+use crate::core::commands::{
+    EditorCommandContributionSet, EditorCommandDescriptor, EditorCommandRegistryError,
+};
 use crate::core::editor_authoring_extension::{
-    AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodePaletteDescriptor,
-    TimelineEditorDescriptor, TimelineTrackDescriptor, ViewportToolModeDescriptor,
+    GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
+    TimelineTrackDescriptor, ViewportToolModeDescriptor,
 };
-use crate::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationPath, EditorOperationRegistry,
-    EditorOperationRegistryError,
-};
+use crate::core::editor_operation::{EditorOperationPath, EditorOperationPathError};
+
+mod view_descriptor;
+
+pub use view_descriptor::ViewDescriptor;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EditorExtensionRegistry {
@@ -20,14 +27,13 @@ pub struct EditorExtensionRegistry {
     component_drawers: BTreeMap<String, ComponentDrawerDescriptor>,
     ui_templates: BTreeMap<String, EditorUiTemplateDescriptor>,
     asset_importers: BTreeMap<String, AssetImporterDescriptor>,
-    asset_editors: BTreeMap<String, AssetEditorDescriptor>,
-    asset_creation_templates: BTreeMap<String, AssetCreationTemplateDescriptor>,
+    asset_type_contributions: BTreeMap<AssetTypeId, AssetTypeContribution>,
     viewport_tool_modes: BTreeMap<String, ViewportToolModeDescriptor>,
-    graph_editors: BTreeMap<String, GraphEditorDescriptor>,
+    graph_editors: BTreeMap<AssetTypeId, GraphEditorDescriptor>,
     graph_node_palettes: BTreeMap<String, GraphNodePaletteDescriptor>,
-    timeline_editors: BTreeMap<String, TimelineEditorDescriptor>,
+    timeline_editors: BTreeMap<AssetTypeId, TimelineEditorDescriptor>,
     timeline_track_types: BTreeMap<String, TimelineTrackDescriptor>,
-    operations: EditorOperationRegistry,
+    command_contributions: EditorCommandContributionSet,
 }
 
 impl EditorExtensionRegistry {
@@ -37,8 +43,9 @@ impl EditorExtensionRegistry {
     ) -> Result<(), EditorExtensionRegistryError> {
         descriptor
             .open_operation_path()
-            .map_err(EditorExtensionRegistryError::Operation)?;
-        insert_unique(&mut self.views, descriptor.id.clone(), descriptor, "view")
+            .map_err(EditorExtensionRegistryError::OperationPath)?;
+        let id = descriptor.id().to_owned();
+        insert_unique(&mut self.views, id, descriptor, "view")
     }
 
     pub fn register_drawer(
@@ -105,31 +112,20 @@ impl EditorExtensionRegistry {
         )
     }
 
-    pub fn register_asset_editor(
+    pub fn register_asset_type_contribution(
         &mut self,
-        descriptor: AssetEditorDescriptor,
+        contribution: AssetTypeContribution,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_contribution_id("asset editor", descriptor.asset_kind())?;
-        insert_unique(
-            &mut self.asset_editors,
-            descriptor.asset_kind.clone(),
-            descriptor,
-            "asset editor",
-        )
-    }
-
-    pub fn register_asset_creation_template(
-        &mut self,
-        descriptor: AssetCreationTemplateDescriptor,
-    ) -> Result<(), EditorExtensionRegistryError> {
-        validate_contribution_id("asset creation template", descriptor.id())?;
-        validate_contribution_id("asset kind", descriptor.asset_kind())?;
-        insert_unique(
-            &mut self.asset_creation_templates,
-            descriptor.id().to_string(),
-            descriptor,
-            "asset creation template",
-        )
+        let asset_type = contribution.asset_type().clone();
+        if self.asset_type_contributions.contains_key(&asset_type) {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "asset type contribution",
+                id: asset_type.to_string(),
+            });
+        }
+        self.asset_type_contributions
+            .insert(asset_type, contribution);
+        Ok(())
     }
 
     pub fn register_viewport_tool_mode(
@@ -138,6 +134,9 @@ impl EditorExtensionRegistry {
     ) -> Result<(), EditorExtensionRegistryError> {
         validate_contribution_id("viewport tool mode", descriptor.id())?;
         validate_contribution_id("viewport tool view", descriptor.view_id())?;
+        if let Some(provider_id) = descriptor.overlay_provider_id() {
+            validate_contribution_id("viewport overlay provider", provider_id)?;
+        }
         insert_unique(
             &mut self.viewport_tool_modes,
             descriptor.id().to_string(),
@@ -150,14 +149,16 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: GraphEditorDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_contribution_id("graph editor asset kind", descriptor.asset_kind())?;
         validate_contribution_id("graph editor view", descriptor.view_id())?;
-        insert_unique(
-            &mut self.graph_editors,
-            descriptor.asset_kind().to_string(),
-            descriptor,
-            "graph editor",
-        )
+        let asset_type = descriptor.asset_type().clone();
+        if self.graph_editors.contains_key(&asset_type) {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "graph editor",
+                id: asset_type.to_string(),
+            });
+        }
+        self.graph_editors.insert(asset_type, descriptor);
+        Ok(())
     }
 
     pub fn register_graph_node_palette(
@@ -177,14 +178,16 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: TimelineEditorDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_contribution_id("timeline editor asset kind", descriptor.asset_kind())?;
         validate_contribution_id("timeline editor view", descriptor.view_id())?;
-        insert_unique(
-            &mut self.timeline_editors,
-            descriptor.asset_kind().to_string(),
-            descriptor,
-            "timeline editor",
-        )
+        let asset_type = descriptor.asset_type().clone();
+        if self.timeline_editors.contains_key(&asset_type) {
+            return Err(EditorExtensionRegistryError::DuplicateContribution {
+                kind: "timeline editor",
+                id: asset_type.to_string(),
+            });
+        }
+        self.timeline_editors.insert(asset_type, descriptor);
+        Ok(())
     }
 
     pub fn register_timeline_track_type(
@@ -201,13 +204,13 @@ impl EditorExtensionRegistry {
         )
     }
 
-    pub fn register_operation(
+    pub fn register_command(
         &mut self,
-        descriptor: EditorOperationDescriptor,
+        descriptor: EditorCommandDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        self.operations
+        self.command_contributions
             .register(descriptor)
-            .map_err(EditorExtensionRegistryError::Operation)
+            .map_err(EditorExtensionRegistryError::Command)
     }
 
     pub fn views(&self) -> Vec<&ViewDescriptor> {
@@ -234,12 +237,8 @@ impl EditorExtensionRegistry {
         self.asset_importers.values().collect()
     }
 
-    pub fn asset_editors(&self) -> Vec<&AssetEditorDescriptor> {
-        self.asset_editors.values().collect()
-    }
-
-    pub fn asset_creation_templates(&self) -> Vec<&AssetCreationTemplateDescriptor> {
-        self.asset_creation_templates.values().collect()
+    pub fn asset_type_contributions(&self) -> Vec<&AssetTypeContribution> {
+        self.asset_type_contributions.values().collect()
     }
 
     pub fn viewport_tool_modes(&self) -> Vec<&ViewportToolModeDescriptor> {
@@ -262,14 +261,31 @@ impl EditorExtensionRegistry {
         self.timeline_track_types.values().collect()
     }
 
-    pub fn operations(&self) -> &EditorOperationRegistry {
-        &self.operations
+    pub fn command_ids(&self) -> impl Iterator<Item = &EditorOperationPath> {
+        self.command_contributions.command_ids()
+    }
+
+    pub fn pending_command(&self, id: &EditorOperationPath) -> Option<&EditorCommandDescriptor> {
+        self.command_contributions.pending_command(id)
+    }
+
+    pub fn pending_commands(&self) -> impl Iterator<Item = &EditorCommandDescriptor> {
+        self.command_contributions.pending_commands()
+    }
+
+    pub(crate) fn take_command_contributions(&mut self) -> Vec<EditorCommandDescriptor> {
+        self.command_contributions.take_pending()
+    }
+
+    pub(crate) fn record_registered_command_id(&mut self, id: EditorOperationPath) {
+        self.command_contributions.record_registered_id(id);
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorExtensionRegistration {
     registry: EditorExtensionRegistry,
+    owner_id: String,
     required_capabilities: Vec<String>,
 }
 
@@ -277,8 +293,14 @@ impl EditorExtensionRegistration {
     pub fn new(registry: EditorExtensionRegistry) -> Self {
         Self {
             registry,
+            owner_id: "editor.extension.direct".to_owned(),
             required_capabilities: Vec::new(),
         }
+    }
+
+    pub fn with_owner_id(mut self, owner_id: impl Into<String>) -> Self {
+        self.owner_id = owner_id.into();
+        self
     }
 
     pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
@@ -294,6 +316,10 @@ impl EditorExtensionRegistration {
 
     pub fn registry(&self) -> &EditorExtensionRegistry {
         &self.registry
+    }
+
+    pub fn owner_id(&self) -> &str {
+        &self.owner_id
     }
 
     pub fn required_capabilities(&self) -> &[String] {
@@ -312,43 +338,6 @@ impl EditorExtensionRegistration {
         self.required_capabilities
             .iter()
             .all(|capability| enabled.contains(capability))
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ViewDescriptor {
-    id: String,
-    display_name: String,
-    category: String,
-}
-
-impl ViewDescriptor {
-    pub fn new(
-        id: impl Into<String>,
-        display_name: impl Into<String>,
-        category: impl Into<String>,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            display_name: display_name.into(),
-            category: category.into(),
-        }
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-
-    pub fn category(&self) -> &str {
-        &self.category
-    }
-
-    pub fn open_operation_path(&self) -> Result<EditorOperationPath, EditorOperationRegistryError> {
-        EditorOperationPath::parse(format!("view.{}.open", self.id))
     }
 }
 
@@ -556,7 +545,7 @@ fn validate_component_drawer(
     }
     for binding in descriptor.bindings() {
         EditorOperationPath::parse(binding.clone())
-            .map_err(EditorExtensionRegistryError::Operation)?;
+            .map_err(EditorExtensionRegistryError::OperationPath)?;
     }
     Ok(())
 }
@@ -622,7 +611,7 @@ pub struct AssetImporterDescriptor {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     source_extensions: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    output_kind: Option<String>,
+    output_type: Option<AssetTypeId>,
     #[serde(default)]
     priority: i32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -640,7 +629,7 @@ impl AssetImporterDescriptor {
             display_name: display_name.into(),
             operation,
             source_extensions: Vec::new(),
-            output_kind: None,
+            output_type: None,
             priority: 0,
             required_capabilities: Vec::new(),
         }
@@ -662,8 +651,8 @@ impl AssetImporterDescriptor {
         self
     }
 
-    pub fn with_output_kind(mut self, output_kind: impl Into<String>) -> Self {
-        self.output_kind = Some(output_kind.into());
+    pub fn with_output_type(mut self, output_type: AssetTypeId) -> Self {
+        self.output_type = Some(output_type);
         self
     }
 
@@ -700,8 +689,8 @@ impl AssetImporterDescriptor {
         &self.source_extensions
     }
 
-    pub fn output_kind(&self) -> Option<&str> {
-        self.output_kind.as_deref()
+    pub fn output_type(&self) -> Option<&AssetTypeId> {
+        self.output_type.as_ref()
     }
 
     pub fn priority(&self) -> i32 {
@@ -740,7 +729,6 @@ fn validate_graph_node_palette(
     descriptor: &GraphNodePaletteDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
     validate_contribution_id("graph node palette", descriptor.id())?;
-    validate_contribution_id("graph node palette asset kind", descriptor.asset_kind())?;
     if descriptor.nodes().is_empty() {
         return Err(EditorExtensionRegistryError::View(format!(
             "editor graph node palette `{}` must declare at least one node",
@@ -773,65 +761,6 @@ fn validate_contribution_id(
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AssetEditorDescriptor {
-    asset_kind: String,
-    view_id: String,
-    display_name: String,
-    operation: EditorOperationPath,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    required_capabilities: Vec<String>,
-}
-
-impl AssetEditorDescriptor {
-    pub fn new(
-        asset_kind: impl Into<String>,
-        view_id: impl Into<String>,
-        display_name: impl Into<String>,
-        operation: EditorOperationPath,
-    ) -> Self {
-        Self {
-            asset_kind: asset_kind.into(),
-            view_id: view_id.into(),
-            display_name: display_name.into(),
-            operation,
-            required_capabilities: Vec::new(),
-        }
-    }
-
-    pub fn with_required_capabilities<I, S>(mut self, capabilities: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.required_capabilities
-            .extend(capabilities.into_iter().map(Into::into));
-        self.required_capabilities.sort();
-        self.required_capabilities.dedup();
-        self
-    }
-
-    pub fn asset_kind(&self) -> &str {
-        &self.asset_kind
-    }
-
-    pub fn view_id(&self) -> &str {
-        &self.view_id
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-
-    pub fn operation(&self) -> &EditorOperationPath {
-        &self.operation
-    }
-
-    pub fn required_capabilities(&self) -> &[String] {
-        &self.required_capabilities
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorExtensionRegistryError {
     DuplicateContribution {
@@ -848,7 +777,17 @@ pub enum EditorExtensionRegistryError {
     },
     InvalidAssetImporterExtensions(String),
     InvalidMenuPath(String),
-    Operation(EditorOperationRegistryError),
+    CommandViewTargetConflict {
+        command_id: EditorOperationPath,
+        view_id: String,
+    },
+    MenuCapabilitiesRequireContributedCommand {
+        command_id: EditorOperationPath,
+    },
+    Command(EditorCommandRegistryError),
+    OperationPath(EditorOperationPathError),
+    AssetTypeId(AssetTypeIdError),
+    AssetTypeRegistry(AssetTypeRegistryError),
     View(String),
 }
 
@@ -874,13 +813,39 @@ impl fmt::Display for EditorExtensionRegistryError {
             Self::InvalidMenuPath(path) => {
                 write!(formatter, "editor menu item path `{path}` is invalid")
             }
-            Self::Operation(error) => write!(formatter, "{error}"),
+            Self::CommandViewTargetConflict {
+                command_id,
+                view_id,
+            } => write!(
+                formatter,
+                "editor command {command_id} does not open extension view {view_id}"
+            ),
+            Self::MenuCapabilitiesRequireContributedCommand { command_id } => write!(
+                formatter,
+                "editor menu capability constraints for {command_id} must be owned by a command contributed by the same extension"
+            ),
+            Self::Command(error) => write!(formatter, "{error}"),
+            Self::OperationPath(error) => write!(formatter, "{error}"),
+            Self::AssetTypeId(error) => write!(formatter, "{error}"),
+            Self::AssetTypeRegistry(error) => write!(formatter, "{error}"),
             Self::View(error) => formatter.write_str(error),
         }
     }
 }
 
 impl std::error::Error for EditorExtensionRegistryError {}
+
+impl From<AssetTypeIdError> for EditorExtensionRegistryError {
+    fn from(error: AssetTypeIdError) -> Self {
+        Self::AssetTypeId(error)
+    }
+}
+
+impl From<AssetTypeRegistryError> for EditorExtensionRegistryError {
+    fn from(error: AssetTypeRegistryError) -> Self {
+        Self::AssetTypeRegistry(error)
+    }
+}
 
 fn insert_unique<T>(
     map: &mut BTreeMap<String, T>,

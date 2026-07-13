@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics/target.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics/classification.rs

@@ -163,8 +163,11 @@ fn register_scene_module(
     exports: &HostExportRegistry,
     registry: &HostRegistry,
 ) -> Result<HostHandle, VmError> {
-    let default_world_handle = registry.register_capability("host.scene.world.default");
+    let default_world_handle = registry
+        .register_capability("host.scene.world.default")
+        .map_err(|error| VmError::Operation(error.to_string()))?;
     let validation_registry = registry.clone();
+    let summary_registry = registry.clone();
     let descriptor = ScriptHostModuleDescriptor::new(SCENE_MODULE, HOST_MODULE_VERSION)
         .with_capability("scene.query")
         .with_capability("scene.handle")
@@ -202,19 +205,22 @@ fn register_scene_module(
         descriptor,
         [
             HostExportFunction::new("default_world_handle", move |_| {
-                Ok(ScriptHostValue::HostHandle(default_world_handle.get()))
+                Ok(ScriptHostValue::HostHandle(default_world_handle.into_raw()))
             }),
             HostExportFunction::new("handle_is_valid", {
                 let registry = validation_registry.clone();
                 move |context| {
                     let handle = expect_handle(context, 0)?;
                     Ok(ScriptHostValue::Bool(
-                        registry.is_valid(HostHandle::new(handle)),
+                        registry.is_valid(HostHandle::from_raw(handle)),
                     ))
                 }
             }),
             HostExportFunction::new("summary", move |context| {
                 let handle = expect_handle(context, 0)?;
+                summary_registry
+                    .resolve(HostHandle::from_raw(handle))
+                    .map_err(|error| ScriptHostError::new(error.to_string()))?;
                 Ok(ScriptHostValue::String(format!("host-handle:{handle}")))
             }),
         ],
@@ -346,7 +352,8 @@ fn expect_string(context: &ScriptHostCallContext, index: usize) -> Result<String
 fn expect_handle(context: &ScriptHostCallContext, index: usize) -> Result<u64, ScriptHostError> {
     match context.arguments.get(index) {
         Some(ScriptHostValue::HostHandle(value)) => Ok(*value),
-        Some(ScriptHostValue::Int(value)) if *value >= 0 => Ok(*value as u64),
+        // ZrVM carries the neutral u64 payload through i64 while preserving its bits.
+        Some(ScriptHostValue::Int(value)) => Ok(*value as u64),
         Some(value) => Err(ScriptHostError::new(format!(
             "argument {index} expected host handle, received {:?}",
             value.kind()

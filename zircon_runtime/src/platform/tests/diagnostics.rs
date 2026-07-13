@@ -7,7 +7,7 @@ fn capability_reports_format_stable_diagnostic_lines() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Linux,
-        crate::builtin::RuntimeTargetMode::EditorHost,
+        crate::core::framework::platform::RuntimeTargetMode::EditorHost,
     );
 
     assert_eq!(
@@ -55,7 +55,7 @@ fn platform_config_diagnostics_include_enabled_policy() {
     let config = PlatformConfig {
         enabled: false,
         target: PlatformTarget::Headless,
-        target_mode: crate::builtin::RuntimeTargetMode::ServerRuntime,
+        target_mode: crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,
         features: PlatformFeatureSelection::headless(),
     };
 

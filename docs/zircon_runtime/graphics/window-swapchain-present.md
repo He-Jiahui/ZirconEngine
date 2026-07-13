@@ -19,8 +19,8 @@ related_code:
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 implementation_files:
@@ -41,8 +41,8 @@ implementation_files:
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
-  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 plan_sources:

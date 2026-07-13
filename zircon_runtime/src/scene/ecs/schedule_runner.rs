@@ -1,11 +1,11 @@
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::plugin::{SceneRuntimeHookContext, SceneRuntimeHookRegistration};
 use crate::scene::ecs::{
     InternalSceneSystem, SceneSystemDescriptor, ScheduledSceneStep, ScheduledSceneStepRef,
     SystemStage,
 };
 use crate::scene::LevelSystem;
+use crate::scene::{SceneRuntimeHookContext, SceneRuntimeHookRegistration};
 
 pub(crate) struct SceneScheduleRunner;
 

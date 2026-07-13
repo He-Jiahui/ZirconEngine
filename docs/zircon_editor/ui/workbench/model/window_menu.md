@@ -1,24 +1,24 @@
 ---
 related_code:
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
 implementation_files:
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
-  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/commands/menu.rs
+  - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
 plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md
 tests:
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-shared-b (2026-05-11: passed)
   - cargo test -p zircon_editor --lib workbench_window_menu_exposes_unreal_style_functional_windows --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
@@ -46,4 +46,4 @@ The functional window entries are:
 
 `UI Component Showcase` is intentionally in `Window` because it is now the no-argument editor front screen and uses an exclusive activity-window page. `Material Demo` remains available as a separate diagnostic/demo entry but is no longer the Welcome startup demo route. `Debug Observatory` and `Reset Layout` remain in the same menu. The View menu keeps existing drawer/document view entries for compatibility, but new feature editors should be exposed through `Window` when they represent a top-level editing unit.
 
-`operation_path_for_menu_action(...)` maps the new descriptor ids to stable operation paths, and `EditorOperationRegistry::with_builtin_operations()` registers the same paths with `Window/...` menu paths. This keeps menu projection, native binding payloads, remote operation lookup, and journal operation ids aligned.
+`operation_path_for_menu_action(...)` maps descriptor ids to stable operation paths, while the context-owned `EditorCommandRegistry` is the single source for the corresponding `Window/...` command metadata. Menu projection, native binding payloads, CLI/remote lookup, and journal operation ids therefore share one typed id space and one runtime registry handle.

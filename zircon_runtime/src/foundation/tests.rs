@@ -1,6 +1,8 @@
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crossbeam_channel::TryRecvError;
+
 use crate::core::manager::{
     resolve_config_manager, ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
 };
@@ -68,6 +70,33 @@ fn event_manager_publish_subscribe_roundtrip_works() {
 
     let event = receiver.recv().unwrap();
     assert_eq!(event.payload["ok"], json!(true));
+}
+
+#[test]
+fn foundation_registry_services_do_not_retain_the_runtime_root() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    let weak = runtime.weak();
+
+    let config = ManagerResolver::new(runtime.handle()).config().unwrap();
+    let events = ManagerResolver::new(runtime.handle()).event().unwrap();
+
+    drop(runtime);
+
+    assert!(
+        weak.upgrade().is_none(),
+        "foundation registry services must not keep CoreRuntime alive"
+    );
+    assert_eq!(config.get_value("runtime.gone"), None);
+    assert_eq!(
+        config.set_value("runtime.gone", json!(true)),
+        Err(crate::core::CoreError::RuntimeUnavailable)
+    );
+
+    let receiver = events.subscribe("runtime.gone");
+    assert_eq!(receiver.try_recv(), Err(TryRecvError::Disconnected));
+    events.publish("runtime.gone", json!({"ignored": true}));
 }
 
 #[test]

@@ -1,10 +1,19 @@
 use super::HybridGiRuntimeState;
 use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
+    LightmapConsumeContract, RenderDirectionalLightSnapshot, RenderHybridGiCompositePolicy,
+    RenderHybridGiExtract, RenderHybridGiResolvedSettings, RenderMeshSnapshot,
     RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 
 impl HybridGiRuntimeState {
+    pub(crate) fn composite_policy(&self) -> RenderHybridGiCompositePolicy {
+        self.scene_representation().composite_policy()
+    }
+
+    pub(crate) fn resolved_settings(&self) -> RenderHybridGiResolvedSettings {
+        self.scene_representation().resolved_settings()
+    }
+
     pub(crate) fn register_scene_extract(
         &mut self,
         extract: Option<&RenderHybridGiExtract>,
@@ -12,16 +21,21 @@ impl HybridGiRuntimeState {
         directional_lights: &[RenderDirectionalLightSnapshot],
         point_lights: &[RenderPointLightSnapshot],
         spot_lights: &[RenderSpotLightSnapshot],
+        baked_lighting: Option<&LightmapConsumeContract>,
+        has_baked_probe_grid: bool,
     ) {
         let enabled_extract = extract.filter(|extract| extract.enabled);
         self.register_extract(enabled_extract);
         if enabled_extract.is_some() {
-            self.scene_representation_mut().synchronize_scene(
-                meshes,
-                directional_lights,
-                point_lights,
-                spot_lights,
-            );
+            self.scene_representation_mut()
+                .synchronize_scene_with_baked(
+                    meshes,
+                    directional_lights,
+                    point_lights,
+                    spot_lights,
+                    baked_lighting,
+                    has_baked_probe_grid,
+                );
         }
     }
 

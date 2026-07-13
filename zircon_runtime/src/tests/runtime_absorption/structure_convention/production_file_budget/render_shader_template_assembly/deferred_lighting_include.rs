@@ -57,7 +57,8 @@ fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
         "deferred lighting entry keeps built-in dispatch and custom dispatch marker",
         &deferred_lighting_wgsl,
         &[
-            "return add_deferred_emissive(shade_deferred_unlit(albedo), emissive);",
+            "return apply_deferred_volumetric(",
+            "add_deferred_emissive(shade_deferred_unlit(albedo), emissive),",
             "shade_deferred_blinn_phong(position, coord, albedo, material, normal),",
             "zr-deferred-lighting-custom-shading-model-dispatch",
             "shade_deferred_standard_pbr(position, coord, albedo, material, normal),",
@@ -104,7 +105,6 @@ fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
     let lighting_doc = read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/lighting.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     for (label, source) in [
         ("Plan 08", plan_08.as_str()),
@@ -115,7 +115,6 @@ fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
         ("lighting doc", lighting_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

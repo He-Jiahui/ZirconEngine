@@ -2,8 +2,8 @@ mod dependencies;
 
 use std::collections::{HashMap, HashSet};
 
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginSelection};
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::{ProjectPluginFeatureSelection, ProjectPluginSelection};
 
 use super::feature_definitions::FeatureDefinition;
 use super::feature_status_record::FeatureStatus;

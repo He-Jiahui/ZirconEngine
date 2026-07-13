@@ -11,8 +11,6 @@ fn runtime_15_f12_production_dead_code_current_state_is_zero_hit() {
     );
     let structure_convention = runtime_15_plan.clone();
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
     );
@@ -52,7 +50,6 @@ fn runtime_15_f12_production_dead_code_current_state_is_zero_hit() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

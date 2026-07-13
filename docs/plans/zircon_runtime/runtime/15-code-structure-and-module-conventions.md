@@ -33,9 +33,7 @@ related_code:
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/animation/module.rs
-  - zircon_runtime/src/animation/manager.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
@@ -78,7 +76,6 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
   - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
-  - docs/zircon_runtime/dynamic_api/session.md
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
@@ -97,9 +94,6 @@ related_code:
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/tests.rs
   - docs/zircon_runtime/navigation/runtime.md
-  - zircon_runtime/src/dynamic_api/session.rs
-  - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
-  - docs/zircon_runtime/dynamic_api/session.md
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs
@@ -175,7 +169,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene_ecs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_graphics.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_banned_names.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
@@ -210,10 +203,8 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
   - zircon_runtime/src/core/framework/tests/render_product_surface.rs
-  - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
   - zircon_runtime/src/ui/tests/v2_asset/style_runtime.rs
   - zircon_runtime/src/ui/tests/v2_asset/default_controls.rs
@@ -221,7 +212,6 @@ related_code:
   - zircon_runtime/src/ui/tests/v2_asset/demo_and_builder.rs
   - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
-  - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core/layout_surface.rs
   - zircon_runtime/src/ui/tests/shared_core/box_flow.rs
   - zircon_runtime/src/ui/tests/shared_core/input_visibility.rs
@@ -261,16 +251,15 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/reads.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/status_mirrors.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/paths.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/reads.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/budgets.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/status_mirrors.rs
   - zircon_runtime/src/asset/assets/font.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
   - docs/zircon_runtime/asset/assets/font.md
   - docs/zircon_runtime/asset/assets/ui.md
@@ -307,9 +296,6 @@ implementation_files:
   - zircon_runtime/src/graphics/prelude.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
@@ -349,7 +335,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/mod.rs
   - zircon_runtime/src/core/runtime/tests/registration/structure/behavior_layout.rs
   - zircon_runtime/src/asset/watch/mod.rs
   - zircon_runtime/src/asset/watch/shutdown_on_drop.rs
@@ -429,7 +415,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/naming_guard_maps.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review_guard_maps.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs
@@ -470,14 +456,16 @@ tests:
   - cargo fmt --all --check
 doc_type: structure-plan
 status: in_progress
-last_refined: 2026-07-10
+last_refined: 2026-07-14
 ---
 
 # 15 · Runtime 代码结构与模块规范收束计划
 
+> 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../frameworks/development-conventions.md)；本文保留 Runtime 结构收束主题的细节论证与执行上下文，不再作为并列规则源。
+
 当前 plan-status 结构同步（2026-07-10）：父计划、总索引与编号产出目录已经恢复单一职责。`plan_status/support/runtime_plan_archives.rs` 负责读取 `runtime/01/` 至 `runtime/15/` 具体记录，`recent_static_guards/parent_routing.rs` 只验证父计划/总索引保留当前路由；Python boundary 当前 support owners 84/84、subplans 15/15、index rows 15/15、problem rows 17/17、backlog 7/7、`risks = []`，standalone Rust plan-status 48/48。该切片未把历史明细回流父文件，也未新增 compat/shim/re-export；package Cargo gate deferred。
 
-最新完成：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已删除旧 `zircon_runtime/src/ui/tests/text_pipeline.rs` flat owner，并硬切为 `zircon_runtime/src/ui/tests/text_pipeline/{mod.rs,fixtures.rs,font_registry.rs,layout_request.rs,measure_cache.rs,render_extract_prewarm.rs,surface_cache.rs}` folder-backed test tree。验证：scoped rustfmt passed；focused `text_pipeline` cargo test 15/15 passed；direct `runtime_15_no_oversized_test_files` 1/1 passed；当前源码全量 `tests::runtime_absorption::structure_convention` 为 1226/1303 passed、77 failed remaining，剩余失败来自 status/root owner guard groups，不再包含 `text_pipeline` 或 oversized-test-file failure。该切片不保留旧 `text_pipeline.rs`、compat/shim/re-export；Cargo gate deferred，不声明 package/workspace Cargo 全通过。
+最新完成：`Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 已删除旧 `zircon_runtime/src/ui/tests/text_pipeline` flat owner，并硬切为 `zircon_runtime/src/ui/tests/text_pipeline/{mod.rs,fixtures.rs,font_registry.rs,layout_request.rs,measure_cache.rs,render_extract_prewarm.rs,surface_cache.rs}` folder-backed test tree。验证：scoped rustfmt passed；focused `text_pipeline` cargo test 15/15 passed；direct `runtime_15_no_oversized_test_files` 1/1 passed；当前源码全量 `tests::runtime_absorption::structure_convention` 为 1226/1303 passed、77 failed remaining，剩余失败来自 status/root owner guard groups，不再包含 `text_pipeline` 或 oversized-test-file failure。该切片不保留旧 `text_pipeline.rs`、compat/shim/re-export；Cargo gate deferred，不声明 package/workspace Cargo 全通过。
 
 最新完成：`Runtime 15 M3 current-child route plus IBL runtime writeback budget cleanup` / `runtime_15_m3_current_child_route_ibl_writeback_budget_cleanup_static_passed_cargo_deferred` 已把 ResourceStreamer diagnostics/material capture、asset mesh/asset pack、dynamic scene、editor/hub status row routes、module-layout 与 core scene ECS naming guards 对齐到 current child owners；`graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs` 从 948 行生产+测试混合文件硬切为 56 行 production route owner，runtime graph writeback 测试移入 `graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests.rs`，seam/irradiance metrics 拆入 `graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests/metrics.rs`。验证：scoped rustfmt passed；focused structure guards 12/12 passed；production-file budget guard passed；`runtime_graph_writeback` 4/4 passed；当前源码全量 `tests::runtime_absorption::structure_convention` 经后续 UI text pipeline split 为 1226/1303 passed、77 failed remaining。该切片不保留旧 route mirror/compat/shim/re-export；Cargo gate deferred，不声明 package/workspace Cargo 全通过。
 
@@ -1092,6 +1080,8 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
+- fixed 已修复：[derived-reflection-hard-cut-guard](../../zircon_plugins/08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
+
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`15/2026-07-09-code-structure-and-module-conventions-output-records.md`](15/2026-07-09-code-structure-and-module-conventions-output-records.md)
@@ -1123,3 +1113,14 @@ Cross-doc moved-row and status-doc anchors: `Runtime 15 M3 review-guard row-data
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Supplemental Anchors
 
 Supplemental child-file anchors for focused row-data guard closure: `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/route_mounts.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/status_current.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/budgets.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/split_layout.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/route_mounts.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/status_current.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/budgets.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/split_layout.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/structure_guard_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/typed_error_structure_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/plugin_importer_rows.rs` / `structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/typed_error_rows.rs` / `runtime_15_review_guard_row_data_status_docs_guard_is_folder_backed` / `Runtime 15 M3 review guard row-data topic child-owner split` / `runtime_15_review_guard_row_data_topic_child_owner_split_static_passed_cargo_deferred` / `Cargo gate deferred`.
+
+## 2026-07-11 Runtime 15 Naming Boundary Current Debt Clear
+
+新鲜完整结构审计确认 37 个顶层分组均无显式 `risks`，并把模块约定门禁的剩余输入
+收敛到四处 UI 测试夹具文本与一处 graphics 内联测试名。等长 fixture 改名保持文本
+offset 语义，测试名改为 `prior`，不修改生产行为或增加兼容豁免。当前直接命名审计为
+`classified` 且四类债务列表全空，重组后的 module-convention gate 为
+`classified-and-clear`、`migration_debt_count=0`、`risks=[]`；三文件 rustfmt 通过。
+Cargo 因全部可见磁盘低于 50 GiB 阈值且外部编译通道活跃而延后。Runtime 15 仍保留
+完整结构族 1297/1304 的 7 个 Render/UI 外部失败，不标记整体完成。详细证据见
+[`15/2026-07-11-naming-boundary-current-debt-clear.md`](15/2026-07-11-naming-boundary-current-debt-clear.md)。

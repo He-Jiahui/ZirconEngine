@@ -8,12 +8,12 @@ use crate::asset::{
     AssetManager, AssetUri, DataAsset, DataAssetFormat, FunctionAssetImporter, ImportedAsset,
     ProjectAssetManager,
 };
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::resource::ResourceKind;
 use crate::plugin::{
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_installs_asset_importers_before_project_open() {
@@ -46,7 +46,8 @@ fn runtime_module_registration_reports_install_asset_importers_before_project_op
         None,
         [&registration],
     );
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let fatal_messages = report.fatal_messages();
+    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
 
     let runtime = crate::core::CoreRuntime::new();
     for module in report.modules {
@@ -82,18 +83,20 @@ fn runtime_plugin_registration_report_validates_shadowed_manifest_asset_importer
             .len(),
         1
     );
-    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
-        .contains("asset importer registration failed")
-        && diagnostic.contains("weather.data")
-        && diagnostic.contains("source extension or full suffix")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("asset importer registration failed")
+            && diagnostic.contains("weather.data")
+            && diagnostic.contains("source extension or full suffix")
+    }));
 
     let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
 
     assert!(!catalog.is_success());
-    assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("asset importer registration failed")
-        && diagnostic.contains("weather.data")
-        && diagnostic.contains("source extension or full suffix")));
+    assert!(catalog.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("asset importer registration failed")
+            && diagnostic.contains("weather.data")
+            && diagnostic.contains("source extension or full suffix")
+    }));
 }
 
 #[test]
@@ -157,7 +160,7 @@ fn assert_weather_asset_imported(manager: &ProjectAssetManager, paths: &ProjectP
 
     let meta = AssetMetaDocument::load(
         paths
-            .assets_root()
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("weather")
             .join("storm.weather.zmeta"),
     )
@@ -176,7 +179,9 @@ fn weather_importer() -> FunctionAssetImporter {
 fn write_weather_project(label: &str) -> (PathBuf, ProjectPaths) {
     let root = unique_temp_project_root(label);
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
     ProjectManifest::new(
         "Plugin Importer Install",
         AssetUri::parse("res://weather/storm.weather").unwrap(),
@@ -185,7 +190,10 @@ fn write_weather_project(label: &str) -> (PathBuf, ProjectPaths) {
     .save(paths.manifest_path())
     .unwrap();
 
-    let asset_path = paths.assets_root().join("weather").join("storm.weather");
+    let asset_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("weather")
+        .join("storm.weather");
     fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
     fs::write(&asset_path, br#"{ "clouds": true }"#).unwrap();
     (root, paths)

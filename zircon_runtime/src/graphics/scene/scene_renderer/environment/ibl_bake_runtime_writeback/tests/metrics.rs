@@ -104,7 +104,7 @@ pub(super) fn pmrem_seam_luma_stats(
     cubemap: &SourceCubemapMipChain,
     mip_level: u32,
 ) -> SeamLumaStats {
-    let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(cubemap.pmrem_face_size(), mip_level);
     let mut sum = 0.0;
     let mut max = 0.0_f32;
     let mut count = 0.0;
@@ -119,10 +119,11 @@ pub(super) fn pmrem_seam_luma_stats(
             };
             for index in sample_start..sample_end {
                 let (x, y) = side.edge_texel(index, mip_size);
-                let current = cubemap.texel(face, mip_level, x, y);
+                let current = cubemap.pmrem_texel(face, mip_level, x, y);
                 let (neighbor_face, neighbor_x, neighbor_y) =
                     side.neighbor_texel(face, index, mip_size);
-                let neighbor = cubemap.texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
+                let neighbor =
+                    cubemap.pmrem_texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
                 let delta = (luma(current) - luma(neighbor)).abs();
                 sum += delta;
                 max = max.max(delta);

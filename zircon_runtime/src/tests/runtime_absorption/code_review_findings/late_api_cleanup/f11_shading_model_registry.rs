@@ -2,8 +2,10 @@
 fn review_f11_shading_model_registry_has_no_dead_plugin_registration_surface() {
     let registry = include_str!("../../../../graphics/material/shading_models/registry.rs");
     let core_contract = include_str!("../../../../core/framework/render/material/shading_model.rs");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let review_findings = concat!(
+        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
     let render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
     let material_doc =
         include_str!("../../../../../../docs/zircon_runtime/core/framework/render/material.md");

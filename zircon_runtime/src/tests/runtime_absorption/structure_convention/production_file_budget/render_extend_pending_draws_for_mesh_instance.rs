@@ -29,7 +29,8 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
 
     let plan_02 = read_repo("docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let mesh_pass_doc =
@@ -37,8 +38,6 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let mesh_pipeline_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");
-    let current_session_doc =
-        read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "extend_pending_draws parent keeps production build helpers and child test mount",
@@ -186,7 +185,6 @@ fn runtime_15_extend_pending_draws_tests_are_child_owner() {
         ("structure convention", structure_convention.as_str()),
         ("shader doc", shader_doc.as_str()),
         ("mesh pipeline cache doc", mesh_pipeline_cache_doc.as_str()),
-        ("current render session doc", current_session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

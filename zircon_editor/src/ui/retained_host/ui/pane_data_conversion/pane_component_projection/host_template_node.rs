@@ -6,13 +6,16 @@ use super::clip_frame::projected_clip_frame;
 use super::collection_projection::projected_collection;
 use super::drag_overlay::projected_drag_overlay_data;
 use super::popup_actions::projected_popup_actions;
+use super::sample_grid::projected_sample_grid;
 use super::selection_options::projected_selection_options;
 use super::template_node_data::{template_pane_node_data, ProjectedTemplateNodeParts};
 use super::text_layout::projected_text_layout;
+use super::timeline_strip::projected_timeline_strip;
 use super::validation_state::projected_validation_state;
 use super::value_media::projected_value_media;
 use super::visual_state::projected_visual_state;
 use super::visual_style::projected_visual_style;
+use super::weight_heatmap::projected_weight_heatmap;
 use super::world_space::projected_world_space;
 
 pub(in super::super) fn host_template_node(
@@ -38,6 +41,9 @@ pub(in super::super) fn host_template_node(
         component_descriptor.is_some(),
     );
     let selection_options = projected_selection_options(component_role.as_str(), &node.attributes);
+    let sample_grid = projected_sample_grid(component_role.as_str(), &node.attributes);
+    let timeline_strip = projected_timeline_strip(component_role.as_str(), &node.attributes);
+    let weight_heatmap = projected_weight_heatmap(component_role.as_str(), &node.attributes);
     let collection_projection = projected_collection(&component, &node.attributes, &node.bindings);
     let world_space = projected_world_space(&component, &node.attributes);
     let popup_actions = projected_popup_actions(
@@ -79,6 +85,9 @@ pub(in super::super) fn host_template_node(
         value_media,
         validation_state,
         selection_options,
+        sample_grid,
+        timeline_strip,
+        weight_heatmap,
         collection: collection_projection,
         world_space,
         popup_actions,

@@ -2,8 +2,11 @@ use std::sync::Arc;
 
 use zircon_runtime::core::manager::NavigationManagerHandle;
 use zircon_runtime::core::runtime::ServiceObject;
-use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
-use zircon_runtime::engine_module::{factory, qualified_name};
+use zircon_runtime::core::{
+    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+};
+use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
+use zircon_runtime::scene::SceneNavigationRuntimeHandle;
 
 mod agent;
 mod capability;
@@ -33,6 +36,8 @@ pub use plugin::{
 
 pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "navigation.runtime";
+pub const DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME: &str =
+    "navigation.runtime.Driver.DefaultNavigationRuntime";
 pub use zircon_runtime::core::manager::NAVIGATION_MANAGER_NAME;
 pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.events";
 
@@ -41,6 +46,35 @@ pub fn module_descriptor() -> ModuleDescriptor {
         NAVIGATION_MODULE_NAME,
         "Navigation path query, bake, and agent runtime plugin",
     )
+    .with_driver(DriverDescriptor::new(
+        qualified_name(
+            NAVIGATION_MODULE_NAME,
+            ServiceKind::Driver,
+            "DefaultNavigationRuntime",
+        ),
+        StartupMode::Lazy,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(DefaultNavigationManager::new()) as ServiceObject)),
+    ))
+    .with_driver(DriverDescriptor::new(
+        qualified_name(
+            NAVIGATION_MODULE_NAME,
+            ServiceKind::Driver,
+            "SceneNavigationRuntime",
+        ),
+        StartupMode::Lazy,
+        vec![dependency_on(
+            NAVIGATION_MODULE_NAME,
+            ServiceKind::Driver,
+            "DefaultNavigationRuntime",
+        )],
+        factory(|core| {
+            let manager = core.resolve_driver::<DefaultNavigationManager>(
+                DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
+            )?;
+            Ok(Arc::new(SceneNavigationRuntimeHandle::new(manager)) as ServiceObject)
+        }),
+    ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
             NAVIGATION_MODULE_NAME,
@@ -48,11 +82,16 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "NavigationManager",
         ),
         StartupMode::Lazy,
-        Vec::new(),
-        factory(|_| {
-            Ok(Arc::new(NavigationManagerHandle::new(Arc::new(
-                DefaultNavigationManager::new(),
-            ))) as ServiceObject)
+        vec![dependency_on(
+            NAVIGATION_MODULE_NAME,
+            ServiceKind::Driver,
+            "DefaultNavigationRuntime",
+        )],
+        factory(|core| {
+            let manager = core.resolve_driver::<DefaultNavigationManager>(
+                DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
+            )?;
+            Ok(Arc::new(NavigationManagerHandle::new(manager)) as ServiceObject)
         }),
     ))
 }

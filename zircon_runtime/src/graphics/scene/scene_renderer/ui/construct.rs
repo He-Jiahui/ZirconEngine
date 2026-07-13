@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
 
+use super::image::ScreenSpaceUiImageSystem;
 use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 use super::text::{ScreenSpaceUiTextPrepareReport, ScreenSpaceUiTextSystem};
@@ -58,9 +59,11 @@ impl ScreenSpaceUiRenderer {
             cache: None,
         });
         let text_system = ScreenSpaceUiTextSystem::new(asset_manager, device, queue, target_format);
+        let image_system = ScreenSpaceUiImageSystem::new(device, target_format);
 
         Self {
             pipeline,
+            image_system,
             text_system,
             last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
             last_attachment_ops: crate::render_graph::RenderGraphAttachmentOps::load_store(),

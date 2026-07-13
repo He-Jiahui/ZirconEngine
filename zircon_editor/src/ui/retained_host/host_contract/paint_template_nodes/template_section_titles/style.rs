@@ -10,6 +10,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub line_height: f32,
     pub text_left: f32,
     pub strong_offset_x: f32,
+    pub separator_height: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -19,6 +20,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_muted: [u8; 4],
     pub mesh_text: [u8; 4],
     pub text_disabled: [u8; 4],
+    pub header_surface: [u8; 4],
+    pub separator: [u8; 4],
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_metrics(
@@ -29,12 +32,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_metrics_from_host(
     metrics: HostControlMetrics,
 ) -> WorkbenchSectionTitleMetrics {
-    let font_size = (metrics.font_large - metrics.border_width).max(metrics.font_body);
+    let font_size = metrics.font_body;
     WorkbenchSectionTitleMetrics {
         font_size,
         line_height: metrics.line_height(font_size),
         text_left: metrics.gap_m,
         strong_offset_x: metrics.border_width * 0.5,
+        separator_height: metrics.border_width,
     }
 }
 
@@ -51,6 +55,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
         text_muted: palette.text_muted,
         mesh_text: palette.text_muted,
         text_disabled: palette.text_disabled,
+        header_surface: palette.surface_pressed,
+        separator: palette.separator_soft,
     }
 }
 

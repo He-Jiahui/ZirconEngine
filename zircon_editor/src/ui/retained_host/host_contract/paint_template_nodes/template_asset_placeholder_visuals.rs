@@ -645,7 +645,8 @@ mod tests {
 
     #[test]
     fn asset_thumbnail_visual_scales_semantic_icon_to_slate_tile_max() {
-        let rect = large_thumbnail_rect();
+        let mut rect = large_thumbnail_rect();
+        rect.height = 120.0;
         let mut commands = Vec::new();
         let mut node = placeholder_node("asset-placeholder-visual");
         node.component_role = "asset-thumbnail-visual".into();

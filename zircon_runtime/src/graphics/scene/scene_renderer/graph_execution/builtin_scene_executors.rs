@@ -129,7 +129,6 @@ pub(super) fn deferred_lighting_executor(
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
         attachment_ops,
     )

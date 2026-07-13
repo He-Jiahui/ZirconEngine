@@ -1,4 +1,4 @@
-use crate::builtin::RuntimeTargetMode;
+use crate::core::framework::platform::RuntimeTargetMode;
 
 pub(super) type RuntimePluginPackageSupportedTargetState = Vec<RuntimeTargetMode>;
 

@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/ui/module.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support
-  - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/scroll.rs
@@ -505,7 +504,7 @@ runtime_09_m0_ui_architecture_static_passed
 Current scan baseline:
 
 - `ui/` top-level entries: 19 = 15 directories plus `module.rs`, `prelude.rs`, `public_runtime_frame.rs`, and `style.rs` (`mod.rs` is the root façade and is excluded from this audit count).
-- `surface/` entries: 20 in the current worktree scan.
+- `surface/` entries: 23 in the current worktree scan.
 - Full UI-tree `legacy` hits: `ui_legacy_hits=54`.
 - Production UI `legacy` hits/files after excluding tests and fixtures: `ui_legacy_production_hits=0` / `ui_legacy_production_files=0`.
 - Production UI `taffy` hits/files after excluding tests and fixtures: `ui_taffy_production_hits=175` / `ui_taffy_production_files=10`.
@@ -513,7 +512,7 @@ Current scan baseline:
 | Module | Runtime owner | Boundary note |
 |---|---|---|
 | `module.rs` | Runtime UI module declaration | Module descriptor/config wiring only. |
-| `public_runtime_frame.rs` | Public runtime frame DTO | Production frame bundle handed to graphics conversion without exposing fixture manager support as production UI API. |
+| `public_runtime_frame.rs` | Public runtime frame DTO | Neutral production bundle of framework extract, viewport size, and runtime-interface UI extract; it does not import graphics internals, while fixture manager support remains test-only. |
 | `layout/` | Constraints, pass sequence, scroll, style mapping, Taffy bridge, virtualization | Owns layout execution and backend adaptation. M2.1 makes `taffy_bridge/compute.rs` the only Taffy tree-build/compute owner, `pass/pipeline.rs` the authoritative pass-order owner, and leaves `style_mapping.rs` as a DTO adapter rather than a layout backend executor. M2.2 makes `layout/scroll.rs::UiScrollVirtualizationPlan` / `plan_scrollable_virtual_window(...)` the owner for scroll offset clamping, viewport/content invalidation, and virtual-window dirty decisions while `layout/virtualization.rs` remains pure window math. |
 | `surface/` | Retained surface state and runtime interaction state | Owns arranged output, hit testing, focus, popup stack, input state, component state, property mutation, default interactions, reflection snapshots, render collection data, timeline, and diagnostics. |
 | `dispatch/` | UI route manager | Owns the route authority entry point documented by `UiInputManager`: capture, popup, preview, target, bubble, focus, default action. |
@@ -711,7 +710,7 @@ runtime_15_ui_boundary_runtime_host_literal_cleanup_static_passed_cargo_deferred
 
 Runtime 15 keeps the production UI namespace and runtime host behavior unchanged while removing a source-scan false positive from the boundary guard itself. `tests/ui_boundary/runtime_host.rs` now builds the forbidden dead-code allow attribute through `DEAD_CODE_ALLOW_ATTRIBUTE = concat!("#[allow(", "dead_code", ")]")` instead of embedding that attribute as a direct test-source literal.
 
-`runtime_ui_host_surface_splits_production_frame_from_test_support` still verifies that `ui/mod.rs` exposes the production `PublicRuntimeFrame`, keeps runtime UI support mounted only for tests, and does not reintroduce the old direct runtime UI module surface. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+`runtime_ui_host_surface_splits_production_frame_from_test_support` still verifies that `ui/mod.rs` exposes the neutral production `PublicRuntimeFrame`, keeps runtime UI support mounted only for tests, and does not reintroduce the old direct runtime UI module surface. Frameworks 05 additionally requires graphics to have no `PublicRuntimeFrame` conversion owner; higher-level runtime orchestration must assemble UI extracts with graphics frames explicitly. This is static structure evidence only; Cargo remains deferred to the milestone testing stage.
 
 ## Runtime 15 M3 UI component state test folder split
 
@@ -1172,8 +1171,8 @@ Deletion conditions for non-v2 runtime paths:
 
 This Runtime 09 record contains the M0 documentation/status pass, the M1.1 normalized input route authority note, the M1.2 local navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers, the M2.1 Taffy bridge/pass-order authority cutover, the M2.2 virtualization/scroll boundary implementation, and the M3.1 template pipeline/generated-policy boundary. Package Cargo was run only as focused static/type checks in this lane; full UI behavior filters are still deferred per the current implementation-first request. The accepted static evidence is:
 
-- current owner map covers all 18 scanned UI top-level entries;
-- current `surface/` scan is recorded as 20 entries rather than the stale 2026-06-12 value;
+- current owner map covers all 19 scanned UI top-level entries;
+- current `surface/` scan is recorded as 23 entries after the Runtime Text leaf-owner additions;
 - `legacy` full-tree and production-file baselines are recorded separately after the Runtime 09 M1.2 navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers;
 - `taffy` production-file baseline is refreshed after M2.1 to record the bridge-directory and pass-order owner shape;
 - `UiScrollVirtualizationPlan` and `plan_scrollable_virtual_window(...)` are recorded as the Runtime 09 M2.2 owner boundary for scroll offset, viewport/content extent, and virtual-window invalidation;
@@ -1183,7 +1182,7 @@ This Runtime 09 record contains the M0 documentation/status pass, the M1.1 norma
 - `runtime_absorption::ui_architecture` now guards the module count, baseline scan values, v2 runtime/interface module shape, the route authority note, the direct pointer/navigation owner verdict, the navigation reply rename, the pointer reply rename, the pointer-capture fallback rename, the table row-label fallback rename, the template component-name fallback rename, the property visibility flag rename, the responsive MUI visibility flag rename, the accessibility open-state fallback rename, the layout engine backend name cutover, the surface default interaction fallback rename, the Taffy bridge/pass-order authority, the virtualization/scroll invalidation planner, the template pipeline/generated-policy boundary, and the plan/index anchors.
 - 2026-07-01 Runtime 09 UI entry map audit sync records `expected_ui_entry_count = 19` and `expected_surface_entry_count = 21`: `ui/platform_input/` is a current top-level runtime UI owner, `ui/surface/property_mutation/` is the current surface child owner beside `property_mutation.rs`, `has_pointer_capture_or_unindexed_fallback_for_owner` remains the mirror doc anchor for the pointer-capture fallback cutover, and `ui_architecture_boundary` reports `missing_doc_anchors = []` with `risks = []`. This only syncs static structure evidence; behavior and Cargo gates remain deferred.
 - 2026-07-10 Runtime Text adds two narrow direct surface leaves: `ui/surface/text_geometry.rs` owns shaped caret/range frames and `ui/surface/text_shape.rs` owns direct shaped-line projection. The Runtime 09 surface entry map is therefore 23; these leaves reuse shared text/graphics owners and do not create another UI architecture path.
-- `ui_architecture_boundary` mirrors the same static facts while `ui_architecture_markdown.py` owns Markdown rendering: `ui_architecture_boundary.py` remains the 541-line audit/risk owner, `ui_architecture_markdown.py` is the 110-line renderer, `expected_source_file_count = 52`, `expected_ui_entry_count = 18`, `expected_surface_entry_count = 20`, `legacy_full_hits = 54`, `expected_legacy_full_hits = 54`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 09, the runtime index, the M0 review, runtime-interface convergence, and the Python audit. This is static structure evidence only.
+- `ui_architecture_boundary` mirrors the same static facts while `ui_architecture_markdown.py` owns Markdown rendering: `ui_architecture_boundary.py` remains the audit/risk owner, `ui_architecture_markdown.py` is the renderer, `expected_source_file_count = 52`, `expected_ui_entry_count = 19`, `expected_surface_entry_count = 23`, `legacy_full_hits = 54`, `expected_legacy_full_hits = 54`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts` keeps this current module document aligned with the source audit; numbered plan archives retain their historical snapshots. This is static structure evidence only.
 - `runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation` keeps Runtime 09 on the `ui/input/naming_boundary/layout/template` owner/Cargo gate until editor UI owner coordination and the declared Cargo filters provide real evidence.
 
 ## 2026-07-01 Runtime 15 UI Structure Mirror Follow-Up

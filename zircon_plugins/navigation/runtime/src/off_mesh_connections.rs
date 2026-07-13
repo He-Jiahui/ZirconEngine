@@ -1,5 +1,5 @@
 use crate::component_json::parse_component;
-use zircon_runtime::asset::{NavMeshLinkAsset, NavMeshLinkCapacity};
+use zircon_runtime::core::framework::navigation::{NavMeshLinkAsset, NavMeshLinkCapacity};
 use zircon_runtime::core::framework::navigation::{
     NavMeshOffMeshBridgeDescriptor, NavMeshOffMeshLinkDescriptor, MAX_OFF_MESH_BRIDGE_LANES,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,

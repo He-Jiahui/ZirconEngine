@@ -5,8 +5,7 @@ use super::{read_repo, read_runtime_src, runtime_source_path, DEAD_CODE_ALLOW_AT
 fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
     let ui_mod = read_runtime_src("ui/mod.rs");
     let public_runtime_frame = read_runtime_src("ui/public_runtime_frame.rs");
-    let viewport_conversion =
-        read_runtime_src("graphics/types/viewport_render_frame_from_public_runtime.rs");
+    let graphics_types_mod = read_runtime_src("graphics/types/mod.rs");
     let runtime_ui_support_mod = read_runtime_src("ui/tests/runtime_ui_support/mod.rs");
     let runtime_ui_manager = read_runtime_src("ui/tests/runtime_ui_support/runtime_ui_manager.rs");
     let runtime_15_plan = read_repo(
@@ -54,14 +53,18 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
             "pub ui: Option<UiRenderExtract>",
         ],
     );
-    assert_contains_all(
-        "graphics public runtime frame conversion",
-        &viewport_conversion,
-        &[
-            "use crate::ui::PublicRuntimeFrame;",
-            "impl From<PublicRuntimeFrame> for ViewportRenderFrame",
-            "extract: Arc::new(frame.extract)",
-        ],
+    assert!(
+        !runtime_source_path("graphics/types/viewport_render_frame_from_public_runtime.rs")
+            .exists(),
+        "graphics must not retain a conversion owner that imports the UI domain"
+    );
+    assert!(
+        !graphics_types_mod.contains("viewport_render_frame_from_public_runtime"),
+        "graphics types root must not mount the retired UI conversion owner"
+    );
+    assert!(
+        !public_runtime_frame.contains("crate::graphics"),
+        "UI public runtime frame must remain a neutral extract DTO instead of importing graphics internals"
     );
     assert_contains_all(
         "runtime UI test support owner",

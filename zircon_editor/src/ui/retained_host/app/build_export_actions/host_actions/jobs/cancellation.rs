@@ -17,7 +17,6 @@ impl RetainedEditorHost {
                     .insert(summary.profile_name.clone(), summary);
                 self.mark_layout_dirty();
                 self.set_status_line(message);
-                self.sync_desktop_export_status_task();
             }
             DesktopExportCancellation::ActiveCancelRequested(snapshot) => {
                 self.mark_layout_dirty();
@@ -25,7 +24,6 @@ impl RetainedEditorHost {
                     "Cancel requested for desktop export {}",
                     snapshot.profile_name
                 ));
-                self.sync_desktop_export_status_task();
             }
         }
     }

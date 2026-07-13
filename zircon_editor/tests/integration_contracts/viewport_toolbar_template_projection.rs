@@ -6,13 +6,15 @@ use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 fn viewport_toolbar_template_projects_surface_backed_group_frames() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
-    let mut projection = runtime.project_document("scene.viewport_toolbar").unwrap();
+    let mut projection = runtime
+        .project_document("res://ui/editor/host/scene_viewport_toolbar.zui")
+        .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface("scene.viewport_toolbar")
+        .build_shared_surface("res://ui/editor/host/scene_viewport_toolbar.zui")
         .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 28.0)).unwrap();
 

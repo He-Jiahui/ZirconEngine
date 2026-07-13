@@ -118,12 +118,12 @@ fn shader_prewarm_asset_root_manifest_reads_compound_zshader_package() {
     fs::create_dir_all(root.join("shaders/example")).unwrap();
     fs::write(
         root.join("shaders/example.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000041"
 url = "res://shaders/example"
 asset_kind = "Shader"
 unit = "compound"
-source_hash = "scan-test-hash"
+source_digest = "scan-test-hash"
 "#,
     )
     .unwrap();
@@ -262,12 +262,12 @@ fn shader_prewarm_asset_root_manifest_uses_sparse_material_option_keys() {
     fs::create_dir_all(root.join("shaders/optioned")).unwrap();
     fs::write(
         root.join("shaders/optioned.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000051"
 url = "res://shaders/optioned"
 asset_kind = "Shader"
 unit = "compound"
-source_hash = "sparse-options-hash"
+source_digest = "sparse-options-hash"
 "#,
     )
     .unwrap();
@@ -648,7 +648,7 @@ fn shader_prewarm_builtin_fallback_manifest_uses_custom_geometry_source_descript
 }
 
 #[test]
-fn shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision() {
+fn shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision() {
     let root = std::env::temp_dir().join(format!(
         "zircon_shader_prewarm_zmeta_revision_{}",
         std::process::id()
@@ -657,12 +657,12 @@ fn shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision() {
     fs::create_dir_all(root.join("shaders/example")).unwrap();
     fs::write(
         root.join("shaders/example.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000044"
 url = "res://shaders/example"
 asset_kind = "Shader"
 unit = "compound"
-source_hash = "source-hash-a"
+source_digest = "source-hash-a"
 "#,
     )
     .unwrap();
@@ -682,12 +682,12 @@ shading_model = "standard_pbr"
         .material_revision;
     fs::write(
         root.join("shaders/example.zmeta"),
-        r#"format_version = 6
+        r#"format_version = 7
 uuid = "00000000-0000-0000-0000-000000000044"
 url = "res://shaders/example"
 asset_kind = "Shader"
 unit = "compound"
-source_hash = "source-hash-b"
+source_digest = "source-hash-b"
 "#,
     )
     .unwrap();
@@ -700,7 +700,7 @@ source_hash = "source-hash-b"
     assert_ne!(second_revision, 0);
     assert_ne!(
         first_revision, second_revision,
-        "zmeta source_hash edits must export a new shader prewarm material revision"
+        "zmeta source_digest edits must export a new shader prewarm material revision"
     );
     let _ = fs::remove_dir_all(root);
 }

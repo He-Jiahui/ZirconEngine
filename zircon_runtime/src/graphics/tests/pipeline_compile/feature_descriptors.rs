@@ -50,9 +50,9 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     assert!(
         preview_sky_pass.resources.iter().any(|resource| {
             resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
-                && resource.access == RenderGraphResourceAccessKind::Write
+                && resource.access == RenderGraphResourceAccessKind::Read
         }),
-        "preview sky should initialize scene depth through the render graph"
+        "preview sky should depth-test against opaque geometry through the render graph"
     );
 
     let velocity_object_pass = compiled

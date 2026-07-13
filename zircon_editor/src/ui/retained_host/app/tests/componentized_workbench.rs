@@ -4,7 +4,7 @@ use crate::scene::viewport::SceneViewportTool;
 use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
-const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
+const ASSET_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/asset_window.zui";
 
 #[test]
 fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() {

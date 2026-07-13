@@ -14,8 +14,10 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentCube
     irradiance_texture: wgpu::Texture,
     irradiance_view: wgpu::TextureView,
     sampler: wgpu::Sampler,
-    face_size: u32,
-    mip_count: u32,
+    source_face_size: u32,
+    source_mip_count: u32,
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
     irradiance_face_size: u32,
     upload_key: SourceCubemapUploadKey,
 }
@@ -57,8 +59,10 @@ impl SceneEnvironmentCubemap {
             irradiance_texture,
             irradiance_view,
             sampler,
-            face_size: 1,
-            mip_count: 1,
+            source_face_size: 1,
+            source_mip_count: 1,
+            pmrem_face_size: 1,
+            pmrem_mip_count: 1,
             irradiance_face_size: 1,
             upload_key: SourceCubemapUploadKey::default(),
         }
@@ -94,7 +98,8 @@ impl SceneEnvironmentCubemap {
         &'a self,
         uniform_buffer: &'a wgpu::Buffer,
         brdf_lut: &'a SceneEnvironmentBrdfLut,
-    ) -> [wgpu::BindGroupEntry<'a>; 6] {
+        environment_sh9: &'a wgpu::Buffer,
+    ) -> [wgpu::BindGroupEntry<'a>; 7] {
         [
             wgpu::BindGroupEntry {
                 binding: 0,
@@ -120,6 +125,52 @@ impl SceneEnvironmentCubemap {
                 binding: 5,
                 resource: wgpu::BindingResource::TextureView(&self.irradiance_view),
             },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: environment_sh9.as_entire_binding(),
+            },
+        ]
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn bind_group_entries_with_environment_views<
+        'a,
+    >(
+        &'a self,
+        uniform_buffer: &'a wgpu::Buffer,
+        brdf_lut: &'a SceneEnvironmentBrdfLut,
+        source_view: &'a wgpu::TextureView,
+        specular_view: &'a wgpu::TextureView,
+        environment_sh9: &'a wgpu::Buffer,
+    ) -> [wgpu::BindGroupEntry<'a>; 7] {
+        [
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(source_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::Sampler(&self.sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: brdf_lut.binding_resource(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::TextureView(specular_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::TextureView(&self.irradiance_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: environment_sh9.as_entire_binding(),
+            },
         ]
     }
 
@@ -135,36 +186,40 @@ impl SceneEnvironmentCubemap {
         queue: &wgpu::Queue,
         environment: &SourceCubemapEnvironment,
     ) -> bool {
-        let face_size = environment.mip_chain.face_size();
-        let mip_count = environment.mip_chain.mip_count();
+        let source_face_size = environment.mip_chain.source_face_size();
+        let source_mip_count = environment.mip_chain.source_mip_count();
+        let pmrem_face_size = environment.mip_chain.pmrem_face_size();
+        let pmrem_mip_count = environment.mip_chain.pmrem_mip_count();
         let irradiance_face_size = environment
             .irradiance_cube()
             .map(SourceCubemapIrradianceCube::face_size)
             .unwrap_or(1);
-        let requires_rebind = self.face_size != face_size
-            || self.mip_count != mip_count
+        let requires_rebind = self.source_face_size != source_face_size
+            || self.source_mip_count != source_mip_count
+            || self.pmrem_face_size != pmrem_face_size
+            || self.pmrem_mip_count != pmrem_mip_count
             || self.irradiance_face_size != irradiance_face_size;
         if requires_rebind {
             self.source_texture = create_texture(
                 device,
-                face_size,
-                mip_count,
+                source_face_size,
+                source_mip_count,
                 "zircon-scene-environment-source-cube",
             );
             self.source_view = create_view(
                 &self.source_texture,
-                mip_count,
+                source_mip_count,
                 "zircon-scene-environment-source-cube-view",
             );
             self.specular_texture = create_texture(
                 device,
-                face_size,
-                mip_count,
+                pmrem_face_size,
+                pmrem_mip_count,
                 "zircon-scene-environment-specular-pmrem-cube",
             );
             self.specular_view = create_view(
                 &self.specular_texture,
-                mip_count,
+                pmrem_mip_count,
                 "zircon-scene-environment-specular-pmrem-cube-view",
             );
             self.irradiance_texture = create_texture(
@@ -179,8 +234,10 @@ impl SceneEnvironmentCubemap {
                 "zircon-scene-environment-irradiance-cube-view",
             );
             self.sampler = create_sampler(device);
-            self.face_size = face_size;
-            self.mip_count = mip_count;
+            self.source_face_size = source_face_size;
+            self.source_mip_count = source_mip_count;
+            self.pmrem_face_size = pmrem_face_size;
+            self.pmrem_mip_count = pmrem_mip_count;
             self.irradiance_face_size = irradiance_face_size;
             self.upload_key = SourceCubemapUploadKey::default();
         }
@@ -193,16 +250,16 @@ impl SceneEnvironmentCubemap {
         upload_cubemap_texels(
             queue,
             &self.source_texture,
-            face_size,
-            mip_count,
+            source_face_size,
+            source_mip_count,
             environment.mip_chain.source_texels(),
         );
         upload_cubemap_texels(
             queue,
             &self.specular_texture,
-            face_size,
-            mip_count,
-            environment.mip_chain.texels(),
+            pmrem_face_size,
+            pmrem_mip_count,
+            environment.mip_chain.pmrem_texels(),
         );
         if let Some(irradiance_cube) = environment.irradiance_cube() {
             upload_irradiance_cube_texels(queue, &self.irradiance_texture, irradiance_cube);

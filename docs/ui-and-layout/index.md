@@ -30,13 +30,13 @@ related_code:
   - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
   - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/tree/node/visibility.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
@@ -48,24 +48,24 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/build.rs
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
   - zircon_editor/assets/ui/editor/reference/workbench.png
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_template.rs
@@ -85,15 +85,15 @@ related_code:
   - tools/editor-workbench-preview/verify-designs.mjs
   - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
   - tools/editor-workbench-preview/package.json
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/src/ui/workbench/layout/activity_drawer_layout.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
@@ -114,7 +114,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
-  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
+  - zircon_editor/assets/ui/editor/material_components
   - dev/material-rust-template/material-1.0/material.slint
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
@@ -149,13 +149,13 @@ implementation_files:
   - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
   - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/tree/node/visibility.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
@@ -167,23 +167,23 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/build.rs
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
+  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/reference/workbench.png
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_template.rs
@@ -201,15 +201,15 @@ implementation_files:
   - tools/editor-workbench-preview/verify-designs.mjs
   - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
   - tools/editor-workbench-preview/package.json
-  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/src/ui/workbench/layout/activity_drawer_layout.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
-  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
-  - zircon_editor/assets/ui/editor/project_overview.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
+  - zircon_editor/assets/ui/editor/project_overview.zui
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
@@ -429,7 +429,7 @@ The retained editor shell now treats `docs/ui-and-layout/workbench.png` and its 
 - `zircon_runtime/src/ui/tree/node/mod.rs`
 - `zircon_runtime/src/ui/tree/hit_test.rs`
 - `zircon_runtime/src/ui/surface/mod.rs`
-- `zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs`
+- `zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs`
 - `zircon_editor/src/ui/workbench/autolayout/mod.rs`
 - `zircon_editor/assets/ui/editor/host/workbench_shell.zui`
 - `zircon_editor/assets/ui/editor/windows/workbench_window.zui`
@@ -437,8 +437,8 @@ The retained editor shell now treats `docs/ui-and-layout/workbench.png` and its 
 - `zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs`
 - `zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs`
 - `zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs`
-- `zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs`
-- `zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream/tests.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs`
 - `docs/ui-and-layout/workbench.png`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs`

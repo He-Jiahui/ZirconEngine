@@ -2,10 +2,8 @@ use super::*;
 
 const CHILD_PROSE_SLICE: &str =
     "Runtime 15 M3 priority plan docs guard-test child prose full inventory sync";
-const CHILD_PROSE_STATUS: &str =
-    "runtime_15_priority_plan_docs_guard_test_child_prose_full_inventory_sync_static_passed_cargo_deferred";
-const CHILD_PROSE_GUARD_PATH: &str =
-    "priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory";
+const CHILD_PROSE_STATUS: &str = "runtime_15_priority_plan_docs_guard_test_child_prose_full_inventory_sync_static_passed_cargo_deferred";
+const CHILD_PROSE_GUARD_PATH: &str = "priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory";
 const NESTED_CHILD_PATHS: &[&str] = &[
     "structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs",
     "structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs",
@@ -16,8 +14,7 @@ const NESTED_CHILD_PATHS: &[&str] = &[
 
 #[test]
 fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
-    let parent_path =
-        "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs";
+    let parent_path = "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs";
     let parent = read_runtime_src(parent_path);
     let child_specs = [
         (
@@ -77,8 +74,6 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = priority_plan_doc_owner_row_source();
     let status_map = priority_plan_doc_status_map_source();
     let date_map = priority_plan_doc_date_map_source();
@@ -89,7 +84,6 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(
@@ -136,8 +130,6 @@ fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let session_note =
-        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = priority_plan_doc_owner_row_source();
     let status_map = priority_plan_doc_status_map_source();
     let date_map = priority_plan_doc_date_map_source();
@@ -148,7 +140,6 @@ fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
         ("structure convention plan", structure_plan.as_str()),
         ("review findings plan", review_findings.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("session note", session_note.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
         assert_contains_all(

@@ -13,6 +13,9 @@ pub(super) fn collect_resident_probes(runtime: &HybridGiRuntimeState) -> Vec<Hyb
         .map(|(probe_id, slot)| HybridGiPrepareProbe {
             probe_id,
             slot,
+            stable_instance_key: 0,
+            source_mask: zircon_runtime::core::framework::render::HYBRID_GI_SOURCE_FULL_DYNAMIC,
+            dynamic_weight_q8: u8::MAX,
             ray_budget: runtime
                 .probe_ray_budgets()
                 .get(&probe_id)
@@ -41,6 +44,9 @@ pub(super) fn collect_resident_probes(runtime: &HybridGiRuntimeState) -> Vec<Hyb
                         .then_some(HybridGiPrepareProbe {
                             probe_id: probe.probe_id(),
                             slot: probe.slot(),
+                            stable_instance_key: probe.stable_instance_key(),
+                            source_mask: probe.source_mask(),
+                            dynamic_weight_q8: probe.dynamic_weight_q8(),
                             ray_budget: probe.ray_budget(),
                             irradiance_rgb: probe.irradiance_rgb(),
                         })

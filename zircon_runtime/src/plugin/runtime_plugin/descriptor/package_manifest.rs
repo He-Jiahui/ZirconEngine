@@ -1,7 +1,8 @@
 mod rows;
 mod runtime_module;
 
-use crate::plugin::{ExportTargetPlatform, PluginPackageManifest};
+use crate::core::framework::project::ExportTargetPlatform;
+use crate::plugin::PluginPackageManifest;
 
 use self::rows::assign_descriptor_package_manifest_rows;
 use self::runtime_module::descriptor_runtime_module_manifest;

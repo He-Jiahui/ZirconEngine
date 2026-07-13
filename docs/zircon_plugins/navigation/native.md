@@ -38,7 +38,7 @@ related_code:
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache_raster.h
   - zircon_plugins/navigation/native/vendor/recastnavigation/License.txt
-  - zircon_runtime/src/asset/assets/navigation.rs
+  - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime/src/core/framework/navigation/mod.rs
   - zircon_runtime/src/core/framework/navigation/query.rs
 implementation_files:

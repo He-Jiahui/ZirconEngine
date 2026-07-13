@@ -34,7 +34,9 @@ impl RetainedEditorHost {
                 );
                 *chrome = self.build_chrome();
                 record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
-                *model = WorkbenchViewModel::build(chrome);
+                let context = self.runtime.project_command_eval_snapshot(chrome);
+                let commands = self.runtime.commands().lock();
+                *model = WorkbenchViewModel::build_with_context(&commands, chrome, &context);
             }
         }
 

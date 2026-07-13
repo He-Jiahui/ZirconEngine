@@ -1,10 +1,7 @@
 use std::fs;
 
-use zircon_runtime::scene::DefaultLevelManager;
-
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
-use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::support::*;
 
@@ -72,17 +69,20 @@ set = { self = { text = "$panel" } }
 "##;
 
 fn write_project(project_root: &std::path::Path) {
-    let world = DefaultLevelManager::default()
-        .create_default_level()
-        .snapshot();
-    EditorProjectDocument::save_to_path(project_root, &world, None).unwrap();
+    create_project_with_default_world(project_root);
 }
 
-fn manager_for(path: &std::path::Path) -> std::sync::Arc<EditorManager> {
+fn manager_for(
+    path: &std::path::Path,
+) -> (
+    zircon_runtime::core::CoreRuntime,
+    std::sync::Arc<EditorManager>,
+) {
     let runtime = editor_runtime_with_config_path(path);
-    runtime
+    let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
-        .unwrap()
+        .unwrap();
+    (runtime, manager)
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn editor_manager_refreshes_clean_zui_asset_session_from_external_file_change() 
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
     let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External ZUI");
@@ -124,7 +124,7 @@ fn editor_manager_refreshes_clean_ui_asset_session_from_external_file_change() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
     let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External");
@@ -154,7 +154,7 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -206,7 +206,7 @@ fn editor_manager_saves_dirty_conflict_local_source_as_copy_without_resolving_co
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -270,7 +270,7 @@ fn editor_manager_emergency_shell_reverts_invalid_ui_asset_source_to_last_valid(
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     let edited = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Edited");
     manager
@@ -314,7 +314,7 @@ fn editor_manager_resolves_conflict_by_reloading_from_disk_or_keeping_local() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -391,7 +391,7 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
     fs::write(&layout_path, DETACH_THEME_ZUI_VIEW_ASSET).unwrap();
     fs::write(&theme_path, IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET).unwrap();
 
-    let manager = manager_for(&path);
+    let (_runtime, manager) = manager_for(&path);
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
         .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)

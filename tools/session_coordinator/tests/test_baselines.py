@@ -154,6 +154,23 @@ class BaselineTests(unittest.TestCase):
 
         self.assertEqual(BaselineHealth.DEGRADED, self.service.current().health)
 
+    def test_degraded_background_scan_reuses_baseline_until_head_changes(self) -> None:
+        self.service.initialize()
+        (self.repo / "README.md").write_text("external\n", encoding="utf-8")
+        self.service.scan()
+
+        with mock.patch.object(
+            self.service,
+            "build_manifest",
+            side_effect=AssertionError("degraded background scan must not hash every file"),
+        ):
+            observation = self.service.prepare_scan()
+        result = self.service.apply_scan(observation)
+
+        self.assertTrue(result.applied)
+        self.assertEqual((), result.changes)
+        self.assertEqual(BaselineHealth.DEGRADED, self.service.current().health)
+
 
 if __name__ == "__main__":
     unittest.main()

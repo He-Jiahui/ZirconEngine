@@ -69,15 +69,7 @@ impl MirrorDocsSources {
         ]
     }
 
-    pub(in super::super) fn mirror_docs(&self) -> [(&'static str, &'static str); 7] {
-        [
-            ("Runtime 07 plan", self.runtime_07_plan),
-            ("runtime index", self.runtime_index),
-            ("hotspot inventory doc", self.hotspot_doc),
-            ("dynamic session doc", self.dynamic_session_doc),
-            ("ECS doc", self.ecs_doc),
-            ("runtime interface convergence doc", self.interface_doc),
-            ("runtime architecture review", self.architecture_review),
-        ]
+    pub(in super::super) fn mirror_docs(&self) -> [(&'static str, &'static str); 1] {
+        [("Runtime 07 numbered archive", self.runtime_07_archive)]
     }
 }

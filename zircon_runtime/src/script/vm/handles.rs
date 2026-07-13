@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 macro_rules! define_vm_handle {
     ($name:ident) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(
+            Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+        )]
         pub struct $name(pub u64);
 
         impl $name {
@@ -18,4 +20,3 @@ macro_rules! define_vm_handle {
 }
 
 define_vm_handle!(PluginSlotId);
-define_vm_handle!(HostHandle);

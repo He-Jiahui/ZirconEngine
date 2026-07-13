@@ -1,4 +1,4 @@
-use crate::plugin::SceneRuntimeHookRegistration;
+use crate::scene::SceneRuntimeHookRegistration;
 
 use super::super::RuntimeExtensionRegistry;
 

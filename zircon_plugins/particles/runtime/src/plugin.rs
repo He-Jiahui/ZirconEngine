@@ -10,13 +10,14 @@ use crate::render::{
     render_feature_descriptor, ParticleGpuRuntimeOwnerHandle,
 };
 use crate::service::ParticlesManager;
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
-    PluginDistributionManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginMaturity, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginMaturity, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "particles";
 pub const PARTICLES_FEATURE_NAME: &str = "particle";

@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::ProjectPluginSelection;
+use zircon_runtime::core::framework::project::ProjectPluginSelection;
 
 use super::super::super::editor_capabilities::EditorCapabilitySnapshot;
 

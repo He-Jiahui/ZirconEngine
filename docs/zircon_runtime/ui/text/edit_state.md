@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/ui/text/edit_state.rs
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
 implementation_files:
   - zircon_runtime/src/ui/text/edit_state.rs
@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-05-06 restore preedit text when composition is canceled
 tests:
-  - zircon_runtime/src/ui/tests/text_layout.rs
+  - zircon_runtime/src/ui/tests/text_layout
   - cargo test -p zircon_runtime --lib editable_text_state --locked --target-dir C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-ime-cancel-target --message-format short --color never
 doc_type: module-detail
 ---

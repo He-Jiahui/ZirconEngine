@@ -2,8 +2,7 @@ use super::*;
 
 const RUNTIME_INDEX_ANCHOR_CHILD_SPLIT_STATUS_NAME: &str =
     "Runtime 15 M3 status-support runtime-index anchor row-data child split";
-const RUNTIME_INDEX_ANCHOR_CHILD_SPLIT_STATUS_ID: &str =
-    "runtime_15_status_support_runtime_index_anchor_row_data_child_split_static_passed_cargo_deferred";
+const RUNTIME_INDEX_ANCHOR_CHILD_SPLIT_STATUS_ID: &str = "runtime_15_status_support_runtime_index_anchor_row_data_child_split_static_passed_cargo_deferred";
 const RUNTIME_INDEX_ANCHOR_CHILD_SPLIT_GUARD_NAME: &str =
     "runtime_15_status_support_runtime_index_anchor_rows_are_child_owned";
 

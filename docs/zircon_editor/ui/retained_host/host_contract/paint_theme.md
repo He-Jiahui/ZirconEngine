@@ -50,6 +50,12 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_row_metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/
@@ -60,6 +66,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15b-host-control-metrics-single-source.md
   - docs/plans/zircon_editor/editor_layout/15c-retained-palette-single-source.md
+  - docs/plans/zircon_editor/editor_layout/15/failure-2026-07-12-retained-painter-component-contract-regressions.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
 tests:
@@ -78,6 +85,10 @@ tests:
   - cargo test -p zircon_editor --lib template_inspector_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
   - cargo test -p zircon_editor --lib template_activation_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
   - cargo test -p zircon_editor --lib template_segmented --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture
   - cargo test -p zircon_editor capture_workbench_component_slate_atlas_visual_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture
   - D:\cargo-targets\zircon-editor-components-0625\debug\deps\zircon_editor-820618fe5427109a.exe tests::host::retained_menu_pointer::visual_screenshot::capture_workbench_component_slate_atlas_visual_artifact --ignored --exact --nocapture --test-threads=1
@@ -127,6 +138,8 @@ The 2026-06-25 S15.6 palette cutover extended `EditorPaletteTokens` with retaine
 The 2026-07-02 retained appearance preference follow-up makes that palette projection runtime-installable. `EditorAppearancePreferences` now exposes replacement hooks for typography, palette, control, density, and state-role tokens; retained-host startup installs both host text preferences and the current host palette from the same design-token source. `palette_projection.rs` owns the `HostMaterialPalette` projection plus the current host palette lock, and TextField/Search is the first style-selector family to consume `current_host_palette()` instead of production `PALETTE` constants. This keeps font family, color theme, and style density switchable through a single preference entry while leaving the actual preference UI and persisted settings for a later slice.
 
 The later 2026-07-02 toolbar preference-route pass extends the same appearance entry to retained-host control metrics and button chrome. `metrics.rs` keeps the Slate baseline as the default but adds `project_host_metrics(...)`, `apply_host_metrics_from_tokens(...)`, and `current_host_metrics()` so radius, border width, body/caption/title font sizes, line height, gaps, row height, and input/button geometry come from `EditorDesignTokens`. Retained-host startup now installs metrics, palette, and text preferences together. Button and Search/TextField consumers read the current metric/palette owners instead of writing concrete font families, component-local color themes, or toolbar-specific RGB values.
+
+The 2026-07-13 retained-painter contract repair closes a default-metric drift that left the static host baseline at a 24 px row while `EditorDensityTokens::WORKBENCH_ROW_HEIGHT` and Layout 15 require 28 px. The default now references that density token directly. Compact glyph classes derive from the row and shared gaps rather than title typography: panel/button/status/search/selection/list/tree use `row_height - gap_l` (16 px), toolbar uses `row_height - gap_m` (20 px), and rail uses `row_height - gap_s` (24 px). Table readable minimums combine Runtime Text header measurement with row/gap-relative density budgets, so a 232 px table drops numeric columns but retains Name and Type, while a 360 px table preserves all four columns. State and palette assertions follow the shared Runtime `UiPainterResolvedState` priority and the active host palette; they do not establish component-private state ordering or reintroduce pre-cutover RGBA values. Acceptance passed on the current editor source: metrics projection 36/36, selector/palette/state 99/99, template composites 467/467, full retained painter 696/696, and the adjacent `ui::layouts` partition 76/76. The editor source was isolated against the last coordinator-built consistent Runtime artifacts because another active Runtime IBL session temporarily left unrelated graphics interfaces mid-migration.
 
 The 2026-07-03 Asset Browser utility-tab follow-up keeps that same global route for selected tab-like buttons. Preview/References/Metadata/Plugins no longer get a filled selected pill from the local button selector; they keep transparent surface plus shared primary text and let the underline use `current_host_palette().accent`. `template_buttons/surface.rs` reads underline height and tab inset from `current_host_metrics()`, while selected toolbar chips still keep a low-emphasis framed surface. This changes selection style without adding a concrete font family, local RGB table, or component-owned theme override.
 

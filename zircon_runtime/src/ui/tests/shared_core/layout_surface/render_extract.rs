@@ -107,11 +107,8 @@ radius = 6.0
         Some(UiFrame::new(0.0, 0.0, 80.0, 28.0))
     );
     assert_eq!(launch_command.z_index, 7);
-    assert_eq!(launch_command.text.as_deref(), Some("Launch"));
-    assert_eq!(
-        launch_command.image,
-        Some(UiVisualAssetRef::Icon("rocket-outline".to_string()))
-    );
+    assert_eq!(launch_command.text, None);
+    assert_eq!(launch_command.image, None);
     assert_eq!(launch_command.opacity, 0.75);
     assert_eq!(
         launch_command.style,
@@ -129,11 +126,24 @@ radius = 6.0
             wrap: UiTextWrap::Word,
             text_direction: Default::default(),
             text_overflow: Default::default(),
-            rich_text: false,
+            rich_text_format: zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain,
             text_render_mode: UiTextRenderMode::Sdf,
+            painter_family: UiPainterFamily::IconButton,
+            painter_state: UiPainterResolvedState::Normal,
             ..UiResolvedStyle::default()
         }
     );
+    let launch_icon = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.image == Some(UiVisualAssetRef::Icon("rocket-outline".to_string()))
+        })
+        .expect("IconButton painter should emit a dedicated icon command");
+    assert!(launch_icon.z_index > launch_command.z_index);
 }
 
 #[test]
@@ -197,7 +207,7 @@ radius = 8.0
         .find(|command| command.node_id == UiNodeId::new(2))
         .unwrap();
     assert_eq!(command.kind, UiRenderCommandKind::Quad);
-    assert_eq!(command.text.as_deref(), Some("Primary"));
+    assert_eq!(command.text, None);
     assert_eq!(
         command.style,
         UiResolvedStyle {
@@ -211,6 +221,11 @@ radius = 8.0
             ..UiResolvedStyle::default()
         }
     );
+    assert!(surface.render_extract.list.commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Primary")
+    }));
 }
 
 #[test]
@@ -268,12 +283,19 @@ label = "Locate In Assets"
 
     surface.rebuild();
 
-    let locate_command = surface
+    let locate_text_command = surface
         .render_extract
         .list
         .commands
         .iter()
-        .find(|command| command.node_id == UiNodeId::new(2))
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.kind == UiRenderCommandKind::Text
+                && command.text.as_deref() == Some("Locate In Assets")
+        })
         .unwrap();
-    assert_eq!(locate_command.text.as_deref(), Some("Locate In Assets"));
+    assert_eq!(
+        locate_text_command.text.as_deref(),
+        Some("Locate In Assets")
+    );
 }

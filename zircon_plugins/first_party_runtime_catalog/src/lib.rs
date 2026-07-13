@@ -6,8 +6,9 @@
 
 use std::collections::HashSet;
 
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
-use zircon_runtime::plugin::{ProjectPluginManifest, RuntimePluginRegistrationReport};
+use zircon_runtime::core::framework::project::ProjectPluginManifest;
+use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 pub fn first_party_runtime_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,
@@ -16,7 +17,7 @@ pub fn first_party_runtime_plugin_registrations_for_manifest(
     let mut seen = HashSet::new();
     manifest
         .enabled_for_target(target_mode)
-        .filter_map(|selection| selection.runtime_id())
+        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
         .filter(|runtime_id| seen.insert(*runtime_id))
         .filter_map(first_party_registration_for_runtime_plugin)
         .collect()
@@ -72,16 +73,15 @@ mod tests {
         feature = "navigation-runtime-plugin",
         feature = "zr-vm-language-runtime-plugin"
     ))]
-    use zircon_runtime::plugin::{
-        ExportPackagingStrategy, PluginMaturity, PluginModuleKind, PluginPackageManifest,
-    };
+    use zircon_runtime::core::framework::project::ExportPackagingStrategy;
     #[cfg(not(any(
         feature = "base-runtime-plugins",
         feature = "advanced-render-runtime-plugins",
         feature = "navigation-runtime-plugin",
         feature = "zr-vm-language-runtime-plugin"
     )))]
-    use zircon_runtime::plugin::{ProjectPluginManifest, ProjectPluginSelection};
+    use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
+    use zircon_runtime::plugin::{PluginMaturity, PluginModuleKind, PluginPackageManifest};
 
     use super::*;
 
@@ -906,19 +906,33 @@ mod tests {
         feature = "navigation-runtime-plugin",
         feature = "zr-vm-language-runtime-plugin"
     ))]
-    fn platform_names(platforms: &[zircon_runtime::plugin::ExportTargetPlatform]) -> Vec<String> {
+    fn platform_names(
+        platforms: &[zircon_runtime::core::framework::project::ExportTargetPlatform],
+    ) -> Vec<String> {
         platforms
             .iter()
             .map(|platform| {
                 match platform {
-                    zircon_runtime::plugin::ExportTargetPlatform::Windows => "windows",
-                    zircon_runtime::plugin::ExportTargetPlatform::Linux => "linux",
-                    zircon_runtime::plugin::ExportTargetPlatform::Macos => "macos",
-                    zircon_runtime::plugin::ExportTargetPlatform::Android => "android",
-                    zircon_runtime::plugin::ExportTargetPlatform::Ios => "ios",
-                    zircon_runtime::plugin::ExportTargetPlatform::WebGpu => "web_gpu",
-                    zircon_runtime::plugin::ExportTargetPlatform::Wasm => "wasm",
-                    zircon_runtime::plugin::ExportTargetPlatform::Headless => "headless",
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Windows => {
+                        "windows"
+                    }
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Linux => {
+                        "linux"
+                    }
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Macos => {
+                        "macos"
+                    }
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Android => {
+                        "android"
+                    }
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Ios => "ios",
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::WebGpu => {
+                        "web_gpu"
+                    }
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Wasm => "wasm",
+                    zircon_runtime::core::framework::project::ExportTargetPlatform::Headless => {
+                        "headless"
+                    }
                 }
                 .to_string()
             })

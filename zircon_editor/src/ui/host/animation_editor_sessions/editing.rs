@@ -7,7 +7,7 @@ impl EditorUiHost {
     pub fn apply_animation_event(&self, event: &EditorAnimationEvent) -> Result<bool, EditorError> {
         match event {
             EditorAnimationEvent::AddKey { track_path, frame } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 let changed = self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .add_key(track_path, *frame)
@@ -16,7 +16,7 @@ impl EditorUiHost {
                 Ok(changed)
             }
             EditorAnimationEvent::RemoveKey { track_path, frame } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 let changed = self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .remove_key(track_path, *frame)
@@ -25,7 +25,7 @@ impl EditorUiHost {
                 Ok(changed)
             }
             EditorAnimationEvent::CreateTrack { track_path } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .create_track(track_path)
@@ -33,7 +33,7 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::RemoveTrack { track_path } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .remove_track(track_path)
@@ -44,7 +44,7 @@ impl EditorUiHost {
                 from_track_path,
                 to_track_path,
             } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .rebind_track(from_track_path, to_track_path)
@@ -52,7 +52,7 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::ScrubTimeline { frame } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session.scrub_timeline(*frame).map_err(EditorError::UiAsset)
                 })
@@ -61,7 +61,7 @@ impl EditorUiHost {
                 start_frame,
                 end_frame,
             } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .set_timeline_range(*start_frame, *end_frame)
@@ -73,7 +73,7 @@ impl EditorUiHost {
                 start_frame,
                 end_frame,
             } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .select_timeline_span(track_path, *start_frame, *end_frame)
@@ -85,7 +85,7 @@ impl EditorUiHost {
                 looping,
                 speed,
             } => {
-                let instance_id = self.active_animation_sequence_instance()?;
+                let instance_id = self.focused_animation_sequence_instance()?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .set_playback(*playing, *looping, *speed)
@@ -93,11 +93,11 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::AddGraphNode {
-                graph_path,
+                graph_locator,
                 node_id,
                 node_kind,
             } => {
-                let instance_id = self.resolve_animation_graph_instance(Some(graph_path))?;
+                let instance_id = self.resolve_animation_graph_instance(Some(graph_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .add_graph_node(node_id, node_kind)
@@ -105,10 +105,10 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::RemoveGraphNode {
-                graph_path,
+                graph_locator,
                 node_id,
             } => {
-                let instance_id = self.resolve_animation_graph_instance(Some(graph_path))?;
+                let instance_id = self.resolve_animation_graph_instance(Some(graph_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .remove_graph_node(node_id)
@@ -116,11 +116,11 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::ConnectGraphNodes {
-                graph_path,
+                graph_locator,
                 from_node_id,
                 to_node_id,
             } => {
-                let instance_id = self.resolve_animation_graph_instance(Some(graph_path))?;
+                let instance_id = self.resolve_animation_graph_instance(Some(graph_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .connect_graph_nodes(from_node_id, to_node_id)
@@ -128,11 +128,11 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::DisconnectGraphNodes {
-                graph_path,
+                graph_locator,
                 from_node_id,
                 to_node_id,
             } => {
-                let instance_id = self.resolve_animation_graph_instance(Some(graph_path))?;
+                let instance_id = self.resolve_animation_graph_instance(Some(graph_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .disconnect_graph_nodes(from_node_id, to_node_id)
@@ -140,11 +140,11 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::SetGraphParameter {
-                graph_path,
+                graph_locator,
                 parameter_name,
                 value_literal,
             } => {
-                let instance_id = self.resolve_animation_graph_instance(Some(graph_path))?;
+                let instance_id = self.resolve_animation_graph_instance(Some(graph_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .set_graph_parameter(parameter_name, value_literal)
@@ -152,24 +152,24 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::CreateState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
-                graph_path,
+                graph_locator,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
-                        .create_state(state_name, graph_path)
+                        .create_state(state_name, graph_locator)
                         .map_err(EditorError::UiAsset)
                 })
             }
             EditorAnimationEvent::RemoveState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .remove_state(state_name)
@@ -177,11 +177,11 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::SetEntryState {
-                state_machine_path,
+                state_machine_locator,
                 state_name,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .set_entry_state(state_name)
@@ -189,13 +189,13 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::CreateTransition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
                 duration_frames,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .create_transition(from_state, to_state, *duration_frames)
@@ -203,12 +203,12 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::RemoveTransition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .remove_transition(from_state, to_state)
@@ -216,7 +216,7 @@ impl EditorUiHost {
                 })
             }
             EditorAnimationEvent::SetTransitionCondition {
-                state_machine_path,
+                state_machine_locator,
                 from_state,
                 to_state,
                 parameter_name,
@@ -224,7 +224,7 @@ impl EditorUiHost {
                 value_literal,
             } => {
                 let instance_id =
-                    self.resolve_animation_graph_instance(Some(state_machine_path))?;
+                    self.resolve_animation_graph_instance(Some(state_machine_locator))?;
                 self.with_animation_session_mut(&instance_id, |session| {
                     session
                         .set_transition_condition(
@@ -264,17 +264,18 @@ impl EditorUiHost {
                 changed,
                 entry.session.display_name(),
                 entry.session.is_dirty(),
-                serde_json::json!({ "path": entry.session.asset_path() }),
+                serde_json::to_value(&entry.route)
+                    .map_err(|error| EditorError::UiAsset(error.to_string()))?,
             )
         };
         self.update_view_instance_metadata(instance_id, Some(title), Some(dirty), Some(payload))?;
         Ok(changed)
     }
 
-    fn active_animation_sequence_instance(&self) -> Result<ViewInstanceId, EditorError> {
+    fn focused_animation_sequence_instance(&self) -> Result<ViewInstanceId, EditorError> {
         let session = self.lock_session();
-        let instance_id = session.active_center_tab.clone().ok_or_else(|| {
-            EditorError::UiAsset("no active animation sequence editor".to_string())
+        let instance_id = session.focused_view.clone().ok_or_else(|| {
+            EditorError::UiAsset("no focused animation sequence editor".to_string())
         })?;
         let descriptor_id = session
             .open_view_instances
@@ -282,13 +283,13 @@ impl EditorUiHost {
             .map(|instance| instance.descriptor_id.0.as_str())
             .ok_or_else(|| {
                 EditorError::UiAsset(format!(
-                    "missing active animation sequence view {}",
+                    "missing focused animation sequence view {}",
                     instance_id.0
                 ))
             })?;
         if descriptor_id != "editor.animation_sequence" {
             return Err(EditorError::UiAsset(
-                "active center tab is not an animation sequence editor".to_string(),
+                "focused view is not an animation sequence editor".to_string(),
             ));
         }
         Ok(instance_id)
@@ -296,33 +297,33 @@ impl EditorUiHost {
 
     fn resolve_animation_graph_instance(
         &self,
-        asset_path: Option<&str>,
+        asset_locator: Option<&str>,
     ) -> Result<ViewInstanceId, EditorError> {
-        if let Some(asset_path) = asset_path {
+        if let Some(asset_locator) = asset_locator {
             if let Some(instance_id) =
-                self.find_animation_editor_instance("editor.animation_graph", asset_path)
+                self.find_animation_editor_instance("editor.animation_graph", asset_locator)
             {
                 return Ok(instance_id);
             }
         }
         let session = self.lock_session();
         let instance_id = session
-            .active_center_tab
+            .focused_view
             .clone()
-            .ok_or_else(|| EditorError::UiAsset("no active animation graph editor".to_string()))?;
+            .ok_or_else(|| EditorError::UiAsset("no focused animation graph editor".to_string()))?;
         let descriptor_id = session
             .open_view_instances
             .get(&instance_id)
             .map(|instance| instance.descriptor_id.0.as_str())
             .ok_or_else(|| {
                 EditorError::UiAsset(format!(
-                    "missing active animation graph view {}",
+                    "missing focused animation graph view {}",
                     instance_id.0
                 ))
             })?;
         if descriptor_id != "editor.animation_graph" {
             return Err(EditorError::UiAsset(
-                "active center tab is not an animation graph editor".to_string(),
+                "focused view is not an animation graph editor".to_string(),
             ));
         }
         Ok(instance_id)
@@ -331,14 +332,18 @@ impl EditorUiHost {
     fn find_animation_editor_instance(
         &self,
         descriptor_id: &str,
-        asset_path: &str,
+        asset_locator: &str,
     ) -> Option<ViewInstanceId> {
+        let asset_locator = zircon_runtime::asset::AssetUri::parse(asset_locator).ok()?;
         self.lock_session()
             .open_view_instances
             .values()
             .find(|instance| {
                 instance.descriptor_id.0 == descriptor_id
-                    && instance.serializable_payload["path"].as_str() == Some(asset_path)
+                    && serde_json::from_value::<crate::core::asset::AssetToolkitOpenRoute>(
+                        instance.serializable_payload.clone(),
+                    )
+                    .is_ok_and(|route| route.asset_locator() == &asset_locator)
             })
             .map(|instance| instance.instance_id.clone())
     }

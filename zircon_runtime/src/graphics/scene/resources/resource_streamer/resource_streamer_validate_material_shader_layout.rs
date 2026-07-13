@@ -144,14 +144,14 @@ fn push_gpu_scene_bind_group_diagnostics(
         },
         ExpectedRendererBinding {
             binding: RENDERER_CURRENT_SKINNED_PALETTE_BINDING,
-            label: "current skinned joint palette uniform",
-            resource_type: RenderShaderBindingResourceType::UniformBuffer,
+            label: "current skinned joint palette storage",
+            resource_type: RenderShaderBindingResourceType::StorageBuffer,
             required_visibility: &[RenderShaderStage::Vertex],
         },
         ExpectedRendererBinding {
             binding: RENDERER_PREVIOUS_SKINNED_PALETTE_BINDING,
-            label: "previous skinned joint palette uniform",
-            resource_type: RenderShaderBindingResourceType::UniformBuffer,
+            label: "previous skinned joint palette storage",
+            resource_type: RenderShaderBindingResourceType::StorageBuffer,
             required_visibility: &[RenderShaderStage::Vertex],
         },
     ];
@@ -450,12 +450,12 @@ mod tests {
                     ),
                     binding(
                         RENDERER_CURRENT_SKINNED_PALETTE_BINDING,
-                        RenderShaderBindingResourceType::UniformBuffer,
+                        RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex],
                     ),
                     binding(
                         RENDERER_PREVIOUS_SKINNED_PALETTE_BINDING,
-                        RenderShaderBindingResourceType::UniformBuffer,
+                        RenderShaderBindingResourceType::StorageBuffer,
                         vec![RenderShaderStage::Vertex],
                     ),
                 ],
@@ -558,7 +558,7 @@ mod tests {
         assert!(diagnostic_contains(
             &diagnostics,
             "pipeline_layout.group3.binding3",
-            "UniformBuffer"
+            "StorageBuffer"
         ));
         assert!(diagnostic_contains(
             &diagnostics,

@@ -2752,7 +2752,7 @@ fn component_showcase_pane_with_runtime_projection(
     let fixture = crate::ui::workbench::fixture::default_preview_fixture();
     let chrome = fixture.build_chrome();
     let body_spec = PaneBodySpec::new(
-        "editor.window.ui_component_showcase",
+        "res://ui/editor/component_showcase.zui",
         PanePayloadKind::UiComponentShowcaseV1,
         PaneRouteNamespace::UiComponentShowcase,
         PaneInteractionMode::TemplateOnly,

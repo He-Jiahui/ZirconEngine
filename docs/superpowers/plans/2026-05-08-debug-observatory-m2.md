@@ -57,9 +57,9 @@
   - Add `debug_observatory_view_descriptor()` to the built-in ActivityWindow registry.
 - `zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs`
   - Gate `editor.debug_observatory` on the runtime diagnostics capability.
-- `zircon_editor/src/ui/workbench/model/menu/window_menu.rs`
+- `zircon_editor/src/core/commands/menu.rs`
   - Add a Window menu item that opens `editor.debug_observatory`.
-- `zircon_editor/src/ui/workbench/model/menu_item_model.rs`
+- `zircon_editor/src/core/commands/menu_model.rs`
   - Map `editor.debug_observatory` to `Window.DebugObservatory.Open`.
 - `zircon_editor/src/core/editor_operation.rs`
   - Register the built-in `Window.DebugObservatory.Open` operation with `Window/Debug Observatory` menu path.
@@ -347,9 +347,9 @@ Implement bounded timeline storage and expose Debug Observatory as a Window-surf
 
 - [x] **M2.8 Implement Window menu registration**
 
-  Modify `zircon_editor/src/ui/workbench/model/menu/window_menu.rs` so the menu contains `Debug Observatory` and `Reset Layout`, both enabled. Use `MenuItemModel::leaf(...)` to avoid duplicate struct literals.
+  Modify `zircon_editor/src/core/commands/menu.rs` so the menu contains `Debug Observatory` and `Reset Layout`, both enabled. Use `MenuItemModel::leaf(...)` to avoid duplicate struct literals.
 
-  Modify `zircon_editor/src/ui/workbench/model/menu_item_model.rs`:
+  Modify `zircon_editor/src/core/commands/menu_model.rs`:
 
   ```rust
   "editor.debug_observatory" => Some("Window.DebugObservatory.Open"),
@@ -388,7 +388,7 @@ Implement bounded timeline storage and expose Debug Observatory as a Window-surf
 Run these commands after all M2 implementation slices and docs are complete:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/surface/timeline.rs" "zircon_runtime_interface/src/ui/surface/mod.rs" "zircon_runtime/src/ui/surface/timeline.rs" "zircon_runtime/src/ui/surface/mod.rs" "zircon_runtime/src/ui/tests/timeline.rs" "zircon_runtime/src/ui/tests/mod.rs" "zircon_editor/src/ui/workbench/debug_reflector/mod.rs" "zircon_editor/src/ui/workbench/debug_reflector/timeline.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/mod.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs" "zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs" "zircon_editor/src/ui/workbench/model/menu/window_menu.rs" "zircon_editor/src/ui/workbench/model/menu_item_model.rs" "zircon_editor/src/core/editor_operation.rs" "zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs" "zircon_editor/src/tests/host/builtin_window_descriptors.rs" "zircon_editor/src/tests/workbench/view_model/shell_projection.rs" "zircon_editor/src/tests/workbench/host_events/menu_binding.rs"
+rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/surface/timeline.rs" "zircon_runtime_interface/src/ui/surface/mod.rs" "zircon_runtime/src/ui/surface/timeline.rs" "zircon_runtime/src/ui/surface/mod.rs" "zircon_runtime/src/ui/tests/timeline.rs" "zircon_runtime/src/ui/tests/mod.rs" "zircon_editor/src/ui/workbench/debug_reflector/mod.rs" "zircon_editor/src/ui/workbench/debug_reflector/timeline.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/mod.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs" "zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs" "zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs" "zircon_editor/src/core/commands/menu.rs" "zircon_editor/src/core/commands/menu_model.rs" "zircon_editor/src/core/editor_operation.rs" "zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs" "zircon_editor/src/tests/host/builtin_window_descriptors.rs" "zircon_editor/src/tests/workbench/view_model/shell_projection.rs" "zircon_editor/src/tests/workbench/host_events/menu_binding.rs"
 ```
 
 Expected result: no formatting diff.

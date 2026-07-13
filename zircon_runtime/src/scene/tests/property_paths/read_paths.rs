@@ -175,6 +175,8 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
 fn world_property_entries_pre_size_projection_vector() {
     let entries_source = include_str!("../../world/property_access/entries.rs");
     let physics_entries_source = include_str!("../../world/property_access/entries/physics.rs");
+    let collider_shape_entries_source =
+        include_str!("../../world/property_access/entries/collider_shape.rs");
 
     assert!(
         entries_source.contains("Vec::with_capacity(self.property_entry_capacity_hint(entity))")
@@ -190,9 +192,15 @@ fn world_property_entries_pre_size_projection_vector() {
     );
     assert!(physics_entries_source.contains("pub(super) fn visit_physics_property_entries"));
     assert!(physics_entries_source.contains("pub(super) fn physics_property_entry_capacity_hint"));
-    assert!(physics_entries_source.contains("capacity += 14;"));
+    assert!(physics_entries_source.contains("capacity += 17;"));
     assert!(physics_entries_source.contains("if let Some(collider) = self.colliders.get(&entity)"));
-    assert!(physics_entries_source.contains("capacity += match &collider.shape"));
+    assert!(physics_entries_source
+        .contains("capacity += collider_shape_property_entry_capacity(&collider.shape);"));
+    assert!(collider_shape_entries_source.contains(
+        "pub(super) fn collider_shape_property_entry_capacity(shape: &ColliderShape) -> usize"
+    ));
+    assert!(collider_shape_entries_source
+        .contains("3 + collider_shape_property_entry_capacity(child_shape.as_ref())"));
     assert!(entries_source.contains("capacity += 2 + player.parameters.len();"));
     assert!(entries_source.contains("capacity += 3 + player.parameters.len();"));
     assert!(entries_source.contains("match &player.active_state"));

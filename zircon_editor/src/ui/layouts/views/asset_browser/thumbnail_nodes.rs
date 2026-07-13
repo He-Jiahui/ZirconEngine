@@ -1,14 +1,11 @@
+use super::labels::asset_state_label;
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
+use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
-use zircon_runtime_interface::resource::ResourceKind;
 
-use super::labels::{asset_state_label, resource_kind_badge_code};
-use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
-use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
-
-const THUMBNAIL_GRID_MAX_ITEMS: usize = 8;
 const THUMBNAIL_NAME_MAX_WIDTH: f32 = 96.0;
 const THUMBNAIL_FILE_NAME_MAX_WIDTH: f32 = THUMBNAIL_NAME_MAX_WIDTH;
 const THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS: usize = 4;
@@ -36,12 +33,7 @@ pub(super) fn append_asset_browser_thumbnail_nodes(
     }
 
     nodes.push(thumbnail_grid_panel());
-    for (index, asset) in snapshot
-        .visible_assets
-        .iter()
-        .take(THUMBNAIL_GRID_MAX_ITEMS)
-        .enumerate()
-    {
+    for (index, asset) in snapshot.visible_assets.iter().enumerate() {
         let selected =
             asset.selected || snapshot.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str());
         nodes.push(thumbnail_card_node(index, selected));
@@ -136,7 +128,7 @@ fn thumbnail_visual_node(
         control_id: thumbnail_control_id("Visual", index).into(),
         role: "Panel".into(),
         component_role: "asset-thumbnail-visual".into(),
-        component_variant: asset_thumbnail_icon_name(asset.kind).into(),
+        component_variant: asset.asset_type.icon_name.clone().into(),
         surface_variant: if selected {
             "asset-preview-visual".into()
         } else {
@@ -148,36 +140,6 @@ fn thumbnail_visual_node(
         corner_radius: THUMBNAIL_CARD_RADIUS,
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
-    }
-}
-
-pub(super) fn asset_thumbnail_icon_name(kind: ResourceKind) -> &'static str {
-    match kind {
-        ResourceKind::Texture => "asset-texture",
-        ResourceKind::Material | ResourceKind::MaterialGraph | ResourceKind::PhysicsMaterial => {
-            "asset-material"
-        }
-        ResourceKind::Scene => "asset-scene",
-        ResourceKind::Model
-        | ResourceKind::Mesh
-        | ResourceKind::NavMesh
-        | ResourceKind::Terrain => "asset-mesh",
-        ResourceKind::Shader => "asset-shader",
-        ResourceKind::Sound => "asset-audio",
-        ResourceKind::Font => "asset-font",
-        ResourceKind::Prefab => "asset-prefab",
-        ResourceKind::AnimationSkeleton
-        | ResourceKind::AnimationClip
-        | ResourceKind::AnimationSequence
-        | ResourceKind::AnimationGraph
-        | ResourceKind::AnimationStateMachine => "asset-animation-clip",
-        ResourceKind::TileSet | ResourceKind::TileMap => "asset-tilemap",
-        ResourceKind::Data | ResourceKind::NavigationSettings | ResourceKind::TerrainLayerStack => {
-            "asset-script"
-        }
-        ResourceKind::UiLayout => "asset-ui-layout",
-        ResourceKind::UiWidget => "asset-ui-widget",
-        ResourceKind::UiStyle => "asset-ui-style",
     }
 }
 
@@ -217,7 +179,7 @@ fn thumbnail_type_node(
     thumbnail_label_node(
         thumbnail_node_id("Type", index),
         thumbnail_control_id("Type", index),
-        resource_kind_badge_code(asset.kind).to_string(),
+        asset.asset_type.badge.clone(),
         THUMBNAIL_TYPE_FONT_SIZE,
         700,
         "accent",
@@ -353,6 +315,10 @@ mod tests {
                 file_name: "A_Texture.png".to_string(),
                 extension: "png".to_string(),
                 kind: ResourceKind::Texture,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Texture,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -448,6 +414,10 @@ mod tests {
                 file_name: "workbench_host_window.zui".to_string(),
                 extension: "zui".to_string(),
                 kind: ResourceKind::UiLayout,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::UiLayout,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -498,6 +468,10 @@ mod tests {
                 file_name: "editor_preview.zscene".to_string(),
                 extension: "zscene".to_string(),
                 kind: ResourceKind::Scene,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Scene,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -558,6 +532,10 @@ mod tests {
                 file_name: "NavigationSettingsRuntimeProfile".to_string(),
                 extension: String::new(),
                 kind: ResourceKind::Data,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Data,
+                    ),
                 preview_artifact_path: String::new(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -624,6 +602,31 @@ mod tests {
     }
 
     #[test]
+    fn thumbnail_nodes_project_every_catalog_asset_without_a_fixed_item_cap() {
+        let snapshot = AssetWorkspaceSnapshot {
+            view_mode: AssetViewMode::Thumbnail,
+            visible_assets: (0..12)
+                .map(|index| asset(&format!("asset-{index:02}"), ResourceKind::Texture))
+                .collect(),
+            ..AssetWorkspaceSnapshot::default()
+        };
+        let mut nodes = Vec::new();
+
+        append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
+
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbCard12"));
+        assert_eq!(
+            nodes
+                .iter()
+                .filter(|node| node.control_id.starts_with("AssetBrowserThumbCard"))
+                .count(),
+            12
+        );
+    }
+
+    #[test]
     fn thumbnail_nodes_project_preview_artifact_into_visual_node() {
         let preview_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("assets/ui/editor/showcase_checker.svg")
@@ -638,6 +641,10 @@ mod tests {
                 file_name: "preview.texture".to_string(),
                 extension: "texture".to_string(),
                 kind: ResourceKind::Texture,
+                asset_type:
+                    crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                        ResourceKind::Texture,
+                    ),
                 preview_artifact_path: preview_path.clone(),
                 dirty: false,
                 diagnostics: Vec::new(),
@@ -668,6 +675,10 @@ mod tests {
             file_name: format!("{uuid}.asset"),
             extension: "asset".to_string(),
             kind,
+            asset_type:
+                crate::ui::workbench::snapshot::AssetTypeProjectionSnapshot::from_resource_kind(
+                    kind,
+                ),
             preview_artifact_path: String::new(),
             dirty: false,
             diagnostics: Vec::new(),

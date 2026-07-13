@@ -1,17 +1,27 @@
 use std::{
-    io::{BufRead, BufReader, Read},
+    fmt,
     process::{Child, Command, ExitStatus, Stdio},
-    sync::mpsc::{channel, RecvTimeoutError, Sender},
-    thread::{self, JoinHandle},
+    thread,
     time::Duration,
 };
 
-use zircon_runtime::plugin::ExportPipelineStage;
-
-use super::{
-    ExportStageProgressKind, ExportWizardPipelinePlan, ExportWizardPipelineStageCommand,
-    ExportWizardProgressState,
+use crate::core::jobs::{EditorJobSystem, JobFailure};
+use crate::ui::host::export_process_support::{
+    configure_process_tree_cancellation, create_output_capture, final_output_drain,
+    join_output_with_poll, terminate_process_tree, CapturedOutputChunk, ExportProcessChildGuard,
+    ExportProcessError,
 };
+use zircon_runtime_interface::export::ExportStage;
+
+use super::super::EditorExportBuildError;
+use super::{
+    ExportStageProgressKind, ExportWizardCoreStageProjection, ExportWizardPipelinePlan,
+    ExportWizardPipelineStageCommand, ExportWizardProgressState,
+};
+
+mod core_pipeline;
+
+use core_pipeline::{run_core_compile_host, run_core_platform_bundle};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardCommandExecution {
@@ -34,12 +44,13 @@ pub struct ExportWizardCommandOutputLine {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageExecution {
-    pub stage: ExportPipelineStage,
+    pub stage: ExportStage,
     pub command: Vec<String>,
     pub exit_code: Option<i32>,
     pub stdout_lines: Vec<String>,
     pub stderr_lines: Vec<String>,
     pub diagnostics: Vec<String>,
+    pub failure: Option<JobFailure>,
     pub cancelled: bool,
     pub fatal: bool,
     pub progress: ExportWizardProgressState,
@@ -57,13 +68,13 @@ pub trait ExportWizardCommandRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String>;
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError>;
 
     fn run_with_output(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         let execution = self.run(command)?;
         for line in &execution.stdout_lines {
             emit_output(ExportWizardCommandOutputLine {
@@ -83,130 +94,178 @@ pub trait ExportWizardCommandRunner {
     fn run_with_output_and_cancel(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-        should_cancel: &mut dyn FnMut() -> bool,
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+        should_cancel: &mut (dyn FnMut() -> bool + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         let _ = should_cancel;
         self.run_with_output(command, emit_output)
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ProcessCommandRunner;
+#[derive(Clone)]
+pub struct ProcessCommandRunner {
+    jobs: EditorJobSystem,
+}
+
+impl fmt::Debug for ProcessCommandRunner {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ProcessCommandRunner")
+            .finish_non_exhaustive()
+    }
+}
+
+impl ProcessCommandRunner {
+    pub fn new(jobs: EditorJobSystem) -> Self {
+        Self { jobs }
+    }
+}
 
 impl ExportWizardCommandRunner for ProcessCommandRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.run_with_output_and_cancel(command, &mut |_| {}, &mut || false)
     }
 
     fn run_with_output(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.run_with_output_and_cancel(command, emit_output, &mut || false)
     }
 
     fn run_with_output_and_cancel(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-        emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
-        should_cancel: &mut dyn FnMut() -> bool,
-    ) -> Result<ExportWizardCommandExecution, String> {
+        emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+        should_cancel: &mut (dyn FnMut() -> bool + Send),
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
+        if matches!(
+            command.core_projection,
+            Some(ExportWizardCoreStageProjection::CompileHost { .. })
+        ) {
+            let mut execution = run_core_compile_host(self, command, emit_output, should_cancel)?;
+            project_core_stage_success(command, &mut execution, emit_output)?;
+            return Ok(execution);
+        }
+        if let Some(ExportWizardCoreStageProjection::PlatformBundle { dry_run, .. }) =
+            &command.core_projection
+        {
+            if !dry_run {
+                run_core_platform_bundle(command)?;
+            }
+        }
         if should_cancel() {
-            return Err(format!(
-                "export stage {:?} was cancelled before process launch",
-                command.stage
+            return Err(EditorExportBuildError::cancelled(
+                format!("{:?} process launch", command.stage),
+                None,
             ));
         }
 
-        let mut process = Command::new(&command.program);
-        process.args(&command.args);
-        if let Some(working_dir) = command.working_dir.as_deref() {
+        let label = format!("export stage {:?}", command.stage);
+        let (stdout_writer, stderr_writer, mut output_readers) = create_output_capture(&label)?;
+        let mut process = Command::new(command.native_program.as_ref().map_or_else(
+            || std::ffi::OsStr::new(&command.program),
+            |program| program.as_os_str(),
+        ));
+        if let Some(args) = &command.native_args {
+            process.args(args);
+        } else {
+            process.args(&command.args);
+        }
+        if let Some(working_dir) = command
+            .native_working_dir
+            .as_deref()
+            .or_else(|| command.working_dir.as_deref().map(std::path::Path::new))
+        {
             process.current_dir(working_dir);
         }
-        process.stdout(Stdio::piped()).stderr(Stdio::piped());
-        let mut child = process.spawn().map_err(|error| {
+        process
+            .stdout(Stdio::from(stdout_writer))
+            .stderr(Stdio::from(stderr_writer));
+        configure_process_tree_cancellation(&mut process);
+        let child = process.spawn().map_err(|error| {
             let working_dir = command.working_dir.as_deref().unwrap_or("<current>");
-            format!(
-                "failed to execute export stage {:?} in {working_dir}: {error}",
-                command.stage
+            ExportProcessError::io(
+                "failed to execute export stage",
+                format!("{:?} in {working_dir}", command.stage),
+                None,
+                None,
+                error,
             )
         })?;
-
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| format!("failed to capture {:?} stdout", command.stage))?;
-        let stderr = child
-            .stderr
-            .take()
-            .ok_or_else(|| format!("failed to capture {:?} stderr", command.stage))?;
-
-        let (sender, receiver) = channel();
-        let stdout_reader = spawn_output_reader(
-            ExportWizardCommandOutputStream::Stdout,
-            stdout,
-            sender.clone(),
-        );
-        let stderr_reader =
-            spawn_output_reader(ExportWizardCommandOutputStream::Stderr, stderr, sender);
+        let mut child_guard = ExportProcessChildGuard::new(child, label.clone());
 
         let mut stdout_lines = Vec::new();
         let mut stderr_lines = Vec::new();
-        let mut read_errors = Vec::new();
-        let mut output_closed = false;
-        let mut process_status = None;
-        let poll_interval = Duration::from_millis(25);
-        while !output_closed || process_status.is_none() {
-            if output_closed {
-                thread::sleep(poll_interval);
-            } else {
-                match receiver.recv_timeout(poll_interval) {
-                    Ok(message) => record_output_message(
-                        message,
-                        &mut stdout_lines,
-                        &mut stderr_lines,
-                        &mut read_errors,
-                        emit_output,
-                    ),
-                    Err(RecvTimeoutError::Timeout) => {}
-                    Err(RecvTimeoutError::Disconnected) => output_closed = true,
+        let mut stdout_buffer = IncrementalLineBuffer::default();
+        let mut stderr_buffer = IncrementalLineBuffer::default();
+        let status = loop {
+            let child = child_guard.child_mut();
+            let (output, polled) = join_output_with_poll(&self.jobs, &mut output_readers, || {
+                poll_export_process(child, command.stage, &label, should_cancel)
+            });
+            let output = match output {
+                Ok(output) => output,
+                Err(error) => {
+                    let termination = terminate_process_tree(child_guard.child_mut(), &label);
+                    if termination.succeeded {
+                        let _ = child_guard.child_mut().wait();
+                    }
+                    return Err(error
+                        .with_cleanup(termination.diagnostic, termination.error)
+                        .into());
                 }
-            }
-
-            if process_status.is_none() {
-                if should_cancel() {
-                    process_status = Some(terminate_child_for_cancel(&mut child, command.stage)?);
-                } else if let Some(status) = try_wait_export_process(&mut child, command.stage)? {
-                    process_status = Some(status);
+            };
+            record_captured_output(
+                output,
+                false,
+                &mut stdout_buffer,
+                &mut stderr_buffer,
+                &mut stdout_lines,
+                &mut stderr_lines,
+                emit_output,
+            );
+            let polled = match polled {
+                Ok(polled) => polled,
+                Err(error) => {
+                    let termination = terminate_process_tree(child_guard.child_mut(), &label);
+                    if termination.succeeded {
+                        let _ = child_guard.child_mut().wait();
+                    }
+                    return Err(error
+                        .with_cleanup(termination.diagnostic, termination.error)
+                        .into());
                 }
+            };
+            if let Some(status) = polled {
+                break status;
             }
-        }
-
-        join_output_reader(stdout_reader, command.stage, "stdout")?;
-        join_output_reader(stderr_reader, command.stage, "stderr")?;
-        let status = match process_status {
-            Some(status) => status,
-            None => child.wait().map_err(|error| {
-                format!(
-                    "failed to wait for export stage {:?} process: {error}",
-                    command.stage
-                )
-            })?,
+            thread::sleep(Duration::from_millis(25));
         };
-        if let Some(error) = read_errors.into_iter().next() {
-            return Err(error);
-        }
+        record_captured_output(
+            final_output_drain(&self.jobs, &mut output_readers)?,
+            true,
+            &mut stdout_buffer,
+            &mut stderr_buffer,
+            &mut stdout_lines,
+            &mut stderr_lines,
+            emit_output,
+        );
+        child_guard.disarm();
 
-        Ok(ExportWizardCommandExecution {
+        let mut execution = ExportWizardCommandExecution {
             exit_code: status.code(),
             stdout_lines,
             stderr_lines,
-        })
+        };
+        if status.success() {
+            project_core_stage_success(command, &mut execution, emit_output)?;
+        }
+        Ok(execution)
     }
 }
 
@@ -222,7 +281,7 @@ pub fn execute_export_wizard_stage_with_output(
     command: &ExportWizardPipelineStageCommand,
     runner: &mut impl ExportWizardCommandRunner,
     progress: &mut ExportWizardProgressState,
-    emit_output: &mut impl FnMut(ExportWizardCommandOutputLine, &ExportWizardProgressState),
+    emit_output: &mut (impl FnMut(ExportWizardCommandOutputLine, &ExportWizardProgressState) + Send),
 ) -> ExportWizardStageExecution {
     execute_export_wizard_stage_with_output_and_cancel(
         command,
@@ -237,8 +296,8 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
     command: &ExportWizardPipelineStageCommand,
     runner: &mut impl ExportWizardCommandRunner,
     progress: &mut ExportWizardProgressState,
-    emit_output: &mut impl FnMut(ExportWizardCommandOutputLine, &ExportWizardProgressState),
-    should_cancel: &mut impl FnMut() -> bool,
+    emit_output: &mut (impl FnMut(ExportWizardCommandOutputLine, &ExportWizardProgressState) + Send),
+    should_cancel: &mut (impl FnMut() -> bool + Send),
 ) -> ExportWizardStageExecution {
     let mut diagnostics = Vec::new();
     let mut fatal = false;
@@ -258,6 +317,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
             stdout_lines: Vec::new(),
             stderr_lines: Vec::new(),
             diagnostics,
+            failure: None,
             cancelled: false,
             fatal,
             progress: progress.clone(),
@@ -276,6 +336,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
             stdout_lines: Vec::new(),
             stderr_lines: Vec::new(),
             diagnostics,
+            failure: None,
             cancelled: true,
             fatal: false,
             progress: progress.clone(),
@@ -337,15 +398,18 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
                 stdout_lines: execution.stdout_lines,
                 stderr_lines: execution.stderr_lines,
                 diagnostics,
+                failure: None,
                 cancelled,
                 fatal,
                 progress: progress.clone(),
             }
         }
         Err(error) => {
-            let cancelled = cancel_observed_during_run || should_cancel();
-            fatal = !cancelled;
-            diagnostics.push(error);
+            let explicitly_cancelled = matches!(error, EditorExportBuildError::Cancelled { .. });
+            let cancelled = explicitly_cancelled;
+            fatal = !explicitly_cancelled;
+            diagnostics.push(error.to_string());
+            let failure = Some(JobFailure::new(error));
             ExportWizardStageExecution {
                 stage: command.stage,
                 command: argv,
@@ -353,6 +417,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
                 stdout_lines: Vec::new(),
                 stderr_lines: Vec::new(),
                 diagnostics,
+                failure,
                 cancelled,
                 fatal,
                 progress: progress.clone(),
@@ -363,7 +428,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
 
 fn progress_stage_diagnostics(
     progress: &ExportWizardProgressState,
-    stage: ExportPipelineStage,
+    stage: ExportStage,
 ) -> Vec<String> {
     progress
         .snapshot(stage)
@@ -376,7 +441,7 @@ pub fn execute_export_wizard_pipeline(
     runner: &mut impl ExportWizardCommandRunner,
 ) -> ExportWizardPipelineExecution {
     let mut progress =
-        ExportWizardProgressState::for_stages(plan.stages.iter().map(|command| command.stage));
+        ExportWizardProgressState::for_stages(plan.ordered_commands().map(|command| command.stage));
     let mut stages = Vec::new();
     let mut diagnostics = plan.diagnostics.clone();
     let mut fatal = !plan.diagnostics.is_empty();
@@ -389,7 +454,7 @@ pub fn execute_export_wizard_pipeline(
         };
     }
 
-    for command in &plan.stages {
+    for command in plan.ordered_commands() {
         let stage_execution = execute_export_wizard_stage(command, runner, &mut progress);
         diagnostics.extend(stage_execution.diagnostics.iter().cloned());
         let should_stop = stage_execution.fatal;
@@ -408,88 +473,199 @@ pub fn execute_export_wizard_pipeline(
     }
 }
 
-fn record_output_message(
-    message: Result<ExportWizardCommandOutputLine, String>,
+fn project_core_stage_success(
+    command: &ExportWizardPipelineStageCommand,
+    execution: &mut ExportWizardCommandExecution,
+    emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+) -> Result<(), EditorExportBuildError> {
+    let Some(ExportWizardCoreStageProjection::CompileHost {
+        report_path,
+        profile,
+        host_path,
+        build_output_root,
+        ..
+    }) = &command.core_projection
+    else {
+        return Ok(());
+    };
+    let report_path = std::path::Path::new(report_path);
+    let parent = report_path.parent().ok_or_else(|| {
+        EditorExportBuildError::materialize(std::io::Error::other(
+            "CompileHost report path has no parent",
+        ))
+    })?;
+    std::fs::create_dir_all(parent).map_err(EditorExportBuildError::materialize)?;
+    let report = serde_json::json!({
+        "stage": ExportStage::CompileHost.report_name(),
+        "profile": profile,
+        "fatal": false,
+        "diagnostics": [],
+        "host_executable": host_path,
+        "staged_engine_root": std::path::Path::new(build_output_root).join("ZirconEngine"),
+        "exit_code": execution.exit_code.unwrap_or(0),
+        "stdout_lines": execution.stdout_lines.clone(),
+        "stderr_lines": execution.stderr_lines.clone(),
+        "command": command.argv(),
+    });
+    let bytes = serde_json::to_vec_pretty(&report)
+        .map_err(|source| EditorExportBuildError::materialize(std::io::Error::other(source)))?;
+    std::fs::write(report_path, bytes).map_err(EditorExportBuildError::materialize)?;
+    for line in [
+        format!("report={}", report_path.display()),
+        format!("host={host_path}"),
+    ] {
+        execution.stdout_lines.push(line.clone());
+        emit_output(ExportWizardCommandOutputLine {
+            stream: ExportWizardCommandOutputStream::Stdout,
+            line,
+        });
+    }
+    Ok(())
+}
+
+fn record_output_line(
+    output: ExportWizardCommandOutputLine,
     stdout_lines: &mut Vec<String>,
     stderr_lines: &mut Vec<String>,
-    read_errors: &mut Vec<String>,
-    emit_output: &mut dyn FnMut(ExportWizardCommandOutputLine),
+    emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
 ) {
-    match message {
-        Ok(output) => {
-            match output.stream {
-                ExportWizardCommandOutputStream::Stdout => {
-                    stdout_lines.push(output.line.clone());
-                }
-                ExportWizardCommandOutputStream::Stderr => {
-                    stderr_lines.push(output.line.clone());
-                }
-            }
-            emit_output(output);
+    match output.stream {
+        ExportWizardCommandOutputStream::Stdout => {
+            stdout_lines.push(output.line.clone());
         }
-        Err(error) => read_errors.push(error),
+        ExportWizardCommandOutputStream::Stderr => {
+            stderr_lines.push(output.line.clone());
+        }
     }
+    emit_output(output);
 }
 
 fn try_wait_export_process(
     child: &mut Child,
-    stage: ExportPipelineStage,
-) -> Result<Option<ExitStatus>, String> {
-    child
-        .try_wait()
-        .map_err(|error| format!("failed to poll export stage {stage:?} process: {error}"))
+    stage: ExportStage,
+) -> Result<Option<ExitStatus>, ExportProcessError> {
+    child.try_wait().map_err(|error| {
+        ExportProcessError::io(
+            "failed to poll export stage process",
+            format!("{stage:?}"),
+            None,
+            None,
+            error,
+        )
+    })
 }
 
 fn terminate_child_for_cancel(
     child: &mut Child,
-    stage: ExportPipelineStage,
-) -> Result<ExitStatus, String> {
+    stage: ExportStage,
+    label: &str,
+) -> Result<ExitStatus, ExportProcessError> {
     if let Some(status) = try_wait_export_process(child, stage)? {
         return Ok(status);
     }
 
-    match child.kill() {
-        Ok(()) => child.wait().map_err(|error| {
-            format!("failed to wait for cancelled export stage {stage:?}: {error}")
-        }),
-        Err(error) => {
-            if let Some(status) = try_wait_export_process(child, stage)? {
-                Ok(status)
-            } else {
-                Err(format!(
-                    "failed to terminate cancelled export stage {stage:?} process: {error}"
-                ))
-            }
+    let termination = terminate_process_tree(child, label);
+    if !termination.succeeded {
+        if let Some(status) = try_wait_export_process(child, stage)? {
+            return Ok(status);
         }
+        return Err(ExportProcessError::TerminationFailed {
+            label: label.to_string(),
+            diagnostic: termination.diagnostic,
+            source: Box::new(
+                termination
+                    .error
+                    .expect("failed process-tree termination must retain a typed cause"),
+            ),
+        });
+    }
+    child
+        .wait()
+        .map_err(|error| {
+            ExportProcessError::io(
+                "failed to wait for cancelled export stage",
+                format!("{stage:?}"),
+                None,
+                None,
+                error,
+            )
+        })
+        .map_err(|error| error.with_cleanup(termination.diagnostic, termination.error))
+}
+
+fn poll_export_process(
+    child: &mut Child,
+    stage: ExportStage,
+    label: &str,
+    should_cancel: &mut (dyn FnMut() -> bool + Send),
+) -> Result<Option<ExitStatus>, ExportProcessError> {
+    if should_cancel() {
+        return terminate_child_for_cancel(child, stage, label).map(Some);
+    }
+    try_wait_export_process(child, stage)
+}
+
+fn record_captured_output(
+    output: CapturedOutputChunk,
+    finalize: bool,
+    stdout_buffer: &mut IncrementalLineBuffer,
+    stderr_buffer: &mut IncrementalLineBuffer,
+    stdout_lines: &mut Vec<String>,
+    stderr_lines: &mut Vec<String>,
+    emit_output: &mut (dyn FnMut(ExportWizardCommandOutputLine) + Send),
+) {
+    for line in stdout_buffer.push(output.stdout, finalize) {
+        record_output_line(
+            ExportWizardCommandOutputLine {
+                stream: ExportWizardCommandOutputStream::Stdout,
+                line,
+            },
+            stdout_lines,
+            stderr_lines,
+            emit_output,
+        );
+    }
+    for line in stderr_buffer.push(output.stderr, finalize) {
+        record_output_line(
+            ExportWizardCommandOutputLine {
+                stream: ExportWizardCommandOutputStream::Stderr,
+                line,
+            },
+            stdout_lines,
+            stderr_lines,
+            emit_output,
+        );
     }
 }
 
-fn spawn_output_reader<R>(
-    stream: ExportWizardCommandOutputStream,
-    reader: R,
-    sender: Sender<Result<ExportWizardCommandOutputLine, String>>,
-) -> JoinHandle<()>
-where
-    R: Read + Send + 'static,
-{
-    thread::spawn(move || {
-        for line in BufReader::new(reader).lines() {
-            let message = line
-                .map(|line| ExportWizardCommandOutputLine { stream, line })
-                .map_err(|error| format!("failed to read export process {stream:?}: {error}"));
-            if sender.send(message).is_err() {
-                break;
-            }
-        }
-    })
+#[derive(Default)]
+struct IncrementalLineBuffer {
+    pending: Vec<u8>,
 }
 
-fn join_output_reader(
-    handle: JoinHandle<()>,
-    stage: ExportPipelineStage,
-    stream_name: &str,
-) -> Result<(), String> {
-    handle.join().map_err(|_| {
-        format!("export stage {stage:?} {stream_name} reader panicked while streaming output")
-    })
+impl IncrementalLineBuffer {
+    fn push(&mut self, bytes: Vec<u8>, finalize: bool) -> Vec<String> {
+        self.pending.extend(bytes);
+        let mut lines = Vec::new();
+        let mut consumed = 0;
+        for (index, byte) in self.pending.iter().enumerate() {
+            if *byte == b'\n' {
+                lines.push(decode_output_line(&self.pending[consumed..index]));
+                consumed = index + 1;
+            }
+        }
+        if consumed > 0 {
+            self.pending.drain(..consumed);
+        }
+        if finalize && !self.pending.is_empty() {
+            lines.push(decode_output_line(&self.pending));
+            self.pending.clear();
+        }
+        lines
+    }
+}
+
+fn decode_output_line(bytes: &[u8]) -> String {
+    let bytes = bytes.strip_suffix(b"\r").unwrap_or(bytes);
+    String::from_utf8_lossy(bytes).to_string()
 }

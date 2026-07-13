@@ -1,4 +1,4 @@
-use super::recent_project_validation::RecentProjectValidation;
+use crate::core::project::RecentProjectValidation;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RecentProjectItemSnapshot {

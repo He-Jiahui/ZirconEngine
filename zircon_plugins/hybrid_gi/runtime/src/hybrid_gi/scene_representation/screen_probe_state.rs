@@ -10,6 +10,7 @@ use super::{
 pub(in crate::hybrid_gi::scene_representation) struct HybridGiScreenProbeDescriptor {
     probe_id: u32,
     card_id: u32,
+    stable_instance_key: u64,
     surface_page_id: Option<u32>,
     bounds_center: Vec3,
     bounds_radius: f32,
@@ -23,6 +24,10 @@ impl HybridGiScreenProbeDescriptor {
 
     pub(in crate::hybrid_gi::scene_representation) fn card_id(&self) -> u32 {
         self.card_id
+    }
+
+    pub(in crate::hybrid_gi::scene_representation) fn stable_instance_key(&self) -> u64 {
+        self.stable_instance_key
     }
 
     pub(in crate::hybrid_gi::scene_representation) fn surface_page_id(&self) -> Option<u32> {
@@ -74,6 +79,7 @@ impl HybridGiScreenProbeState {
             .map(|(probe_index, card)| HybridGiScreenProbeDescriptor {
                 probe_id: probe_index as u32,
                 card_id: card.card_id(),
+                stable_instance_key: card.stable_instance_key(),
                 surface_page_id: surface_page_ids_by_card_id.get(&card.card_id()).copied(),
                 bounds_center: card.bounds_center(),
                 bounds_radius: card.bounds_radius(),

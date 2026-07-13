@@ -24,7 +24,6 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -80,7 +79,6 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -240,7 +238,7 @@ Create:
 - `zircon_runtime/src/graphics/scene/scene_renderer/sprite/vertices.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/sprite/phase_queue.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs`
-- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/mod.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs`

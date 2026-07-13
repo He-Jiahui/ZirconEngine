@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_perception_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_perception_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native retained/Taffy replication request

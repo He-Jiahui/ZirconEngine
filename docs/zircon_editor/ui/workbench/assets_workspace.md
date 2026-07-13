@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_save_data_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\extensions\workbench_extension_save_data_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
+  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-module-contract.mjs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
 plan_sources:

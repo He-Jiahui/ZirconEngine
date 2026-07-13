@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::load_preview_image;
@@ -18,6 +18,14 @@ use super::pane_data_conversion::{
     projected_notification_center_value_text, structured_menu_items, structured_options_for_node,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
+
+#[path = "workbench_window_projection/host_value_toml.rs"]
+mod host_value_toml;
+#[path = "workbench_window_projection/typed_canvas.rs"]
+mod typed_canvas;
+
+use host_value_toml::toml_values_from_host_properties;
+use typed_canvas::projected_typed_canvas_data;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
 const WORKBENCH_STATUS_RIGHT_LABEL_COLOR: host_contract::primitives::Color =
@@ -182,6 +190,7 @@ fn to_host_contract_workbench_window_node(
         &["component_variant", "variant", "mui_variant"],
     )
     .unwrap_or_default();
+    let typed_canvas = projected_typed_canvas_data(component_role.as_str(), &button_style_values);
     let component_tokens = tokens_for_component_role(&node.component, component_role.as_str());
     let text_tone = first_string_property(&node.properties, &["text_tone"])
         .unwrap_or_else(|| default_text_tone(&node.component, &component_role, &surface_variant));
@@ -250,6 +259,7 @@ fn to_host_contract_workbench_window_node(
 
     Some(host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
+        parent_node_id: projected_parent_node_id(node, nodes_by_id).into(),
         control_id: control_id.into(),
         role: resolve_workbench_role(node.component.as_str()).into(),
         text: projected_workbench_text(node, component_role.as_str()).into(),
@@ -269,6 +279,9 @@ fn to_host_contract_workbench_window_node(
         component_category: component_tokens.category.into(),
         component_layout_role: component_tokens.layout_role.into(),
         component_variant: component_variant.into(),
+        sample_grid: typed_canvas.sample_grid,
+        timeline_strip: typed_canvas.timeline_strip,
+        weight_heatmap: typed_canvas.weight_heatmap,
         value_text: value_text.into(),
         value_number: numeric_property(&node.properties, "value")
             .or_else(|| numeric_property(&node.properties, "dot_size"))
@@ -374,6 +387,27 @@ fn to_host_contract_workbench_window_node(
         frame: template_frame(node.frame),
         ..host_contract::TemplatePaneNodeData::default()
     })
+}
+
+fn projected_parent_node_id(
+    node: &RetainedUiHostNodeModel,
+    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
+) -> String {
+    let mut parent_node_id = node.parent_id.as_deref();
+    let mut visited_node_ids = BTreeSet::new();
+    while let Some(candidate_id) = parent_node_id {
+        if !visited_node_ids.insert(candidate_id) {
+            break;
+        }
+        let Some(candidate) = nodes_by_id.get(candidate_id).copied() else {
+            break;
+        };
+        if candidate.control_id.is_some() {
+            return candidate.node_id.clone();
+        }
+        parent_node_id = candidate.parent_id.as_deref();
+    }
+    String::new()
 }
 
 fn inherited_status_right_numeric_property(
@@ -557,6 +591,11 @@ fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&
 
 fn projected_workbench_text(node: &RetainedUiHostNodeModel, component_role: &str) -> String {
     let authored_text = first_string_property(&node.properties, &["text", "label"]);
+    let authored_text = authored_text.or_else(|| {
+        matches!(node.component.as_str(), "SearchField")
+            .then(|| first_string_property(&node.properties, &["placeholder"]))
+            .flatten()
+    });
     if prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
         authored_text
             .or_else(|| node.text.clone())
@@ -643,6 +682,7 @@ fn uses_value_property_as_display_text(component: &str, component_role: &str) ->
             | "asset-field"
             | "object-field"
             | "instance-field"
+            | "property-row"
     ) || matches!(
         component,
         "InputField"
@@ -661,6 +701,7 @@ fn uses_value_property_as_display_text(component: &str, component_role: &str) ->
             | "AssetField"
             | "ObjectField"
             | "InstanceField"
+            | "PropertyRow"
     )
 }
 
@@ -671,6 +712,7 @@ fn resolve_workbench_role(component: &str) -> &'static str {
         "ComboBox" | "Dropdown" | "SearchSelect" => "Dropdown",
         "ContextActionMenu" | "ContextMenu" | "Menu" | "PopupMenu" => "Menu",
         "InputField" | "TextField" | "NumberField" => "InputField",
+        "SearchField" => "SearchField",
         "Checkbox" => "Checkbox",
         "Radio" => "Radio",
         "RangeField" | "Slider" => "Slider",
@@ -689,7 +731,9 @@ fn resolve_workbench_role(component: &str) -> &'static str {
 fn default_workbench_surface_variant(component: &str, component_role: &str) -> Option<String> {
     match (component, component_role) {
         (_, "button") | ("Button", _) | ("IconButton", _) => Some("panel".to_string()),
-        ("InputField", _) | ("TextField", _) | ("NumberField", _) => Some("inset".to_string()),
+        ("InputField", _) | ("TextField", _) | ("NumberField", _) | ("SearchField", _) => {
+            Some("inset".to_string())
+        }
         ("Label", _) | ("Text", _) => None,
         _ => Some("panel".to_string()),
     }
@@ -718,7 +762,11 @@ fn default_text_tone(component: &str, component_role: &str, surface_variant: &st
 
 fn default_corner_radius(component: &str, component_role: &str) -> f64 {
     match (component, component_role) {
-        ("Button", _) | ("IconButton", _) | ("InputField", _) | (_, "button") => 5.0,
+        ("Button", _)
+        | ("IconButton", _)
+        | ("InputField", _)
+        | ("SearchField", _)
+        | (_, "button") => 5.0,
         ("Label", _) | ("Text", _) => 0.0,
         _ => 4.0,
     }
@@ -735,7 +783,7 @@ fn default_border_width(
     if matches!(component_role, "button")
         || matches!(
             component,
-            "Button" | "IconButton" | "InputField" | "TextField" | "NumberField"
+            "Button" | "IconButton" | "InputField" | "TextField" | "NumberField" | "SearchField"
         )
         || !surface_variant.is_empty()
     {
@@ -907,50 +955,6 @@ fn parse_hex_rgba(raw: &str) -> Option<[u8; 4]> {
             channel(6..8)?,
         ]),
         _ => None,
-    }
-}
-
-fn toml_values_from_host_properties(
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-) -> BTreeMap<String, toml::Value> {
-    let mut values = properties
-        .iter()
-        .filter_map(|(key, value)| Some((key.clone(), toml_value_from_host_value(value)?)))
-        .collect::<BTreeMap<_, _>>();
-    alias_toml_value_key(&mut values, "focus_border_color", "border_color");
-    alias_toml_value_key(&mut values, "thumb_outline_color", "border_color");
-    alias_toml_value_key(&mut values, "disabled_opacity", "opacity");
-    values
-}
-
-fn alias_toml_value_key(values: &mut BTreeMap<String, toml::Value>, source: &str, target: &str) {
-    if values.contains_key(target) {
-        return;
-    }
-    if let Some(value) = values.get(source).cloned() {
-        values.insert(target.to_string(), value);
-    }
-}
-
-fn toml_value_from_host_value(value: &RetainedUiHostValue) -> Option<toml::Value> {
-    match value {
-        RetainedUiHostValue::String(value) => Some(toml::Value::String(value.clone())),
-        RetainedUiHostValue::Integer(value) => Some(toml::Value::Integer(*value)),
-        RetainedUiHostValue::Float(value) => Some(toml::Value::Float(*value)),
-        RetainedUiHostValue::Bool(value) => Some(toml::Value::Boolean(*value)),
-        RetainedUiHostValue::Datetime(value) => value.parse().ok().map(toml::Value::Datetime),
-        RetainedUiHostValue::Array(values) => Some(toml::Value::Array(
-            values
-                .iter()
-                .filter_map(toml_value_from_host_value)
-                .collect(),
-        )),
-        RetainedUiHostValue::Table(values) => Some(toml::Value::Table(
-            values
-                .iter()
-                .filter_map(|(key, value)| Some((key.clone(), toml_value_from_host_value(value)?)))
-                .collect(),
-        )),
     }
 }
 

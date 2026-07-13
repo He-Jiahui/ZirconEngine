@@ -4,22 +4,28 @@ mod pose;
 mod sampling;
 mod state_machine;
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::asset::{
+use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
 };
 use crate::core::framework::animation::{
-    AnimationGraphEvaluation, AnimationManager, AnimationParameterMap, AnimationParameterValue,
-    AnimationPlaybackSettings, AnimationPoseOutput, AnimationResult, AnimationSequenceApplyReport,
-    AnimationStateMachineEvaluation, AnimationTrackPath,
+    AnimationGraphEvaluation, AnimationIkCommand, AnimationIkCommandError, AnimationManager,
+    AnimationParameterMap, AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseOutput,
+    AnimationResult, AnimationStateMachineEvaluation, AnimationTrackPath,
 };
-use crate::core::{CoreError, CoreHandle};
+use crate::core::framework::scene::WorldHandle;
+use crate::core::{CoreError, CoreHandle, CoreWeak};
+
+const MAX_PENDING_IK_COMMANDS_PER_WORLD: usize = 4_096;
 
 #[derive(Clone, Debug)]
 pub struct DefaultAnimationManager {
-    core: Option<CoreHandle>,
+    // The registry owns this service, so its runtime back-reference must not complete an Arc cycle.
+    core: Option<CoreWeak>,
     playback_settings: Arc<Mutex<AnimationPlaybackSettings>>,
+    ik_commands: Arc<Mutex<HashMap<WorldHandle, Vec<AnimationIkCommand>>>>,
 }
 
 impl Default for DefaultAnimationManager {
@@ -29,17 +35,17 @@ impl Default for DefaultAnimationManager {
 }
 
 impl DefaultAnimationManager {
-    pub fn new(core: Option<CoreHandle>) -> Self {
+    pub fn new(core: Option<&CoreHandle>) -> Self {
         let playback_settings = core
-            .as_ref()
             .and_then(|core| {
                 core.load_config(crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY)
                     .ok()
             })
             .unwrap_or_default();
         Self {
-            core,
+            core: core.map(CoreHandle::downgrade),
             playback_settings: Arc::new(Mutex::new(playback_settings)),
+            ik_commands: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -48,7 +54,7 @@ impl DefaultAnimationManager {
         playback_settings: AnimationPlaybackSettings,
     ) -> Result<(), CoreError> {
         *self.lock_playback_settings() = playback_settings.clone();
-        if let Some(core) = &self.core {
+        if let Some(core) = self.core.as_ref().and_then(CoreWeak::upgrade) {
             core.store_config(
                 crate::animation::ANIMATION_PLAYBACK_CONFIG_KEY,
                 &playback_settings,
@@ -59,6 +65,12 @@ impl DefaultAnimationManager {
 
     fn lock_playback_settings(&self) -> MutexGuard<'_, AnimationPlaybackSettings> {
         self.playback_settings
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn lock_ik_commands(&self) -> MutexGuard<'_, HashMap<WorldHandle, Vec<AnimationIkCommand>>> {
+        self.ik_commands
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -121,14 +133,23 @@ impl AnimationManager for DefaultAnimationManager {
         pose::sample_clip_pose(skeleton, clip, time_seconds, looping)
     }
 
-    fn apply_sequence_to_world(
-        &self,
-        world: &mut crate::scene::World,
-        sequence: &crate::asset::AnimationSequenceAsset,
-        time_seconds: crate::core::math::Real,
-        looping: bool,
-    ) -> AnimationResult<AnimationSequenceApplyReport> {
-        crate::animation::sequence::apply_sequence_to_world(world, sequence, time_seconds, looping)
+    fn queue_ik_command(&self, command: AnimationIkCommand) -> Result<(), AnimationIkCommandError> {
+        command.validate()?;
+        let world = command.world();
+        let mut queues = self.lock_ik_commands();
+        let queue = queues.entry(world).or_default();
+        if queue.len() >= MAX_PENDING_IK_COMMANDS_PER_WORLD {
+            return Err(AnimationIkCommandError::QueueFull {
+                world,
+                capacity: MAX_PENDING_IK_COMMANDS_PER_WORLD,
+            });
+        }
+        queue.push(command);
+        Ok(())
+    }
+
+    fn drain_ik_commands(&self, world: WorldHandle) -> Vec<AnimationIkCommand> {
+        self.lock_ik_commands().remove(&world).unwrap_or_default()
     }
 }
 

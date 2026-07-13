@@ -14,6 +14,8 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/diagnostics.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
@@ -31,12 +33,12 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/solari/plugin.toml
   - zircon_plugins/solari/runtime/src/lib.rs
-  - zircon_runtime/src/core/modules/mod.rs
-  - zircon_runtime/src/core/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/mod.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/core/framework/window/constants.rs
-  - zircon_runtime/src/core/time.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/time.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/input/mod.rs
 implementation_files:
@@ -69,8 +71,8 @@ implementation_files:
   - zircon_plugins/solari/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/core/framework/window/constants.rs
-  - zircon_runtime/src/core/modules/mod.rs
-  - zircon_runtime/src/core/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/mod.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-08 implement ZirconEngine Bevy completion roadmap M1 app composition layer
@@ -117,7 +119,7 @@ This keeps the roadmap boundary intact: app hosts and composes, runtime schedule
 
 ## Builder Semantics
 
-`PluginGroupBuilder` stores modules by their `EngineModule::module_name()` key and preserves a separate explicit order list. The builder supports:
+`PluginGroupBuilder` stores modules by their `EngineModule::module_name()` key and preserves a separate explicit order list. Its direct insertion API is `add_module(...)`; the ambiguous legacy-style `add(...)` name is removed rather than retained as a forwarding shim. The builder supports:
 
 - `add` for inserting a new module at the end of the group.
 - `set` for replacing an existing module without changing its order.
@@ -150,9 +152,13 @@ For default, dev, editor, runtime, and headless groups, modules returned by proj
 
 Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuilder` still records the selected membership for diagnostics and replacement policy, but `BuiltinEngineEntry` hands the full descriptor set to the runtime kernel before activation. The runtime sorts by `ModuleDescriptor::init_level` and declared module dependencies, so app profiles no longer preserve a manual "list order is startup order" contract. Ordering errors stay fatal through `RuntimeModuleLoadReport`; the app must reject them instead of falling back to legacy group order.
 
+Disabled group entries are not hidden ordering anchors. `add_before(...)` and `add_after(...)` return `PluginGroupError::DisabledAnchor` when the named anchor is disabled; the caller must enable that module or express the required relation through enabled modules' descriptor dependencies. This keeps profile membership and activation authority aligned and prevents Bevy-style disabled-anchor behavior from becoming a second ordering truth.
+
+The 2026-07-13 Frameworks 02 diagnostic hard cut makes `RuntimeModuleLoadReport` typed and single-source. App entry code iterates `warning_messages()` only where it writes host logs and uses `fatal_messages()` to reject startup. It does not read or reconstruct warning/error vectors, merge required-provider failures, or preserve the deleted report fields as an app-side compatibility surface.
+
 `BuiltinEngineEntry::bootstrap` calls `module_descriptors()` on the resolved group, stores app-owned bootstrap config, then registers and activates every descriptor through `CoreRuntime`. It stores the app-owned config again after activation so modules that install default runtime config cannot overwrite the selected entry render/platform profile. Service initialization order, duplicate service detection, dependency resolution, and shutdown rules remain runtime-owned.
 
-When `BuiltinEngineEntry` is built from linked runtime plugin registration reports, `builtin_modules_for_config_with_runtime_plugin_registrations(...)` and the feature-aware variant also build a `RuntimePluginBridgeLifecycleState` from the same effective project/runtime-profile manifest. `BuiltinEngineEntry::bootstrap` installs that state into `CoreRuntime` before module activation, so bridge exports contributed by linked runtime plugins are visible to `CoreHandle::plugin_bridge_lifecycle_state()` and can receive `RuntimePluginBridgeLifecycleEvent` inputs immediately after startup. This is startup wiring only; later runtime enable/disable/reload control points still belong to the runtime/plugin lifecycle layer.
+When `BuiltinEngineEntry` is built from linked runtime plugin registration reports, `builtin_modules_for_config_with_runtime_plugin_registrations(...)` and the feature-aware variant also build a plugin-owned `RuntimePluginBridgeLifecycleState` from the same effective project/runtime-profile manifest. `BuiltinEngineEntry::bootstrap` erases that state behind `Arc<dyn RuntimeModuleLifecycleObserver>` and installs the neutral observer into Core before module activation. Explicit provider enable/disable/reload remains on the plugin-owned state exposed by `BuiltinEngineEntry::runtime_plugin_bridge_lifecycle_state()`; Core no longer exposes plugin lifecycle state or event facades.
 
 Frameworks 02 M3 removes the former test-only RuntimePlugin lifecycle dispatcher. Linked SDK/first-party/native reports carry package runtime-module rows; the project-filtered catalog validates and sorts those rows before extension merge, and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` turns the accepted extension descriptors into normal `EngineModule` entries. `CoreRuntime` is therefore the only owner of build/ready/finish/cleanup. Invalid plugin dependency graphs produce fatal selection diagnostics before bootstrap installs extensions or registers modules, with no legacy registration-order fallback.
 
@@ -198,7 +204,7 @@ The editor-host live build uses the same provider-aware profile boundary. `zirco
 
 ## Validation Coverage
 
-The plugin tests cover ordering, replacement, disabled module omission, duplicate keys, missing anchors, disabled-anchor insertion errors, and built-in group membership. Built-in group membership now explicitly checks that `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins` include platform/input descriptors while `MinimalPlugins` stays core-only. Entry tests verify that runtime entries expose the resolved group name and module selection report while preserving existing descriptor and bootstrap behavior, including the `RuntimeProfileId::Minimal` special case that selects `MinimalPlugins`, the `RuntimeProfileId::Dev` special case that selects `DevPlugins`, the formatted module-selection diagnostic summary with platform monitor-inventory/window-event/window-lifecycle/window-metrics/IME/keyboard-events/cursor-boundary/cursor-options/mouse-buttons/mouse-wheel/touch-events/pointer-position/raw-mouse-motion/gamepad-events/gamepad-rumble and selected window descriptor lines, base runner-level diagnostics before bootstrap, first-party provider-aware runner diagnostics, linked runtime-plugin registration diagnostics that include externally contributed module descriptors, and linked runtime-plugin bridge lifecycle state installation. Profile bootstrap tests also cover profile-to-entry projection, platform/render/window config persistence for runtime/headless/minimal entries, and, when the first-party provider features are enabled, linked registration closure for required `client_2d` providers plus optional animation/net/particles and navigation provider wiring.
+The plugin tests cover ordering, replacement, disabled module omission, duplicate keys, missing anchors, disabled-anchor insertion errors, and built-in group membership. Built-in group membership now explicitly checks that `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins` include platform/input descriptors while `MinimalPlugins` stays core-only. Entry tests verify the resolved group name and module selection report, first-party provider-aware diagnostics, externally contributed module descriptors, and installation of the neutral module lifecycle observer backed by the entry-owned plugin state. Profile bootstrap tests also cover profile-to-entry projection, platform/render/window config persistence for runtime/headless/minimal entries, and, when first-party provider features are enabled, linked registration closure for required `client_2d` providers plus optional animation/net/particles and navigation provider wiring.
 
 Fresh 2026-06-13 scoped validation for the bridge lifecycle bootstrap slice: `rustfmt --edition 2021` passed for `zircon_app/src/entry/builtin_modules.rs`, `zircon_app/src/entry/engine_entry.rs`, `zircon_app/src/entry/tests/profile_bootstrap.rs`, and `zircon_app/src/entry/runtime_library/runtime_session.rs`. `cargo test -p zircon_app --lib runtime_plugin_bootstrap_installs_bridge_lifecycle_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-entry-0613 --message-format short --color never -- --test-threads=1 --nocapture` passed once before test-fixture manifest declaration cleanup. The same compile also caught the missing `ZrStatusCode::BridgeNotEnabled` runtime-library status mapping, now fixed. Post-cleanup default-feature and `core-min` reruns timed out in runtime compilation while unrelated Cargo lanes were active, so no final post-cleanup Cargo pass is claimed.
 

@@ -25,7 +25,6 @@ pub(super) struct LockPoisonSources {
     pub(super) structure_convention: String,
     pub(super) module_doc: String,
     pub(super) frameworks_plan: String,
-    pub(super) session_note: String,
     pub(super) lock_poison_status_rows: String,
     pub(super) lock_poison_policy_guard_rows: String,
 }
@@ -101,9 +100,6 @@ pub(super) fn read_lock_poison_sources() -> LockPoisonSources {
         module_doc: read_repo("docs/zircon_runtime/structure/module-convention.md"),
         frameworks_plan: read_repo(
             "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
-        ),
-        session_note: read_repo(
-            ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
         ),
         lock_poison_status_rows: read_runtime_src(
             "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",

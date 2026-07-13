@@ -1,14 +1,18 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ui_v2_asset_references, AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset,
-    AnimationSkeletonAsset, AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset,
-    MaterialGraphAsset, MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset,
-    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
-    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
-    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    ui_v2_asset_references, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
+    ModelAsset, PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset,
+    TerrainAsset, TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset,
+    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    UiWidgetAsset,
 };
 use crate::asset::AssetReference;
+use crate::core::framework::animation::{
+    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
+    AnimationStateMachineAsset,
+};
+use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImportedAsset {

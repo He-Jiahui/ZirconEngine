@@ -8,7 +8,7 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_layout.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/camera_stack.rs
-  - zircon_runtime/src/scene/render_extract.rs
+  - zircon_runtime/src/scene/render_extract/mod.rs
 implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs

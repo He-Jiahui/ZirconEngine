@@ -1,15 +1,9 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::assets::{
-    AlphaMode, AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationGraphAsset,
-    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
-    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
-    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
-    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
-    MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, PhysicsMaterialAsset,
+    AlphaMode, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, PhysicsMaterialAsset,
     SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
     SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
     SceneCameraAsset, SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset,
@@ -17,9 +11,16 @@ use crate::asset::assets::{
     SceneRigidBodyAsset, SceneRigidBodyTypeAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
     MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
-use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use crate::asset::project::ProjectManager;
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::animation::{
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
+    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
+    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
+    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
+    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+};
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::ComponentPropertyPath;
@@ -33,6 +34,10 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::scene::components::default_render_layer_mask;
 
+mod project_fixture;
+
+pub(super) use project_fixture::{create_test_project, unique_temp_project_root};
+
 pub(super) fn model_handle(label: &str) -> ResourceHandle<ModelMarker> {
     ResourceHandle::new(ResourceId::from_stable_label(label))
 }
@@ -45,12 +50,26 @@ fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
 }
 
+fn project_asset_reference(project: &ProjectManager, uri: &str) -> AssetReference {
+    let locator = AssetUri::parse(uri).unwrap();
+    let entry = project
+        .asset_registry()
+        .entry_by_path(&locator)
+        .unwrap_or_else(|| panic!("fixture asset should be registered before authoring {locator}"));
+    AssetReference::new(entry.uuid(), locator)
+}
+
 pub(super) fn project_model_handle(
     project: &ProjectManager,
     uri: &str,
 ) -> ResourceHandle<ModelMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_material_handle(
@@ -58,7 +77,12 @@ pub(super) fn project_material_handle(
     uri: &str,
 ) -> ResourceHandle<MaterialMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_mesh_handle(
@@ -66,7 +90,12 @@ pub(super) fn project_mesh_handle(
     uri: &str,
 ) -> ResourceHandle<MeshMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_physics_material_handle(
@@ -74,7 +103,12 @@ pub(super) fn project_physics_material_handle(
     uri: &str,
 ) -> ResourceHandle<PhysicsMaterialMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_animation_skeleton_handle(
@@ -82,7 +116,12 @@ pub(super) fn project_animation_skeleton_handle(
     uri: &str,
 ) -> ResourceHandle<AnimationSkeletonMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_animation_clip_handle(
@@ -90,7 +129,12 @@ pub(super) fn project_animation_clip_handle(
     uri: &str,
 ) -> ResourceHandle<AnimationClipMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_animation_sequence_handle(
@@ -98,7 +142,12 @@ pub(super) fn project_animation_sequence_handle(
     uri: &str,
 ) -> ResourceHandle<AnimationSequenceMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_animation_graph_handle(
@@ -106,7 +155,12 @@ pub(super) fn project_animation_graph_handle(
     uri: &str,
 ) -> ResourceHandle<AnimationGraphMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
+    )
 }
 
 pub(super) fn project_animation_state_machine_handle(
@@ -114,74 +168,12 @@ pub(super) fn project_animation_state_machine_handle(
     uri: &str,
 ) -> ResourceHandle<AnimationStateMachineMarker> {
     let uri = AssetUri::parse(uri).unwrap();
-    ResourceHandle::new(project.asset_id_for_uri(&uri).unwrap())
-}
-
-pub(super) fn unique_temp_project_root(label: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("zircon_scene_{label}_{unique}"))
-}
-
-pub(super) fn create_test_project(root: &PathBuf) -> ProjectManager {
-    let paths = ProjectPaths::from_root(root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new(
-        "SceneSandbox",
-        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
-        1,
+    ResourceHandle::new(
+        project
+            .asset_registry()
+            .resolve_asset_id_by_path(&uri)
+            .unwrap(),
     )
-    .save(paths.manifest_path())
-    .unwrap();
-
-    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
-    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_triangle_zmesh(paths.assets_root().join("meshes").join("triangle.zmesh"));
-    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
-    write_default_physics_material(
-        paths
-            .assets_root()
-            .join("physics")
-            .join("default.physics_material.toml"),
-    );
-    write_default_animation_skeleton(
-        paths
-            .assets_root()
-            .join("animation")
-            .join("hero.skeleton.zranim"),
-    );
-    write_default_animation_clip(
-        paths
-            .assets_root()
-            .join("animation")
-            .join("hero.clip.zranim"),
-    );
-    write_default_animation_sequence(
-        paths
-            .assets_root()
-            .join("animation")
-            .join("hero.sequence.zranim"),
-    );
-    write_default_animation_graph(
-        paths
-            .assets_root()
-            .join("animation")
-            .join("hero.graph.zranim"),
-    );
-    write_default_animation_state_machine(
-        paths
-            .assets_root()
-            .join("animation")
-            .join("hero.state_machine.zranim"),
-    );
-    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
-
-    let mut project = ProjectManager::open(root).unwrap();
-    project.scan_and_import().unwrap();
-    project
 }
 
 fn write_valid_wgsl(path: PathBuf) {
@@ -268,18 +260,21 @@ fn write_triangle_zmesh(path: PathBuf) {
     fs::write(path, mesh.to_toml_string().unwrap()).unwrap();
 }
 
-fn write_default_material(path: PathBuf) {
+fn write_default_material(path: PathBuf, project: &ProjectManager) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
     let material = MaterialAsset {
         name: Some("Grid".to_string()),
-        shader: asset_reference("res://shaders/pbr.wgsl"),
+        shader: project_asset_reference(project, "res://shaders/pbr.wgsl"),
         parent: None,
         options: Default::default(),
         queue: None,
         base_color: [0.8, 0.8, 0.8, 1.0],
-        base_color_texture: Some(asset_reference("res://textures/checker.png")),
+        base_color_texture: Some(project_asset_reference(
+            project,
+            "res://textures/checker.png",
+        )),
         normal_texture: None,
         metallic: 0.1,
         roughness: 0.8,
@@ -293,10 +288,13 @@ fn write_default_material(path: PathBuf) {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    let document = material
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
-fn write_default_scene(path: PathBuf) {
+fn write_default_scene(path: PathBuf, project: &ProjectManager) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -355,9 +353,12 @@ fn write_default_scene(path: PathBuf) {
                 mobility: SceneMobilityAsset::Dynamic,
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
-                    model: asset_reference("res://models/triangle.obj"),
-                    mesh: Some(asset_reference("res://meshes/triangle.zmesh")),
-                    material: asset_reference("res://materials/grid.zmaterial"),
+                    model: project_asset_reference(project, "res://models/triangle.obj"),
+                    mesh: Some(project_asset_reference(
+                        project,
+                        "res://meshes/triangle.zmesh",
+                    )),
+                    material: project_asset_reference(project, "res://materials/grid.zmaterial"),
                     render_queue: 0,
                     material_queue: 0,
                     order_in_layer: 0,
@@ -375,12 +376,14 @@ fn write_default_scene(path: PathBuf) {
                 rigid_body: Some(SceneRigidBodyAsset {
                     body_type: SceneRigidBodyTypeAsset::Dynamic,
                     mass: 2.5,
+                    mass_properties: Default::default(),
                     linear_velocity: [0.25, 0.0, 0.0],
                     angular_velocity: [0.0, 0.25, 0.0],
                     linear_damping: 0.15,
                     angular_damping: 0.05,
                     gravity_scale: 1.0,
-                    can_sleep: true,
+                    ccd_mode: Default::default(),
+                    sleep_policy: Default::default(),
                     lock_translation: [false, false, false],
                     lock_rotation: [false, true, false],
                 }),
@@ -392,7 +395,8 @@ fn write_default_scene(path: PathBuf) {
                     layer: 2,
                     collision_group: 4,
                     collision_mask: 0x0000_00ff,
-                    material: Some(asset_reference(
+                    material: Some(project_asset_reference(
+                        project,
                         "res://physics/default.physics_material.toml",
                     )),
                     material_override: Some(PhysicsMaterialMetadata {
@@ -419,10 +423,13 @@ fn write_default_scene(path: PathBuf) {
                     skeleton_binding: None,
                 }),
                 animation_skeleton: Some(SceneAnimationSkeletonAsset {
-                    skeleton: asset_reference("res://animation/hero.skeleton.zranim"),
+                    skeleton: project_asset_reference(
+                        project,
+                        "res://animation/hero.skeleton.zranim",
+                    ),
                 }),
                 animation_player: Some(SceneAnimationPlayerAsset {
-                    clip: asset_reference("res://animation/hero.clip.zranim"),
+                    clip: project_asset_reference(project, "res://animation/hero.clip.zranim"),
                     playback_speed: 1.25,
                     time_seconds: 0.5,
                     weight: 0.8,
@@ -430,14 +437,17 @@ fn write_default_scene(path: PathBuf) {
                     playing: true,
                 }),
                 animation_sequence_player: Some(SceneAnimationSequencePlayerAsset {
-                    sequence: asset_reference("res://animation/hero.sequence.zranim"),
+                    sequence: project_asset_reference(
+                        project,
+                        "res://animation/hero.sequence.zranim",
+                    ),
                     playback_speed: 1.0,
                     time_seconds: 0.25,
                     looping: false,
                     playing: true,
                 }),
                 animation_graph_player: Some(SceneAnimationGraphPlayerAsset {
-                    graph: asset_reference("res://animation/hero.graph.zranim"),
+                    graph: project_asset_reference(project, "res://animation/hero.graph.zranim"),
                     parameters: std::collections::BTreeMap::from([
                         ("grounded".to_string(), AnimationParameterValue::Bool(true)),
                         ("speed".to_string(), AnimationParameterValue::Scalar(1.5)),
@@ -445,7 +455,10 @@ fn write_default_scene(path: PathBuf) {
                     playing: true,
                 }),
                 animation_state_machine_player: Some(SceneAnimationStateMachinePlayerAsset {
-                    state_machine: asset_reference("res://animation/hero.state_machine.zranim"),
+                    state_machine: project_asset_reference(
+                        project,
+                        "res://animation/hero.state_machine.zranim",
+                    ),
                     parameters: std::collections::BTreeMap::from([
                         ("grounded".to_string(), AnimationParameterValue::Bool(true)),
                         ("speed".to_string(), AnimationParameterValue::Scalar(1.5)),
@@ -460,7 +473,10 @@ fn write_default_scene(path: PathBuf) {
             },
         ],
     };
-    fs::write(path, scene.to_toml_string().unwrap()).unwrap();
+    let document = scene
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn write_default_physics_material(path: PathBuf) {
@@ -611,72 +627,98 @@ fn sample_animation_state_machine_asset() -> AnimationStateMachineAsset {
         entry_state: "Locomotion".to_string(),
         states: vec![AnimationStateAsset {
             name: "Locomotion".to_string(),
-            graph: asset_reference("res://animation/hero.graph.zranim"),
+            kind: AnimationStateKindAsset::GraphRef {
+                graph: asset_reference("res://animation/hero.graph.zranim"),
+            },
         }],
         transitions: vec![AnimationStateTransitionAsset {
             from_state: "Locomotion".to_string(),
             to_state: "Locomotion".to_string(),
             duration_seconds: 0.1,
+            exit_time: None,
+            interruption: Default::default(),
             conditions: vec![AnimationTransitionConditionAsset {
                 parameter: "grounded".to_string(),
-                operator: crate::asset::AnimationConditionOperatorAsset::Equal,
+                operator: crate::core::framework::animation::AnimationConditionOperatorAsset::Equal,
                 value: Some(AnimationParameterValue::Bool(true)),
             }],
         }],
+        layers: Vec::new(),
     }
 }
 
-fn scalar_channel(keys: [(f32, f32); 2]) -> crate::asset::AnimationChannelAsset {
-    crate::asset::AnimationChannelAsset {
+fn scalar_channel(
+    keys: [(f32, f32); 2],
+) -> crate::core::framework::animation::AnimationChannelAsset {
+    crate::core::framework::animation::AnimationChannelAsset {
         interpolation: AnimationInterpolationAsset::Hermite,
         keys: keys
             .into_iter()
-            .map(
-                |(time_seconds, value)| crate::asset::AnimationChannelKeyAsset {
+            .map(|(time_seconds, value)| {
+                crate::core::framework::animation::AnimationChannelKeyAsset {
                     time_seconds,
-                    value: crate::asset::AnimationChannelValueAsset::Scalar(value),
-                    in_tangent: Some(crate::asset::AnimationChannelValueAsset::Scalar(0.0)),
-                    out_tangent: Some(crate::asset::AnimationChannelValueAsset::Scalar(0.0)),
-                },
-            )
+                    value: crate::core::framework::animation::AnimationChannelValueAsset::Scalar(
+                        value,
+                    ),
+                    in_tangent: Some(
+                        crate::core::framework::animation::AnimationChannelValueAsset::Scalar(0.0),
+                    ),
+                    out_tangent: Some(
+                        crate::core::framework::animation::AnimationChannelValueAsset::Scalar(0.0),
+                    ),
+                }
+            })
             .collect(),
     }
 }
 
-fn vec3_channel(keys: [(f32, [f32; 3]); 2]) -> crate::asset::AnimationChannelAsset {
-    crate::asset::AnimationChannelAsset {
+fn vec3_channel(
+    keys: [(f32, [f32; 3]); 2],
+) -> crate::core::framework::animation::AnimationChannelAsset {
+    crate::core::framework::animation::AnimationChannelAsset {
         interpolation: AnimationInterpolationAsset::Hermite,
         keys: keys
             .into_iter()
-            .map(
-                |(time_seconds, value)| crate::asset::AnimationChannelKeyAsset {
+            .map(|(time_seconds, value)| {
+                crate::core::framework::animation::AnimationChannelKeyAsset {
                     time_seconds,
-                    value: crate::asset::AnimationChannelValueAsset::Vec3(value),
-                    in_tangent: Some(crate::asset::AnimationChannelValueAsset::Vec3([
-                        0.0, 0.0, 0.0,
-                    ])),
-                    out_tangent: Some(crate::asset::AnimationChannelValueAsset::Vec3([
-                        0.0, 0.0, 0.0,
-                    ])),
-                },
-            )
+                    value: crate::core::framework::animation::AnimationChannelValueAsset::Vec3(
+                        value,
+                    ),
+                    in_tangent: Some(
+                        crate::core::framework::animation::AnimationChannelValueAsset::Vec3([
+                            0.0, 0.0, 0.0,
+                        ]),
+                    ),
+                    out_tangent: Some(
+                        crate::core::framework::animation::AnimationChannelValueAsset::Vec3([
+                            0.0, 0.0, 0.0,
+                        ]),
+                    ),
+                }
+            })
             .collect(),
     }
 }
 
-fn quaternion_channel(keys: [(f32, [f32; 4]); 2]) -> crate::asset::AnimationChannelAsset {
-    crate::asset::AnimationChannelAsset {
+fn quaternion_channel(
+    keys: [(f32, [f32; 4]); 2],
+) -> crate::core::framework::animation::AnimationChannelAsset {
+    crate::core::framework::animation::AnimationChannelAsset {
         interpolation: AnimationInterpolationAsset::Hermite,
         keys: keys
             .into_iter()
-            .map(
-                |(time_seconds, value)| crate::asset::AnimationChannelKeyAsset {
+            .map(|(time_seconds, value)| {
+                crate::core::framework::animation::AnimationChannelKeyAsset {
                     time_seconds,
-                    value: crate::asset::AnimationChannelValueAsset::Quaternion(value),
+                    value:
+                        crate::core::framework::animation::AnimationChannelValueAsset::Quaternion(
+                            value,
+                        ),
                     in_tangent: None,
                     out_tangent: None,
-                },
-            )
+                }
+            })
             .collect(),
     }
 }

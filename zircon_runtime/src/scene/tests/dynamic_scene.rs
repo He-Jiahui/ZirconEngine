@@ -6,7 +6,7 @@ use zircon_runtime_interface::reflect::{
 };
 
 use crate::core::framework::physics::PhysicsWorldStepPlan;
-use crate::plugin::ComponentTypeDescriptor;
+use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::ecs::Resource;
 use crate::scene::{
     DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, ReflectResource,

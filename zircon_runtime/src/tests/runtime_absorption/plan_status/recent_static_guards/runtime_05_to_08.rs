@@ -3,9 +3,9 @@ use super::document_sources::RecentStaticGuardSources;
 
 pub(super) fn assert_runtime_05_to_08_anchors(sources: &RecentStaticGuardSources) {
     let runtime_05_anchors = [
-        "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
-        "pending_full_scene_cargo",
-        "cargo test -p zircon_runtime --lib scene:: --locked",
+        "runtime_05_closeout_status_records_completed_scene_cargo_gate",
+        "runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete",
+        "1642 passed / 0 failed / 5 ignored",
         "runtime_02_generated_status_guard_present = true",
         "runtime_07_owner_budget_status_guard_present = true",
         "large_file_hotspot_count = 42",

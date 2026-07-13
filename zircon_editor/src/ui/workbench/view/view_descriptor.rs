@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::commands::DocumentKind;
 use crate::ui::workbench::autolayout::PaneConstraints;
 
 use super::{
@@ -18,6 +19,8 @@ pub struct ViewDescriptor {
     pub preferred_drawer_slot: Option<crate::ui::workbench::layout::ActivityDrawerSlot>,
     pub preferred_host: PreferredHost,
     pub persistence_key_policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub document_kind: Option<DocumentKind>,
     #[serde(default)]
     pub default_constraints: PaneConstraints,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -45,6 +48,7 @@ impl ViewDescriptor {
             preferred_drawer_slot: None,
             preferred_host: PreferredHost::DocumentCenter,
             persistence_key_policy: descriptor_key,
+            document_kind: None,
             default_constraints: PaneConstraints::default(),
             pane_template: None,
             activity_window_template: None,

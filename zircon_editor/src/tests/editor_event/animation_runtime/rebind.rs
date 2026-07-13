@@ -3,19 +3,19 @@ use super::*;
 #[test]
 fn animation_rebind_to_existing_track_keeps_original_sequence_tracks_intact() {
     let _guard = env_lock().lock().unwrap();
-    let harness = EventRuntimeHarness::new("zircon_editor_event_animation_rebind_duplicate");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_rebind_duplicate_asset")
-        .join("hero.sequence.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_sequence_asset_with_multiple_tracks(&asset_path);
+    let mut harness = EventRuntimeHarness::new("zircon_editor_event_animation_rebind_duplicate");
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_rebind_duplicate_project",
+        "res://animation/hero.sequence.zranim",
+        write_sequence_asset_with_multiple_tracks,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
-            }),
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset { asset_locator }),
         )
         .unwrap();
     harness
@@ -67,20 +67,20 @@ fn animation_rebind_to_existing_track_keeps_original_sequence_tracks_intact() {
 #[test]
 fn animation_rebind_updates_selected_timeline_span_to_new_track_path() {
     let _guard = env_lock().lock().unwrap();
-    let harness =
+    let mut harness =
         EventRuntimeHarness::new("zircon_editor_event_animation_rebind_updates_selection");
-    let asset_path = unique_temp_dir("zircon_editor_event_animation_rebind_updates_selection")
-        .join("hero.sequence.zranim");
-    fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
-    write_sequence_asset_with_multiple_tracks(&asset_path);
+    let asset_locator = open_indexed_animation_asset(
+        &mut harness,
+        "zircon_editor_event_animation_rebind_updates_selection_project",
+        "res://animation/hero.sequence.zranim",
+        write_sequence_asset_with_multiple_tracks,
+    );
 
     harness
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
-            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_path: asset_path.to_string_lossy().into_owned(),
-            }),
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset { asset_locator }),
         )
         .unwrap();
     harness

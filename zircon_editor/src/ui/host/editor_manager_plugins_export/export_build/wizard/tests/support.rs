@@ -1,17 +1,22 @@
-use std::cell::Cell;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::Arc;
 
+use crate::core::jobs::{test_job_system, EditorJobSystem};
 use crate::ui::template_runtime::RetainedUiNodeProjection;
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime_interface::export::ExportStage;
 
 use super::super::*;
+
+pub(super) fn editor_jobs() -> EditorJobSystem {
+    test_job_system()
+}
 
 #[derive(Default)]
 pub(super) struct StubRunner {
     pub(super) executions: Vec<ExportWizardCommandExecution>,
-    pub(super) seen_stages: Vec<ExportPipelineStage>,
+    pub(super) seen_stages: Vec<ExportStage>,
 }
 
 impl StubRunner {
@@ -27,7 +32,7 @@ impl ExportWizardCommandRunner for StubRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.seen_stages.push(command.stage);
         if self.executions.is_empty() {
             return Ok(ExportWizardCommandExecution {
@@ -42,55 +47,52 @@ impl ExportWizardCommandRunner for StubRunner {
 
 pub(super) struct CancelAfterRuns {
     requested_after_runs: usize,
-    pub(super) observed_runs: Rc<Cell<usize>>,
+    pub(super) observed_runs: Arc<AtomicUsize>,
 }
 
 impl CancelAfterRuns {
     pub(super) fn new(requested_after_runs: usize) -> Self {
         Self {
             requested_after_runs,
-            observed_runs: Rc::new(Cell::new(0)),
+            observed_runs: Arc::new(AtomicUsize::new(0)),
         }
     }
 
-    pub(super) fn observer(&self) -> Rc<Cell<usize>> {
-        Rc::clone(&self.observed_runs)
+    pub(super) fn observer(&self) -> Arc<AtomicUsize> {
+        Arc::clone(&self.observed_runs)
     }
 }
 
 impl ExportWizardCancelSignal for CancelAfterRuns {
     fn is_cancel_requested(&self) -> bool {
-        self.observed_runs.get() >= self.requested_after_runs
+        self.observed_runs.load(Ordering::Acquire) >= self.requested_after_runs
     }
 }
 
 pub(super) struct ObservingRunner {
     pub(super) inner: StubRunner,
-    pub(super) observed_runs: Rc<Cell<usize>>,
+    pub(super) observed_runs: Arc<AtomicUsize>,
 }
 
 impl ExportWizardCommandRunner for ObservingRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         let execution = self.inner.run(command);
-        self.observed_runs.set(self.observed_runs.get() + 1);
+        self.observed_runs.fetch_add(1, Ordering::Release);
         execution
     }
 }
 
 pub(super) struct BlockingRunner {
-    stage_started: Sender<ExportPipelineStage>,
+    stage_started: Sender<ExportStage>,
     release_stage: Receiver<()>,
-    pub(super) seen_stages: Vec<ExportPipelineStage>,
+    pub(super) seen_stages: Vec<ExportStage>,
 }
 
 impl BlockingRunner {
-    pub(super) fn new(
-        stage_started: Sender<ExportPipelineStage>,
-        release_stage: Receiver<()>,
-    ) -> Self {
+    pub(super) fn new(stage_started: Sender<ExportStage>, release_stage: Receiver<()>) -> Self {
         Self {
             stage_started,
             release_stage,
@@ -103,7 +105,7 @@ impl ExportWizardCommandRunner for BlockingRunner {
     fn run(
         &mut self,
         command: &ExportWizardPipelineStageCommand,
-    ) -> Result<ExportWizardCommandExecution, String> {
+    ) -> Result<ExportWizardCommandExecution, EditorExportBuildError> {
         self.seen_stages.push(command.stage);
         let _ = self.stage_started.send(command.stage);
         let _ = self.release_stage.recv();
@@ -116,7 +118,7 @@ impl ExportWizardCommandRunner for BlockingRunner {
 }
 
 pub(super) fn ready_export_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -126,7 +128,7 @@ pub(super) fn ready_export_options() -> ExportWizardPipelineOptions {
     options
 }
 
-pub(super) fn stage_sequence(plan: &ExportWizardPipelinePlan) -> Vec<ExportPipelineStage> {
+pub(super) fn stage_sequence(plan: &ExportWizardPipelinePlan) -> Vec<ExportStage> {
     plan.stages
         .iter()
         .map(|command| command.stage)

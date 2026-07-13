@@ -1,13 +1,14 @@
 use crate::asset::AssetReference;
 use crate::core::framework::scene::physics::{
-    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
+    PhysicsCcdMode, PhysicsJointConstraintMetadata, PhysicsMassProperties, PhysicsMaterialMetadata,
+    PhysicsSkeletonJointBinding, PhysicsSleepPolicy,
 };
 use crate::core::math::Real;
 use serde::{Deserialize, Serialize};
 
 use super::defaults::{
-    default_collision_mask, default_gravity_scale, default_rigid_body_mass, default_true,
-    default_vec3_up, default_vec3_zero,
+    default_collision_mask, default_gravity_scale, default_rigid_body_mass, default_vec3_up,
+    default_vec3_zero,
 };
 use super::transform::TransformAsset;
 
@@ -27,6 +28,8 @@ pub struct SceneRigidBodyAsset {
     #[serde(default = "default_rigid_body_mass")]
     pub mass: Real,
     #[serde(default)]
+    pub mass_properties: PhysicsMassProperties,
+    #[serde(default)]
     pub linear_velocity: [Real; 3],
     #[serde(default)]
     pub angular_velocity: [Real; 3],
@@ -36,8 +39,10 @@ pub struct SceneRigidBodyAsset {
     pub angular_damping: Real,
     #[serde(default = "default_gravity_scale")]
     pub gravity_scale: Real,
-    #[serde(default = "default_true")]
-    pub can_sleep: bool,
+    #[serde(default)]
+    pub ccd_mode: PhysicsCcdMode,
+    #[serde(default)]
+    pub sleep_policy: PhysicsSleepPolicy,
     #[serde(default)]
     pub lock_translation: [bool; 3],
     #[serde(default)]
@@ -47,9 +52,33 @@ pub struct SceneRigidBodyAsset {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SceneColliderShapeAsset {
-    Box { half_extents: [Real; 3] },
-    Sphere { radius: Real },
-    Capsule { radius: Real, half_height: Real },
+    Box {
+        half_extents: [Real; 3],
+    },
+    Sphere {
+        radius: Real,
+    },
+    Capsule {
+        radius: Real,
+        half_height: Real,
+    },
+    Cylinder {
+        radius: Real,
+        half_height: Real,
+    },
+    ConvexHull {
+        points: Vec<[Real; 3]>,
+    },
+    TriangleMesh {
+        mesh: AssetReference,
+    },
+    HeightField {
+        resolution: [u32; 2],
+        heights: AssetReference,
+    },
+    Compound {
+        children: Vec<(TransformAsset, Box<SceneColliderShapeAsset>)>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

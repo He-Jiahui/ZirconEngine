@@ -1,5 +1,5 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::ProjectPluginManifest;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ProjectPluginManifest;
 
 pub(in crate::plugin::export_build_plan) fn project_duplicate_selection_diagnostics(
     manifest: &ProjectPluginManifest,

@@ -1,9 +1,10 @@
-use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::framework::project::RuntimeProfileId;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginMaturity, PluginPackageManifest,
     RuntimePluginAvailabilityEntry, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
-    RuntimeProfileDescriptor, RuntimeProfileId,
+    RuntimeProfileDescriptor,
 };
+use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
 fn plugin_manifest_roundtrips_maturity_and_capability_statuses() {
@@ -254,6 +255,7 @@ fn profile_availability_report_warns_for_optional_unavailable_plugins_without_mi
     assert!(report.missing_required.is_empty());
 }
 
+#[cfg(feature = "ui")]
 #[test]
 fn stable_profile_defaults_do_not_require_externalized_or_stub_plugins() {
     let descriptors = RuntimePluginDescriptor::builtin_catalog();
@@ -270,6 +272,20 @@ fn stable_profile_defaults_do_not_require_externalized_or_stub_plugins() {
     }
 }
 
+#[cfg(not(feature = "ui"))]
+#[test]
+fn stable_profile_defaults_report_required_ui_when_ui_is_not_compiled() {
+    let descriptors = RuntimePluginDescriptor::builtin_catalog();
+    for profile_id in [RuntimeProfileId::Client2d, RuntimeProfileId::Client3d] {
+        let profile = RuntimeProfileDescriptor::for_id(profile_id);
+        let report = profile.availability_report(descriptors.iter(), std::iter::empty::<&str>());
+
+        assert!(contains_entry(&report.stub, "ui"));
+        assert_eq!(report.missing_required.len(), 1, "profile {profile_id:?}");
+        assert_eq!(report.missing_required[0].runtime_id, RuntimePluginId::Ui);
+    }
+}
+
 #[test]
 fn required_profile_plugins_need_linked_or_native_provider_reports() {
     let descriptors = RuntimePluginDescriptor::builtin_catalog();
@@ -281,11 +297,119 @@ fn required_profile_plugins_need_linked_or_native_provider_reports() {
         std::iter::empty::<&str>(),
     );
 
+    #[cfg(feature = "ui")]
     assert!(contains_entry(&report.available, "ui"));
+    #[cfg(not(feature = "ui"))]
+    {
+        assert!(contains_entry(&report.stub, "ui"));
+        assert!(contains_entry(&report.missing_required, "ui"));
+    }
     assert!(contains_entry(&report.externalized_missing, "sound"));
     assert!(contains_entry(&report.externalized_missing, "rendering"));
     assert!(contains_entry(&report.missing_required, "sound"));
     assert!(contains_entry(&report.missing_required, "rendering"));
+}
+
+#[test]
+fn runtime_plugin_key_does_not_substitute_for_provider_package_identity() {
+    let profile = RuntimeProfileDescriptor::new(
+        RuntimeProfileId::Dev,
+        "test.dev",
+        RuntimeTargetMode::ClientRuntime,
+    )
+    .with_minimum_maturity(PluginMaturity::Beta)
+    .with_default_plugin(RuntimePluginId::Sound, true);
+    let descriptors = [RuntimePluginDescriptor::builder(
+        "sound-provider-package",
+        "Sound Provider Package",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_provider_runtime",
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_maturity(PluginMaturity::Beta)
+    .with_capability("runtime.plugin.sound")
+    .build()];
+
+    let reports = [
+        profile.availability_report_with_providers(
+            descriptors.iter(),
+            [RuntimePluginId::Sound.key()],
+            std::iter::empty::<&str>(),
+        ),
+        profile.availability_report_with_providers(
+            descriptors.iter(),
+            std::iter::empty::<&str>(),
+            [RuntimePluginId::Sound.key()],
+        ),
+    ];
+
+    for report in reports {
+        assert!(!contains_entry(&report.linked, "sound-provider-package"));
+        assert!(!contains_entry(
+            &report.native_dynamic,
+            "sound-provider-package"
+        ));
+        assert!(contains_entry(
+            &report.externalized_missing,
+            "sound-provider-package"
+        ));
+        assert!(contains_entry(
+            &report.missing_required,
+            "sound-provider-package"
+        ));
+    }
+}
+
+#[test]
+fn registration_selection_id_does_not_substitute_for_provider_package_identity() {
+    let profile = RuntimeProfileDescriptor::new(
+        RuntimeProfileId::Dev,
+        "test.dev",
+        RuntimeTargetMode::ClientRuntime,
+    )
+    .with_minimum_maturity(PluginMaturity::Beta)
+    .with_default_plugin(RuntimePluginId::Sound, true);
+    let catalog = [RuntimePluginDescriptor::builder(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_maturity(PluginMaturity::Beta)
+    .with_capability("runtime.plugin.sound")
+    .build()];
+    let mismatched_provider = RuntimePluginRegistrationReport::from_plugin(
+        &RuntimePluginDescriptor::builder(
+            "different-sound-package",
+            "Different Sound Package",
+            RuntimePluginId::Sound,
+            "zircon_plugin_different_sound_runtime",
+        )
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_maturity(PluginMaturity::Beta)
+        .with_capability("runtime.plugin.sound")
+        .build(),
+    );
+
+    let mut mismatched_native_provider = mismatched_provider.clone();
+    mismatched_native_provider.project_selection.packaging =
+        crate::core::framework::project::ExportPackagingStrategy::NativeDynamic;
+    let reports = [
+        profile
+            .availability_report_for_registration_reports(catalog.iter(), [&mismatched_provider]),
+        profile.availability_report_for_registration_reports(
+            catalog.iter(),
+            [&mismatched_native_provider],
+        ),
+    ];
+
+    for report in reports {
+        assert!(!contains_entry(&report.linked, "sound"));
+        assert!(!contains_entry(&report.native_dynamic, "sound"));
+        assert!(contains_entry(&report.externalized_missing, "sound"));
+        assert!(contains_entry(&report.missing_required, "sound"));
+    }
 }
 
 #[test]
@@ -328,7 +452,8 @@ fn registration_reports_can_drive_profile_provider_availability() {
     let mut native_manifest = descriptor(&descriptors, RuntimePluginId::Rendering)
         .package_manifest()
         .with_maturity(PluginMaturity::Stable);
-    native_manifest.default_packaging = vec![crate::plugin::ExportPackagingStrategy::NativeDynamic];
+    native_manifest.default_packaging =
+        vec![crate::core::framework::project::ExportPackagingStrategy::NativeDynamic];
     let native = RuntimePluginRegistrationReport::from_native_package_manifest(native_manifest);
 
     let report = profile
@@ -357,15 +482,24 @@ fn runtime_profile_module_loading_uses_linked_required_provider_reports() {
             [&sound, &rendering],
         );
 
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let fatal_messages = report.fatal_messages();
+    #[cfg(feature = "ui")]
+    assert!(fatal_messages.is_empty(), "{fatal_messages:?}");
+    #[cfg(not(feature = "ui"))]
+    {
+        assert_eq!(report.required_missing().len(), 1);
+        assert_eq!(report.required_missing()[0].runtime_id, RuntimePluginId::Ui);
+        assert_eq!(fatal_messages.len(), 1);
+        assert!(fatal_messages[0].contains("required runtime plugin Ui"));
+    }
     assert!(!report
         .required_missing()
         .iter()
-        .any(|missing| missing.id == RuntimePluginId::Sound));
+        .any(|missing| missing.runtime_id == RuntimePluginId::Sound));
     assert!(!report
         .required_missing()
         .iter()
-        .any(|missing| missing.id == RuntimePluginId::Rendering));
+        .any(|missing| missing.runtime_id == RuntimePluginId::Rendering));
 }
 
 #[test]
@@ -396,11 +530,11 @@ fn runtime_profile_module_loading_keeps_missing_required_providers_fatal() {
     assert!(report
         .required_missing()
         .iter()
-        .any(|missing| missing.id == RuntimePluginId::Sound));
+        .any(|missing| missing.runtime_id == RuntimePluginId::Sound));
     assert!(report
         .required_missing()
         .iter()
-        .any(|missing| missing.id == RuntimePluginId::Rendering));
+        .any(|missing| missing.runtime_id == RuntimePluginId::Rendering));
 }
 
 #[test]

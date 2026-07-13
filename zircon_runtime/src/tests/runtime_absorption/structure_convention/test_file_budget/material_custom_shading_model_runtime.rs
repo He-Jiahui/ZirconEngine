@@ -1,7 +1,6 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred";
+const STATUS: &str = "render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred";
 const SELECTED_PLUGIN_STATUS: &str =
     "render_plan08_selected_plugin_shading_model_registration_inputs_static_guard_cargo_deferred";
 const INCLUDE_SOURCE_SET_STATUS: &str =
@@ -10,22 +9,17 @@ const RUNTIME_HANDOFF_STATUS: &str =
     "render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred";
 const CUSTOM_WGPU_MODULE_STATUS: &str =
     "render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred";
-const DEFERRED_LIGHTING_WGPU_PIPELINE_STATUS: &str =
-    "render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred";
-const PRODUCT_STAGED_CACHE_WGPU_STATUS: &str =
-    "render_plan08_custom_shading_model_product_material_pass_staged_cache_wgpu_passed_renderdoc_deferred";
+const DEFERRED_LIGHTING_WGPU_PIPELINE_STATUS: &str = "render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred";
+const PRODUCT_STAGED_CACHE_WGPU_STATUS: &str = "render_plan08_custom_shading_model_product_material_pass_staged_cache_wgpu_passed_renderdoc_deferred";
 const PRODUCT_SECOND_LAUNCH_WGPU_STATUS: &str =
     "render_plan08_custom_shading_model_second_launch_staged_cache_wgpu_passed_renderdoc_deferred";
-const PRODUCT_READBACK_WGPU_STATUS: &str =
-    "render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred";
-const PRODUCT_READBACK_PNG_STATUS: &str =
-    "render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred";
+const PRODUCT_READBACK_WGPU_STATUS: &str = "render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str = "render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred";
 const PRODUCT_GROUP_DIRECT_BINARY_STATUS: &str =
     "render_plan08_custom_shading_model_product_group_direct_binary_wgpu_passed_renderdoc_deferred";
 const PRODUCT_GROUP_CARGO_WRAPPER_STATUS: &str =
     "render_plan08_custom_shading_model_product_group_cargo_wrapper_wgpu_passed_renderdoc_deferred";
-const PRODUCT_GROUP_DEFAULT_FEATURES_STATUS: &str =
-    "render_plan08_custom_shading_model_product_group_default_features_wgpu_passed_renderdoc_deferred";
+const PRODUCT_GROUP_DEFAULT_FEATURES_STATUS: &str = "render_plan08_custom_shading_model_product_group_default_features_wgpu_passed_renderdoc_deferred";
 const SOURCE_REGISTRY_CARGO_WRAPPER_STATUS: &str =
     "render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred";
 
@@ -34,6 +28,8 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let extension_inputs = read_runtime_src("builtin/runtime_modules/assembly/extension_inputs.rs");
     let registration_inputs =
         read_runtime_src("builtin/runtime_modules/assembly/registration_inputs.rs");
+    let registration_input_tests =
+        read_runtime_src("builtin/runtime_modules/assembly/registration_inputs/tests.rs");
     let target_modules = read_runtime_src("builtin/runtime_modules/assembly/target_modules.rs");
     let core_modules = read_runtime_src("builtin/runtime_modules/core_modules.rs");
     let graphics_module = read_runtime_src("graphics/runtime_builtin_graphics/mod.rs");
@@ -131,8 +127,11 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let material_pass_product_assertions = read_runtime_src(
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/assertions.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let material_doc = read_repo("docs/zircon_runtime/core/framework/render/material.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
@@ -140,7 +139,11 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
 
     assert_contains_all(
         "runtime module assembly carries plugin shading models to graphics modules",
-        &(extension_inputs + &registration_inputs + &target_modules + &core_modules),
+        &(extension_inputs
+            + &registration_inputs
+            + &registration_input_tests
+            + &target_modules
+            + &core_modules),
         &[
             "collect_shading_models",
             "registry.shading_models().iter().cloned()",
@@ -304,7 +307,10 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     );
     assert_contains_all(
         "resource streamer resolves material runtime and capture shading ids from the same registry",
-        &(material_mod + &shading_builtins + &resource_streamer + &resource_streamer_construction
+        &(material_mod
+            + &shading_builtins
+            + &resource_streamer
+            + &resource_streamer_construction
             + &ensure_material
             + &material_capture),
         &[

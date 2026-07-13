@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AssetHostEvent {
     OpenAsset {
-        asset_path: String,
+        asset_locator: String,
     },
     SelectFolder {
         folder_id: String,

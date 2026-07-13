@@ -35,7 +35,10 @@ fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floa
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         None,

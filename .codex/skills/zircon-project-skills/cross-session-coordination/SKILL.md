@@ -33,6 +33,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 - Treat session notes as live coordination state, not as canonical plan output records. Before any session writes a concrete output record under `docs/plans`, apply `../write-plan-output-records/SKILL.md` and write to the owning numbered child plan or archive.
 - If a failing test or broken behavior appears outside the current task's scope, check recent plans and session notes before trying to "fix" it.
 - If another numbered child plan owns the lowest shared cause, apply `../handle-plan-failure-handoffs/SKILL.md`. Publish the handoff, continue independent source work, and do not mark the session blocked solely because the handoff is open.
+- **Failure Priority Gate:** when the registered plan is the fixing owner of an applicable open handoff, switch to `resolving_failure` and do not begin ordinary feature slices until the handoff is returned as `fixed-*`.
 - When a failure is in a lower shared layer, also apply `../support-first-regression-testing/SKILL.md`.
 - On completion, remove the note from active circulation: delete it if no handoff record is needed, or move it to `.codex/sessions/archive/` with `status: completed`. Never leave completed notes in the active root.
 
@@ -42,7 +43,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 - Run `tools/zircon-session.ps1 status -Json`. When online, register the current Session with its numbered plan and declared write scope, then query `failure open <plan-path>` before ordinary work.
 - Run `scripts/Get-RecentCoordinationContext.ps1 -RepoRoot <repo> -LookbackHours 4`.
 - Review fresh plans first, then fresh session notes, then decide whether overlap exists.
-- Scan the active numbered child-plan directory for `failure-*.md`; resolve applicable handoffs before ordinary feature progress.
+- Scan the active numbered child-plan directory for `failure-*.md`; a fixing owner must resolve and return every applicable handoff before ordinary feature progress, while an origin owner may continue only dependency-independent slices.
 
 2. Read the related work before changing coupled modules.
 - Open the recent plan when its title or summary touches the same module, subsystem, or failing test.

@@ -1,34 +1,34 @@
 ---
 related_code:
-  - zircon_ui/src/lib.rs
-  - zircon_ui/src/module/mod.rs
-  - zircon_ui/src/module/ui_module_descriptor.rs
-  - zircon_ui/src/module/ui_module_name.rs
-  - zircon_ui/src/event_ui/manager/ui_event_manager.rs
-  - zircon_core/src/runtime/contexts/plugin_context.rs
-  - zircon_core/src/runtime/descriptors/plugin_descriptor.rs
-  - zircon_core/src/runtime/descriptors/service_factory.rs
-  - zircon_core/src/runtime/handle/registration.rs
-  - zircon_core/src/runtime/handle/resolution.rs
-  - zircon_core/src/runtime/state/service_entry.rs
-  - zircon_module/src/lib.rs
-  - zircon_module/src/service_factory.rs
-  - zircon_script/src/vm/module/module_descriptor.rs
-  - zircon_script/src/vm/backend/backend_registry.rs
-  - zircon_script/src/vm/backend/vm_backend.rs
-  - zircon_script/src/vm/plugin/vm_plugin_instance.rs
-  - zircon_script/src/vm/runtime/hot_reload_coordinator.rs
-  - zircon_script/src/vm/runtime/vm_plugin_manager.rs
-  - zircon_editor/src/editing/ui_asset/mod.rs
-  - zircon_editor/src/editing/ui_asset/session.rs
-  - zircon_editor/src/editing/ui_asset/session/mod.rs
-  - zircon_editor/src/editing/ui_asset/session/ui_asset_editor_session.rs
+  - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/ui/event_ui/manager/ui_event_manager.rs
+  - zircon_runtime/src/core/runtime/contexts/plugin_context.rs
+  - zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/service_factory.rs
+  - zircon_runtime/src/core/runtime/handle/registration/mod.rs
+  - zircon_runtime/src/core/runtime/handle/resolution.rs
+  - zircon_runtime/src/core/runtime/state/service_entry.rs
+  - zircon_runtime/src/engine_module/mod.rs
+  - zircon_runtime/src/engine_module/service_factory.rs
+  - zircon_runtime/src/script/vm/module/module_descriptor.rs
+  - zircon_runtime/src/script/vm/backend/backend_registry.rs
+  - zircon_runtime/src/script/vm/backend/vm_backend.rs
+  - zircon_runtime/src/script/vm/plugin/vm_plugin_instance.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_editor/src/ui/asset_editor/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
+  - zircon_editor/src/ui/asset_editor/session/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
 implementation_files:
-  - zircon_ui/src/module/ui_module_descriptor.rs
-  - zircon_core/src/runtime/contexts/plugin_context.rs
-  - zircon_core/src/runtime/descriptors/plugin_descriptor.rs
-  - zircon_script/src/vm/runtime/vm_plugin_manager.rs
-  - zircon_editor/src/editing/ui_asset/session/ui_asset_editor_session.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/core/runtime/contexts/plugin_context.rs
+  - zircon_runtime/src/core/runtime/descriptors/plugin_descriptor.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
 plan_sources:
   - user: 2026-04-18 formalize convergence-gap repair spec and detailed implementation plan
   - .cursor/plans/基本路线图.md
@@ -36,8 +36,8 @@ plan_sources:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/interface-family.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/structural-audit.md
 tests:
-  - zircon_ui/src/tests/shared_core.rs
-  - zircon_script/src/vm/tests.rs
+  - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/script/vm/tests.rs
   - zircon_editor/src/tests/editing/ui_asset.rs
   - zircon_editor/src/tests/editing/ui_asset_palette_drop.rs
   - zircon_editor/src/tests/host/manager.rs
@@ -52,7 +52,7 @@ doc_type: milestone-detail
 
 - `zircon_ui` 仍然依赖 `stub_module_descriptor`，被判定为 `skeleton`。
 - `zircon_script` 已有 package discovery、slot record、backend registry，但 `PluginContext` 仍是 core-only 薄抽象，被判定为 `needs-refactor`。
-- `zircon_editor/src/editing/ui_asset/session.rs` 仍然保留约 3100 行真实实现，`session/` 目录目前主要只是 façade，被判定为 `needs-refactor`。
+- `zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs` 仍然保留约 3100 行真实实现，`session/` 目录目前主要只是 façade，被判定为 `needs-refactor`。
 
 本设计只做最小但权威的收敛：补齐真实 runtime contract、补齐 plugin host context、把 editor session 真正下沉到目录树。
 
@@ -62,7 +62,7 @@ doc_type: milestone-detail
 
 | crate | 当前状态 | 证据 | 本轮目标 |
 | --- | --- | --- | --- |
-| `zircon_ui` | `skeleton` | `zircon_ui/src/module/ui_module_descriptor.rs` 使用 `stub_module_descriptor` | 变成真实 `ModuleDescriptor`，至少拥有一个真实 driver 和一个真实 manager |
+| `zircon_ui` | `skeleton` | `zircon_runtime/src/ui/module.rs` 使用 `stub_module_descriptor` | 变成真实 `ModuleDescriptor`，至少拥有一个真实 driver 和一个真实 manager |
 | `zircon_script` | `needs-refactor` | 审计仍报告 `plugin-runtime-gap` | 把 host context、backend family、slot lifecycle 变成显式契约 |
 | `zircon_editor` | `needs-refactor` | `editing/ui_asset/session.rs` 仍是唯一大型生产热点 | 把真实实现迁入 `session/` 子树，消除热点 |
 
@@ -204,7 +204,7 @@ zircon_script/src/vm/runtime/
 
 ### `zircon_editor`
 
-当前 `zircon_editor/src/editing/ui_asset/mod.rs` 已经通过 `#[path = "session/mod.rs"] mod session;` 指向目录模块，但 `session/ui_asset_editor_session.rs` 仍然通过 `#[path = "../session.rs"]` 把全部真实实现导回旧文件。这个结构必须真正收敛。
+当前 `zircon_editor/src/ui/asset_editor/mod.rs` 已经通过 `#[path = "session/mod.rs"] mod session;` 指向目录模块，但 `session/ui_asset_editor_session.rs` 仍然通过 `#[path = "../session.rs"]` 把全部真实实现导回旧文件。这个结构必须真正收敛。
 
 目标目录固定为：
 

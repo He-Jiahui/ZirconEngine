@@ -8,7 +8,22 @@ Do not run bare `cargo` commands from the repository. Use the validator so acqui
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1
 ```
 
-The validator acquires, starts, finishes and releases the Cargo job automatically. If `CARGO_TARGET_DIR` is inherited, it must already resolve below `D:`, `E:`, or `F:` `\targets\zircon-engine\lanes`.
+The validator derives the compatibility key, acquires the single compatible primary pool, starts, finishes and releases the Cargo job automatically. If `CARGO_TARGET_DIR` is inherited, it must resolve below one of the approved `cargo-targets`, `targets`, or `ZirconBuilds` roots on `D:`, `E:`, or `F:` and agree with that pool.
+
+The repository `PreToolUse` Hook also rejects direct artifact-producing Cargo commands (`build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean`). Do not bypass it with `cargo.exe`, nested PowerShell, aliases, or a manually selected target directory. The guard records only a sanitized local diagnostic for later debugging; it never stores command text or credentials.
+
+For a numbered-plan milestone, use the coordinator action rather than a raw validator invocation:
+
+```powershell
+& .\tools\zircon-session.ps1 milestone prepare --session-id <session> --milestone M1
+& .\tools\zircon-session.ps1 milestone validate --session-id <session> --run-id <run> --milestone M1 --template coordinator-actions
+```
+
+After the managed validation result and an independent review are accepted, `milestone commit` performs the scoped commit, records `M1`, and sends the one permitted WeCom notification. The coordinator imports terminal validation evidence before deleting its temporary copy. A failed deletion remains `cleanup_pending` and the daemon retries it every 30 seconds; bounded stdout/stderr evidence remains in SQLite for diagnosis.
+
+## WSL Exception
+
+Do not use WSL for routine validation and do not run a direct, unleased WSL Cargo command. When a Linux-specific requirement justifies WSL, a coordinator-aware Windows host launcher must acquire with `platform=wsl`, keep ownership while its `wsl.exe` child runs, translate the granted path to the matching `/mnt/d`, `/mnt/e`, or `/mnt/f` path, and finish/release the job. If that managed launcher is unavailable, report the validation gap instead of building in an ad-hoc location. Never use `~`, `$HOME`, `/home/<user>`, a per-Session leaf, or a Windows-compatible pool.
 
 ## Low-Disk Rule
 
@@ -82,9 +97,9 @@ To inspect the selected command without requiring Cargo discovery or target-dire
 
 ## Managed Target Rules
 
-- Use one coordinator job per validation process; lanes are unique, audited and stored outside the repository.
-- Do not create `target/<name>` directories or use arbitrary `--target-dir` values.
-- Explicit targets are allowed only below `D:\targets\zircon-engine\lanes`, `E:\targets\zircon-engine\lanes`, or `F:\targets\zircon-engine\lanes` and still pass through the coordinator.
+- Use one coordinator job per validation process. Compatible jobs share one audited primary pool across Sessions, but only one task may own it at a time.
+- Do not create `target/<name>` directories or use `--target-dir` values outside the nine approved drive-root trees.
+- Explicit targets are allowed only below an approved `cargo-targets`, `targets`, or `ZirconBuilds` root on `D:`, `E:`, or `F:` and still pass through the coordinator.
 - Use `.\tools\cleanup-stale-targets.ps1` to preview cleanup and add `-Apply` only for service-revalidated deletion.
 - Read `../references/cargo-target-disk-policy.md` for cleanup and disk-usage guidance.
 

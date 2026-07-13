@@ -21,6 +21,17 @@ impl PopupKeyboardTarget {
         if self.rows.is_empty() {
             return None;
         }
+        if self.current_row.is_none() {
+            let initial_index =
+                match command {
+                    WorkbenchPopupKeyboardCommand::Previous
+                    | WorkbenchPopupKeyboardCommand::Last => self.rows.len() - 1,
+                    WorkbenchPopupKeyboardCommand::Next | WorkbenchPopupKeyboardCommand::First => 0,
+                    WorkbenchPopupKeyboardCommand::Accept
+                    | WorkbenchPopupKeyboardCommand::Cancel => return None,
+                };
+            return self.rows.get(initial_index).cloned();
+        }
         let next_index = match command {
             WorkbenchPopupKeyboardCommand::Next => (self.current_index + 1) % self.rows.len(),
             WorkbenchPopupKeyboardCommand::Previous => {
@@ -43,7 +54,11 @@ impl PopupKeyboardTarget {
             return None;
         }
         let query = normalized_popup_text_query(text)?;
-        let start_index = (self.current_index + 1) % self.rows.len();
+        let start_index = if self.current_row.is_some() {
+            (self.current_index + 1) % self.rows.len()
+        } else {
+            0
+        };
         self.rows
             .iter()
             .cycle()
@@ -62,6 +77,7 @@ pub(in crate::ui::retained_host::host_contract) struct PopupKeyboardRow {
     pub(in crate::ui::retained_host::host_contract) search_text: SharedString,
     pub(in crate::ui::retained_host::host_contract) focused: bool,
     pub(in crate::ui::retained_host::host_contract) selected: bool,
+    pub(in crate::ui::retained_host::host_contract) source_index: Option<usize>,
     pub(in crate::ui::retained_host::host_contract) frame: FrameRect,
 }
 

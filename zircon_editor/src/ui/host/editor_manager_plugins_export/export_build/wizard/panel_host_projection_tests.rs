@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostNodeModel, RetainedUiHostValue,
 };
+use zircon_runtime_interface::export::ExportStage;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::*;
@@ -43,7 +44,7 @@ fn export_wizard_panel_retained_projection_applies_controls_and_slot_entries() {
         .iter()
         .filter(|node| node.parent_id.as_deref() == Some(stage_anchor_id.as_str()))
         .collect::<Vec<_>>();
-    assert_eq!(stage_rows.len(), export_pipeline_stages().len());
+    assert_eq!(stage_rows.len(), ExportStage::ALL.len());
     assert!(stage_rows.iter().any(|node| {
         node.text
             .as_deref()
@@ -61,7 +62,7 @@ fn export_wizard_panel_retained_projection_disables_start_for_missing_inputs() {
     let mut runtime = EditorUiHostRuntime::default();
     register_export_wizard_panel_template(&mut runtime, desktop_export_panel_template_path())
         .expect("desktop export panel template should register");
-    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::new(
+    let plan = export_wizard_pipeline_plan(ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",
@@ -126,7 +127,7 @@ fn export_wizard_panel_retained_projection_preserves_report_body_native_payload_
             key: "report.native_plugins_payload.bundle_path".to_string(),
             label: "Native Plugins Bundle".to_string(),
             detail: "D:\\zircon-export\\bundle\\windows-release\\plugins".to_string(),
-            stage: Some(zircon_runtime::plugin::ExportPipelineStage::Report),
+            stage: Some(zircon_runtime_interface::export::ExportStage::Report),
             severity: ExportWizardPanelEntrySeverity::Success,
         });
 
@@ -181,7 +182,7 @@ fn string_property<'a>(node: &'a RetainedUiHostNodeModel, key: &str) -> Option<&
 }
 
 fn ready_export_options() -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(
+    let mut options = ExportWizardPipelineOptions::for_test_profile(
         "windows-release",
         "zircon-project.toml",
         "D:\\zircon-export",

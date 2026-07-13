@@ -1,8 +1,6 @@
-use zircon_runtime::builtin::RuntimeTargetMode;
-use zircon_runtime::plugin::{
-    ExportPackagingStrategy, ExportTargetPlatform, PluginMaturity, PluginModuleManifest,
-    PluginPackageManifest,
-};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
+use zircon_runtime::plugin::{PluginMaturity, PluginModuleManifest, PluginPackageManifest};
 
 use super::{default_export_packaging, default_supported_platforms, SDK_API_VERSION};
 

@@ -8,11 +8,13 @@ fn runtime_15_m4_behavior_postprocess_tests_are_child_owner() {
     let queue_override = read_runtime_src("graphics/tests/m4_behavior_layers/queue_override.rs");
     let transparent3d = read_runtime_src("graphics/tests/m4_behavior_layers/transparent3d.rs");
 
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_09 = read_repo(
+        "docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");
 
     assert_contains_all(
         "m4 behavior parent keeps fixture/offline-bake coverage and child mounts",
@@ -22,7 +24,7 @@ fn runtime_15_m4_behavior_postprocess_tests_are_child_owner() {
             "mod postprocess;",
             "mod queue_override;",
             "mod transparent3d;",
-            "fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_rendering(",
+            "fn offline_bake_outputs_reflection_probe_data_without_fake_baked_ambient(",
             "struct RenderFixture",
             "fn frame_extract<",
             "fn render_extract(",
@@ -88,9 +90,6 @@ fn runtime_15_m4_behavior_postprocess_tests_are_child_owner() {
     for (label, source) in [
         ("Plan 09", plan_09.as_str()),
         ("render index", render_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("render session doc", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -98,6 +97,22 @@ fn runtime_15_m4_behavior_postprocess_tests_are_child_owner() {
             &[
                 "M4 behavior postprocess tests owner split",
                 "render_plan09_m4_behavior_postprocess_tests_owner_split_static_passed_cargo_deferred_implementation_cadence",
+                "graphics/tests/m4_behavior_layers.rs",
+                "graphics/tests/m4_behavior_layers/postprocess.rs",
+                "runtime_15_m4_behavior_postprocess_tests_are_child_owner",
+            ],
+        );
+    }
+
+    for (label, source) in [
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "M4 behavior postprocess tests owner split",
                 "graphics/tests/m4_behavior_layers.rs",
                 "graphics/tests/m4_behavior_layers/postprocess.rs",
                 "runtime_15_m4_behavior_postprocess_tests_are_child_owner",

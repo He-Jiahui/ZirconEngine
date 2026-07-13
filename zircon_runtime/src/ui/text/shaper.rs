@@ -1,6 +1,9 @@
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
-    surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange, UiTextRenderMode},
+    surface::{
+        resolve_ui_text_render_mode, UiResolvedStyle, UiResolvedTextLayout, UiTextRange,
+        UiTextRenderMode,
+    },
 };
 
 use crate::graphics::text::shaping::TextShapeRunProvider;
@@ -73,7 +76,7 @@ impl UiTextShaperSelection {
         requested_mode: UiTextRenderMode,
         font_render_mode: Option<UiTextRenderMode>,
     ) -> Self {
-        let effective_mode = resolve_text_render_mode(requested_mode, font_render_mode);
+        let effective_mode = resolve_ui_text_render_mode(requested_mode, font_render_mode);
         let intended_backend = backend_intent_for_render_mode(effective_mode);
         let active_backend = active_layout_backend_for_intent(intended_backend);
         Self {
@@ -86,25 +89,12 @@ impl UiTextShaperSelection {
     }
 }
 
-pub(crate) const fn resolve_text_render_mode(
-    requested_mode: UiTextRenderMode,
-    font_render_mode: Option<UiTextRenderMode>,
-) -> UiTextRenderMode {
-    match requested_mode {
-        UiTextRenderMode::Native => UiTextRenderMode::Native,
-        UiTextRenderMode::Sdf => UiTextRenderMode::Sdf,
-        UiTextRenderMode::Auto => match font_render_mode {
-            Some(UiTextRenderMode::Native) => UiTextRenderMode::Native,
-            Some(UiTextRenderMode::Sdf) => UiTextRenderMode::Sdf,
-            Some(UiTextRenderMode::Auto) | None => UiTextRenderMode::Native,
-        },
-    }
-}
-
 const fn backend_intent_for_render_mode(render_mode: UiTextRenderMode) -> UiTextBackendIntent {
     match render_mode {
         UiTextRenderMode::Auto | UiTextRenderMode::Native => UiTextBackendIntent::NativeGlyphon,
-        UiTextRenderMode::Sdf => UiTextBackendIntent::SdfAtlas,
+        UiTextRenderMode::Sdf | UiTextRenderMode::Msdf | UiTextRenderMode::Mtsdf => {
+            UiTextBackendIntent::SdfAtlas
+        }
     }
 }
 

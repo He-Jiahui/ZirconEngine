@@ -92,3 +92,20 @@ fn first_party_runtime_provider_collection_delegates_to_catalog() {
         );
     }
 }
+
+#[test]
+fn editor_product_entry_bootstraps_linked_first_party_runtime_plugins() {
+    let source = include_str!("../entry_runner/editor.rs");
+
+    assert_eq!(
+        source
+            .matches("Self::bootstrap_with_first_party_runtime_plugin_registrations(")
+            .count(),
+        2,
+        "GUI and headless editor operations must both install linked first-party runtime providers"
+    );
+    assert!(
+        !source.contains("Self::bootstrap(EntryConfig::new(EntryProfile::Editor))"),
+        "editor product startup must not request advanced render features without their linked providers"
+    );
+}

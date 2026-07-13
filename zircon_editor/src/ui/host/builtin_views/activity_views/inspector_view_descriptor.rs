@@ -15,7 +15,7 @@ pub(super) fn inspector_view_descriptor() -> ViewDescriptor {
     .with_preferred_drawer_slot(ActivityDrawerSlot::RightTop)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Inspector))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
-        "pane.inspector.body",
+        "res://ui/editor/host/inspector_body.zui",
         PanePayloadKind::InspectorV1,
         PaneRouteNamespace::Draft,
         PaneInteractionMode::TemplateOnly,

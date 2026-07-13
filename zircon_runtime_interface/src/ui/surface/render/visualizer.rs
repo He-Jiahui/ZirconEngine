@@ -288,7 +288,9 @@ impl UiRenderVisualizerTextStats {
             match text.render_mode {
                 UiTextRenderMode::Auto => stats.auto_text_count += 1,
                 UiTextRenderMode::Native => stats.native_text_count += 1,
-                UiTextRenderMode::Sdf => stats.sdf_text_count += 1,
+                UiTextRenderMode::Sdf | UiTextRenderMode::Msdf | UiTextRenderMode::Mtsdf => {
+                    stats.sdf_text_count += 1
+                }
             }
             stats.decoration_count += text.decorations.len();
             stats.selection_count += if text.selection.is_some() { 1 } else { 0 };
@@ -433,8 +435,7 @@ fn visualizer_overlays(
 fn overdraw_regions(elements: &[UiPaintElement]) -> Vec<UiRenderVisualizerOverdrawRegion> {
     let visible_elements = elements
         .iter()
-        .enumerate()
-        .filter_map(|(_, element)| {
+        .filter_map(|element| {
             if element.effects.opacity <= 0.0 || element.payload == UiPaintPayload::Empty {
                 return None;
             }

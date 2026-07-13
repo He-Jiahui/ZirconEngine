@@ -1,9 +1,52 @@
 use super::*;
+use crate::bake_panel::{
+    NavigationBakeAction, NavigationBakeBackend, NavigationBakePanel,
+    NavigationBakePanelController, NavigationBakePhase, NavigationBakeProgress,
+};
+use crate::overlay::{
+    build_navigation_overlay, NavigationOverlayController, NavigationOverlayOptions,
+    NavigationViewportGizmoSink, NAVIGATION_OVERLAY_MODE_ID, NAVIGATION_OVERLAY_PROVIDER_ID,
+};
+use crate::runtime_mirror::{NavigationPieFrame, NavigationPieMirror, NavigationPieMirrorApply};
 use zircon_runtime::core::framework::navigation::{
+    NavAgentTickReport, NavMeshBakeReport, NavPathStatus, NavigationAgentDebugState,
+    NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP, AREA_WALKABLE,
     NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
+use zircon_runtime::core::framework::render::SceneGizmoKind;
+use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
+
+#[derive(Default)]
+struct RecordingBakeBackend {
+    requests: Vec<crate::NavigationBakeRequest>,
+    reject: bool,
+}
+
+impl NavigationBakeBackend for RecordingBakeBackend {
+    type Error = &'static str;
+
+    fn submit(&mut self, request: crate::NavigationBakeRequest) -> Result<(), Self::Error> {
+        self.requests.push(request);
+        if self.reject {
+            Err("bake queue unavailable")
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Default)]
+struct RecordingOverlaySink {
+    submissions: Vec<Option<SceneGizmoOverlayExtract>>,
+}
+
+impl NavigationViewportGizmoSink for RecordingOverlaySink {
+    fn replace_navigation_overlay(&mut self, overlay: Option<SceneGizmoOverlayExtract>) {
+        self.submissions.push(overlay);
+    }
+}
 
 #[test]
 fn navigation_editor_plugin_contributes_authoring_extensions() {
@@ -72,20 +115,19 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
     ] {
         assert!(registration
             .extensions
-            .operations()
-            .descriptors()
-            .any(|descriptor| descriptor.path().as_str() == operation));
+            .command_ids()
+            .any(|command_id| command_id.as_str() == operation));
     }
     assert!(registration
         .extensions
-        .asset_editors()
+        .asset_type_contributions()
         .iter()
-        .any(|editor| editor.asset_kind() == "NavMesh"));
+        .any(|contribution| contribution.asset_type().as_str() == "navigation.mesh"));
     assert!(registration
         .extensions
-        .asset_editors()
+        .asset_type_contributions()
         .iter()
-        .any(|editor| editor.asset_kind() == "NavigationSettings"));
+        .any(|contribution| contribution.asset_type().as_str() == "navigation.settings"));
 
     for document in navigation_editor_documents() {
         assert!(
@@ -95,6 +137,32 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
             "missing navigation editor document {document}"
         );
     }
+}
+
+#[test]
+fn navigation_editor_sdk_declaration_and_capability_diagnostics_are_authoritative() {
+    let plugin = editor_plugin();
+    let declaration = crate::plugin::editor_plugin_declaration();
+    assert_eq!(
+        declaration.descriptor(),
+        zircon_editor::EditorPlugin::descriptor(&plugin)
+    );
+    assert_eq!(declaration.package_manifest(), package_manifest());
+
+    let catalog = zircon_editor::EditorPluginCatalog::from_plugins([(
+        &plugin as &dyn zircon_editor::EditorPlugin,
+        zircon_plugin_navigation_runtime::package_manifest(),
+    )]);
+    let missing = catalog.validate_capabilities(Vec::<String>::new());
+    assert!(!missing.is_success());
+    assert_eq!(missing.diagnostics.len(), EDITOR_CAPABILITIES.len());
+    assert!(missing
+        .diagnostics
+        .iter()
+        .all(|diagnostic| diagnostic.code == "editor.capability.missing"));
+    assert!(catalog
+        .validate_capabilities(EDITOR_CAPABILITIES)
+        .is_success());
 }
 
 fn navigation_editor_documents() -> &'static [&'static str] {
@@ -111,4 +179,288 @@ fn navigation_editor_documents() -> &'static [&'static str] {
         "navmesh_obstacle.drawer.zui",
         "navmesh_offmesh_link.drawer.zui",
     ]
+}
+
+#[test]
+fn navigation_bake_panel_routes_commands_and_monotonic_progress() {
+    let mut panel = NavigationBakePanel::default();
+    let request = panel
+        .submit(NavigationBakeAction::bake_selected_surface(42, true))
+        .expect("idle panel accepts a bake request");
+    assert_eq!(
+        request.action.runtime_request().unwrap().surface_entity,
+        Some(42)
+    );
+    assert!(request.action.runtime_request().unwrap().force_full_rebuild);
+    assert_eq!(request.id, 1);
+    assert_eq!(panel.phase(), NavigationBakePhase::Queued);
+    assert!(panel.observe_progress(NavigationBakeProgress::new(
+        request.id,
+        NavigationBakePhase::Baking,
+        3,
+        10,
+        "rasterizing tiles",
+    )));
+    assert!(!panel.observe_progress(NavigationBakeProgress::new(
+        request.id,
+        NavigationBakePhase::Baking,
+        2,
+        10,
+        "stale worker update",
+    )));
+    assert!(!panel.observe_progress(NavigationBakeProgress::new(
+        request.id,
+        NavigationBakePhase::Queued,
+        3,
+        10,
+        "phase rollback",
+    )));
+    assert!(!panel.observe_progress(NavigationBakeProgress::new(
+        request.id,
+        NavigationBakePhase::Baking,
+        3,
+        20,
+        "fraction rollback",
+    )));
+    assert!(!panel.observe_progress(NavigationBakeProgress::new(
+        request.id,
+        NavigationBakePhase::Clearing,
+        4,
+        10,
+        "wrong action phase",
+    )));
+
+    let report = NavMeshBakeReport {
+        tiles: 10,
+        baked_polygons: 128,
+        ..NavMeshBakeReport::default()
+    };
+    assert!(panel.complete(request.id, Ok(report.clone())));
+    assert_eq!(panel.phase(), NavigationBakePhase::Complete);
+    assert_eq!(panel.last_report(), Some(&report));
+    assert_eq!(panel.progress().fraction(), 1.0);
+}
+
+#[test]
+fn navigation_bake_controller_submits_typed_requests_and_surfaces_backend_rejection() {
+    let mut controller = NavigationBakePanelController::new(RecordingBakeBackend::default());
+    let request = controller
+        .submit(NavigationBakeAction::bake_scene(true))
+        .expect("backend accepts request");
+    assert_eq!(controller.backend().requests, [request.clone()]);
+    assert!(request.action.runtime_request().unwrap().force_full_rebuild);
+
+    controller.complete(
+        request.id,
+        Ok(NavMeshBakeReport {
+            tiles: 1,
+            ..NavMeshBakeReport::default()
+        }),
+    );
+    controller.backend_mut().reject = true;
+    let error = controller
+        .submit(NavigationBakeAction::ClearSelectedSurface { entity: 9 })
+        .expect_err("backend rejection must reach the panel");
+    assert_eq!(error.to_string(), "bake queue unavailable");
+    assert_eq!(controller.panel().phase(), NavigationBakePhase::Failed);
+    assert_eq!(
+        controller.panel().last_error(),
+        Some("bake queue unavailable")
+    );
+}
+
+#[test]
+fn navigation_bake_commands_keep_pending_operation_payload_and_undo_contracts() {
+    let registration = plugin_registration();
+    for (operation, payload_schema) in [
+        (NAVIGATION_BAKE_SCENE_OPERATION, "navigation.bake.scene.v1"),
+        (
+            NAVIGATION_BAKE_SURFACE_OPERATION,
+            "navigation.bake.selected_surface.v1",
+        ),
+        (
+            NAVIGATION_CLEAR_SURFACE_OPERATION,
+            "navigation.bake.clear_surface.v1",
+        ),
+    ] {
+        let operation =
+            zircon_editor::core::editor_operation::EditorOperationPath::parse(operation).unwrap();
+        let command = registration
+            .extensions
+            .pending_command(&operation)
+            .expect("navigation bake command must remain an edit operation");
+        assert!(command.event().is_none());
+        assert_eq!(command.payload_schema_id(), Some(payload_schema));
+        assert!(command.undoable().is_some());
+    }
+}
+
+#[test]
+fn navigation_overlay_registration_snapshot_is_stable() {
+    let registration = plugin_registration();
+    let mode = registration
+        .extensions
+        .viewport_tool_modes()
+        .into_iter()
+        .find(|mode| mode.id() == NAVIGATION_OVERLAY_MODE_ID)
+        .expect("navigation overlay mode must be registered");
+
+    assert_eq!(mode.display_name(), "Navigation Overlay");
+    assert_eq!(mode.view_id(), NAVIGATION_DEBUG_VIEW_ID);
+    assert_eq!(
+        mode.activate_operation().as_str(),
+        NAVIGATION_TOGGLE_GIZMOS_OPERATION
+    );
+    assert_eq!(
+        mode.overlay_provider_id(),
+        Some(NAVIGATION_OVERLAY_PROVIDER_ID)
+    );
+    assert_eq!(
+        mode.required_capabilities(),
+        &[NAVIGATION_GIZMOS_CAPABILITY.to_string()]
+    );
+    assert!(registration.extensions.menu_items().iter().any(|item| {
+        item.path() == "View/Debug Overlays/Navigation"
+            && item.operation().as_str() == NAVIGATION_TOGGLE_GIZMOS_OPERATION
+    }));
+}
+
+#[test]
+fn navigation_overlay_controller_toggles_and_submits_to_viewport_sink() {
+    let snapshot = NavigationGizmoSnapshot {
+        triangles: vec![NavigationGizmoTriangle {
+            vertices: [[-1.0, 0.0, -1.0], [1.0, 0.0, -1.0], [0.0, 0.0, 1.0]],
+            area: AREA_WALKABLE,
+            tile: 0,
+        }],
+        off_mesh_links: Vec::new(),
+    };
+    let mut controller = NavigationOverlayController::new(RecordingOverlaySink::default());
+
+    assert!(!controller.publish(1, &snapshot, None));
+    assert!(controller.toggle());
+    assert!(controller.publish(1, &snapshot, None));
+    assert!(controller.sink().submissions.last().unwrap().is_some());
+    assert!(!controller.toggle());
+    assert!(controller.sink().submissions.last().unwrap().is_none());
+
+    let operation = zircon_editor::core::editor_operation::EditorOperationPath::parse(
+        NAVIGATION_TOGGLE_GIZMOS_OPERATION,
+    )
+    .unwrap();
+    let registration = plugin_registration();
+    let command = registration.extensions.pending_command(&operation).unwrap();
+    assert_eq!(
+        command.payload_schema_id(),
+        Some("navigation.overlay.toggle.v1")
+    );
+    assert!(command.event().is_none());
+}
+
+#[test]
+fn navigation_overlay_contains_area_mesh_agent_path_and_avoidance_vectors() {
+    let nav_mesh = NavigationGizmoSnapshot {
+        triangles: vec![
+            NavigationGizmoTriangle {
+                vertices: [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                area: AREA_WALKABLE,
+                tile: 0,
+            },
+            NavigationGizmoTriangle {
+                vertices: [[1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 1.0]],
+                area: AREA_JUMP,
+                tile: 0,
+            },
+        ],
+        off_mesh_links: Vec::new(),
+    };
+    let frame = NavigationPieFrame::new(
+        7,
+        1,
+        NavAgentTickReport {
+            debug_agents: vec![NavigationAgentDebugState {
+                entity: 9,
+                position: [0.2, 0.0, 0.2],
+                destination: Some([1.8, 0.0, 1.8]),
+                desired_velocity: [1.0, 0.0, 0.0],
+                avoidance_velocity: [0.0, 0.0, 0.5],
+                path_status: Some(NavPathStatus::Complete),
+                path: vec![[0.2, 0.0, 0.2], [1.0, 0.0, 1.0], [1.8, 0.0, 1.8]],
+            }],
+            ..NavAgentTickReport::default()
+        },
+    );
+    let overlay = build_navigation_overlay(
+        100,
+        &nav_mesh,
+        Some(&frame),
+        NavigationOverlayOptions::default(),
+    );
+
+    assert_eq!(overlay.kind, SceneGizmoKind::NavigationMesh);
+    assert!(overlay.lines.len() >= 9, "mesh edges + path + two vectors");
+    assert_ne!(overlay.lines[0].color, overlay.lines[3].color);
+    assert!(!overlay.pick_shapes.is_empty());
+}
+
+#[test]
+fn navigation_pie_mirror_rejects_cross_session_and_out_of_order_frames() {
+    let mut mirror = NavigationPieMirror::default();
+    mirror.begin_session(12);
+    let agent = NavigationAgentDebugState {
+        entity: 44,
+        position: [1.0, 0.0, 2.0],
+        destination: Some([5.0, 0.0, 8.0]),
+        desired_velocity: [0.5, 0.0, 0.25],
+        avoidance_velocity: [0.0, 0.0, 0.1],
+        path_status: Some(NavPathStatus::Partial),
+        path: vec![[1.0, 0.0, 2.0], [3.0, 0.0, 4.0]],
+    };
+    assert_eq!(
+        mirror.apply_tick_report(
+            12,
+            2,
+            NavAgentTickReport {
+                debug_agents: vec![agent.clone()],
+                ..NavAgentTickReport::default()
+            },
+        ),
+        NavigationPieMirrorApply::Applied
+    );
+    assert_eq!(
+        mirror.apply_tick_report(12, 1, NavAgentTickReport::default()),
+        NavigationPieMirrorApply::Stale
+    );
+    assert_eq!(
+        mirror.apply_tick_report(99, 3, NavAgentTickReport::default()),
+        NavigationPieMirrorApply::WrongSession
+    );
+    assert_eq!(mirror.agent(44), Some(&agent));
+    assert_eq!(mirror.sequence(), Some(2));
+}
+
+#[test]
+fn navigation_m6_layout_exposes_bake_progress_and_pie_debug_contracts() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let bake = std::fs::read_to_string(root.join("bake.zui")).unwrap();
+    for marker in [
+        "NavigationBakeSceneButton",
+        "NavigationBakeSelectedButton",
+        "NavigationClearBakeButton",
+        "NavigationBakeProgress",
+        "NavigationBakeDiagnostics",
+    ] {
+        assert!(bake.contains(marker), "bake layout missing {marker}");
+    }
+
+    let debug = std::fs::read_to_string(root.join("debug_gizmos.zui")).unwrap();
+    for marker in [
+        "NavigationAreaOverlayToggle",
+        "NavigationAgentPathToggle",
+        "NavigationAvoidanceVectorToggle",
+        "NavigationPieMirrorStatus",
+        "NavigationDebugAgentList",
+    ] {
+        assert!(debug.contains(marker), "debug layout missing {marker}");
+    }
 }

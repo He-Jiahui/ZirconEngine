@@ -1,0 +1,52 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hubTokens = void 0;
+exports.hubTokens = {
+    window: {
+        width: 1568,
+        height: 1003,
+        topBarHeight: 73,
+        sidebarWidth: 222,
+        sidebarCollapsedWidth: 78,
+        pagePaddingX: 30,
+        pagePaddingY: 28,
+    },
+    radius: {
+        compact: 7,
+        panel: 8,
+        card: 8,
+        thumb: 4,
+        brandMark: 6,
+        pill: 999,
+    },
+    colors: {
+        background: "#111212",
+        chrome: "#151515",
+        panel: "#202020",
+        panelLow: "#1c1c1c",
+        panelHover: "#292929",
+        line: "rgba(255,255,255,0.10)",
+        lineStrong: "rgba(255,255,255,0.16)",
+        text: "#eeeeee",
+        textOnAccent: "#eefefe",
+        textOnPrimary: "#071515",
+        textSoft: "#b9b9b9",
+        textMuted: "#8d8d8d",
+        dangerText: "#ffd8d5",
+        accent: "#21d5cf",
+        accentDim: "rgba(20, 121, 119, 0.72)",
+        success: "#77d77a",
+        warning: "#ffc24d",
+        error: "#ef655e",
+        avatar: "#4b4f52",
+        coverBackdrop: "#141414",
+        tooltip: "#242424",
+    },
+    gradients: {
+        window: "radial-gradient(circle at 30% 18%, rgba(38,86,82,0.13), transparent 30%), linear-gradient(180deg, #161616 0%, #111111 100%)",
+    },
+    shadows: {
+        panel: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.28)",
+        accent: "0 0 14px rgba(33,213,207,0.2)",
+    },
+};

@@ -1,6 +1,6 @@
 use crate::asset::assets::{
     TextureAsset, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    TextureUploadSupport, LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageUsage,
@@ -22,6 +22,12 @@ impl GpuTextureResource {
         let support = texture_upload_support_from_device(device);
         match payload.upload_readiness(support) {
             TextureUploadReadiness::Ready { plan }
+                if plan.compression == TextureUploadCompressionFamily::Uncompressed
+                    && plan.format == LIGHTMAP_RGBA16F_GPU_FORMAT =>
+            {
+                Self::from_lightmap_rgba16f_asset(device, queue, texture_layout, id, payload)
+            }
+            TextureUploadReadiness::Ready { plan }
                 if plan.compression == TextureUploadCompressionFamily::Uncompressed =>
             {
                 Ok(Self::from_rgba8_asset(
@@ -41,6 +47,97 @@ impl GpuTextureResource {
                 payload.uri
             ))),
         }
+    }
+
+    fn from_lightmap_rgba16f_asset(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        id: ResourceId,
+        payload: TextureAsset,
+    ) -> Result<Self, GraphicsError> {
+        let descriptor = payload.render_image_descriptor();
+        let layer_count = descriptor.array_layer_count.max(1);
+        let crate::asset::TexturePayload::Container { bytes, .. } = &payload.payload else {
+            return Err(GraphicsError::Asset(format!(
+                "lightmap texture {} requires a raw rgba16f container payload",
+                payload.uri
+            )));
+        };
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-lightmap-rgba16f-array"),
+            size: wgpu::Extent3d {
+                width: payload.width,
+                height: payload.height,
+                depth_or_array_layers: layer_count,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba16Float, true),
+            view_formats: &[],
+        });
+        let page_size_bytes = u64::from(payload.width)
+            .checked_mul(u64::from(payload.height))
+            .and_then(|texels| texels.checked_mul(8))
+            .ok_or_else(|| {
+                GraphicsError::Asset(format!(
+                    "lightmap texture {} upload size overflows",
+                    payload.uri
+                ))
+            })?;
+        for layer in 0..layer_count {
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d {
+                        x: 0,
+                        y: 0,
+                        z: layer,
+                    },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytes,
+                wgpu::TexelCopyBufferLayout {
+                    offset: page_size_bytes * u64::from(layer),
+                    bytes_per_row: Some(8 * payload.width),
+                    rows_per_image: Some(payload.height),
+                },
+                wgpu::Extent3d {
+                    width: payload.width,
+                    height: payload.height,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
+        let view = texture.create_view(&lightmap_texture_view_descriptor(layer_count));
+        let legacy_bind_group_view =
+            texture.create_view(&lightmap_legacy_bind_group_view_descriptor());
+        let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("zircon-lightmap-rgba16f-bind-group"),
+            layout: texture_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&legacy_bind_group_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
+        Ok(Self {
+            id: Some(id),
+            descriptor,
+            texture,
+            view,
+            sampler,
+            bind_group,
+        })
     }
 
     fn from_rgba8_asset(
@@ -628,6 +725,24 @@ fn texture_view_descriptor(
                 ..Default::default()
             }
         }
+    }
+}
+
+fn lightmap_texture_view_descriptor(layer_count: u32) -> wgpu::TextureViewDescriptor<'static> {
+    wgpu::TextureViewDescriptor {
+        dimension: Some(wgpu::TextureViewDimension::D2Array),
+        base_array_layer: 0,
+        array_layer_count: Some(layer_count.max(1)),
+        ..Default::default()
+    }
+}
+
+fn lightmap_legacy_bind_group_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
+    wgpu::TextureViewDescriptor {
+        dimension: Some(wgpu::TextureViewDimension::D2),
+        base_array_layer: 0,
+        array_layer_count: Some(1),
+        ..Default::default()
     }
 }
 

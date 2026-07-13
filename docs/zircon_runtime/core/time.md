@@ -3,8 +3,8 @@ related_code:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
@@ -15,12 +15,12 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_runtime/src/core/framework/time/mod.rs
 implementation_files:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/runtime/time.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
@@ -31,7 +31,7 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
-  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
 plan_sources:
   - user: 2026-05-16 continue Bevy-style runtime Time integration
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md

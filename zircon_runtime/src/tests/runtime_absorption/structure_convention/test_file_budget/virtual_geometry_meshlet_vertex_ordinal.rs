@@ -1,9 +1,7 @@
 use super::*;
 
-const STATUS: &str =
-    "render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred";
-const PROJECT_ASSET_MANAGER_FIXTURE_STATUS: &str =
-    "render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred";
+const STATUS: &str = "render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred";
+const PROJECT_ASSET_MANAGER_FIXTURE_STATUS: &str = "render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
@@ -24,14 +22,16 @@ fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
     let gltf_importer_tests = read_runtime_src("asset/tests/assets/gltf_importer.rs");
     let project_asset_manager_tests =
         read_runtime_src("asset/tests/pipeline/manager/model_import.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let model_doc = read_repo("docs/zircon_runtime/asset/assets/model.md");
     let render_assets_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
         "model primitive owns VG vertex ordinal encoding",
@@ -93,7 +93,6 @@ fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
         ("render assets doc", render_assets_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -114,7 +113,6 @@ fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
         ("render assets doc", render_assets_doc.as_str()),
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
-        ("render Plan 08 session", session_doc.as_str()),
     ] {
         assert_contains_all(
             label,

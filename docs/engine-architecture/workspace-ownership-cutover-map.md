@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/tests/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs
@@ -31,7 +31,7 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/mod.rs
-  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/tests/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs

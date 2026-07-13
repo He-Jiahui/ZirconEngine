@@ -9,10 +9,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::core::CoreRuntime;
-use crate::plugin::{
-    RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
-    SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
-};
+use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::{CameraComponent, MeshRenderer, Mobility};
 use crate::scene::ecs::{
     CommandsParam, Component, EventPayloadProfile, EventPayloadStorage, EventStore,
@@ -22,6 +19,10 @@ use crate::scene::ecs::{
     EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World, SCENE_MODULE_NAME};
+use crate::scene::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
+};
 
 mod conflict_graph;
 mod fixed_update;

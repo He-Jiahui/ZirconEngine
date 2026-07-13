@@ -1,3 +1,6 @@
+use crate::core::framework::scene::physics::{
+    PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
+};
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::Vec3;
 use crate::scene::components::ColliderShape;
@@ -37,6 +40,39 @@ impl World {
                     return Ok(false);
                 }
                 rigid_body.mass = next;
+            }
+            [field, subfield] if field == "massproperties" && subfield == "mode" => {
+                let mode = expect_enum(value, property_path)?;
+                let next = if normalized_identifier_matches(&mode, "explicit") {
+                    PhysicsMassProperties::Explicit {
+                        inertia_tensor: None,
+                    }
+                } else if normalized_identifier_matches(&mode, "auto_from_shape") {
+                    PhysicsMassProperties::AutoFromShape { density: 1.0 }
+                } else {
+                    return Err(SceneError::UnsupportedPropertyValue {
+                        kind: "rigid body mass properties mode",
+                        value: mode,
+                    });
+                };
+                if rigid_body.mass_properties == next {
+                    return Ok(false);
+                }
+                rigid_body.mass_properties = next;
+            }
+            [field, subfield] if field == "massproperties" && subfield == "density" => {
+                let density = expect_scalar(value, property_path)?;
+                if density <= 0.0 {
+                    return Err(SceneError::UnsupportedPropertyValue {
+                        kind: "rigid body mass density",
+                        value: density.to_string(),
+                    });
+                }
+                let next = PhysicsMassProperties::AutoFromShape { density };
+                if rigid_body.mass_properties == next {
+                    return Ok(false);
+                }
+                rigid_body.mass_properties = next;
             }
             [field] if field == "linearvelocity" => {
                 let next = expect_vec3(value, property_path)?;
@@ -91,12 +127,39 @@ impl World {
                 }
                 rigid_body.gravity_scale = next;
             }
-            [field] if field == "cansleep" => {
-                let next = expect_bool(value, property_path)?;
-                if rigid_body.can_sleep == next {
+            [field] if field == "ccdmode" => {
+                let mode = expect_enum(value, property_path)?;
+                let next = if normalized_identifier_matches(&mode, "disabled") {
+                    PhysicsCcdMode::Disabled
+                } else if normalized_identifier_matches(&mode, "linear_cast") {
+                    PhysicsCcdMode::LinearCast
+                } else {
+                    return Err(SceneError::UnsupportedPropertyValue {
+                        kind: "rigid body CCD mode",
+                        value: mode,
+                    });
+                };
+                if rigid_body.ccd_mode == next {
                     return Ok(false);
                 }
-                rigid_body.can_sleep = next;
+                rigid_body.ccd_mode = next;
+            }
+            [field] if field == "sleeppolicy" => {
+                let policy = expect_enum(value, property_path)?;
+                let next = if normalized_identifier_matches(&policy, "allow") {
+                    PhysicsSleepPolicy::Allow
+                } else if normalized_identifier_matches(&policy, "never") {
+                    PhysicsSleepPolicy::Never
+                } else {
+                    return Err(SceneError::UnsupportedPropertyValue {
+                        kind: "rigid body sleep policy",
+                        value: policy,
+                    });
+                };
+                if rigid_body.sleep_policy == next {
+                    return Ok(false);
+                }
+                rigid_body.sleep_policy = next;
             }
             [field, axis] if field == "locktranslation" => {
                 let axis = axis_index(axis, property_path)?;
@@ -241,6 +304,11 @@ impl World {
                                 radius: 0.5,
                                 half_height: 0.5,
                             }
+                        } else if normalized_identifier_matches(&next_kind, "cylinder") {
+                            ColliderShape::Cylinder {
+                                radius: 0.5,
+                                half_height: 0.5,
+                            }
                         } else {
                             return Err(SceneError::UnsupportedPropertyValue {
                                 kind: "collider shape",
@@ -274,6 +342,20 @@ impl World {
                         *radius = next;
                     }
                     (ColliderShape::Capsule { half_height, .. }, "halfheight") => {
+                        let next = expect_scalar(value, property_path)?;
+                        if *half_height == next {
+                            return Ok(false);
+                        }
+                        *half_height = next;
+                    }
+                    (ColliderShape::Cylinder { radius, .. }, "radius") => {
+                        let next = expect_scalar(value, property_path)?;
+                        if *radius == next {
+                            return Ok(false);
+                        }
+                        *radius = next;
+                    }
+                    (ColliderShape::Cylinder { half_height, .. }, "halfheight") => {
                         let next = expect_scalar(value, property_path)?;
                         if *half_height == next {
                             return Ok(false);

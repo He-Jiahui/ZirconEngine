@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/complete_gpu_uploads_with_slots.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
 implementation_files:
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
 plan_sources:
   - user: 2026-04-18 把同一套 submission_slot / page-table / completion 真值继续推进到更深的 residency-manager cascade
   - user: 2026-04-18 把 fallback slot authority 继续下沉到 unified indirect / draw-ref / submission ordering
@@ -17,9 +17,9 @@ plan_sources:
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-explicit-replacement-runtime-host-and-stats-closure.md
   - docs/superpowers/plans/2026-04-18-m5-virtual-geometry-stale-explicit-recycle-slot-contract-guard.md
 tests:
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_runtime.rs
-  - zircon_graphics/src/tests/virtual_geometry_gpu.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
   - zircon_graphics/src/tests/virtual_geometry_unified_indirect.rs
   - zircon_graphics/src/tests/virtual_geometry_submission_authority.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs

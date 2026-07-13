@@ -2,12 +2,10 @@ pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_SLICE:
     "Runtime 15 M3 review-guard source structure paths folder-backed split";
 pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_STATUS: &str =
     "runtime_15_review_guard_source_structure_paths_folder_backed_static_passed_cargo_deferred";
-pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_review_guard_source_structure_paths_folder_backed_static_passed_cargo_deferred";
+pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_FRAMEWORKS_STATUS: &str = "frameworks_02_m3_review_guard_source_structure_paths_folder_backed_static_passed_cargo_deferred";
 pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_GUARD: &str =
     "runtime_15_review_guard_source_structure_paths_are_folder_backed";
-pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_ROUTE_PATH: &str =
-    "structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths.rs";
+pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths.rs";
 pub(in super::super::super) const STRUCTURE_REVIEW_SOURCE_STRUCTURE_PATHS_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/folder_backed.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/foundation_maps.rs",

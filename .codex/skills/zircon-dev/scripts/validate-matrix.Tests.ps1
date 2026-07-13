@@ -2,6 +2,7 @@ $script:ValidateMatrixScript = Join-Path $PSScriptRoot "validate-matrix.ps1"
 $script:ValidateMatrixTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
 $script:OriginalValidateMatrixTestMode = $env:VALIDATE_MATRIX_TEST_MODE
 $script:OriginalCargoTargetDir = $env:CARGO_TARGET_DIR
+$script:ManagedPoolRegex = '[D-F]:\\(?:cargo-targets|targets|ZirconBuilds)\\zircon-engine\\pool\\[0-9a-f]{64}'
 
 $env:VALIDATE_MATRIX_TEST_MODE = "1"
 . $script:ValidateMatrixScript -DryRun -SkipBuild -SkipTest
@@ -364,22 +365,21 @@ Describe "Coordinator Cargo target hard cutover" {
         $source | Should Match "Resolve-CoordinatorCargoTarget"
     }
 
-    It "releases a leased job when Cargo discovery fails before start" {
+    It "does not acquire a reusable pool when toolchain identity cannot be established" {
         $client = Join-Path $script:ValidateMatrixTestRepoRoot "tools\zircon-session.ps1"
         $beforeRaw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
         $beforeIds = @((($beforeRaw -join "`n") | ConvertFrom-Json).jobs | ForEach-Object job_id)
         $result = Invoke-ValidateMatrixCliWithoutCargo -Arguments @("-SkipTest")
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "cargo"
+        $result.Output | Should Match "rustc"
         $raw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
         $jobs = (($raw -join "`n") | ConvertFrom-Json).jobs
         $ownerId = Resolve-OwnerId -RepoRoot $script:ValidateMatrixTestRepoRoot
         $created = @($jobs | Where-Object {
             $beforeIds -notcontains $_.job_id -and $_.session_id -eq $ownerId
         })
-        $created.Count | Should Be 1
-        $created[0].status | Should Be "released"
+        $created.Count | Should Be 0
     }
 }
 
@@ -440,7 +440,7 @@ Describe "Validate matrix CLI dry-run parsing" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Dry run: on"
-        $result.Output | Should Match "Target dir: [D-F]:\\cargo-targets\\zircon-engine-workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "No stages selected"
         $result.Output | Should Not Match "target\\manual-check"
     }
@@ -460,7 +460,7 @@ Describe "Validate matrix CLI dry-run parsing" {
 
     It "rejects an inherited target outside managed lane roots" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir `
-            -CargoTargetDir "E:\cargo-targets\unmanaged" `
+            -CargoTargetDir "E:\not-approved\unmanaged" `
             -Arguments @("-DryRun", "-SkipBuild", "-SkipTest")
 
         $result.ExitCode | Should Not Be 0
@@ -531,7 +531,7 @@ Describe "Export platform contract validation" {
             $result.Output | Should Match ("Export platform contract \({0}\)" -f [regex]::Escape($platform))
             $result.Output | Should Match ("ZR_EXPORT_CONTRACT_PLATFORM={0}" -f [regex]::Escape($platform))
         }
-        ([regex]::Matches($result.Output, "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+")).Count |
+        ([regex]::Matches($result.Output, "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir $($script:ManagedPoolRegex)")).Count |
             Should Be $script:ExportContractPlatforms.Count
     }
 
@@ -555,7 +555,7 @@ Describe "Export platform contract validation" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Export platform contract \(headless\)"
         $result.Output | Should Match "ZR_EXPORT_CONTRACT_PLATFORM=headless"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir $($script:ManagedPoolRegex)"
         $result.Output | Should Not Match "Export platform contract \(windows\)"
         $result.Output | Should Not Match "Export platform contract \(linux\)"
         $result.Output | Should Not Match "Export platform contract \(macos\)"
@@ -576,10 +576,10 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected export platform commands without inheriting CARGO_TARGET_DIR" {
@@ -593,8 +593,8 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected export platform commands with an explicit TargetDir override" {
@@ -610,8 +610,8 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run \(coordinator validated manual target\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run"
+        $result.Output | Should Match "Target dir: E:\\cargo-targets\\pester-custom-dry-run \(coordinator validated manual target\)"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir E:\\cargo-targets\\pester-custom-dry-run"
     }
 
     It "dry-runs selected export platform commands with verbose cargo output" {
@@ -626,9 +626,9 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected export platform commands without locked mode only when requested" {
@@ -645,7 +645,7 @@ Describe "Export platform contract validation" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Locked mode: off"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --target-dir $($script:ManagedPoolRegex)"
         $result.Output | Should Not Match "--locked"
     }
 
@@ -855,12 +855,13 @@ Describe "Profile feature contract validation" {
         foreach ($case in $script:ProfileFeatureContractCases) {
             $result.Output | Should Match ("Profile feature contract \({0}\)" -f [regex]::Escape($case.Label))
             $result.Output | Should Match (
-                "cargo check -p {0} --no-default-features --features {1} --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+" -f
+                "cargo check -p {0} --no-default-features --features {1} --locked --target-dir {2}" -f
                 [regex]::Escape($case.Package),
-                [regex]::Escape($case.Features)
+                [regex]::Escape($case.Features),
+                $script:ManagedPoolRegex
             )
         }
-        ([regex]::Matches($result.Output, "cargo check -p .* --no-default-features --features .* --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+")).Count |
+        ([regex]::Matches($result.Output, "cargo check -p .* --no-default-features --features .* --locked --target-dir $($script:ManagedPoolRegex)")).Count |
             Should Be $script:ProfileFeatureContractCases.Count
     }
 
@@ -884,7 +885,7 @@ Describe "Profile feature contract validation" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir $($script:ManagedPoolRegex)"
         $result.Output | Should Not Match "Profile feature contract \(zircon_app target-server\)"
         $result.Output | Should Not Match "Profile feature contract \(zircon_app target-client-platform\)"
         $result.Output | Should Not Match "Profile feature contract \(zircon_runtime target-client\)"
@@ -902,10 +903,10 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected profile feature commands without inheriting CARGO_TARGET_DIR" {
@@ -919,8 +920,8 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected profile feature commands with an explicit TargetDir override" {
@@ -936,8 +937,8 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run \(coordinator validated manual target\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run"
+        $result.Output | Should Match "Target dir: E:\\cargo-targets\\pester-custom-dry-run \(coordinator validated manual target\)"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir E:\\cargo-targets\\pester-custom-dry-run"
     }
 
     It "dry-runs selected profile feature commands with verbose cargo output" {
@@ -952,9 +953,9 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose --target-dir $($script:ManagedPoolRegex)"
     }
 
     It "dry-runs selected profile feature commands without locked mode only when requested" {
@@ -971,7 +972,7 @@ Describe "Profile feature contract validation" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Locked mode: off"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --target-dir $($script:ManagedPoolRegex)"
         $result.Output | Should Not Match "--locked"
     }
 

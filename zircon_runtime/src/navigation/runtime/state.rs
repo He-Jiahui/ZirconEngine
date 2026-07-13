@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::asset::NavigationSettingsAsset;
-use crate::core::framework::navigation::{NavMeshHandle, NavigationError, NavigationRuntimeStats};
+use crate::core::framework::navigation::{
+    NavMeshHandle, NavigationError, NavigationRuntimeStats, NavigationSettingsAsset,
+};
 
 use super::baked_mesh::BakedNavMesh;
 

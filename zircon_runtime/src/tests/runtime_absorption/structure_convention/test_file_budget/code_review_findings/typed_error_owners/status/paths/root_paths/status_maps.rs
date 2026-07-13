@@ -1,11 +1,7 @@
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_maps.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_CHILD_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/child_inventory.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_REVIEW_SLICES_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/review_slices.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/status_current.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_maps.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_CHILD_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/child_inventory.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_REVIEW_SLICES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/review_slices.rs";
+pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/status_current.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_OWNERSHIP_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/ownership.rs";
 pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_STATUS_MAPS_STATUS_CURRENT_STATUS_SYNC_CHILD: &str =

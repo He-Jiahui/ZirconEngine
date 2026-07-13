@@ -1,4 +1,4 @@
-use crate::asset::AnimationChannelValueAsset;
+use crate::core::framework::animation::AnimationChannelValueAsset;
 use crate::core::framework::animation::{AnimationError, AnimationParameterValue, AnimationResult};
 use crate::core::math::{Quat, Real, Vec3};
 

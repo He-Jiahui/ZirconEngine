@@ -71,7 +71,7 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
             "fn shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source",
             "fn shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids",
             "fn shader_prewarm_asset_root_manifest_expands_requested_geometry_sources",
-            "fn shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision",
+            "fn shader_prewarm_asset_root_manifest_uses_zmeta_source_digest_revision",
             "fn shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision",
             "material_revision",
             "SHADING_MODEL_ID_BLINN_PHONG",

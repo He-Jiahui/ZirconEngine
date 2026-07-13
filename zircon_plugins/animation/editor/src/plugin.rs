@@ -1,5 +1,7 @@
+use zircon_editor::core::editor_extension::ComponentDrawerDescriptor;
 use zircon_plugin_editor_support::{
-    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
+    register_authoring_contribution_batch, register_authoring_extensions,
+    EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
 use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
@@ -43,7 +45,31 @@ fn register_animation_authoring_extensions(
                 "Plugins/Animation",
             )],
         },
-    )
+    )?;
+    register_authoring_contribution_batch(registry, animation_asset_authoring_batch())
+}
+
+fn animation_asset_authoring_batch() -> EditorAuthoringContributionBatch {
+    EditorAuthoringContributionBatch {
+        component_drawers: vec![
+            ComponentDrawerDescriptor::new(
+                "animation.Asset.BlendSpace1D",
+                "plugins://animation/editor/blend_space_1d.zui",
+                "animation.editor.blend_space_1d",
+            ),
+            ComponentDrawerDescriptor::new(
+                "animation.Asset.BlendSpace2D",
+                "plugins://animation/editor/blend_space_2d.zui",
+                "animation.editor.blend_space_2d",
+            ),
+            ComponentDrawerDescriptor::new(
+                "animation.Asset.AvatarMask",
+                "plugins://animation/editor/avatar_mask_bone_tree.zui",
+                "animation.editor.avatar_mask_bone_tree",
+            ),
+        ],
+        ..Default::default()
+    }
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {

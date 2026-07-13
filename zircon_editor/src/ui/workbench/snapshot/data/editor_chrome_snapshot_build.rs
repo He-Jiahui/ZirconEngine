@@ -17,6 +17,7 @@ impl EditorChromeSnapshot {
         layout: &WorkbenchLayout,
         instances: Vec<ViewInstance>,
         descriptors: Vec<ViewDescriptor>,
+        focused_view: Option<&ViewInstanceId>,
     ) -> Self {
         let instances_by_id: HashMap<ViewInstanceId, ViewInstance> = instances
             .into_iter()
@@ -31,8 +32,13 @@ impl EditorChromeSnapshot {
         let main_pages = build_main_pages(layout, &instances_by_id, &descriptors_by_id);
         let floating_windows = build_floating_windows(layout, &instances_by_id, &descriptors_by_id);
         let menu_overflow_mode = active_menu_overflow_mode(layout);
+        let focused_document_kind = focused_view
+            .and_then(|instance_id| instances_by_id.get(instance_id))
+            .and_then(|instance| descriptors_by_id.get(&instance.descriptor_id))
+            .and_then(|descriptor| descriptor.document_kind.clone());
 
         Self {
+            focused_document_kind,
             workbench: WorkbenchSnapshot {
                 active_main_page: layout.active_main_page.clone(),
                 main_pages,

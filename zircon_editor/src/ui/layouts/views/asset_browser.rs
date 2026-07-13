@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::{load_preview_image, ViewTemplateNodeData};
 use compact_layout::apply_asset_browser_compact_layout;
-use labels::{asset_state_label, resource_kind_label};
+use labels::asset_state_label;
 use stack_layout::apply_asset_browser_standard_stack_layout;
 use state_marks::{
     mark_panel_group_selected, mark_panel_selected, mark_toggle_state, mark_utility_tab_state,
@@ -20,12 +20,14 @@ use state_marks::{
 use summary_nodes::sync_asset_browser_summary_nodes;
 use table_nodes::{
     apply_asset_browser_table_cells, asset_table_row_text, asset_table_rows, mark_asset_table_rows,
+    sync_asset_table_nodes,
 };
-use thumbnail_nodes::{append_asset_browser_thumbnail_nodes, asset_thumbnail_icon_name};
+use thumbnail_nodes::append_asset_browser_thumbnail_nodes;
 use toolbar_layout::apply_asset_browser_toolbar_layout;
 use utility_tabs::apply_asset_browser_utility_tab_typography;
 
 mod compact_layout;
+mod compact_table_layout;
 mod labels;
 mod name_compaction;
 mod name_lines;
@@ -113,11 +115,11 @@ pub(crate) fn asset_browser_pane_nodes(
         selection_identity.clone(),
     );
     text_overrides.insert(
-        "AssetBrowserDetailsPreviewAdapterText".to_string(),
-        if snapshot.selection.adapter_key.is_empty() {
-            "No adapter".to_string()
+        "AssetBrowserDetailsPreviewToolkitText".to_string(),
+        if snapshot.selection.toolkit_view_id.is_empty() {
+            "No toolkit".to_string()
         } else {
-            snapshot.selection.adapter_key.clone()
+            snapshot.selection.toolkit_view_id.clone()
         },
     );
     text_overrides.insert(
@@ -157,7 +159,7 @@ pub(crate) fn asset_browser_pane_nodes(
         },
     );
     text_overrides.insert(
-        "AssetBrowserDetailsMetadataAdapterValue".to_string(),
+        "AssetBrowserDetailsMetadataToolkitValue".to_string(),
         selection_metadata_summary.clone(),
     );
     text_overrides.insert(
@@ -183,11 +185,11 @@ pub(crate) fn asset_browser_pane_nodes(
             .unwrap_or_else(|| "No UUID".to_string()),
     );
     text_overrides.insert(
-        "AssetBrowserPreviewAdapterText".to_string(),
-        if snapshot.selection.adapter_key.is_empty() {
-            "No adapter".to_string()
+        "AssetBrowserPreviewToolkitText".to_string(),
+        if snapshot.selection.toolkit_view_id.is_empty() {
+            "No toolkit".to_string()
         } else {
-            snapshot.selection.adapter_key.clone()
+            snapshot.selection.toolkit_view_id.clone()
         },
     );
     text_overrides.insert(
@@ -227,12 +229,12 @@ pub(crate) fn asset_browser_pane_nodes(
         },
     );
     text_overrides.insert(
-        "AssetBrowserAdapterValue".to_string(),
+        "AssetBrowserToolkitValue".to_string(),
         selection_metadata_summary,
     );
     text_overrides.insert(
-        "AssetBrowserAdapterLabel".to_string(),
-        "Adapter / Package".to_string(),
+        "AssetBrowserToolkitLabel".to_string(),
+        "Toolkit / Package".to_string(),
     );
     text_overrides.insert(
         "AssetBrowserDiagnosticsText".to_string(),
@@ -349,8 +351,10 @@ pub(crate) fn asset_browser_pane_nodes(
         text_overrides.insert(
             "AssetBrowserReferenceLeftRowKindText".to_string(),
             reference
-                .kind
-                .map(resource_kind_label)
+                .asset_type
+                .as_ref()
+                .map(|asset_type| asset_type.display_name.as_str())
+                .filter(|display_name| !display_name.is_empty())
                 .unwrap_or("Unknown")
                 .to_string(),
         );
@@ -371,8 +375,10 @@ pub(crate) fn asset_browser_pane_nodes(
         text_overrides.insert(
             "AssetBrowserReferenceRightRowKindText".to_string(),
             reference
-                .kind
-                .map(resource_kind_label)
+                .asset_type
+                .as_ref()
+                .map(|asset_type| asset_type.display_name.as_str())
+                .filter(|display_name| !display_name.is_empty())
                 .unwrap_or("Unknown")
                 .to_string(),
         );
@@ -392,6 +398,7 @@ pub(crate) fn asset_browser_pane_nodes(
         &text_overrides,
     )
     .unwrap_or_default();
+    sync_asset_table_nodes(&mut nodes, snapshot);
     let toolbar_layout = apply_asset_browser_toolbar_layout(&mut nodes, size.width);
     apply_asset_browser_visual_state(&mut nodes, snapshot);
     apply_asset_browser_table_cells(&mut nodes, &asset_table_rows);
@@ -595,7 +602,7 @@ fn apply_asset_browser_visual_state(
         nodes,
         &[
             "AssetBrowserMetaPathPanel",
-            "AssetBrowserAdapterPanel",
+            "AssetBrowserToolkitPanel",
             "AssetBrowserDiagnosticsPanel",
         ],
         snapshot.utility_tab == AssetUtilityTab::Metadata,
@@ -661,15 +668,17 @@ fn selection_locator(
     }
 }
 
-fn selection_kind_label(
-    selection: &AssetSelectionSnapshot,
-    selected_asset: Option<&AssetItemSnapshot>,
-) -> &'static str {
-    selection
-        .kind
-        .or_else(|| selected_asset.map(|asset| asset.kind))
-        .map(resource_kind_label)
-        .unwrap_or("Unknown Type")
+fn selection_kind_label<'a>(
+    selection: &'a AssetSelectionSnapshot,
+    selected_asset: Option<&'a AssetItemSnapshot>,
+) -> &'a str {
+    if !selection.asset_type.display_name.is_empty() {
+        selection.asset_type.display_name.as_str()
+    } else if let Some(asset) = selected_asset {
+        asset.asset_type.display_name.as_str()
+    } else {
+        "Unknown Type"
+    }
 }
 
 fn selection_identity(
@@ -743,7 +752,7 @@ fn update_asset_preview_visual_icon(
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         if let Some(asset) = asset {
             node.component_role = "asset-thumbnail-visual".into();
-            node.component_variant = asset_thumbnail_icon_name(asset.kind).into();
+            node.component_variant = asset.asset_type.icon_name.clone().into();
             update_asset_preview_visual_image(node, asset);
         } else {
             node.component_role = "".into();
@@ -788,7 +797,7 @@ fn utility_tab_for_control_id(control_id: &str) -> Option<AssetUtilityTab> {
             | "AssetBrowserPreviewLocatorText"
             | "AssetBrowserPreviewKindText"
             | "AssetBrowserPreviewIdentityText"
-            | "AssetBrowserPreviewAdapterText"
+            | "AssetBrowserPreviewToolkitText"
             | "AssetBrowserPreviewMetaPathText"
             | "AssetBrowserPreviewDiagnosticsText"
     ) {
@@ -802,7 +811,7 @@ fn utility_tab_for_control_id(control_id: &str) -> Option<AssetUtilityTab> {
     }
 
     if control_id.starts_with("AssetBrowserMetaPath")
-        || control_id.starts_with("AssetBrowserAdapter")
+        || control_id.starts_with("AssetBrowserToolkit")
         || matches!(
             control_id,
             "AssetBrowserDiagnosticsPanel"
@@ -825,10 +834,10 @@ fn utility_tab_for_control_id(control_id: &str) -> Option<AssetUtilityTab> {
 
 fn selection_metadata_summary(selection: &AssetSelectionSnapshot) -> String {
     let mut parts = Vec::new();
-    parts.push(if selection.adapter_key.is_empty() {
-        "No adapter".to_string()
+    parts.push(if selection.toolkit_view_id.is_empty() {
+        "No toolkit".to_string()
     } else {
-        selection.adapter_key.clone()
+        selection.toolkit_view_id.clone()
     });
     if !selection.asset_unit.is_empty() {
         parts.push(format!("unit {}", selection.asset_unit));
@@ -866,7 +875,11 @@ fn selection_metadata_body(selection: &AssetSelectionSnapshot, diagnostics: &str
         lines.extend(selection.subassets.iter().map(|subasset| {
             format!(
                 "- {} {} ({})",
-                resource_kind_label(subasset.kind),
+                if subasset.asset_type.display_name.is_empty() {
+                    "Unknown"
+                } else {
+                    subasset.asset_type.display_name.as_str()
+                },
                 subasset.locator,
                 subasset.uuid
             )

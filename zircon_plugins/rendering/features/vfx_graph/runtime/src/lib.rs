@@ -74,8 +74,9 @@ pub fn compile_vfx_graph(asset: &VfxGraphAsset) -> VfxGraphCompileReport {
     }
 }
 
-pub fn vfx_emitter_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
-    zircon_runtime::plugin::ComponentTypeDescriptor::new(
+pub fn vfx_emitter_component_descriptor(
+) -> zircon_runtime::core::framework::scene::ComponentTypeDescriptor {
+    zircon_runtime::core::framework::scene::ComponentTypeDescriptor::new(
         VFX_EMITTER_COMPONENT_TYPE,
         zircon_plugin_rendering_runtime::PLUGIN_ID,
         "VFX Emitter",

@@ -48,6 +48,7 @@ mod template_popup_rows;
 mod template_property_axis_values;
 mod template_property_rows;
 mod template_row_metrics;
+mod template_sample_grid;
 mod template_section_title_glyphs;
 mod template_section_titles;
 mod template_segmented_control_geometry;
@@ -63,6 +64,7 @@ mod template_status_glyphs;
 mod template_style;
 mod template_style_color;
 mod template_table_rows;
+mod template_timeline_strip;
 mod template_tooltip_glyphs;
 mod template_tooltips;
 mod template_tree_row_geometry;
@@ -76,6 +78,7 @@ mod template_viewport_scene_light;
 mod template_viewport_scene_props;
 mod template_viewport_scene_structure;
 mod template_viewport_scene_surfaces;
+mod template_weight_heatmap;
 mod visual_assets;
 
 pub(super) use template_node_pipeline::{

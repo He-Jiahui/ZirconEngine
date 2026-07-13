@@ -259,16 +259,9 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
         &compiled,
         "preview-sky",
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        RenderGraphResourceAccessKind::Write,
+        RenderGraphResourceAccessKind::Read,
     );
-    assert_eq!(
-        preview_sky_depth.attachment_ops,
-        Some(RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Clear,
-            store: RenderGraphAttachmentStoreOp::Store,
-        }),
-        "preview sky should clear scene depth before depth prepass writes geometry"
-    );
+    assert_eq!(preview_sky_depth.attachment_ops, None);
 
     let preview_sky_scene_color = pass_resource_access(
         &compiled,
@@ -279,10 +272,10 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
     assert_eq!(
         preview_sky_scene_color.attachment_ops,
         Some(RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Clear,
+            load: RenderGraphAttachmentLoadOp::Load,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "preview sky should clear scene color before drawing the background"
+        "preview sky should preserve opaque color before filling far-depth background"
     );
 
     let prepass_depth = pass_resource_access(
@@ -294,10 +287,10 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
     assert_eq!(
         prepass_depth.attachment_ops,
         Some(RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Load,
+            load: RenderGraphAttachmentLoadOp::Clear,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "depth prepass should load depth after preview sky initialized the target"
+        "depth prepass should own the first graph depth clear"
     );
 
     let prepass_normal = pass_resource_access(
@@ -324,10 +317,10 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
     assert_eq!(
         opaque_scene_color.attachment_ops,
         Some(RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Load,
+            load: RenderGraphAttachmentLoadOp::Clear,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "opaque scene color should load the preview sky background"
+        "opaque scene color should declare the graph's first write; the camera-stack policy converts it to a load after the frame-level clear"
     );
 
     let transparent_scene_color = pass_resource_access(
@@ -378,19 +371,33 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
     let deferred_compiled = RenderPipelineAsset::default_deferred()
         .compile(&test_extract())
         .unwrap();
-    let preview_sky_final_color = pass_resource_access(
+    let deferred_lighting_scene_color = pass_resource_access(
         &deferred_compiled,
-        "preview-sky",
-        PostProcessGraphResourceNames::FINAL_COLOR,
+        "deferred-lighting",
+        PostProcessGraphResourceNames::SCENE_COLOR,
         RenderGraphResourceAccessKind::Write,
     );
     assert_eq!(
-        preview_sky_final_color.attachment_ops,
+        deferred_lighting_scene_color.attachment_ops,
         Some(RenderGraphAttachmentOps {
             load: RenderGraphAttachmentLoadOp::Clear,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "deferred preview sky should explicitly clear the imported final-color background target"
+        "deferred lighting should declare the graph's first scene-color write before sky composition"
+    );
+    let deferred_preview_sky_scene_color = pass_resource_access(
+        &deferred_compiled,
+        "preview-sky",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        deferred_preview_sky_scene_color.attachment_ops,
+        Some(RenderGraphAttachmentOps {
+            load: RenderGraphAttachmentLoadOp::Load,
+            store: RenderGraphAttachmentStoreOp::Store,
+        }),
+        "deferred preview sky should preserve lit geometry before filling the background"
     );
 
     let deferred_prepass_depth = pass_resource_access(
@@ -402,9 +409,9 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
     assert_eq!(
         deferred_prepass_depth.attachment_ops,
         Some(RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Load,
+            load: RenderGraphAttachmentLoadOp::Clear,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "deferred depth prepass should load depth after preview sky initialized the target"
+        "deferred depth prepass should own the first graph depth clear"
     );
 }

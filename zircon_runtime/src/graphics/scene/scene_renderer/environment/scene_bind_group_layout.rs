@@ -1,5 +1,9 @@
+use std::num::NonZeroU64;
+
+use super::super::primitives::SceneEnvironmentSh9;
+
 pub(in crate::graphics::scene::scene_renderer) fn scene_bind_group_layout_entries(
-) -> [wgpu::BindGroupLayoutEntry; 6] {
+) -> [wgpu::BindGroupLayoutEntry; 7] {
     [
         scene_uniform_layout_entry(),
         environment_cube_texture_entry(1),
@@ -7,7 +11,21 @@ pub(in crate::graphics::scene::scene_renderer) fn scene_bind_group_layout_entrie
         environment_brdf_lut_entry(3),
         environment_cube_texture_entry(4),
         environment_cube_texture_entry(5),
+        environment_sh9_uniform_entry(6),
     ]
+}
+
+fn environment_sh9_uniform_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::FRAGMENT,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: NonZeroU64::new(SceneEnvironmentSh9::byte_len()),
+        },
+        count: None,
+    }
 }
 
 fn scene_uniform_layout_entry() -> wgpu::BindGroupLayoutEntry {
@@ -73,11 +91,18 @@ mod tests {
                 .iter()
                 .map(|entry| entry.binding)
                 .collect::<Vec<_>>(),
-            vec![0, 1, 2, 3, 4, 5]
+            vec![0, 1, 2, 3, 4, 5, 6]
         );
         assert_cube_texture(&entries[1]);
         assert_cube_texture(&entries[4]);
         assert_cube_texture(&entries[5]);
+        assert!(matches!(
+            entries[6].ty,
+            wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                ..
+            }
+        ));
     }
 
     fn assert_cube_texture(entry: &wgpu::BindGroupLayoutEntry) {

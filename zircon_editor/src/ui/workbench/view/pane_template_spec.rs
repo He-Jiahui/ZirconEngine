@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{PaneInteractionMode, PanePayloadKind, PaneRouteNamespace};
 
-const DEFAULT_PANE_SHELL_DOCUMENT_ID: &str = "pane.surface_controls";
+const DEFAULT_PANE_SHELL_DOCUMENT_ID: &str = "res://ui/editor/host/pane_surface_controls.zui";
 const DEFAULT_PANE_SHELL_COMPONENT_ID: &str = "PaneSurface";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

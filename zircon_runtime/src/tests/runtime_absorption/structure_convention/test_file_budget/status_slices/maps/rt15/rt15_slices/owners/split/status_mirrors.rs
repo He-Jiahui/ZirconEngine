@@ -24,10 +24,6 @@ pub(super) fn assert_status_docs_for_child_owner_split() {
             "module convention doc",
             read_repo("docs/zircon_runtime/structure/module-convention.md"),
         ),
-        (
-            "session note",
-            read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
-        ),
     ] {
         assert_contains_all(
             label,

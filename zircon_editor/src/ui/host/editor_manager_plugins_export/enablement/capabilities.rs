@@ -16,9 +16,11 @@ impl EditorManager {
         target_capabilities: &[String],
         enabled: bool,
     ) -> Result<EditorCapabilitySnapshot, String> {
-        let mut capabilities = self
+        let core = self
             .host
-            .core
+            .runtime_core()
+            .map_err(|error| error.to_string())?;
+        let mut capabilities = core
             .load_config::<Vec<String>>(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
             .unwrap_or_default();
         capabilities.retain(|existing| {
@@ -31,7 +33,7 @@ impl EditorManager {
             capabilities.sort();
             capabilities.dedup();
         }
-        self.host.core.store_config_value(
+        core.store_config_value(
             EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
             serde_json::json!(capabilities),
         );

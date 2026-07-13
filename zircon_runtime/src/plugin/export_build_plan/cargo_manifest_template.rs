@@ -1,5 +1,5 @@
-use crate::builtin::RuntimeTargetMode;
-use crate::plugin::ExportProfile;
+use crate::core::framework::platform::RuntimeTargetMode;
+use crate::core::framework::project::ExportProfile;
 
 use super::ExportLinkedRuntimeCrate;
 
@@ -19,12 +19,12 @@ pub(super) fn cargo_manifest_template(
         ));
     }
     match profile.target_platform.policy().host_kind {
-        crate::plugin::ExportPlatformHostKind::Desktop
-        | crate::plugin::ExportPlatformHostKind::Headless => {}
-        crate::plugin::ExportPlatformHostKind::MobileApp => {
+        crate::core::framework::project::ExportPlatformHostKind::Desktop
+        | crate::core::framework::project::ExportPlatformHostKind::Headless => {}
+        crate::core::framework::project::ExportPlatformHostKind::MobileApp => {
             contents.push_str("\n[lib]\ncrate-type = [\"cdylib\", \"staticlib\"]\n");
         }
-        crate::plugin::ExportPlatformHostKind::Browser => {
+        crate::core::framework::project::ExportPlatformHostKind::Browser => {
             contents.push_str("\n[lib]\ncrate-type = [\"cdylib\"]\n");
         }
     }

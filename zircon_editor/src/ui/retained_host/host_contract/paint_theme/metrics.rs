@@ -1,6 +1,8 @@
 use std::sync::{OnceLock, RwLock};
 
-use zircon_runtime_interface::ui::design_tokens::{EditorDesignTokens, EditorTypographyTokens};
+use zircon_runtime_interface::ui::design_tokens::{
+    EditorDensityTokens, EditorDesignTokens, EditorTypographyTokens,
+};
 
 // Shared retained-host control metrics keep Slate-like primitive controls on one
 // spacing, radius, and text scale before higher-level composites consume them.
@@ -59,7 +61,7 @@ pub(in crate::ui::retained_host::host_contract) const METRICS: HostControlMetric
         gap_s: 4.0,
         gap_m: 8.0,
         gap_l: 12.0,
-        row_height: 24.0,
+        row_height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
     };
 
 pub(crate) fn apply_host_metrics_from_tokens(tokens: &EditorDesignTokens) {
@@ -140,6 +142,10 @@ mod tests {
         assert_eq!(METRICS.selection_indicator_width, 2.0);
         assert_eq!(METRICS.scrollbar_thickness, 8.0);
         assert_eq!(METRICS.scrollbar_min_thumb_length, 24.0);
+        assert_eq!(
+            METRICS.row_height,
+            EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+        );
         assert!((METRICS.line_height(METRICS.font_body) - 16.0).abs() < 0.001);
     }
 
