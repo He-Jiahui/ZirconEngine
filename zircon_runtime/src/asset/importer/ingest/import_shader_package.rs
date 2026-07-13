@@ -18,6 +18,10 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
 
+#[path = "import_shader_package/generated_material_anchor_hint.rs"]
+mod generated_material_anchor_hint;
+use generated_material_anchor_hint::append_generated_material_anchor_hint;
+
 pub(crate) fn import_shader_package(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
@@ -70,6 +74,7 @@ pub(crate) fn import_shader_package(
         &wgsl_source,
         &imports,
     );
+    append_generated_material_anchor_hint(&mut import_diagnostics, &document, &wgsl_source);
     let dependency_locators = imports
         .iter()
         .filter_map(|import| {
