@@ -1,16 +1,35 @@
 use std::sync::mpsc;
 
 use crate::core::math::UVec2;
+use crate::graphics::shader::{
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
+    hzb_build_msaa_dispatch_plan,
+};
 use crate::graphics::visibility::HzbBuilder;
 
 use super::execute_hzb_build::{
-    create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources, HzbBuildMipResources,
+    HzbBuildMipResources, create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources,
 };
 
 const TEST_SCENE_SIZE: UVec2 = UVec2::new(4, 4);
-const TEST_DEPTH_F16_BITS: u16 = 0x3400;
 const F16_ONE_BITS: u16 = 0x3c00;
 const COPY_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+
+const SINGLE_SAMPLE_MIP0_TEXELS: [[u16; 4]; 4] = [
+    [0x3200, 0x2800, 0x3100, F16_ONE_BITS],
+    [0x3400, 0x2e00, 0x3100, F16_ONE_BITS],
+    [0x3700, 0x3480, 0x3100, F16_ONE_BITS],
+    [0x3800, 0x3580, 0x3100, F16_ONE_BITS],
+];
+const SINGLE_SAMPLE_MIP1_TEXELS: [[u16; 4]; 1] = [[0x3800, 0x2800, 0x3780, F16_ONE_BITS]];
+const MULTISAMPLE_MIP0_TEXELS: [[u16; 4]; 4] = [
+    [0x3380, 0x2800, 0x3280, F16_ONE_BITS],
+    [0x34c0, 0x2e00, 0x3280, F16_ONE_BITS],
+    [0x37c0, 0x3480, 0x3280, F16_ONE_BITS],
+    [0x3860, 0x3580, 0x3280, F16_ONE_BITS],
+];
+const MULTISAMPLE_MIP1_TEXELS: [[u16; 4]; 1] = [[0x3860, 0x2800, 0x3820, F16_ONE_BITS]];
 
 #[test]
 fn hzb_build_preserves_per_mip_params_and_resolves_msaa_depth() {
@@ -77,23 +96,7 @@ fn assert_hzb_depth_chain(
         label: Some("zircon-hzb-wgpu-regression-encoder"),
     });
     let params_upload_buffer = create_hzb_params_upload_buffer(device, plan);
-    {
-        let _clear = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("zircon-hzb-wgpu-regression-depth-clear"),
-            color_attachments: &[],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &depth_view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(0.25),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-            multiview_mask: None,
-        });
-    }
+    encode_depth_pattern(device, &mut encoder, &depth_view, sample_count);
 
     for mip_level in 0..plan.mip_count {
         let source_view = (mip_level > 0).then(|| hzb_mip_view(&hzb_texture, mip_level - 1));
@@ -149,17 +152,118 @@ fn assert_hzb_depth_chain(
     let mut readback_offset = 0_usize;
     for mip_level in 0..plan.mip_count {
         let mip_size = plan.mip_size(mip_level);
+        let expected_texels = expected_hzb_texels(sample_count, mip_level);
+        assert_eq!(expected_texels.len(), (mip_size.x * mip_size.y) as usize);
         for y in 0..mip_size.y as usize {
             for x in 0..mip_size.x as usize {
                 let offset = readback_offset + y * COPY_BYTES_PER_ROW as usize + x * 8;
-                assert_eq!(read_u16(&bytes, offset), TEST_DEPTH_F16_BITS);
-                assert_eq!(read_u16(&bytes, offset + 2), TEST_DEPTH_F16_BITS);
-                assert_eq!(read_u16(&bytes, offset + 4), 0);
-                assert_eq!(read_u16(&bytes, offset + 6), F16_ONE_BITS);
+                let expected = expected_texels[y * mip_size.x as usize + x];
+                assert_eq!(
+                    [
+                        read_u16(&bytes, offset),
+                        read_u16(&bytes, offset + 2),
+                        read_u16(&bytes, offset + 4),
+                        read_u16(&bytes, offset + 6),
+                    ],
+                    expected,
+                    "sample_count={sample_count} mip={mip_level} texel=({x},{y})",
+                );
             }
         }
         readback_offset += COPY_BYTES_PER_ROW as usize * mip_size.y as usize;
     }
+}
+
+fn expected_hzb_texels(sample_count: u32, mip_level: u32) -> &'static [[u16; 4]] {
+    match (sample_count, mip_level) {
+        (1, 0) => &SINGLE_SAMPLE_MIP0_TEXELS,
+        (1, 1) => &SINGLE_SAMPLE_MIP1_TEXELS,
+        (4, 0) => &MULTISAMPLE_MIP0_TEXELS,
+        (4, 1) => &MULTISAMPLE_MIP1_TEXELS,
+        _ => panic!("unsupported HZB regression expectation"),
+    }
+}
+
+fn encode_depth_pattern(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    depth_view: &wgpu::TextureView,
+    sample_count: u32,
+) {
+    const DEPTH_PATTERN_SHADER: &str = r#"
+        @vertex
+        fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4<f32> {
+            let positions = array<vec2<f32>, 3>(
+                vec2<f32>(-1.0, -3.0),
+                vec2<f32>(-1.0, 1.0),
+                vec2<f32>(3.0, 1.0),
+            );
+            return vec4<f32>(positions[vertex_index], 0.0, 1.0);
+        }
+
+        @fragment
+        fn fs_main(
+            @builtin(position) position: vec4<f32>,
+            @builtin(sample_index) sample_index: u32,
+        ) -> @builtin(frag_depth) f32 {
+            let pixel_index = u32(position.x) + u32(position.y) * 4u;
+            return f32((pixel_index + 1u) * 2u + sample_index) / 64.0;
+        }
+    "#;
+
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-depth-pattern-shader"),
+        source: wgpu::ShaderSource::Wgsl(DEPTH_PATTERN_SHADER.into()),
+    });
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-depth-pattern-pipeline"),
+        layout: None,
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[],
+        },
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth32Float,
+            depth_write_enabled: Some(true),
+            depth_compare: Some(wgpu::CompareFunction::Always),
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
+        multisample: wgpu::MultisampleState {
+            count: sample_count,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            targets: &[],
+        }),
+        multiview_mask: None,
+        cache: None,
+    });
+
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-depth-pattern-pass"),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+        multiview_mask: None,
+    });
+    pass.set_pipeline(&pipeline);
+    pass.draw(0..3, 0..1);
 }
 
 struct TestHzbBuildResources {
@@ -180,13 +284,13 @@ impl TestHzbBuildResources {
             device,
             &single_sample_layout,
             include_str!("../../shaders/hzb_build.wgsl"),
-            "zircon-hzb-wgpu-regression-single-sample-pipeline",
+            false,
         );
         let multisample_pipeline = hzb_pipeline(
             device,
             &multisample_layout,
             include_str!("../../shaders/hzb_build_msaa.wgsl"),
-            "zircon-hzb-wgpu-regression-msaa-pipeline",
+            true,
         );
         let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-hzb-wgpu-regression-params"),
@@ -234,73 +338,62 @@ impl TestHzbBuildResources {
 }
 
 fn hzb_bind_group_layout(device: &wgpu::Device, multisampled: bool) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-hzb-wgpu-regression-bind-group-layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    multisampled,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Depth,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::StorageTexture {
-                    access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: wgpu::TextureFormat::Rgba16Float,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-                count: None,
-            },
+    let plan = if multisampled {
+        hzb_build_msaa_dispatch_plan()
+    } else {
+        hzb_build_dispatch_plan()
+    };
+    create_compute_shader_bind_group_layout(
+        device,
+        plan,
+        &[
+            ShaderWgpuResourceDescriptor::texture(
+                HZB_SCENE_DEPTH_RESOURCE,
+                wgpu::TextureSampleType::Depth,
+                wgpu::TextureViewDimension::D2,
+                multisampled,
+            ),
+            ShaderWgpuResourceDescriptor::texture(
+                HZB_SOURCE_RESOURCE,
+                wgpu::TextureSampleType::Float { filterable: false },
+                wgpu::TextureViewDimension::D2,
+                false,
+            ),
+            ShaderWgpuResourceDescriptor::storage_texture(
+                HZB_TARGET_RESOURCE,
+                wgpu::TextureFormat::Rgba16Float,
+                wgpu::TextureViewDimension::D2,
+            ),
         ],
-    })
+    )
+    .expect("HZB test layout must match the production compute contract")
 }
 
 fn hzb_pipeline(
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
     shader_source: &'static str,
-    label: &'static str,
+    multisampled: bool,
 ) -> wgpu::ComputePipeline {
+    let plan = if multisampled {
+        hzb_build_msaa_dispatch_plan()
+    } else {
+        hzb_build_dispatch_plan()
+    };
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some(label),
+        label: Some(&plan.pipeline_label),
         source: wgpu::ShaderSource::Wgsl(shader_source.into()),
     });
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some(label),
+        label: Some(&plan.pipeline_label),
         bind_group_layouts: &[Some(bind_group_layout)],
         immediate_size: 0,
     });
     device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some(label),
+        label: Some(&plan.pipeline_label),
         layout: Some(&layout),
         module: &shader,
-        entry_point: Some("cs_main"),
+        entry_point: Some(&plan.kernel.kernel),
         compilation_options: wgpu::PipelineCompilationOptions::default(),
         cache: None,
     })

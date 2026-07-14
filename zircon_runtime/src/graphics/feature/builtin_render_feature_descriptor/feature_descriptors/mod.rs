@@ -7,7 +7,6 @@ pub(super) mod compute_workload;
 pub(super) mod debug_overlay;
 pub(super) mod deferred_geometry;
 pub(super) mod deferred_lighting;
-pub(super) mod fullscreen_pass;
 pub(super) mod hzb;
 pub(super) mod mesh;
 pub(super) mod neural_compute;

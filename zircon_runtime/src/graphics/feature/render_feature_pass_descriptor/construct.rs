@@ -443,8 +443,7 @@ mod tests {
         let shader = AssetReference::from_locator(
             ResourceLocator::parse("builtin://shaders/compute/clustered_lighting").unwrap(),
         );
-        let mut dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"));
-        dispatch
+        let dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"))
             .with_pipeline_label("zircon-cluster-pipeline")
             .with_workgroup_size([8, 8, 1])
             .bind_storage_write("light-list")
@@ -498,9 +497,7 @@ mod tests {
         let compute_shader = AssetReference::from_locator(
             ResourceLocator::parse("res://shaders/simulation.zshader").unwrap(),
         );
-        let mut compute =
-            ComputeDispatchBuilder::new(ComputeKernelRef::new(compute_shader, "cs_main"));
-        compute
+        let compute = ComputeDispatchBuilder::new(ComputeKernelRef::new(compute_shader, "cs_main"))
             .bind_texture("particle_state")
             .dispatch_groups([1, 1, 1]);
         let compute_diagnostics = compute
@@ -528,9 +525,9 @@ mod tests {
         let fullscreen_shader = AssetReference::from_locator(
             ResourceLocator::parse("res://shaders/postprocess.zshader").unwrap(),
         );
-        let mut fullscreen =
-            FullscreenPassBuilder::new(FullscreenShaderRef::new(fullscreen_shader, "fs_main"));
-        fullscreen.bind_texture("scene_color");
+        let fullscreen =
+            FullscreenPassBuilder::new(FullscreenShaderRef::new(fullscreen_shader, "fs_main"))
+                .bind_texture("scene_color");
         let fullscreen_plan = fullscreen
             .build(
                 ShaderAssetKind::Fullscreen,

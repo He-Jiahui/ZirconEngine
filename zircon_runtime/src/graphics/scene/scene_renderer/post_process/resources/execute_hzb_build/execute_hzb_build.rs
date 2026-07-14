@@ -5,6 +5,10 @@ use wgpu::util::DeviceExt;
 
 use super::super::super::params::hzb_params::HzbParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
+use crate::core::framework::render::COMPUTE_SHADER_PARAMS_BINDING;
+use crate::graphics::shader::{
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE, hzb_build_dispatch_plan,
+};
 
 pub(super) struct HzbBuildMipResources<'a> {
     pub bind_group_layout: &'a wgpu::BindGroupLayout,
@@ -55,26 +59,42 @@ pub(super) fn execute_hzb_build_mip_with_resources(
         params_size,
     );
 
+    let dispatch_plan = hzb_build_dispatch_plan();
+    let scene_depth_binding = dispatch_plan
+        .resource_binding(HZB_SCENE_DEPTH_RESOURCE)
+        .expect("HZB scene-depth binding must exist")
+        .abi
+        .binding;
+    let source_binding = dispatch_plan
+        .resource_binding(HZB_SOURCE_RESOURCE)
+        .expect("HZB source binding must exist")
+        .abi
+        .binding;
+    let target_binding = dispatch_plan
+        .resource_binding(HZB_TARGET_RESOURCE)
+        .expect("HZB target binding must exist")
+        .abi
+        .binding;
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-hzb-build-bind-group"),
         layout: resources.bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
-                binding: 0,
+                binding: COMPUTE_SHADER_PARAMS_BINDING.binding,
+                resource: resources.params_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: scene_depth_binding,
                 resource: wgpu::BindingResource::TextureView(scene_depth_view),
             },
             wgpu::BindGroupEntry {
-                binding: 1,
+                binding: source_binding,
                 resource: wgpu::BindingResource::TextureView(
                     source_hzb_view.unwrap_or(resources.fallback_source_view),
                 ),
             },
             wgpu::BindGroupEntry {
-                binding: 2,
-                resource: resources.params_buffer.as_entire_binding(),
-            },
-            wgpu::BindGroupEntry {
-                binding: 3,
+                binding: target_binding,
                 resource: wgpu::BindingResource::TextureView(target_hzb_view),
             },
         ],

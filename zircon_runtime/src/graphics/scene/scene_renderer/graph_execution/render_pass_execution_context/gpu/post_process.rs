@@ -5,8 +5,8 @@ use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::post_process::{
-    color_lut_bake_dispatch_groups, color_lut_bake_workgroup_size, ScenePostProcessResources,
-    SceneRuntimeFeatureFlags,
+    ScenePostProcessResources, SceneRuntimeFeatureFlags, color_lut_bake_dispatch_groups,
+    color_lut_bake_workgroup_size,
 };
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{
@@ -22,7 +22,7 @@ mod screen_space_reflection;
 mod temporal;
 mod terminal;
 
-const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
+pub(super) use crate::graphics::shader::HZB_BUILD_PIPELINE_LABEL;
 const EXPOSURE_HISTOGRAM_PIPELINE_LABEL: &str = "zircon-exposure-histogram-pipeline";
 const EXPOSURE_RESOLVE_PIPELINE_LABEL: &str = "zircon-exposure-resolve-pipeline";
 const COLOR_LUT_BAKE_PIPELINE_LABEL: &str = "zircon-color-lut-bake-pipeline";

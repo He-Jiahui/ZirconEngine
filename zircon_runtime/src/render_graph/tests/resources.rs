@@ -349,8 +349,7 @@ fn graph_accepts_shader_compute_dispatch_plan_as_workload() {
     let shader = AssetReference::from_locator(
         ResourceLocator::parse("builtin://shaders/compute/clustered_lighting").unwrap(),
     );
-    let mut dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"));
-    dispatch
+    let dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"))
         .with_pipeline_label("zircon-cluster-pipeline")
         .with_workgroup_size([8, 8, 1])
         .bind_storage_write("light-list")

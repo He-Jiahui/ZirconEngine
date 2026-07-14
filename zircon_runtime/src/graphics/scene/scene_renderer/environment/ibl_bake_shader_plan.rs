@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
     ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, IblBakeArtifactContents,
-    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
-    ShaderResourceAccess, ShaderResourceDescriptor, ShaderResourceKind,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, ShaderAssetKind, ShaderResourceAccess,
+    ShaderResourceDescriptor, ShaderResourceKind,
 };
 
 use super::ibl_bake_graph_plan::{
@@ -82,8 +82,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan(
     let roughness = pmrem_roughness_for_mip(request.pmrem_mip_count(), mip_level);
     let sample_count = pmrem_sample_count(roughness, mip_level);
     let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
-    let mut builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_PMREM_SHADER));
-    builder
+    let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_PMREM_SHADER))
         .with_pipeline_label(IBL_BAKE_PMREM_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
@@ -115,8 +114,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan(
 pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel_plan(
     request: &IblBakeArtifactRequest,
 ) -> IblBakeComputeKernelPlan {
-    let mut builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_SH9_SHADER));
-    builder
+    let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_SH9_SHADER))
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
@@ -151,8 +149,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel
 pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_cube_kernel_plan(
     request: &IblBakeArtifactRequest,
 ) -> IblBakeComputeKernelPlan {
-    let mut builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_CUBE_SHADER));
-    builder
+    let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_CUBE_SHADER))
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
         .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
@@ -304,11 +301,7 @@ fn source_lod_for_sample_face_size(source_face_size: u32, sample_face_size: u32)
 
 const fn pmrem_mip_size(face_size: u32, mip_level: u32) -> u32 {
     let shifted = face_size >> mip_level;
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {
@@ -318,8 +311,8 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        ProceduralSkyParams, ShaderDispatchExtent, ShaderParameterValue,
-        COMPUTE_SHADER_FIRST_RESOURCE_BINDING,
+        COMPUTE_SHADER_FIRST_RESOURCE_BINDING, ProceduralSkyParams, ShaderDispatchExtent,
+        ShaderParameterValue,
     };
 
     use super::*;

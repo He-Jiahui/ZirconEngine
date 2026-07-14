@@ -1,3 +1,9 @@
+use crate::graphics::shader::{
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    ShaderWgpuResourceDescriptor, create_compute_shader_bind_group_layout, hzb_build_dispatch_plan,
+    hzb_build_msaa_dispatch_plan,
+};
+
 pub(crate) fn hzb(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     hzb_for_depth_sampling(device, false, "zircon-hzb-bind-group-layout")
 }
@@ -11,49 +17,33 @@ fn hzb_for_depth_sampling(
     multisampled: bool,
     label: &'static str,
 ) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some(label),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    multisampled,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Depth,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::StorageTexture {
-                    access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: wgpu::TextureFormat::Rgba16Float,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-                count: None,
-            },
+    let plan = if multisampled {
+        hzb_build_msaa_dispatch_plan()
+    } else {
+        hzb_build_dispatch_plan()
+    };
+    create_compute_shader_bind_group_layout(
+        device,
+        plan,
+        &[
+            ShaderWgpuResourceDescriptor::texture(
+                HZB_SCENE_DEPTH_RESOURCE,
+                wgpu::TextureSampleType::Depth,
+                wgpu::TextureViewDimension::D2,
+                multisampled,
+            ),
+            ShaderWgpuResourceDescriptor::texture(
+                HZB_SOURCE_RESOURCE,
+                wgpu::TextureSampleType::Float { filterable: false },
+                wgpu::TextureViewDimension::D2,
+                false,
+            ),
+            ShaderWgpuResourceDescriptor::storage_texture(
+                HZB_TARGET_RESOURCE,
+                wgpu::TextureFormat::Rgba16Float,
+                wgpu::TextureViewDimension::D2,
+            ),
         ],
-    })
+    )
+    .unwrap_or_else(|error| panic!("{label}: {error}"))
 }

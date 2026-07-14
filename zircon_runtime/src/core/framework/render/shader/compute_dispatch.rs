@@ -104,6 +104,12 @@ pub struct ComputeDispatchPlan {
     pub pipeline_label: String,
 }
 
+impl ComputeDispatchPlan {
+    pub fn resource_binding(&self, name: &str) -> Option<&ShaderNamedResourceBinding> {
+        self.resources.iter().find(|resource| resource.name == name)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ShaderDispatchBuildDiagnostic {
     InvalidShaderKind {
@@ -166,55 +172,55 @@ impl ComputeDispatchBuilder {
         }
     }
 
-    pub fn with_workgroup_size(&mut self, workgroup_size: [u32; 3]) -> &mut Self {
+    pub fn with_workgroup_size(mut self, workgroup_size: [u32; 3]) -> Self {
         self.workgroup_size = normalize_workgroup_size(workgroup_size);
         self
     }
 
-    pub fn with_option_bits(&mut self, option_bits: u32) -> &mut Self {
+    pub fn with_option_bits(mut self, option_bits: u32) -> Self {
         self.option_bits = option_bits;
         self
     }
 
-    pub fn with_content_hash(&mut self, content_hash: u64) -> &mut Self {
+    pub fn with_content_hash(mut self, content_hash: u64) -> Self {
         self.content_hash = content_hash;
         self
     }
 
-    pub fn with_pipeline_label(&mut self, pipeline_label: impl Into<String>) -> &mut Self {
+    pub fn with_pipeline_label(mut self, pipeline_label: impl Into<String>) -> Self {
         self.pipeline_label = Some(pipeline_label.into());
         self
     }
 
-    pub fn set_bool(&mut self, name: impl Into<String>, value: bool) -> &mut Self {
+    pub fn set_bool(self, name: impl Into<String>, value: bool) -> Self {
         self.set_parameter(name, ShaderParameterValue::Bool { value })
     }
 
-    pub fn set_f32(&mut self, name: impl Into<String>, value: f32) -> &mut Self {
+    pub fn set_f32(self, name: impl Into<String>, value: f32) -> Self {
         self.set_parameter(name, ShaderParameterValue::F32 { value })
     }
 
-    pub fn set_i32(&mut self, name: impl Into<String>, value: i32) -> &mut Self {
+    pub fn set_i32(self, name: impl Into<String>, value: i32) -> Self {
         self.set_parameter(name, ShaderParameterValue::I32 { value })
     }
 
-    pub fn set_u32(&mut self, name: impl Into<String>, value: u32) -> &mut Self {
+    pub fn set_u32(self, name: impl Into<String>, value: u32) -> Self {
         self.set_parameter(name, ShaderParameterValue::U32 { value })
     }
 
-    pub fn set_vec2(&mut self, name: impl Into<String>, value: [f32; 2]) -> &mut Self {
+    pub fn set_vec2(self, name: impl Into<String>, value: [f32; 2]) -> Self {
         self.set_parameter(name, ShaderParameterValue::Vec2 { value })
     }
 
-    pub fn set_vec3(&mut self, name: impl Into<String>, value: [f32; 3]) -> &mut Self {
+    pub fn set_vec3(self, name: impl Into<String>, value: [f32; 3]) -> Self {
         self.set_parameter(name, ShaderParameterValue::Vec3 { value })
     }
 
-    pub fn set_vec4(&mut self, name: impl Into<String>, value: [f32; 4]) -> &mut Self {
+    pub fn set_vec4(self, name: impl Into<String>, value: [f32; 4]) -> Self {
         self.set_parameter(name, ShaderParameterValue::Vec4 { value })
     }
 
-    pub fn bind_uniform(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_uniform(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::UniformBuffer,
@@ -222,11 +228,11 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_storage(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage(self, name: impl Into<String>) -> Self {
         self.bind_storage_read_write(name)
     }
 
-    pub fn bind_storage_read(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage_read(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::StorageBuffer,
@@ -234,7 +240,7 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_storage_write(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage_write(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::StorageBuffer,
@@ -242,7 +248,7 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_storage_read_write(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage_read_write(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::StorageBuffer,
@@ -250,7 +256,7 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_texture(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_texture(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::Texture,
@@ -258,7 +264,7 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_storage_texture_write(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage_texture_write(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::StorageTexture,
@@ -266,7 +272,7 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn bind_sampler(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_sampler(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::Sampler,
@@ -274,12 +280,12 @@ impl ComputeDispatchBuilder {
         )
     }
 
-    pub fn dispatch_extent(&mut self, extent: ShaderDispatchExtent) -> &mut Self {
+    pub fn dispatch_extent(mut self, extent: ShaderDispatchExtent) -> Self {
         self.dispatch_extent = Some(extent);
         self
     }
 
-    pub fn dispatch_groups(&mut self, groups: [u32; 3]) -> &mut Self {
+    pub fn dispatch_groups(self, groups: [u32; 3]) -> Self {
         self.dispatch_extent(ShaderDispatchExtent::Fixed(groups))
     }
 
@@ -340,17 +346,17 @@ impl ComputeDispatchBuilder {
         })
     }
 
-    fn set_parameter(&mut self, name: impl Into<String>, value: ShaderParameterValue) -> &mut Self {
+    fn set_parameter(mut self, name: impl Into<String>, value: ShaderParameterValue) -> Self {
         self.parameters.insert(name.into(), value);
         self
     }
 
     pub(super) fn bind_resource(
-        &mut self,
+        mut self,
         name: impl Into<String>,
         kind: ShaderResourceKind,
         access: ShaderResourceAccess,
-    ) -> &mut Self {
+    ) -> Self {
         let name = name.into();
         self.resource_bindings.insert(
             name.clone(),
@@ -532,8 +538,7 @@ mod tests {
     #[test]
     fn render_compute_dispatch_builder_emits_kernel_resource_abi_and_cache_key() {
         let kernel = ComputeKernelRef::new(shader_ref(), "cs_main");
-        let mut builder = ComputeDispatchBuilder::new(kernel.clone());
-        builder
+        let builder = ComputeDispatchBuilder::new(kernel.clone())
             .with_workgroup_size([64, 0, 1])
             .with_option_bits(0x3)
             .with_content_hash(0x55aa)
@@ -602,8 +607,7 @@ mod tests {
 
     #[test]
     fn render_compute_dispatch_builder_reports_named_binding_diagnostics() {
-        let mut builder = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader_ref(), "main"));
-        builder
+        let builder = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader_ref(), "main"))
             .bind_texture("particles")
             .bind_storage_read("unknown")
             .dispatch_groups([1, 1, 1]);

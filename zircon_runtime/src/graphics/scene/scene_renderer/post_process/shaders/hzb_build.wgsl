@@ -4,9 +4,9 @@ struct HzbParams {
     _pad0: u32,
 };
 
-@group(0) @binding(0) var scene_depth_tex: texture_depth_2d;
-@group(0) @binding(1) var source_hzb_tex: texture_2d<f32>;
-@group(0) @binding(2) var<uniform> hzb_params: HzbParams;
+@group(0) @binding(0) var<uniform> hzb_params: HzbParams;
+@group(0) @binding(1) var scene_depth_tex: texture_depth_2d;
+@group(0) @binding(2) var source_hzb_tex: texture_2d<f32>;
 @group(0) @binding(3) var target_hzb_tex: texture_storage_2d<rgba16float, write>;
 
 struct HzbDepthRange {

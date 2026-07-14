@@ -2,7 +2,9 @@ use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::super::super::clear_render_target::clear_render_target;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
+use crate::core::framework::render::FULLSCREEN_PASS_INPUT_GROUP;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::shader::{MOTION_VECTOR_SOURCE_RESOURCE, motion_vector_tile_max_pass_plan};
 
 impl ScenePostProcessResources {
     pub(crate) fn execute_motion_vector_tile_max(
@@ -24,11 +26,17 @@ impl ScenePostProcessResources {
             return;
         }
 
+        let pass_plan = motion_vector_tile_max_pass_plan();
+        let source_binding = pass_plan
+            .resource_binding(MOTION_VECTOR_SOURCE_RESOURCE)
+            .expect("motion-vector fullscreen source binding must exist")
+            .abi
+            .binding;
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-motion-vector-tile-max-bind-group"),
             layout: &self.motion_vector_tile_max_bind_group_layout,
             entries: &[wgpu::BindGroupEntry {
-                binding: 0,
+                binding: source_binding,
                 resource: wgpu::BindingResource::TextureView(motion_vector_source_view),
             }],
         });
@@ -47,7 +55,7 @@ impl ScenePostProcessResources {
             multiview_mask: None,
         });
         pass.set_pipeline(&self.motion_vector_tile_max_pipeline);
-        pass.set_bind_group(0, &bind_group, &[]);
+        pass.set_bind_group(FULLSCREEN_PASS_INPUT_GROUP, &bind_group, &[]);
         pass.draw(0..3, 0..1);
     }
 }

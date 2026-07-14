@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::{AssetReference, ResourceLocator, ResourceLocatorError};
 
 use super::compute_dispatch::{
-    validate_named_resource_bindings, validate_shader_entry_point, ShaderAbiBinding,
-    ShaderDispatchBuildDiagnostic, ShaderNamedResourceBinding, ShaderParameterValue,
-    ShaderResourceBindingRequest,
+    ShaderAbiBinding, ShaderDispatchBuildDiagnostic, ShaderNamedResourceBinding,
+    ShaderParameterValue, ShaderResourceBindingRequest, validate_named_resource_bindings,
+    validate_shader_entry_point,
 };
 use super::{
     RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,
@@ -74,6 +74,12 @@ pub struct FullscreenPassPlan {
     pub pipeline_label: String,
 }
 
+impl FullscreenPassPlan {
+    pub fn resource_binding(&self, name: &str) -> Option<&ShaderNamedResourceBinding> {
+        self.resources.iter().find(|resource| resource.name == name)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FullscreenPassBuilder {
     shader: FullscreenShaderRef,
@@ -96,34 +102,34 @@ impl FullscreenPassBuilder {
         }
     }
 
-    pub fn with_option_bits(&mut self, option_bits: u32) -> &mut Self {
+    pub fn with_option_bits(mut self, option_bits: u32) -> Self {
         self.option_bits = option_bits;
         self
     }
 
-    pub fn with_content_hash(&mut self, content_hash: u64) -> &mut Self {
+    pub fn with_content_hash(mut self, content_hash: u64) -> Self {
         self.content_hash = content_hash;
         self
     }
 
-    pub fn with_pipeline_label(&mut self, pipeline_label: impl Into<String>) -> &mut Self {
+    pub fn with_pipeline_label(mut self, pipeline_label: impl Into<String>) -> Self {
         self.pipeline_label = Some(pipeline_label.into());
         self
     }
 
-    pub fn set_bool(&mut self, name: impl Into<String>, value: bool) -> &mut Self {
+    pub fn set_bool(self, name: impl Into<String>, value: bool) -> Self {
         self.set_parameter(name, ShaderParameterValue::Bool { value })
     }
 
-    pub fn set_f32(&mut self, name: impl Into<String>, value: f32) -> &mut Self {
+    pub fn set_f32(self, name: impl Into<String>, value: f32) -> Self {
         self.set_parameter(name, ShaderParameterValue::F32 { value })
     }
 
-    pub fn set_vec4(&mut self, name: impl Into<String>, value: [f32; 4]) -> &mut Self {
+    pub fn set_vec4(self, name: impl Into<String>, value: [f32; 4]) -> Self {
         self.set_parameter(name, ShaderParameterValue::Vec4 { value })
     }
 
-    pub fn bind_texture(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_texture(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::Texture,
@@ -131,7 +137,7 @@ impl FullscreenPassBuilder {
         )
     }
 
-    pub fn bind_sampler(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_sampler(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::Sampler,
@@ -139,7 +145,7 @@ impl FullscreenPassBuilder {
         )
     }
 
-    pub fn bind_uniform(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_uniform(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::UniformBuffer,
@@ -147,7 +153,7 @@ impl FullscreenPassBuilder {
         )
     }
 
-    pub fn bind_storage_read(&mut self, name: impl Into<String>) -> &mut Self {
+    pub fn bind_storage_read(self, name: impl Into<String>) -> Self {
         self.bind_resource(
             name,
             ShaderResourceKind::StorageBuffer,
@@ -202,17 +208,17 @@ impl FullscreenPassBuilder {
         })
     }
 
-    fn set_parameter(&mut self, name: impl Into<String>, value: ShaderParameterValue) -> &mut Self {
+    fn set_parameter(mut self, name: impl Into<String>, value: ShaderParameterValue) -> Self {
         self.parameters.insert(name.into(), value);
         self
     }
 
     fn bind_resource(
-        &mut self,
+        mut self,
         name: impl Into<String>,
         kind: ShaderResourceKind,
         access: ShaderResourceAccess,
-    ) -> &mut Self {
+    ) -> Self {
         let name = name.into();
         self.resource_bindings.insert(
             name.clone(),
@@ -256,8 +262,7 @@ mod tests {
     #[test]
     fn render_fullscreen_pass_builder_emits_pass_input_and_params_abi() {
         let shader = FullscreenShaderRef::new(shader_ref(), "fs_main");
-        let mut builder = FullscreenPassBuilder::new(shader.clone());
-        builder
+        let builder = FullscreenPassBuilder::new(shader.clone())
             .with_option_bits(0x8)
             .with_content_hash(0xf00d)
             .set_f32("exposure", 1.25)
@@ -323,9 +328,8 @@ mod tests {
 
     #[test]
     fn render_fullscreen_pass_builder_reports_stage_and_resource_errors() {
-        let mut builder =
-            FullscreenPassBuilder::new(FullscreenShaderRef::new(shader_ref(), "fs_main"));
-        builder.bind_storage_read("source_color");
+        let builder = FullscreenPassBuilder::new(FullscreenShaderRef::new(shader_ref(), "fs_main"))
+            .bind_storage_read("source_color");
 
         let diagnostics = builder
             .build(

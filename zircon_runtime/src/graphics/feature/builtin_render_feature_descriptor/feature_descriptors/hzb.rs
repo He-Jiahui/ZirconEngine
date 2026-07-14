@@ -1,20 +1,22 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::shader::hzb_build_dispatch_plan;
 use crate::graphics::{FrameHistoryBinding, FrameHistorySlot};
 use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 use super::compute_workload::{
-    HZB_BUILD_PIPELINE_LABEL, HZB_BUILD_WORKGROUP_SIZE,
     HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE,
     HZB_OCCLUSION_CULL_PIPELINE_LABEL, HZB_OCCLUSION_CULL_WORKGROUP_SIZE,
     HZB_OCCLUSION_DRAW_COUNT_RESOURCE, HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE,
     HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
 };
 
-pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
-) -> RenderFeatureDescriptor {
+pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor()
+-> RenderFeatureDescriptor {
+    let hzb_build_dispatch = hzb_build_dispatch_plan();
+
     RenderFeatureDescriptor::new(
         "hzb",
         vec!["view".to_string(), "visibility".to_string()],
@@ -47,9 +49,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("visibility.hzb-build")
             .with_side_effects()
-            .with_compute_workload(RenderGraphComputeWorkload::hzb_furthest(
-                HZB_BUILD_PIPELINE_LABEL,
-                HZB_BUILD_WORKGROUP_SIZE,
+            .with_compute_workload(RenderGraphComputeWorkload::from_shader_dispatch(
+                hzb_build_dispatch,
             ))
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_storage_texture(PostProcessGraphResourceNames::HZB_FURTHEST),
