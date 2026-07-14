@@ -322,6 +322,158 @@ fn html_inline_image_vertical_rl_marks_clipped_columns_with_end_ellipsis() {
 }
 
 #[test]
+fn bbcode_inline_image_vertical_rl_composes_first_column_indent_and_continuation_height() {
+    let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
+    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.text_writing_mode = UiTextWritingMode::VerticalRl;
+    let frame = UiFrame::new(0.0, 0.0, 48.0, 36.0);
+
+    let layout = layout_text(
+        "[p indent=18]甲[img=res://icons/star.png]乙丙[/p]",
+        &style,
+        frame,
+        None,
+    );
+
+    assert_eq!(layout.lines.len(), 2);
+    assert_eq!(layout.lines[0].text, "甲");
+    assert_eq!(layout.lines[1].text, "\u{fffc}乙丙");
+    assert!((layout.lines[0].frame.y - (frame.y + 18.0)).abs() < 0.01);
+    assert!((layout.lines[1].frame.y - frame.y).abs() < 0.01);
+    assert!(layout.lines[0].frame.x > layout.lines[1].frame.x);
+    assert!((layout.lines[1].glyph_advances[0] - 16.0).abs() < 0.01);
+    assert!(layout.lines[1]
+        .runs
+        .iter()
+        .any(|run| run.text == "\u{fffc}"));
+    assert!(layout.lines[1].measured_width <= frame.height + 0.01);
+}
+
+#[test]
+fn bbcode_inline_image_vertical_rl_composes_center_and_right_paragraph_alignment() {
+    let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
+    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.text_writing_mode = UiTextWritingMode::VerticalRl;
+    let frame = UiFrame::new(0.0, 10.0, 48.0, 80.0);
+
+    let layout = layout_text(
+        "[p align=center]甲[img=res://icons/star.png]乙[/p]\n[p align=right]丙[img=res://icons/star.png]丁[/p]",
+        &style,
+        frame,
+        None,
+    );
+
+    assert_eq!(layout.lines.len(), 2);
+    let centered = &layout.lines[0];
+    let ended = &layout.lines[1];
+    let centered_top_gap = centered.frame.y - frame.y;
+    let centered_bottom_gap = frame.bottom() - (centered.frame.y + centered.measured_width);
+    assert!(centered.text.contains('\u{fffc}'));
+    assert!((centered_top_gap - centered_bottom_gap).abs() < 0.01);
+    assert!(centered_top_gap > 0.0);
+    assert!(ended.text.contains('\u{fffc}'));
+    assert!((ended.frame.y + ended.measured_width - frame.bottom()).abs() < 0.01);
+}
+
+#[test]
+fn bbcode_inline_image_vertical_rl_after_empty_paragraph_uses_its_own_alignment() {
+    let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Clip);
+    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.text_writing_mode = UiTextWritingMode::VerticalRl;
+    let frame = UiFrame::new(0.0, 10.0, 48.0, 80.0);
+
+    let layout = layout_text(
+        "\n[p align=right]甲[img=res://icons/star.png]乙[/p]",
+        &style,
+        frame,
+        None,
+    );
+
+    let ended = layout
+        .lines
+        .iter()
+        .find(|line| line.text.contains('\u{fffc}'))
+        .expect("rich-inline paragraph after an empty paragraph");
+    assert!((ended.frame.y + ended.measured_width - frame.bottom()).abs() < 0.01);
+}
+
+#[test]
+fn bbcode_inline_image_vertical_rl_word_modes_fallback_against_paragraph_heights() {
+    for wrap in [UiTextWrap::Word, UiTextWrap::WordSmart] {
+        let mut style = test_style(wrap, UiTextOverflow::Clip);
+        style.rich_text_format = UiRichTextFormat::BbCode;
+        style.text_writing_mode = UiTextWritingMode::VerticalRl;
+        let frame = UiFrame::new(0.0, 10.0, 160.0, 36.0);
+
+        let layout = layout_text(
+            "[p indent=18]abcdefgh[img=res://icons/star.png]ij[/p]",
+            &style,
+            frame,
+            None,
+        );
+
+        assert!(layout.lines.len() >= 3, "{wrap:?}");
+        assert!(layout.lines[0].frame.y >= frame.y + 18.0 - 0.01, "{wrap:?}");
+        assert_eq!(layout.lines[0].text, "abc", "{wrap:?}");
+        assert!(
+            layout.lines[0].measured_width <= frame.height - 18.0 + 0.01,
+            "{wrap:?}"
+        );
+        assert!(
+            layout
+                .lines
+                .iter()
+                .skip(1)
+                .any(|line| (line.frame.y - frame.y).abs() < 0.01),
+            "{wrap:?}"
+        );
+        assert!(
+            layout
+                .lines
+                .iter()
+                .skip(1)
+                .any(|line| line.text.graphemes(true).count() >= 4),
+            "{wrap:?} continuation columns must use the full 36px height"
+        );
+        let inline_line = layout
+            .lines
+            .iter()
+            .find(|line| line.text.contains('\u{fffc}'))
+            .unwrap_or_else(|| panic!("{wrap:?} inline fallback column"));
+        let inline_index = inline_line
+            .text
+            .graphemes(true)
+            .position(|grapheme| grapheme == "\u{fffc}")
+            .expect("inline grapheme");
+        assert!((inline_line.glyph_advances[inline_index] - 16.0).abs() < 0.01);
+    }
+}
+
+#[test]
+fn bbcode_inline_image_vertical_rl_ellipsis_uses_paragraph_height_and_alignment() {
+    let mut style = test_style(UiTextWrap::Glyph, UiTextOverflow::Ellipsis);
+    style.rich_text_format = UiRichTextFormat::BbCode;
+    style.text_writing_mode = UiTextWritingMode::VerticalRl;
+    let frame = UiFrame::new(0.0, 10.0, 18.0, 60.0);
+
+    let layout = layout_text(
+        "[p align=right indent=10]甲[img=res://icons/star.png]乙丙丁戊[/p]",
+        &style,
+        frame,
+        None,
+    );
+
+    assert_eq!(layout.lines.len(), 1);
+    let line = &layout.lines[0];
+    assert!(layout.overflow_clipped);
+    assert!(line.ellipsized);
+    assert!(line.text.contains('\u{fffc}'));
+    assert!(line.text.ends_with('…'));
+    assert!(line.measured_width <= frame.height - 10.0 + 0.01);
+    assert!((line.frame.y + line.measured_width - frame.bottom()).abs() < 0.01);
+}
+
+#[test]
 fn bbcode_paragraph_alignment_reaches_resolved_line_frames() {
     let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
     style.rich_text_format = UiRichTextFormat::BbCode;

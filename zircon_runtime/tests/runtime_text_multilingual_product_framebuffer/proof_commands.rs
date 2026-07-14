@@ -243,7 +243,7 @@ pub(super) fn proof_vertical_rich_text(
 
 pub(super) fn proof_vertical_bbcode_paragraphs() -> UiRenderCommand {
     let frame = UiFrame::new(934.0, 468.0, 124.0, 350.0);
-    let markup = "[p align=center indent=28][color=#64d8ff]首列缩进居中[/color][/p][p align=right]末端对齐验证[/p]";
+    let markup = "[p align=center indent=28][color=#64d8ff]首列缩进居中[/color][img=res://ui/rich-inline-checker.png][/p][p align=right]末端对齐验证[/p]";
     let mut command = proof_text(
         120,
         frame,

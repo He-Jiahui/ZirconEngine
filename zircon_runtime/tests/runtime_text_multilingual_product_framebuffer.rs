@@ -326,6 +326,17 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         vertical_rich_channels.iter().all(|count| *count > 20),
         "VerticalRl rich inline image must advance on y and retain sampled texture: channels={vertical_rich_channels:?}, frame={vertical_checker_frame:?}"
     );
+    let paragraph_checker_frame = checker_frame_from_layout(&samples[17]);
+    let paragraph_checker_channels = dominant_checker_channel_counts(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        paragraph_checker_frame,
+    );
+    assert!(
+        paragraph_checker_channels.iter().all(|count| *count > 20),
+        "VerticalRl paragraph composition must render the imported checker texture, not a placeholder: channels={paragraph_checker_channels:?}, frame={paragraph_checker_frame:?}"
+    );
     let vertical_bounds = changed_pixel_bounds_in_frame(
         &capture.rgba,
         &background_capture.rgba,
@@ -751,5 +762,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_composite_font_cjk_product_framebuffer_20260714.png")
+        .join("runtime_text_vertical_rich_inline_paragraph_product_framebuffer_20260715.png")
 }

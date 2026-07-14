@@ -7,11 +7,13 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
   - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
   - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/graphics/text/layout/kinsoku.rs
+  - zircon_runtime/src/graphics/text/layout/rich_vertical.rs
   - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
   - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
   - zircon_runtime/src/ui/text/hit_test.rs
@@ -25,6 +27,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/tests/kinsoku.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/measure.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/overflow.rs
+  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/sizing.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/tab.rs
@@ -62,11 +65,13 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
   - zircon_runtime/src/ui/text/layout_engine/overflow_style.rs
   - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
+  - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/graphics/text/layout/kinsoku.rs
+  - zircon_runtime/src/graphics/text/layout/rich_vertical.rs
   - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
   - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
   - zircon_runtime/src/ui/text/hit_test.rs
@@ -212,7 +217,9 @@ doc_type: module-detail
 
 As of the 2026-07-01 LB-M4 slice, `UiTextWritingMode::VerticalRl` is a writing-mode contract rather than a text-direction alias. Horizontal text remains the default. Vertical resolved layout is delegated to `layout_engine/vertical.rs`; each `UiResolvedTextLine` record is a semantic column, y is the main advance axis, and columns are placed from right to left. The shaped-text DTO carries the same writing mode so vertical glyph frames advance on y and ASCII glyphs can be marked `Cw90` while broader font-orientation parity remains a later slice.
 
-The 2026-07-13 LB-M5 paragraph slice keeps BBCode paragraph policy writing-mode neutral. `paragraph_layout.rs` is the single owner of override merging, indent-level clamping, list-prefix measurement, and first/continuation constraints. Horizontal layout maps that logical scalar to x/width; VerticalRl maps it to y/height, while `vertical.rs` continues to own shaped columns and right-to-left x placement. Paragraph Left/Start, Center, and Right/End therefore map to physical top, center, and bottom without parser, interface, or renderer branches. Vertical rich-inline-object plus paragraph composition remains an explicit follow-up in `rich_inline_vertical.rs`, because its object metrics cannot be replaced by the generic text wrapper.
+The 2026-07-13 LB-M5 paragraph slice keeps BBCode paragraph policy writing-mode neutral. `paragraph_layout.rs` is the single owner of override merging, indent-level clamping, list-prefix measurement, and first/continuation constraints. Horizontal layout maps that logical scalar to x/width; VerticalRl maps it to y/height, while `vertical.rs` continues to own shaped columns and right-to-left x placement. Paragraph Left/Start, Center, and Right/End therefore map to physical top, center, and bottom without parser, interface, or renderer branches.
+
+The 2026-07-15 LB-M5 rich-inline composition slice closes the former bypass. `paragraph_layout.rs` pre-resolves each physical paragraph's first and continuation `ColumnConstraints` once, and both the plain and rich-inline vertical paths consume the same alignment helper. `rich_inline_vertical.rs` passes the usable heights into `graphics/text/layout/rich_vertical.rs` before wrapping, so inline object height participates in the real first-column/continuation break decision; after wrapping, the same constraints control overflow and physical y placement. The UI layer does not split or post-move rich paragraphs, and the renderer still consumes the resolved U+FFFC run without reconstructing layout.
 
 The follow-up vertical geometry slice keeps those same resolved column records as the source of editing geometry. `hit_test.rs` selects a `VerticalRl` column by x before using y midpoint and resolved `glyph_advances` to return the source byte offset. `geometry.rs` projects caret and selection ranges along y and emits horizontal 1px bars. The TextInput IME context consumes that caret frame for `SetCursorArea`, so candidate anchoring no longer inherits the old horizontal caret shape when a resolved vertical layout is available.
 
@@ -227,12 +234,13 @@ The active owner split is:
 - `layout_engine.rs` owns public crate-private entrypoints, top-level `layout_text(...)` orchestration, clip/horizontal overflow application, visual-order handoff, and resolved-line assembly.
 - `direction.rs` owns explicit/Auto/Mixed paragraph base direction resolution and the strong LTR/RTL helpers used by visual ordering.
 - `line_box.rs` owns measured/tab-aligned grapheme advances, Justify eligibility, line width clamping, logical Start/End x alignment, and the minimum fallback text advance.
-- `paragraph_layout.rs` owns merged rich-block overrides, bounded indent/list-prefix extents, and the writing-mode-neutral first/continuation constraint policy projected to line width or column height.
+- `paragraph_layout.rs` owns merged rich-block overrides, bounded indent/list-prefix extents, pre-resolved physical-paragraph first/continuation column constraints, and the shared VerticalRl y-alignment projection.
 - `wrapping.rs` owns source-run wrapping orchestration, newline preservation, Word chunk consumption, WordSmart chunk selection through the shared smart owner, Glyph fallback appending, and leading grapheme continuation while consuming line-fit checks from `graphics/text/layout/line_break/greedy.rs`.
 - `candidate_line.rs` owns mutable candidate line text, source/visual ranges, resolved runs, pending break suffixes, and trailing wrap-space mutation.
 - `ellipsis.rs` owns clipped-line merge and projection of shared overflow segments back into UI resolved runs.
 - `range_mapping.rs` owns internal source/visual subrange mapping shared by ellipsis and visual ordering.
 - `vertical.rs` owns the current `VerticalRl` column layout path, including height-main-axis wrapping, right-to-left column placement, height-based overflow extent, and CJK kinsoku chunk reuse.
+- `rich_inline_vertical.rs` adapts rich inline metrics to the shared VerticalRl column owner while consuming paragraph constraints before wrapping and during overflow/alignment; it does not own parser or renderer policy.
 - `visual_order.rs` owns the current low-fidelity visual-order scaffold and temporary RTL single-codepoint mirror table.
 - `overflow_style.rs` owns shrink-to-fit and clamp-font-size effective style resolution before wrapping.
 

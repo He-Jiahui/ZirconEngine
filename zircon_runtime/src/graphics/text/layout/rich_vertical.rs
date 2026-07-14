@@ -16,20 +16,23 @@ pub(crate) struct RichVerticalColumnMetrics {
     pub(crate) cross_extent: f32,
 }
 
-pub(crate) fn rich_vertical_columns_with_provider<P>(
+pub(crate) fn rich_vertical_columns_with_provider<P, F>(
     parsed: &RichParseResult,
     style: &UiResolvedStyle,
-    max_height: f32,
+    mut max_height_for_column: F,
     provider: &mut P,
 ) -> Vec<RichVerticalColumnMetrics>
 where
     P: TextShapeRunProvider + ?Sized,
+    F: FnMut((u32, u32), usize) -> f32,
 {
     let ranges = match style.wrap {
         UiTextWrap::None => rich_forced_line_ranges(&parsed.text),
-        UiTextWrap::Glyph => glyph_column_ranges(parsed, style, max_height, provider),
+        UiTextWrap::Glyph => {
+            glyph_column_ranges(parsed, style, &mut max_height_for_column, provider)
+        }
         UiTextWrap::Word | UiTextWrap::WordSmart => {
-            word_column_ranges(parsed, style, max_height, provider)
+            word_column_ranges(parsed, style, &mut max_height_for_column, provider)
         }
     };
 
@@ -47,41 +50,47 @@ where
         .collect()
 }
 
-fn glyph_column_ranges<P>(
+fn glyph_column_ranges<P, F>(
     parsed: &RichParseResult,
     style: &UiResolvedStyle,
-    max_height: f32,
+    max_height_for_column: &mut F,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
     P: TextShapeRunProvider + ?Sized,
+    F: FnMut((u32, u32), usize) -> f32,
 {
-    let max_height = finite_non_negative(max_height);
     let mut ranges = Vec::new();
     for forced_range in rich_forced_line_ranges(&parsed.text) {
+        let first_max_height = finite_non_negative(max_height_for_column(forced_range, 0));
+        let continuation_max_height = finite_non_negative(max_height_for_column(forced_range, 1));
         ranges.extend(glyph_ranges_for_source_range(
             parsed,
             style,
             forced_range,
-            max_height,
+            first_max_height,
+            continuation_max_height,
             provider,
         ));
     }
     ranges
 }
 
-fn word_column_ranges<P>(
+fn word_column_ranges<P, F>(
     parsed: &RichParseResult,
     style: &UiResolvedStyle,
-    max_height: f32,
+    max_height_for_column: &mut F,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
     P: TextShapeRunProvider + ?Sized,
+    F: FnMut((u32, u32), usize) -> f32,
 {
-    let max_height = finite_non_negative(max_height);
     let mut ranges = Vec::new();
     for forced_range in rich_forced_line_ranges(&parsed.text) {
+        let first_max_height = finite_non_negative(max_height_for_column(forced_range, 0));
+        let continuation_max_height = finite_non_negative(max_height_for_column(forced_range, 1));
+        let mut max_height = first_max_height;
         let start = usize::try_from(forced_range.0).unwrap_or(usize::MAX);
         let end = usize::try_from(forced_range.1).unwrap_or(usize::MAX);
         let Some(text) = parsed.text.get(start..end) else {
@@ -123,6 +132,7 @@ where
                 column_start = chunk_start;
                 column_end = chunk_start;
                 column_height = 0.0;
+                max_height = continuation_max_height;
             }
             if chunk_start >= chunk_end {
                 continue;
@@ -141,6 +151,7 @@ where
                     style,
                     (to_u32(chunk_start), to_u32(chunk_end)),
                     max_height,
+                    continuation_max_height,
                     provider,
                 );
                 let fallback_count = fallback.len();
@@ -152,6 +163,9 @@ where
                     } else {
                         ranges.push(range);
                     }
+                }
+                if fallback_count > 1 {
+                    max_height = continuation_max_height;
                 }
                 continue;
             }
@@ -169,7 +183,8 @@ fn glyph_ranges_for_source_range<P>(
     parsed: &RichParseResult,
     style: &UiResolvedStyle,
     source_range: (u32, u32),
-    max_height: f32,
+    first_max_height: f32,
+    continuation_max_height: f32,
     provider: &mut P,
 ) -> Vec<(u32, u32)>
 where
@@ -187,6 +202,7 @@ where
     let mut ranges = Vec::new();
     let mut column_start = start;
     let mut column_height = 0.0_f32;
+    let mut max_height = first_max_height;
     for (offset, grapheme) in text.grapheme_indices(true) {
         let grapheme_start = start + offset;
         let grapheme_end = grapheme_start + grapheme.len();
@@ -195,6 +211,7 @@ where
             ranges.push((to_u32(column_start), to_u32(grapheme_start)));
             column_start = grapheme_start;
             column_height = 0.0;
+            max_height = continuation_max_height;
         }
         column_height += advance;
         if grapheme_end == end {

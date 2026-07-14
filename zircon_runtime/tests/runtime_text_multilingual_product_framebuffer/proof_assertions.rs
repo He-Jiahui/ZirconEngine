@@ -1,3 +1,5 @@
+use unicode_segmentation::UnicodeSegmentation;
+
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     surface::{UiPaintPayload, UiRenderCommand, UiTextPaintDecorationKind, UiTextWritingMode},
@@ -292,6 +294,17 @@ pub(super) fn assert_vertical_bbcode_paragraph_layout(samples: &[UiRenderCommand
     assert!(
         centered.frame.bottom() < command.frame.bottom() - FRAME_EPSILON,
         "centered VerticalRl paragraph must retain space on the physical bottom edge"
+    );
+    let inline_index = centered
+        .text
+        .graphemes(true)
+        .position(|grapheme| grapheme == "\u{fffc}")
+        .expect("centered VerticalRl paragraph must retain the inline image placeholder");
+    assert!(centered.runs.iter().any(|run| run.text == "\u{fffc}"));
+    assert_close(
+        centered.glyph_advances[inline_index],
+        16.0,
+        "VerticalRl paragraph inline image height must remain the main-axis advance",
     );
     assert_close(
         ended.frame.bottom(),

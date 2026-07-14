@@ -29,6 +29,58 @@ pub(super) struct ColumnConstraints {
     pub align: UiTextAlign,
 }
 
+#[derive(Clone, Debug)]
+pub(super) struct ResolvedParagraphColumnConstraints {
+    paragraphs: Vec<ResolvedPhysicalParagraphColumns>,
+    fallback: ColumnConstraints,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ResolvedPhysicalParagraphColumns {
+    range: UiTextRange,
+    first: ColumnConstraints,
+    continuation: ColumnConstraints,
+}
+
+impl ResolvedParagraphColumnConstraints {
+    pub(super) fn for_source_offset(
+        &self,
+        source_offset: usize,
+        first_physical_column: bool,
+    ) -> ColumnConstraints {
+        self.paragraphs
+            .iter()
+            .find(|paragraph| {
+                (paragraph.range.start == paragraph.range.end
+                    && source_offset == paragraph.range.start)
+                    || (paragraph.range.start <= source_offset
+                        && source_offset < paragraph.range.end)
+            })
+            .map(|paragraph| {
+                if first_physical_column {
+                    paragraph.first
+                } else {
+                    paragraph.continuation
+                }
+            })
+            .unwrap_or(self.fallback)
+    }
+
+    pub(super) fn for_column(
+        &self,
+        text: &str,
+        columns: &[CandidateLine],
+        index: usize,
+    ) -> ColumnConstraints {
+        let column = &columns[index];
+        let paragraph_start = physical_paragraph_start(text, column.source_range.start);
+        let first_physical_column = index == 0
+            || physical_paragraph_start(text, columns[index - 1].source_range.start)
+                != paragraph_start;
+        self.for_source_offset(column.source_range.start, first_physical_column)
+    }
+}
+
 pub(super) fn has_block_layout(parsed: &UiParsedText) -> bool {
     parsed.paragraphs.iter().any(|(_, paragraph)| {
         paragraph.indent.is_some()
@@ -62,6 +114,87 @@ where
         max_height: constraints.max_width,
         align: constraints.align,
     }
+}
+
+pub(super) fn resolve_paragraph_column_constraints_with_provider<P>(
+    parsed: &UiParsedText,
+    style: &UiResolvedStyle,
+    frame_height: f32,
+    provider: &mut P,
+) -> ResolvedParagraphColumnConstraints
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let paragraphs = physical_paragraph_ranges(&parsed.text)
+        .into_iter()
+        .map(|range| ResolvedPhysicalParagraphColumns {
+            range,
+            first: column_constraints_with_provider(
+                parsed,
+                style,
+                frame_height,
+                range.start,
+                true,
+                provider,
+            ),
+            continuation: column_constraints_with_provider(
+                parsed,
+                style,
+                frame_height,
+                range.start,
+                false,
+                provider,
+            ),
+        })
+        .collect();
+    ResolvedParagraphColumnConstraints {
+        paragraphs,
+        fallback: ColumnConstraints {
+            inset: 0.0,
+            max_height: frame_height.max(0.0),
+            align: style.text_align,
+        },
+    }
+}
+
+pub(super) fn column_constraints_for_candidate_with_provider<P>(
+    parsed: &UiParsedText,
+    style: &UiResolvedStyle,
+    frame_height: f32,
+    columns: &[CandidateLine],
+    index: usize,
+    provider: &mut P,
+) -> ColumnConstraints
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let column = &columns[index];
+    let paragraph_start = physical_paragraph_start(&parsed.text, column.source_range.start);
+    let first_physical_column = index == 0
+        || physical_paragraph_start(&parsed.text, columns[index - 1].source_range.start)
+            != paragraph_start;
+    column_constraints_with_provider(
+        parsed,
+        style,
+        frame_height,
+        column.source_range.start,
+        first_physical_column,
+        provider,
+    )
+}
+
+pub(super) fn aligned_column_y(
+    frame: UiFrame,
+    column_height: f32,
+    constraints: ColumnConstraints,
+) -> f32 {
+    let remaining = (constraints.max_height - column_height).max(0.0);
+    let alignment_offset = match constraints.align {
+        UiTextAlign::Center => remaining * 0.5,
+        UiTextAlign::Right | UiTextAlign::End => remaining,
+        UiTextAlign::Left | UiTextAlign::Start | UiTextAlign::Justify => 0.0,
+    };
+    frame.y + constraints.inset + alignment_offset
 }
 
 pub(super) fn wrap_block_paragraphs_with_provider<P>(

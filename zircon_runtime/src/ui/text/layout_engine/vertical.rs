@@ -3,8 +3,7 @@ use crate::graphics::text::layout::{layout_vertical_rl_columns, TextLineMetrics}
 use crate::graphics::text::shaping::{TextShapeRunProvider, VerticalTextShapeRunProvider};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextOverflow,
-    UiTextRange,
+    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
 };
 
 use super::super::rich_text::UiParsedText;
@@ -14,7 +13,7 @@ use super::ellipsis::{
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
 use super::line_box::{resolve_line_widths_with_provider, text_advance, MIN_TEXT_FONT_SIZE};
-use super::paragraph_layout::{self, ColumnConstraints};
+use super::paragraph_layout;
 use super::visual_order;
 use super::wrapping::wrap_source_runs_with_provider;
 
@@ -80,15 +79,16 @@ where
         columns.truncate(column_capacity);
         if !columns.is_empty() {
             let last_index = columns.len() - 1;
-            let available_height = vertical_column_constraints(
-                parsed,
-                style,
-                frame.height,
-                &columns,
-                last_index,
-                &mut vertical_provider,
-            )
-            .max_height;
+            let available_height =
+                paragraph_layout::column_constraints_for_candidate_with_provider(
+                    parsed,
+                    style,
+                    frame.height,
+                    &columns,
+                    last_index,
+                    &mut vertical_provider,
+                )
+                .max_height;
             let last = &mut columns[last_index];
             ellipsize_line_with_provider(
                 last,
@@ -101,15 +101,16 @@ where
     }
     if is_ellipsis_overflow(style.text_overflow) {
         for index in 0..columns.len() {
-            let available_height = vertical_column_constraints(
-                parsed,
-                style,
-                frame.height,
-                &columns,
-                index,
-                &mut vertical_provider,
-            )
-            .max_height;
+            let available_height =
+                paragraph_layout::column_constraints_for_candidate_with_provider(
+                    parsed,
+                    style,
+                    frame.height,
+                    &columns,
+                    index,
+                    &mut vertical_provider,
+                )
+                .max_height;
             let column = &mut columns[index];
             if !column.ellipsized
                 && line_overflows_horizontally_with_provider(
@@ -140,7 +141,7 @@ where
         .enumerate()
         .map(|(index, column)| {
             let is_last_column = index + 1 == columns.len();
-            let constraints = vertical_column_constraints(
+            let constraints = paragraph_layout::column_constraints_for_candidate_with_provider(
                 parsed,
                 style,
                 frame.height,
@@ -189,7 +190,7 @@ where
     {
         let column_frame = UiFrame::new(
             column_frame.x,
-            aligned_column_y(frame, column_height, constraints),
+            paragraph_layout::aligned_column_y(frame, column_height, constraints),
             column_frame.width,
             column_frame.height,
         );
@@ -242,43 +243,4 @@ where
         overflow_clipped,
         editable: None,
     }
-}
-
-fn vertical_column_constraints<P>(
-    parsed: &UiParsedText,
-    style: &UiResolvedStyle,
-    frame_height: f32,
-    columns: &[super::candidate_line::CandidateLine],
-    index: usize,
-    provider: &mut P,
-) -> ColumnConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    let column = &columns[index];
-    let paragraph_start =
-        paragraph_layout::physical_paragraph_start(&parsed.text, column.source_range.start);
-    let first_physical_column = index == 0
-        || paragraph_layout::physical_paragraph_start(
-            &parsed.text,
-            columns[index - 1].source_range.start,
-        ) != paragraph_start;
-    paragraph_layout::column_constraints_with_provider(
-        parsed,
-        style,
-        frame_height,
-        column.source_range.start,
-        first_physical_column,
-        provider,
-    )
-}
-
-fn aligned_column_y(frame: UiFrame, column_height: f32, constraints: ColumnConstraints) -> f32 {
-    let remaining = (constraints.max_height - column_height).max(0.0);
-    let alignment_offset = match constraints.align {
-        UiTextAlign::Center => remaining * 0.5,
-        UiTextAlign::Right | UiTextAlign::End => remaining,
-        UiTextAlign::Left | UiTextAlign::Start | UiTextAlign::Justify => 0.0,
-    };
-    frame.y + constraints.inset + alignment_offset
 }

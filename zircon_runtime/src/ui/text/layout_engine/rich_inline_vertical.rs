@@ -16,6 +16,7 @@ use super::ellipsis::{
     ellipsize_line_with_advances, force_ellipsize_line_with_advances, is_ellipsis_overflow,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
+use super::paragraph_layout;
 use super::rich_inline::resolved_runs_for_line;
 use super::visual_order::apply_visual_order_with_advances;
 
@@ -37,12 +38,25 @@ where
         return None;
     }
 
-    let max_column_height = frame.height.max(font_size.max(1.0));
     let mut vertical_provider = VerticalTextShapeRunProvider::new(provider, VerticalMode::Mixed);
+    let paragraph_constraints =
+        paragraph_layout::resolve_paragraph_column_constraints_with_provider(
+            parsed,
+            style,
+            frame.height,
+            &mut vertical_provider,
+        );
     let column_metrics = rich_vertical_columns_with_provider(
         &parsed.rich,
         style,
-        max_column_height,
+        |forced_range, column_index| {
+            paragraph_constraints
+                .for_source_offset(
+                    usize::try_from(forced_range.0).unwrap_or(usize::MAX),
+                    column_index == 0,
+                )
+                .max_height
+        },
         &mut vertical_provider,
     );
     let mut columns = Vec::with_capacity(column_metrics.len());
@@ -124,13 +138,22 @@ where
         }
     }
 
+    let column_constraints = (0..columns.len())
+        .map(|index| paragraph_constraints.for_column(&parsed.text, &columns, index))
+        .collect::<Vec<_>>();
+
     let ellipsis_advance =
         measured_grapheme_widths_with_provider(ELLIPSIS, style, &mut vertical_provider)
             .into_iter()
             .next()
             .unwrap_or_default();
     let last_visible_index = columns.len().saturating_sub(1);
-    for (index, (column, advances)) in columns.iter_mut().zip(&mut column_advances).enumerate() {
+    for (index, ((column, advances), constraints)) in columns
+        .iter_mut()
+        .zip(&mut column_advances)
+        .zip(&column_constraints)
+        .enumerate()
+    {
         apply_visual_order_with_advances(column, &parsed.text, direction, advances);
         if is_ellipsis_overflow(style.text_overflow) {
             let was_ellipsized = column.ellipsized;
@@ -138,7 +161,7 @@ where
                 force_ellipsize_line_with_advances(
                     column,
                     advances,
-                    max_column_height,
+                    constraints.max_height,
                     ellipsis_advance,
                     style.text_overflow,
                 );
@@ -146,14 +169,14 @@ where
                 ellipsize_line_with_advances(
                     column,
                     advances,
-                    max_column_height,
+                    constraints.max_height,
                     ellipsis_advance,
                     style.text_overflow,
                 );
             }
             overflow_clipped |= !was_ellipsized && column.ellipsized;
         } else {
-            overflow_clipped |= advances.iter().copied().sum::<f32>() > max_column_height;
+            overflow_clipped |= advances.iter().copied().sum::<f32>() > constraints.max_height;
         }
     }
 
@@ -172,15 +195,16 @@ where
     let clip = clip_frame.unwrap_or(frame);
     let mut resolved_lines = Vec::new();
     let mut visible_column_heights = Vec::new();
-    for (((column, glyph_advances), column_height), column_frame) in columns
+    for ((((column, glyph_advances), column_height), constraints), column_frame) in columns
         .into_iter()
         .zip(column_advances)
         .zip(column_heights)
+        .zip(column_constraints)
         .zip(column_layout.frames)
     {
         let column_frame = UiFrame::new(
             column_frame.x,
-            column_frame.y,
+            paragraph_layout::aligned_column_y(frame, column_height, constraints),
             column_frame.width,
             column_frame.height,
         );
