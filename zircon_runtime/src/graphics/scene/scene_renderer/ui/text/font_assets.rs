@@ -4,7 +4,6 @@ use glyphon::FontSystem;
 use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextRenderMode};
 
 use super::super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
-use super::DEFAULT_FONT_ASSET;
 use crate::asset::ProjectAssetManager;
 use crate::graphics::text::font::publish_shared_font_database;
 use crate::graphics::text::font::FontDatabase;
@@ -15,23 +14,10 @@ pub(super) struct LoadedUiFontAsset {
     pub(super) render_mode: Option<UiTextRenderMode>,
 }
 
-pub(super) fn resolve_font_asset_record<'a>(
-    font_system: &mut FontSystem,
-    font_database: &mut FontDatabase,
-    font_assets: &'a mut HashMap<String, LoadedUiFontAsset>,
-    asset_manager: &ProjectAssetManager,
-    font_asset: Option<&str>,
-) -> Option<&'a LoadedUiFontAsset> {
-    let asset = font_asset
-        .filter(|asset| !asset.trim().is_empty())
-        .unwrap_or(DEFAULT_FONT_ASSET);
-    Some(ensure_font_asset_record(
-        font_system,
-        font_database,
-        font_assets,
-        asset_manager,
-        asset,
-    ))
+pub(super) struct EnsuredUiFontAsset<'a> {
+    pub(super) record: Option<&'a LoadedUiFontAsset>,
+    pub(super) loaded: bool,
+    pub(super) faces_changed: bool,
 }
 
 pub(super) fn effective_text_render_mode(
@@ -86,9 +72,21 @@ pub(super) fn ensure_font_asset_record<'a>(
     font_assets: &'a mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     asset_ref: &str,
-) -> &'a LoadedUiFontAsset {
-    font_assets.entry(asset_ref.to_string()).or_insert_with(|| {
-        load_font_asset_record(font_system, font_database, asset_ref, asset_manager)
-            .unwrap_or_default()
-    })
+) -> EnsuredUiFontAsset<'a> {
+    let face_count_before_load = font_database.face_count();
+    let mut loaded = false;
+    if !font_assets.contains_key(asset_ref) {
+        if let Some(record) =
+            load_font_asset_record(font_system, font_database, asset_ref, asset_manager)
+        {
+            font_assets.insert(asset_ref.to_string(), record);
+            loaded = true;
+        }
+    }
+
+    EnsuredUiFontAsset {
+        record: font_assets.get(asset_ref),
+        loaded,
+        faces_changed: font_database.face_count() != face_count_before_load,
+    }
 }

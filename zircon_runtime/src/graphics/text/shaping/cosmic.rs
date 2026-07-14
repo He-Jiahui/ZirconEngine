@@ -93,6 +93,7 @@ fn shape_with_cosmic(
                 &line_breaks,
                 &scripts,
                 bidi,
+                &fallback_spans,
                 font_database,
             ));
         }
@@ -130,6 +131,7 @@ fn line_from_layout_run(
     line_breaks: &LineBreakOpportunityMap,
     scripts: &[ScriptSegment],
     bidi: &BidiParagraph<'_>,
+    fallback_spans: &[super::fallback_spans::FallbackTextSpan],
     font_database: &FontDatabase,
 ) -> ShapedTextLine {
     let line_visual_start = line_visual_start(text_view.shaping_text(), run.line_i);
@@ -158,6 +160,7 @@ fn line_from_layout_run(
                 line_breaks,
                 scripts,
                 bidi,
+                fallback_spans,
                 font_database,
             )
         })
@@ -188,6 +191,7 @@ fn glyph_from_layout_glyph(
     line_breaks: &LineBreakOpportunityMap,
     scripts: &[ScriptSegment],
     bidi: &BidiParagraph<'_>,
+    fallback_spans: &[super::fallback_spans::FallbackTextSpan],
     font_database: &FontDatabase,
 ) -> ShapedGlyph {
     let shaping_range = line_visual_start + glyph.start..line_visual_start + glyph.end;
@@ -226,17 +230,26 @@ fn glyph_from_layout_glyph(
 
     let (offset_x, offset_y) =
         glyph_layout_offset_px(glyph.font_size, glyph.x_offset, glyph.y_offset);
-    let font_id = font_database.font_face_id(glyph.font_id);
+    let resolved_span = fallback_spans
+        .get(fallback_spans.partition_point(|span| span.range.end <= shaping_range.start))
+        .filter(|span| {
+            span.range.start <= shaping_range.start && span.range.end >= shaping_range.end
+        });
+    let font_id = resolved_span
+        .and_then(|span| span.face)
+        .or_else(|| font_database.font_face_id(glyph.font_id));
     ShapedGlyph {
         glyph_id: glyph.glyph_id as u32,
         font_id,
-        font_instance_id: font_id.and_then(|face| {
-            font_database
-                .effective_instance_id(
-                    face,
-                    UiResolvedStyle::normalized_font_weight(request.style.font_weight),
-                )
-                .ok()
+        font_instance_id: resolved_span.and_then(|span| span.instance).or_else(|| {
+            font_id.and_then(|face| {
+                font_database
+                    .effective_instance_id(
+                        face,
+                        UiResolvedStyle::normalized_font_weight(request.style.font_weight),
+                    )
+                    .ok()
+            })
         }),
         source_range,
         visual_range: UiTextRange {

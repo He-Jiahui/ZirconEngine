@@ -7,6 +7,66 @@ const BBCODE_TABLE_SAMPLE_INDEX: usize = 18;
 const VERTICAL_BBCODE_TABLE_SAMPLE_INDEX: usize = 19;
 const FRAME_EPSILON: f32 = 0.01;
 
+#[cfg(target_os = "windows")]
+pub(super) fn assert_variable_font_instance_pixels(
+    samples: &[UiRenderCommand],
+    capture: &zircon_runtime::core::framework::render::CapturedFrame,
+    background: &zircon_runtime::core::framework::render::CapturedFrame,
+) {
+    let narrow = sample_by_node(samples, 125);
+    let wide = sample_by_node(samples, 127);
+    assert_eq!(narrow.text, wide.text);
+    assert_eq!(
+        narrow.style.font.as_deref(),
+        Some(super::product_project_fixture::VARIABLE_FONT_ASSET_URI)
+    );
+    assert_eq!(narrow.style.font, wide.style.font);
+    assert_ne!(narrow.style.font_family, wide.style.font_family);
+    assert_eq!(
+        narrow.style.text_render_mode,
+        zircon_runtime_interface::ui::surface::UiTextRenderMode::Sdf
+    );
+    assert_eq!(narrow.style.text_render_mode, wide.style.text_render_mode);
+
+    let narrow_bounds = super::changed_pixel_bounds_in_frame(
+        &capture.rgba,
+        &background.rgba,
+        capture.width,
+        capture.height,
+        narrow.frame,
+        10,
+    )
+    .expect("narrow variable-font instance must produce real SDF framebuffer pixels");
+    let wide_bounds = super::changed_pixel_bounds_in_frame(
+        &capture.rgba,
+        &background.rgba,
+        capture.width,
+        capture.height,
+        wide.frame,
+        10,
+    )
+    .expect("wide variable-font instance must produce real SDF framebuffer pixels");
+    assert!(narrow_bounds.4 > 96 && wide_bounds.4 > 96);
+    let narrow_width = narrow_bounds.2 - narrow_bounds.0 + 1;
+    let wide_width = wide_bounds.2 - wide_bounds.0 + 1;
+    assert!(
+        wide_width >= narrow_width + 24,
+        "one physical face must retain distinct wdth instance pixels through SDF/atlas rendering; narrow={narrow_bounds:?}, wide={wide_bounds:?}"
+    );
+    let instance_delta = super::count_relative_pixel_differences(
+        &capture.rgba,
+        capture.width,
+        capture.height,
+        narrow.frame,
+        wide.frame,
+        10,
+    );
+    assert!(
+        instance_delta > 64,
+        "narrow/wide variable instances must not collapse to one framebuffer result; delta={instance_delta}"
+    );
+}
+
 pub(super) fn assert_native_sdf_parity_layout(samples: &[UiRenderCommand]) {
     let native = sample_by_node(samples, 121);
     let sdf = sample_by_node(samples, 122);

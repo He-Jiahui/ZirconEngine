@@ -1,7 +1,8 @@
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::native_bitmap_atlas::NativeBitmapAtlasPrepareReport;
+use super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use super::{ResolvedScreenSpaceUiTextBatches, ScreenSpaceUiNativePrepareReport};
+use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;

@@ -84,6 +84,48 @@ pub(super) fn proof_msdf_sharp_corner_sample() -> UiRenderCommand {
     )
 }
 
+#[cfg(target_os = "windows")]
+pub(super) fn proof_variable_font_instance_samples() -> [UiRenderCommand; 4] {
+    const TEXT: &str = "WMWM AVATAR 2026";
+    let mut narrow_label = proof_text(
+        124,
+        UiFrame::new(42.0, 1680.0, 470.0, 32.0),
+        "Variable wdth=min · SDF",
+        UiTextDirection::LeftToRight,
+        Some("en"),
+        UiTextRenderMode::Native,
+    );
+    narrow_label.style.font_size = 20.0;
+    narrow_label.style.line_height = 28.0;
+
+    let mut narrow = proof_text(
+        125,
+        UiFrame::new(42.0, 1720.0, 470.0, 72.0),
+        TEXT,
+        UiTextDirection::LeftToRight,
+        Some("en"),
+        UiTextRenderMode::Sdf,
+    );
+    narrow.style.font = Some(super::product_project_fixture::VARIABLE_FONT_ASSET_URI.to_string());
+    narrow.style.font_family =
+        Some(super::product_project_fixture::VARIABLE_FONT_NARROW_FAMILY.to_string());
+    narrow.style.font_size = 34.0;
+    narrow.style.line_height = 48.0;
+
+    let mut wide_label = narrow_label.clone();
+    wide_label.node_id = UiNodeId::new(126);
+    wide_label.frame = UiFrame::new(568.0, 1680.0, 470.0, 32.0);
+    wide_label.text = Some("Variable wdth=max · SDF".to_string());
+
+    let mut wide = narrow.clone();
+    wide.node_id = UiNodeId::new(127);
+    wide.frame = UiFrame::new(568.0, 1720.0, 470.0, 72.0);
+    wide.style.font_family =
+        Some(super::product_project_fixture::VARIABLE_FONT_WIDE_FAMILY.to_string());
+
+    [narrow_label, narrow, wide_label, wide]
+}
+
 pub(super) fn proof_rich_text(node_id: u64, frame: UiFrame, markup: &str) -> UiRenderCommand {
     proof_rich_text_with_direction(
         node_id,

@@ -153,6 +153,10 @@ impl FontDatabase {
         database
     }
 
+    pub(crate) fn face_count(&self) -> usize {
+        self.faces.len()
+    }
+
     pub(crate) fn fallback_families(&self) -> &[FontFamilyName] {
         &self.fallback_families
     }

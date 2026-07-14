@@ -4,7 +4,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use crate::core::framework::render::{
-    FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, TextShapeRequest,
+    FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, InstancedFaceId,
+    TextShapeRequest,
 };
 use crate::graphics::text::font::FontDatabase;
 
@@ -14,6 +15,8 @@ use super::script_segment::font_script_for_cluster;
 pub(crate) struct FallbackTextSpan {
     pub(crate) range: Range<usize>,
     pub(crate) family: Option<String>,
+    pub(crate) face: Option<FontFaceId>,
+    pub(crate) instance: Option<InstancedFaceId>,
 }
 
 pub(crate) fn fallback_text_spans(
@@ -33,18 +36,30 @@ pub(crate) fn fallback_text_spans(
     for (start, cluster) in text.grapheme_indices(true) {
         let end = start + cluster.len();
         let codepoints = cluster.chars().collect::<Vec<_>>();
-        let family = database
-            .resolve_shaping_face_for_cluster(
-                font_script_for_cluster(cluster),
-                &codepoints,
-                &query,
-                request.language,
-            )
+        let face = database.resolve_shaping_face_for_cluster(
+            font_script_for_cluster(cluster),
+            &codepoints,
+            &query,
+            request.language,
+        );
+        let family = face
             .and_then(|face| database.face_family_name(face))
             .map(|family| family.0)
             .or_else(|| default_family.map(str::to_string));
+        let instance = face.and_then(|face| {
+            database
+                .effective_instance_id(
+                    face,
+                    UiResolvedStyle::normalized_font_weight(request.style.font_weight),
+                )
+                .ok()
+        });
         if let Some(previous) = spans.last_mut() {
-            if previous.family == family && previous.range.end == start {
+            if previous.family == family
+                && previous.face == face
+                && previous.instance == instance
+                && previous.range.end == start
+            {
                 previous.range.end = end;
                 continue;
             }
@@ -52,6 +67,8 @@ pub(crate) fn fallback_text_spans(
         spans.push(FallbackTextSpan {
             range: start..end,
             family,
+            face,
+            instance,
         });
     }
     spans

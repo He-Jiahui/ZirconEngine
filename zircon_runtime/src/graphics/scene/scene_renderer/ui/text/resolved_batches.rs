@@ -1,10 +1,20 @@
-use super::super::render::ScreenSpaceUiTextBatch;
+use std::collections::{HashMap, HashSet};
+
+use glyphon::FontSystem;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
+
+use super::super::render::{
+    text_advances::refresh_screen_space_text_batch_glyphs, ScreenSpaceUiTextBatch,
+};
+use super::font_assets::{effective_text_render_mode, ensure_font_asset_record, LoadedUiFontAsset};
+use crate::asset::ProjectAssetManager;
+use crate::graphics::text::font::FontDatabase;
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct ResolvedScreenSpaceUiTextBatches {
     pub(super) native_texts: Vec<ScreenSpaceUiTextBatch>,
     pub(super) sdf_texts: Vec<ScreenSpaceUiTextBatch>,
+    font_faces_changed: bool,
 }
 
 impl ResolvedScreenSpaceUiTextBatches {
@@ -15,6 +25,7 @@ impl ResolvedScreenSpaceUiTextBatches {
         Self {
             native_texts: native_texts.to_vec(),
             sdf_texts: sdf_texts.to_vec(),
+            font_faces_changed: false,
         }
     }
 
@@ -38,4 +49,76 @@ impl ResolvedScreenSpaceUiTextBatches {
     pub(super) fn sdf_texts(&self) -> &[ScreenSpaceUiTextBatch] {
         &self.sdf_texts
     }
+
+    pub(super) fn font_faces_changed(&self) -> bool {
+        self.font_faces_changed
+    }
+
+    fn refresh_shaping_after_font_load(&mut self) {
+        for text in self
+            .native_texts
+            .iter_mut()
+            .chain(self.sdf_texts.iter_mut())
+        {
+            refresh_screen_space_text_batch_glyphs(text);
+        }
+    }
+}
+
+pub(super) fn resolve_text_batches(
+    font_system: &mut FontSystem,
+    font_database: &mut FontDatabase,
+    font_assets: &mut HashMap<String, LoadedUiFontAsset>,
+    asset_manager: &ProjectAssetManager,
+    auto_texts: &[ScreenSpaceUiTextBatch],
+    native_texts: &[ScreenSpaceUiTextBatch],
+    sdf_texts: &[ScreenSpaceUiTextBatch],
+) -> ResolvedScreenSpaceUiTextBatches {
+    let mut loaded_assets = HashSet::new();
+    let mut shaping_changed = false;
+    let mut font_faces_changed = false;
+    for text in auto_texts
+        .iter()
+        .chain(native_texts.iter())
+        .chain(sdf_texts.iter())
+    {
+        let asset = text
+            .font
+            .as_deref()
+            .filter(|asset| !asset.trim().is_empty())
+            .unwrap_or(super::DEFAULT_FONT_ASSET);
+        if !loaded_assets.insert(asset) {
+            continue;
+        }
+        let ensured = ensure_font_asset_record(
+            font_system,
+            font_database,
+            font_assets,
+            asset_manager,
+            asset,
+        );
+        shaping_changed |= ensured.loaded;
+        font_faces_changed |= ensured.faces_changed;
+    }
+
+    let mut resolved =
+        ResolvedScreenSpaceUiTextBatches::from_explicit_batches(native_texts, sdf_texts);
+    resolved.font_faces_changed = font_faces_changed;
+    for text in auto_texts {
+        let asset = text
+            .font
+            .as_deref()
+            .filter(|asset| !asset.trim().is_empty())
+            .unwrap_or(super::DEFAULT_FONT_ASSET);
+        let font_asset = font_assets.get(asset);
+        resolved.push_resolved_auto_text(
+            text.clone(),
+            effective_text_render_mode(UiTextRenderMode::Auto, font_asset),
+        );
+    }
+
+    if shaping_changed {
+        resolved.refresh_shaping_after_font_load();
+    }
+    resolved
 }

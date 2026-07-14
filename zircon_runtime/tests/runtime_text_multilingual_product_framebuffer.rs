@@ -1,9 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
 use glyphon::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, SwashContent};
+use std::{path::PathBuf, sync::Arc};
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
-use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
-use zircon_runtime::asset::AssetUri;
+use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
     RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
@@ -21,11 +19,14 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
+#[path = "runtime_text_multilingual_product_framebuffer/product_project_fixture.rs"]
+mod product_project_fixture;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_assertions.rs"]
 mod proof_assertions;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
 mod proof_commands;
 mod support;
+use product_project_fixture::product_fixture_asset_manager;
 use proof_commands::{
     proof_background, proof_bbcode_text, proof_horizontal_rich_table,
     proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
@@ -34,14 +35,15 @@ use proof_commands::{
     proof_vertical_rich_text, proof_vertical_text,
 };
 
+#[cfg(target_os = "windows")]
 #[test]
 #[ignore = "exports an explicit runtime WGPU multilingual text framebuffer proof"]
 fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_color_emoji_backend_raster_contract();
     assert_arabic_mark_cluster_backend_face_contract();
 
-    let viewport_size = UVec2::new(1080, 1690);
-    let (asset_manager, fixture_root) = rich_inline_fixture_asset_manager();
+    let viewport_size = UVec2::new(1080, 1840);
+    let (asset_manager, fixture_root) = product_fixture_asset_manager();
     let background = proof_background(viewport_size);
     let mut samples = vec![
         proof_rich_text(
@@ -166,6 +168,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     ];
     samples.extend(proof_native_sdf_parity());
     samples.push(proof_msdf_sharp_corner_sample());
+    samples.extend(proof_commands::proof_variable_font_instance_samples());
     let vertical_layout = samples[11]
         .text_layout
         .as_ref()
@@ -227,6 +230,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     }
     proof_assertions::assert_native_sdf_parity_pixels(&samples, &capture, &background_capture);
     proof_assertions::assert_msdf_sharp_corner_pixels(&samples, &capture, &background_capture);
+    proof_assertions::assert_variable_font_instance_pixels(&samples, &capture, &background_capture);
     let locale_variant_delta = count_relative_pixel_differences(
         &capture.rgba,
         capture.width,
@@ -515,55 +519,6 @@ fn render_ui_extract_frame(
     (capture, stats)
 }
 
-fn rich_inline_fixture_asset_manager() -> (Arc<ProjectAssetManager>, PathBuf) {
-    let root = std::env::temp_dir().join(format!(
-        "zircon-runtime-rich-inline-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system clock after unix epoch")
-            .as_nanos()
-    ));
-    let paths = ProjectPaths::from_root(&root).expect("rich inline fixture project paths");
-    paths
-        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
-        .expect("rich inline fixture layout");
-    let texture_uri =
-        AssetUri::parse("res://ui/rich-inline-checker.png").expect("rich inline texture locator");
-    ProjectManifest::new("RuntimeRichInlineProof", texture_uri.clone(), 1)
-        .save(paths.manifest_path())
-        .expect("rich inline fixture manifest");
-    let texture_path = paths
-        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-        .join("ui")
-        .join("rich-inline-checker.png");
-    std::fs::create_dir_all(texture_path.parent().expect("texture parent"))
-        .expect("rich inline texture directory");
-    let image = image::ImageBuffer::<image::Rgba<u8>, Vec<u8>>::from_fn(8, 8, |x, y| {
-        match (x >= 4, y >= 4) {
-            (false, false) => image::Rgba([255, 28, 28, 255]),
-            (true, false) => image::Rgba([28, 255, 28, 255]),
-            (false, true) => image::Rgba([28, 28, 255, 255]),
-            (true, true) => image::Rgba([255, 220, 28, 255]),
-        }
-    });
-    image
-        .save(&texture_path)
-        .expect("write rich inline checker texture");
-
-    let manager = Arc::new(ProjectAssetManager::default());
-    manager
-        .open_project(root.to_string_lossy().as_ref())
-        .expect("open rich inline fixture project");
-    let texture_id = manager
-        .resolve_asset_id(&texture_uri)
-        .expect("imported rich inline texture id");
-    manager
-        .load_texture_asset(texture_id)
-        .expect("load imported rich inline texture");
-    (manager, root)
-}
-
 fn dominant_checker_channel_counts(
     rgba: &[u8],
     width: u32,
@@ -796,5 +751,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png")
+        .join("runtime_text_variable_font_instances_product_framebuffer_20260714.png")
 }

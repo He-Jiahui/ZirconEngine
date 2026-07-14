@@ -1,7 +1,9 @@
 use super::super::sdf_atlas::{SdfAtlasDirtyPageReport, SdfAtlasRect};
 use super::super::sdf_upload::SdfAtlasUploadPageReport;
+use super::font_assets::{effective_text_render_mode, ensure_font_asset_record};
+use super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::*;
-use zircon_runtime_interface::ui::surface::UiTextWritingMode;
+use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextWritingMode};
 
 #[path = "tests/native_bitmap_atlas.rs"]
 mod native_bitmap_atlas_tests;
@@ -53,6 +55,53 @@ fn text_backend_routing_respects_auto_font_mode_without_crossing_backends() {
     assert_eq!(routed.native_texts()[0].text, "NormalAuto");
     assert_eq!(routed.sdf_texts().len(), 1);
     assert_eq!(routed.sdf_texts()[0].text, "SdfAuto");
+}
+
+#[test]
+fn text_font_asset_load_failure_does_not_create_a_negative_cache_record() {
+    let mut font_system = FontSystem::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let mut font_assets = HashMap::new();
+    let asset_manager = ProjectAssetManager::default();
+    let missing = "res://fonts/late-project-font.font.toml";
+
+    for _ in 0..2 {
+        let ensured = ensure_font_asset_record(
+            &mut font_system,
+            &mut font_database,
+            &mut font_assets,
+            &asset_manager,
+            missing,
+        );
+        assert!(ensured.record.is_none());
+        assert!(!ensured.loaded);
+        assert!(!ensured.faces_changed);
+    }
+    assert!(font_assets.is_empty());
+}
+
+#[test]
+fn text_font_refresh_recomputes_internal_vertical_advances() {
+    let mut text = text_batch("AB", UiTextRenderMode::Sdf);
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    text.glyph_advances = vec![999.0, 999.0];
+
+    super::super::render::text_advances::refresh_screen_space_text_batch_glyphs(&mut text);
+
+    assert_eq!(text.glyph_advances.len(), 2);
+    assert!(text.glyph_advances.iter().all(|advance| *advance < 999.0));
+}
+
+#[test]
+fn text_font_refresh_preserves_resolved_layout_vertical_advances() {
+    let mut text = text_batch("AB", UiTextRenderMode::Sdf);
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    text.source_range = Some(UiTextRange { start: 0, end: 2 });
+    text.glyph_advances = vec![11.0, 13.0];
+
+    super::super::render::text_advances::refresh_screen_space_text_batch_glyphs(&mut text);
+
+    assert_eq!(text.glyph_advances, vec![11.0, 13.0]);
 }
 
 #[test]

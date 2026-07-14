@@ -92,6 +92,41 @@ pub(super) fn resolve_screen_space_text_glyphs(
     }
 }
 
+pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_batch_glyphs(
+    text: &mut super::ScreenSpaceUiTextBatch,
+) {
+    let source_range = text.source_range.unwrap_or(UiTextRange {
+        start: 0,
+        end: text.text.len(),
+    });
+    // A resolved layout line owns its advances and its frame was computed from them. A raw
+    // render-command batch has no source range, so any vertical advances it carries were derived
+    // by this module before the project font became available and must be recomputed.
+    let glyph_advances = if text.source_range.is_some() {
+        std::mem::take(&mut text.glyph_advances)
+    } else {
+        text.glyph_advances.clear();
+        Vec::new()
+    };
+    let resolved = resolve_screen_space_text_glyphs(
+        ScreenSpaceTextShapingRequest {
+            text: text.text.as_str(),
+            font: text.font.as_deref(),
+            font_family: text.font_family.as_deref(),
+            language: text.language.as_deref(),
+            font_weight: text.font_weight,
+            font_size: text.font_size,
+            line_height: text.line_height,
+            direction: text.text_direction,
+            writing_mode: text.writing_mode,
+            source_range,
+        },
+        glyph_advances,
+    );
+    text.glyph_advances = resolved.glyph_advances;
+    text.shaped_glyphs = resolved.shaped_glyphs;
+}
+
 pub(super) fn resolved_vertical_text_glyphs(
     text: &str,
     style: &UiResolvedStyle,

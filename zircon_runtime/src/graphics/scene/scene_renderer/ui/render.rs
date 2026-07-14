@@ -23,7 +23,7 @@ mod background;
 mod color;
 mod geometry;
 mod rich_text;
-mod text_advances;
+pub(in crate::graphics::scene::scene_renderer::ui) mod text_advances;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_decorations;
 mod text_distance_field;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_effects;

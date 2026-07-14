@@ -38,10 +38,7 @@ mod prepare_report;
 mod resolved_batches;
 mod sdf_fallback;
 
-use self::font_assets::{
-    effective_text_render_mode, ensure_font_asset_record, load_font_asset_record,
-    resolve_font_asset_record, LoadedUiFontAsset,
-};
+use self::font_assets::{ensure_font_asset_record, load_font_asset_record, LoadedUiFontAsset};
 use self::font_id_report::{
     accumulate_text_font_id_report, resolved_style_for_text_batch, ScreenSpaceUiTextFontIdReport,
 };
@@ -54,7 +51,7 @@ use self::prepare_report::text_prepare_report;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
-use self::resolved_batches::ResolvedScreenSpaceUiTextBatches;
+use self::resolved_batches::resolve_text_batches;
 use self::sdf_fallback::apply_sdf_atlas_fallbacks;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
@@ -158,7 +155,6 @@ impl ScreenSpaceUiTextSystem {
         native_texts: &[ScreenSpaceUiTextBatch],
         sdf_texts: &[ScreenSpaceUiTextBatch],
     ) {
-        let font_asset_count_before_resolve = self.font_assets.len();
         let mut resolved_texts = resolve_text_batches(
             &mut self.font_system,
             &mut self.font_database,
@@ -168,8 +164,7 @@ impl ScreenSpaceUiTextSystem {
             native_texts,
             sdf_texts,
         );
-        let font_faces_changed_before_native =
-            self.font_assets.len() != font_asset_count_before_resolve;
+        let font_faces_changed_before_native = resolved_texts.font_faces_changed();
         self.sdf_atlas.prepare(resolved_texts.sdf_texts());
         let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
             self.sdf_atlas.plan(),
@@ -643,7 +638,7 @@ fn resolve_family_name(
 ) -> Option<String> {
     if let Some(family) = preferred_family.filter(|family| !family.trim().is_empty()) {
         if let Some(asset) = font_asset.filter(|asset| !asset.trim().is_empty()) {
-            ensure_font_asset_record(
+            let _ = ensure_font_asset_record(
                 font_system,
                 font_database,
                 font_assets,
@@ -664,37 +659,8 @@ fn resolve_family_name(
         asset_manager,
         asset,
     )
-    .family
-    .clone()
-}
-
-fn resolve_text_batches(
-    font_system: &mut FontSystem,
-    font_database: &mut FontDatabase,
-    font_assets: &mut HashMap<String, LoadedUiFontAsset>,
-    asset_manager: &ProjectAssetManager,
-    auto_texts: &[ScreenSpaceUiTextBatch],
-    native_texts: &[ScreenSpaceUiTextBatch],
-    sdf_texts: &[ScreenSpaceUiTextBatch],
-) -> ResolvedScreenSpaceUiTextBatches {
-    let mut resolved =
-        ResolvedScreenSpaceUiTextBatches::from_explicit_batches(native_texts, sdf_texts);
-
-    for text in auto_texts {
-        let font_asset = resolve_font_asset_record(
-            font_system,
-            font_database,
-            font_assets,
-            asset_manager,
-            text.font.as_deref(),
-        );
-        resolved.push_resolved_auto_text(
-            text.clone(),
-            effective_text_render_mode(UiTextRenderMode::Auto, font_asset),
-        );
-    }
-
-    resolved
+    .record
+    .and_then(|record| record.family.clone())
 }
 
 fn text_bounds(
