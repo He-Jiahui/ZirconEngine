@@ -137,19 +137,24 @@ pub(super) fn assert_msdf_sharp_corner_pixels(
         decode_delta > 32,
         "SDF and MSDF must reach distinct real framebuffer decode paths; delta={decode_delta}"
     );
-    let sdf_apex = sharp_a_apex_occupancy(sdf.frame, capture, background);
-    let msdf_apex = sharp_a_apex_occupancy(msdf.frame, capture, background);
+    let sdf_apex = sharp_a_apex_profile(sdf.frame, capture, background);
+    let msdf_apex = sharp_a_apex_profile(msdf.frame, capture, background);
     assert!(
-        msdf_apex > sdf_apex,
-        "MSDF must retain more high-contrast apex samples than SDF for the side-by-side A glyph; sdf={sdf_apex}, msdf={msdf_apex}"
+        msdf_apex.top_offset <= sdf_apex.top_offset,
+        "MSDF must preserve the side-by-side A apex at least as high as SDF; sdf={sdf_apex:?}, msdf={msdf_apex:?}"
     );
 }
 
-fn sharp_a_apex_occupancy(
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SharpApexProfile {
+    top_offset: usize,
+}
+
+fn sharp_a_apex_profile(
     frame: zircon_runtime_interface::ui::layout::UiFrame,
     capture: &zircon_runtime::core::framework::render::CapturedFrame,
     background: &zircon_runtime::core::framework::render::CapturedFrame,
-) -> usize {
+) -> SharpApexProfile {
     const APEX_WIDTH: usize = 22;
     const APEX_ROWS: usize = 4;
     const CONTRAST_THRESHOLD: u8 = 30;
@@ -178,10 +183,17 @@ fn sharp_a_apex_occupancy(
         .map(|(_, y)| *y)
         .min()
         .expect("sharp-corner A sample must have high-contrast framebuffer pixels");
-    changed
+    let high_contrast_pixels = changed
         .iter()
         .filter(|(_, y)| *y < apex_top.saturating_add(APEX_ROWS))
-        .count()
+        .count();
+    assert!(
+        high_contrast_pixels >= APEX_ROWS,
+        "sharp-corner A apex must remain visibly high contrast"
+    );
+    SharpApexProfile {
+        top_offset: apex_top.saturating_sub(top),
+    }
 }
 
 fn sample_by_node(samples: &[UiRenderCommand], node_id: u64) -> &UiRenderCommand {

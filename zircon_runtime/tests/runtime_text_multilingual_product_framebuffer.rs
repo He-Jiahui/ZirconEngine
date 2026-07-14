@@ -1,5 +1,4 @@
 use std::{path::PathBuf, sync::Arc};
-
 use glyphon::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, SwashContent};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
@@ -26,7 +25,7 @@ use zircon_runtime_interface::ui::surface::{
 mod proof_assertions;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
 mod proof_commands;
-
+mod support;
 use proof_commands::{
     proof_background, proof_bbcode_text, proof_horizontal_rich_table,
     proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
@@ -473,7 +472,8 @@ fn render_ui_extract_frame(
     zircon_runtime::core::framework::render::CapturedFrame,
     zircon_runtime::core::framework::render::RenderStats,
 ) {
-    let server = WgpuRenderFramework::new(asset_manager).expect("headless WGPU renderer");
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
+    let server = WgpuRenderFramework::new(asset_runtime.access()).expect("headless WGPU renderer");
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .expect("headless viewport");
