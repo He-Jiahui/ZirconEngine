@@ -34,6 +34,32 @@ fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
     );
     assert!(atlas.report.nonzero_pixel_count > 0);
     assert!(atlas.report.loaded_font_count >= 1);
+    assert_eq!(
+        atlas.report.loaded_font_count,
+        atlas.report.resident_font_count
+    );
+}
+
+#[test]
+fn sdf_font_bake_report_distinguishes_newly_loaded_and_resident_fonts() {
+    let mut bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let plan = atlas_plan_for_glyphs(&['A']);
+
+    let first = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+    let second = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+
+    assert!(first.report.resident_font_count >= 1);
+    assert_eq!(
+        first.report.loaded_font_count,
+        first.report.resident_font_count
+    );
+    assert_eq!(
+        second.report.resident_font_count,
+        first.report.resident_font_count
+    );
+    assert_eq!(second.report.loaded_font_count, 0);
 }
 
 #[test]
@@ -158,7 +184,9 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
     assert_eq!(second.pixels, first.pixels);
     assert_eq!(second.pages, first.pages);
     assert_eq!(second.generation_failures, first.generation_failures);
-    assert_eq!(second.report, first.report);
+    let mut expected_second_report = first.report;
+    expected_second_report.loaded_font_count = 0;
+    assert_eq!(second.report, expected_second_report);
 }
 
 #[test]
@@ -259,6 +287,7 @@ fn sdf_font_bake_rasterizes_materialized_system_cjk_face() {
     assert!(bake.ensure_sdf_font(face, &font_database));
 
     let mut plan = atlas_plan_for_glyphs(&['本']);
+    plan.slots[0].key.font_id = Some(face.0);
     plan.slots[0].key.font_family = Some("Microsoft YaHei UI".to_string());
     plan.slots[0].key.language = Some("zh-Hans".to_string());
     let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
@@ -267,7 +296,8 @@ fn sdf_font_bake_rasterizes_materialized_system_cjk_face() {
     assert_eq!(atlas.report.visible_glyph_count, 1);
     assert_eq!(atlas.report.empty_glyph_count, 0);
     assert!(atlas.report.nonzero_pixel_count > 0);
-    assert_eq!(atlas.report.loaded_font_count, 1);
+    assert_eq!(atlas.report.resident_font_count, 1);
+    assert_eq!(atlas.report.loaded_font_count, 0);
 }
 
 #[cfg(target_os = "windows")]
@@ -325,6 +355,7 @@ fn sdf_font_bake_report_handles_empty_atlas_plan() {
             empty_glyph_count: 0,
             atlas_byte_len: 1,
             nonzero_pixel_count: 0,
+            resident_font_count: 0,
             loaded_font_count: 0,
             generation_failure_count: 0,
             r8_byte_len: 0,

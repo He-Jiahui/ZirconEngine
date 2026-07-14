@@ -124,6 +124,7 @@ fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
             empty_glyph_count: 0,
             atlas_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,
             nonzero_pixel_count: 0,
+            resident_font_count: 0,
             loaded_font_count: 0,
             generation_failure_count: 0,
             r8_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,

@@ -62,6 +62,9 @@ pub(super) struct SdfAtlasBakeReport {
     pub(super) empty_glyph_count: usize,
     pub(super) atlas_byte_len: usize,
     pub(super) nonzero_pixel_count: usize,
+    /// Materialized faces retained by the cache after this atlas build.
+    pub(super) resident_font_count: usize,
+    /// Faces materialized by this atlas build rather than reused from the cache.
     pub(super) loaded_font_count: usize,
     pub(super) generation_failure_count: usize,
     pub(super) r8_byte_len: usize,
@@ -157,6 +160,7 @@ impl SdfFontBakeCache {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) -> SdfAtlasBake {
+        let resident_font_count_before = self.fonts.len();
         let width = plan.atlas_size.x.max(1);
         let height = plan.atlas_size.y.max(1);
         let page_keys = distance_field_atlas_page_keys(plan);
@@ -222,13 +226,15 @@ impl SdfFontBakeCache {
         }
 
         let visible_glyph_count = glyphs.iter().filter(|glyph| glyph.visible).count();
+        let resident_font_count = self.fonts.len();
         let report = SdfAtlasBakeReport {
             slot_count: glyphs.len(),
             visible_glyph_count,
             empty_glyph_count: glyphs.len().saturating_sub(visible_glyph_count),
             atlas_byte_len: pixels.len(),
             nonzero_pixel_count: pixels.iter().filter(|pixel| **pixel != 0).count(),
-            loaded_font_count: self.fonts.len(),
+            resident_font_count,
+            loaded_font_count: resident_font_count.saturating_sub(resident_font_count_before),
             generation_failure_count: generation_failures.len(),
             r8_byte_len: pages
                 .iter()

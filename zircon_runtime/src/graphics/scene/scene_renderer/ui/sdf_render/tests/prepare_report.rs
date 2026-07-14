@@ -9,6 +9,7 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         empty_glyph_count: 0,
         atlas_byte_len: 512 * 512,
         nonzero_pixel_count: 64,
+        resident_font_count: 1,
         loaded_font_count: 1,
         generation_failure_count: 0,
         r8_byte_len: 512 * 512,
