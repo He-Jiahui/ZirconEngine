@@ -6,7 +6,8 @@ use zircon_runtime::core::framework::render::{
     build_environment_brdf_lut, cubemap_direction_from_scaled_uv,
     cubemap_face_scaled_uv_from_direction, cubemap_texel_solid_angle,
     source_cubemap_evaluate_irradiance_sh9, source_cubemap_face_mip_offset,
-    source_cubemap_mip_size, CubemapFace, SourceCubemapEnvironment, ENVIRONMENT_BRDF_LUT_SIZE,
+    source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness, CubemapFace,
+    SourceCubemapEnvironment, ENVIRONMENT_BRDF_LUT_SIZE,
 };
 use zircon_runtime::graphics::ViewportFrame;
 
@@ -15,8 +16,14 @@ use super::{
     PBR_MATRIX_ORTHO_SIZE, PBR_MATRIX_OUTPUT_SIZE, PBR_MATRIX_SPHERE_SCALE,
 };
 
+#[path = "pbr_matrix_quantitative/math.rs"]
+mod math;
+
+use math::*;
+
 const BASE_COLOR: [f32; 3] = [0.78, 0.74, 0.66];
 const MIRROR_MIN_SSIM: f32 = 0.95;
+const REAL_HDRI_PMREM_MIN_SSIM: f32 = 0.90;
 const ROUGHNESS_NOISE_FLOOR: f32 = 1.0e-6;
 const DIELECTRIC_MAX_DELTA_E: f32 = 12.0;
 const DIELECTRIC_CENTER_F0_MIN: f32 = 0.015;
@@ -25,7 +32,10 @@ const DIELECTRIC_GRAZING_RESPONSE_DELTA: f32 = 0.03;
 
 #[derive(Debug)]
 pub(super) struct PbrMatrixQuantitativeReport {
+    grazing_mean_relative_delta: f32,
+    grazing_max_per_radius_relative_delta: f32,
     mirror_ssim: f32,
+    minimum_lakes_pmrem_ssim: f32,
     roughness_laplacian_variance: [[f32; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION],
     minimum_roughness_adjacent_delta: f32,
     dielectric_delta_e: f32,
@@ -40,7 +50,25 @@ impl PbrMatrixQuantitativeReport {
     pub(super) fn to_text(&self) -> String {
         let mut output = String::new();
         writeln!(output, "Shader 06 PBR matrix quantitative report").unwrap();
+        writeln!(
+            output,
+            "grazing_mean_relative_delta={:.6}",
+            self.grazing_mean_relative_delta
+        )
+        .unwrap();
+        writeln!(
+            output,
+            "grazing_max_per_radius_relative_delta={:.6}",
+            self.grazing_max_per_radius_relative_delta
+        )
+        .unwrap();
         writeln!(output, "mirror_ssim={:.6}", self.mirror_ssim).unwrap();
+        writeln!(
+            output,
+            "minimum_lakes_pmrem_ssim={:.6}",
+            self.minimum_lakes_pmrem_ssim
+        )
+        .unwrap();
         writeln!(
             output,
             "minimum_roughness_adjacent_delta={:.8}",
@@ -89,6 +117,8 @@ pub(super) fn assert_plan06_quantitative_gates(
     frequency_hdr: &[[f32; 4]],
     frequency_diffuse_hdr: &[[f32; 4]],
     frequency_environment: &SourceCubemapEnvironment,
+    grazing_mean_relative_delta: f32,
+    grazing_max_per_radius_relative_delta: f32,
 ) -> PbrMatrixQuantitativeReport {
     assert_eq!(
         (frame.width, frame.height),
@@ -124,30 +154,9 @@ pub(super) fn assert_plan06_quantitative_gates(
         "smooth metallic matrix sphere must match direct source-cubemap reflection, ssim={mirror_ssim}, threshold={MIRROR_MIN_SSIM}"
     );
 
-    let mut roughness_laplacian_variance = [[0.0_f32; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION];
-    let mut minimum_roughness_adjacent_delta = f32::MAX;
-    for column in 0..PBR_MATRIX_DIMENSION {
-        for row in 0..PBR_MATRIX_DIMENSION {
-            roughness_laplacian_variance[column][row] =
-                laplacian_variance(&frequency_cells[row][column]);
-        }
-    }
-    eprintln!("plan06 controlled_specular_laplacian_variance={roughness_laplacian_variance:?}");
-    for column in 0..PBR_MATRIX_DIMENSION {
-        for row in 1..PBR_MATRIX_DIMENSION {
-            let rougher = roughness_laplacian_variance[column][row - 1];
-            let smoother = roughness_laplacian_variance[column][row];
-            let delta = smoother - rougher;
-            minimum_roughness_adjacent_delta = minimum_roughness_adjacent_delta.min(delta);
-            let required_delta = ROUGHNESS_NOISE_FLOOR.max(rougher.abs() * 0.005);
-            assert!(
-                delta > required_delta,
-                "reflection Laplacian variance must strictly increase with smoothness above noise, metallic_column={column}, rough_row={}, smooth_row={row}, rough={rougher}, smooth={smoother}, delta={delta}, required={required_delta}, column_values={:?}",
-                row - 1,
-                roughness_laplacian_variance[column]
-            );
-        }
-    }
+    let minimum_lakes_pmrem_ssim = assert_real_hdri_pmrem_lod_response(&cells);
+    let (roughness_laplacian_variance, minimum_roughness_adjacent_delta) =
+        assert_roughness_monotonicity("controlled", &frequency_cells);
 
     let rough_dielectric = &cells[0][0];
     let dielectric_delta_e = average_dielectric_body_delta_e(rough_dielectric);
@@ -186,7 +195,10 @@ pub(super) fn assert_plan06_quantitative_gates(
     );
 
     PbrMatrixQuantitativeReport {
+        grazing_mean_relative_delta,
+        grazing_max_per_radius_relative_delta,
         mirror_ssim,
+        minimum_lakes_pmrem_ssim,
         roughness_laplacian_variance,
         minimum_roughness_adjacent_delta,
         dielectric_delta_e,
@@ -196,6 +208,65 @@ pub(super) fn assert_plan06_quantitative_gates(
         rough_metal_lower_bound,
         rough_metal_upper_bound,
     }
+}
+
+fn assert_real_hdri_pmrem_lod_response(
+    cells: &[[MatrixCellSamples; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION],
+) -> f32 {
+    let mut minimum_ssim = f32::MAX;
+    for (row, row_cells) in cells.iter().enumerate() {
+        for (column, samples) in row_cells.iter().enumerate() {
+            let selected = samples.iter().filter(|sample| sample.no_v >= 0.55);
+            let (rendered, expected): (Vec<_>, Vec<_>) = selected
+                .map(|sample| {
+                    (
+                        luma(sample.reflection_estimate),
+                        luma(sample.pmrem_reflection),
+                    )
+                })
+                .unzip();
+            let rendered = normalize_percentile(&rendered, 0.02, 0.98);
+            let expected = normalize_percentile(&expected, 0.02, 0.98);
+            let ssim = global_ssim(&rendered, &expected);
+            minimum_ssim = minimum_ssim.min(ssim);
+            assert!(
+                ssim >= REAL_HDRI_PMREM_MIN_SSIM,
+                "real Lakes reflection must match the PMREM mip selected from material roughness, row={row}, column={column}, ssim={ssim}, threshold={REAL_HDRI_PMREM_MIN_SSIM}"
+            );
+        }
+    }
+    eprintln!("plan06 minimum_lakes_pmrem_ssim={minimum_ssim:.6}");
+    minimum_ssim
+}
+
+fn assert_roughness_monotonicity(
+    label: &str,
+    cells: &[[MatrixCellSamples; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION],
+) -> ([[f32; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION], f32) {
+    let mut variances = [[0.0_f32; PBR_MATRIX_DIMENSION]; PBR_MATRIX_DIMENSION];
+    let mut minimum_delta = f32::MAX;
+    for column in 0..PBR_MATRIX_DIMENSION {
+        for row in 0..PBR_MATRIX_DIMENSION {
+            variances[column][row] = laplacian_variance(&cells[row][column]);
+        }
+    }
+    eprintln!("plan06 {label}_specular_laplacian_variance={variances:?}");
+    for column in 0..PBR_MATRIX_DIMENSION {
+        for row in 1..PBR_MATRIX_DIMENSION {
+            let rougher = variances[column][row - 1];
+            let smoother = variances[column][row];
+            let delta = smoother - rougher;
+            minimum_delta = minimum_delta.min(delta);
+            let required_delta = ROUGHNESS_NOISE_FLOOR.max(rougher.abs() * 0.005);
+            assert!(
+                delta > required_delta,
+                "{label} reflection Laplacian variance must strictly increase with smoothness above noise, metallic_column={column}, rough_row={}, smooth_row={row}, rough={rougher}, smooth={smoother}, delta={delta}, required={required_delta}, column_values={:?}",
+                row - 1,
+                variances[column]
+            );
+        }
+    }
+    (variances, minimum_delta)
 }
 
 fn blurred_log_laplacian_variance(samples: &[MatrixSample], radius: u32) -> f32 {
@@ -240,6 +311,7 @@ struct MatrixSample {
     expected_diffuse: [f32; 3],
     reflection_estimate: [f32; 3],
     source_reflection: [f32; 3],
+    pmrem_reflection: [f32; 3],
 }
 
 type MatrixCellSamples = Vec<MatrixSample>;
@@ -319,6 +391,14 @@ fn build_cell_sample_set(
                 sample_cubemap_lod(environment, rotated_reflection, 0.0, true),
                 environment.intensity,
             );
+            let pmrem_lod = source_cubemap_pmrem_mip_from_roughness(
+                roughness,
+                environment.mip_chain.pmrem_mip_count(),
+            );
+            let pmrem_reflection = mul3_scalar(
+                sample_cubemap_lod(environment, rotated_reflection, pmrem_lod, false),
+                environment.intensity,
+            );
             let brdf = sample_brdf_response(brdf_lut, no_v, roughness, f0);
             let rendered_rgba = hdr[y as usize * width as usize + x as usize];
             let rendered = [rendered_rgba[0], rendered_rgba[1], rendered_rgba[2]];
@@ -336,6 +416,7 @@ fn build_cell_sample_set(
                 expected_diffuse,
                 reflection_estimate,
                 source_reflection,
+                pmrem_reflection,
             });
         }
     }
@@ -577,176 +658,4 @@ fn pixel_to_world(width: u32, height: u32, x: u32, y: u32) -> [f32; 2] {
         (((x as f32 + 0.5) / width as f32) * 2.0 - 1.0) * half_width,
         (1.0 - ((y as f32 + 0.5) / height as f32) * 2.0) * PBR_MATRIX_ORTHO_SIZE,
     ]
-}
-
-fn normalize_percentile(values: &[f32], low: f32, high: f32) -> Vec<f32> {
-    let mut sorted = values.to_vec();
-    sorted.sort_by(f32::total_cmp);
-    let low = sorted[((sorted.len() - 1) as f32 * low).round() as usize];
-    let high = sorted[((sorted.len() - 1) as f32 * high).round() as usize].max(low + 1.0e-6);
-    values
-        .iter()
-        .map(|value| ((*value - low) / (high - low)).clamp(0.0, 1.0))
-        .collect()
-}
-
-fn global_ssim(first: &[f32], second: &[f32]) -> f32 {
-    assert_eq!(first.len(), second.len());
-    let count = first.len() as f32;
-    let first_mean = first.iter().sum::<f32>() / count;
-    let second_mean = second.iter().sum::<f32>() / count;
-    let mut first_variance = 0.0;
-    let mut second_variance = 0.0;
-    let mut covariance = 0.0;
-    for (&first, &second) in first.iter().zip(second) {
-        first_variance += (first - first_mean).powi(2);
-        second_variance += (second - second_mean).powi(2);
-        covariance += (first - first_mean) * (second - second_mean);
-    }
-    first_variance /= count;
-    second_variance /= count;
-    covariance /= count;
-    let c1 = 0.01_f32.powi(2);
-    let c2 = 0.03_f32.powi(2);
-    ((2.0 * first_mean * second_mean + c1) * (2.0 * covariance + c2))
-        / ((first_mean.powi(2) + second_mean.powi(2) + c1)
-            * (first_variance + second_variance + c2))
-}
-
-fn linear_rgb_to_lab(rgb: [f32; 3]) -> [f32; 3] {
-    let mapped = rgb.map(|value| value.max(0.0) / (1.0 + value.max(0.0)));
-    let xyz = [
-        mapped[0] * 0.412_456_4 + mapped[1] * 0.357_576_1 + mapped[2] * 0.180_437_5,
-        mapped[0] * 0.212_672_9 + mapped[1] * 0.715_152_2 + mapped[2] * 0.072_175,
-        mapped[0] * 0.019_333_9 + mapped[1] * 0.119_192 + mapped[2] * 0.950_304_1,
-    ];
-    let f = |value: f32| {
-        if value > 0.008_856 {
-            value.cbrt()
-        } else {
-            7.787 * value + 16.0 / 116.0
-        }
-    };
-    let fx = f(xyz[0] / 0.950_47);
-    let fy = f(xyz[1]);
-    let fz = f(xyz[2] / 1.088_83);
-    [116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz)]
-}
-
-fn delta_e_76(first: [f32; 3], second: [f32; 3]) -> f32 {
-    ((first[0] - second[0]).powi(2)
-        + (first[1] - second[1]).powi(2)
-        + (first[2] - second[2]).powi(2))
-    .sqrt()
-}
-
-fn variance(values: &[f32]) -> f32 {
-    let mean = mean(values);
-    values
-        .iter()
-        .map(|value| (value - mean).powi(2))
-        .sum::<f32>()
-        / values.len().max(1) as f32
-}
-
-fn mean(values: &[f32]) -> f32 {
-    values.iter().sum::<f32>() / values.len().max(1) as f32
-}
-
-fn rotate_y(value: [f32; 3], radians: f32) -> [f32; 3] {
-    let (sin, cos) = radians.sin_cos();
-    [
-        value[0] * cos - value[2] * sin,
-        value[1],
-        value[0] * sin + value[2] * cos,
-    ]
-}
-
-fn normalize3(value: [f32; 3]) -> [f32; 3] {
-    let inverse_length = 1.0
-        / (value[0] * value[0] + value[1] * value[1] + value[2] * value[2])
-            .sqrt()
-            .max(f32::EPSILON);
-    mul3_scalar(value, inverse_length)
-}
-
-fn mix3(first: [f32; 3], second: [f32; 3], amount: f32) -> [f32; 3] {
-    lerp3(first, second, amount.clamp(0.0, 1.0))
-}
-
-fn lerp2(first: [f32; 2], second: [f32; 2], amount: f32) -> [f32; 2] {
-    [
-        first[0] + (second[0] - first[0]) * amount,
-        first[1] + (second[1] - first[1]) * amount,
-    ]
-}
-
-fn lerp3(first: [f32; 3], second: [f32; 3], amount: f32) -> [f32; 3] {
-    [
-        first[0] + (second[0] - first[0]) * amount,
-        first[1] + (second[1] - first[1]) * amount,
-        first[2] + (second[2] - first[2]) * amount,
-    ]
-}
-
-fn lerp4(first: [f32; 4], second: [f32; 4], amount: f32) -> [f32; 4] {
-    [
-        first[0] + (second[0] - first[0]) * amount,
-        first[1] + (second[1] - first[1]) * amount,
-        first[2] + (second[2] - first[2]) * amount,
-        first[3] + (second[3] - first[3]) * amount,
-    ]
-}
-
-fn mul3_scalar(value: [f32; 3], scalar: f32) -> [f32; 3] {
-    [value[0] * scalar, value[1] * scalar, value[2] * scalar]
-}
-
-fn mul3_components(first: [f32; 3], second: [f32; 3]) -> [f32; 3] {
-    [
-        first[0] * second[0],
-        first[1] * second[1],
-        first[2] * second[2],
-    ]
-}
-
-fn div3_components(first: [f32; 3], second: [f32; 3]) -> [f32; 3] {
-    [
-        first[0] / second[0],
-        first[1] / second[1],
-        first[2] / second[2],
-    ]
-}
-
-fn sub3(first: [f32; 3], second: [f32; 3]) -> [f32; 3] {
-    [
-        first[0] - second[0],
-        first[1] - second[1],
-        first[2] - second[2],
-    ]
-}
-
-fn max3(value: [f32; 3], minimum: f32) -> [f32; 3] {
-    [
-        value[0].max(minimum),
-        value[1].max(minimum),
-        value[2].max(minimum),
-    ]
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn global_ssim_is_one_for_identical_signal() {
-        let signal = [0.0, 0.2, 0.4, 0.8, 1.0];
-        assert!((global_ssim(&signal, &signal) - 1.0).abs() < 1.0e-6);
-    }
-
-    #[test]
-    fn lab_delta_is_zero_for_identical_linear_color() {
-        let color = linear_rgb_to_lab([0.25, 0.5, 0.75]);
-        assert_eq!(delta_e_76(color, color), 0.0);
-    }
 }

@@ -1,11 +1,12 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::pipeline::manager::{
+    project_asset_manager_handle, AssetManager, ProjectAssetManagerAccess,
+};
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
@@ -16,6 +17,9 @@ use zircon_runtime::core::framework::render::{
     ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{UVec2, Vec4};
+use zircon_runtime::core::runtime::modules::{TasksModule, TASKS_MODULE_NAME};
+use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::graphics::{SceneRenderer, ViewportFrame};
 
 #[path = "runtime_shader_pbr_hdri_export/fixture_assets.rs"]
@@ -273,7 +277,27 @@ fn render_project_with_environment<T>(
         .unwrap();
     write_project_assets(&paths);
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime = CoreRuntime::new();
+    asset_runtime
+        .register_module(zircon_runtime::foundation::module_descriptor())
+        .unwrap();
+    asset_runtime
+        .register_module(TasksModule.descriptor())
+        .unwrap();
+    asset_runtime
+        .register_module(zircon_runtime::asset::module_descriptor())
+        .unwrap();
+    asset_runtime
+        .activate_module(zircon_runtime::foundation::FOUNDATION_MODULE_NAME)
+        .unwrap();
+    asset_runtime.activate_module(TASKS_MODULE_NAME).unwrap();
+    asset_runtime
+        .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
+        .unwrap();
+    let core = asset_runtime.handle();
+    let asset_access =
+        ProjectAssetManagerAccess::new(core.clone(), project_asset_manager_handle(&core).unwrap());
+    let asset_manager = asset_access.resolve().unwrap();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -294,9 +318,15 @@ fn render_project_with_environment<T>(
         PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
     snapshot.overlays = RenderOverlayExtract::default();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new(asset_access).unwrap();
     let output = render(&mut renderer, snapshot);
-    let _ = fs::remove_dir_all(root);
+    drop(renderer);
+    drop(world);
+    drop(project);
+    drop(asset_manager);
+    drop(core);
+    drop(asset_runtime);
+    fs::remove_dir_all(&root).expect("remove Shader06 temporary product project");
     output
 }
 
