@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use glyphon::{
     Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, Style,
@@ -10,9 +9,10 @@ use glyphon::{
 use super::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use super::atlas_renderer::{GlyphAtlasBitmapRenderer, GlyphAtlasBitmapRendererStorageSubmission};
 use super::render::ScreenSpaceUiTextBatch;
-use crate::asset::ProjectAssetManager;
+use crate::asset::{ProjectAssetManager, ProjectAssetManagerAccess};
 use crate::core::framework::render::TextShapeRequest;
 use crate::core::math::UVec2;
+use crate::core::CoreError;
 use crate::graphics::text::atlas::render_gpu_plan::GlyphAtlasGpuDrawPlan;
 use crate::graphics::text::atlas::{GlyphAtlasBitmapRetryFrameState, GlyphAtlasStorageFormat};
 #[cfg(test)]
@@ -70,7 +70,8 @@ const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const NATIVE_BITMAP_ATLAS_RASTER_WORKER_COUNT: usize = 1;
 
 pub(super) struct ScreenSpaceUiTextSystem {
-    asset_manager: Arc<ProjectAssetManager>,
+    // Keep only versioned identity across frames; each asset operation resolves a bounded Arc.
+    asset_manager: ProjectAssetManagerAccess,
     font_system: FontSystem,
     font_database: FontDatabase,
     swash_cache: SwashCache,
@@ -103,11 +104,12 @@ struct ScreenSpaceUiNativePrepareReport {
 
 impl ScreenSpaceUiTextSystem {
     pub(super) fn new(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
-    ) -> Self {
+    ) -> Result<Self, CoreError> {
+        let resolved_asset_manager = asset_manager.resolve()?;
         let mut font_system = FontSystem::new();
         let (_, mut font_database) = shared_font_database_snapshot();
         initialize_screen_space_ui_font_system(&mut font_system, &mut font_database);
@@ -116,7 +118,12 @@ impl ScreenSpaceUiTextSystem {
             &mut font_system,
             &mut font_database,
             DEFAULT_FONT_ASSET,
-            &asset_manager,
+            resolved_asset_manager.as_ref(),
+        );
+        font_database.set_project_composite_font(
+            default_font
+                .as_ref()
+                .and_then(|record| record.composite_font.clone()),
         );
         if let Some(record) = default_font.as_ref() {
             if let Some(family) = record.family.as_deref() {
@@ -127,12 +134,12 @@ impl ScreenSpaceUiTextSystem {
                 font_system
                     .db_mut()
                     .set_monospace_family(family.to_string());
-                publish_shared_font_database(&font_database);
             }
             font_assets.insert(DEFAULT_FONT_ASSET.to_string(), record.clone());
         }
+        publish_shared_font_database(&font_database);
 
-        Self {
+        Ok(Self {
             asset_manager,
             font_system,
             font_database,
@@ -143,7 +150,7 @@ impl ScreenSpaceUiTextSystem {
             sdf_atlas: ScreenSpaceUiSdfAtlas::new(),
             sdf_renderer: ScreenSpaceUiSdfRenderer::new(device, target_format),
             last_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
-        }
+        })
     }
 
     pub(super) fn prepare(
@@ -154,12 +161,13 @@ impl ScreenSpaceUiTextSystem {
         auto_texts: &[ScreenSpaceUiTextBatch],
         native_texts: &[ScreenSpaceUiTextBatch],
         sdf_texts: &[ScreenSpaceUiTextBatch],
-    ) {
+    ) -> Result<(), CoreError> {
+        let asset_manager = self.asset_manager.resolve()?;
         let mut resolved_texts = resolve_text_batches(
             &mut self.font_system,
             &mut self.font_database,
             &mut self.font_assets,
-            self.asset_manager.as_ref(),
+            asset_manager.as_ref(),
             auto_texts,
             native_texts,
             sdf_texts,
@@ -169,7 +177,7 @@ impl ScreenSpaceUiTextSystem {
         let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
             self.sdf_atlas.plan(),
             &mut self.font_database,
-            self.asset_manager.as_ref(),
+            asset_manager.as_ref(),
         );
         self.sdf_atlas
             .record_generation_failures(&sdf_generation_failures);
@@ -177,7 +185,7 @@ impl ScreenSpaceUiTextSystem {
             self.sdf_renderer.measure_text_glyph_advances_for_fallbacks(
                 resolved_texts.sdf_texts(),
                 &mut self.font_database,
-                self.asset_manager.as_ref(),
+                asset_manager.as_ref(),
             );
         let sdf_fallback_report = apply_sdf_atlas_fallbacks(
             &mut resolved_texts.native_texts,
@@ -192,7 +200,7 @@ impl ScreenSpaceUiTextSystem {
             let sdf_generation_failures = self.sdf_renderer.generation_failures_for_plan(
                 self.sdf_atlas.plan(),
                 &mut self.font_database,
-                self.asset_manager.as_ref(),
+                asset_manager.as_ref(),
             );
             self.sdf_atlas
                 .record_generation_failures(&sdf_generation_failures);
@@ -207,7 +215,7 @@ impl ScreenSpaceUiTextSystem {
             self.sdf_atlas.plan(),
             sdf_atlas_report.clone(),
             &mut self.font_database,
-            self.asset_manager.as_ref(),
+            asset_manager.as_ref(),
         );
         let sdf_renderer_report = self.sdf_renderer.prepare_report();
         let native_font_id_report = self.native.prepare(
@@ -220,7 +228,7 @@ impl ScreenSpaceUiTextSystem {
             &mut self.font_database,
             &mut self.swash_cache,
             &mut self.font_assets,
-            self.asset_manager.as_ref(),
+            asset_manager.as_ref(),
             font_faces_changed_before_native,
         );
         let bitmap_atlas_renderer_report = self.bitmap_atlas_renderer.prepare_report();
@@ -237,6 +245,7 @@ impl ScreenSpaceUiTextSystem {
             sdf_atlas_report,
             sdf_renderer_report,
         );
+        Ok(())
     }
 
     pub(super) fn render<'pass>(&'pass mut self, pass: &mut wgpu::RenderPass<'pass>) {

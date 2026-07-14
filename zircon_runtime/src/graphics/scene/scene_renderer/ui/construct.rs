@@ -1,21 +1,40 @@
-use std::sync::Arc;
-
+#[cfg(test)]
 use crate::asset::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
+#[cfg(test)]
+use std::sync::Arc;
 
 use super::image::ScreenSpaceUiImageSystem;
 use super::render::ScreenSpaceUiVertex;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 use super::text::{ScreenSpaceUiTextPrepareReport, ScreenSpaceUiTextSystem};
+use crate::graphics::GraphicsError;
 
 const SCREEN_SPACE_UI_SHADER: &str = include_str!("shaders/screen_space_ui.wgsl");
 
 impl ScreenSpaceUiRenderer {
-    pub(crate) fn new(
+    #[cfg(test)]
+    pub(crate) fn new_for_test(
         asset_manager: Arc<ProjectAssetManager>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
     ) -> Self {
+        Self::new(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            device,
+            queue,
+            target_format,
+        )
+        .expect("test screen-space UI renderer should initialize")
+    }
+
+    pub(crate) fn new(
+        asset_manager: ProjectAssetManagerAccess,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        target_format: wgpu::TextureFormat,
+    ) -> Result<Self, GraphicsError> {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-screen-space-ui-layout"),
             bind_group_layouts: &[],
@@ -58,15 +77,16 @@ impl ScreenSpaceUiRenderer {
             multiview_mask: None,
             cache: None,
         });
-        let text_system = ScreenSpaceUiTextSystem::new(asset_manager, device, queue, target_format);
+        let text_system = ScreenSpaceUiTextSystem::new(asset_manager, device, queue, target_format)
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let image_system = ScreenSpaceUiImageSystem::new(device, target_format);
 
-        Self {
+        Ok(Self {
             pipeline,
             image_system,
             text_system,
             last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),
             last_attachment_ops: crate::render_graph::RenderGraphAttachmentOps::load_store(),
-        }
+        })
     }
 }

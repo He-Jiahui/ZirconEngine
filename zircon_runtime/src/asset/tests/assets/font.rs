@@ -64,18 +64,34 @@ fn runtime_default_font_manifest_declares_culture_aware_composite_font() {
     )
     .unwrap();
     let font = FontAsset::from_toml_str(&document).unwrap();
+    assert_eq!(font.source, "ZirconDefaultComposite-subset.ttc");
+    assert_eq!(font.family.as_deref(), Some("Fira Mono"));
+    assert!(font
+        .family_members
+        .iter()
+        .any(|member| { member.family == "Fira Mono" && member.face_index == 0 }));
+    assert!(font.family_members.iter().any(|member| {
+        member.family == "Zircon Noto Sans CJK SC Proof" && member.face_index == 1
+    }));
+
     let composite = font
         .composite_font
         .expect("runtime default font should declare a CompositeFont");
 
     assert_eq!(composite.default_family.as_str(), "Fira Mono");
     assert!(composite.sub_fonts.iter().any(|sub_font| {
-        sub_font.family.as_str() == "Noto Sans CJK SC"
+        sub_font.family.as_str() == "Zircon Noto Sans CJK SC Proof"
             && sub_font
                 .cultures
                 .iter()
                 .any(|culture| culture.matches("zh-Hans-CN"))
     }));
+    let source_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("assets/fonts/")
+        .join(&font.source);
+    let bytes = fs::read(source_path).expect("checked-in default CompositeFont source");
+    assert!(ttf_parser::Face::parse(&bytes, 0).is_ok());
+    assert!(ttf_parser::Face::parse(&bytes, 1).is_ok());
     assert!(composite.sub_fonts.iter().any(|sub_font| {
         sub_font.family.as_str() == "Noto Sans CJK JP"
             && sub_font

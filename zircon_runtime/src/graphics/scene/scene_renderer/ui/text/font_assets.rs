@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextR
 
 use super::super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::CompositeFontDescriptor;
 use crate::graphics::text::font::publish_shared_font_database;
 use crate::graphics::text::font::FontDatabase;
 
@@ -12,6 +13,7 @@ use crate::graphics::text::font::FontDatabase;
 pub(super) struct LoadedUiFontAsset {
     pub(super) family: Option<String>,
     pub(super) render_mode: Option<UiTextRenderMode>,
+    pub(super) composite_font: Option<CompositeFontDescriptor>,
 }
 
 pub(super) struct EnsuredUiFontAsset<'a> {
@@ -39,10 +41,14 @@ pub(super) fn load_font_asset_record(
     let manifest = load_ui_font_manifest_with_asset_manager(asset_ref, Some(asset_manager))?;
     let face = register_loaded_font_manifest(font_database, &manifest)?;
     let _ = font_database.load_face_into_font_system(face, font_system);
-    publish_shared_font_database(font_database);
+    let composite_font = manifest
+        .asset
+        .as_ref()
+        .and_then(|asset| asset.composite_font.clone());
     Some(LoadedUiFontAsset {
         family: manifest.family,
         render_mode: manifest.render_mode,
+        composite_font,
     })
 }
 
@@ -80,6 +86,7 @@ pub(super) fn ensure_font_asset_record<'a>(
             load_font_asset_record(font_system, font_database, asset_ref, asset_manager)
         {
             font_assets.insert(asset_ref.to_string(), record);
+            publish_shared_font_database(font_database);
             loaded = true;
         }
     }

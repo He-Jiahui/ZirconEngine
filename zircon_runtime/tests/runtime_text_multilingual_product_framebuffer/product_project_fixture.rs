@@ -12,6 +12,7 @@ pub(super) const VARIABLE_FONT_NARROW_FAMILY: &str = "Zircon Bahnschrift Narrow"
 pub(super) const VARIABLE_FONT_WIDE_FAMILY: &str = "Zircon Bahnschrift Wide";
 
 pub(super) fn product_fixture_asset_manager() -> (Arc<ProjectAssetManager>, PathBuf) {
+    assert_checked_in_default_composite_package();
     let root = std::env::temp_dir().join(format!(
         "zircon-runtime-text-product-{}-{}",
         std::process::id(),
@@ -58,6 +59,27 @@ pub(super) fn product_fixture_asset_manager() -> (Arc<ProjectAssetManager>, Path
         assert_eq!(asset.family_members.len(), 2);
     }
     (manager, root)
+}
+
+fn assert_checked_in_default_composite_package() {
+    let font_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts");
+    let manifest = std::fs::read_to_string(font_dir.join("default.font.toml"))
+        .expect("checked-in default CompositeFont manifest");
+    let asset = FontAsset::from_toml_str(&manifest).expect("parse default CompositeFont manifest");
+    let composite = asset
+        .composite_font
+        .as_ref()
+        .expect("default font must activate a CompositeFont");
+    assert_eq!(
+        composite.sub_fonts.first().map(|font| font.family.as_str()),
+        Some("Zircon Noto Sans CJK SC Proof")
+    );
+    let bytes = std::fs::read(font_dir.join(&asset.source))
+        .expect("checked-in default CompositeFont source");
+    let face = ttf_parser::Face::parse(&bytes, 1).expect("checked-in CJK face 1");
+    assert!("中文排版引擎文本与布局竖排标点验证"
+        .chars()
+        .all(|character| face.glyph_index(character).is_some()));
 }
 
 fn write_checker_texture(asset_root: &std::path::Path) {

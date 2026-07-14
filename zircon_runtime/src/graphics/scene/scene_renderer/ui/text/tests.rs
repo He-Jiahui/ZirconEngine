@@ -363,6 +363,7 @@ fn auto_text_mode_uses_font_asset_default_when_present() {
         Some(&LoadedUiFontAsset {
             family: Some("Studio Mono".to_string()),
             render_mode: Some(UiTextRenderMode::Sdf),
+            composite_font: None,
         }),
     );
 
@@ -376,6 +377,7 @@ fn explicit_text_mode_overrides_font_asset_default() {
         Some(&LoadedUiFontAsset {
             family: Some("Studio Mono".to_string()),
             render_mode: Some(UiTextRenderMode::Sdf),
+            composite_font: None,
         }),
     );
 

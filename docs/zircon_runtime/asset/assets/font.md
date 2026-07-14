@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/assets/fonts/default.font.toml
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/font_source.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
@@ -15,12 +17,17 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
   - zircon_runtime/src/core/framework/render/text/font/composite.rs
   - zircon_runtime/src/graphics/text/font/asset_registration.rs
   - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - tools/tests/test_text_01_composite_activation.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 implementation_files:
   - zircon_runtime/assets/fonts/default.font.toml
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/font_source.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -31,12 +38,15 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
   - zircon_runtime/src/graphics/text/font/database.rs
   - zircon_runtime/src/graphics/text/font/database/tests.rs
+  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
   - zircon_runtime/src/core/framework/render/text/font/composite.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/text/font/asset_registration.rs
   - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
 plan_sources:
   - user: 2026-07-10 complete the runtime text/font/layout architecture and rendered evidence
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
@@ -58,6 +68,9 @@ tests:
   - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_ttc_nonzero_face_materializes_for_real_sdf_raster
   - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_variations_hash_normalizes_coordinate_order
   - zircon_runtime/src/graphics/text/font/database/tests.rs::text_composite_font_resolves_default_and_subfont_ranges
+  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_database_composite_activation_is_explicit_and_replaceable
+  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
+  - tools/tests/test_text_01_composite_activation.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_font_asset_uses_typed_error_source
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
   - "2026-06-28 FR-M2: scoped rustfmt --check and cargo metadata --locked passed; runtime cargo check/focused text_font timed out during compile without Rust diagnostics"
@@ -87,11 +100,11 @@ doc_type: module-detail
 
 ## FR-M3 CompositeFont Contract
 
-`FontAsset.composite_font` serializes the neutral core descriptor directly: one default family and ordered sub-font entries with script, inclusive Unicode ranges, and optional normalized BCP-47 culture tags. Culture matching accepts exact tags and configured-parent matches such as `zh-Hans` selecting `zh-Hans-CN`, allowing Han faces to distinguish simplified Chinese, traditional Chinese, Japanese, and Korean without placing locale policy in UI code. Registering a CompositeFont asset installs its ordered families in `FontDatabase`, makes the descriptor the active project composite for fallback calls that do not pass an explicit override, and extends the UI registry fallback chain from the same asset data.
+`FontAsset.composite_font` serializes the neutral core descriptor directly: one default family and ordered sub-font entries with script, inclusive Unicode ranges, and optional normalized BCP-47 culture tags. Culture matching accepts exact tags and configured-parent matches such as `zh-Hans` selecting `zh-Hans-CN`, allowing Han faces to distinguish simplified Chinese, traditional Chinese, Japanese, and Korean without placing locale policy in UI code. Asset registration is deliberately side-effect free with respect to project selection: it registers declared faces and the ordinary `fallback_families` chain, but it neither installs the asset's CompositeFont nor injects CompositeFont families into global fallback. `ScreenSpaceUiTextSystem` explicitly activates the loaded default record once during construction. Loading a secondary font asset cannot replace that project policy, and a missing default record explicitly clears stale project CompositeFont state.
 
-`assets/fonts/default.font.toml` is the runtime default package declaration. It keeps Fira Mono as the bundled default face, declares ordered Noto CJK SC/TC/JP/KR culture routes, and names system fallback families. Actual system discovery is explicit: `SystemFontPolicy` defaults to `Disabled`, while the screen-space UI renderer opts into `Discover`; headless/default databases therefore do not enumerate host fonts accidentally.
+`assets/fonts/default.font.toml` is the runtime default package declaration. Its checked-in `ZirconDefaultComposite-subset.ttc` contains Fira Mono at face 0 and the deterministic `Zircon Noto Sans CJK SC Proof` subset at face 1. The first `zh-Hans` route selects face 1 before the optional host Noto/YaHei families, so project Chinese text has a repository-owned glyph source on every machine. `OFL-NotoSansSC.md` carries the corresponding SIL Open Font License. Actual system discovery remains explicit: `SystemFontPolicy` defaults to `Disabled`, while the screen-space UI renderer opts into `Discover`; headless/default databases therefore do not enumerate host fonts accidentally.
 
-WOFF2 decode, deterministic variable-axis metadata, TTC enumeration, selected non-zero TTC face extraction, and real SDF raster construction now have focused regression coverage. These tests prove the data and raster boundaries; window-level product rendering remains a later text-plan acceptance gate and is not inferred from these unit cases.
+WOFF2 decode, deterministic variable-axis metadata, TTC enumeration, selected non-zero TTC face extraction, and real SDF raster construction have focused regression coverage. FR-M3 additionally parses the checked-in TTC, requires face 1 to cover the product Chinese string, and proves the active `zh-Hans` candidate resolves to that face. The ignored multilingual product exporter is the window-level acceptance gate; unit metadata alone is not treated as rendered evidence.
 
 ## Parse Error Contract
 
@@ -105,6 +118,8 @@ The built-in importer no longer flattens font failures into `AssetImportError::P
 
 `asset/tests/assets/font.rs::font_asset_parse_reports_typed_toml_error_source` covers invalid TOML input and requires `FontAssetError::Parse` to expose an error source.
 
-The FR-M2 importer tests copy the runtime Fira font fixture next to a temporary `.font.toml`, import it through `AssetImporter` and `ProjectManager`, assert that parsed metadata is attached, cmap coverage contains `A`, and family members are populated. Folder-backed parser tests build deterministic TTC and synthetic `fvar` fixtures, and encode a transformed-glyf WOFF2 source to verify decode, metadata, variable coordinates, line/decorative metrics, malformed-input source preservation, and panic containment at the decoder boundary. The graphics database tests verify WOFF2 bytes are decoded once and shared by native/SDF consumers, variation coordinate order is canonical, and a selected TTC face 1 becomes a standalone font that produces non-empty SDF pixels. FR-M3 tests parse the checked-in default composite manifest, select culture-specific Han candidates, keep Latin on the default family, and prove disabled system discovery is the database default. Window-level screenshots are deliberately handled by the later Text rendering milestone rather than by unit-test mock images.
+The FR-M2 importer tests copy the runtime Fira font fixture next to a temporary `.font.toml`, import it through `AssetImporter` and `ProjectManager`, assert that parsed metadata is attached, cmap coverage contains `A`, and family members are populated. Folder-backed parser tests build deterministic TTC and synthetic `fvar` fixtures, and encode a transformed-glyf WOFF2 source to verify decode, metadata, variable coordinates, line/decorative metrics, malformed-input source preservation, and panic containment at the decoder boundary. The graphics database tests verify WOFF2 bytes are decoded once and shared by native/SDF consumers, variation coordinate order is canonical, and a selected TTC face 1 becomes a standalone font that produces non-empty SDF pixels. FR-M3 tests lock explicit CompositeFont activation/replacement/clear behavior, parse the checked-in default package, prove the product Chinese string has real face-1 glyphs, select culture-specific Han candidates, keep Latin on the default family, and prove disabled system discovery is the database default. `test_text_01_composite_activation.py` guards registration/activation ownership and the folder-backed candidate resolver. Window-level evidence comes only from the real WGPU product exporter and its framebuffer PNG under `docs/tests/runtime/text`.
+
+FR-M3 acceptance used managed GPU job `f320e76017714cfe97b9b52f92f69b52` (exact ignored exporter 1/1). The real 1080×1840 framebuffer is `docs/tests/runtime/text/runtime_text_composite_font_cjk_product_framebuffer_20260714.png`, SHA256 `754A7C1CC64D98B50D6FB798F702353C4BABB7EAAA5B722657529B4641BB9C40`; approved target roots contain no duplicate. Independent review returned Critical 0 / Important 0 / Accept.
 
 `review_f5_font_asset_uses_typed_error_source` locks the font source, facade exports, importer boundary, this document, and Runtime 15/status docs anchors. It also rejects reintroducing `Parse(String)`, the old explicit `Result<Self, FontAssetError>` signature, or lossy `error.to_string()` inside `asset/assets/font.rs`.

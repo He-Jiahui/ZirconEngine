@@ -71,6 +71,38 @@ pub(crate) enum SystemFontPolicy {
     Discover,
 }
 
+pub(crate) struct FontShapingFaceResolver<'a> {
+    database: &'a FontDatabase,
+    primary: FontFaceId,
+    fallback: super::fallback::FallbackResolver<'a>,
+}
+
+impl FontShapingFaceResolver<'_> {
+    pub(crate) const fn primary_face(&self) -> FontFaceId {
+        self.primary
+    }
+
+    pub(crate) fn primary_covers_all(&self, codepoints: &[char]) -> bool {
+        self.database.face_covers_all(self.primary, codepoints)
+    }
+
+    pub(crate) fn resolve(
+        &mut self,
+        script: crate::core::framework::render::FontScript,
+        codepoints: &[char],
+    ) -> FontFaceId {
+        self.fallback.resolve(self.primary, script, codepoints).face
+    }
+}
+
+impl Drop for FontShapingFaceResolver<'_> {
+    fn drop(&mut self) {
+        self.database
+            .missing_glyph_log()
+            .append(self.fallback.take_diagnostics());
+    }
+}
+
 #[derive(Clone, Debug)]
 struct StoredFontFace {
     descriptor: FontFaceDescriptor,
@@ -120,7 +152,7 @@ pub(crate) struct FontDatabase {
     source_face_index: HashMap<FontSourceKey, FontFaceId>,
     asset_source_index: HashMap<FontAssetSourceKey, FontFaceId>,
     fallback_families: Vec<FontFamilyName>,
-    active_composite_font: Option<CompositeFontDescriptor>,
+    project_composite_font: Option<CompositeFontDescriptor>,
     backend_database: fontdb::Database,
     backend_faces: BackendFaceMap,
     instances: FontInstanceRegistry,
@@ -136,7 +168,7 @@ impl Default for FontDatabase {
             source_face_index: HashMap::new(),
             asset_source_index: HashMap::new(),
             fallback_families: Vec::new(),
-            active_composite_font: None,
+            project_composite_font: None,
             backend_database: fontdb::Database::new(),
             backend_faces: BackendFaceMap::default(),
             instances: FontInstanceRegistry::default(),
@@ -199,20 +231,15 @@ impl FontDatabase {
                 faces.push(face);
             }
         }
-        let mut fallback_families: Vec<&str> =
-            asset.fallback_families.iter().map(String::as_str).collect();
-        if let Some(composite) = &asset.composite_font {
-            fallback_families.push(composite.default_family.as_str());
-            fallback_families.extend(
-                composite
-                    .sub_fonts
-                    .iter()
-                    .map(|sub_font| sub_font.family.as_str()),
-            );
-            self.active_composite_font = Some(composite.clone());
-        }
-        self.extend_fallback_families(fallback_families);
+        self.extend_fallback_families(asset.fallback_families.iter().map(String::as_str));
         Ok(faces)
+    }
+
+    pub(crate) fn set_project_composite_font(
+        &mut self,
+        composite: Option<CompositeFontDescriptor>,
+    ) {
+        self.project_composite_font = composite;
     }
 
     pub(crate) fn apply_system_font_policy(&mut self, policy: SystemFontPolicy) -> usize {
@@ -412,15 +439,14 @@ impl FontDatabase {
         self.match_face_in_family_order(&families, query)
     }
 
-    #[cfg(test)]
-    pub(crate) fn fallback_candidates(
+    pub(crate) fn fallback_candidates_for_codepoint(
         &self,
         codepoint: char,
         query: &FontQuery,
         composite: Option<&CompositeFontDescriptor>,
         language: Option<&str>,
     ) -> Vec<FontFaceId> {
-        let composite = composite.or(self.active_composite_font.as_ref());
+        let composite = composite.or(self.project_composite_font.as_ref());
         super::fallback::FallbackResolver::new(self, query, composite, language)
             .candidates_for_codepoint(codepoint)
     }
@@ -433,7 +459,7 @@ impl FontDatabase {
         composite: Option<&CompositeFontDescriptor>,
         language: Option<&str>,
     ) -> FontFaceId {
-        let composite = composite.or(self.active_composite_font.as_ref());
+        let composite = composite.or(self.project_composite_font.as_ref());
         let mut resolver = super::fallback::FallbackResolver::new(self, query, composite, language);
         let resolution = resolver.resolve_codepoint(primary, codepoint);
         self.missing_glyph_log().append(resolver.take_diagnostics());
@@ -447,16 +473,26 @@ impl FontDatabase {
         query: &FontQuery,
         language: Option<&str>,
     ) -> Option<FontFaceId> {
+        let mut resolver = self.begin_shaping_face_resolution(query, language)?;
+        Some(resolver.resolve(script, codepoints))
+    }
+
+    pub(crate) fn begin_shaping_face_resolution<'a>(
+        &'a self,
+        query: &'a FontQuery,
+        language: Option<&'a str>,
+    ) -> Option<FontShapingFaceResolver<'a>> {
         let primary = self.match_face(query)?.face;
-        let mut resolver = super::fallback::FallbackResolver::new(
-            self,
-            query,
-            self.active_composite_font.as_ref(),
-            language,
-        );
-        let resolution = resolver.resolve(primary, script, codepoints);
-        self.missing_glyph_log().append(resolver.take_diagnostics());
-        Some(resolution.face)
+        Some(FontShapingFaceResolver {
+            database: self,
+            primary,
+            fallback: super::fallback::FallbackResolver::new(
+                self,
+                query,
+                self.project_composite_font.as_ref(),
+                language,
+            ),
+        })
     }
 
     pub(crate) fn face_family_name(&self, face: FontFaceId) -> Option<FontFamilyName> {

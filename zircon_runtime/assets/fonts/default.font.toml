@@ -1,4 +1,4 @@
-source = "FiraMono-subset.ttf"
+source = "ZirconDefaultComposite-subset.ttc"
 family = "Fira Mono"
 render_mode = "native"
 fallback_families = [
@@ -15,12 +15,31 @@ fallback_families = [
     "Noto Color Emoji",
     "Segoe UI Emoji",
     "Noto Sans Symbols",
-    "Microsoft YaHei UI",
     "Segoe UI",
 ]
 
+[[family_members]]
+family = "Fira Mono"
+face_index = 0
+weight = 400
+width_class = 5
+style = "normal"
+
+[[family_members]]
+family = "Zircon Noto Sans CJK SC Proof"
+face_index = 1
+weight = 400
+width_class = 5
+style = "normal"
+
 [composite_font]
 default_family = "Fira Mono"
+
+[[composite_font.sub_fonts]]
+family = "Zircon Noto Sans CJK SC Proof"
+scripts = ["han"]
+ranges = [[13312, 19903], [19968, 40959]]
+cultures = ["zh-Hans"]
 
 [[composite_font.sub_fonts]]
 family = "Noto Sans CJK SC"

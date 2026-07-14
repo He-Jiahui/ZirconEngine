@@ -13,7 +13,7 @@ use crate::core::framework::render::SkyboxMode;
 use crate::graphics::scene::resources::{ui_image_resource_id, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::text::sdf::SdfMode;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
 use super::image::ScreenSpaceUiImageBatch;
@@ -95,23 +95,25 @@ impl ScreenSpaceUiRenderer {
         frame: &ViewportRenderFrame,
         attachment_ops: RenderGraphAttachmentOps,
         streamer: Option<&ResourceStreamer>,
-    ) {
+    ) -> Result<(), GraphicsError> {
         let pass_clear_color = wgpu::Color::TRANSPARENT;
         let Some(prepared) =
             prepare_screen_space_ui(device, frame, attachment_ops, pass_clear_color)
         else {
             self.last_text_prepare_report = Default::default();
-            return;
+            return Ok(());
         };
         self.last_attachment_ops = attachment_ops;
-        self.text_system.prepare(
-            device,
-            queue,
-            frame.viewport_size,
-            &prepared.auto_texts,
-            &prepared.native_texts,
-            &prepared.sdf_texts,
-        );
+        self.text_system
+            .prepare(
+                device,
+                queue,
+                frame.viewport_size,
+                &prepared.auto_texts,
+                &prepared.native_texts,
+                &prepared.sdf_texts,
+            )
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         self.last_text_prepare_report = self.text_system.prepare_report();
         let prepared_images =
             self.image_system
@@ -168,6 +170,7 @@ impl ScreenSpaceUiRenderer {
                 pass.draw(draw.vertices.clone(), 0..1);
             }
         }
+        Ok(())
     }
 
     pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {

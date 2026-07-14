@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::*;
-use crate::core::framework::render::{FontFaceDescriptor, SubFontRange};
+use crate::core::framework::render::{FontFaceDescriptor, FontFamilyName, SubFontRange};
 
 #[test]
 fn text_fallback_primary_face_covers_all_codepoints() {

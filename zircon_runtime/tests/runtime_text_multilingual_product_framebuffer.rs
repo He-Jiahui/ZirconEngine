@@ -751,5 +751,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_variable_font_instances_product_framebuffer_20260714.png")
+        .join("runtime_text_composite_font_cjk_product_framebuffer_20260714.png")
 }

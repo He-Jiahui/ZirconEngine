@@ -72,6 +72,7 @@ related_code:
   - zircon_runtime/src/graphics/text/font/mod.rs
   - zircon_runtime/src/graphics/text/font/default_families.rs
   - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
   - zircon_runtime/src/graphics/text/font/vertical_metrics.rs
   - zircon_runtime/src/graphics/text/font/database/tests.rs
   - zircon_runtime/src/graphics/text/font/descriptors.rs
@@ -83,6 +84,11 @@ related_code:
   - zircon_runtime/src/graphics/text/font/fallback/tests.rs
   - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/text/font/shared.rs
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - tools/tests/test_text_01_composite_activation.py
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/font_source.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
@@ -369,6 +375,7 @@ implementation_files:
   - zircon_runtime/src/graphics/text/font/mod.rs
   - zircon_runtime/src/graphics/text/font/default_families.rs
   - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
   - zircon_runtime/src/graphics/text/font/vertical_metrics.rs
   - zircon_runtime/src/graphics/text/font/database/tests.rs
   - zircon_runtime/src/graphics/text/font/descriptors.rs
@@ -380,6 +387,10 @@ implementation_files:
   - zircon_runtime/src/graphics/text/font/fallback/tests.rs
   - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/text/font/shared.rs
+  - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
+  - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
@@ -588,6 +599,9 @@ plan_sources:
   - docs/superpowers/specs/2026-07-12-runtime-rich-table-cell-box-design.md
   - docs/superpowers/plans/2026-07-12-runtime-rich-table-cell-box.md
 tests:
+- zircon_runtime/src/graphics/text/font/database/tests.rs (`text_font_database_composite_activation_is_explicit_and_replaceable`; `text_font_runtime_default_composite_selects_checked_in_zh_hans_face`)
+- tools/tests/test_text_01_composite_activation.py (registration is activation-free; constructor activates once; candidate resolver is folder-backed)
+- zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_project_fixture.rs (checked-in manifest, TTC face 1, and Chinese glyph-coverage product preconditions)
 - zircon_runtime/src/graphics/text/rich/tests/table.rs (RT-M4 + RT-M5 + RT-M6 parser table/span/cell-box behavior)
 - zircon_runtime/src/ui/text/layout_engine/tests/rich_table/mod.rs (RT-M4 + RT-M5 + RT-M6 grid/track/padding/box behavior)
 - zircon_runtime_interface/src/tests/render_contracts/rich_table.rs (RT-M6 resolved cell-box paint projection)
@@ -2153,3 +2167,11 @@ TDD first reproduced both failures. On the current-source Windows binary, Horizo
 ## 2026-07-12 Rich Layout Owner Split
 
 `graphics/text/layout/rich.rs` remains the production rich-layout owner. Its inline regression suite has moved intact to `graphics/text/layout/rich/tests.rs`, keeping layout behavior unchanged while restoring the production-file budget. The parent exposes no compatibility test module or moved helper; it only declares the folder-backed test child under `cfg(test)`.
+
+## 2026-07-14 Text01 FR-M3 CompositeFont Activation
+
+`FontDatabase::register_font_asset` now has one responsibility: register the asset's declared faces and ordinary fallback-family list. It cannot mutate project CompositeFont selection or leak culture-specific families into the generic fallback chain. `set_project_composite_font` is the explicit project-policy boundary. `ScreenSpaceUiTextSystem` calls it once after loading `res://fonts/default.font.toml`; secondary font loads only publish newly registered faces, while a missing default record clears stale project policy.
+
+Candidate enumeration is isolated in `graphics/text/font/composite_resolve.rs`. The leaf orders the active CompositeFont's matching script/range/culture entries, then ordinary fallback families, without owning rasterization or UI policy. This keeps `database.rs` below the structure boundary and prevents future locale rules from accumulating in the fallback execution owner.
+
+The default package is self-contained for its product proof. `ZirconDefaultComposite-subset.ttc` stores Fira Mono at face 0 and the checked-in `Zircon Noto Sans CJK SC Proof` subset at face 1; the first `zh-Hans` sub-font route selects face 1. The SIL OFL is stored beside the package. Unit tests parse the real TTC and require glyph coverage for `中文排版引擎文本与布局`; the product fixture repeats those preconditions before entering the WGPU renderer, so a host-only font or strategy record cannot satisfy acceptance. Managed GPU job `f320e76017714cfe97b9b52f92f69b52` passed the exact ignored exporter 1/1. The accepted 1080×1840 framebuffer is `docs/tests/runtime/text/runtime_text_composite_font_cjk_product_framebuffer_20260714.png` (353,953 bytes, 2,442 colors, SHA256 `754A7C1CC64D98B50D6FB798F702353C4BABB7EAAA5B722657529B4641BB9C40`); target-root duplicate count is zero and independent review returned Critical 0 / Important 0 / Accept.

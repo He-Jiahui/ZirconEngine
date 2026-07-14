@@ -2,6 +2,7 @@
 
 mod asset_registration;
 mod backend;
+mod composite_resolve;
 mod coverage;
 mod database;
 mod decoration_metrics;

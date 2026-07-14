@@ -123,7 +123,7 @@ impl SceneRendererCore {
             frame,
             RenderGraphAttachmentOps::load_store(),
             Some(streamer),
-        );
+        )?;
         queue.submit([encoder.finish()]);
         if let Some(submission) = realtime_ibl_submission {
             self.realtime_ibl
