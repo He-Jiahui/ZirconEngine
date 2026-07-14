@@ -18,6 +18,7 @@ use zircon_runtime::graphics::{RealtimeIblGpuTimingReport, SceneRenderer, Viewpo
 
 #[path = "runtime_shader_pbr_hdri_export/scene_fixtures.rs"]
 mod scene_fixtures;
+mod support;
 
 use scene_fixtures::{
     write_pbr_matrix_material, write_pbr_matrix_scene, write_single_pbr_material,
@@ -32,16 +33,17 @@ const PBR_MATRIX_STEP_X: f32 = 0.7;
 const PBR_MATRIX_STEP_Y: f32 = 0.62;
 const PBR_MATRIX_SPHERE_SCALE: f32 = 0.21;
 const REALTIME_UPDATE_SLICE_COUNT: usize = 16;
+const RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV: &str = "ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9";
 const OUTPUT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_reflection_20260712.png";
+    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_reflection_20260714.png";
 const TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_timing_20260712.txt";
+    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_timing_20260714.txt";
 const GPU_TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_gpu_timing_20260712.txt";
+    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_gpu_timing_20260714.txt";
 const MULTI_VIEW_OUTPUT_SIZE: UVec2 = UVec2::new(800, 600);
 const MULTI_VIEW_COLUMNS: u32 = 5;
 const MULTI_VIEW_CONTACT_SHEET_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_contact_sheet_20260712.png";
+    "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_contact_sheet_20260714.png";
 
 #[derive(Clone, Copy)]
 struct RealtimeMultiViewCase {
@@ -54,31 +56,31 @@ fn realtime_multiview_cases() -> [RealtimeMultiViewCase; 5] {
     [
         RealtimeMultiViewCase {
             label: "front",
-            output_name: "runtime_shader_pbr_procedural_realtime_ibl_mirror_front_20260712.png",
+            output_name: "runtime_shader_pbr_procedural_realtime_ibl_mirror_front_20260714.png",
             camera_view: SinglePbrSphereCameraView::front(ProjectionMode::Perspective),
         },
         RealtimeMultiViewCase {
             label: "pitch plus 120 degrees",
             output_name:
-                "runtime_shader_pbr_procedural_realtime_ibl_mirror_pitch_plus_120_20260712.png",
+                "runtime_shader_pbr_procedural_realtime_ibl_mirror_pitch_plus_120_20260714.png",
             camera_view: SinglePbrSphereCameraView::perspective_orbit_degrees(0.0, 120.0),
         },
         RealtimeMultiViewCase {
             label: "pitch minus 120 degrees",
             output_name:
-                "runtime_shader_pbr_procedural_realtime_ibl_mirror_pitch_minus_120_20260712.png",
+                "runtime_shader_pbr_procedural_realtime_ibl_mirror_pitch_minus_120_20260714.png",
             camera_view: SinglePbrSphereCameraView::perspective_orbit_degrees(0.0, -120.0),
         },
         RealtimeMultiViewCase {
             label: "yaw minus 120 degrees",
             output_name:
-                "runtime_shader_pbr_procedural_realtime_ibl_mirror_yaw_minus_120_20260712.png",
+                "runtime_shader_pbr_procedural_realtime_ibl_mirror_yaw_minus_120_20260714.png",
             camera_view: SinglePbrSphereCameraView::perspective_orbit_degrees(-120.0, 0.0),
         },
         RealtimeMultiViewCase {
             label: "yaw plus 120 degrees",
             output_name:
-                "runtime_shader_pbr_procedural_realtime_ibl_mirror_yaw_plus_120_20260712.png",
+                "runtime_shader_pbr_procedural_realtime_ibl_mirror_yaw_plus_120_20260714.png",
             camera_view: SinglePbrSphereCameraView::perspective_orbit_degrees(120.0, 0.0),
         },
     ]
@@ -119,7 +121,8 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
         PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
     snapshot.overlays = RenderOverlayExtract::default();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
+    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
     let initial_started = Instant::now();
     renderer
         .render(snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE)
@@ -139,11 +142,22 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     );
 
     let mut slice_millis = Vec::with_capacity(REALTIME_UPDATE_SLICE_COUNT);
-    for _ in 0..REALTIME_UPDATE_SLICE_COUNT {
+    let capture_final_sh9_slice =
+        std::env::var(RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV).is_ok_and(|value| value == "1");
+    for slice_index in 0..REALTIME_UPDATE_SLICE_COUNT {
+        let capture_this_slice =
+            capture_final_sh9_slice && slice_index + 1 == REALTIME_UPDATE_SLICE_COUNT;
+        if capture_this_slice {
+            renderer.start_graphics_debugger_capture();
+        }
         let started = Instant::now();
-        renderer
-            .render(updated_snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE)
-            .expect("render realtime IBL update slice");
+        let render_result = renderer.render(updated_snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE);
+        if capture_this_slice {
+            renderer
+                .stop_graphics_debugger_capture()
+                .expect("stop RenderDoc capture after the final SH9 update slice");
+        }
+        render_result.expect("render realtime IBL update slice");
         slice_millis.push(started.elapsed().as_secs_f64() * 1000.0);
     }
     let final_frame = renderer
@@ -272,7 +286,8 @@ fn render_realtime_mirror_view(view_case: RealtimeMultiViewCase) -> ViewportFram
         PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
     snapshot.overlays = RenderOverlayExtract::default();
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
+    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
     let frame = renderer
         .render(snapshot, MULTI_VIEW_OUTPUT_SIZE)
         .unwrap_or_else(|error| {
@@ -536,6 +551,16 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
     assert!(
         reports.iter().skip(1).all(|report| !report.full_update),
         "only the initial publication may use the full-update path"
+    );
+    let initial_nanoseconds = reports[0].elapsed_gpu_nanoseconds;
+    let sliced_maximum_nanoseconds = reports
+        .iter()
+        .skip(1)
+        .map(|report| report.elapsed_gpu_nanoseconds)
+        .fold(0.0_f64, f64::max);
+    assert!(
+        sliced_maximum_nanoseconds < initial_nanoseconds * 0.75,
+        "time slicing must keep the heaviest update below 75% of the full publication: full={initial_nanoseconds}ns sliced_max={sliced_maximum_nanoseconds}ns"
     );
 }
 

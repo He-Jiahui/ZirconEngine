@@ -3,6 +3,11 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
 implementation_files:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 tests:
@@ -18,6 +23,10 @@ This product-level integration test renders the standard 8x8 metallic/smoothness
 The ignored export first renders one complete real-time IBL publication. It then changes the procedural sky bake identity and renders the same snapshot for 16 compute frames, matching the scheduler's twelve-state, sixteen-frame update sequence. A seventeenth presentation-only frame samples the newly published ready slot and is saved only below `docs/tests/runtime/shader`.
 
 The CPU companion record reports wall time for the initial full update and each sliced update frame. The GPU record comes from production WGPU timestamp queries around the realtime IBL command batch; it reports the complete publication and all sixteen sliced batches independently from CPU submission and polling time.
+
+The product gate also compares the heaviest sliced GPU batch with the initial complete publication. A sliced batch must remain below 75% of the full update, preventing the final SH9 state from silently serializing the complete projection and recreating a frame-time spike.
+
+Setting `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` wraps only the sixteenth update frame in the graphics-debugger capture API. That frame owns state 11, `ProjectDiffuseSh9`, and publication, so a resulting RDC cannot be mistaken for a capture of an unrelated presentation frame.
 
 ## Render graph lifetime regression
 
@@ -75,3 +84,21 @@ Scene group 0 binding 6 is a fixed 144-byte SH9 uniform. Offline environments up
 - Final-source product test: 1 passed, 0 failed, 50.10 seconds
 
 The saved frame is intentionally rendered after the state-11 submission publishes the work slot. Compared with the pre-SH9 EC-M4i image, the new frame has RGB channel MAE 27.999296, maximum absolute delta 109, and 5,699,574 changed channels out of 5,760,000. This proves that the accepted image samples the new publication instead of the previous analytical-diffuse frame. The active external Cargo target contains zero PNG files.
+
+## 2026-07-14 parallel SH9 closeout evidence
+
+The SH9 kernel now runs as one 64-lane workgroup reduction instead of dispatching 96 groups and serializing every cubemap sample on global invocation zero. A normal DX12 run produced:
+
+- Image: `docs/tests/runtime/shader/runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_reflection_20260714.png`
+- Image size: 1600x1200, 272485 bytes
+- Image SHA256: `3FB37653075AD6A6A0BC5BD7A4F9D72919E59F52AD499287C1D843E66C1E536E`
+- CPU timing SHA256: `DB74914C6BCCEBE07E2357B1740B67B68E81BD474CA402707EE90C5A0AE73D92`
+- GPU timing SHA256: `6BFC288485614E6ECEA34BD13C08FF48B6FA1D6FD00ECE6B33252F94517644ED`
+- Initial complete publication: 4.363264 ms GPU
+- Sixteen sliced updates: 0.361920 ms average GPU, 1.819648 ms maximum GPU
+- Final SH9 projection slice: 1.819648 ms GPU, 41.7% of the complete publication
+- Product test: 1 passed, 0 failed, 91.92 seconds
+
+The exact five-view product was regenerated from front, pitch +/-120 degrees, and yaw +/-120 degrees. Its 4000x600 contact sheet is 663618 bytes with SHA256 `B41F470CA6119405AAFB8B5441C0276258F6680353381BFB4230C5FB67BCE9FF`; the product test passed 1/1 in 72.62 seconds. The individual view hashes remain the directional fixtures recorded above.
+
+RenderDoc captured only the final SH9 slice through the opt-in test hook. `runtime_shader_pbr_realtime_ibl_sh9_final_slice_dx12_renderdoc_20260714_capture.rdc` is 40334552 bytes with SHA256 `F5E5CF3EFFD1D16B789A3C06C5457C88028F0CF75B092DDE54EA0409B0094CA8`. The captured product test passed 1/1, and `renderdoccmd replay --loops 1` completed with exit code 0. Images, timing reports, logs, and the RDC are stored only under `docs/tests/runtime/shader`.

@@ -1,3 +1,30 @@
+---
+related_code:
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_capture_wgpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
+implementation_files:
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+plan_sources:
+  - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
+  - docs/plans/zircon_runtime/render/11-environment-lighting.md
+tests:
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder/tests.rs
+  - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+---
+
 # Realtime IBL time slicing
 
 ## Owner and scope
@@ -94,6 +121,14 @@ Procedural real-time IBL uses scene source kind `4`. This is distinct from impor
 
 The SH9 A/B buffers carry both `STORAGE` and `UNIFORM` usage. The compute pass writes the work slot through its storage binding; after successful publication, the scene bind group selects that same allocation through binding 6. Offline source cubemaps use a renderer-owned uniform buffer populated from their artifact SH9 coefficients. `SceneUniform` therefore contains no embedded SH array, and realtime diffuse lighting never performs a CPU readback or synchronous queue wait.
 
+## SH9 parallel reduction
+
+The SH9 projection uses one `8x8x1` workgroup and one `1x1x1` dispatch. All 64 invocations divide the existing face-major, exact-solid-angle cubemap sample set by striding over linear sample indices. Each invocation accumulates all nine RGB coefficients locally, writes one lane into workgroup memory, and participates in a six-step tree reduction before lane zero applies normalization and the diffuse band factors.
+
+This preserves the offline and realtime SH9 coefficient ABI and the same cubemap integration math. It replaces the previous implementation where only global invocation zero traversed every sample while thousands of dispatched invocations returned immediately. The structure follows Unreal's `ComputeSkyEnvMapDiffuseIrradianceCS` single-group reduction, while retaining Zircon's exact cubemap sample set so offline CPU/GPU parity does not split into a second approximation.
+
+The single-group extent is one contract across all owners. The shader plan, offline render-graph workload, metadata-only compute executor, WGPU command encoding, and realtime recorder all report `1x1x1` for SH9. The optional irradiance-cube kernel remains a spatial `4x4x6` dispatch; the two kernels must not share one inferred extent merely because both consume the same 32x32 sample size.
+
 ## Validation
 
 - Scheduler tests cover initial publication, the exact 16-frame/12-state sequence, stale generations, retry behavior, short mip chains, cancellation, and dispatch expansion.
@@ -106,3 +141,5 @@ The SH9 A/B buffers carry both `STORAGE` and `UNIFORM` usage. The compute pass w
 - The 1600x1200 direct-SH9 PBR result, CPU wall times, and 17 nonzero WGPU timestamp-query samples are recorded below `docs/tests/runtime/shader`. Initial full publication measured 4.981760 ms GPU; the sixteen sliced batches averaged 0.321728 ms and peaked at 4.472832 ms in the SH9 projection slice.
 - The export renders a presentation-only frame after state 11 publishes the work slot. This prevents the accepted screenshot from accidentally sampling the previous ready slot; the final image differs from the retained pre-SH9 image by RGB channel MAE 27.999296.
 - A five-view perspective product export covers front, pitch +/-120 degrees, and yaw +/-120 degrees. The directional sun gives the otherwise azimuthally symmetric procedural gradient a stable orientation marker; the product test requires the highlight in every view, requires the orbit to move it to the viewport edge within one raster pixel, and requires every rotated frame to differ from front. The 800x600 per-view PNGs and 4000x600 single-row contact sheet are stored only below `docs/tests/runtime/shader`.
+- The 2026-07-14 DX12 closeout run measured the complete update at 4.363264 ms GPU, all sliced updates at 0.361920 ms average, and the heaviest/final SH9 slice at 1.819648 ms. The maximum slice is 41.7% of the full update and passes the product gate requiring less than 75%.
+- `ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9=1` captures only state 11 from the product test. The resulting 40334552-byte RDC replayed successfully with `renderdoccmd replay --loops 1`, proving that the captured workload is the final SH9 reduction and publication slice rather than an unrelated viewer frame.

@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
     ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, IblBakeArtifactContents,
-    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, ShaderAssetKind, ShaderResourceAccess,
-    ShaderResourceDescriptor, ShaderResourceKind,
+    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind,
+    ShaderResourceAccess, ShaderResourceDescriptor, ShaderResourceKind,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 use super::ibl_bake_graph_plan::{
@@ -30,7 +30,7 @@ pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_IRRADIANCE_CUBE_WG
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const IBL_BAKE_CUBE_FACE_COUNT: u32 = 6;
-const IBL_BAKE_SHADER_CONTENT_HASH_V2: u64 = 0x1b1_ba6e_0006;
+const IBL_BAKE_SHADER_CONTENT_HASH_V2: u64 = 0x1b1_ba6e_0007;
 const IBL_BAKE_PMREM_NORMAL_SAMPLE_COUNT: u32 = 64;
 const IBL_BAKE_PMREM_FAST_SAMPLE_COUNT: u32 = 32;
 const IBL_BAKE_PMREM_ROUGH_SAMPLE_COUNT: u32 = 128;
@@ -130,7 +130,7 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
         .bind_storage_write(IBL_BAKE_IRRADIANCE_SH9_RESOURCE)
-        .dispatch_groups(irradiance_dispatch_groups());
+        .dispatch_groups(irradiance_sh9_dispatch_groups());
 
     IblBakeComputeKernelPlan {
         kind: IblBakeComputeKernelKind::IrradianceSh9,
@@ -269,6 +269,10 @@ fn irradiance_dispatch_groups() -> [u32; 3] {
     ]
 }
 
+const fn irradiance_sh9_dispatch_groups() -> [u32; 3] {
+    [1, 1, 1]
+}
+
 fn pmrem_sample_count(roughness: f32, mip_level: u32) -> u32 {
     if mip_level == 0 || roughness < IBL_BAKE_PMREM_LOW_ROUGHNESS_THRESHOLD {
         IBL_BAKE_PMREM_FAST_SAMPLE_COUNT
@@ -301,7 +305,11 @@ fn source_lod_for_sample_face_size(source_face_size: u32, sample_face_size: u32)
 
 const fn pmrem_mip_size(face_size: u32, mip_level: u32) -> u32 {
     let shifted = face_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {
@@ -311,8 +319,8 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        COMPUTE_SHADER_FIRST_RESOURCE_BINDING, ProceduralSkyParams, ShaderDispatchExtent,
-        ShaderParameterValue,
+        ProceduralSkyParams, ShaderDispatchExtent, ShaderParameterValue,
+        COMPUTE_SHADER_FIRST_RESOURCE_BINDING,
     };
 
     use super::*;
@@ -525,7 +533,7 @@ mod tests {
         assert_eq!(plans.len(), 2);
         assert_eq!(
             plans[0].dispatch.dispatch_extent,
-            ShaderDispatchExtent::Fixed([4, 4, 6])
+            ShaderDispatchExtent::Fixed([1, 1, 1])
         );
         assert_eq!(
             plans[0].dispatch.resources[2].name,
@@ -549,6 +557,18 @@ mod tests {
         );
         assert!(
             IBL_BAKE_IRRADIANCE_CUBE_WGSL.contains("texture_storage_2d_array<rgba16float, write>")
+        );
+    }
+
+    #[test]
+    fn ibl_bake_sh9_uses_one_sixty_four_thread_parallel_reduction_group() {
+        assert!(IBL_BAKE_IRRADIANCE_SH9_WGSL.contains("@workgroup_size(8, 8, 1)"));
+        assert!(IBL_BAKE_IRRADIANCE_SH9_WGSL.contains("var<workgroup> sh0_shared"));
+        assert!(IBL_BAKE_IRRADIANCE_SH9_WGSL.contains("workgroupBarrier()"));
+        assert!(IBL_BAKE_IRRADIANCE_SH9_WGSL.contains("local_invocation_index"));
+        assert!(
+            !IBL_BAKE_IRRADIANCE_SH9_WGSL.contains("global_id != vec3<u32>(0u, 0u, 0u)"),
+            "SH9 projection must not serialize all cubemap samples onto one invocation"
         );
     }
 }

@@ -219,17 +219,7 @@ fn irradiance_sh9_workload() -> RenderGraphComputeWorkload {
     RenderGraphComputeWorkload::fixed(
         IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL,
         IBL_BAKE_WORKGROUP_SIZE,
-        [
-            div_ceil(
-                SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-                IBL_BAKE_WORKGROUP_SIZE[0],
-            ),
-            div_ceil(
-                SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-                IBL_BAKE_WORKGROUP_SIZE[1],
-            ),
-            CUBE_FACE_COUNT,
-        ],
+        [1, 1, 1],
     )
 }
 
@@ -368,7 +358,7 @@ mod tests {
         );
         assert_eq!(
             plan.passes[8].workload.dispatch_extent,
-            RenderGraphComputeDispatchExtent::Fixed([4, 4, 6])
+            RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
         );
         assert_eq!(
             plan.passes[9].workload.pipeline_label,

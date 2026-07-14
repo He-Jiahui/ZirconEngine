@@ -65,7 +65,7 @@ fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() 
     assert!(validation_error.is_none(), "{validation_error:?}");
     assert_eq!(result.report.pass_count, plan.passes.len());
     assert_eq!(result.report.dispatch_count, plan.passes.len());
-    assert_eq!(result.report.dispatch_groups.last(), Some(&[4, 4, 6]));
+    assert_eq!(result.report.dispatch_groups.last(), Some(&[1, 1, 1]));
     assert_eq!(
         result.timestamp_readback.is_some(),
         device.features().contains(

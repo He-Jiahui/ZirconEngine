@@ -113,7 +113,7 @@ fn compute_pipeline_encodes_storage_texture_and_storage_buffer_dispatches() {
         6,
     ];
     assert_eq!(pmrem_record.dispatch_groups, pmrem_base_dispatch);
-    assert_eq!(sh9_record.dispatch_groups, [4, 4, 6]);
+    assert_eq!(sh9_record.dispatch_groups, [1, 1, 1]);
     queue.submit(std::iter::once(encoder.finish()));
     device
         .poll(wgpu::PollType::wait_indefinitely())
@@ -243,10 +243,10 @@ fn graph_context_records_sh9_wgpu_dispatch_from_materialized_resources() {
         return;
     };
 
-    assert_eq!(encoded.dispatch_groups, [4, 4, 6]);
+    assert_eq!(encoded.dispatch_groups, [1, 1, 1]);
     assert_eq!(records.len(), 1);
     assert_eq!(records[0].pass_name, executed_pass_name);
-    assert_eq!(records[0].dispatch_groups, [4, 4, 6]);
+    assert_eq!(records[0].dispatch_groups, [1, 1, 1]);
     assert_eq!(
         records[0].storage_write_resources,
         [super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_SH9_RESOURCE.to_string()]
@@ -322,7 +322,7 @@ fn record_graph_context_dispatch(
             entries: &[],
         });
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,

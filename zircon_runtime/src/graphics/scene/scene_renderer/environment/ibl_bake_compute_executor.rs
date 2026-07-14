@@ -242,7 +242,7 @@ fn output_dispatch_groups(
                     "IBL bake output `{output_resource_name}` must be a transient buffer"
                 ));
             }
-            Ok([4, 4, 6])
+            Ok([1, 1, 1])
         }
         RenderGraphResourceDesc::External => Err(format!(
             "IBL bake output `{output_resource_name}` must be transient, not external"
@@ -354,7 +354,7 @@ mod tests {
         );
         assert_eq!(pmrem_mip0.dispatch_groups, [16, 16, 6]);
         assert_eq!(pmrem_mip7.dispatch_groups, [1, 1, 6]);
-        assert_eq!(sh9.dispatch_groups, [4, 4, 6]);
+        assert_eq!(sh9.dispatch_groups, [1, 1, 1]);
         assert_eq!(iem.dispatch_groups, [4, 4, 6]);
     }
 
