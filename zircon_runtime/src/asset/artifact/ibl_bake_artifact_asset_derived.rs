@@ -189,5 +189,6 @@ fn request_for_descriptor(descriptor: IblBakeArtifactDescriptor) -> IblBakeArtif
         descriptor.source_face_size(),
         descriptor.source_mip_count(),
     )
+    .with_pmrem_layout(descriptor.face_size(), descriptor.mip_count())
     .with_required_contents(descriptor.contents())
 }

@@ -9,7 +9,7 @@ mod mipmap;
 mod pmrem;
 mod pmrem_layout;
 
-use pmrem_layout::SourceCubemapPmremLayout;
+pub(super) use pmrem_layout::SourceCubemapPmremLayout;
 
 pub const SOURCE_CUBEMAP_FACE_COUNT: usize = 6;
 pub const SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT: usize = 9;
@@ -167,6 +167,26 @@ impl SourceCubemapMipChain {
             quality,
         )
     }
+
+    /// Projects an equirectangular source and bakes PMREM directly at an
+    /// independent destination layout without first producing the default PMREM.
+    pub fn from_equirect_with_pmrem_layout<F>(
+        source_face_size: u32,
+        pmrem_face_size: u32,
+        pmrem_mip_count: u32,
+        quality: SourceCubemapPrefilterQuality,
+        sample_equirect: F,
+    ) -> Self
+    where
+        F: FnMut(Real, Real) -> [Real; 4],
+    {
+        build_source_cubemap_from_equirect_with_pmrem_layout(
+            source_face_size,
+            SourceCubemapPmremLayout::new(pmrem_face_size, pmrem_mip_count),
+            quality,
+            sample_equirect,
+        )
+    }
 }
 
 pub fn source_cubemap_face_size_from_equirect_height(equirect_height: u32) -> u32 {
@@ -229,6 +249,23 @@ pub fn source_cubemap_face_mip_offset(
 
 pub fn build_source_cubemap_from_equirect<F>(
     face_size: u32,
+    sample_equirect: F,
+) -> SourceCubemapMipChain
+where
+    F: FnMut(Real, Real) -> [Real; 4],
+{
+    build_source_cubemap_from_equirect_with_pmrem_layout(
+        face_size,
+        SourceCubemapPmremLayout::default(),
+        SourceCubemapPrefilterQuality::Normal,
+        sample_equirect,
+    )
+}
+
+fn build_source_cubemap_from_equirect_with_pmrem_layout<F>(
+    face_size: u32,
+    pmrem_layout: SourceCubemapPmremLayout,
+    quality: SourceCubemapPrefilterQuality,
     mut sample_equirect: F,
 ) -> SourceCubemapMipChain
 where
@@ -253,42 +290,12 @@ where
     // Source mips stay separate from the PMREM chain: skybox minification and FIS
     // source LOD read this angular-filtered pyramid, while reflections read PMREM.
     let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
-    let irradiance_sh9 = source_cubemap_irradiance_sh9_from_texels(
-        &source_mips,
-        face_size,
-        mip_count,
-        source_cubemap_irradiance_mip_level(face_size, mip_count),
-    );
-    let mut pmrem_texels = vec![
-        [0.0; 4];
-        source_cubemap_sample_count(
-            SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-            SOURCE_CUBEMAP_PMREM_MIP_COUNT,
-        )
-    ];
-    pmrem::prefilter_pmrem_mips_from_source(
-        &mut pmrem_texels,
-        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
-        &source_mips,
-        face_size,
-        mip_count,
-        SourceCubemapPrefilterQuality::Normal,
-    );
-
-    average_last_mip_faces(
-        &mut pmrem_texels,
-        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
-    );
-    SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9(
+    build_source_cubemap_from_source_mips_with_pmrem_layout(
         face_size,
         mip_count,
         source_mips,
-        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
-        pmrem_texels,
-        irradiance_sh9,
+        pmrem_layout,
+        quality,
     )
 }
 

@@ -168,6 +168,10 @@ impl SourceCubemapEnvironment {
             self.mip_chain.source_face_size(),
             self.mip_chain.source_mip_count(),
         )
+        .with_pmrem_layout(
+            self.mip_chain.pmrem_face_size(),
+            self.mip_chain.pmrem_mip_count(),
+        )
         .with_required_contents(required_contents)
     }
 }

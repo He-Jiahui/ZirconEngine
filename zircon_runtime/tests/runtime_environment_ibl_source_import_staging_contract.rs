@@ -87,6 +87,61 @@ fn hdr_equirect_import_stages_current_zcube_and_zribl_bundle() {
 }
 
 #[test]
+fn hdr_equirect_import_persists_requested_pmrem_layout_in_staged_artifact() {
+    let root = unique_temp_root("environment_ibl_independent_pmrem");
+    let context = hdr_context(
+        "res://textures/high_resolution_studio.hdr",
+        512,
+        256,
+        "environment_ibl = true\nenvironment_ibl_face_size = 128\nenvironment_ibl_pmrem_face_size = 64",
+    );
+
+    let staged = stage_environment_ibl_source(&context, &root)
+        .expect("independent PMREM layout should stage through the importer");
+    let request = *staged.request().expect("staged request");
+
+    assert_eq!(request.source_face_size(), 128);
+    assert_eq!(request.source_mip_count(), 8);
+    assert_eq!(request.pmrem_face_size(), 64);
+    assert_eq!(request.pmrem_mip_count(), 7);
+
+    let store = IblSourceCubemapStagingStore::new(&root);
+    let environment = store
+        .read_source_cubemap_environment(&request, context.uri.clone())
+        .expect("staged artifact should restore its requested PMREM layout");
+    assert_eq!(environment.mip_chain.source_face_size(), 128);
+    assert_eq!(environment.mip_chain.pmrem_face_size(), 64);
+    assert_eq!(environment.mip_chain.pmrem_mip_count(), 7);
+    assert_ne!(environment.bake_artifact_hash, [0; 4]);
+
+    let reused = stage_environment_ibl_source(&context, &root)
+        .expect("matching source and PMREM layout should reuse the staged pair");
+    assert_eq!(reused.status(), EnvironmentIblSourceStagingStatus::Reused);
+    assert_eq!(reused.request(), Some(&request));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn hdr_equirect_import_rejects_pmrem_larger_than_source_layout() {
+    let root = unique_temp_root("environment_ibl_pmrem_upscale");
+    let context = hdr_context(
+        "res://textures/no_pmrem_upscale.hdr",
+        512,
+        256,
+        "environment_ibl = true\nenvironment_ibl_face_size = 128\nenvironment_ibl_pmrem_face_size = 256",
+    );
+
+    let error = stage_environment_ibl_source(&context, &root)
+        .expect_err("artifact PMREM layout must not silently upscale its source")
+        .to_string();
+
+    assert!(error.contains("environment_ibl_pmrem_face_size"));
+    assert!(error.contains("must not exceed source face size 128"));
+    assert!(!root.exists());
+}
+
+#[test]
 #[ignore = "stages the repository Poly Haven HDRI into docs validation artifacts"]
 fn stage_polyhaven_lakes_2k_validation_bundle() {
     let workspace_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -101,7 +156,7 @@ fn stage_polyhaven_lakes_2k_validation_bundle() {
         source_path.clone(),
         AssetUri::parse("res://environment/polyhaven_lakes_2k.hdr").expect("valid environment URI"),
         fs::read(&source_path).expect("read Poly Haven HDRI"),
-        "environment_ibl = true\nenvironment_ibl_face_size = 256"
+        "environment_ibl = true\nenvironment_ibl_face_size = 256\nenvironment_ibl_pmrem_face_size = 256"
             .parse()
             .expect("valid environment settings"),
     );
@@ -115,9 +170,9 @@ fn stage_polyhaven_lakes_2k_validation_bundle() {
         .expect("restore staged Poly Haven environment");
 
     assert_eq!(request.source_face_size(), 256);
-    assert_eq!(request.pmrem_face_size(), 128);
+    assert_eq!(request.pmrem_face_size(), 256);
     assert_eq!(environment.mip_chain.source_face_size(), 256);
-    assert_eq!(environment.mip_chain.pmrem_face_size(), 128);
+    assert_eq!(environment.mip_chain.pmrem_face_size(), 256);
     assert!(environment
         .mip_chain
         .source_texels()

@@ -4,9 +4,9 @@ use super::rgba16f::{
 };
 use super::{
     source_cubemap_sample_count, IblBakeKey, SourceCubemapIrradianceCube,
-    SourceCubemapIrradianceSh9, SourceCubemapMipChain, SOURCE_CUBEMAP_FACE_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    SourceCubemapIrradianceSh9, SourceCubemapMipChain, SourceCubemapPmremLayout,
+    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
@@ -63,15 +63,20 @@ pub struct IblBakeArtifactRequest {
     bake_key: IblBakeKey,
     source_face_size: u32,
     source_mip_count: u32,
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
     required_contents: IblBakeArtifactContents,
 }
 
 impl IblBakeArtifactRequest {
     pub fn new(bake_key: IblBakeKey, source_face_size: u32, source_mip_count: u32) -> Self {
+        let pmrem_layout = SourceCubemapPmremLayout::default();
         Self {
             bake_key,
             source_face_size: source_face_size.max(1),
             source_mip_count: source_mip_count.max(1),
+            pmrem_face_size: pmrem_layout.face_size(),
+            pmrem_mip_count: pmrem_layout.mip_count(),
             required_contents: IblBakeArtifactContents::PMREM_SH9,
         }
     }
@@ -89,15 +94,22 @@ impl IblBakeArtifactRequest {
     }
 
     pub const fn pmrem_face_size(&self) -> u32 {
-        SOURCE_CUBEMAP_PMREM_FACE_SIZE
+        self.pmrem_face_size
     }
 
     pub const fn pmrem_mip_count(&self) -> u32 {
-        SOURCE_CUBEMAP_PMREM_MIP_COUNT
+        self.pmrem_mip_count
     }
 
     pub const fn required_contents(&self) -> IblBakeArtifactContents {
         self.required_contents
+    }
+
+    pub fn with_pmrem_layout(mut self, face_size: u32, mip_count: u32) -> Self {
+        let layout = SourceCubemapPmremLayout::new(face_size, mip_count);
+        self.pmrem_face_size = layout.face_size();
+        self.pmrem_mip_count = layout.mip_count();
+        self
     }
 
     pub const fn with_required_contents(

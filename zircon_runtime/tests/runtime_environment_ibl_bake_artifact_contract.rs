@@ -24,6 +24,34 @@ use zircon_runtime::core::framework::render::{
 };
 
 #[test]
+fn runtime_environment_ibl_bake_request_identity_owns_independent_pmrem_layout() {
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let source_face_size = 512;
+    let source_mip_count = 10;
+    let pmrem_128 = IblBakeArtifactRequest::new(key, source_face_size, source_mip_count)
+        .with_pmrem_layout(128, 8);
+    let pmrem_512 = IblBakeArtifactRequest::new(key, source_face_size, source_mip_count)
+        .with_pmrem_layout(512, 10);
+
+    assert_eq!(pmrem_128.pmrem_face_size(), 128);
+    assert_eq!(pmrem_128.pmrem_mip_count(), 8);
+    assert_eq!(pmrem_512.pmrem_face_size(), 512);
+    assert_eq!(pmrem_512.pmrem_mip_count(), 10);
+    assert_ne!(pmrem_128, pmrem_512);
+    let store = IblBakeArtifactCacheStore::new("layout-identity-test");
+    assert_ne!(
+        store.runtime_cache_path(&pmrem_128),
+        store.runtime_cache_path(&pmrem_512)
+    );
+
+    let descriptor_128 = IblBakeArtifactDescriptor::current_for_request(&pmrem_128);
+    let descriptor_512 = IblBakeArtifactDescriptor::current_for_request(&pmrem_512);
+    assert!(descriptor_128.is_current_for(&pmrem_128));
+    assert!(!descriptor_128.is_current_for(&pmrem_512));
+    assert!(descriptor_512.is_current_for(&pmrem_512));
+}
+
+#[test]
 fn runtime_environment_ibl_bake_artifact_header_round_trips_current_algorithm_version() {
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
     let request = IblBakeArtifactRequest::new(key, 128, 8);
@@ -753,6 +781,46 @@ fn runtime_environment_ibl_bake_artifact_payload_applies_pmrem_sh9_without_repla
     assert_eq!(applied.source_texels(), source.source_texels());
     assert_eq!(applied.pmrem_texels(), baked.pmrem_texels());
     assert_eq!(applied.irradiance_sh9(), baked.irradiance_sh9());
+}
+
+#[test]
+fn runtime_environment_ibl_bake_artifact_payload_adopts_independent_pmrem_layout() {
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let source_face_size = 4;
+    let source_mip_count = 3;
+    let pmrem_face_size = 2;
+    let pmrem_mip_count = 2;
+    let source = shared_layout_mip_chain(
+        source_face_size,
+        source_mip_count,
+        vec![
+            [0.0, 0.25, 0.5, 1.0];
+            source_cubemap_sample_count(source_face_size, source_mip_count)
+        ],
+    );
+    let baked = SourceCubemapMipChain::new(
+        source_face_size,
+        source_mip_count,
+        source.source_texels().to_vec(),
+        pmrem_face_size,
+        pmrem_mip_count,
+        vec![[0.75, 0.5, 0.25, 1.0]; source_cubemap_sample_count(pmrem_face_size, pmrem_mip_count)],
+    );
+    let request = IblBakeArtifactRequest::new(key, source_face_size, source_mip_count)
+        .with_pmrem_layout(pmrem_face_size, pmrem_mip_count);
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(&request);
+    let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, None)
+        .expect("independent PMREM payload should encode");
+
+    let applied = source_cubemap_mip_chain_with_bake_artifact(&source, &payload)
+        .expect("artifact descriptor should replace only the PMREM result layout");
+
+    assert_eq!(applied.source_face_size(), source_face_size);
+    assert_eq!(applied.source_mip_count(), source_mip_count);
+    assert_eq!(applied.source_texels(), source.source_texels());
+    assert_eq!(applied.pmrem_face_size(), pmrem_face_size);
+    assert_eq!(applied.pmrem_mip_count(), pmrem_mip_count);
+    assert_eq!(applied.pmrem_texels(), baked.pmrem_texels());
 }
 
 #[test]

@@ -61,6 +61,7 @@ pub use skybox::{
     IblBakeKey, ProceduralSkyParams, SkyboxMode, SkyboxSettings, SourceCubemapEnvironment,
     SourceCubemapUploadKey, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
 };
+use source_cubemap::SourceCubemapPmremLayout;
 pub use source_cubemap::{
     build_source_cubemap_from_captured_faces,
     build_source_cubemap_from_captured_faces_with_quality, build_source_cubemap_from_equirect,

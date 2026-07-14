@@ -17,14 +17,15 @@ use crate::asset::assets::{
 };
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
-    source_cubemap_face_size_from_equirect_height, source_cubemap_mip_count,
-    IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, SOURCE_CUBEMAP_MAX_FACE_SIZE,
-    SOURCE_CUBEMAP_MIN_FACE_SIZE,
+    build_source_cubemap_irradiance_cube, source_cubemap_face_size_from_equirect_height,
+    source_cubemap_mip_count, IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey,
+    SourceCubemapMipChain, SourceCubemapPrefilterQuality, SOURCE_CUBEMAP_MAX_FACE_SIZE,
+    SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 
 pub const ENVIRONMENT_IBL_IMPORT_SETTING: &str = "environment_ibl";
 pub const ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING: &str = "environment_ibl_face_size";
+pub const ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING: &str = "environment_ibl_pmrem_face_size";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EnvironmentIblSourceStagingStatus {
@@ -130,12 +131,14 @@ pub fn stage_environment_ibl_source(
     let natural_face_size = source_cubemap_face_size_from_equirect_height(image.height);
     let face_size = requested_face_size(context, natural_face_size)?;
     let source_mip_count = source_cubemap_mip_count(face_size);
+    let (pmrem_face_size, pmrem_mip_count) = requested_pmrem_layout(context, face_size)?;
     let source_hash = source_hash_words(&context.source_bytes, face_size, source_mip_count);
     let request = IblBakeArtifactRequest::new(
         IblBakeKey::source_cubemap(source_revision(&context.source_bytes), source_hash),
         face_size,
         source_mip_count,
     )
+    .with_pmrem_layout(pmrem_face_size, pmrem_mip_count)
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
     let store = IblSourceCubemapStagingStore::new(cache_root.as_ref());
     let source_zcube_path = store.source_cubemap_path(&request);
@@ -150,9 +153,13 @@ pub fn stage_environment_ibl_source(
         ));
     }
 
-    let cubemap = build_source_cubemap_from_equirect(face_size, |u, v| {
-        sample_equirect_bilinear(&image, u, v)
-    });
+    let cubemap = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
+        face_size,
+        pmrem_face_size,
+        pmrem_mip_count,
+        SourceCubemapPrefilterQuality::Normal,
+        |u, v| sample_equirect_bilinear(&image, u, v),
+    );
     let irradiance_cube = build_source_cubemap_irradiance_cube(&cubemap);
     store
         .write_source_cubemap_staged_bundle(
@@ -316,6 +323,54 @@ fn requested_face_size(
         });
     }
     Ok(face_size.min(natural_face_size))
+}
+
+fn requested_pmrem_layout(
+    context: &AssetImportContext,
+    source_face_size: u32,
+) -> Result<(u32, u32), EnvironmentIblSourceStagingError> {
+    let Some(value) = context
+        .import_settings
+        .get(ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING)
+    else {
+        return Ok((
+            SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+            SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+        ));
+    };
+    let Some(value) = value.as_integer() else {
+        return Err(EnvironmentIblSourceStagingError::InvalidSetting {
+            key: ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING,
+            reason: "expected an integer power-of-two face size".to_string(),
+        });
+    };
+    let face_size = u32::try_from(value).map_err(|_| {
+        EnvironmentIblSourceStagingError::InvalidSetting {
+            key: ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING,
+            reason: format!(
+                "face size must be in {SOURCE_CUBEMAP_MIN_FACE_SIZE}..={SOURCE_CUBEMAP_MAX_FACE_SIZE}"
+            ),
+        }
+    })?;
+    if !face_size.is_power_of_two()
+        || !(SOURCE_CUBEMAP_MIN_FACE_SIZE..=SOURCE_CUBEMAP_MAX_FACE_SIZE).contains(&face_size)
+    {
+        return Err(EnvironmentIblSourceStagingError::InvalidSetting {
+            key: ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING,
+            reason: format!(
+                "face size must be a power of two in {SOURCE_CUBEMAP_MIN_FACE_SIZE}..={SOURCE_CUBEMAP_MAX_FACE_SIZE}"
+            ),
+        });
+    }
+    if face_size > source_face_size {
+        return Err(EnvironmentIblSourceStagingError::InvalidSetting {
+            key: ENVIRONMENT_IBL_PMREM_FACE_SIZE_IMPORT_SETTING,
+            reason: format!(
+                "face size {face_size} must not exceed source face size {source_face_size}"
+            ),
+        });
+    }
+    Ok((face_size, source_cubemap_mip_count(face_size)))
 }
 
 fn staged_bundle_is_current(

@@ -50,6 +50,7 @@ impl IblBakeArtifactCacheStore {
             descriptor.source_face_size(),
             descriptor.source_mip_count(),
         )
+        .with_pmrem_layout(descriptor.face_size(), descriptor.mip_count())
         .with_required_contents(descriptor.contents());
         self.runtime_cache_path(&request)
     }
@@ -150,6 +151,7 @@ pub(super) fn ibl_bake_artifact_request_identity_hash(request: &IblBakeArtifactR
     hasher.update(&request.source_mip_count().to_le_bytes());
     hasher.update(&request.pmrem_face_size().to_le_bytes());
     hasher.update(&request.pmrem_mip_count().to_le_bytes());
+    hasher.update(&request.required_contents().bits().to_le_bytes());
     hasher.finalize().to_hex().to_string()
 }
 
