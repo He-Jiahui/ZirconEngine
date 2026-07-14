@@ -4,6 +4,7 @@ related_code:
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/core/framework/render/profile.rs
@@ -15,11 +16,14 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/source_ledger.rs
@@ -33,6 +37,7 @@ implementation_files:
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -42,11 +47,14 @@ implementation_files:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/source_ledger.rs
@@ -85,6 +93,9 @@ tests:
   - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_hybrid_passes_20260713.png
   - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_handoff_passes_20260713.png
   - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_api_validation_20260713.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md
+  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_fallback_20260714.png
 doc_type: workflow-detail
 ---
 
@@ -96,7 +107,7 @@ doc_type: workflow-detail
 
 `BakedStaticDynamic` 已进入 HGI-M4 核心代码候选：Plan 11 EL-M3 提供版本化 lightmap/probe baseline，HGI 消费只读合同；surface participation、per-probe source ledger、dynamic-delta 权重、generation/epoch 时序签名、场景失效签名和四个 profile 预算已经接入。Plan 11 的外部 fixture、真实 WGPU readback 和产品 PNG 详见 [`Environment Lightmap And Probe Consumption`](../../assets-and-rendering/environment-lightmap-probe-consumption.md)。
 
-这仍不代表混合模式通过产品总门。当前已验证 Runtime production build、静态合同、完整 post-process WGSL Naga 校验、生产 29-binding 后处理来源账本 WGPU readback、四 Profile 的 Forward+/Deferred 2x4 固定场景，以及 mobility 与 moving Emissive 双管线跨帧往返。HybridGI runtime 已显式启用它实际导入的 Runtime `graphics` 特性；standalone official production build 已通过。完整 crate test phase 执行 library 119、invalidation/profile 2、Forward+/Deferred WGPU 产品 3，共 124 项，0 failed / 0 ignored。Editor10 项目 fixture 已切到 manifest-owned roots 与公开 project writer，拆分独立 `project_documents.rs` 后由 coordinator 将 [`hybrid-gi-project-fixture-api-drift`](../../plans/zircon_runtime/render/18/fixed-2026-07-13-hybrid-gi-project-fixture-api-drift.md) 回传 Render18。合法 baked+dynamic delta 增加能量，非法 baked+full dynamic 与 baked baseline 逐像素一致；四档双管线 parity MAE 均低于 `0.02`，两个往返恢复帧 MAE 均为 `0`。同一四 Profile 产品测试已经由 RenderDoc 1.44/DX12 留存 8 份可重放 `.rdc` 并完成 pass/API validation 审计。Editor 实际值诊断已完成 provider -> runtime stats -> pane payload 代码链、Runtime fallback/stale-state 行为测试和 Editor unit。Navigation 05 已修复回传；真实窗口随后验证了第一方 provider 注册与 WGPU viewport 创建，入口注册、异步首帧重试和组合图 `scene-velocity` external/transient 契约都已修复，精确 Rust 用例 1/1。最终 actual/fallback 窗口截图和 broad/full 验证尚未完成。因此 `DynamicOnly` 仍是已验收产品能力，`BakedStaticDynamic` 只能用于开发验证。
+这仍不代表混合模式通过产品总门。当前已验证 Runtime production build、静态合同、完整 post-process WGSL Naga 校验、生产 29-binding 后处理来源账本 WGPU readback、四 Profile 的 Forward+/Deferred 2x4 固定场景，以及 mobility 与 moving Emissive 双管线跨帧往返。HybridGI runtime 已显式启用它实际导入的 Runtime `graphics` 特性；standalone official production build 已通过。完整 crate test phase 执行 library 119、invalidation/profile 2、Forward+/Deferred WGPU 产品 3，共 124 项，0 failed / 0 ignored。Editor10 项目 fixture 已切到 manifest-owned roots 与公开 project writer，拆分独立 `project_documents.rs` 后由 coordinator 将 [`hybrid-gi-project-fixture-api-drift`](../../plans/zircon_runtime/render/18/fixed-2026-07-13-hybrid-gi-project-fixture-api-drift.md) 回传 Render18。合法 baked+dynamic delta 增加能量，非法 baked+full dynamic 与 baked baseline 逐像素一致；四档双管线 parity MAE 均低于 `0.02`，两个往返恢复帧 MAE 均为 `0`。同一四 Profile 产品测试已经由 RenderDoc 1.44/DX12 留存 8 份可重放 `.rdc` 并完成 pass/API validation 审计。Editor 实际值诊断已完成 provider -> runtime stats -> pane payload 代码链、Runtime fallback/stale-state 行为测试和 Editor unit。Navigation 05 已修复回传；真实窗口验证了第一方 provider 注册、WGPU viewport、异步首帧重试和组合图 `scene-velocity` 合同。2026-07-14 当前源码产品构建与 Custom actual / IndoorStatic missing-bake fallback 两张真实 PNG 已通过，解析后预算与回退可见且 viewport 非空。`FullyDynamic`/`Custom DynamicOnly` 可直接用于产品验证；`BakedStaticDynamic` 只有在有效 Plan 11 baked contract 存在时生效，缺失时确定性降级。broad/full 验证仍开放，因此不关闭整个 HGI-M4。
 
 ## 编辑器启用
 
@@ -210,6 +221,8 @@ profile 给出默认预算；调用方提供的非零预算覆盖对应默认值
 
 前三个节点产生当前帧 scene packet、trace packet 和 HDR GI lighting；history 节点保存 lighting 与 temporal metadata。feature 关闭、能力不足或 provider 缺失时，这四个节点都不应进入有效执行路径。
 
+`scene-velocity` 是 HGI resolve 的必需只读输入。组合图可以把它声明为 external 或 transient；执行器对两种来源执行相同的名称、访问模式和纹理校验。即使产品 Profile 设置 `temporal_history=false`，只要 HGI capability 和 provider 实际生效，compile options 仍保留内置 Temporal feature 以产生 velocity；这不会隐式打开 TAA，TAA 仍由 post-process stack 独立过滤。
+
 ## Debug View
 
 | 枚举 | 用途 |
@@ -241,7 +254,7 @@ profile 给出默认预算；调用方提供的非零预算覆盖对应默认值
 
 provider 关闭或 extract 移除后，`RenderStats.last_hybrid_gi_resolved_settings` 会在同一帧清空，面板显示 `Hybrid GI effective: unavailable`，不会沿用上一帧的 Profile 或回退原因。
 
-HybridGI 数据链已经通过 Runtime production build、IndoorStatic 缺 baked 的结构化 fallback 1/1、provider-missing/stale-state 2/2、Editor pane unit 1/1 和组合图速度纹理双来源用例 1/1。隔离真实窗口已越过 Navigation、第一方 provider 注册和 WGPU viewport 创建；上一版产品日志记录的 resolve 资源契约差异也已修复。最终验收仍必须使用修复后 `target-editor-host` 二进制，分别采集 Custom actual 与 IndoorStatic missing-bake fallback，并确认 `1 viewport` 且 frames 大于零；不得用单元测试截图替代 Editor UI。
+HybridGI 数据链已经通过 Runtime production build、IndoorStatic 缺 baked 的结构化 fallback 1/1、provider-missing/stale-state 2/2、Editor pane unit、组合图速度纹理双来源用例 1/1 和当前源码 `target-editor-host` 产品构建。实际产品证据为 [`Custom actual`](../../tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png) 与 [`IndoorStatic missing-bake fallback`](../../tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_fallback_20260714.png)，完整哈希与判读见 [`evidence report`](../../tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md)。两图均为 1688x980、viewport 非空、stderr 为空；前者显示 `custom/dynamic-only/medium`、`32/64/16`、`none`，后者显示 `indoor-static/dynamic-only/high`、`64/256/64`、`baked-lighting-unavailable`。该二进制的紧凑 pane 将 Render 帧行放在可见折叠下方，因此证据报告不虚构文字帧计数；后续源码已用顺序单测把 Render 行移入前五项。
 
 ### RenderDoc 产品捕获
 
@@ -254,9 +267,9 @@ qrenderdoc 已重放首尾捕获。首个捕获可检索 `HybridGiSceneDepthHand
 | 场景 | 当前推荐 | 尚未成立的能力 |
 |---|---|---|
 | 可破坏场景、动态昼夜 | DynamicOnly，按 GPU 预算选择 Medium/High | Mesh/Global SDF 分层追踪仍属 HGI-M5 |
-| 室内固定结构 | 产品仍用 DynamicOnly；开发分支可用 IndoorStatic 检查 baked + delta | 固定场景、mobility/Emissive 往返、RenderDoc、124 项 crate behavior 和产品链修复已通过；修复后 actual/fallback 窗口截图仍开放 |
-| 开放世界 | 开发分支可用 OpenWorld；重点观察 generation/streaming 失效 | 固定场景 WGPU 已通过；跨区滚动与 Mesh/Global SDF 分层仍开放 |
-| 电影预览 | 开发分支可用 Cinematic + 固定 warmup 帧 | 高预算固定场景、跨帧残影和 `.rdc` 已验收；更长时间稳定性与 broad/full 验证仍开放 |
+| 室内固定结构 | 有有效 Plan 11 baked contract 时使用 IndoorStatic；缺失时观察确定性 DynamicOnly 回退 | 固定场景、mobility/Emissive 往返、RenderDoc、124 项 crate behavior 和 actual/fallback 产品图已通过；broad/full 仍开放 |
+| 开放世界 | 有有效 baked contract 时使用 OpenWorld；重点观察 generation/streaming 失效 | 固定场景 WGPU 已通过；跨区滚动与 Mesh/Global SDF 分层仍开放 |
+| 电影预览 | 使用 Cinematic + 固定 warmup 帧；无 baked contract 时按诊断降级 | 高预算固定场景、跨帧残影和 `.rdc` 已验收；更长时间稳定性与 broad/full 验证仍开放 |
 
 公众号合集提供了混合工作流、Lumen Pass 和 SDF/clipmap 的工程线索，但不作为算法正确性或性能数字的依据。实际实现以本仓库代码、`dev/LumenInUE5.5.4WithComputeShader`、Unreal 源码结构和 WGPU capability 验证为准。
 
@@ -269,4 +282,4 @@ qrenderdoc 已重放首尾捕获。首个捕获可检索 `HybridGiSceneDepthHand
 - feature-off 与 provider-missing 路径保持基线；
 - PNG 写入 `docs/tests/runtime/render` 并人工目检；
 - report 记录 Pass、预算、cache/voxel/probe stats 与哈希；
-- M3/M4/M5 总门另外要求 RenderDoc `.rdc`，没有 `.rdc` 不得把整个 Hybrid GI 产品化标为完成。M4 当前已有 8 份 DX12 `.rdc` 并完成重放/API 审计；这只关闭 M4 的 RenderDoc 子门，不替代 Editor、crate suite 或 broad/full 验证。
+- M3/M4/M5 总门另外要求 RenderDoc `.rdc`，没有 `.rdc` 不得把整个 Hybrid GI 产品化标为完成。M4 当前已有 8 份 DX12 `.rdc` 并完成重放/API 审计，Editor actual/fallback 与 crate suite 子门也已关闭；broad/full 验证仍不可由这些局部证据替代。

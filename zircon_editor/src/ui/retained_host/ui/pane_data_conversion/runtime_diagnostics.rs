@@ -422,15 +422,15 @@ fn push_label(
 }
 
 fn runtime_diagnostics_status_lines(payload: &RuntimeDiagnosticsPanePayload) -> Vec<String> {
-    const HYBRID_GI_PRIORITY_PREFIXES: [&str; 4] = [
+    const HYBRID_GI_PRIMARY_PREFIXES: [&str; 3] = [
         "Hybrid GI effective:",
         "Hybrid GI budgets:",
         "Hybrid GI fallback:",
-        "Hybrid GI active probes:",
     ];
+    const HYBRID_GI_ACTIVE_PROBES_PREFIX: &str = "Hybrid GI active probes:";
 
     let mut lines = Vec::new();
-    for prefix in HYBRID_GI_PRIORITY_PREFIXES {
+    for prefix in HYBRID_GI_PRIMARY_PREFIXES {
         lines.extend(
             payload
                 .detail_items
@@ -439,8 +439,15 @@ fn runtime_diagnostics_status_lines(payload: &RuntimeDiagnosticsPanePayload) -> 
                 .cloned(),
         );
     }
+    lines.push(payload.render_status.clone());
+    lines.extend(
+        payload
+            .detail_items
+            .iter()
+            .filter(|item| item.starts_with(HYBRID_GI_ACTIVE_PROBES_PREFIX))
+            .cloned(),
+    );
     lines.extend([
-        payload.render_status.clone(),
         payload.physics_status.clone(),
         payload.animation_status.clone(),
     ]);
@@ -449,11 +456,55 @@ fn runtime_diagnostics_status_lines(payload: &RuntimeDiagnosticsPanePayload) -> 
             .detail_items
             .iter()
             .filter(|item| {
-                !HYBRID_GI_PRIORITY_PREFIXES
+                !HYBRID_GI_PRIMARY_PREFIXES
                     .iter()
                     .any(|prefix| item.starts_with(prefix))
+                    && !item.starts_with(HYBRID_GI_ACTIVE_PROBES_PREFIX)
             })
             .cloned(),
     );
     lines
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ui::layouts::windows::workbench_host_window::pane_payload::RuntimeDiagnosticsPanePayload;
+
+    use super::runtime_diagnostics_status_lines;
+
+    #[test]
+    fn hybrid_gi_priority_lines_keep_render_frame_status_in_the_visible_group() {
+        let payload = RuntimeDiagnosticsPanePayload {
+            summary: "1 runtime systems available".to_string(),
+            render_status: "Render: wgpu(vulkan) (1 viewports, 42 frames)".to_string(),
+            physics_status: "Physics: unavailable".to_string(),
+            animation_status: "Animation: unavailable".to_string(),
+            detail_items: vec![
+                "Hybrid GI active probes: 0".to_string(),
+                "Hybrid GI fallback: baked-lighting-unavailable".to_string(),
+                "Hybrid GI budgets: trace=64, cards=256, voxels=64".to_string(),
+                "Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
+                    .to_string(),
+                "Virtual Geometry Debug: unavailable".to_string(),
+            ],
+            ui_debug_reflector_summary: String::new(),
+            ui_debug_reflector_nodes: Vec::new(),
+            ui_debug_reflector_details: Vec::new(),
+            ui_debug_reflector_sections: Vec::new(),
+            ui_debug_reflector_export_status: String::new(),
+            ui_debug_reflector_overlay_primitives: Vec::new(),
+            ui_debug_reflector_has_active_snapshot: false,
+        };
+
+        assert_eq!(
+            &runtime_diagnostics_status_lines(&payload)[..5],
+            [
+                "Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high",
+                "Hybrid GI budgets: trace=64, cards=256, voxels=64",
+                "Hybrid GI fallback: baked-lighting-unavailable",
+                "Render: wgpu(vulkan) (1 viewports, 42 frames)",
+                "Hybrid GI active probes: 0",
+            ]
+        );
+    }
 }
