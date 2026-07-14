@@ -29,6 +29,8 @@ pub(crate) struct MeshPassCommandBuffers {
     shadow: MeshDrawCommandList,
     opaque: MeshDrawCommandList,
     alpha_mask: MeshDrawCommandList,
+    advanced_pbr_opaque: MeshDrawCommandList,
+    transmission: MeshDrawCommandList,
     transparent: MeshDrawCommandList,
     velocity: MeshDrawCommandList,
     taa_reactive_mask: MeshDrawCommandList,
@@ -42,6 +44,8 @@ pub(crate) struct MeshPassCommandBufferStats {
     pub(crate) shadow_command_count: usize,
     pub(crate) opaque_command_count: usize,
     pub(crate) alpha_mask_command_count: usize,
+    pub(crate) advanced_pbr_opaque_command_count: usize,
+    pub(crate) transmission_command_count: usize,
     pub(crate) transparent_command_count: usize,
     pub(crate) velocity_command_count: usize,
     pub(crate) taa_reactive_mask_command_count: usize,
@@ -111,6 +115,8 @@ impl MeshPassCommandBuffers {
         append_command_list(&mut self.shadow, other.shadow);
         append_command_list(&mut self.opaque, other.opaque);
         append_command_list(&mut self.alpha_mask, other.alpha_mask);
+        append_command_list(&mut self.advanced_pbr_opaque, other.advanced_pbr_opaque);
+        append_command_list(&mut self.transmission, other.transmission);
         append_command_list(&mut self.transparent, other.transparent);
         append_command_list(&mut self.velocity, other.velocity);
         append_command_list(&mut self.taa_reactive_mask, other.taa_reactive_mask);
@@ -125,6 +131,8 @@ impl MeshPassCommandBuffers {
         let mut shadow = Vec::new();
         let mut opaque = Vec::new();
         let mut alpha_mask = Vec::new();
+        let mut advanced_pbr_opaque = Vec::new();
+        let mut transmission = Vec::new();
         let mut transparent = Vec::new();
         let mut velocity = Vec::new();
         let mut taa_reactive_mask = Vec::new();
@@ -135,6 +143,12 @@ impl MeshPassCommandBuffers {
                 RenderPhase::Shadow => shadow.push(command),
                 RenderPhase::Opaque3d => opaque.push(command),
                 RenderPhase::AlphaMask3d => alpha_mask.push(command),
+                RenderPhase::Transparent3d if is_late_forward_opaque(&command) => {
+                    advanced_pbr_opaque.push(command)
+                }
+                RenderPhase::Transparent3d if is_transmission(&command) => {
+                    transmission.push(command)
+                }
                 RenderPhase::Transparent3d => transparent.push(command),
                 RenderPhase::PostProcess
                     if command.pipeline_kind == super::MeshPassPipelineKind::Velocity =>
@@ -159,6 +173,8 @@ impl MeshPassCommandBuffers {
             shadow: MeshDrawCommandList::from_commands(shadow),
             opaque: MeshDrawCommandList::from_commands(opaque),
             alpha_mask: MeshDrawCommandList::from_commands(alpha_mask),
+            advanced_pbr_opaque: MeshDrawCommandList::from_commands(advanced_pbr_opaque),
+            transmission: MeshDrawCommandList::from_commands(transmission),
             transparent: MeshDrawCommandList::from_commands(transparent),
             velocity: MeshDrawCommandList::from_commands(velocity),
             taa_reactive_mask: MeshDrawCommandList::from_commands(taa_reactive_mask),
@@ -180,6 +196,14 @@ impl MeshPassCommandBuffers {
 
     pub(crate) fn alpha_mask(&self) -> &MeshDrawCommandList {
         &self.alpha_mask
+    }
+
+    pub(crate) fn advanced_pbr_opaque(&self) -> &MeshDrawCommandList {
+        &self.advanced_pbr_opaque
+    }
+
+    pub(crate) fn transmission(&self) -> &MeshDrawCommandList {
+        &self.transmission
     }
 
     pub(crate) fn transparent(&self) -> &MeshDrawCommandList {
@@ -206,6 +230,8 @@ impl MeshPassCommandBuffers {
         let shadow = self.shadow.stats();
         let opaque = self.opaque.stats();
         let alpha_mask = self.alpha_mask.stats();
+        let advanced_pbr_opaque = self.advanced_pbr_opaque.stats();
+        let transmission = self.transmission.stats();
         let transparent = self.transparent.stats();
         let velocity = self.velocity.stats();
         let taa_reactive_mask = self.taa_reactive_mask.stats();
@@ -214,10 +240,34 @@ impl MeshPassCommandBuffers {
             shadow,
             opaque,
             alpha_mask,
+            advanced_pbr_opaque,
+            transmission,
             transparent,
             velocity,
             taa_reactive_mask,
         ];
+
+        let mut indirect_stats = indirect_batch_stats(
+            capabilities,
+            [
+                self.depth_prepass.commands(),
+                self.shadow.commands(),
+                self.opaque.commands(),
+                self.alpha_mask.commands(),
+                self.advanced_pbr_opaque.commands(),
+                self.transparent.commands(),
+                self.velocity.commands(),
+                self.taa_reactive_mask.commands(),
+            ],
+        );
+        accumulate_indirect_batch_stats(
+            &mut indirect_stats,
+            IndirectDrawBatcher::build(
+                self.transmission.commands(),
+                &RenderCapabilitySummary::default(),
+            )
+            .stats(),
+        );
 
         MeshPassCommandBufferStats {
             command_count: lists.iter().map(|stats| stats.command_count).sum(),
@@ -225,6 +275,8 @@ impl MeshPassCommandBuffers {
             shadow_command_count: shadow.command_count,
             opaque_command_count: opaque.command_count,
             alpha_mask_command_count: alpha_mask.command_count,
+            advanced_pbr_opaque_command_count: advanced_pbr_opaque.command_count,
+            transmission_command_count: transmission.command_count,
             transparent_command_count: transparent.command_count,
             velocity_command_count: velocity.command_count,
             taa_reactive_mask_command_count: taa_reactive_mask.command_count,
@@ -241,20 +293,17 @@ impl MeshPassCommandBuffers {
             cache_invalidated_transform_count: self.cache_stats.cache_invalidated_transform_count,
             cache_invalidated_geometry_count: self.cache_stats.cache_invalidated_geometry_count,
             cache_invalidated_material_count: self.cache_stats.cache_invalidated_material_count,
-            ..indirect_batch_stats(
-                capabilities,
-                [
-                    self.depth_prepass.commands(),
-                    self.shadow.commands(),
-                    self.opaque.commands(),
-                    self.alpha_mask.commands(),
-                    self.transparent.commands(),
-                    self.velocity.commands(),
-                    self.taa_reactive_mask.commands(),
-                ],
-            )
+            ..indirect_stats
         }
     }
+}
+
+fn is_late_forward_opaque(command: &MeshDrawCommand) -> bool {
+    command.pipeline_key().requires_forward_path() && !command.pipeline_key().pbr_transmission
+}
+
+fn is_transmission(command: &MeshDrawCommand) -> bool {
+    command.pipeline_key().pbr_transmission
 }
 
 fn append_command_list(target: &mut MeshDrawCommandList, source: MeshDrawCommandList) {

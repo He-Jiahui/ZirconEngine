@@ -12,6 +12,7 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::ResourceId;
 
+mod advanced_features;
 mod asset_serialization;
 mod management_records;
 mod override_validation;

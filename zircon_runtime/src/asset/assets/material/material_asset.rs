@@ -8,10 +8,11 @@ use crate::core::framework::render::{
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialReadinessReport, RenderMaterialTextureTransform,
     RenderMaterialValidationError, RenderQueueValue, ShaderQueueDescriptor, ShaderQueueSegment,
-    StandardMaterialDescriptor,
+    StandardMaterialDescriptor, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
 };
 use crate::core::resource::ResourceId;
 
+mod advanced_features;
 mod management;
 mod readiness;
 mod subsurface;
@@ -167,6 +168,7 @@ impl MaterialAsset {
             self.queue,
         ));
         errors.extend(material_control::validation_errors(&self.property_values));
+        errors.extend(advanced_features::validation_errors(&self.property_values));
         errors
     }
 
@@ -295,6 +297,12 @@ impl MaterialAsset {
     pub fn standard_material_descriptor(&self) -> StandardMaterialDescriptor {
         let lighting_model = self.lighting_model();
         let unlit = lighting_model.is_unlit();
+        let advanced_features = self.advanced_pbr_features();
+        let render_queue_value = if advanced_features.uses_transmission() {
+            Some(STANDARD_PBR_TRANSMISSION_RENDER_QUEUE)
+        } else {
+            self.render_queue_value()
+        };
         StandardMaterialDescriptor {
             name: self.name.clone(),
             dependencies: self.dependency_set(),
@@ -332,10 +340,11 @@ impl MaterialAsset {
             cast_shadows: self.cast_shadows(),
             receive_shadows: self.receive_shadows(),
             render_queue: self.render_queue(),
-            render_queue_value: self.render_queue_value(),
+            render_queue_value,
             material_queue: self.material_queue(),
             depth_bias: self.depth_bias(),
             taa_reactive_mask_strength: self.taa_reactive_mask_strength(),
+            advanced_features,
             subsurface_profile_index: self.subsurface_profile_index(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
@@ -400,6 +409,9 @@ impl MaterialAsset {
             descriptor.emissive_texture_transform = slot.texture_transform();
             descriptor.emissive_texture_uv_channel = slot.texture_uv_channel();
         }
+        if descriptor.advanced_features.uses_transmission() {
+            descriptor.render_queue_value = Some(STANDARD_PBR_TRANSMISSION_RENDER_QUEUE);
+        }
         descriptor.dependencies = self.shader_aware_dependency_set_from_descriptor(&descriptor);
         descriptor
     }
@@ -447,15 +459,17 @@ impl MaterialAsset {
     }
 
     pub fn shader_property_overrides(&self) -> impl Iterator<Item = (&String, &toml::Value)> {
-        self.property_values
-            .iter()
-            .filter(|(name, _)| !material_control::is_material_owned_property(name))
+        self.property_values.iter().filter(|(name, _)| {
+            !material_control::is_material_owned_property(name)
+                && !advanced_features::is_material_owned_property(name)
+        })
     }
 
     pub fn shader_property_override(&self, name: &str) -> Option<&toml::Value> {
-        (!material_control::is_material_owned_property(name))
-            .then(|| self.property_values.get(name))
-            .flatten()
+        (!material_control::is_material_owned_property(name)
+            && !advanced_features::is_material_owned_property(name))
+        .then(|| self.property_values.get(name))
+        .flatten()
     }
 
     pub fn lighting_model(&self) -> RenderMaterialLightingModel {

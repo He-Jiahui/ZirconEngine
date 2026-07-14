@@ -9,6 +9,8 @@ mod build_compiled_scene_draws;
 mod execute_compiled_scene_graph_stages;
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) mod execute_graph_stage;
 mod final_target_output;
+mod pipeline_resource_usage;
 mod prepare_overlay_buffers;
 mod render;
+mod sprite_stage_selection;
 mod submit_compiled_scene_frame;

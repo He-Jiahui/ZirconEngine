@@ -1,3 +1,5 @@
+mod advanced_pbr;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -136,14 +138,14 @@ fn export_render_product_advanced_lighting_oit_three_crossing_planes_png() {
 
 fn render_crossing_planes(registered_oit: bool, settings: Option<OitSettings>) -> ProductRender {
     let framework = if registered_oit {
-        WgpuRenderFramework::new_with_plugin_render_features(
+        WgpuRenderFramework::new_for_test_with_plugin_render_features(
             Arc::new(ProjectAssetManager::default()),
             [oit_render_feature_descriptor()],
             oit_render_pass_executor_registrations(),
             Vec::new(),
         )
     } else {
-        WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default()))
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default()))
     }
     .expect("WGPU framework should initialize for the OIT product scene");
     let viewport = framework

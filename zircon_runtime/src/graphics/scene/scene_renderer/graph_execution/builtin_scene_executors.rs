@@ -4,6 +4,69 @@ use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassExecutionContext;
 
+pub(super) fn transmission_scene_copy_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let step_index =
+        crate::graphics::pipeline::transmission_scene_copy_step_index(context.executor_id.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "executor `{}` is not a transmission scene-copy executor",
+                    context.executor_id
+                )
+            })?;
+    let gpu = context.require_gpu()?;
+    if !gpu.transmission_step_has_commands(step_index)? {
+        return Ok(());
+    }
+    gpu.record_transmission_scene_color_copy(
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
+    )
+}
+
+pub(super) fn transmission_mesh_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let step_index =
+        crate::graphics::pipeline::transmission_mesh_step_index(context.executor_id.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "executor `{}` is not a transmission mesh executor",
+                    context.executor_id
+                )
+            })?;
+    let attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_COLOR)
+        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let depth_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let gpu = context.require_gpu()?;
+    gpu.record_transmission_step_to_resources(
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        step_index,
+        attachment_ops,
+        depth_attachment_ops,
+    )
+}
+
+pub(super) fn advanced_pbr_opaque_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_COLOR)
+        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let gpu = context.require_gpu()?;
+    gpu.record_advanced_pbr_opaque_to_resources(
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        attachment_ops,
+        RenderGraphAttachmentOps::load_store(),
+    )
+}
+
 pub(super) fn sprite_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     let stage = sprite_stage_for_executor(context.executor_id.as_str())?;
     let attachment_ops = context

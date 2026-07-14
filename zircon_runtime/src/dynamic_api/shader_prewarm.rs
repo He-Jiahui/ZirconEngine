@@ -202,6 +202,9 @@ pub fn builtin_standard_material_shader_prewarm_manifest(
         .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
     pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
     pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.pbr_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = features.contains(ShaderFeatureBits::PBR_TRANSMISSION);
     pipeline_key.shading_model_id = shading_model;
 
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
@@ -226,6 +229,9 @@ pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry(
         .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
     pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
     pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.pbr_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = features.contains(ShaderFeatureBits::PBR_TRANSMISSION);
     pipeline_key.shading_model_id = shading_model;
 
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
@@ -250,6 +256,9 @@ pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor
         .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
     pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
     pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.pbr_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = features.contains(ShaderFeatureBits::PBR_TRANSMISSION);
     pipeline_key.shading_model_id = shading_model;
 
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
@@ -403,6 +412,9 @@ fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_wit
         .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
     pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
     pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.pbr_clearcoat = features.contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = features.contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = features.contains(ShaderFeatureBits::PBR_TRANSMISSION);
     pipeline_key.shading_model_id = shading_model;
     let source_set = ShadingModelIncludeSourceSet::from_project_asset_manager(
         asset_manager,

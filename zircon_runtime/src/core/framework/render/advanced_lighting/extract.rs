@@ -1,14 +1,18 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    FogVolumeData, FroxelGridQuality, IrradianceVolumeData, LightCookieData, OitSettings,
-    PlanarReflectionProbeData, SubsurfaceProfileData, VolumetricFogSettings,
+    AdvancedPbrMaterialFrameUsage, FogVolumeData, FroxelGridQuality, IrradianceVolumeData,
+    LightCookieData, OitSettings, PlanarReflectionProbeData, ScreenSpaceTransmissionSettings,
+    SubsurfaceProfileData, VolumetricFogSettings,
 };
 
 /// Optional advanced-lighting frame sideband. Empty vectors and `None` keep
 /// feature-disabled frames free of authored advanced-lighting payloads.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct AdvancedLightingExtract {
+    pub material_features: AdvancedPbrMaterialFrameUsage,
+    #[serde(default)]
+    pub screen_space_transmission: ScreenSpaceTransmissionSettings,
     pub volumetric: Option<VolumetricFogSettings>,
     pub oit: Option<OitSettings>,
     pub fog_volumes: Vec<FogVolumeData>,
@@ -23,7 +27,8 @@ pub struct AdvancedLightingExtract {
 
 impl AdvancedLightingExtract {
     pub fn is_empty(&self) -> bool {
-        self.volumetric.is_none()
+        self.material_features.is_empty()
+            && self.volumetric.is_none()
             && self.oit.is_none()
             && self.fog_volumes.is_empty()
             && self.cookies.is_empty()
@@ -40,6 +45,31 @@ impl AdvancedLightingExtract {
 
     pub const fn froxel_dimensions(&self, quality: FroxelGridQuality) -> [u32; 3] {
         quality.dimensions()
+    }
+
+    pub const fn transmission_scene_copy_step_count(&self) -> usize {
+        if self.material_features.requires_scene_color_copy() {
+            self.screen_space_transmission.steps()
+        } else {
+            0
+        }
+    }
+
+    pub const fn requires_transmission_scene_copy(&self) -> bool {
+        self.transmission_scene_copy_step_count() > 0
+    }
+
+    pub const fn transmission_draw_step_count(&self) -> usize {
+        if !self.material_features.uses_transmission() {
+            0
+        } else {
+            let copy_steps = self.transmission_scene_copy_step_count();
+            if copy_steps == 0 {
+                1
+            } else {
+                copy_steps
+            }
+        }
     }
 }
 

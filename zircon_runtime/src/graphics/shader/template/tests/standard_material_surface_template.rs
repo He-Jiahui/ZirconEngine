@@ -18,6 +18,15 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(!surface_source
         .features
         .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+    assert!(!surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+    assert!(!surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+    assert!(!surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_TRANSMISSION));
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -261,6 +270,96 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(assembly
         .wgsl_source
         .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = false;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = false;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = false;"));
+}
+
+#[test]
+fn render_shader_template_projects_advanced_pbr_features() {
+    let mut material = standard_material_descriptor();
+    material.advanced_features = StandardPbrMaterialFeatures {
+        clearcoat: 0.8,
+        anisotropy_strength: 0.6,
+        specular_transmission: 0.7,
+        ..Default::default()
+    };
+
+    let surface_source = standard_material_surface_source(&material);
+
+    assert!(surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+    assert!(surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+    assert!(surface_source
+        .features
+        .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+
+    let assembly = assemble_material_shader_template(
+        MaterialShaderTemplateRequest::new(
+            static_mesh_descriptor(),
+            ShaderPassType::Forward,
+            surface_source.source,
+            surface_source.entry_point,
+        )
+        .with_features(surface_source.features),
+    )
+    .expect("advanced Standard PBR template assembly");
+
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_CLEARCOAT: bool = true;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_ANISOTROPY: bool = true;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_PBR_TRANSMISSION: bool = true;"));
+    for projection in [
+        "surface.clearcoat = select(0.0, clamp(standard_material_properties.data9.x",
+        "surface.anisotropy_rotation = select(0.0, standard_material_properties.data9.w",
+        "surface.specular_transmission = select(0.0, clamp(standard_material_properties.data10.x",
+        "surface.ior = select(1.5, max(standard_material_properties.data10.w",
+        "surface.attenuation_color = select(vec3<f32>(1.0), clamp(standard_material_properties.data11.rgb",
+        "surface.attenuation_distance = select(1.0e30, max(standard_material_properties.data11.w",
+    ] {
+        assert!(
+            assembly.wgsl_source.contains(projection),
+            "advanced PBR template is missing projection `{projection}`"
+        );
+    }
+    assert_include_token!(assembly, "zr_pbr_extras.wgsl");
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(2) @binding(11) var standard_material_clearcoat_normal_tex"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(2) @binding(12) var standard_material_clearcoat_normal_sampler"));
+    assert!(assembly.wgsl_source.contains("fn zr_aniso_ggx"));
+    assert!(assembly.wgsl_source.contains("fn zr_clearcoat_lobe"));
+    assert!(assembly.wgsl_source.contains("fn zr_transmission_btdf"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(1) @binding(31) var zr_transmission_scene_color"));
+    assert!(assembly
+        .wgsl_source
+        .contains("fn zr_pbr_screen_space_transmission"));
+    assert!(assembly
+        .wgsl_source
+        .contains("let transmission_source = select("));
+    assert!(assembly.wgsl_source.contains("environment_lighting,"));
+    assert!(assembly.wgsl_source.contains("scene_color_sample.rgb,"));
+    assert!(assembly.wgsl_source.contains("scene_color_sample.a > 0.0,"));
+    validate_material_shader_template_wgsl(&assembly.wgsl_source)
+        .expect("advanced Standard PBR WGSL should validate");
 }
 
 #[test]

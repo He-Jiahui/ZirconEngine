@@ -95,9 +95,36 @@ fn render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs() {
         .with_selected_camera_descriptor(selected_descriptor(&baseline).with_msaa_samples(4));
     assert_ne!(baseline_fingerprint, fingerprint_for(&msaa));
 
-    let mut particles = baseline;
+    let mut particles = baseline.clone();
     particles.particles.sprites.push(particle_sprite_snapshot());
     assert_ne!(baseline_fingerprint, fingerprint_for(&particles));
+
+    let mut transmission = baseline.clone();
+    transmission
+        .lighting
+        .advanced_lighting
+        .material_features
+        .specular_transmission = true;
+    assert_ne!(baseline_fingerprint, fingerprint_for(&transmission));
+
+    let mut layered_transmission = transmission.clone();
+    layered_transmission
+        .lighting
+        .advanced_lighting
+        .screen_space_transmission =
+        crate::core::framework::render::ScreenSpaceTransmissionSettings::new(3);
+    assert_ne!(
+        fingerprint_for(&transmission),
+        fingerprint_for(&layered_transmission)
+    );
+
+    let mut late_forward_opaque = baseline;
+    late_forward_opaque
+        .lighting
+        .advanced_lighting
+        .material_features
+        .late_forward_opaque = true;
+    assert_ne!(baseline_fingerprint, fingerprint_for(&late_forward_opaque));
 }
 
 #[test]

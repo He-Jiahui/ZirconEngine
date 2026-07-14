@@ -109,6 +109,18 @@ fn pipeline_key_from_prewarm_request(request: &ShaderVariantPrewarmRequest) -> P
         .key
         .features
         .contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.pbr_clearcoat = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_TRANSMISSION);
     pipeline_key.shading_model_id = request.key.shading_model;
     pipeline_key
 }
@@ -131,6 +143,7 @@ fn create_validation_scene_layout(device: &wgpu::Device) -> wgpu::BindGroupLayou
 
 fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_apply_bind_group_layout_entries;
+    use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::transmission_scene_color_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridParams;
     use crate::graphics::scene::scene_renderer::shadow::atlas::{
@@ -149,6 +162,7 @@ fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::Bind
     entries.extend(volumetric_apply_bind_group_layout_entries(
         wgpu::ShaderStages::FRAGMENT,
     ));
+    entries.extend(transmission_scene_color_bind_group_layout_entries());
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: 20,
@@ -211,6 +225,8 @@ fn create_validation_material_layout(device: &wgpu::Device) -> wgpu::BindGroupLa
             material_sampler_entry(8),
             material_texture_entry(9),
             material_sampler_entry(10),
+            material_texture_entry(11),
+            material_sampler_entry(12),
         ],
     })
 }

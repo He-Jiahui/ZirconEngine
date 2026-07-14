@@ -28,6 +28,8 @@ struct ZrVertexOutput {
 struct ZrSurfaceOutput {
     base_color: vec4<f32>,
     normal_ws: vec3<f32>,
+    tangent_ws: vec3<f32>,
+    bitangent_ws: vec3<f32>,
     metallic: f32,
     roughness: f32,
     occlusion: f32,
@@ -35,6 +37,17 @@ struct ZrSurfaceOutput {
     alpha_cutoff: f32,
     unlit: f32,
     shading_model_id: u32,
+    clearcoat_normal_ws: vec3<f32>,
+    clearcoat: f32,
+    clearcoat_roughness: f32,
+    anisotropy_strength: f32,
+    anisotropy_rotation: f32,
+    specular_transmission: f32,
+    diffuse_transmission: f32,
+    thickness: f32,
+    ior: f32,
+    attenuation_color: vec3<f32>,
+    attenuation_distance: f32,
     custom0: vec4<f32>,
 };
 
@@ -107,6 +120,8 @@ fn zr_surface_from_base_color(base_color: vec4<f32>) -> ZrSurfaceOutput {
     var surface: ZrSurfaceOutput;
     surface.base_color = base_color;
     surface.normal_ws = vec3<f32>(0.0, 0.0, 1.0);
+    surface.tangent_ws = vec3<f32>(1.0, 0.0, 0.0);
+    surface.bitangent_ws = vec3<f32>(0.0, 1.0, 0.0);
     surface.metallic = 0.0;
     surface.roughness = 1.0;
     surface.occlusion = 1.0;
@@ -114,6 +129,17 @@ fn zr_surface_from_base_color(base_color: vec4<f32>) -> ZrSurfaceOutput {
     surface.alpha_cutoff = 0.0;
     surface.unlit = 0.0;
     surface.shading_model_id = 2u;
+    surface.clearcoat_normal_ws = surface.normal_ws;
+    surface.clearcoat = 0.0;
+    surface.clearcoat_roughness = 0.5;
+    surface.anisotropy_strength = 0.0;
+    surface.anisotropy_rotation = 0.0;
+    surface.specular_transmission = 0.0;
+    surface.diffuse_transmission = 0.0;
+    surface.thickness = 0.0;
+    surface.ior = 1.5;
+    surface.attenuation_color = vec3<f32>(1.0);
+    surface.attenuation_distance = 1.0e30;
     surface.custom0 = vec4<f32>(0.0);
     return surface;
 }

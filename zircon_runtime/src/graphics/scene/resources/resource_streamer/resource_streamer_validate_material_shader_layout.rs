@@ -17,6 +17,8 @@ const RENDERER_OCCLUSION_TEXTURE_BINDING: u32 = 7;
 const RENDERER_OCCLUSION_SAMPLER_BINDING: u32 = 8;
 const RENDERER_EMISSIVE_TEXTURE_BINDING: u32 = 9;
 const RENDERER_EMISSIVE_SAMPLER_BINDING: u32 = 10;
+const RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING: u32 = 11;
+const RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING: u32 = 12;
 const RENDERER_GPU_SCENE_BIND_GROUP: u32 = 3;
 const RENDERER_GPU_SCENE_PRIMITIVE_BINDING: u32 = 0;
 const RENDERER_GPU_SCENE_INSTANCE_BINDING: u32 = 1;
@@ -105,6 +107,18 @@ fn push_material_bind_group_diagnostics(
         ExpectedRendererBinding {
             binding: RENDERER_EMISSIVE_SAMPLER_BINDING,
             label: "emissive sampler",
+            resource_type: RenderShaderBindingResourceType::Sampler,
+            required_visibility: &[RenderShaderStage::Fragment],
+        },
+        ExpectedRendererBinding {
+            binding: RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING,
+            label: "clearcoat-normal texture",
+            resource_type: RenderShaderBindingResourceType::Texture,
+            required_visibility: &[RenderShaderStage::Fragment],
+        },
+        ExpectedRendererBinding {
+            binding: RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING,
+            label: "clearcoat-normal sampler",
             resource_type: RenderShaderBindingResourceType::Sampler,
             required_visibility: &[RenderShaderStage::Fragment],
         },
@@ -427,6 +441,16 @@ mod tests {
                         RENDERER_MATERIAL_UNIFORM_BINDING,
                         RenderShaderBindingResourceType::UniformBuffer,
                         vec![RenderShaderStage::Vertex, RenderShaderStage::Fragment],
+                    ),
+                    binding(
+                        RENDERER_CLEARCOAT_NORMAL_TEXTURE_BINDING,
+                        RenderShaderBindingResourceType::Texture,
+                        vec![RenderShaderStage::Fragment],
+                    ),
+                    binding(
+                        RENDERER_CLEARCOAT_NORMAL_SAMPLER_BINDING,
+                        RenderShaderBindingResourceType::Sampler,
+                        vec![RenderShaderStage::Fragment],
                     ),
                 ],
             ),

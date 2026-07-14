@@ -316,6 +316,7 @@ pub(crate) struct MeshPassIndirectDrawExecutions {
     shadow: Option<MeshIndirectDrawExecution>,
     opaque: Option<MeshIndirectDrawExecution>,
     alpha_mask: Option<MeshIndirectDrawExecution>,
+    advanced_pbr_opaque: Option<MeshIndirectDrawExecution>,
     transparent: Option<MeshIndirectDrawExecution>,
     velocity: Option<MeshIndirectDrawExecution>,
     taa_reactive_mask: Option<MeshIndirectDrawExecution>,
@@ -350,6 +351,12 @@ impl MeshPassIndirectDrawExecutions {
                 device,
                 "zircon-alpha-mask-indirect-args",
                 command_buffers.alpha_mask().commands(),
+                capabilities,
+            ),
+            advanced_pbr_opaque: MeshIndirectDrawExecution::build(
+                device,
+                "zircon-advanced-pbr-opaque-indirect-args",
+                command_buffers.advanced_pbr_opaque().commands(),
                 capabilities,
             ),
             transparent: MeshIndirectDrawExecution::build(
@@ -387,6 +394,10 @@ impl MeshPassIndirectDrawExecutions {
 
     pub(crate) fn alpha_mask(&self) -> Option<&MeshIndirectDrawExecution> {
         self.alpha_mask.as_ref()
+    }
+
+    pub(crate) fn advanced_pbr_opaque(&self) -> Option<&MeshIndirectDrawExecution> {
+        self.advanced_pbr_opaque.as_ref()
     }
 
     pub(crate) fn transparent(&self) -> Option<&MeshIndirectDrawExecution> {
@@ -459,28 +470,35 @@ impl MeshPassIndirectDrawExecutions {
             .collect()
     }
 
-    pub(crate) fn hzb_occlusion_executions(&self) -> [Option<&MeshIndirectDrawExecution>; 3] {
-        [self.opaque(), self.alpha_mask(), self.velocity()]
+    pub(crate) fn hzb_occlusion_executions(&self) -> [Option<&MeshIndirectDrawExecution>; 4] {
+        [
+            self.opaque(),
+            self.alpha_mask(),
+            self.advanced_pbr_opaque(),
+            self.velocity(),
+        ]
     }
 
-    fn executions(&self) -> [Option<&MeshIndirectDrawExecution>; 7] {
+    fn executions(&self) -> [Option<&MeshIndirectDrawExecution>; 8] {
         [
             self.depth_prepass(),
             self.shadow(),
             self.opaque(),
             self.alpha_mask(),
+            self.advanced_pbr_opaque(),
             self.transparent(),
             self.velocity(),
             self.taa_reactive_mask(),
         ]
     }
 
-    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 7] {
+    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 8] {
         [
             self.depth_prepass.as_mut(),
             self.shadow.as_mut(),
             self.opaque.as_mut(),
             self.alpha_mask.as_mut(),
+            self.advanced_pbr_opaque.as_mut(),
             self.transparent.as_mut(),
             self.velocity.as_mut(),
             self.taa_reactive_mask.as_mut(),

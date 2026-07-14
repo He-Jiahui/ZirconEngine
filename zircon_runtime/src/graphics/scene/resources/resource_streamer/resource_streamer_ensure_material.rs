@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use crate::asset::{AssetReference, MaterialAsset, ShaderAsset, TextureUploadSupport};
 use crate::core::framework::render::{
@@ -34,6 +35,7 @@ impl ResourceStreamer {
         handle: ResourceHandle<MaterialMarker>,
     ) -> Result<(), GraphicsError> {
         let id = handle.id();
+        let asset_manager = self.asset_manager()?;
         let requested_revision = self.resource_revision(id).ok();
         let texture_support = texture_upload_support_from_device(device);
         if let Some(prepared) = self.materials.get(&id).filter(|prepared| {
@@ -42,18 +44,18 @@ impl ResourceStreamer {
             return material_prepare_result(id, &prepared.runtime.readiness_report);
         }
         let (material, missing_material_fallback, prepared_revision, loaded_material_id) =
-            match self.asset_manager.load_material_asset(id) {
+            match asset_manager.load_material_asset(id) {
                 Ok(material) => (material, None, requested_revision, id),
                 Err(error) => {
                     let fallback_uri = fallback_material_uri();
-                    let fallback_id = self.asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
+                    let fallback_id = asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
                         || {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} is not registered"
                             ))
                         },
                     )?;
-                    let material = self.asset_manager.load_material_asset(fallback_id).map_err(
+                    let material = asset_manager.load_material_asset(fallback_id).map_err(
                         |fallback_error| {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} failed to load: {fallback_error}"
@@ -69,8 +71,9 @@ impl ResourceStreamer {
                 }
             };
         let (material, parent_validation_errors) =
-            self.material_with_parent_chain(loaded_material_id, material);
-        let shader_contract = self.load_shader_contract(material.shader.clone());
+            self.material_with_parent_chain(asset_manager.as_ref(), loaded_material_id, material);
+        let shader_contract =
+            Self::load_shader_contract(asset_manager.as_ref(), material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader))
@@ -91,8 +94,8 @@ impl ResourceStreamer {
             .as_ref()
             .map(|shader| MaterialDisabledPasses::from_shader_pass_names(&shader.disabled_passes))
             .unwrap_or_default();
-        let shader_resolver = self.asset_manager.clone();
-        let texture_resolver = self.asset_manager.clone();
+        let shader_resolver = Arc::clone(&asset_manager);
+        let texture_resolver = Arc::clone(&asset_manager);
         let mut readiness = if let Some(shader) = shader_contract.as_ref() {
             material.readiness_report_with_shader_contract(
                 shader,
@@ -108,8 +111,8 @@ impl ResourceStreamer {
                 },
             )
         } else {
-            let shader_resolver = self.asset_manager.clone();
-            let texture_resolver = self.asset_manager.clone();
+            let shader_resolver = Arc::clone(&asset_manager);
+            let texture_resolver = Arc::clone(&asset_manager);
             material.readiness_report_with_resolution(
                 move |reference| {
                     shader_resolver
@@ -216,6 +219,14 @@ impl ResourceStreamer {
             descriptor.emissive_texture.as_ref(),
             texture_support,
         );
+        let clearcoat_normal_texture = self.resolve_texture_reference_with_support(
+            "clearcoat_normal_texture",
+            descriptor
+                .advanced_features
+                .clearcoat_normal_texture
+                .as_ref(),
+            texture_support,
+        );
         let standard_texture_slots = [
             descriptor.base_color_texture.as_ref().map(|_| {
                 (
@@ -262,6 +273,19 @@ impl ResourceStreamer {
                     emissive_texture.slot_fallback.clone(),
                 )
             }),
+            descriptor
+                .advanced_features
+                .clearcoat_normal_texture
+                .as_ref()
+                .map(|_| {
+                    (
+                        "clearcoat_normal",
+                        clearcoat_normal_texture.id(),
+                        Some(clearcoat_normal_texture.expected_dimension),
+                        clearcoat_normal_texture.actual_dimension,
+                        clearcoat_normal_texture.slot_fallback.clone(),
+                    )
+                }),
         ]
         .into_iter()
         .flatten()
@@ -327,6 +351,7 @@ impl ResourceStreamer {
             &metallic_roughness_texture,
             &occlusion_texture,
             &emissive_texture,
+            &clearcoat_normal_texture,
         ] {
             if let Some(error) = &texture.validation_error {
                 readiness.push_validation_error_once(error.clone());
@@ -413,6 +438,7 @@ impl ResourceStreamer {
             depth_bias: descriptor.depth_bias,
             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
             subsurface_profile_index: descriptor.subsurface_profile_index,
+            advanced_features: descriptor.advanced_features.clone(),
             base_color_texture: base_color_texture.id(),
             base_color_texture_transform: descriptor.base_color_texture_transform,
             base_color_texture_uv_channel: descriptor.base_color_texture_uv_channel,
@@ -428,6 +454,7 @@ impl ResourceStreamer {
             emissive_texture: emissive_texture.id(),
             emissive_texture_transform: descriptor.emissive_texture_transform,
             emissive_texture_uv_channel: descriptor.emissive_texture_uv_channel,
+            clearcoat_normal_texture: clearcoat_normal_texture.id(),
             shader_property_values,
             shader_property_uniform_payload,
             non_standard_texture_slots,
@@ -448,6 +475,9 @@ impl ResourceStreamer {
                 has_metallic_roughness_texture: descriptor.metallic_roughness_texture.is_some(),
                 has_occlusion_texture: descriptor.occlusion_texture.is_some(),
                 has_emissive_texture: descriptor.emissive_texture.is_some(),
+                pbr_clearcoat: descriptor.advanced_features.uses_clearcoat(),
+                pbr_anisotropy: descriptor.advanced_features.uses_anisotropy(),
+                pbr_transmission: descriptor.advanced_features.uses_transmission(),
             },
             readiness_report: readiness,
         };
@@ -478,6 +508,7 @@ impl ResourceStreamer {
             metallic_roughness_texture.id(),
             occlusion_texture.id(),
             emissive_texture.id(),
+            clearcoat_normal_texture.id(),
         ]
         .into_iter()
         .flatten()
@@ -516,9 +547,9 @@ impl ResourceStreamer {
     }
 
     fn material_texture_uses_output_target_binding(&self, texture_id: ResourceId) -> bool {
-        self.asset_manager
-            .load_texture_asset(texture_id)
+        self.asset_manager()
             .ok()
+            .and_then(|asset_manager| asset_manager.load_texture_asset(texture_id).ok())
             .map(|texture| {
                 let descriptor = texture.render_image_descriptor();
                 descriptor.usage.contains(&RenderImageUsage::RenderTarget)
@@ -567,8 +598,15 @@ impl ResourceStreamer {
         locator: &ResourceLocator,
         texture_support: TextureUploadSupport,
     ) -> PreparedMaterialTextureDependency {
-        let Some((texture_id, texture_revision)) = self
-            .asset_manager
+        let Ok(asset_manager) = self.asset_manager() else {
+            return PreparedMaterialTextureDependency {
+                locator: locator.clone(),
+                id: None,
+                revision: None,
+                upload_unsupported_reason: Some("ProjectAssetManager is unavailable".to_string()),
+            };
+        };
+        let Some((texture_id, texture_revision)) = asset_manager
             .resource_manager()
             .registry()
             .get_by_locator(locator)
@@ -581,7 +619,7 @@ impl ResourceStreamer {
                 upload_unsupported_reason: None,
             };
         };
-        let upload_unsupported_reason = match self.asset_manager.load_texture_asset(texture_id) {
+        let upload_unsupported_reason = match asset_manager.load_texture_asset(texture_id) {
             Ok(texture) => texture
                 .upload_readiness(texture_support)
                 .unsupported_reason()
@@ -597,14 +635,18 @@ impl ResourceStreamer {
         }
     }
 
-    fn load_shader_contract(&self, reference: AssetReference) -> Option<ShaderAsset> {
-        self.asset_manager
+    fn load_shader_contract(
+        asset_manager: &crate::asset::ProjectAssetManager,
+        reference: AssetReference,
+    ) -> Option<ShaderAsset> {
+        asset_manager
             .resolve_asset_id(&reference.locator)
-            .and_then(|id| self.asset_manager.load_shader_asset(id).ok())
+            .and_then(|id| asset_manager.load_shader_asset(id).ok())
     }
 
     fn material_with_parent_chain(
         &self,
+        asset_manager: &crate::asset::ProjectAssetManager,
         root_id: ResourceId,
         material: MaterialAsset,
     ) -> (MaterialAsset, Vec<RenderMaterialValidationError>) {
@@ -626,10 +668,7 @@ impl ResourceStreamer {
                 )));
                 break;
             }
-            let Some(parent_id) = self
-                .asset_manager
-                .resolve_asset_id(&parent_reference.locator)
-            else {
+            let Some(parent_id) = asset_manager.resolve_asset_id(&parent_reference.locator) else {
                 diagnostics.push(invalid_parent_diagnostic(format!(
                     "material parent `{}` is not registered",
                     parent_reference.locator
@@ -642,7 +681,7 @@ impl ResourceStreamer {
                 )));
                 break;
             }
-            let Ok(parent) = self.asset_manager.load_material_asset(parent_id) else {
+            let Ok(parent) = asset_manager.load_material_asset(parent_id) else {
                 diagnostics.push(invalid_parent_diagnostic(format!(
                     "material parent `{}` failed to load",
                     parent_reference.locator

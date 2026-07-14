@@ -1,3 +1,4 @@
+mod advanced_pbr_pass_contract;
 mod compiled_render_pipeline;
 mod render_pass_stage;
 mod render_pipeline_asset;
@@ -10,6 +11,12 @@ mod renderer_feature_contract_diagnostic;
 mod renderer_feature_reference;
 mod renderer_feature_source;
 
+pub(crate) use advanced_pbr_pass_contract::{
+    transmission_mesh_pass_name, transmission_mesh_step_index, transmission_scene_copy_pass_name,
+    transmission_scene_copy_step_index, ADVANCED_PBR_OPAQUE_EXECUTOR_ID,
+    ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
+    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
+};
 pub use compiled_render_pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 pub use render_pass_stage::RenderPassStage;
 pub use render_pipeline_asset::RenderPipelineAsset;

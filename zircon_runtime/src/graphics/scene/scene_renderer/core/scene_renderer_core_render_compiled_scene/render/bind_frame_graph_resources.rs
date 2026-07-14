@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::render_graph::{CompiledRenderGraph, RenderGraphResourceKind};
+use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_frame_graph_resources(
     graph: &CompiledRenderGraph,
@@ -20,11 +21,19 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         "fixed offscreen frame target must retain every WGPU texture owner backing imported views"
     );
 
-    bind_live_frame_target_texture(
+    bind_live_frame_target_owned_texture(
         graph,
         resources,
         PostProcessGraphResourceNames::SCENE_COLOR,
+        &target.scene_color,
         &target.scene_color_view,
+        TextureDesc::new(
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
+        ),
     );
     bind_live_frame_target_texture(
         graph,
@@ -111,6 +120,19 @@ fn bind_live_frame_target_texture(
 ) {
     if graph_has_live_resource(graph, logical_name) {
         resources.import_borrowed_texture_view(logical_name, view);
+    }
+}
+
+fn bind_live_frame_target_owned_texture(
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    logical_name: &'static str,
+    texture: &wgpu::Texture,
+    view: &wgpu::TextureView,
+    desc: TextureDesc,
+) {
+    if graph_has_live_resource(graph, logical_name) {
+        resources.import_borrowed_texture(logical_name, texture, view, desc);
     }
 }
 
@@ -213,6 +235,18 @@ mod tests {
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
+        assert!(
+            resources
+                .physical_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+                .is_some(),
+            "scene-color copy consumers require the retained frame texture owner"
+        );
+        assert_eq!(
+            resources
+                .physical_texture_desc(PostProcessGraphResourceNames::SCENE_COLOR)
+                .map(|desc| desc.format),
+            Some(crate::rhi::TextureFormat::Rgba16Float)
+        );
         assert!(
             resources
                 .owned_texture(PostProcessGraphResourceNames::SCENE_COLOR)

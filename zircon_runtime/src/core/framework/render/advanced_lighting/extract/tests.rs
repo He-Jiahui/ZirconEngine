@@ -6,6 +6,7 @@ fn render_advanced_extract_empty_keeps_optional_sections_empty() {
     let extract = AdvancedLightingExtract::default();
 
     assert!(extract.is_empty());
+    assert!(extract.material_features.is_empty());
     assert!(extract.volumetric.is_none());
     assert!(extract.oit.is_none());
     assert!(extract.fog_volumes.is_empty());
@@ -14,6 +15,39 @@ fn render_advanced_extract_empty_keeps_optional_sections_empty() {
     assert!(extract.planar_probes.is_empty());
     assert!(extract.subsurface_profiles.is_empty());
     assert!(extract.subsurface_material_profile_indices.is_empty());
+}
+
+#[test]
+fn render_advanced_extract_tracks_material_driven_scene_copy_usage() {
+    let extract = AdvancedLightingExtract {
+        material_features: crate::core::framework::render::AdvancedPbrMaterialFrameUsage {
+            specular_transmission: true,
+            ..Default::default()
+        },
+        ..AdvancedLightingExtract::default()
+    };
+
+    assert!(!extract.is_empty());
+    assert!(extract.requires_transmission_scene_copy());
+    assert_eq!(extract.transmission_scene_copy_step_count(), 1);
+    assert_eq!(extract.transmission_draw_step_count(), 1);
+}
+
+#[test]
+fn render_advanced_extract_transmission_steps_zero_keep_environment_only_draw() {
+    let extract = AdvancedLightingExtract {
+        material_features: crate::core::framework::render::AdvancedPbrMaterialFrameUsage {
+            specular_transmission: true,
+            ..Default::default()
+        },
+        screen_space_transmission:
+            crate::core::framework::render::ScreenSpaceTransmissionSettings::new(0),
+        ..AdvancedLightingExtract::default()
+    };
+
+    assert!(!extract.requires_transmission_scene_copy());
+    assert_eq!(extract.transmission_scene_copy_step_count(), 0);
+    assert_eq!(extract.transmission_draw_step_count(), 1);
 }
 
 #[test]

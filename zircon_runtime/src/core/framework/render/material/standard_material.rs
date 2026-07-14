@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::render::advanced_lighting::StandardPbrMaterialFeatures;
 use crate::core::framework::render::RenderQueueValue;
 use crate::core::resource::AssetReference;
 
@@ -62,6 +63,11 @@ pub struct StandardMaterialDescriptor {
     pub depth_bias: f32,
     #[serde(default)]
     pub taa_reactive_mask_strength: f32,
+    #[serde(
+        default,
+        skip_serializing_if = "StandardPbrMaterialFeatures::is_default"
+    )]
+    pub advanced_features: StandardPbrMaterialFeatures,
     #[serde(default)]
     pub subsurface_profile_index: u32,
     pub fallback_policy: RenderMaterialFallbackPolicy,

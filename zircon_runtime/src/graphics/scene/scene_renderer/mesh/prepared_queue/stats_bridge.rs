@@ -55,6 +55,8 @@ impl PreparedMeshQueueStats {
         self.shadow_command_count = command_stats.shadow_command_count;
         self.opaque_command_count = command_stats.opaque_command_count;
         self.alpha_mask_command_count = command_stats.alpha_mask_command_count;
+        self.advanced_pbr_opaque_command_count = command_stats.advanced_pbr_opaque_command_count;
+        self.transmission_command_count = command_stats.transmission_command_count;
         self.transparent_command_count = command_stats.transparent_command_count;
         self.velocity_command_count = command_stats.velocity_command_count;
         self.taa_reactive_mask_command_count = command_stats.taa_reactive_mask_command_count;

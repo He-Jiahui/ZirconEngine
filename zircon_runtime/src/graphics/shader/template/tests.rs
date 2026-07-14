@@ -3,9 +3,9 @@ use crate::core::framework::render::{
     RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
     RenderMaterialLightingModel, RenderMaterialTextureTransform, RenderQueueValue,
     ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor, ShadingModelId,
-    StandardMaterialDescriptor, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    StandardMaterialDescriptor, StandardPbrMaterialFeatures, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::resource::{AssetReference, ResourceLocator};
 
@@ -651,6 +651,7 @@ fn standard_material_descriptor() -> StandardMaterialDescriptor {
         material_queue: 0,
         depth_bias: 0.0,
         taa_reactive_mask_strength: 0.0,
+        advanced_features: StandardPbrMaterialFeatures::default(),
         subsurface_profile_index: 0,
         fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
     }

@@ -3,33 +3,23 @@ use crate::core::framework::render::{
     RenderPluginRendererOutputs, ShaderQualityTier,
 };
 use crate::core::math::UVec2;
-use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::attachment_ops::{
-    color_attachment_operations, depth_attachment_operations,
-};
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
 use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
-    BaseScenePass, PreparedOverlayBuffers, ViewportOverlayRenderer,
+    PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
-use crate::graphics::scene::scene_renderer::transparent::has_transparent_sprite_submissions;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::{
     ViewportCameraStackAttachmentPolicy, ViewportRenderFrame, ViewportRenderRegion,
 };
 use crate::graphics::visibility::HzbOcclusionCullReport;
-use crate::render_graph::{
-    RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphResourceAccessKind,
-};
 
 use super::super::{
     RenderGraphComputeDispatchRecord, RenderGraphExecutionResources, RenderGraphLightGridReport,
@@ -39,6 +29,7 @@ use super::RgResourceResolver;
 mod deferred;
 mod hzb_occlusion;
 mod mesh_command_lists;
+mod mesh_recording;
 mod oit;
 mod particle;
 mod post_process;
@@ -49,7 +40,6 @@ mod surface;
 pub(in crate::graphics::scene::scene_renderer) use mesh_command_lists::RenderPassMeshCommandLists;
 pub use particle::ParticleGpuTransparentDrawContext;
 pub(in crate::graphics::scene::scene_renderer) use post_process::RenderPassPostProcessStackContext;
-use surface::record_depth_clear_pass;
 
 pub struct RenderPassGpuExecutionContext<'a> {
     pub device: &'a wgpu::Device,
@@ -378,387 +368,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.hzb_occlusion_culler = Some(hzb_occlusion_culler);
         self
     }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_depth_prepass_to_resources(
-        &mut self,
-        pass_name: &str,
-        depth_resource_name: &str,
-        depth_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let depth_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            depth_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-            format!(
-                "depth prepass graph executor for pass `{pass_name}` requires mesh draw context"
-            )
-        })?;
-        if mesh_draw_lists.depth_prepass_commands.is_empty() {
-            return Ok(());
-        }
-        let streamer = self.streamer.ok_or_else(|| {
-            format!(
-                "depth prepass graph executor for pass `{pass_name}` requires resource streamer context"
-            )
-        })?;
-        let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
-            format!(
-                "depth prepass graph executor for pass `{pass_name}` requires mesh pipeline context"
-            )
-        })?;
-        let forward_shadow_receiver_bind_group = mesh_pipelines
-            .create_forward_shadow_receiver_bind_group(
-                self.device,
-                self.shadow_atlas_resources,
-                None,
-                None,
-                None,
-            );
-        let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("DepthPrepass"),
-            color_attachments: &[],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: depth_view,
-                depth_ops: Some(depth_attachment_operations(depth_attachment_ops, 1.0)),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-            multiview_mask: None,
-        });
-        if !self
-            .frame
-            .render_region()
-            .local_render_region()
-            .apply_physical_to_render_pass(&mut pass)
-        {
-            return Ok(());
-        }
-        pass.set_bind_group(0, self.scene_bind_group, &[]);
-        let mut replayer = MeshDrawCommandReplayer::default();
-        replayer.replay_command_stream(
-            &mut pass,
-            mesh_draw_lists.depth_prepass_stream(),
-            |replayer, pass, command| {
-                debug_assert_eq!(command.pipeline_kind, MeshPassPipelineKind::DepthPrepass);
-                if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
-                {
-                    let pipeline = mesh_pipelines
-                        .ensure_depth_prepass_pipeline_for_variant(
-                            self.device,
-                            streamer,
-                            command.pipeline_variant_id,
-                        )
-                        .expect(
-                            "depth prepass command must resolve a cache-backed pipeline variant",
-                        );
-                    pass.set_pipeline(pipeline);
-                }
-                replayer.bind_forward_shadow_receiver_if_needed(
-                    pass,
-                    &forward_shadow_receiver_bind_group,
-                );
-                replayer.bind_gpu_scene_if_needed(
-                    pass,
-                    command,
-                    mesh_draw_lists.gpu_scene_bind_group,
-                );
-                replayer.bind_standard_material_if_needed(pass, command);
-                replayer.bind_geometry_if_needed(pass, command);
-                true
-            },
-        );
-        let replay_stats = replayer.stats();
-        mesh_draw_lists.replay_stats.record(replay_stats);
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_shadow_atlas_to_resources(
-        &mut self,
-        pass_name: &str,
-        shadow_atlas_resource_name: &str,
-        shadow_atlas_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let shadow_atlas_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            shadow_atlas_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        if let Some(shadow_map_renderer) = self.shadow_map_renderer {
-            let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-                format!(
-                    "shadow atlas graph executor for pass `{pass_name}` requires mesh draw context"
-                )
-            })?;
-            if let Some(shadow_frame_plan) = self.shadow_frame_plan {
-                let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
-                    format!(
-                        "shadow atlas graph executor for pass `{pass_name}` requires mesh pipeline context"
-                    )
-                })?;
-                let streamer = self.streamer.ok_or_else(|| {
-                    format!(
-                        "shadow atlas graph executor for pass `{pass_name}` requires resource streamer context"
-                    )
-                })?;
-                let replay_stats = shadow_map_renderer.record_atlas_commands_with_attachment_ops(
-                    self.device,
-                    self.queue,
-                    self.encoder,
-                    pass_name,
-                    shadow_atlas_view,
-                    mesh_pipelines,
-                    streamer,
-                    shadow_frame_plan.atlas_passes(),
-                    self.frame,
-                    mesh_draw_lists.gpu_scene_bind_group,
-                    mesh_draw_lists.shadow_stream(),
-                    shadow_atlas_attachment_ops,
-                );
-                mesh_draw_lists.replay_stats.record(replay_stats);
-            } else {
-                record_depth_clear_pass(
-                    self.encoder,
-                    pass_name,
-                    shadow_atlas_view,
-                    shadow_atlas_attachment_ops,
-                );
-            }
-            return Ok(());
-        }
-        record_depth_clear_pass(
-            self.encoder,
-            pass_name,
-            shadow_atlas_view,
-            shadow_atlas_attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_mesh_stage_to_resources(
-        &mut self,
-        color_resource_name: &str,
-        depth_resource_name: &str,
-        stage: RenderPassStage,
-        attachment_ops: RenderGraphAttachmentOps,
-        depth_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let color_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            color_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        let depth_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            depth_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let render_region = self.render_region_for_write_resource(color_resource_name);
-        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-            format!("mesh graph executor for stage `{stage:?}` requires mesh draw context")
-        })?;
-        let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
-            format!("mesh graph executor for stage `{stage:?}` requires mesh pipeline context")
-        })?;
-        let streamer = self.streamer.ok_or_else(|| {
-            format!("mesh graph executor for stage `{stage:?}` requires resource streamer context")
-        })?;
-        let mixes_transparent_sprites = matches!(stage, RenderPassStage::Transparent3d)
-            && self.sprite_renderer.is_some()
-            && has_transparent_sprite_submissions(&self.frame.extract.sprites.phase_queue);
-        let stream = mesh_draw_lists.stream_for_stage(stage);
-        if stream.is_empty() && !mixes_transparent_sprites {
-            return Ok(());
-        }
-        let light_grid_params_buffer = Self::optional_buffer_by_name(
-            resources,
-            resource_resolver,
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let light_zbins_buffer = Self::optional_buffer_by_name(
-            resources,
-            resource_resolver,
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let light_tile_masks_buffer = Self::optional_buffer_by_name(
-            resources,
-            resource_resolver,
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let integrated_volumetric_view = Self::optional_texture_view_by_name(
-            resources,
-            resource_resolver,
-            crate::core::framework::render::PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let replay_stats = if mixes_transparent_sprites {
-            let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
-                format!(
-                    "transparent mixed graph executor for stage `{stage:?}` requires sprite renderer context"
-                )
-            })?;
-            BaseScenePass.record_transparent_mixed_with_attachment_ops(
-                self.encoder,
-                self.device,
-                color_view,
-                depth_view,
-                self.scene_bind_group,
-                mesh_draw_lists.gpu_scene_bind_group,
-                mesh_draw_lists.transparent_commands,
-                mesh_pipelines,
-                streamer,
-                sprite_renderer,
-                self.frame,
-                self.shadow_atlas_resources,
-                render_region,
-                light_grid_params_buffer,
-                light_zbins_buffer,
-                light_tile_masks_buffer,
-                integrated_volumetric_view,
-                mesh_stage_attachment_ops(stage, attachment_ops),
-                mesh_stage_attachment_ops(stage, depth_attachment_ops),
-            )
-        } else {
-            BaseScenePass.record_commands_with_attachment_ops(
-                self.encoder,
-                self.device,
-                color_view,
-                depth_view,
-                self.scene_bind_group,
-                mesh_draw_lists.gpu_scene_bind_group,
-                [stream],
-                mesh_pipelines,
-                streamer,
-                self.frame,
-                self.shadow_atlas_resources,
-                render_region,
-                light_grid_params_buffer,
-                light_zbins_buffer,
-                light_tile_masks_buffer,
-                integrated_volumetric_view,
-                mesh_stage_attachment_ops(stage, attachment_ops),
-                mesh_stage_attachment_ops(stage, depth_attachment_ops),
-            )
-        };
-        mesh_draw_lists.replay_stats.record(replay_stats);
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_taa_reactive_mask_mesh_to_resource(
-        &mut self,
-        pass_name: &str,
-        taa_reactive_mask_resource_name: &str,
-        scene_depth_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-            format!(
-                "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh draw context"
-            )
-        })?;
-        let stream = mesh_draw_lists.taa_reactive_mask_stream();
-        if stream.is_empty() {
-            return Ok(());
-        }
-        let render_region = self
-            .render_region_for_write_resource(taa_reactive_mask_resource_name)
-            .local_render_region();
-        let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
-            format!(
-                "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh pipeline context"
-            )
-        })?;
-        let streamer = self.streamer.ok_or_else(|| {
-            format!(
-                "TAA reactive mask mesh graph executor for pass `{pass_name}` requires resource streamer context"
-            )
-        })?;
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let taa_reactive_mask_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            taa_reactive_mask_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        let scene_depth_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            scene_depth_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let device = self.device;
-        let forward_shadow_receiver_bind_group = mesh_pipelines
-            .create_forward_shadow_receiver_bind_group(
-                device,
-                self.shadow_atlas_resources,
-                None,
-                None,
-                None,
-            );
-        let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some(pass_name),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: taa_reactive_mask_view,
-                resolve_target: None,
-                depth_slice: None,
-                ops: color_attachment_operations(attachment_ops, wgpu::Color::BLACK),
-            })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: scene_depth_view,
-                depth_ops: Some(depth_attachment_operations(
-                    RenderGraphAttachmentOps::load_store(),
-                    1.0,
-                )),
-                stencil_ops: None,
-            }),
-            occlusion_query_set: None,
-            timestamp_writes: None,
-            multiview_mask: None,
-        });
-        if !render_region.apply_physical_to_render_pass(&mut pass) {
-            return Ok(());
-        }
-        pass.set_bind_group(0, self.scene_bind_group, &[]);
-        pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
-
-        let mut replayer = MeshDrawCommandReplayer::default();
-        replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
-            if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id) {
-                let pipeline = mesh_pipelines
-                    .ensure_taa_reactive_mask_pipeline_for_variant(
-                        device,
-                        streamer,
-                        command.pipeline_variant_id,
-                    )
-                    .expect(
-                        "TAA reactive mask command must resolve a cache-backed pipeline variant",
-                    );
-                pass.set_pipeline(pipeline);
-            }
-            replayer.bind_gpu_scene_if_needed(pass, command, mesh_draw_lists.gpu_scene_bind_group);
-            replayer.bind_standard_material_if_needed(pass, command);
-            replayer.bind_geometry_if_needed(pass, command);
-            true
-        });
-        mesh_draw_lists.replay_stats.record(replayer.stats());
-        Ok(())
-    }
 }
 
 pub(in crate::graphics::scene::scene_renderer) fn writes_physical_output_resource(
@@ -772,19 +381,6 @@ pub(in crate::graphics::scene::scene_renderer) fn writes_physical_output_resourc
             | PostProcessGraphResourceNames::COLOR_GRADED
             | PostProcessGraphResourceNames::EFFECT_STACKED
     )
-}
-
-fn mesh_stage_attachment_ops(
-    stage: RenderPassStage,
-    attachment_ops: RenderGraphAttachmentOps,
-) -> RenderGraphAttachmentOps {
-    if matches!(stage, RenderPassStage::Opaque3d) {
-        return RenderGraphAttachmentOps {
-            load: RenderGraphAttachmentLoadOp::Load,
-            store: attachment_ops.store,
-        };
-    }
-    attachment_ops
 }
 
 #[cfg(test)]

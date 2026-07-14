@@ -53,5 +53,7 @@ pub(crate) fn is_standard_texture_slot_alias(slot: &str) -> bool {
             | "occlusion_texture"
             | "emissive"
             | "emissive_texture"
+            | "clearcoat_normal"
+            | "clearcoat_normal_texture"
     )
 }

@@ -25,6 +25,100 @@ pub(super) fn record_depth_clear_pass(
 }
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
+    pub(in crate::graphics::scene::scene_renderer) fn record_transmission_scene_color_copy(
+        &mut self,
+        source_resource_name: &str,
+        destination_resource_name: &str,
+    ) -> Result<(), String> {
+        let source_region = self.render_region_for_write_resource(source_resource_name);
+        let source_origin = source_region.physical_position();
+        let copy_size = source_region.local_size();
+        let resources = &*self.resources;
+        let resolver = self.resource_resolver;
+        let source_desc = Self::require_texture_desc_by_name(
+            resources,
+            resolver,
+            source_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let destination_desc = Self::require_texture_desc_by_name(
+            resources,
+            resolver,
+            destination_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        if source_desc.depth != destination_desc.depth
+            || source_desc.format != destination_desc.format
+        {
+            return Err(format!(
+                "transmission scene copy texture mismatch: source={source_desc:?}, destination={destination_desc:?}"
+            ));
+        }
+        if source_desc.sample_count != 1 {
+            return Err(format!(
+                "transmission scene copy source must be single-sampled, got {} samples",
+                source_desc.sample_count
+            ));
+        }
+        if destination_desc.sample_count != 1 {
+            return Err(format!(
+                "transmission scene copy destination must be single-sampled, got {} samples",
+                destination_desc.sample_count
+            ));
+        }
+        if destination_desc.width != copy_size.x || destination_desc.height != copy_size.y {
+            return Err(format!(
+                "transmission scene copy destination extent must match local render size {}x{}, got {}x{}",
+                copy_size.x, copy_size.y, destination_desc.width, destination_desc.height
+            ));
+        }
+        if source_origin.x.saturating_add(copy_size.x) > source_desc.width
+            || source_origin.y.saturating_add(copy_size.y) > source_desc.height
+        {
+            return Err(format!(
+                "transmission scene copy source region origin=({}, {}) extent={}x{} exceeds {}x{}",
+                source_origin.x,
+                source_origin.y,
+                copy_size.x,
+                copy_size.y,
+                source_desc.width,
+                source_desc.height
+            ));
+        }
+
+        let source = Self::require_physical_texture_by_name(
+            resources,
+            resolver,
+            source_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let destination = Self::require_owned_texture_by_name(
+            resources,
+            resolver,
+            destination_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        self.encoder.copy_texture_to_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: source,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: source_origin.x,
+                    y: source_origin.y,
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            destination.as_image_copy(),
+            wgpu::Extent3d {
+                width: copy_size.x,
+                height: copy_size.y,
+                depth_or_array_layers: destination_desc.depth,
+            },
+        );
+        Ok(())
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_sprite_stage_to_resources(
         &mut self,
         color_resource_name: &str,
@@ -84,15 +178,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
-        self.screen_space_ui_renderer.record(
-            self.device,
-            self.queue,
-            self.encoder,
-            color_view,
-            self.frame,
-            attachment_ops,
-            self.streamer,
-        );
+        self.screen_space_ui_renderer
+            .record(
+                self.device,
+                self.queue,
+                self.encoder,
+                color_view,
+                self.frame,
+                attachment_ops,
+                self.streamer,
+            )
+            .map_err(|error| error.to_string())?;
         Ok(())
     }
 

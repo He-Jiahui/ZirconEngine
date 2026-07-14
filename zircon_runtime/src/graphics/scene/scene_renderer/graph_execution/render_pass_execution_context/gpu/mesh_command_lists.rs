@@ -12,6 +12,9 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists
     pub shadow_commands: &'a [MeshDrawCommand],
     pub opaque_commands: &'a [MeshDrawCommand],
     pub alpha_mask_commands: &'a [MeshDrawCommand],
+    pub advanced_pbr_opaque_commands: &'a [MeshDrawCommand],
+    pub transmission_commands: &'a [MeshDrawCommand],
+    pub transmission_step_count: usize,
     pub transparent_commands: &'a [MeshDrawCommand],
     pub velocity_commands: &'a [MeshDrawCommand],
     pub taa_reactive_mask_commands: &'a [MeshDrawCommand],
@@ -19,6 +22,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists
     pub shadow_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub opaque_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub alpha_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
+    pub advanced_pbr_opaque_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub transparent_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub velocity_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub taa_reactive_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
@@ -69,6 +73,31 @@ impl<'a> RenderPassMeshCommandLists<'a> {
         MeshDrawCommandStream::new(self.transparent_commands, self.transparent_indirect)
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn advanced_pbr_opaque_stream(
+        &self,
+    ) -> MeshDrawCommandStream<'a> {
+        MeshDrawCommandStream::new(
+            self.advanced_pbr_opaque_commands,
+            self.advanced_pbr_opaque_indirect,
+        )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn transmission_step_stream(
+        &self,
+        step_index: usize,
+    ) -> MeshDrawCommandStream<'a> {
+        let Some(range) = crate::graphics::scene::scene_renderer::advanced_lighting::transmission::transmission_step_range(
+            self.transmission_commands.len(),
+            self.transmission_step_count,
+            step_index,
+        ) else {
+            return MeshDrawCommandStream::empty();
+        };
+        // Transmission ranges intentionally disable cross-command indirect batching;
+        // command-local indirect draws remain valid for the selected slice.
+        MeshDrawCommandStream::new(&self.transmission_commands[range], None)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn velocity_stream(
         &self,
     ) -> MeshDrawCommandStream<'a> {
@@ -106,10 +135,11 @@ impl<'a> RenderPassMeshCommandLists<'a> {
 
     pub(in crate::graphics::scene::scene_renderer) fn hzb_occlusion_indirect_executions(
         &self,
-    ) -> [Option<&'a MeshIndirectDrawExecution>; 3] {
+    ) -> [Option<&'a MeshIndirectDrawExecution>; 4] {
         [
             self.opaque_indirect,
             self.alpha_mask_indirect,
+            self.advanced_pbr_opaque_indirect,
             self.velocity_indirect,
         ]
     }

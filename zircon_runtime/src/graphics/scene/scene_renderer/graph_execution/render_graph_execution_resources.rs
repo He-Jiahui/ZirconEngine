@@ -20,6 +20,8 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderGraphImportedFinalTa
 #[derive(Default, Debug)]
 pub struct RenderGraphExecutionResources {
     imported_texture_views: BTreeMap<String, wgpu::TextureView>,
+    imported_textures: BTreeMap<String, wgpu::Texture>,
+    imported_texture_descs: BTreeMap<String, TextureDesc>,
     owned_textures: BTreeMap<String, wgpu::Texture>,
     owned_texture_descs: BTreeMap<String, TextureDesc>,
     owned_texture_backings: BTreeMap<String, String>,
@@ -47,6 +49,19 @@ impl RenderGraphExecutionResources {
         view: &wgpu::TextureView,
     ) -> Option<wgpu::TextureView> {
         self.import_texture_view(name, view.clone())
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn import_borrowed_texture(
+        &mut self,
+        name: impl Into<String>,
+        texture: &wgpu::Texture,
+        view: &wgpu::TextureView,
+        desc: TextureDesc,
+    ) -> Option<wgpu::TextureView> {
+        let name = name.into();
+        self.imported_textures.insert(name.clone(), texture.clone());
+        self.imported_texture_descs.insert(name.clone(), desc);
+        self.import_borrowed_texture_view(name, view)
     }
 
     pub fn insert_buffer(
@@ -94,6 +109,8 @@ impl RenderGraphExecutionResources {
         pool: &mut TransientResourcePool,
     ) {
         self.imported_texture_views.clear();
+        self.imported_textures.clear();
+        self.imported_texture_descs.clear();
         self.owned_texture_backings.clear();
         self.buffer_backings.clear();
 
@@ -135,12 +152,28 @@ impl RenderGraphExecutionResources {
             .and_then(|backing| self.owned_textures.get(backing))
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn physical_texture(
+        &self,
+        name: &str,
+    ) -> Option<&wgpu::Texture> {
+        self.owned_texture(name)
+            .or_else(|| self.imported_textures.get(name))
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture_desc(
         &self,
         name: &str,
     ) -> Option<&TextureDesc> {
         self.owned_texture_backing(name)
             .and_then(|backing| self.owned_texture_descs.get(backing))
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn physical_texture_desc(
+        &self,
+        name: &str,
+    ) -> Option<&TextureDesc> {
+        self.owned_texture_desc(name)
+            .or_else(|| self.imported_texture_descs.get(name))
     }
 
     pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_owned_texture_desc(
@@ -266,7 +299,14 @@ impl RenderGraphExecutionResources {
         match &declaration.desc {
             RenderGraphResourceDesc::Texture(desc) => Ok(desc.clone()),
             RenderGraphResourceDesc::External => {
-                self.require_owned_texture_desc(&declaration.name).cloned()
+                self.physical_texture_desc(&declaration.name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        format!(
+                            "render graph execution external texture resource `{}` is missing its physical descriptor",
+                            declaration.name
+                        )
+                    })
             }
             RenderGraphResourceDesc::Buffer(_) => Err(format!(
                 "render graph execution resource `{}` is a buffer declaration, not a texture descriptor",

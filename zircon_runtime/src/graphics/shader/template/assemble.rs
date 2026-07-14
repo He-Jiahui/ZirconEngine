@@ -428,6 +428,18 @@ pub(super) fn format_defines_header(
             "const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = {};",
             features.contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
         ),
+        format!(
+            "const ZR_FEATURE_PBR_CLEARCOAT: bool = {};",
+            features.contains(ShaderFeatureBits::PBR_CLEARCOAT)
+        ),
+        format!(
+            "const ZR_FEATURE_PBR_ANISOTROPY: bool = {};",
+            features.contains(ShaderFeatureBits::PBR_ANISOTROPY)
+        ),
+        format!(
+            "const ZR_FEATURE_PBR_TRANSMISSION: bool = {};",
+            features.contains(ShaderFeatureBits::PBR_TRANSMISSION)
+        ),
     ];
     for define in &geometry_source.shader_defines {
         lines.push(format_definition_value(define));

@@ -1,11 +1,13 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
-    SHADING_MODEL_GBUFFER_ALPHA_SCALE, STANDARD_MATERIAL_MIN_ROUGHNESS,
+    StandardPbrMaterialFeatures, SHADING_MODEL_GBUFFER_ALPHA_SCALE,
+    STANDARD_MATERIAL_MIN_ROUGHNESS, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
+    STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
 
-pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 144;
+pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 192;
 
 pub(crate) struct GpuMaterialUniformResource {
     pub(in crate::graphics::scene::resources) buffer: wgpu::Buffer,
@@ -112,6 +114,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
         material.alpha_cutoff,
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
+        &material.advanced_features,
     )
 }
 
@@ -127,6 +130,7 @@ fn fallback_standard_material_uniform_contents() -> Vec<u8> {
         None,
         [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
         [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+        &StandardPbrMaterialFeatures::default(),
     )
 }
 
@@ -141,8 +145,9 @@ fn standard_material_uniform_contents_from_values(
     alpha_cutoff: Option<f32>,
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
+    advanced_features: &StandardPbrMaterialFeatures,
 ) -> Vec<u8> {
-    let mut values = [0.0_f32; 36];
+    let mut values = [0.0_f32; 48];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
     values[1] = finite_or(roughness, 1.0).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
     values[2] = 1.0;
@@ -163,6 +168,25 @@ fn standard_material_uniform_contents_from_values(
     values[33] = f32::from(shading_model_id) / SHADING_MODEL_GBUFFER_ALPHA_SCALE;
     values[34] = material_alpha_cutoff_scalar(alpha_cutoff);
     values[35] = subsurface_profile_index.min(255) as f32 / 255.0;
+    values[36] = finite_or(advanced_features.clearcoat, 0.0).clamp(0.0, 1.0);
+    values[37] = finite_or(
+        advanced_features.clearcoat_perceptual_roughness,
+        STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
+    )
+    .clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
+    values[38] = finite_or(advanced_features.anisotropy_strength, 0.0).clamp(0.0, 1.0);
+    values[39] = finite_or(advanced_features.anisotropy_rotation, 0.0);
+    values[40] = finite_or(advanced_features.specular_transmission, 0.0).clamp(0.0, 1.0);
+    values[41] = finite_or(advanced_features.diffuse_transmission, 0.0).clamp(0.0, 1.0);
+    values[42] = finite_or(advanced_features.thickness, 0.0).max(0.0);
+    values[43] = finite_or(advanced_features.ior, STANDARD_PBR_DEFAULT_IOR).max(1.0);
+    values[44] = finite_or(advanced_features.attenuation_color[0], 1.0).clamp(0.0, 1.0);
+    values[45] = finite_or(advanced_features.attenuation_color[1], 1.0).clamp(0.0, 1.0);
+    values[46] = finite_or(advanced_features.attenuation_color[2], 1.0).clamp(0.0, 1.0);
+    values[47] = finite_positive_or(
+        advanced_features.attenuation_distance,
+        STANDARD_PBR_NO_ATTENUATION_DISTANCE,
+    );
 
     bytemuck::cast_slice(&values).to_vec()
 }
@@ -211,13 +235,25 @@ fn finite_or(value: f32, fallback: f32) -> f32 {
     }
 }
 
+fn finite_positive_or(value: f32, fallback: f32) -> f32 {
+    if value.is_finite() && value > 0.0 {
+        value
+    } else {
+        fallback
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderMaterialTextureTransform, STANDARD_MATERIAL_MIN_ROUGHNESS,
+        RenderMaterialTextureTransform, StandardPbrMaterialFeatures,
+        STANDARD_MATERIAL_MIN_ROUGHNESS,
     };
 
-    use super::{standard_material_uniform_contents_from_values, STANDARD_TEXTURE_TRANSFORM_COUNT};
+    use super::{
+        standard_material_uniform_contents_from_values, GPU_MATERIAL_UNIFORM_MIN_SIZE,
+        STANDARD_TEXTURE_TRANSFORM_COUNT,
+    };
 
     #[test]
     fn standard_material_uniform_packs_pbr_scalars_without_property_schema_offsets() {
@@ -232,9 +268,10 @@ mod tests {
             Some(1.4),
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
         );
 
-        assert_eq!(bytes.len(), 144);
+        assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
         assert_eq!(f32_at(&bytes, 0), 1.0);
         assert_eq!(f32_at(&bytes, 4), STANDARD_MATERIAL_MIN_ROUGHNESS);
         assert_eq!(f32_at(&bytes, 8), 1.0);
@@ -266,6 +303,7 @@ mod tests {
                 transform([f32::NAN, 11.0], [f32::INFINITY, -0.25]),
             ],
             [1, 0, 2, u32::MAX, 1],
+            &StandardPbrMaterialFeatures::default(),
         );
 
         assert_eq!(vec4_at(&bytes, 32), [2.0, 3.0, 0.25, 0.5]);
@@ -291,6 +329,7 @@ mod tests {
             None,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
         );
 
         assert_eq!(f32_at(&bytes, 132), 16.0 / 255.0);
@@ -316,6 +355,7 @@ mod tests {
                 alpha_cutoff,
                 [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
                 [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+                &StandardPbrMaterialFeatures::default(),
             );
 
             assert_eq!(f32_at(&bytes, 136), expected);
@@ -335,9 +375,45 @@ mod tests {
             None,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &StandardPbrMaterialFeatures::default(),
         );
 
         assert_eq!(f32_at(&bytes, 140), 11.0 / 255.0);
+    }
+
+    #[test]
+    fn render_advanced_material_uniform_packs_clearcoat_anisotropy_and_transmission() {
+        let features = StandardPbrMaterialFeatures {
+            clearcoat: 0.8,
+            clearcoat_perceptual_roughness: 0.2,
+            anisotropy_strength: 0.65,
+            anisotropy_rotation: 1.25,
+            specular_transmission: 0.7,
+            diffuse_transmission: 0.15,
+            thickness: 0.4,
+            ior: 1.52,
+            attenuation_color: [0.8, 0.9, 1.0],
+            attenuation_distance: 12.0,
+            ..Default::default()
+        };
+        let bytes = standard_material_uniform_contents_from_values(
+            0.0,
+            0.5,
+            [0.0; 3],
+            false,
+            2,
+            0.0,
+            0,
+            None,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+            &features,
+        );
+
+        assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
+        assert_eq!(vec4_at(&bytes, 144), [0.8, 0.2, 0.65, 1.25]);
+        assert_eq!(vec4_at(&bytes, 160), [0.7, 0.15, 0.4, 1.52]);
+        assert_eq!(vec4_at(&bytes, 176), [0.8, 0.9, 1.0, 12.0]);
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {

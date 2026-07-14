@@ -221,6 +221,26 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         })
     }
 
+    pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn require_physical_texture_by_name<
+        'resources,
+    >(
+        resources: &'resources RenderGraphExecutionResources,
+        resource_resolver: Option<RgResourceResolver<'a>>,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'resources wgpu::Texture, String> {
+        if let Some(resolver) = resource_resolver {
+            let declaration =
+                resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
+            resources.require_texture_view_for_declaration(declaration)?;
+        }
+        resources.physical_texture(resource_name).ok_or_else(|| {
+            format!(
+                "render graph execution physical texture resource `{resource_name}` is not bound"
+            )
+        })
+    }
+
     pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn optional_owned_texture_full_mip_view_by_name(
         resources: &RenderGraphExecutionResources,
         resource_resolver: Option<RgResourceResolver<'a>>,
@@ -373,7 +393,7 @@ mod tests {
                 entries: &[],
             });
         let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
-        let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+        let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
             Arc::new(ProjectAssetManager::default()),
             &backend.device,
             &backend.queue,

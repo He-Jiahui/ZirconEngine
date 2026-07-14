@@ -4,15 +4,21 @@ use crate::core::framework::render::{
     resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
     RenderPhase,
 };
-use crate::render_graph::QueueLane;
+use crate::render_graph::{
+    QueueLane, RenderGraphAttachmentOps, RenderGraphExternalResourceBinding,
+};
 
 use crate::graphics::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
+    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
+    RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
-    CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
+    transmission_mesh_pass_name, transmission_scene_copy_pass_name, CompiledRenderPipeline,
+    RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
+    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
+    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 
 use super::super::validation::validate_renderer_asset;
@@ -24,7 +30,6 @@ const CORE_SCENE_PARTICLE_DESCRIPTOR_NAME: &str = "scene_particles";
 const CORE_SCENE_PARTICLE_PLUGIN_FEATURE_NAME: &str = "particle";
 const CORE_SCENE_PARTICLE_PASS_NAME: &str = "particle-render";
 const CORE_SCENE_PARTICLE_EXECUTOR_ID: &str = "particle.transparent";
-
 impl RenderPipelineAsset {
     pub fn compile(&self, extract: &RenderFrameExtract) -> Result<CompiledRenderPipeline, String> {
         self.compile_with_options(extract, &RenderPipelineCompileOptions::default())
@@ -104,6 +109,8 @@ impl RenderPipelineAsset {
             &self.renderer.stages,
             &mut enabled_descriptors,
         );
+        maybe_insert_late_forward_opaque_pass(extract, &mut enabled_descriptors)?;
+        maybe_insert_transmission_passes(extract, &mut enabled_descriptors)?;
         apply_pass_resource_extensions(&self.renderer.stages, &mut enabled_descriptors)?;
         apply_pass_replacements(&mut enabled_descriptors)?;
 
@@ -159,6 +166,111 @@ impl RenderPipelineAsset {
             environment_ibl_bake_request: options.environment_ibl_bake_request,
             graph: authored_graph.graph,
         })
+    }
+}
+
+fn maybe_insert_late_forward_opaque_pass(
+    extract: &RenderFrameExtract,
+    descriptors: &mut [RenderFeatureDescriptor],
+) -> Result<(), String> {
+    if !extract
+        .lighting
+        .advanced_lighting
+        .material_features
+        .requires_late_forward_opaque_pass()
+    {
+        return Ok(());
+    }
+    let (descriptor_index, transparent_index) = unique_transparent_mesh_owner(descriptors)?;
+    let descriptor = &mut descriptors[descriptor_index];
+    let mut pass = descriptor.stage_passes[transparent_index].clone();
+    pass.pass_name = ADVANCED_PBR_OPAQUE_PASS_NAME.to_string();
+    pass.executor_id = ADVANCED_PBR_OPAQUE_EXECUTOR_ID.into();
+    for resource in &mut pass.resources {
+        if resource.name == PostProcessGraphResourceNames::SCENE_COLOR
+            && resource.access == RenderFeatureResourceAccess::Write
+        {
+            resource.attachment_ops = Some(RenderGraphAttachmentOps::load_store());
+        }
+    }
+    descriptor.stage_passes.insert(transparent_index, pass);
+    Ok(())
+}
+
+fn maybe_insert_transmission_passes(
+    extract: &RenderFrameExtract,
+    descriptors: &mut [RenderFeatureDescriptor],
+) -> Result<(), String> {
+    let advanced_lighting = &extract.lighting.advanced_lighting;
+    let draw_step_count = advanced_lighting.transmission_draw_step_count();
+    if draw_step_count == 0 {
+        return Ok(());
+    }
+    let copy_step_count = advanced_lighting.transmission_scene_copy_step_count();
+
+    let (descriptor_index, transparent_index) = unique_transparent_mesh_owner(descriptors)?;
+    let descriptor = &mut descriptors[descriptor_index];
+    let transparent_template = descriptor.stage_passes[transparent_index].clone();
+    let mut transmission_passes = Vec::with_capacity(draw_step_count.saturating_mul(2));
+
+    for step_index in 0..draw_step_count {
+        if step_index < copy_step_count {
+            transmission_passes.push(
+                RenderFeaturePassDescriptor::new(
+                    RenderPassStage::Transparent3d,
+                    transmission_scene_copy_pass_name(step_index),
+                    QueueLane::Graphics,
+                )
+                .with_executor_id(TRANSMISSION_SCENE_COPY_EXECUTOR_IDS[step_index])
+                .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+                .write_texture(PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR),
+            );
+        }
+
+        let mut draw = transparent_template.clone();
+        draw.pass_name = transmission_mesh_pass_name(step_index);
+        draw.executor_id = TRANSMISSION_MESH_EXECUTOR_IDS[step_index].into();
+        if step_index < copy_step_count {
+            draw.resources.push(RenderFeatureResourceDescriptor {
+                name: PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR.to_string(),
+                kind: RenderFeatureResourceKind::Texture,
+                access: RenderFeatureResourceAccess::Read,
+                minimum_size_bytes: None,
+                attachment_ops: None,
+                write_mode: RenderFeatureResourceWriteMode::Attachment,
+                external_binding: RenderGraphExternalResourceBinding::report_only(),
+            });
+        }
+        transmission_passes.push(draw);
+    }
+
+    descriptor
+        .stage_passes
+        .splice(transparent_index..transparent_index, transmission_passes);
+    Ok(())
+}
+
+fn unique_transparent_mesh_owner(
+    descriptors: &[RenderFeatureDescriptor],
+) -> Result<(usize, usize), String> {
+    let owners = descriptors
+        .iter()
+        .enumerate()
+        .filter_map(|(descriptor_index, descriptor)| {
+            descriptor
+                .stage_passes
+                .iter()
+                .position(|pass| pass.pass_name == "transparent-mesh")
+                .map(|pass_index| (descriptor_index, pass_index))
+        })
+        .collect::<Vec<_>>();
+    match owners.as_slice() {
+        [owner] => Ok(*owner),
+        [] => Err(
+            "advanced PBR material requires a transparent-mesh pass in the selected pipeline"
+                .to_string(),
+        ),
+        _ => Err("advanced PBR routing requires exactly one transparent-mesh owner".to_string()),
     }
 }
 

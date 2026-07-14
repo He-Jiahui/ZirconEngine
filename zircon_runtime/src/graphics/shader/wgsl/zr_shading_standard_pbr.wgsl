@@ -28,14 +28,52 @@ fn zr_standard_pbr_shade_standard_light_vector(
     radiance: vec3<f32>,
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
+    view_dir_ws: vec3<f32>,
 ) -> vec3<f32> {
     let world_normal = zr_normalize_or_zero(surface.normal_ws);
-    let lambert = max(dot(world_normal, light_vector), 0.0);
-    let half_dir = zr_normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
-    let specular_power = mix(64.0, 4.0, surface.roughness);
-    let specular_intensity =
-        pow(max(dot(world_normal, half_dir), 0.0), specular_power) * mix(0.04, 1.0, surface.metallic);
-    return diffuse_color * radiance * lambert + radiance * specular_intensity;
+    let world_view = zr_normalize_or_zero(view_dir_ws);
+    let no_l = max(dot(world_normal, light_vector), 0.0);
+    let f0 = mix(vec3<f32>(0.04), max(surface.base_color.rgb, vec3<f32>(0.0)), surface.metallic);
+    let specular = select(
+        zr_pbr_isotropic_ggx(
+            world_normal,
+            world_view,
+            light_vector,
+            surface.roughness,
+            f0,
+        ),
+        zr_aniso_ggx(
+            world_normal,
+            surface.tangent_ws,
+            surface.bitangent_ws,
+            world_view,
+            light_vector,
+            surface.roughness,
+            surface.anisotropy_strength,
+            surface.anisotropy_rotation,
+            f0,
+        ),
+        ZR_FEATURE_PBR_ANISOTROPY,
+    );
+    let base_lighting = (
+        diffuse_color * (1.0 - surface.metallic) / ZR_PBR_EXTRAS_PI + specular
+    ) * radiance * no_l * zr_pbr_clearcoat_base_energy_scale(surface, world_view);
+    let clearcoat = zr_clearcoat_lobe(
+        zr_normalize_or_zero(surface.clearcoat_normal_ws),
+        world_view,
+        light_vector,
+        surface.clearcoat_roughness,
+    ) * radiance * no_l * surface.clearcoat;
+    let transmission = zr_transmission_btdf(
+        world_normal,
+        world_view,
+        light_vector,
+        surface.base_color.rgb,
+        surface.diffuse_transmission,
+        surface.ior,
+    ) * radiance;
+    return base_lighting + select(vec3<f32>(0.0), clearcoat, ZR_FEATURE_PBR_CLEARCOAT)
+        + select(vec3<f32>(0.0), transmission, ZR_FEATURE_PBR_TRANSMISSION);
 }
 
 fn zr_standard_pbr_shade_blinn_phong_light_vector(
@@ -43,10 +81,11 @@ fn zr_standard_pbr_shade_blinn_phong_light_vector(
     radiance: vec3<f32>,
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
+    view_dir_ws: vec3<f32>,
 ) -> vec3<f32> {
     let world_normal = zr_normalize_or_zero(surface.normal_ws);
     let lambert = max(dot(world_normal, light_vector), 0.0);
-    let half_dir = zr_normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
+    let half_dir = zr_normalize_or_zero(light_vector + view_dir_ws);
     let specular_power = mix(96.0, 12.0, surface.roughness);
     let specular_intensity =
         pow(max(dot(world_normal, half_dir), 0.0), specular_power) * (1.0 - surface.roughness) * 0.5;
@@ -58,6 +97,7 @@ fn zr_standard_pbr_shade_light_vector(
     radiance: vec3<f32>,
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
+    view_dir_ws: vec3<f32>,
 ) -> vec3<f32> {
     if (surface.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
         return zr_standard_pbr_shade_blinn_phong_light_vector(
@@ -65,6 +105,7 @@ fn zr_standard_pbr_shade_light_vector(
             radiance,
             surface,
             diffuse_color,
+            view_dir_ws,
         );
     }
     return zr_standard_pbr_shade_standard_light_vector(
@@ -72,6 +113,7 @@ fn zr_standard_pbr_shade_light_vector(
         radiance,
         surface,
         diffuse_color,
+        view_dir_ws,
     );
 }
 
@@ -106,6 +148,7 @@ fn zr_standard_pbr_shade_gpu_light_index(
     diffuse_color: vec3<f32>,
     ctx: ZrShadingContext,
     view_z: f32,
+    view_dir_ws: vec3<f32>,
 ) -> vec3<f32> {
     if (light_index >= zr_gpu_scene_light_count()) {
         return vec3<f32>(0.0);
@@ -126,7 +169,13 @@ fn zr_standard_pbr_shade_gpu_light_index(
     if (light_type == ZR_GPU_LIGHT_TYPE_DIRECTIONAL) {
         let light_vector = zr_normalize_or_zero(-light.direction_type.xyz);
         let radiance = base_radiance * shadow_visibility * surface.occlusion;
-        return zr_standard_pbr_shade_light_vector(light_vector, radiance, surface, diffuse_color);
+        return zr_standard_pbr_shade_light_vector(
+            light_vector,
+            radiance,
+            surface,
+            diffuse_color,
+            view_dir_ws,
+        );
     }
 
     let to_light = light.position_range.xyz - ctx.position_ws;
@@ -147,6 +196,7 @@ fn zr_standard_pbr_shade_gpu_light_index(
         base_radiance * visibility * shadow_visibility * surface.occlusion,
         surface,
         diffuse_color,
+        view_dir_ws,
     );
 }
 
@@ -154,6 +204,7 @@ fn zr_standard_pbr_gpu_light_lighting(
     surface: ZrSurfaceOutput,
     diffuse_color: vec3<f32>,
     ctx: ZrShadingContext,
+    view_dir_ws: vec3<f32>,
 ) -> vec3<f32> {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return vec3<f32>(0.0);
@@ -179,6 +230,7 @@ fn zr_standard_pbr_gpu_light_lighting(
                 diffuse_color,
                 ctx,
                 view_z,
+                view_dir_ws,
             );
             mask = mask & (mask - 1u);
         }
@@ -192,8 +244,13 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     }
     let ambient = scene.ambient_color.rgb * surface.occlusion;
     let diffuse_color = zr_standard_pbr_diffuse_color(surface);
-    let direct_lights = zr_standard_pbr_gpu_light_lighting(surface, diffuse_color, ctx);
     let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);
+    let direct_lights = zr_standard_pbr_gpu_light_lighting(
+        surface,
+        diffuse_color,
+        ctx,
+        view_dir_ws,
+    );
     let environment_lights = zr_environment_pbr_indirect(
         ctx.position_ws,
         surface.normal_ws,
@@ -205,5 +262,22 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
         surface.occlusion,
         surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
     );
-    return diffuse_color * ambient + direct_lights + environment_lights + surface.emissive;
+    let clearcoat_environment = zr_pbr_advanced_environment(surface, ctx.position_ws, view_dir_ws);
+    let opaque_lighting = diffuse_color * ambient
+        + direct_lights
+        + environment_lights * zr_pbr_clearcoat_base_energy_scale(surface, view_dir_ws)
+        + clearcoat_environment;
+    let specular_transmission = select(
+        0.0,
+        clamp(surface.specular_transmission, 0.0, 1.0),
+        ZR_FEATURE_PBR_TRANSMISSION,
+    );
+    let transmitted_scene = zr_pbr_screen_space_transmission(
+        surface,
+        ctx.frag_coord.xy,
+        environment_lights,
+    );
+    return opaque_lighting * (1.0 - specular_transmission)
+        + transmitted_scene
+        + surface.emissive;
 }

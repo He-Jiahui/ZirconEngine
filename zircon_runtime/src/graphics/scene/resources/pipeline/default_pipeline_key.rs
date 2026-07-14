@@ -22,5 +22,8 @@ pub(crate) fn default_pipeline_key() -> PipelineKey {
         has_metallic_roughness_texture: false,
         has_occlusion_texture: false,
         has_emissive_texture: false,
+        pbr_clearcoat: false,
+        pbr_anisotropy: false,
+        pbr_transmission: false,
     }
 }

@@ -68,6 +68,9 @@ const ZR_FEATURE_ALPHA_TEST: bool = false;
 const ZR_FEATURE_RECEIVE_SHADOWS: bool = false;
 const ZR_FEATURE_DOUBLE_SIDED: bool = false;
 const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;
+const ZR_FEATURE_PBR_CLEARCOAT: bool = false;
+const ZR_FEATURE_PBR_ANISOTROPY: bool = false;
+const ZR_FEATURE_PBR_TRANSMISSION: bool = false;
 "#;
 
 pub fn write_shader_ide_env_for_project(

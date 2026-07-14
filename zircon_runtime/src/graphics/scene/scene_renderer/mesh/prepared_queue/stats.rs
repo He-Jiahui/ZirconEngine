@@ -64,6 +64,8 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) shadow_command_count: usize,
     pub(crate) opaque_command_count: usize,
     pub(crate) alpha_mask_command_count: usize,
+    pub(crate) advanced_pbr_opaque_command_count: usize,
+    pub(crate) transmission_command_count: usize,
     pub(crate) transparent_command_count: usize,
     pub(crate) velocity_command_count: usize,
     pub(crate) taa_reactive_mask_command_count: usize,

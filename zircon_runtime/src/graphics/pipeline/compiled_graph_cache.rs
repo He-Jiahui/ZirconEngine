@@ -58,6 +58,9 @@ pub struct RenderGraphCompileFrameFingerprint {
     pub camera_hdr: bool,
     pub camera_msaa_samples: u32,
     pub has_particle_sprites: bool,
+    pub transmission_draw_step_count: u8,
+    pub requires_transmission_scene_copy: bool,
+    pub requires_late_forward_opaque_pass: bool,
 }
 
 pub fn extract_compile_fingerprint(
@@ -82,6 +85,19 @@ pub fn extract_compile_fingerprint(
         camera_hdr: camera.camera.hdr,
         camera_msaa_samples: camera.camera.msaa_samples,
         has_particle_sprites: !extract.particles.sprites.is_empty(),
+        transmission_draw_step_count: extract
+            .lighting
+            .advanced_lighting
+            .transmission_draw_step_count() as u8,
+        requires_transmission_scene_copy: extract
+            .lighting
+            .advanced_lighting
+            .requires_transmission_scene_copy(),
+        requires_late_forward_opaque_pass: extract
+            .lighting
+            .advanced_lighting
+            .material_features
+            .requires_late_forward_opaque_pass(),
     }
 }
 

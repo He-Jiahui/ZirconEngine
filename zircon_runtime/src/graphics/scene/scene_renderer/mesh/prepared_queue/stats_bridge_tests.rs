@@ -17,6 +17,8 @@ fn prepared_queue_stats_carry_mesh_pass_command_buffer_counts() {
             shadow_command_count: 1,
             opaque_command_count: 3,
             alpha_mask_command_count: 1,
+            advanced_pbr_opaque_command_count: 1,
+            transmission_command_count: 1,
             transparent_command_count: 1,
             velocity_command_count: 1,
             taa_reactive_mask_command_count: 1,
@@ -42,6 +44,8 @@ fn prepared_queue_stats_carry_mesh_pass_command_buffer_counts() {
     assert_eq!(stats.shadow_command_count, 1);
     assert_eq!(stats.opaque_command_count, 3);
     assert_eq!(stats.alpha_mask_command_count, 1);
+    assert_eq!(stats.advanced_pbr_opaque_command_count, 1);
+    assert_eq!(stats.transmission_command_count, 1);
     assert_eq!(stats.transparent_command_count, 1);
     assert_eq!(stats.velocity_command_count, 1);
     assert_eq!(stats.taa_reactive_mask_command_count, 1);

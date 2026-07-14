@@ -4,7 +4,6 @@ use crate::core::framework::render::{
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
-use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
@@ -18,7 +17,6 @@ use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFla
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::CompiledRenderPipeline;
-use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::super::scene_renderer_core::{
     merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
@@ -31,14 +29,10 @@ use super::bind_compiled_scene_graph_resources::{
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_compiled_scene_graph_stages::CompiledSceneGraphStageContext;
 use super::execute_graph_stage::RenderGraphStageExecution;
+use super::pipeline_resource_usage::pipeline_writes_resource;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
+use super::sprite_stage_selection::active_sprite_graph_stages;
 use super::submit_compiled_scene_frame::CompiledSceneFrameSubmissionContext;
-
-const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
-    RenderPassStage::Opaque2d,
-    RenderPassStage::AlphaMask2d,
-    RenderPassStage::Transparent2d,
-];
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -179,8 +173,14 @@ impl SceneRendererCore {
                 <= prepared_mesh_queue_stats.alpha_mask_draw_count
         );
         debug_assert!(
-            prepared_mesh_queue_stats.transparent_command_count
+            prepared_mesh_queue_stats
+                .transparent_command_count
+                .saturating_add(prepared_mesh_queue_stats.transmission_command_count)
                 <= prepared_mesh_queue_stats.transparent_draw_count
+        );
+        debug_assert!(
+            prepared_mesh_queue_stats.advanced_pbr_opaque_command_count
+                <= prepared_mesh_queue_stats.opaque_draw_count
         );
         debug_assert_eq!(
             prepared_mesh_queue_stats.velocity_command_count,
@@ -211,6 +211,15 @@ impl SceneRendererCore {
                 shadow_commands: mesh_pass_command_buffers.shadow().commands(),
                 opaque_commands: mesh_pass_command_buffers.opaque().commands(),
                 alpha_mask_commands: mesh_pass_command_buffers.alpha_mask().commands(),
+                advanced_pbr_opaque_commands: mesh_pass_command_buffers
+                    .advanced_pbr_opaque()
+                    .commands(),
+                transmission_commands: mesh_pass_command_buffers.transmission().commands(),
+                transmission_step_count: frame
+                    .extract
+                    .lighting
+                    .advanced_lighting
+                    .transmission_draw_step_count(),
                 transparent_commands: mesh_pass_command_buffers.transparent().commands(),
                 velocity_commands: mesh_pass_command_buffers.velocity().commands(),
                 taa_reactive_mask_commands: mesh_pass_command_buffers
@@ -220,6 +229,7 @@ impl SceneRendererCore {
                 shadow_indirect: mesh_pass_indirect_draws.shadow(),
                 opaque_indirect: mesh_pass_indirect_draws.opaque(),
                 alpha_mask_indirect: mesh_pass_indirect_draws.alpha_mask(),
+                advanced_pbr_opaque_indirect: mesh_pass_indirect_draws.advanced_pbr_opaque(),
                 transparent_indirect: mesh_pass_indirect_draws.transparent(),
                 velocity_indirect: mesh_pass_indirect_draws.velocity(),
                 taa_reactive_mask_indirect: mesh_pass_indirect_draws.taa_reactive_mask(),
@@ -376,119 +386,5 @@ impl SceneRendererCore {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,
         })
-    }
-}
-
-fn active_sprite_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
-    SPRITE_GRAPH_STAGES
-        .iter()
-        .copied()
-        .filter(|stage| pipeline_has_active_sprite_stage(pipeline, *stage))
-        .collect()
-}
-
-fn pipeline_has_active_sprite_stage(
-    pipeline: &CompiledRenderPipeline,
-    stage: RenderPassStage,
-) -> bool {
-    pipeline
-        .pass_stages
-        .iter()
-        .filter(|stage_entry| stage_entry.stage == stage)
-        .any(|stage_entry| {
-            pipeline.graph.passes().iter().any(|pass| {
-                pass.name == stage_entry.pass_name
-                    && !pass.culled
-                    && pass
-                        .executor_id
-                        .as_deref()
-                        .is_some_and(|executor_id| executor_id.starts_with("sprite."))
-            })
-        })
-}
-
-fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &str) -> bool {
-    pipeline
-        .graph
-        .passes()
-        .iter()
-        .filter(|pass| !pass.culled)
-        .flat_map(|pass| pass.resources.iter())
-        .any(|resource| {
-            resource.name == resource_name
-                && resource.access == RenderGraphResourceAccessKind::Write
-        })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{active_sprite_graph_stages, SPRITE_GRAPH_STAGES};
-    use crate::core::framework::render::RenderPipelineHandle;
-    use crate::graphics::pipeline::RenderPassStage;
-    use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
-    use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
-
-    #[test]
-    fn compiled_scene_sprite_stage_list_owns_core2d_product_stages() {
-        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Opaque2d));
-        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask2d));
-        assert!(SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Transparent2d));
-        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Deferred));
-        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::Lighting));
-        assert!(!SPRITE_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
-    }
-
-    #[test]
-    fn active_sprite_graph_stages_follow_unculled_sprite_passes() {
-        let pipeline = compiled_pipeline_with_passes([
-            (RenderPassStage::Opaque2d, "sprite-opaque", "sprite.opaque"),
-            (
-                RenderPassStage::Transparent2d,
-                "sprite-transparent",
-                "sprite.transparent",
-            ),
-            (RenderPassStage::Ui, "runtime-ui", "ui.screen-space"),
-        ]);
-
-        assert_eq!(
-            active_sprite_graph_stages(&pipeline),
-            vec![RenderPassStage::Opaque2d, RenderPassStage::Transparent2d]
-        );
-    }
-
-    fn compiled_pipeline_with_passes<const N: usize>(
-        passes: [(RenderPassStage, &str, &str); N],
-    ) -> CompiledRenderPipeline {
-        let mut graph = RenderGraphBuilder::new("sprite-stage-test");
-        let mut pass_stages = Vec::new();
-        for (stage, pass_name, executor_id) in passes {
-            let pass =
-                graph.add_pass_with_executor(pass_name, QueueLane::Graphics, Some(executor_id));
-            // This fixture tests stage filtering only, so synthetic passes are rooted directly.
-            graph
-                .set_pass_flags(
-                    pass,
-                    PassFlags {
-                        has_side_effects: true,
-                        ..PassFlags::default()
-                    },
-                )
-                .expect("sprite stage test root");
-            pass_stages.push(CompiledRenderPipelinePassStage::new(pass_name, stage));
-        }
-
-        CompiledRenderPipeline {
-            handle: RenderPipelineHandle::new(99),
-            name: "sprite-stage-test".to_string(),
-            renderer_name: "sprite-stage-test".to_string(),
-            stages: SPRITE_GRAPH_STAGES.to_vec(),
-            pass_stages,
-            enabled_features: Vec::new(),
-            required_extract_sections: Vec::new(),
-            capability_requirements: Vec::new(),
-            history_bindings: Vec::new(),
-            environment_ibl_bake_request: None,
-            graph: graph.compile().expect("sprite stage test graph"),
-        }
     }
 }

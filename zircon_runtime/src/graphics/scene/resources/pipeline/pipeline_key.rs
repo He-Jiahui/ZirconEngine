@@ -24,6 +24,9 @@ pub(crate) struct PipelineKey {
     pub(crate) has_metallic_roughness_texture: bool,
     pub(crate) has_occlusion_texture: bool,
     pub(crate) has_emissive_texture: bool,
+    pub(crate) pbr_clearcoat: bool,
+    pub(crate) pbr_anisotropy: bool,
+    pub(crate) pbr_transmission: bool,
 }
 
 impl PipelineKey {
@@ -33,6 +36,10 @@ impl PipelineKey {
 
     pub(crate) fn is_alpha_mask(&self) -> bool {
         self.alpha_mask && !self.alpha_blend
+    }
+
+    pub(crate) fn requires_forward_path(&self) -> bool {
+        self.pbr_clearcoat || self.pbr_anisotropy || self.pbr_transmission
     }
 
     pub(crate) fn uses_fallback_shader(&self) -> bool {
@@ -84,6 +91,15 @@ impl PipelineKey {
         }
         if self.has_normal_texture {
             bits |= ShaderFeatureBits::HAS_NORMAL_TEXTURE;
+        }
+        if self.pbr_clearcoat {
+            bits |= ShaderFeatureBits::PBR_CLEARCOAT;
+        }
+        if self.pbr_anisotropy {
+            bits |= ShaderFeatureBits::PBR_ANISOTROPY;
+        }
+        if self.pbr_transmission {
+            bits |= ShaderFeatureBits::PBR_TRANSMISSION;
         }
         ShaderFeatureBits::new(bits)
     }
@@ -153,5 +169,36 @@ mod tests {
         assert!(!variant
             .features
             .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+    }
+
+    #[test]
+    fn render_advanced_material_pipeline_key_tracks_authored_lobes() {
+        let mut key = default_pipeline_key();
+
+        let default_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+        assert!(!default_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
+
+        key.pbr_clearcoat = true;
+        key.pbr_anisotropy = true;
+        key.pbr_transmission = true;
+        let advanced_variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_CLEARCOAT));
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_ANISOTROPY));
+        assert!(advanced_variant
+            .features
+            .contains(ShaderFeatureBits::PBR_TRANSMISSION));
     }
 }

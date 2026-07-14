@@ -221,6 +221,16 @@ fn material_feature_bits(material: &MaterialAsset) -> ShaderFeatureBits {
     if material.double_sided {
         bits |= ShaderFeatureBits::DOUBLE_SIDED;
     }
+    let advanced_features = material.advanced_pbr_features();
+    if advanced_features.uses_clearcoat() {
+        bits |= ShaderFeatureBits::PBR_CLEARCOAT;
+    }
+    if advanced_features.uses_anisotropy() {
+        bits |= ShaderFeatureBits::PBR_ANISOTROPY;
+    }
+    if advanced_features.uses_transmission() {
+        bits |= ShaderFeatureBits::PBR_TRANSMISSION;
+    }
     ShaderFeatureBits::new(bits)
 }
 

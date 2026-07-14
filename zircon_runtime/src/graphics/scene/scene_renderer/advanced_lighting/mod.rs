@@ -2,6 +2,7 @@ pub(crate) mod froxel;
 pub(crate) mod oit_buffers;
 pub(crate) mod planar_filter;
 pub(crate) mod subsurface_pass;
+pub(crate) mod transmission;
 
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistration;
 

@@ -14,6 +14,7 @@ const LIGHTMAP_INCLUDE_TOKEN: &str = "zr_lightmap.wgsl";
 const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
 const VOLUMETRIC_INCLUDE_TOKEN: &str = "zr_volumetric.wgsl";
 const OIT_INCLUDE_TOKEN: &str = "zr_oit.wgsl";
+const PBR_EXTRAS_INCLUDE_TOKEN: &str = "zr_pbr_extras.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
 const STANDARD_PBR_SHADING_INCLUDE_TOKEN: &str = "zr_shading_standard_pbr.wgsl";
@@ -39,6 +40,7 @@ const SURFACE_TYPES_INCLUDE: &str = include_str!("../wgsl/zr_surface_types.wgsl"
 const ENVIRONMENT_INCLUDE: &str = include_str!("../wgsl/zr_environment.wgsl");
 const VOLUMETRIC_INCLUDE: &str = include_str!("../wgsl/zr_volumetric.wgsl");
 const OIT_INCLUDE: &str = include_str!("../includes/zr_oit.wgsl");
+const PBR_EXTRAS_INCLUDE: &str = include_str!("../includes/zr_pbr_extras.wgsl");
 const STANDARD_PBR_SHADING_INCLUDE: &str = include_str!("../wgsl/zr_shading_standard_pbr.wgsl");
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE: &str =
     include_str!("../wgsl/zr_gbuffer_encode_standard_pbr.wgsl");
@@ -203,6 +205,7 @@ fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
         environment_include(),
         volumetric_include(),
         oit_include(),
+        pbr_extras_include(),
         light_grid_include(),
         shadow_include(),
         standard_pbr_shading_include(),
@@ -257,6 +260,10 @@ pub(crate) fn volumetric_include() -> ShaderTemplateInclude {
 
 pub(crate) fn oit_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(OIT_INCLUDE_TOKEN, OIT_INCLUDE)
+}
+
+pub(crate) fn pbr_extras_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(PBR_EXTRAS_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE)
 }
 
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {

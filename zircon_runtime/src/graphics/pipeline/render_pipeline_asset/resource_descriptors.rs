@@ -160,6 +160,7 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         | PostProcessGraphResourceNames::SCENE_COMPOSITED => {
             Some(post_process_intermediate_hdr_format())
         }
+        PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR => Some(TextureFormat::Rgba16Float),
         PostProcessGraphResourceNames::TONEMAPPED | PostProcessGraphResourceNames::UPSCALED => {
             Some(post_process_texture_format(TONEMAPPED_SDR_FORMAT))
         }
@@ -261,7 +262,11 @@ fn half_extent(value: u32) -> u32 {
 fn is_scene_color_resource(name: &str) -> bool {
     matches!(
         name,
-        "scene-color" | "final-color" | "postprocess.terminal-aa-input" | "ambient-occlusion"
+        "scene-color"
+            | "transmission.scene-color"
+            | "final-color"
+            | "postprocess.terminal-aa-input"
+            | "ambient-occlusion"
     ) || name.starts_with("gbuffer-")
 }
 
@@ -269,6 +274,7 @@ fn is_single_sample_graph_product(name: &str) -> bool {
     matches!(
         name,
         PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
+            | PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR
             | PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
             | PostProcessGraphResourceNames::SSS_DIFFUSE
             | PostProcessGraphResourceNames::SSS_SPECULAR
