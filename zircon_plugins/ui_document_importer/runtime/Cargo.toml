@@ -7,5 +7,5 @@ description = "UI document importer runtime plugin package for Zircon."
 
 [dependencies]
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
-zircon_runtime = { workspace = true }
+zircon_runtime = { workspace = true, features = ["ui"] }
 zircon_runtime_interface = { workspace = true }
