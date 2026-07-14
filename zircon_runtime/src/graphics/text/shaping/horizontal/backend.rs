@@ -1,6 +1,8 @@
 use std::str::FromStr;
 
-use rustybuzz::{ttf_parser::Tag, Direction, Feature, Language, UnicodeBuffer, Variation};
+use rustybuzz::{
+    script, ttf_parser::Tag, Direction, Feature, Language, Script, UnicodeBuffer, Variation,
+};
 use zircon_runtime_interface::ui::surface::UiTextDirection;
 
 use crate::core::framework::render::{FontFaceId, InstancedFaceId, OpenTypeFeature};
@@ -27,6 +29,7 @@ pub(super) fn shape_horizontal_run(
     instance_id: Option<InstancedFaceId>,
     text: &str,
     direction: UiTextDirection,
+    script_tag: &str,
     language: Option<&str>,
     features: &[OpenTypeFeature],
     include_kerning: bool,
@@ -69,6 +72,9 @@ pub(super) fn shape_horizontal_run(
     if let Some(language) = language {
         buffer.set_language(language);
     }
+    if let Some(script) = explicit_script(script_tag) {
+        buffer.set_script(script);
+    }
     buffer.guess_segment_properties();
 
     let mut projected_features = features
@@ -93,4 +99,9 @@ pub(super) fn shape_horizontal_run(
         })
         .collect::<Vec<_>>();
     (!glyphs.is_empty()).then_some(HorizontalBackendRun { glyphs })
+}
+
+fn explicit_script(script_tag: &str) -> Option<Script> {
+    let script = Script::from_str(script_tag).ok()?;
+    (!matches!(script, script::COMMON | script::INHERITED | script::UNKNOWN)).then_some(script)
 }

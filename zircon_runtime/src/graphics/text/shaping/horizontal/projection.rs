@@ -9,13 +9,15 @@ use super::backend::{shape_horizontal_run, HorizontalBackendRun};
 use crate::graphics::text::shaping::vertical::source_cluster_text;
 
 #[derive(Clone, Copy)]
-struct SourceCluster {
+struct SourceCluster<'a> {
     glyph_start: usize,
     glyph_end: usize,
     source_range: UiTextRange,
     face: Option<FontFaceId>,
     instance: Option<InstancedFaceId>,
     direction: UiTextDirection,
+    /// Resolved ISO15924 tag; backend segments must never cross this boundary.
+    script: &'a str,
 }
 
 pub(in crate::graphics::text::shaping) fn apply_horizontal_backend_shaping(
@@ -45,6 +47,7 @@ pub(in crate::graphics::text::shaping) fn apply_horizontal_backend_shaping(
                     segment[0].instance,
                     segment_text,
                     segment[0].direction,
+                    segment[0].script,
                     request.language,
                     request.features,
                     request.include_kerning,
@@ -91,7 +94,7 @@ pub(super) const fn should_apply_horizontal_backend(orientation: TextOrientation
     matches!(orientation, TextOrientation::Horizontal)
 }
 
-fn source_clusters(glyphs: &[ShapedGlyph]) -> Vec<SourceCluster> {
+fn source_clusters(glyphs: &[ShapedGlyph]) -> Vec<SourceCluster<'_>> {
     let mut clusters = Vec::new();
     let mut glyph_start = 0_usize;
     while glyph_start < glyphs.len() {
@@ -114,13 +117,14 @@ fn source_clusters(glyphs: &[ShapedGlyph]) -> Vec<SourceCluster> {
             face: one_identity.then_some(face).flatten(),
             instance: one_identity.then_some(instance).flatten(),
             direction: cluster[0].direction,
+            script: cluster[0].script.iso15924.as_str(),
         });
         glyph_start = glyph_end;
     }
     clusters
 }
 
-fn backend_segment_end(clusters: &[SourceCluster], start: usize) -> usize {
+fn backend_segment_end(clusters: &[SourceCluster<'_>], start: usize) -> usize {
     let first = clusters[start];
     let Some(face) = first.face else {
         return start + 1;
@@ -134,6 +138,7 @@ fn backend_segment_end(clusters: &[SourceCluster], start: usize) -> usize {
         if next.face != Some(face)
             || next.instance != first.instance
             || next.direction != first.direction
+            || next.script != first.script
             || !adjacent
         {
             break;
@@ -143,7 +148,7 @@ fn backend_segment_end(clusters: &[SourceCluster], start: usize) -> usize {
     end
 }
 
-fn segment_source_range(segment: &[SourceCluster]) -> UiTextRange {
+fn segment_source_range(segment: &[SourceCluster<'_>]) -> UiTextRange {
     UiTextRange {
         start: segment
             .iter()

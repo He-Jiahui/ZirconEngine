@@ -31,6 +31,7 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
+  - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -46,6 +47,8 @@ tests:
   - text_horizontal_backend_skips_static_face_for_empty_language_tag
   - text_horizontal_rustybuzz_backend_applies_real_variable_width_axis
   - text_horizontal_rustybuzz_backend_applies_real_per_run_locl_language
+  - text_horizontal_rustybuzz_backend_preserves_serbian_locl_in_mixed_script_text
+  - export_runtime_multilingual_text_product_framebuffer_png
   - text_msdf_dynamic_generation_applies_real_variable_width_axis
   - sdf_atlas_plan_separates_variable_font_instances_on_same_face
 doc_type: module-detail
@@ -62,7 +65,7 @@ The effective-coordinate projection reads the selected face's actual `fvar` axes
 
 ## Shaping and raster flow
 
-Horizontal layout keeps cosmic-text as the paragraph, BiDi, fallback, and initial cluster owner. The folder-backed `graphics/text/shaping/horizontal/` leaf groups adjacent glyph clusters by actual face, instance, and direction, then re-shapes segments whenever effective variation coordinates or a per-run language are present. RustyBuzz receives language, OpenType features, kerning policy, size, and effective coordinates, so `locl` and variable axes share one authoritative face/cluster projection instead of a renderer-side exception. It projects real glyph IDs, cluster ranges, advances, and offsets back into the shared `ShapedGlyphRun`. The leaf rejects vertical requests; vertical shaping applies the same coordinates and language directly in the TTB/BTT backend.
+Horizontal layout keeps cosmic-text as the paragraph, BiDi, fallback, and initial cluster owner. The folder-backed `graphics/text/shaping/horizontal/` leaf groups adjacent glyph clusters by actual face, instance, direction, and resolved ISO15924 script, then re-shapes segments whenever effective variation coordinates or a per-run language are present. Each strong script is explicitly set on the RustyBuzz buffer before `guess_segment_properties`; Common, Inherited, and Unknown tags deliberately retain the backend guess path. RustyBuzz therefore receives one script together with language, OpenType features, kerning policy, size, and effective coordinates, so `locl` and variable axes share one authoritative face/cluster projection without allowing an adjacent Latin cluster to suppress Cyrillic localization. It projects real glyph IDs, cluster ranges, advances, and offsets back into the shared `ShapedGlyphRun`. The leaf rejects vertical requests; vertical shaping applies the same coordinates, script, and language directly in the TTB/BTT backend.
 
 `ShapedGlyph` carries both base `FontFaceId` and `InstancedFaceId`. The base face remains the byte/fallback owner; the instance prevents equal glyph IDs from different coordinate selections sharing atlas entries. Screen-space extraction preserves both identities for horizontal and VerticalRl batches.
 
@@ -74,4 +77,4 @@ Runtime `.zsdf` lookup derives `variation_hash` from effective, sorted coordinat
 
 ## Validation state
 
-The implementation is source-complete for instance registry, horizontal/vertical RustyBuzz, native Swash, dynamic distance fields, atlas identity, and runtime offline selection. Windows exact tests use the real `C:\Windows\Fonts\bahnschrift.ttf` `wdth` axis to require different shaped advances and SDF pixels, and real `C:\Windows\Fonts\calibri.ttf` Russian/Serbian Cyrillic forms to require distinct `locl` glyph IDs. Managed job `d4821ebfeef1445eb743515c9439948c` built the current Runtime lib-test in 37m04s and ran `text_horizontal_` 5/5 in 26.98s; its external ephemeral target was deleted. Database F2DOT14/static-axis tests, dynamic SDF pixels, atlas separation, upward regression, and product framebuffer remain pending, so this document remains `in_progress` and no completion claim is made.
+The implementation is source-complete for instance registry, script-aware horizontal/vertical RustyBuzz, native Swash, dynamic distance fields, atlas identity, and runtime offline selection. Windows exact tests use the real `C:\Windows\Fonts\bahnschrift.ttf` `wdth` axis to require different shaped advances and SDF pixels, and real `C:\Windows\Fonts\calibri.ttf` Russian/Serbian Cyrillic forms to require distinct `locl` glyph IDs. Managed Windows job `d4795c7ea9ab4d44a6cbca3aba3b869e` built the current `zircon_runtime` source successfully in 6m23s, and the current lib-test binary passed `text_horizontal_rustybuzz_backend_preserves_serbian_locl_in_mixed_script_text` 1/1 in 27.78s. The real multilingual product exporter reached framebuffer pixel assertions, including the distinct SDF/MSDF decode-path check, but the pre-existing strict apex-occupancy comparison failed with `sdf=19, msdf=19`; it therefore did not write `docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png`, and no product-frame pass is claimed. Database F2DOT14/static-axis tests, dynamic SDF pixels, atlas separation, the MSDF apex metric repair, screenshot inspection, and upward regression remain open, so this document remains `in_progress`.

@@ -97,9 +97,9 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         proof_text(
             106,
             UiFrame::new(42.0, 524.0, 876.0, 52.0),
-            "Mixed: Build 构建 — مرحبًا — FPS 60",
+            "Mixed Serbian: Latin aб — 构建 — مرحبًا — FPS 60",
             UiTextDirection::LeftToRight,
-            Some("zh-Hans"),
+            Some("sr"),
             UiTextRenderMode::Native,
         ),
         proof_text(
@@ -796,5 +796,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_multilingual_sdf_msdf_product_framebuffer_20260713.png")
+        .join("runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png")
 }
