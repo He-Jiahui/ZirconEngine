@@ -273,16 +273,23 @@ impl World {
             }
             object.insert(property.to_string(), json_value);
             self.validate_dynamic_component_value(component_id, &candidate)?;
-            self.dynamic_components
-                .get_mut(&entity)
-                .and_then(|components| components.get_mut(component_id))
-                .map(|component| *component = candidate)
-                .ok_or_else(|| {
-                    SceneError::Reflect(ReflectError::MissingComponent {
-                        entity,
-                        type_path: component_id.to_string(),
-                    })
-                })?;
+            // Preserve transactional validation: commit to the live component only
+            // after the complete candidate has passed its declared VM schema.
+            let Some(components) = self.dynamic_components.get_mut(&entity) else {
+                return Err(ReflectError::MissingComponent {
+                    entity,
+                    type_path: component_id.to_string(),
+                }
+                .into());
+            };
+            let Some(component) = components.get_mut(component_id) else {
+                return Err(ReflectError::MissingComponent {
+                    entity,
+                    type_path: component_id.to_string(),
+                }
+                .into());
+            };
+            *component = candidate;
             return Ok(true);
         }
         let components = self.dynamic_components.entry(entity).or_default();
