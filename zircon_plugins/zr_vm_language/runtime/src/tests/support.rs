@@ -4,7 +4,13 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ZR_VM_PROJECT_BACKEND_SELECTOR;
-use zircon_runtime::script::{VmStateBlob, VM_STATE_SCHEMA_VERSION_V2};
+use zircon_runtime::script::{
+    VmStateBlob, VmStateSchema, VmStateTypeSchema, VM_STATE_SCHEMA_VERSION_V2,
+};
+use zircon_runtime_interface::reflect::{
+    ReflectEditorHint, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo,
+    ReflectTypePath, ReflectTypeRegistration,
+};
 
 const FIXTURE_STATE_TYPE_HASH: u32 = 0x5A56_0002;
 
@@ -36,6 +42,8 @@ pub(super) fn build_real_backend_host(
         host_registry: manager.host_registry(),
         host_exports: manager.host_exports(),
         host_interfaces: manager.host_interfaces(),
+        reflection_catalog: manager.reflection_catalog(),
+        reflection_schema_installer: Default::default(),
         slot_lifecycle: Arc::new(NoopSlotLifecycle),
         vm_owner: None,
     }
@@ -299,9 +307,27 @@ fn fixture_state_json(value: &str) -> String {
 }
 
 fn fixture_schema_json() -> String {
-    format!(
-        "{{\"schema_version\":{VM_STATE_SCHEMA_VERSION_V2},\"types\":[{{\"registration\":{{\"type_path\":{{\"type_path\":\"fixture.ZrVmState\",\"short_type_path\":\"ZrVmState\"}},\"display_name\":\"Fixture State\",\"type_info\":{{\"kind\":\"Struct\",\"fields\":[{{\"name\":\"value\",\"display_name\":\"value\",\"value_type_path\":\"String\",\"editable\":true,\"serializable\":true,\"editor_visible\":true,\"editor_hint\":\"String\"}}]}},\"serialization\":\"Value\",\"is_component\":false,\"is_resource\":false,\"plugin_owned\":false,\"serializable\":true,\"editor_visible\":true,\"remote_visible\":false}},\"type_hash\":{FIXTURE_STATE_TYPE_HASH},\"renames\":[]}}]}}"
-    )
+    let registration = ReflectTypeRegistration::new(
+        ReflectTypePath::new("fixture.ZrVmState", "ZrVmState")
+            .expect("fixture type path should be valid"),
+        "Fixture State",
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+            "value",
+            "String",
+            ReflectEditorHint::String,
+        )]),
+        ReflectSerializationStrategy::Value,
+    );
+    VmStateSchema {
+        schema_version: VM_STATE_SCHEMA_VERSION_V2,
+        types: vec![VmStateTypeSchema {
+            registration,
+            type_hash: FIXTURE_STATE_TYPE_HASH,
+            renames: Vec::new(),
+        }],
+    }
+    .to_json()
+    .expect("fixture schema should serialize through the authoritative contract")
 }
 
 fn zr_vm_string_literal(value: &str) -> String {

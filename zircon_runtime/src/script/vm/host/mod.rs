@@ -27,5 +27,5 @@ pub use reflection_docs::{
     write_script_host_modules_markdown, ScriptHostInterfaceMarkdownOptions,
 };
 pub use script_call_table::{ScriptCallSite, ScriptCallSiteId, ScriptCallTable};
-pub use vm_plugin_host_context::VmPluginHostContext;
+pub use vm_plugin_host_context::{VmPluginHostContext, VmReflectionSchemaInstaller};
 pub use vm_plugin_slot_lifecycle::VmPluginSlotLifecycle;

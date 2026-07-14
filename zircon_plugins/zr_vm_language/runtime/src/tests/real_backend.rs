@@ -1,5 +1,5 @@
-use crate::{register_zr_vm_backend, ZR_VM_PROJECT_BACKEND_SELECTOR};
-use zircon_runtime::script::{VmBackend, ZrVmBackend};
+use crate::{register_zr_vm_backend, ZrVmBackend, ZR_VM_PROJECT_BACKEND_SELECTOR};
+use zircon_runtime::script::{VmBackend, VmGcBudget};
 
 use super::support::{
     build_real_backend_host, fixture_state_blob, DocumentedZrVmExampleFixture, ZrVmProjectFixture,
@@ -92,6 +92,13 @@ fn real_backend_session_preserves_lifecycle_state() {
         .expect("restore state in persistent session");
     let restored = instance.save_state().expect("save state after restore");
     assert_eq!(restored, fixture_state_blob("hot"));
+
+    let gc = instance
+        .gc_step(VmGcBudget {
+            max_micros_per_frame: 1_000,
+        })
+        .expect("step the real ZrVM collector");
+    assert!(gc.root_count >= gc.cross_boundary_reference_count);
 }
 
 #[test]

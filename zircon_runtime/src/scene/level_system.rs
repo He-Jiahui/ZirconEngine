@@ -92,7 +92,7 @@ impl LevelSystem {
         self.handle
     }
 
-    fn lock_world(&self) -> MutexGuard<'_, World> {
+    pub(crate) fn lock_world(&self) -> MutexGuard<'_, World> {
         lock_poison_recovered(&self.inner)
     }
 
@@ -116,8 +116,10 @@ impl LevelSystem {
         self.lock_world().clone()
     }
 
-    pub fn replace(&self, world: World) {
-        *self.lock_world() = world;
+    pub fn replace(&self, mut world: World) {
+        let mut current = self.lock_world();
+        world.advance_world_generation_after(current.world_generation());
+        *current = world;
     }
 
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
@@ -302,5 +304,28 @@ mod tests {
         poison_mutex(&level.subsystems);
         level.register_subsystem("physics");
         assert_eq!(level.registered_subsystems(), vec!["physics".to_string()]);
+    }
+
+    #[test]
+    fn world_replacement_advances_generation_past_both_worlds() {
+        let mut current = World::empty();
+        current.spawn_node(crate::scene::NodeKind::Empty);
+        current.spawn_node(crate::scene::NodeKind::Empty);
+        let current_generation = current.world_generation();
+        let level = LevelSystem::new(
+            WorldHandle::new(7),
+            Arc::new(Mutex::new(current)),
+            LevelMetadata::default(),
+        );
+
+        let mut replacement = World::empty();
+        replacement.spawn_node(crate::scene::NodeKind::Empty);
+        let replacement_generation = replacement.world_generation();
+        level.replace(replacement);
+
+        assert_eq!(
+            level.with_world(World::world_generation),
+            current_generation.max(replacement_generation) + 1
+        );
     }
 }

@@ -10,10 +10,7 @@ use zircon_runtime_interface::{
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
 use super::vampire_runtime_support::*;
 
-#[cfg_attr(
-    not(feature = "backend-zr-vm"),
-    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
-)]
+#[ignore = "real ZrVM coverage moved to the zr_vm_language plugin owner"]
 #[test]
 fn vampire_project_session_w_key_moves_player_before_input_clear() {
     let mut session = RuntimeDynamicSession::new(
@@ -83,10 +80,7 @@ fn vampire_project_session_wasd_axes_match_third_person_camera() {
     }
 }
 
-#[cfg_attr(
-    not(feature = "backend-zr-vm"),
-    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
-)]
+#[ignore = "real ZrVM coverage moved to the zr_vm_language plugin owner"]
 #[test]
 fn vampire_project_session_auto_blood_bolt_damages_nearest_enemy() {
     let mut session = RuntimeDynamicSession::new(
@@ -130,10 +124,7 @@ fn vampire_project_session_auto_blood_bolt_damages_nearest_enemy() {
     );
 }
 
-#[cfg_attr(
-    not(feature = "backend-zr-vm"),
-    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
-)]
+#[ignore = "real ZrVM coverage moved to the zr_vm_language plugin owner"]
 #[test]
 fn vampire_project_session_enemy_behavior_tree_chases_player() {
     let mut session = RuntimeDynamicSession::new(
@@ -167,10 +158,7 @@ fn vampire_project_session_enemy_behavior_tree_chases_player() {
     );
 }
 
-#[cfg_attr(
-    not(feature = "backend-zr-vm"),
-    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
-)]
+#[ignore = "real ZrVM coverage moved to the zr_vm_language plugin owner"]
 #[test]
 fn vampire_project_session_simple_loop_kills_enemy_without_mesh_health_bars() {
     let mut session = RuntimeDynamicSession::new(

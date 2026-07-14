@@ -6,9 +6,11 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
 use zircon_runtime_interface::reflect::ReflectError;
+use zircon_runtime_interface::reflect::ReflectTypeRegistration;
 
 use super::error::{SceneError, SceneResult};
 use super::World;
+use crate::scene::reflect::VmTypeBacking;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct DynamicComponentInstance {
@@ -18,6 +20,52 @@ pub struct DynamicComponentInstance {
 }
 
 impl World {
+    pub fn register_vm_type(
+        &mut self,
+        registration: ReflectTypeRegistration,
+        backing: VmTypeBacking,
+    ) -> SceneResult<()> {
+        let type_path = registration.type_path.type_path.clone();
+        if self.type_registry.contains(&type_path) {
+            return Err(ReflectError::DuplicateTypePath { type_path }.into());
+        }
+
+        let descriptor =
+            crate::scene::reflect::TypeRegistry::vm_component_descriptor(&registration, backing)?;
+        let mut component_types = self.component_types.clone();
+        component_types.register(descriptor)?;
+        let mut type_registry = self.type_registry.clone();
+        type_registry.register_vm_type(registration, backing)?;
+
+        let registration = type_registry.registration(&type_path)?;
+        self.validate_retained_vm_payloads(std::slice::from_ref(registration))?;
+
+        self.component_types = component_types;
+        self.type_registry = type_registry;
+        self.vm_dynamic_type_paths.insert(type_path);
+        Ok(())
+    }
+
+    pub(crate) fn validate_vm_type_sync(
+        &self,
+        registrations: &[ReflectTypeRegistration],
+    ) -> SceneResult<()> {
+        self.prepare_vm_type_sync(registrations).map(|_| ())
+    }
+
+    pub(crate) fn sync_vm_types(
+        &mut self,
+        registrations: &[ReflectTypeRegistration],
+    ) -> SceneResult<()> {
+        let (component_types, type_registry, vm_catalog_type_paths, vm_dynamic_type_paths) =
+            self.prepare_vm_type_sync(registrations)?;
+        self.component_types = component_types;
+        self.type_registry = type_registry;
+        self.vm_catalog_type_paths = vm_catalog_type_paths;
+        self.vm_dynamic_type_paths = vm_dynamic_type_paths;
+        Ok(())
+    }
+
     pub fn register_component_type(
         &mut self,
         descriptor: ComponentTypeDescriptor,
@@ -68,6 +116,9 @@ impl World {
         }
         let component_id = component_id.into();
         self.validate_dynamic_component_type(&component_id)?;
+        if self.vm_dynamic_type_paths.contains(&component_id) {
+            self.validate_dynamic_component_value(&component_id, &value)?;
+        }
         let components = self.dynamic_components.entry(entity).or_default();
         if components.get(&component_id) == Some(&value) {
             return Ok(false);
@@ -80,6 +131,10 @@ impl World {
     pub fn dynamic_component(&self, entity: EntityId, component_id: &str) -> Option<&Value> {
         let components = self.dynamic_components.get(&entity)?;
         components.get(component_id)
+    }
+
+    pub(in crate::scene) fn is_vm_dynamic_type_path(&self, type_path: &str) -> bool {
+        self.vm_dynamic_type_paths.contains(type_path)
     }
 
     pub fn dynamic_components_for_entity(&self, entity: EntityId) -> Vec<DynamicComponentInstance> {
@@ -175,6 +230,20 @@ impl World {
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
+        let Some(json_value) = json_from_scene_value(value) else {
+            return Err(SceneError::DynamicComponentPropertyUnsupportedValue {
+                property_path: property_path.to_string(),
+            });
+        };
+        self.set_dynamic_component_json_property(entity, property_path, json_value)
+    }
+
+    pub(crate) fn set_dynamic_component_json_property(
+        &mut self,
+        entity: EntityId,
+        property_path: &ComponentPropertyPath,
+        json_value: Value,
+    ) -> SceneResult<bool> {
         if !self.contains_entity(entity) {
             return Err(SceneError::missing_entity("update", entity));
         }
@@ -185,11 +254,37 @@ impl World {
         };
         self.validate_dynamic_component_type(component_id)?;
         self.validate_dynamic_component_property_write(component_id, property)?;
-        let Some(json_value) = json_from_scene_value(value) else {
-            return Err(SceneError::DynamicComponentPropertyUnsupportedValue {
-                property_path: property_path.to_string(),
-            });
-        };
+        if self.vm_dynamic_type_paths.contains(component_id) {
+            let Some(component) = self.dynamic_component(entity, component_id) else {
+                return Err(ReflectError::MissingComponent {
+                    entity,
+                    type_path: component_id.to_string(),
+                }
+                .into());
+            };
+            let mut candidate = component.clone();
+            let Some(object) = candidate.as_object_mut() else {
+                return Err(SceneError::DynamicComponentNotObject {
+                    component_id: component_id.to_string(),
+                });
+            };
+            if object.get(property) == Some(&json_value) {
+                return Ok(false);
+            }
+            object.insert(property.to_string(), json_value);
+            self.validate_dynamic_component_value(component_id, &candidate)?;
+            self.dynamic_components
+                .get_mut(&entity)
+                .and_then(|components| components.get_mut(component_id))
+                .map(|component| *component = candidate)
+                .ok_or_else(|| {
+                    SceneError::Reflect(ReflectError::MissingComponent {
+                        entity,
+                        type_path: component_id.to_string(),
+                    })
+                })?;
+            return Ok(true);
+        }
         let components = self.dynamic_components.entry(entity).or_default();
         let component = components
             .entry(component_id.to_string())
@@ -213,6 +308,84 @@ impl World {
         }
         Err(SceneError::UnregisteredDynamicComponentType {
             component_id: component_id.to_string(),
+        })
+    }
+
+    fn prepare_vm_type_sync(
+        &self,
+        registrations: &[ReflectTypeRegistration],
+    ) -> SceneResult<(
+        super::ComponentTypeRegistry,
+        crate::scene::reflect::TypeRegistry,
+        std::collections::BTreeSet<String>,
+        std::collections::BTreeSet<String>,
+    )> {
+        let mut component_types = self.component_types.clone();
+        let mut type_registry = self.type_registry.clone();
+        let desired_type_paths = registrations
+            .iter()
+            .map(|registration| registration.type_path.type_path.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        for obsolete_type_path in self.vm_catalog_type_paths.difference(&desired_type_paths) {
+            self.ensure_vm_catalog_type_unused(obsolete_type_path)?;
+            component_types.remove_vm_descriptor(obsolete_type_path);
+            type_registry.remove_vm_type(obsolete_type_path)?;
+        }
+        for registration in registrations {
+            let type_path = registration.type_path.type_path.as_str();
+            if type_registry.contains_type_path(type_path)
+                && !self.vm_catalog_type_paths.contains(type_path)
+            {
+                return Err(ReflectError::DuplicateTypePath {
+                    type_path: type_path.to_string(),
+                }
+                .into());
+            }
+            let backing = VmTypeBacking::DynamicComponent;
+            let descriptor = crate::scene::reflect::TypeRegistry::vm_component_descriptor(
+                registration,
+                backing,
+            )?;
+            component_types.upsert_vm_descriptor(descriptor)?;
+            type_registry.upsert_vm_type(registration.clone(), backing)?;
+        }
+        self.validate_retained_vm_payloads(registrations)?;
+        let mut vm_dynamic_type_paths = self
+            .vm_dynamic_type_paths
+            .difference(&self.vm_catalog_type_paths)
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>();
+        vm_dynamic_type_paths.extend(desired_type_paths.iter().cloned());
+        Ok((
+            component_types,
+            type_registry,
+            desired_type_paths,
+            vm_dynamic_type_paths,
+        ))
+    }
+
+    fn ensure_vm_catalog_type_unused(&self, type_path: &str) -> SceneResult<()> {
+        let active_components = self
+            .dynamic_components
+            .iter()
+            .filter_map(|(entity, components)| {
+                components
+                    .contains_key(type_path)
+                    .then(|| format!("{type_path} on entity {entity}"))
+            })
+            .collect::<Vec<_>>();
+        if active_components.is_empty() {
+            return Ok(());
+        }
+        let plugin_id = self
+            .type_registry
+            .registration(type_path)?
+            .plugin_id
+            .clone()
+            .unwrap_or_else(|| "<unknown>".to_string());
+        Err(SceneError::PluginComponentsActive {
+            plugin_id,
+            active_components: active_components.join(", "),
         })
     }
 
@@ -245,6 +418,79 @@ impl World {
                 component_id: component_id.to_string(),
                 property: property.to_string(),
             });
+        }
+        Ok(())
+    }
+
+    fn validate_dynamic_component_value(
+        &self,
+        component_id: &str,
+        value: &Value,
+    ) -> SceneResult<()> {
+        let registration = match self.type_registry.registration(component_id) {
+            Ok(registration) => registration,
+            Err(ReflectError::UnknownType { .. }) => return Ok(()),
+            Err(error) => return Err(error.into()),
+        };
+        Self::validate_dynamic_component_value_against_registration(registration, value)
+    }
+
+    fn validate_retained_vm_payloads(
+        &self,
+        registrations: &[ReflectTypeRegistration],
+    ) -> SceneResult<()> {
+        for registration in registrations {
+            let type_path = registration.type_path.type_path.as_str();
+            for components in self.dynamic_components.values() {
+                if let Some(value) = components.get(type_path) {
+                    Self::validate_dynamic_component_value_against_registration(
+                        registration,
+                        value,
+                    )?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_dynamic_component_value_against_registration(
+        registration: &ReflectTypeRegistration,
+        value: &Value,
+    ) -> SceneResult<()> {
+        let component_id = registration.type_path.type_path.as_str();
+        let Some(object) = value.as_object() else {
+            return Err(SceneError::DynamicComponentNotObject {
+                component_id: component_id.to_string(),
+            });
+        };
+        for (field_name, field_value) in object {
+            let Some(field) = registration
+                .type_info
+                .fields
+                .iter()
+                .find(|field| field.name == *field_name)
+            else {
+                return Err(ReflectError::UnknownField {
+                    type_path: component_id.to_string(),
+                    field_name: field_name.clone(),
+                }
+                .into());
+            };
+            crate::scene::reflect::ensure_json_value_type(
+                component_id,
+                field_name,
+                &field.value_type_path,
+                field_value,
+            )?;
+        }
+        for field in &registration.type_info.fields {
+            if !object.contains_key(&field.name) {
+                return Err(ReflectError::UnknownField {
+                    type_path: component_id.to_string(),
+                    field_name: field.name.clone(),
+                }
+                .into());
+            }
         }
         Ok(())
     }

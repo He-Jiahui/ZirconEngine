@@ -156,10 +156,6 @@ pub(super) fn assert_lock_poison_guards_stay_in_children(sources: &LockPoisonSou
                 "fn ",
                 "runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries"
             ),
-            concat!(
-                "fn ",
-                "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock"
-            ),
         ],
     );
 }

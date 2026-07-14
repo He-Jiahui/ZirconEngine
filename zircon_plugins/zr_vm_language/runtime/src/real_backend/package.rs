@@ -20,7 +20,18 @@ pub fn load_project_package(
     let mut runtime = zrvm::RuntimeBuilder::standard()
         .build()
         .map_err(map_zr_error)?;
-    let registrations = register_host_modules(&mut runtime, host)?;
+    let host_modules = register_host_modules(&mut runtime, host)?;
+    let reflection_host = host_modules.reflection_host.clone();
+    let reflection_catalog = host.reflection_catalog.clone();
+    host.reflection_schema_installer.register(move |snapshot| {
+        reflection_host
+            .install_registry_snapshot(snapshot, &reflection_catalog)
+            .map_err(|error| {
+                VmError::Operation(format!(
+                    "failed to compile canonical VM reflection call table: {error}"
+                ))
+            })
+    })?;
     let workspace = zrvm::ProjectWorkspace::open(&project.project_path).map_err(map_zr_error)?;
     workspace
         .compile(
@@ -48,7 +59,7 @@ pub fn load_project_package(
     Ok(Box::new(ZrVmPluginInstance::new(
         package.manifest.clone(),
         session,
-        registrations,
+        host_modules.registrations,
         runtime,
         project.entry_module.clone(),
     )))

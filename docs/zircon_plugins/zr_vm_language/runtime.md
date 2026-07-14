@@ -10,12 +10,17 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/call_site/call_site_error.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_error.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
@@ -59,12 +64,17 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/call_site/call_site_error.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/mod.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_error.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
@@ -108,6 +118,7 @@ tests:
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/support.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
@@ -169,6 +180,18 @@ The Plugins 08 M1 path uses `zircon_runtime_interface::reflect::ReflectTypeRegis
 
 The script projection validates visibility and field correspondence and reports `ReflectError::InvalidRegistration` instead of relying on an invariant panic. Registration failures are converted to `VmError` only at the host-module boundary where the VM-facing error contract requires it.
 
+`ReflectionHostModule` is the production owner of the package-local `ScriptCallTable`. The coordinator reads `stateSchema()` exactly once per generation; before activation it passes that same snapshot through the backend-installed hook, which composes package types with the canonical host/builtin `TypeRegistry` and compiles dense type/member slots. `zircon.reflection.resolve(type_path, member_name)` performs the one permitted name lookup and returns an opaque 64-bit token. The public `ScriptCallTable::resolve` entry point enforces the prepared/current name-resolution capability itself, so bypassing the host wrapper cannot keep resolving names from an abandoned candidate after another catalog epoch commits. `zircon.reflection.read(token, entity)` and `write(token, entity, value_json)` decode that token into numeric slots and call the captured dense component adapters without repeating type or member string lookup. Tagged `ReflectedValue` JSON is the ABI payload, so the native bridge does not invent a backend-local value schema.
+
+The plugin crate root wires the only concrete `ZrVmBackendFamily`. Default builds retain the explicit unavailable result; `backend-zr-vm` compiles the plugin-owned real backend, registers the numeric reflection native module alongside descriptor-driven host modules, and keeps its registration lifetime in the package instance. The runtime crate has no feature forwarding, binding dependency, compatibility module, or second concrete backend owner.
+
+## Owner Hard-Cut Verification
+
+Implementation-aware source contracts now live in `src/tests/registration.rs`, beside the plugin-owned backend. They lock three properties without making the Runtime test tree read plugin source files: host callbacks capture a pre-resolved `ScriptCallSite`, callback bodies do not resolve by name, and the process-global runtime lock recovers poisoned state through `acquire_zr_vm_lock`. `real_backend/lock.rs` also keeps the feature-gated executable poison-recovery unit test.
+
+Runtime-neutral host export and extension-registry tests no longer include or read the deleted `zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend` implementation. Runtime13 now inventories 18 Runtime-owned binding sources, while Runtime06 keeps the plugin `real_backend/instance.rs` as its cross-workspace lifecycle owner. The targeted structure audits report no missing sources, anchors, or risks.
+
+Windows managed evidence on 2026-07-14: plugin job `b724aef21d1348d895fcf9b392d03b93` passed 18/18 plus doc-tests; Runtime core-min job `f32c01785a6c4549a885a6c1ea354fa6` compiled the full library test target and ran 595/596 scene tests, with the sole failure in unrelated Scene reflection numeric conversion; Runtime04 job `b337b21337c84d248905915d3ceaf875` passed the exact migration-journal crash-window regression 1/1.
+
 `src/real_backend.rs` is now the structural entry for the feature-gated native backend. `real_backend/package.rs` owns package loading and session startup, `instance.rs` owns `VmPluginInstance` lifecycle forwarding, `host_modules.rs` owns host module/type/function registration, `values.rs` owns host-value lowering and ZrVM argument lifting, `errors.rs` owns binding error normalization, and `lock.rs` owns the process-global runtime mutex. `real_backend/tests.rs` keeps private helper coverage for arity validation, value conversion, callback diagnostics, and unsupported argument rejection.
 
 ## Runtime Catalog Registration
@@ -212,10 +235,10 @@ When `backend-zr-vm` is enabled, `ZrVmBackend`:
 1. Opens the discovered `.zrp` project.
 2. Builds a standard `zr_vm` runtime.
 3. Delegates host module translation to `real_backend/host_modules.rs`, which converts every `HostExportRegistry` module descriptor into a `zr_vm_rust_binding::ModuleBuilder`.
-4. Registers native callbacks that dispatch back into `HostExportRegistry::call_with_capabilities` after `real_backend/values.rs` lifts ZrVM arguments into neutral `ScriptHostValue` records.
+4. Builds `HostExportRegistry::script_call_table()` once, resolves each exported function to a `ScriptCallSite`, and registers callbacks that invoke the captured call site after `real_backend/values.rs` lifts ZrVM arguments into neutral `ScriptHostValue` records. It also registers the separate `zircon.reflection` numeric module.
 5. Compiles the project incrementally.
 6. Starts a persistent `zr_vm_rust_binding::ProjectSession`.
-7. Maps optional lifecycle exports through `real_backend/instance.rs` to `VmPluginInstance` methods.
+7. Maps optional lifecycle exports through `real_backend/instance.rs` to `VmPluginInstance` methods; the coordinator performs the sole `stateSchema` read and invokes the previously registered installer before activation.
 
 Host type registration consumes the ABI descriptor projected from unified reflection metadata without re-infering Rust names:
 

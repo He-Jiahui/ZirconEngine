@@ -221,7 +221,6 @@ fn app_feature_names_forward_current_frameworks_vocabulary_without_aliases() {
         &[
             "first-party-zr-vm-language-runtime-plugin",
             "zircon_first_party_runtime_catalog/backend-zr-vm",
-            "zircon_runtime/backend-zr-vm",
         ],
     );
     for retired in ["plugin-ui", "first-party-zr-vm-real-backend"] {

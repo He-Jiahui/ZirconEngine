@@ -88,7 +88,6 @@ profiling = []
 profiling-chrome = ["profiling"]
 profiling-tracy = ["profiling", "dep:tracing-subscriber", "dep:tracing-tracy"]
 profiling-memory = ["profiling"]
-backend-zr-vm = ["dep:zr_vm_rust_binding", "dep:zr_vm_rust_binding_sys"]
 default-platform = [
     "platform-window",
     "platform-winit",
@@ -203,8 +202,6 @@ zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-f
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
-zr_vm_rust_binding = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
-zr_vm_rust_binding_sys = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
 
 [build-dependencies]
 serde.workspace = true

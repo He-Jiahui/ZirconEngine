@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use super::super::plugin::VmStateMigrationError;
+use super::super::{plugin::VmStateMigrationError, reflection::VmReflectionError};
 
 #[derive(Debug, Error)]
 pub enum VmError {
@@ -16,4 +16,6 @@ pub enum VmError {
     Parse(String),
     #[error(transparent)]
     StateMigration(#[from] VmStateMigrationError),
+    #[error(transparent)]
+    Reflection(#[from] VmReflectionError),
 }

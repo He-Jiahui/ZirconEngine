@@ -175,13 +175,13 @@ fn input_source_features_remain_independent_feature_gates() {
 fn domain_and_backend_feature_names_use_current_frameworks_vocabulary() {
     let features = manifest_features();
 
-    for current in ["ui", "backend-jolt", "backend-zr-vm"] {
+    for current in ["ui", "backend-jolt"] {
         assert!(
             features.contains_key(current),
             "missing feature `{current}`"
         );
     }
-    for retired in ["plugin-ui", "jolt", "zr-vm-real-backend"] {
+    for retired in ["plugin-ui", "jolt", "zr-vm-real-backend", "backend-zr-vm"] {
         assert!(
             !features.contains_key(retired),
             "retired feature `{retired}` must not survive as an alias"

@@ -6,7 +6,20 @@ use zircon_runtime::script::{CapabilitySet, HostExportFunction, HostExportRegist
 
 use super::errors::zr_error;
 use super::host_modules::{native_function_label, validate_native_function_arity};
+use super::lock::acquire_zr_vm_lock;
 use super::values::{from_zr_value_for_function, to_zr_value, to_zr_value_for_function};
+
+#[test]
+fn zr_vm_real_backend_runtime_lock_recovers_after_poison() {
+    std::thread::spawn(|| {
+        let _guard = acquire_zr_vm_lock();
+        panic!("poison ZrVM runtime lock for recovery coverage");
+    })
+    .join()
+    .expect_err("lock poison worker should panic");
+
+    drop(acquire_zr_vm_lock());
+}
 
 fn descriptor_with_arity(min: usize, max: usize) -> ScriptHostFunctionDescriptor {
     ScriptHostFunctionDescriptor::new("bad", min, max, ScriptHostValueKind::Null)

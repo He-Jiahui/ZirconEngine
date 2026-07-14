@@ -202,9 +202,15 @@ fn zr_vm_backend_family_resolves_project_selector() {
 fn zr_vm_runtime_module_registers_backend_with_vm_manager() {
     let runtime = zircon_runtime::core::CoreRuntime::new();
     runtime
+        .register_module(zircon_runtime::scene::module_descriptor())
+        .unwrap();
+    runtime
         .register_module(zircon_runtime::script::module_descriptor())
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
+    runtime
+        .activate_module(zircon_runtime::scene::SCENE_MODULE_NAME)
+        .unwrap();
     runtime
         .activate_module(zircon_runtime::script::SCRIPT_MODULE_NAME)
         .unwrap();
@@ -225,6 +231,55 @@ fn zr_vm_runtime_module_registers_backend_with_vm_manager() {
     assert!(manager
         .backend_names()
         .contains(&ZR_VM_PROJECT_BACKEND_SELECTOR.to_string()));
+}
+
+#[test]
+fn zr_vm_backend_has_one_plugin_owned_dense_production_path() {
+    let plugin_manifest = include_str!("../../Cargo.toml");
+    let runtime_manifest = include_str!("../../../../../zircon_runtime/Cargo.toml");
+    let runtime_backend_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs");
+    let host_modules = include_str!("../real_backend/host_modules.rs");
+    let instance = include_str!("../real_backend/instance.rs");
+    let runtime_lock = include_str!("../real_backend/lock.rs");
+
+    assert!(!plugin_manifest.contains("zircon_runtime/backend-zr-vm"));
+    assert!(!runtime_manifest.contains("backend-zr-vm ="));
+    assert!(
+        !runtime_backend_root.exists(),
+        "concrete ZrVM backend must not survive under zircon_runtime"
+    );
+    assert!(host_modules.contains("script_call_table"));
+    assert!(host_modules.contains("ScriptCallSite"));
+    assert!(!host_modules.contains(".call_with_capabilities("));
+    assert!(!instance.contains("vampire_lifecycle_or_export"));
+
+    let call_table_position = host_modules
+        .find("let call_table = host.host_exports.script_call_table()?;")
+        .expect("real backend resolves the dense call table once");
+    let resolve_position = host_modules
+        .find(".resolve(&module.descriptor.name, &function.name)")
+        .expect("real backend resolves each host callback before registration");
+    let callback_position = host_modules
+        .find("builder = builder.add_function(build_native_function(")
+        .expect("real backend registers the resolved callback");
+    assert!(call_table_position < resolve_position && resolve_position < callback_position);
+
+    let native_callback = host_modules
+        .split_once("fn build_native_function(")
+        .expect("real backend owns a native callback builder")
+        .1
+        .split_once("fn zr_prototype_type(")
+        .expect("native callback builder has a bounded source section")
+        .0;
+    assert!(native_callback.contains("call_site.call(arguments, &capabilities)"));
+    assert!(!native_callback.contains("host_exports"));
+    assert!(!native_callback.contains("call_with_capabilities"));
+    assert!(!native_callback.contains(".resolve("));
+
+    assert!(runtime_lock.contains("unwrap_or_else(|poisoned| poisoned.into_inner())"));
+    assert!(runtime_lock.contains("zr_vm_real_backend_runtime_lock_recovers_after_poison"));
+    assert!(!runtime_lock.contains(".expect(\"zr_vm runtime lock should not be poisoned\")"));
 }
 
 #[test]

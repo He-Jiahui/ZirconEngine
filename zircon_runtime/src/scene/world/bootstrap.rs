@@ -47,6 +47,8 @@ impl World {
             dynamic_components: HashMap::new(),
             component_types: Default::default(),
             type_registry: Default::default(),
+            vm_catalog_type_paths: Default::default(),
+            vm_dynamic_type_paths: Default::default(),
             next_id: 1,
             active_camera: 0,
             schedule: Schedule::default(),

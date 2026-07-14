@@ -188,18 +188,6 @@ fn host_export_registry_preserves_precise_type_refs_for_zr_vm_registration() {
 }
 
 #[test]
-fn zr_vm_real_backend_uses_script_call_table_for_host_callbacks() {
-    let source = include_str!("../backend/zr_vm_project_backend/real_backend/host_modules.rs");
-
-    assert!(source.contains("script_call_table()"));
-    assert!(source.contains("ScriptCallSite"));
-    assert!(
-        !source.contains(".call_with_capabilities("),
-        "real zr_vm callbacks must use pre-resolved ScriptCallSite dispatch"
-    );
-}
-
-#[test]
 fn host_export_registry_rejects_duplicates_invalid_callbacks_and_missing_capabilities() {
     let exports = HostExportRegistry::default();
     let descriptor = ScriptHostModuleDescriptor::new("test.host", "0.1.0")

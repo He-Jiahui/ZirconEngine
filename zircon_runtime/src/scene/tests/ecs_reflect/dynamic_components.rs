@@ -424,6 +424,32 @@ fn dynamic_component_reflection_unknown_type_and_field_are_structured_errors() {
 }
 
 #[test]
+fn legacy_declared_field_missing_from_json_is_unknown_field() {
+    let mut world = world_with_cloud_layer_descriptor();
+    let entity = world.spawn_node(NodeKind::Mesh);
+    world
+        .set_dynamic_component(
+            entity,
+            "weather.Component.CloudLayer",
+            json!({ "label": "missing coverage" }),
+        )
+        .expect("legacy dynamic JSON may omit a declared field until it is read");
+
+    assert_eq!(
+        world
+            .reflect_read(ReflectReadRequest::new(
+                cloud_layer_address(entity),
+                "coverage",
+            ))
+            .expect_err("a declared but absent JSON key must remain UnknownField"),
+        ReflectError::UnknownField {
+            type_path: "weather.Component.CloudLayer".to_string(),
+            field_name: "coverage".to_string(),
+        }
+    );
+}
+
+#[test]
 fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
     let mut world = world_with_cloud_layer_descriptor();
     let entity = world.spawn_node(NodeKind::Mesh);

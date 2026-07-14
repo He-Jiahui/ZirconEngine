@@ -195,10 +195,7 @@ fn frame_extract_rebuilds_after_scene_change() {
     );
 }
 
-#[cfg_attr(
-    not(feature = "backend-zr-vm"),
-    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
-)]
+#[ignore = "real ZrVM coverage moved to the zr_vm_language plugin owner"]
 #[test]
 fn vampire_project_session_reports_runtime_fps_and_render_work() {
     let mut session = RuntimeDynamicSession::new(

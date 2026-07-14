@@ -1,0 +1,551 @@
+use std::collections::BTreeMap;
+use std::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+use zircon_runtime_interface::reflect::ReflectTypeRegistration;
+
+use crate::core::{CoreHandle, CoreWeak};
+use crate::scene::{
+    TypeRegistry, VmTypeBacking, World, WorldRuntimeExtensionError, WorldRuntimeExtensionPlan,
+    WorldRuntimeExtensionRegistration,
+};
+use crate::script::{PluginSlotId, VmStateSchema};
+
+use super::{VmReflectionError, VmReflectionSchema};
+
+/// Stable scene-extension key installed by the VM plugin manager exactly once.
+pub const VM_REFLECTION_WORLD_EXTENSION_NAME: &str = "script.vm.reflection.catalog";
+
+#[derive(Clone, Debug, PartialEq)]
+struct OwnedVmRegistration {
+    slot: PluginSlotId,
+    registration: ReflectTypeRegistration,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+struct CatalogState {
+    registrations: BTreeMap<String, OwnedVmRegistration>,
+    generations: BTreeMap<PluginSlotId, u32>,
+    owners: BTreeMap<PluginSlotId, String>,
+    revision: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct PreparedVmReflectionGeneration {
+    candidate: CatalogState,
+    snapshot: VmReflectionRegistrySnapshot,
+    base_epoch: u64,
+    candidate_epoch: u64,
+    registration_count: usize,
+}
+
+impl PreparedVmReflectionGeneration {
+    pub(crate) fn snapshot(&self) -> &VmReflectionRegistrySnapshot {
+        &self.snapshot
+    }
+}
+
+/// Immutable registry candidate paired with the catalog revision that owns its dense slots.
+#[derive(Clone)]
+pub struct VmReflectionRegistrySnapshot {
+    registry: TypeRegistry,
+    revision: u64,
+    base_committed_epoch: u64,
+    candidate_epoch: u64,
+    committed_epoch: Arc<AtomicU64>,
+    current_revision: Arc<AtomicU64>,
+}
+
+impl VmReflectionRegistrySnapshot {
+    /// Returns the canonical reflected registry captured for this revision.
+    pub fn registry(&self) -> &TypeRegistry {
+        &self.registry
+    }
+
+    /// Returns the immutable catalog revision assigned to this registry.
+    pub fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    /// Returns the latest committed catalog revision.
+    pub fn current_revision(&self) -> u64 {
+        self.current_revision.load(Ordering::Acquire)
+    }
+
+    /// Returns whether dense slots compiled from this snapshot are still authoritative.
+    pub fn is_current(&self) -> bool {
+        self.candidate_epoch == self.committed_epoch.load(Ordering::Acquire)
+    }
+
+    /// Returns whether this exact prepared candidate may still resolve package-loading names.
+    /// Runtime dispatch remains closed until `is_current` becomes true after commit.
+    pub fn can_resolve_names(&self) -> bool {
+        self.is_current()
+            || self.base_committed_epoch == self.committed_epoch.load(Ordering::Acquire)
+    }
+}
+
+/// Process-wide catalog that projects active VM schemas into existing and future Worlds.
+#[derive(Clone)]
+pub struct VmReflectionCatalog {
+    state: Arc<RwLock<CatalogState>>,
+    mutation: Arc<Mutex<()>>,
+    core: Arc<RwLock<Option<CoreWeak>>>,
+    next_candidate_epoch: Arc<AtomicU64>,
+    committed_epoch: Arc<AtomicU64>,
+    current_revision: Arc<AtomicU64>,
+}
+
+impl Default for VmReflectionCatalog {
+    fn default() -> Self {
+        Self {
+            state: Arc::new(RwLock::new(CatalogState::default())),
+            mutation: Arc::new(Mutex::new(())),
+            core: Arc::new(RwLock::new(None)),
+            next_candidate_epoch: Arc::new(AtomicU64::new(1)),
+            committed_epoch: Arc::new(AtomicU64::new(0)),
+            current_revision: Arc::new(AtomicU64::new(0)),
+        }
+    }
+}
+
+impl VmReflectionCatalog {
+    /// Publishes one package generation and updates every existing managed World atomically per World.
+    #[cfg(test)]
+    pub(crate) fn publish_generation(
+        &self,
+        slot: PluginSlotId,
+        generation: u32,
+        expected_owner: &str,
+        state_schema: &VmStateSchema,
+    ) -> Result<usize, VmReflectionError> {
+        self.publish_optional_generation(slot, generation, expected_owner, Some(state_schema))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn publish_optional_generation(
+        &self,
+        slot: PluginSlotId,
+        generation: u32,
+        expected_owner: &str,
+        state_schema: Option<&VmStateSchema>,
+    ) -> Result<usize, VmReflectionError> {
+        let prepared =
+            self.prepare_optional_generation(slot, generation, expected_owner, state_schema)?;
+        self.commit_prepared(prepared)
+    }
+
+    pub(crate) fn prepare_optional_generation(
+        &self,
+        slot: PluginSlotId,
+        generation: u32,
+        expected_owner: &str,
+        state_schema: Option<&VmStateSchema>,
+    ) -> Result<PreparedVmReflectionGeneration, VmReflectionError> {
+        let _mutation = self.mutation_lock();
+        let current = self.state_read().clone();
+        let base_epoch = self.committed_epoch.load(Ordering::Acquire);
+        let projected = state_schema
+            .map(VmReflectionSchema::from_state_schema)
+            .transpose()?
+            .unwrap_or_default();
+        let candidate = candidate_for_generation(
+            &current,
+            slot,
+            generation,
+            expected_owner,
+            projected.registrations(),
+        )?;
+        let registry = self.registry_for_state(&candidate)?;
+        self.validate_existing_worlds(&registrations_from_state(&candidate))?;
+        let candidate_epoch = if candidate == current {
+            base_epoch
+        } else {
+            self.allocate_candidate_epoch()?
+        };
+        let snapshot = VmReflectionRegistrySnapshot {
+            registry,
+            revision: candidate.revision,
+            base_committed_epoch: base_epoch,
+            candidate_epoch,
+            committed_epoch: Arc::clone(&self.committed_epoch),
+            current_revision: Arc::clone(&self.current_revision),
+        };
+        Ok(PreparedVmReflectionGeneration {
+            candidate,
+            snapshot,
+            base_epoch,
+            candidate_epoch,
+            registration_count: projected.registrations().len(),
+        })
+    }
+
+    pub(crate) fn commit_prepared(
+        &self,
+        prepared: PreparedVmReflectionGeneration,
+    ) -> Result<usize, VmReflectionError> {
+        let _mutation = self.mutation_lock();
+        if !Arc::ptr_eq(&prepared.snapshot.committed_epoch, &self.committed_epoch) {
+            return Err(VmReflectionError::ForeignPreparedGeneration);
+        }
+        let committed_epoch = self.committed_epoch.load(Ordering::Acquire);
+        if prepared.candidate_epoch == committed_epoch && prepared.base_epoch == committed_epoch {
+            return Ok(prepared.registration_count);
+        }
+        if prepared.base_epoch != committed_epoch {
+            return Err(VmReflectionError::PreparedGenerationStale {
+                base_epoch: prepared.base_epoch,
+                committed_epoch,
+            });
+        }
+        self.commit_candidate(prepared.candidate, prepared.candidate_epoch)?;
+        Ok(prepared.registration_count)
+    }
+
+    /// Removes a package slot and synchronizes the remaining authoritative registrations.
+    pub(crate) fn discard_slot(&self, slot: PluginSlotId) -> Result<usize, VmReflectionError> {
+        let _mutation = self.mutation_lock();
+        let current = self.state_read().clone();
+        let (candidate, removed) = self.candidate_without_slot(slot)?;
+        let candidate_epoch = if candidate == current {
+            self.committed_epoch.load(Ordering::Acquire)
+        } else {
+            self.allocate_candidate_epoch()?
+        };
+        self.commit_candidate(candidate, candidate_epoch)?;
+        Ok(removed)
+    }
+
+    pub(crate) fn validate_slot_discard(
+        &self,
+        slot: PluginSlotId,
+    ) -> Result<(), VmReflectionError> {
+        let _mutation = self.mutation_lock();
+        let (candidate, _) = self.candidate_without_slot(slot)?;
+        self.validate_candidate(&candidate)
+    }
+
+    fn commit_candidate(
+        &self,
+        candidate: CatalogState,
+        candidate_epoch: u64,
+    ) -> Result<(), VmReflectionError> {
+        self.validate_candidate(&candidate)?;
+        let registrations = registrations_from_state(&candidate);
+        if let Some(core) = self.bound_core() {
+            let manager = crate::scene::resolve_default_level_manager(&core)?;
+            manager.sync_vm_types_atomically(&registrations, || {
+                let revision = candidate.revision;
+                *self.state_write() = candidate;
+                self.current_revision.store(revision, Ordering::Release);
+                self.committed_epoch
+                    .store(candidate_epoch, Ordering::Release);
+            })?;
+        } else {
+            let revision = candidate.revision;
+            *self.state_write() = candidate;
+            self.current_revision.store(revision, Ordering::Release);
+            self.committed_epoch
+                .store(candidate_epoch, Ordering::Release);
+        }
+        Ok(())
+    }
+
+    /// Returns the latest committed canonical registry snapshot.
+    pub fn current_snapshot(&self) -> Result<VmReflectionRegistrySnapshot, VmReflectionError> {
+        let _mutation = self.mutation_lock();
+        let state = self.state_read().clone();
+        let committed_epoch = self.committed_epoch.load(Ordering::Acquire);
+        Ok(VmReflectionRegistrySnapshot {
+            registry: self.registry_for_state(&state)?,
+            revision: state.revision,
+            base_committed_epoch: committed_epoch,
+            candidate_epoch: committed_epoch,
+            committed_epoch: Arc::clone(&self.committed_epoch),
+            current_revision: Arc::clone(&self.current_revision),
+        })
+    }
+
+    /// Returns the latest committed reflection revision.
+    pub fn revision(&self) -> u64 {
+        self.current_revision.load(Ordering::Acquire)
+    }
+
+    /// Applies the latest catalog snapshot to a newly-created World.
+    pub fn apply_to_world(&self, world: &mut World) -> Result<(), VmReflectionError> {
+        let registrations = registrations_from_state(&self.state_read());
+        world.sync_vm_types(&registrations)?;
+        Ok(())
+    }
+
+    /// Builds the single World extension installed by the script module.
+    pub fn world_runtime_extension_plan(
+        &self,
+    ) -> Result<WorldRuntimeExtensionPlan, VmReflectionError> {
+        let catalog = self.clone();
+        Ok(WorldRuntimeExtensionPlan::from_registrations([
+            WorldRuntimeExtensionRegistration::new(
+                VM_REFLECTION_WORLD_EXTENSION_NAME,
+                move |world| {
+                    catalog.apply_to_world(world).map_err(|error| {
+                        WorldRuntimeExtensionError::registration_failed(
+                            VM_REFLECTION_WORLD_EXTENSION_NAME,
+                            error,
+                        )
+                    })
+                },
+            ),
+        ])?)
+    }
+
+    pub(crate) fn bind_core(&self, core: &CoreHandle) {
+        *self.core_write() = Some(core.downgrade());
+    }
+
+    fn validate_existing_worlds(
+        &self,
+        registrations: &[ReflectTypeRegistration],
+    ) -> Result<(), VmReflectionError> {
+        let Some(core) = self.bound_core() else {
+            return Ok(());
+        };
+        let manager = crate::scene::resolve_default_level_manager(&core)?;
+        manager.try_for_each_world(|world| world.validate_vm_type_sync(registrations))?;
+        Ok(())
+    }
+
+    fn validate_candidate(&self, candidate: &CatalogState) -> Result<(), VmReflectionError> {
+        self.registry_for_state(candidate)?;
+        self.validate_existing_worlds(&registrations_from_state(candidate))
+    }
+
+    fn registry_for_state(
+        &self,
+        candidate: &CatalogState,
+    ) -> Result<TypeRegistry, VmReflectionError> {
+        let mut registry = crate::scene::reflect::builtin_type_registry();
+        let current_paths = self
+            .state_read()
+            .registrations
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        for type_path in current_paths {
+            registry.remove_vm_type(&type_path)?;
+        }
+        for registration in candidate.registrations.values() {
+            registry.register_vm_type(
+                registration.registration.clone(),
+                VmTypeBacking::DynamicComponent,
+            )?;
+        }
+        Ok(registry)
+    }
+
+    fn bound_core(&self) -> Option<CoreHandle> {
+        self.core_read().as_ref().and_then(CoreWeak::upgrade)
+    }
+
+    fn candidate_without_slot(
+        &self,
+        slot: PluginSlotId,
+    ) -> Result<(CatalogState, usize), VmReflectionError> {
+        let mut candidate = self.state_read().clone();
+        let previous_len = candidate.registrations.len();
+        candidate
+            .registrations
+            .retain(|_, registration| registration.slot != slot);
+        let removed_generation = candidate.generations.remove(&slot).is_some();
+        let removed_owner = candidate.owners.remove(&slot).is_some();
+        let removed = previous_len.saturating_sub(candidate.registrations.len());
+        if removed > 0 || removed_generation || removed_owner {
+            candidate.revision = next_revision(candidate.revision)?;
+        }
+        Ok((candidate, removed))
+    }
+
+    fn allocate_candidate_epoch(&self) -> Result<u64, VmReflectionError> {
+        self.next_candidate_epoch
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .map_err(|_| VmReflectionError::CandidateEpochExhausted)
+    }
+
+    fn state_read(&self) -> RwLockReadGuard<'_, CatalogState> {
+        self.state
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn mutation_lock(&self) -> MutexGuard<'_, ()> {
+        self.mutation
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn state_write(&self) -> RwLockWriteGuard<'_, CatalogState> {
+        self.state
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn core_read(&self) -> RwLockReadGuard<'_, Option<CoreWeak>> {
+        self.core
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn core_write(&self) -> RwLockWriteGuard<'_, Option<CoreWeak>> {
+        self.core
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+fn candidate_for_generation(
+    current: &CatalogState,
+    slot: PluginSlotId,
+    generation: u32,
+    expected_owner: &str,
+    registrations: &[ReflectTypeRegistration],
+) -> Result<CatalogState, VmReflectionError> {
+    validate_package_owner(expected_owner, registrations)?;
+    let mut candidate = current.clone();
+    if let Some(current_owner) = candidate.owners.get(&slot) {
+        if current_owner != expected_owner {
+            return Err(VmReflectionError::SlotOwnerConflict {
+                slot,
+                current_owner: current_owner.clone(),
+                requested_owner: expected_owner.to_string(),
+            });
+        }
+    }
+    if let Some(current_generation) = candidate.generations.get(&slot).copied() {
+        if generation < current_generation {
+            return Err(VmReflectionError::GenerationRegression {
+                slot,
+                current_generation,
+                requested_generation: generation,
+            });
+        }
+        if generation == current_generation {
+            let current_registrations = candidate
+                .registrations
+                .iter()
+                .filter(|(_, registration)| registration.slot == slot)
+                .map(|(type_path, registration)| {
+                    (type_path.clone(), registration.registration.clone())
+                })
+                .collect::<BTreeMap<_, _>>();
+            let requested_registrations = registrations
+                .iter()
+                .map(|registration| {
+                    (
+                        registration.type_path.type_path.clone(),
+                        registration.clone(),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            if current_registrations == requested_registrations {
+                return Ok(candidate);
+            }
+            return Err(VmReflectionError::GenerationConflict { slot, generation });
+        }
+    }
+    candidate
+        .registrations
+        .retain(|_, registration| registration.slot != slot);
+    for registration in registrations {
+        let type_path = registration.type_path.type_path.clone();
+        if let Some(existing) = candidate.registrations.get(&type_path) {
+            return Err(VmReflectionError::TypePathOwnedByAnotherSlot {
+                type_path,
+                owner_slot: existing.slot,
+                requesting_slot: slot,
+            });
+        }
+        candidate.registrations.insert(
+            type_path,
+            OwnedVmRegistration {
+                slot,
+                registration: registration.clone(),
+            },
+        );
+    }
+    candidate.generations.insert(slot, generation);
+    candidate.owners.insert(slot, expected_owner.to_string());
+    candidate.revision = next_revision(candidate.revision)?;
+    Ok(candidate)
+}
+
+fn validate_package_owner(
+    expected_owner: &str,
+    registrations: &[ReflectTypeRegistration],
+) -> Result<(), VmReflectionError> {
+    for registration in registrations {
+        let type_path = registration.type_path.type_path.clone();
+        let registration_owner = registration.plugin_id.as_deref().unwrap_or("<missing>");
+        if registration_owner != expected_owner {
+            return Err(VmReflectionError::PackageOwnerMismatch {
+                type_path,
+                expected_owner: expected_owner.to_string(),
+                declared_owner: registration_owner.to_string(),
+            });
+        }
+        let type_path_owner = registration
+            .type_path
+            .plugin_id
+            .as_deref()
+            .unwrap_or("<missing>");
+        if type_path_owner != expected_owner {
+            return Err(VmReflectionError::PackageOwnerMismatch {
+                type_path,
+                expected_owner: expected_owner.to_string(),
+                declared_owner: type_path_owner.to_string(),
+            });
+        }
+    }
+    Ok(())
+}
+
+fn next_revision(current: u64) -> Result<u64, VmReflectionError> {
+    current
+        .checked_add(1)
+        .ok_or(VmReflectionError::RevisionExhausted)
+}
+
+fn registrations_from_state(state: &CatalogState) -> Vec<ReflectTypeRegistration> {
+    state
+        .registrations
+        .values()
+        .map(|entry| entry.registration.clone())
+        .collect()
+}
+
+impl fmt::Debug for VmReflectionCatalog {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VmReflectionCatalog")
+            .field("registration_count", &self.state_read().registrations.len())
+            .field("revision", &self.revision())
+            .field(
+                "committed_epoch",
+                &self.committed_epoch.load(Ordering::Acquire),
+            )
+            .field("bound_to_core", &self.bound_core().is_some())
+            .finish()
+    }
+}
+
+impl fmt::Debug for VmReflectionRegistrySnapshot {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VmReflectionRegistrySnapshot")
+            .field("revision", &self.revision)
+            .field("candidate_epoch", &self.candidate_epoch)
+            .field("current", &self.is_current())
+            .finish()
+    }
+}

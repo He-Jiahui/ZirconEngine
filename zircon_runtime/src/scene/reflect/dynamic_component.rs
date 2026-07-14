@@ -1,9 +1,6 @@
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
-use crate::scene::{
-    reflect::{reflected_from_scene_value, scene_value_from_reflected, ReflectComponent},
-    EntityId, World,
-};
+use crate::scene::{reflect::ReflectComponent, EntityId, World};
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
     ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
@@ -99,8 +96,8 @@ fn read_field(
     field_name: &str,
 ) -> Result<ReflectedValue, ReflectError> {
     let registration = world.type_registry().registration(type_path)?;
-    ensure_declared_field(registration, field_name)?;
-    read_declared_field(world, entity, type_path, field_name)
+    let field = ensure_declared_field(registration, field_name)?;
+    read_declared_field(world, entity, type_path, field)
 }
 
 fn read_dense_slot(
@@ -111,25 +108,46 @@ fn read_dense_slot(
 ) -> Result<ReflectedValue, ReflectError> {
     let registration = world.type_registry().registration(type_path)?;
     let field = declared_field_by_slot(registration, field_slot)?;
-    read_declared_field(world, entity, type_path, &field.name)
+    read_declared_field(world, entity, type_path, field)
 }
 
 fn read_declared_field(
     world: &World,
     entity: EntityId,
     type_path: &str,
-    field_name: &str,
+    field: &ReflectFieldInfo,
 ) -> Result<ReflectedValue, ReflectError> {
-    ensure_json_field_present(world, entity, type_path, field_name)?;
-    let property_path = dynamic_property_path(type_path, field_name)?;
-    let Some(value) = world.dynamic_component_property(entity, &property_path) else {
+    let component = ensure_dynamic_component(world, entity, type_path)?;
+    ensure_json_field_present(component, type_path, &field.name)?;
+    if !world.is_vm_dynamic_type_path(type_path) {
+        let property_path = dynamic_property_path(type_path, &field.name)?;
+        let Some(value) = world.dynamic_component_property(entity, &property_path) else {
+            return Err(ReflectError::UnsupportedConversion {
+                source: format!("dynamic property `{property_path}` is missing or unsupported"),
+                target: field.value_type_path.clone(),
+            });
+        };
+        return super::reflected_from_scene_value(value);
+    }
+
+    let Some(object) = component.as_object() else {
         return Err(ReflectError::UnsupportedConversion {
-            source: format!("dynamic JSON property `{type_path}.{field_name}`"),
-            target: "ReflectedValue".to_string(),
+            source: "dynamic component JSON is not an object".to_string(),
+            target: type_path.to_string(),
         });
     };
-
-    reflected_from_scene_value(value)
+    let Some(value) = object.get(&field.name) else {
+        return Err(ReflectError::UnknownField {
+            type_path: type_path.to_string(),
+            field_name: field.name.clone(),
+        });
+    };
+    super::dynamic_json::reflected_value_from_json(
+        type_path,
+        &field.name,
+        &field.value_type_path,
+        value,
+    )
 }
 
 fn read_fields(
@@ -154,11 +172,11 @@ fn write_field(
     field_name: &str,
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
-    let editable = {
+    let field = {
         let registration = world.type_registry().registration(type_path)?;
-        ensure_declared_field(registration, field_name)?.editable
+        ensure_declared_field(registration, field_name)?.clone()
     };
-    write_declared_field(world, entity, type_path, field_name, editable, value)
+    write_declared_field(world, entity, type_path, &field, value)
 }
 
 fn write_dense_slot(
@@ -168,37 +186,50 @@ fn write_dense_slot(
     field_slot: u32,
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
-    let (field_name, editable) = {
+    let field = {
         let registration = world.type_registry().registration(type_path)?;
-        let field = declared_field_by_slot(registration, field_slot)?;
-        (field.name.clone(), field.editable)
+        declared_field_by_slot(registration, field_slot)?.clone()
     };
-    write_declared_field(world, entity, type_path, &field_name, editable, value)
+    write_declared_field(world, entity, type_path, &field, value)
 }
 
 fn write_declared_field(
     world: &mut World,
     entity: EntityId,
     type_path: &str,
-    field_name: &str,
-    editable: bool,
+    field: &ReflectFieldInfo,
     value: ReflectedValue,
 ) -> Result<bool, ReflectError> {
-    if !editable {
+    if !field.editable {
         return Err(ReflectError::NonEditableField {
             type_path: type_path.to_string(),
-            field_name: field_name.to_string(),
+            field_name: field.name.clone(),
         });
     }
     ensure_dynamic_component(world, entity, type_path)?;
+    let property_path = dynamic_property_path(type_path, &field.name)?;
+    if !world.is_vm_dynamic_type_path(type_path) {
+        let value = super::scene_value_from_reflected(value)?;
+        return world
+            .set_dynamic_component_property(entity, &property_path, value)
+            .map_err(|error| ReflectError::UnsupportedConversion {
+                source: error.to_string(),
+                target: format!("dynamic property `{property_path}`"),
+            });
+    }
 
-    let property_path = dynamic_property_path(type_path, field_name)?;
-    let value = scene_value_from_reflected(value)?;
+    super::type_registry::ensure_reflected_value_type(
+        type_path,
+        &field.name,
+        &field.value_type_path,
+        &value,
+    )?;
+    let value = super::dynamic_json::json_value_from_reflected(value)?;
     world
-        .set_dynamic_component_property(entity, &property_path, value)
+        .set_dynamic_component_json_property(entity, &property_path, value)
         .map_err(|error| ReflectError::UnsupportedConversion {
             source: error.to_string(),
-            target: format!("dynamic JSON property `{type_path}.{field_name}`"),
+            target: format!("dynamic JSON property `{type_path}.{}`", field.name),
         })
 }
 
@@ -247,6 +278,26 @@ fn ensure_declared_field<'a>(
     })
 }
 
+fn ensure_json_field_present(
+    component: &serde_json::Value,
+    type_path: &str,
+    field_name: &str,
+) -> Result<(), ReflectError> {
+    let Some(object) = component.as_object() else {
+        return Err(ReflectError::UnsupportedConversion {
+            source: "dynamic component JSON is not an object".to_string(),
+            target: type_path.to_string(),
+        });
+    };
+    if object.contains_key(field_name) {
+        return Ok(());
+    }
+    Err(ReflectError::UnknownField {
+        type_path: type_path.to_string(),
+        field_name: field_name.to_string(),
+    })
+}
+
 fn declared_field_by_slot(
     registration: &ReflectTypeRegistration,
     field_slot: u32,
@@ -258,30 +309,6 @@ fn declared_field_by_slot(
         });
     };
     Ok(field)
-}
-
-fn ensure_json_field_present(
-    world: &World,
-    entity: EntityId,
-    type_path: &str,
-    field_name: &str,
-) -> Result<(), ReflectError> {
-    let component = ensure_dynamic_component(world, entity, type_path)?;
-    let Some(object) = component.as_object() else {
-        return Err(ReflectError::UnknownField {
-            type_path: type_path.to_string(),
-            field_name: field_name.to_string(),
-        });
-    };
-
-    if object.contains_key(field_name) {
-        return Ok(());
-    }
-
-    Err(ReflectError::UnknownField {
-        type_path: type_path.to_string(),
-        field_name: field_name.to_string(),
-    })
 }
 
 fn dynamic_property_path(

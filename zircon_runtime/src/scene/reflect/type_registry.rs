@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use zircon_runtime_interface::reflect::{ReflectError, ReflectTypeRegistration};
+use zircon_runtime_interface::reflect::{ReflectError, ReflectTypeRegistration, ReflectedValue};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 
+use super::declared_value_type::DeclaredValueType;
 use super::vm_type_backing::VmTypeBacking;
 
 #[derive(Clone)]
@@ -52,6 +53,7 @@ pub struct TypeRegistry {
 
 impl TypeRegistry {
     pub fn register(&mut self, registration: RuntimeTypeRegistration) -> Result<(), ReflectError> {
+        validate_registration(&registration.registration)?;
         let type_path = registration.registration.type_path.type_path.clone();
         if self.registrations.contains_key(&type_path) {
             return Err(ReflectError::DuplicateTypePath { type_path });
@@ -87,21 +89,13 @@ impl TypeRegistry {
         registration: ReflectTypeRegistration,
         backing: VmTypeBacking,
     ) -> Result<(), ReflectError> {
-        let plugin_id = validate_vm_registration(&registration, backing)?.to_string();
+        let type_path = registration.type_path.type_path.clone();
+        if self.registrations.contains_key(&type_path) {
+            return Err(ReflectError::DuplicateTypePath { type_path });
+        }
+        let descriptor = Self::vm_component_descriptor(&registration, backing)?;
         match backing {
             VmTypeBacking::DynamicComponent => {
-                let mut descriptor = ComponentTypeDescriptor::new(
-                    registration.type_path.type_path.clone(),
-                    plugin_id,
-                    registration.display_name.clone(),
-                );
-                for field in &registration.type_info.fields {
-                    descriptor = descriptor.with_property(
-                        field.name.clone(),
-                        field.value_type_path.clone(),
-                        field.editable,
-                    );
-                }
                 let component =
                     super::dynamic_component::reflect_component_for_dynamic_descriptor(&descriptor);
                 self.register(RuntimeTypeRegistration {
@@ -111,6 +105,74 @@ impl TypeRegistry {
                 })
             }
         }
+    }
+
+    pub(crate) fn upsert_vm_type(
+        &mut self,
+        registration: ReflectTypeRegistration,
+        backing: VmTypeBacking,
+    ) -> Result<(), ReflectError> {
+        let descriptor = Self::vm_component_descriptor(&registration, backing)?;
+        let type_path = registration.type_path.type_path.clone();
+        let replacement = match backing {
+            VmTypeBacking::DynamicComponent => RuntimeTypeRegistration {
+                component: Some(
+                    super::dynamic_component::reflect_component_for_dynamic_descriptor(&descriptor),
+                ),
+                registration,
+                resource: None,
+            },
+        };
+        let Some(existing) = self.registrations.get(&type_path) else {
+            return self.register(replacement);
+        };
+        if !existing.registration.plugin_owned
+            || existing.registration.plugin_id != replacement.registration.plugin_id
+        {
+            return Err(ReflectError::DuplicateTypePath { type_path });
+        }
+
+        validate_registration(&replacement.registration)?;
+        self.registrations.insert(type_path, replacement);
+        self.rebuild_short_path_lookup();
+        Ok(())
+    }
+
+    pub(crate) fn remove_vm_type(&mut self, type_path: &str) -> Result<(), ReflectError> {
+        let Some(existing) = self.registrations.get(type_path) else {
+            return Ok(());
+        };
+        if !existing.registration.plugin_owned || existing.component.is_none() {
+            return Err(ReflectError::InvalidRegistration {
+                type_path: type_path.to_string(),
+                reason:
+                    "only plugin-owned VM component registrations may be removed by the VM catalog"
+                        .to_string(),
+            });
+        }
+        self.registrations.remove(type_path);
+        self.rebuild_short_path_lookup();
+        Ok(())
+    }
+
+    pub(crate) fn vm_component_descriptor(
+        registration: &ReflectTypeRegistration,
+        backing: VmTypeBacking,
+    ) -> Result<ComponentTypeDescriptor, ReflectError> {
+        let plugin_id = validate_vm_registration(registration, backing)?.to_string();
+        let mut descriptor = ComponentTypeDescriptor::new(
+            registration.type_path.type_path.clone(),
+            plugin_id,
+            registration.display_name.clone(),
+        );
+        for field in &registration.type_info.fields {
+            descriptor = descriptor.with_property(
+                field.name.clone(),
+                field.value_type_path.clone(),
+                field.editable,
+            );
+        }
+        Ok(descriptor)
     }
 
     pub fn registration(&self, type_path: &str) -> Result<&ReflectTypeRegistration, ReflectError> {
@@ -206,6 +268,24 @@ impl TypeRegistry {
             }
         }
     }
+
+    fn rebuild_short_path_lookup(&mut self) {
+        self.short_paths.clear();
+        self.ambiguous_short_paths.clear();
+        let paths = self
+            .registrations
+            .iter()
+            .map(|(type_path, registration)| {
+                (
+                    type_path.clone(),
+                    registration.registration.type_path.short_type_path.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        for (type_path, short_type_path) in paths {
+            self.update_short_path_lookup(&type_path, &short_type_path);
+        }
+    }
 }
 
 fn validate_vm_registration(
@@ -213,6 +293,13 @@ fn validate_vm_registration(
     backing: VmTypeBacking,
 ) -> Result<&str, ReflectError> {
     let type_path = registration.type_path.type_path.as_str();
+    validate_canonical_text(type_path, "full type path", type_path)?;
+    validate_canonical_text(
+        type_path,
+        "short type path",
+        &registration.type_path.short_type_path,
+    )?;
+    validate_canonical_text(type_path, "display name", &registration.display_name)?;
     if !registration.plugin_owned {
         return Err(invalid_vm_registration(
             type_path,
@@ -225,11 +312,27 @@ fn validate_vm_registration(
             "VM types must declare a plugin id",
         ));
     };
+    validate_canonical_text(type_path, "plugin id", plugin_id)?;
     if registration.type_path.plugin_id.as_deref() != Some(plugin_id) {
         return Err(invalid_vm_registration(
             type_path,
             "VM type path and registration plugin ids must match",
         ));
+    }
+    let plugin_prefix = format!("{plugin_id}.");
+    if !type_path.starts_with(&plugin_prefix) {
+        return Err(invalid_vm_registration(
+            type_path,
+            &format!("VM full type path must begin with `{plugin_prefix}`"),
+        ));
+    }
+    for field in &registration.type_info.fields {
+        if let Err(reason) = DeclaredValueType::parse(&field.value_type_path) {
+            return Err(invalid_vm_registration(
+                type_path,
+                &format!("reflected field `{}` {reason}", field.name),
+            ));
+        }
     }
 
     match backing {
@@ -243,6 +346,85 @@ fn validate_vm_registration(
         }
         VmTypeBacking::DynamicComponent => Ok(plugin_id),
     }
+}
+
+fn validate_registration(registration: &ReflectTypeRegistration) -> Result<(), ReflectError> {
+    let type_path = registration.type_path.type_path.as_str();
+    if registration.is_component && registration.is_resource {
+        return Err(invalid_vm_registration(
+            type_path,
+            "a reflected type cannot be both a component and a resource",
+        ));
+    }
+
+    let mut field_names = BTreeSet::new();
+    for field in &registration.type_info.fields {
+        if field.name.trim().is_empty() || field.name.trim() != field.name {
+            return Err(invalid_vm_registration(
+                type_path,
+                "reflected field names must be non-empty and already trimmed",
+            ));
+        }
+        if !field_names.insert(field.name.as_str()) {
+            return Err(invalid_vm_registration(
+                type_path,
+                &format!("duplicate reflected field `{}`", field.name),
+            ));
+        }
+        if field.value_type_path.trim().is_empty()
+            || field.value_type_path.trim() != field.value_type_path
+        {
+            return Err(invalid_vm_registration(
+                type_path,
+                &format!(
+                    "reflected field `{}` value type path must be non-empty and already trimmed",
+                    field.name
+                ),
+            ));
+        }
+        if let Some(default_value) = &field.default_value {
+            ensure_reflected_value_type(
+                type_path,
+                &field.name,
+                &field.value_type_path,
+                default_value,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn ensure_reflected_value_type(
+    type_path: &str,
+    field_name: &str,
+    expected: &str,
+    value: &ReflectedValue,
+) -> Result<(), ReflectError> {
+    if reflected_value_matches_type_path(expected, value) {
+        return Ok(());
+    }
+    Err(ReflectError::TypeMismatch {
+        type_path: type_path.to_string(),
+        field_name: field_name.to_string(),
+        expected: expected.to_string(),
+        actual: value.type_name().to_string(),
+    })
+}
+
+fn reflected_value_matches_type_path(expected: &str, value: &ReflectedValue) -> bool {
+    DeclaredValueType::parse(expected)
+        .map(|declared| declared.matches_reflected(value))
+        .unwrap_or(false)
+}
+
+fn validate_canonical_text(type_path: &str, label: &str, value: &str) -> Result<(), ReflectError> {
+    if value.is_empty() || value.trim() != value {
+        return Err(invalid_vm_registration(
+            type_path,
+            &format!("VM {label} must be non-empty and already trimmed"),
+        ));
+    }
+    Ok(())
 }
 
 fn invalid_vm_registration(type_path: &str, reason: &str) -> ReflectError {

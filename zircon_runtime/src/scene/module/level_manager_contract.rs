@@ -9,8 +9,8 @@ use super::core_error::scene_core_error;
 use super::DefaultLevelManager;
 
 impl LevelManagerContract for DefaultLevelManager {
-    fn create_default_level_handle(&self) -> WorldHandle {
-        self.create_default_level().handle()
+    fn create_default_level_handle(&self) -> Result<WorldHandle, CoreError> {
+        self.try_create_default_level().map(|level| level.handle())
     }
 
     fn level_exists(&self, handle: WorldHandle) -> bool {

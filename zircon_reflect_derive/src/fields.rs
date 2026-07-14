@@ -267,8 +267,8 @@ fn infer_value_type_path(ty: &Type) -> Option<String> {
             let segment = path.path.segments.last()?;
             let value = match segment.ident.to_string().as_str() {
                 "bool" => "Bool",
-                "i8" | "i16" | "i32" | "i64" | "isize" => "Integer",
-                "u8" | "u16" | "u32" | "u64" | "usize" => "Unsigned",
+                "i8" | "i16" | "i32" | "i64" => "Integer",
+                "u8" | "u16" | "u32" | "u64" => "Unsigned",
                 "f32" | "Real" => "Scalar",
                 "String" | "str" => "String",
                 "Vec2" => "Vec2",

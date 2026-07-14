@@ -583,14 +583,6 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
             "vampire ZR script should drive gameplay through generic host API marker {marker}"
         );
     }
-    assert!(
-        !std::fs::read_to_string(
-            runtime_source_root.join("backend/zr_vm_project_backend/real_backend/instance.rs")
-        )
-        .unwrap()
-        .contains("vampire_lifecycle_or_export"),
-        "real zr_vm backend must not bypass vampire exports through a Rust gameplay delegate"
-    );
     let packages = discover_vm_plugin_packages(root.join("scripts")).unwrap();
     assert_eq!(packages.len(), 1);
     assert_eq!(packages[0].package.manifest.name, "vampire_game");

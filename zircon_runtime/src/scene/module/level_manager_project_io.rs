@@ -27,7 +27,8 @@ impl DefaultLevelManager {
 
     pub fn load_world(&self, path: impl AsRef<Path>) -> Result<LevelSystem, SceneProjectError> {
         let world = World::load_project_from_path(path)?;
-        Ok(self.create_level(world, LevelMetadata::default()))
+        self.try_create_level(world, LevelMetadata::default())
+            .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))
     }
 
     pub fn load_level(
@@ -36,14 +37,15 @@ impl DefaultLevelManager {
         uri: &ResourceLocator,
     ) -> Result<LevelSystem, SceneProjectError> {
         let world = SceneAssetSerializer::load_world(project, uri)?;
-        Ok(self.create_level(
+        self.try_create_level(
             world,
             LevelMetadata {
                 project_root: Some(project.paths().root().to_string_lossy().into_owned()),
                 asset_uri: Some(uri.to_string()),
                 display_name: display_name_for_level(uri),
             },
-        ))
+        )
+        .map_err(|error| SceneProjectError::SceneAsset(error.to_string()))
     }
 
     pub fn save_level(

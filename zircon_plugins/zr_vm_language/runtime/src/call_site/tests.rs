@@ -1,28 +1,24 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde_json::json;
-use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::{
-    EntityId, NodeKind, ReflectComponent, RuntimeTypeRegistration, TypeRegistry, World,
+    EntityId, NodeKind, ReflectComponent, RuntimeTypeRegistration, TypeRegistry, VmTypeBacking,
+    World,
 };
 use zircon_runtime_interface::reflect::{
-    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
+    ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectScriptVisibility,
     ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
     ReflectedValue,
 };
 
-use super::ScriptCallTable;
+use super::{CallSiteError, ScriptCallTable};
 
 #[test]
 fn call_site_resolution_happens_once() {
     let mut world = World::empty();
     world
-        .register_component_type(
-            ComponentTypeDescriptor::new("gameplay.Component.Health", "gameplay", "Health")
-                .with_property("current", "Scalar", true)
-                .with_property("maximum", "Scalar", false),
-        )
-        .expect("dynamic component type should register");
+        .register_vm_type(vm_health_registration(), VmTypeBacking::DynamicComponent)
+        .expect("public VM component type should register");
     let entity = world.spawn_node(NodeKind::Empty);
     world
         .set_dynamic_component(
@@ -62,6 +58,79 @@ fn call_site_resolution_happens_once() {
         1,
         "runtime calls must not repeat type/member name resolution"
     );
+
+    let token = site.token();
+    assert_eq!(
+        table
+            .read_token(token, &world, entity)
+            .expect("opaque numeric call-site token should use the dense callbacks"),
+        ReflectedValue::Scalar(40.0)
+    );
+    assert_eq!(table.resolution_count(), 1);
+}
+
+#[test]
+fn private_types_are_not_compiled_into_script_call_sites() {
+    let mut registry = TypeRegistry::default();
+    registry
+        .register(RuntimeTypeRegistration::metadata(
+            reflected_component_registration(
+                "test.PublicProbe",
+                "PublicProbe",
+                ReflectScriptVisibility::Public,
+            ),
+        ))
+        .expect("public test registration should be valid");
+    registry
+        .register(RuntimeTypeRegistration::metadata(
+            reflected_component_registration(
+                "test.PrivateProbe",
+                "PrivateProbe",
+                ReflectScriptVisibility::Private,
+            ),
+        ))
+        .expect("private test registration should be valid");
+
+    let table =
+        ScriptCallTable::compile(&registry).expect("public reflection table should compile");
+
+    assert!(table.resolve("test.PublicProbe", "value").is_ok());
+    assert!(matches!(
+        table.resolve("test.PrivateProbe", "value"),
+        Err(super::CallSiteError::UnknownMember { .. })
+    ));
+}
+
+#[test]
+fn opaque_tokens_are_never_reused_across_compiled_tables() {
+    let mut world = World::empty();
+    world
+        .register_vm_type(vm_health_registration(), VmTypeBacking::DynamicComponent)
+        .expect("public VM component type should register");
+    let entity = world.spawn_node(NodeKind::Empty);
+    world
+        .set_dynamic_component(
+            entity,
+            "gameplay.Component.Health",
+            json!({ "current": 25.0, "maximum": 100.0 }),
+        )
+        .expect("dynamic component should attach");
+    let first =
+        ScriptCallTable::compile(world.type_registry()).expect("first table should compile");
+    let second =
+        ScriptCallTable::compile(world.type_registry()).expect("second table should compile");
+    let first_site = first
+        .resolve("gameplay.Component.Health", "current")
+        .expect("first table should resolve");
+    let second_site = second
+        .resolve("gameplay.Component.Health", "current")
+        .expect("second table should resolve");
+
+    assert_ne!(first_site.token(), second_site.token());
+    assert!(matches!(
+        second.read_token(first_site.token(), &world, entity),
+        Err(CallSiteError::InvalidToken { token }) if token == first_site.token()
+    ));
 }
 
 static NAMED_FIELD_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -85,7 +154,8 @@ fn runtime_calls_use_dense_slots_without_field_name_dispatch() {
                 )]),
                 ReflectSerializationStrategy::Value,
             )
-            .as_component(),
+            .as_component()
+            .with_script_visibility(ReflectScriptVisibility::Public),
             component: Some(
                 ReflectComponent::new(
                     "test.DenseProbe",
@@ -181,4 +251,43 @@ fn dense_probe_remove(
     _type_path: &str,
 ) -> Result<bool, ReflectError> {
     Ok(false)
+}
+
+fn vm_health_registration() -> ReflectTypeRegistration {
+    ReflectTypeRegistration::new(
+        ReflectTypePath::new("gameplay.Component.Health", "Health")
+            .expect("health reflection path should be valid")
+            .with_plugin_id("gameplay"),
+        "Health",
+        ReflectTypeInfo::struct_with_fields(vec![
+            ReflectFieldInfo::new("current", "Scalar", ReflectEditorHint::Scalar),
+            ReflectFieldInfo::new("maximum", "Scalar", ReflectEditorHint::Scalar)
+                .with_editable(false),
+        ]),
+        ReflectSerializationStrategy::Value,
+    )
+    .as_component()
+    .with_plugin_owned(true)
+    .with_plugin_id("gameplay")
+    .with_script_visibility(ReflectScriptVisibility::Public)
+}
+
+fn reflected_component_registration(
+    type_path: &str,
+    short_type_path: &str,
+    visibility: ReflectScriptVisibility,
+) -> ReflectTypeRegistration {
+    ReflectTypeRegistration::new(
+        ReflectTypePath::new(type_path, short_type_path)
+            .expect("test reflection path should be valid"),
+        short_type_path,
+        ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::new(
+            "value",
+            "Unsigned",
+            ReflectEditorHint::Unsigned,
+        )]),
+        ReflectSerializationStrategy::Value,
+    )
+    .as_component()
+    .with_script_visibility(visibility)
 }

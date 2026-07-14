@@ -127,3 +127,43 @@ fn derive_expands_virtual_fields_through_custom_accessors() {
     assert!(expansion.contains("NonEditableField"));
     assert!(!expansion.contains("self . transform"));
 }
+
+#[test]
+fn derive_rejects_duplicate_reflected_field_names() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[zr_reflect(
+            component,
+            field(
+                name = "value",
+                value_type_path = "Scalar",
+                read = "reflection::read_value",
+                readonly
+            )
+        )]
+        struct DuplicateField {
+            value: f32,
+        }
+    };
+
+    let error = crate::derive::derive_zr_reflect_impl(input)
+        .expect_err("named and virtual reflected fields must share one unique namespace");
+
+    assert!(error
+        .to_string()
+        .contains("duplicate reflected field name `value`"));
+}
+
+#[test]
+fn derive_requires_explicit_accessors_for_platform_sized_integers() {
+    for field_type in ["isize", "usize"] {
+        let source = format!("struct PlatformSized {{ value: {field_type} }}");
+        let input = syn::parse_str::<DeriveInput>(&source).expect("test input should parse");
+
+        let error = crate::derive::derive_zr_reflect_impl(input)
+            .expect_err("platform-sized integers must not infer a portable reflection layout");
+
+        assert!(error
+            .to_string()
+            .contains("requires value_type_path = \"...\""));
+    }
+}

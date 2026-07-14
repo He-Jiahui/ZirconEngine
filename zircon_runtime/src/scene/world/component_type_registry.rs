@@ -31,6 +31,32 @@ impl ComponentTypeRegistry {
         self.descriptors.get(type_id)
     }
 
+    pub(super) fn upsert_vm_descriptor(
+        &mut self,
+        descriptor: ComponentTypeDescriptor,
+    ) -> SceneResult<()> {
+        if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id) {
+            return Err(SceneError::ComponentTypePluginPrefixMismatch {
+                type_id: descriptor.type_id,
+                plugin_id: descriptor.plugin_id,
+            });
+        }
+        if let Some(existing) = self.descriptors.get(&descriptor.type_id) {
+            if existing.plugin_id != descriptor.plugin_id {
+                return Err(SceneError::DuplicateComponentType {
+                    type_id: descriptor.type_id,
+                });
+            }
+        }
+        self.descriptors
+            .insert(descriptor.type_id.clone(), descriptor);
+        Ok(())
+    }
+
+    pub(super) fn remove_vm_descriptor(&mut self, type_id: &str) {
+        self.descriptors.remove(type_id);
+    }
+
     pub fn descriptors(&self) -> impl Iterator<Item = &ComponentTypeDescriptor> {
         self.descriptors.values()
     }

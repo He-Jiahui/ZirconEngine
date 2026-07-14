@@ -2,11 +2,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use crate::core::framework::script::ScriptHostValue;
-use crate::core::{CoreRuntime, PluginContext};
+use crate::core::{CoreError, CoreHandle, CoreRuntime, PluginContext};
 
-use super::super::backend::{
-    BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError, ZrVmBackendFamily,
-};
+use super::super::backend::{BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError};
 use super::super::gc_bridge::{VmGcBudget, VmGcStepReport};
 use super::super::handles::PluginSlotId;
 use super::super::host::{
@@ -21,6 +19,7 @@ use super::super::host_interface::{
 use super::super::plugin::{
     discover_vm_plugin_packages, DiscoveredVmPluginPackage, VmPluginPackage, VmPluginPackageSource,
 };
+use super::super::reflection::{VmReflectionCatalog, VM_REFLECTION_WORLD_EXTENSION_NAME};
 use super::hot_reload_coordinator::HotReloadCoordinator;
 use super::vm_plugin_slot_record::VmPluginSlotRecord;
 
@@ -33,6 +32,7 @@ pub struct VmPluginManager {
     host_registry: HostRegistry,
     host_exports: HostExportRegistry,
     host_interfaces: VmHostInterfaceRegistry,
+    reflection_catalog: VmReflectionCatalog,
     coordinator: HotReloadCoordinator,
     backends: VmBackendRegistry,
     selected_backend: RwLock<String>,
@@ -126,12 +126,12 @@ impl VmPluginManager {
             host_registry: host,
             host_exports,
             host_interfaces: VmHostInterfaceRegistry::default(),
+            reflection_catalog: VmReflectionCatalog::default(),
             coordinator: HotReloadCoordinator::new(),
             backends: VmBackendRegistry::new(),
             selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
         });
         manager.register_family(Arc::new(BuiltinVmBackendFamily));
-        manager.register_family(Arc::new(ZrVmBackendFamily));
         manager
     }
 
@@ -238,9 +238,7 @@ impl VmPluginManager {
     }
 
     pub fn unload_slot(&self, slot: PluginSlotId) -> Result<(), VmError> {
-        let result = self.coordinator.unload_slot(slot);
-        self.host_interfaces.discard_slot(slot);
-        result.map(|_| ())
+        self.coordinator.unload_slot(slot).map(|_| ())
     }
 
     pub fn slot(&self, slot: PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
@@ -349,6 +347,11 @@ impl VmPluginManager {
         self.host_interfaces.clone()
     }
 
+    /// Returns the shared VM reflection catalog used by package generations and Worlds.
+    pub fn reflection_catalog(&self) -> VmReflectionCatalog {
+        self.reflection_catalog.clone()
+    }
+
     pub fn base_plugin_context(&self) -> &PluginContext {
         &self.plugin_context
     }
@@ -384,6 +387,8 @@ impl VmPluginManager {
             host_registry: self.host_registry.clone(),
             host_exports: self.host_exports.clone(),
             host_interfaces: self.host_interfaces.clone(),
+            reflection_catalog: self.reflection_catalog.clone(),
+            reflection_schema_installer: Default::default(),
             slot_lifecycle: Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
             vm_owner: None,
         }
@@ -399,6 +404,23 @@ impl VmPluginManager {
         self.selected_backend
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(crate) fn install_reflection_world_extension(
+        &self,
+        core: &CoreHandle,
+    ) -> Result<(), CoreError> {
+        self.reflection_catalog.bind_core(core);
+        let plan = self
+            .reflection_catalog
+            .world_runtime_extension_plan()
+            .map_err(|error| {
+                CoreError::Initialization(
+                    VM_REFLECTION_WORLD_EXTENSION_NAME.to_string(),
+                    error.to_string(),
+                )
+            })?;
+        crate::scene::install_world_runtime_extension_plan(core, plan)
     }
 }
 

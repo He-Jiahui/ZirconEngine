@@ -7,12 +7,13 @@ mod host;
 mod host_interface;
 mod module;
 mod plugin;
+mod reflection;
 mod runtime;
 mod runtime_context;
 mod scene_hook;
 mod tests;
 
-pub use backend::{BuiltinVmBackendFamily, VmBackendFamily, ZrVmBackend, ZrVmBackendFamily};
+pub use backend::{BuiltinVmBackendFamily, VmBackendFamily};
 pub use backend::{UnavailableVmBackend, VmBackend, VmBackendRegistry, VmError};
 pub use capability_set::CapabilitySet;
 pub use gameplay_host::register_gameplay_host_module;
@@ -29,8 +30,9 @@ pub use host::{
     HostExportFunction, HostExportModuleRecord, HostExportRegistry, HostRegistry,
     HostRegistryError, PluginHostDriver, ScriptBridgeCall, ScriptBridgeMethodDescriptor,
     ScriptCallSite, ScriptCallSiteId, ScriptCallTable, ScriptHostInterfaceMarkdownOptions,
-    VmPluginHostContext, VmPluginSlotLifecycle, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
-    PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+    VmPluginHostContext, VmPluginSlotLifecycle, VmReflectionSchemaInstaller,
+    BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
+    VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
 };
 pub use host_interface::{
     VmBehaviorNodeRegistration, VmCallbackHandle, VmEditorOperationRegistration,
@@ -47,6 +49,10 @@ pub use plugin::{
     VmPluginMemoryPolicy, VmPluginPackage, VmPluginPackageSource, VmStateBlob, VmStateFieldRename,
     VmStateMigrationError, VmStateObject, VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema,
     ZrVmExecutionMode, ZrVmPluginProjectSource, VM_STATE_SCHEMA_VERSION_V2,
+};
+pub use reflection::{
+    VmReflectionCatalog, VmReflectionError, VmReflectionRegistrySnapshot, VmReflectionSchema,
+    VM_REFLECTION_WORLD_EXTENSION_NAME,
 };
 pub use runtime::{HotReloadCoordinator, VmPluginManager, VmPluginSlotRecord, VmPluginSlotState};
 pub use runtime_context::{

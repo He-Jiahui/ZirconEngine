@@ -2,7 +2,9 @@
 related_code:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
+  - zircon_runtime/src/scene/reflect/declared_value_type.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/dynamic_json.rs
   - zircon_reflect_derive/src/derive.rs
   - zircon_reflect_derive/src/fields.rs
   - zircon_runtime_interface/src/reflect/zr_reflect.rs
@@ -23,6 +25,10 @@ related_code:
   - zircon_runtime/src/scene/world/change_detection.rs
   - zircon_runtime/src/scene/world/component_type_registry.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/script/vm/reflection/catalog.rs
+  - zircon_runtime/src/script/vm/reflection/schema.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
@@ -30,7 +36,9 @@ related_code:
 implementation_files:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
+  - zircon_runtime/src/scene/reflect/declared_value_type.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/dynamic_json.rs
   - zircon_reflect_derive/src/attributes.rs
   - zircon_reflect_derive/src/derive.rs
   - zircon_reflect_derive/src/fields.rs
@@ -50,7 +58,12 @@ implementation_files:
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/change_detection.rs
+  - zircon_runtime/src/scene/world/component_type_registry.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/script/vm/reflection/catalog.rs
+  - zircon_runtime/src/script/vm/reflection/schema.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/world.rs
 plan_sources:
@@ -74,6 +87,8 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
+  - zircon_runtime/src/script/vm/reflection/tests.rs
+  - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
   - tests/acceptance/reflection-type-registry.md
 doc_type: module-detail
 ---
@@ -90,6 +105,7 @@ The structural module root wires these child modules:
 - `reflect_resource.rs` contains the placeholder `ReflectResource` function-table type for future resource adapters.
 - `registration.rs` owns the crate-visible builtin reflection bootstrap lifecycle.
 - `type_registry.rs` owns deterministic runtime registry storage and lookup rules.
+- `dynamic_json.rs` owns the declared-type conversion shared by VM initial JSON validation and dynamic reflection reads/writes; scalar, vector, quaternion, entity, resource, list, map, and raw JSON forms cannot validate through one representation and later decode through another.
 - `world_reflection.rs` owns the `WorldReflection` marker and the public immutable `World::type_registry()` accessor.
 
 Later M8 slices keep the same ownership split: `ReflectComponent` and `ReflectResource` become concrete adapter contracts, `dynamic_component.rs` projects plugin JSON descriptors into the registry, and `world_reflection.rs` remains the facade for schema/read/write DTO routing.
@@ -132,9 +148,9 @@ Duplicate full type paths are rejected with `ReflectError::DuplicateTypePath` be
 
 ## World Lifecycle
 
-`World` owns a `type_registry: TypeRegistry` field marked `#[serde(skip, default)]`. This keeps the registry runtime-only and prevents reflected metadata or future function-table adapters from entering scene JSON.
+`World` owns a `type_registry: TypeRegistry` field marked `#[serde(skip, default)]`. This keeps the registry runtime-only and prevents reflected metadata or future function-table adapters from entering scene JSON. `vm_dynamic_type_paths` separately marks direct and catalog VM-backed component owners, so strict complete-schema validation applies to VM state without reinterpreting legacy `ComponentTypeDescriptor` strings such as `number` as canonical reflection type paths.
 
-`World::empty()` constructs the world, then calls the crate-visible bootstrap function `register_builtin_reflection(&mut world)` before returning. The function is intentionally not publicly re-exported from `scene::reflect` or `scene`, because M8.2 behavior clears and rebuilds the builtin runtime registry and must not become an external clearing API. `World::new()` continues to call `World::empty()` before spawning the default camera/light/cube scene, so the default scene behavior is preserved while reflection lifecycle has one bootstrap path.
+`World::empty()` constructs the world, then calls the crate-visible bootstrap function `register_builtin_reflection(&mut world)` before returning. Both World bootstrap and the VM process-wide canonical registry reuse `builtin_type_registry()`, so builtin registration has one construction source and the script ABI never samples World-local direct registrations. The helpers are not publicly re-exported outside the crate. `World::new()` continues to call `World::empty()` before spawning the default camera/light/cube scene, so the default scene behavior is preserved while reflection lifecycle has one bootstrap path.
 
 Manual `Deserialize for World` initializes an empty registry, then calls the same crate-visible bootstrap function before rebuilding existing derived ECS state. After M8.4, deserialized worlds rebuild the runtime-only registry to the fixed builtin component registrations without changing the scene serialization format.
 
@@ -348,6 +364,12 @@ The focused `ecs_reflect` filter currently reports 25 passing tests because M8.5
 
 ## M8.5 Dynamic Plugin JSON Component Reflection
 
+Plugins 08 M1 extends the same dynamic-component adapter into a production VM schema path. `World::register_vm_type` remains the strict one-shot public entry and cannot later be taken over by the catalog, even when the plugin id matches. The script-owned `VmReflectionCatalog` uses a crate-internal batch synchronization path for hot-reload generations: component descriptors and reflection registrations are cloned, validated, then committed together so one World never observes only half of a schema update. Only registrations already owned by the current catalog snapshot may be replaced or removed; direct, native, and builtin registrations remain duplicate-path errors.
+
+The catalog projects only `ReflectScriptVisibility::Public` component registrations from `VmStateSchema`. Private state types remain usable for migration but never enter the script call table or World reflection surface. The package manifest name is the trusted namespace owner; a cold DTO cannot self-report a different `plugin_id` and occupy that namespace. One `script.vm.reflection.catalog` World extension applies the current catalog snapshot to future Worlds. The core-bound `DefaultLevelManager` owns every formal create/load path, applies extensions while holding the level-set transaction boundary, and atomically validates/commits a generation across all existing Worlds with rollback snapshots. Type paths remain slot-owned, preventing a second VM package slot from silently replacing another package's layout. A newer authoritative slot snapshot also removes types omitted by that generation, but only after every managed World proves that no live dynamic component still uses the removed type; unload uses the same guard.
+
+Initial dynamic component JSON is validated against the same reflected field schema used by dense reads and writes. VM fields use one closed declared-type grammar: primitive atoms, `List<T>`, and JSON-keyed `Map<String, T>`. Bare `List`/`Map`, malformed brackets, empty arguments, unknown atoms, and non-`String` map keys fail at registration even when no default value or World exists. Nested mismatch diagnostics render this canonical grammar rather than the parser's debug AST. Unknown fields, non-object values (including zero-field schemas), lossy Entity/Resource wrapper objects, and field type mismatches are rejected before storage. Candidate schema replacement also revalidates every retained live payload before any World or catalog state commits.
+
 M8.5 adds `reflect/dynamic_component.rs`, which projects plugin-contributed `ComponentTypeDescriptor` values into runtime reflection registrations and supplies one dynamic `ReflectComponent` adapter implementation. The descriptor's unique declaration owner is now the neutral `core/framework/scene/component_type_descriptor` module; plugin manifests remain contribution inputs, while `TypeRegistry` becomes the schema/read/write reflection path used by `WorldReflection`.
 
 Descriptor projection is deterministic:
@@ -360,12 +382,12 @@ Descriptor projection is deterministic:
 
 `World::register_component_type` now creates the reflected registration and checks the reflection registry before mutating the scene component descriptor registry. The mutation sequence is: project `ReflectTypeRegistration`, reject a duplicate reflected path through `TypeRegistry::contains`, register the cloned `ComponentTypeDescriptor`, then insert a `RuntimeTypeRegistration` carrying the dynamic component adapter. Invalid reflection metadata or duplicate reflection paths leave both registries unchanged; descriptor registry errors still occur before reflection insertion, so reflection state is not partially updated.
 
-Dynamic component adapters route through existing world JSON helpers rather than replacing them:
+Dynamic component adapters keep legacy descriptor behavior separate from VM-backed schema behavior:
 
 - `contains` is true only when the entity exists and `World::dynamic_component(entity, type_path)` is present.
-- `read_field` validates the reflected field metadata, builds `ComponentPropertyPath::new(type_path, [field_name])` through the pre-sized constructor path, calls `World::dynamic_component_property`, and converts the resulting `ScenePropertyValue` into `ReflectedValue`. The helper path uses direct success branches for component presence, declared-field lookup, JSON object field presence, and property-value retrieval, so valid reads do not route through closure-based `Option` error conversion.
+- Legacy descriptor reads first require the declared JSON key, then build `ComponentPropertyPath::new(type_path, [field_name])`, call `World::dynamic_component_property`, and retain the established `ScenePropertyValue` conversion vocabulary such as lowercase `number`/`float`. A declared but absent key therefore remains `ReflectError::UnknownField` on both legacy and VM paths. VM-backed reads use the strict declared JSON converter so nested List/Map/Json values share exactly the same schema semantics as registration and initial attachment. Both paths use direct success branches for component presence, declared-field lookup, JSON object field presence, and property retrieval.
 - `read_fields` iterates reflected field metadata in schema order, pre-sizes the returned field-value vector from the reflected schema field count, and reads only declared fields.
-- `write_field` validates reflected editability, requires the dynamic component instance to exist, converts `ReflectedValue` into `ScenePropertyValue`, and calls `World::set_dynamic_component_property`.
+- Legacy writes convert through `ScenePropertyValue`, preserving shortest f32 JSON decimals such as `0.9`. VM writes require an existing complete component, validate the declared field type and the resulting full object, then commit the JSON replacement; public property writes cannot create partial VM instances.
 - Missing entities, missing dynamic component instances, undeclared fields, read-only fields, and unsupported value conversions return structured `ReflectError` variants.
 
 M8.5 tests live in `zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs`. The previous reflection tests were moved under `zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs` so the parent `mod.rs` stays structural and new dynamic coverage does not extend the old 1000+ line flat test file.

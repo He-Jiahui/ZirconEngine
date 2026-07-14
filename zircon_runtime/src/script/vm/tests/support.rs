@@ -1,4 +1,5 @@
 use super::*;
+use crate::script::VmReflectionCatalog;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct ObservedHostContext {
@@ -190,6 +191,8 @@ pub(super) fn test_host_context(
         host_registry: HostRegistry::default(),
         host_exports: HostExportRegistry::default(),
         host_interfaces: VmHostInterfaceRegistry::default(),
+        reflection_catalog: VmReflectionCatalog::default(),
+        reflection_schema_installer: Default::default(),
         slot_lifecycle: Arc::new(NoopSlotLifecycle),
         vm_owner: None,
     }

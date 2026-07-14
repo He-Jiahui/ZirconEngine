@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::BTreeSet;
 use syn::spanned::Spanned;
 use syn::{Data, DeriveInput};
 
@@ -10,6 +11,7 @@ use crate::fields::{
 };
 
 pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStream> {
+    let input_span = input.span();
     if !input.generics.params.is_empty() {
         return Err(syn::Error::new(
             input.generics.span(),
@@ -45,6 +47,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
         }
     };
     fields.extend(collect_virtual_fields(attributes.virtual_fields)?);
+    validate_unique_field_names(&fields, input_span)?;
 
     let field_info = fields.iter().map(field_info_tokens);
     let reflected_fields = if fields.is_empty() {
@@ -163,6 +166,22 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
             }
         }
     })
+}
+
+fn validate_unique_field_names(
+    fields: &[crate::fields::ReflectedField],
+    span: proc_macro2::Span,
+) -> syn::Result<()> {
+    let mut names = BTreeSet::new();
+    for field in fields {
+        if !names.insert(field.name.as_str()) {
+            return Err(syn::Error::new(
+                span,
+                format!("duplicate reflected field name `{}`", field.name),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn serialization_tokens(kind: SerializationKind) -> TokenStream {

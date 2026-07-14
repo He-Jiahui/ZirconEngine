@@ -174,37 +174,6 @@ fn bridge_performance_baseline_script_call_table_calls_dense_id_without_name_loo
 }
 
 #[test]
-fn bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites() {
-    let backend_source =
-        include_str!("../../script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs");
-    let module_registration = source_between(
-        backend_source,
-        "pub(super) fn register_host_modules(",
-        "pub(super) fn native_function_label(",
-    );
-    let native_callback = source_between(
-        backend_source,
-        "fn build_native_function(",
-        "fn zr_prototype_type(",
-    );
-
-    assert_source_order(
-        module_registration,
-        "let call_table = host.host_exports.script_call_table()?;",
-        ".resolve(&module.descriptor.name, &function.name)",
-    );
-    assert_source_order(
-        module_registration,
-        ".resolve(&module.descriptor.name, &function.name)",
-        "build_native_function(",
-    );
-    assert!(native_callback.contains("call_site.call(arguments, &capabilities)"));
-    assert!(!native_callback.contains("host_exports"));
-    assert!(!native_callback.contains("call_with_capabilities"));
-    assert!(!native_callback.contains(".resolve("));
-}
-
-#[test]
 #[cfg(debug_assertions)]
 fn bridge_performance_baseline_pin_guard_records_single_resolution_for_batch_calls() {
     let mut registry = RuntimeExtensionRegistry::default();

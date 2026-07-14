@@ -95,17 +95,18 @@ fn wgpu_windows_dependency_family_stays_on_one_compatible_patch_line() {
 
 #[test]
 fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() {
-    let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
+    let plugin_manifest = read_repo_file("zircon_plugins/zr_vm_language/runtime/Cargo.toml");
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
 
     assert!(
-        runtime_manifest.contains("backend-zr-vm"),
-        "real ZrVM backend should stay explicitly feature gated"
+        plugin_manifest.contains("backend-zr-vm"),
+        "real ZrVM backend should stay explicitly feature gated by its plugin owner"
     );
     assert!(
-        runtime_manifest.contains("../../zr_vm/zr_vm_rust_binding")
-            && runtime_manifest.contains("optional = true"),
-        "ZrVM path dependencies should stay optional external-checkout dependencies"
+        plugin_manifest.contains("../../../../zr_vm/zr_vm_rust_binding")
+            && plugin_manifest.contains("optional = true")
+            && !read_repo_file("zircon_runtime/Cargo.toml").contains("zr_vm_rust_binding"),
+        "ZrVM path dependencies must stay optional and plugin-owned"
     );
     assert!(
         tech_stack.contains("../../zr_vm") && tech_stack.contains("external checkout"),

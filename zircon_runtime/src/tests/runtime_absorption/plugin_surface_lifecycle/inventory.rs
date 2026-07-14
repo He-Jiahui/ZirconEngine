@@ -7,7 +7,7 @@ pub(super) const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
     "src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
     "src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs",
     "src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs",
-    "src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs",
+    "../zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
     "src/script/vm/tests.rs",
     "src/script/vm/tests/lifecycle_failures.rs",
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",

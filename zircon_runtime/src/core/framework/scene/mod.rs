@@ -24,7 +24,7 @@ pub use system_stage::SystemStage;
 pub use world_handle::WorldHandle;
 
 pub trait LevelManager: Send + Sync {
-    fn create_default_level_handle(&self) -> WorldHandle;
+    fn create_default_level_handle(&self) -> Result<WorldHandle, CoreError>;
     fn level_exists(&self, handle: WorldHandle) -> bool;
     fn level_summary(&self, handle: WorldHandle) -> Option<LevelSummary>;
     fn load_level_asset(&self, project_root: &str, uri: &str) -> Result<WorldHandle, CoreError>;

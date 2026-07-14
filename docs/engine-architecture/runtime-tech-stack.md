@@ -98,7 +98,7 @@ The dependency guard's manifest reader is bounded to the root manifest and curre
 | `zip` | `9.0.0-pre2` with `default-features = false`, `deflate-flate2` only | `zircon_runtime::plugin::export_build_plan::materialize::archive` export archive materializer | none | Only the runtime ZIP archive materializer may declare this dependency. Any feature expansion, additional archive format, or non-runtime owner must update this document and `tech_stack_boundary`. |
 | `accesskit` | `0.22.0` optional | runtime accessibility | `accessibility-accesskit` | Upgrade with accessibility DTO compatibility checks. |
 | gamepad input | app/runtime input stack | app/runtime input | `input-gamepad`, `gamepad-gilrs` | Browser gamepad remains a separate target path. |
-| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | runtime script backend | `backend-zr-vm` | Current decision is to keep the external checkout. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
+| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | `zircon_plugins/zr_vm_language/runtime` concrete backend | plugin feature `backend-zr-vm` | Current decision is to keep the external checkout. `zircon_runtime` remains binding-free and owns only neutral VM contracts. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
 
 ## Corrected Non-Dependencies
 
@@ -125,9 +125,9 @@ Upgrade gates:
 
 ## External ZrVM Path Dependency
 
-The current decision is option A from the runtime 01 plan: keep `../../zr_vm` as an external checkout and gate it behind `backend-zr-vm`. This keeps the default runtime build independent from a local ZrVM checkout while preserving the real backend for explicit validation.
+The current decision is option A from the runtime 01 plan: keep `../../zr_vm` as an external checkout and gate it behind the ZrVM language plugin's `backend-zr-vm` feature. The plugin crate is the single concrete backend owner; `zircon_runtime` does not declare the feature or either binding dependency. This keeps default engine/runtime builds independent from a local ZrVM checkout while preserving the real backend for explicit plugin validation.
 
-The path dependency is not only a clone-layout issue. The runtime real-backend contract depends on a paired binding version that represents empty export argument lists as a valid non-null pointer with length `0`. Moving the dependency to a submodule, vendored crate, or published crate must include that binding fix as a version gate.
+The path dependency is not only a clone-layout issue. The plugin real-backend contract depends on a paired binding version that represents empty export argument lists as a valid non-null pointer with length `0`. Moving the dependency to a submodule, vendored crate, or published crate must include that binding fix as a version gate.
 
 Required local layout for the real backend:
 

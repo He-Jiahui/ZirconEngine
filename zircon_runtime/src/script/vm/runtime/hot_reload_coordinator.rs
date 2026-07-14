@@ -21,6 +21,7 @@ use super::vm_plugin_slot_state::VmPluginSlotState;
 pub struct HotReloadCoordinator {
     next_slot: AtomicU64,
     next_gc_frame: AtomicU64,
+    lifecycle_guard: Mutex<()>,
     gc_step_guard: Mutex<()>,
     slots: Mutex<HashMap<PluginSlotId, PluginSlot>>,
     pending_gc_slots: Mutex<VecDeque<PluginSlotId>>,
@@ -91,6 +92,7 @@ impl HotReloadCoordinator {
         Self {
             next_slot: AtomicU64::new(1),
             next_gc_frame: AtomicU64::new(1),
+            lifecycle_guard: Mutex::new(()),
             gc_step_guard: Mutex::new(()),
             slots: Mutex::new(HashMap::new()),
             pending_gc_slots: Mutex::new(VecDeque::new()),
@@ -109,6 +111,12 @@ impl HotReloadCoordinator {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
+    fn lock_lifecycle_guard(&self) -> MutexGuard<'_, ()> {
+        self.lifecycle_guard
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     fn lock_pending_gc_slots(&self) -> MutexGuard<'_, VecDeque<PluginSlotId>> {
         self.pending_gc_slots
             .lock()
@@ -122,6 +130,7 @@ impl HotReloadCoordinator {
         package: VmPluginPackage,
         host: &VmPluginHostContext,
     ) -> Result<PluginSlotId, VmError> {
+        let _lifecycle = self.lock_lifecycle_guard();
         let slot = PluginSlotId::new(self.next_slot.fetch_add(1, Ordering::SeqCst));
         let host = host.with_vm_owner(slot, 1);
         let mut instance = match backend.load_package(&package, &host) {
@@ -131,9 +140,42 @@ impl HotReloadCoordinator {
                 return Err(error);
             }
         };
+        let reflection_schema = match instance.state_schema() {
+            Ok(schema) => schema,
+            Err(error) => {
+                host.host_interfaces.discard_slot(slot);
+                return Err(error);
+            }
+        };
+        let prepared_reflection = match host.reflection_catalog.prepare_optional_generation(
+            slot,
+            1,
+            &package.manifest.name,
+            reflection_schema.as_ref(),
+        ) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                host.host_interfaces.discard_slot(slot);
+                return Err(VmError::from(error));
+            }
+        };
+        if let Err(error) = host.install_reflection_schema(prepared_reflection.snapshot()) {
+            host.host_interfaces.discard_slot(slot);
+            return Err(error);
+        }
         if let Err(error) = instance.activate(&host) {
             host.host_interfaces.discard_slot(slot);
             return Err(error);
+        }
+        if let Err(error) = host.reflection_catalog.commit_prepared(prepared_reflection) {
+            let cleanup = instance.deactivate().err();
+            host.host_interfaces.discard_slot(slot);
+            return match cleanup {
+                Some(cleanup) => Err(VmError::Operation(format!(
+                    "VM reflection schema publish failed ({error}); activation cleanup failed: {cleanup}"
+                ))),
+                None => Err(VmError::from(error)),
+            };
         }
         self.lock_slots().insert(
             slot,
@@ -157,6 +199,7 @@ impl HotReloadCoordinator {
         package: VmPluginPackage,
         host: &VmPluginHostContext,
     ) -> Result<(), VmError> {
+        let _lifecycle = self.lock_lifecycle_guard();
         let backend_name = backend_name.into();
         let (policy, mut current_instance, current_generation, next_generation, current_host) = {
             let mut slots = self.lock_slots();
@@ -229,6 +272,42 @@ impl HotReloadCoordinator {
                 return Err(error);
             }
         };
+        let next_schema = match next_instance.state_schema() {
+            Ok(schema) => schema,
+            Err(error) => {
+                let error = self.rollback_hot_reload(
+                    slot,
+                    Some(next_instance),
+                    &next_host,
+                    rollback,
+                    error,
+                );
+                return Err(error);
+            }
+        };
+        let prepared_reflection = match next_host.reflection_catalog.prepare_optional_generation(
+            slot,
+            next_generation,
+            &package.manifest.name,
+            next_schema.as_ref(),
+        ) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                let error = self.rollback_hot_reload(
+                    slot,
+                    Some(next_instance),
+                    &next_host,
+                    rollback,
+                    VmError::from(error),
+                );
+                return Err(error);
+            }
+        };
+        if let Err(error) = next_host.install_reflection_schema(prepared_reflection.snapshot()) {
+            let error =
+                self.rollback_hot_reload(slot, Some(next_instance), &next_host, rollback, error);
+            return Err(error);
+        }
         if let Err(error) = next_instance.activate(&next_host) {
             let error =
                 self.rollback_hot_reload(slot, Some(next_instance), &next_host, rollback, error);
@@ -236,8 +315,8 @@ impl HotReloadCoordinator {
         }
         let current_state = rollback.current_state.clone();
         if let Some(state) = current_state {
-            let next_state = match next_instance.state_schema() {
-                Ok(Some(schema)) => match migrate_vm_state_blob(&state, &schema) {
+            let next_state = match &next_schema {
+                Some(schema) => match migrate_vm_state_blob(&state, schema) {
                     Ok(state) => state,
                     Err(error) => {
                         let error = self.rollback_hot_reload(
@@ -250,17 +329,7 @@ impl HotReloadCoordinator {
                         return Err(error);
                     }
                 },
-                Ok(None) => state,
-                Err(error) => {
-                    let error = self.rollback_hot_reload(
-                        slot,
-                        Some(next_instance),
-                        &next_host,
-                        rollback,
-                        error,
-                    );
-                    return Err(error);
-                }
+                None => state,
             };
             if let Err(error) = next_instance.restore_state(&next_state) {
                 let error = self.rollback_hot_reload(
@@ -272,6 +341,19 @@ impl HotReloadCoordinator {
                 );
                 return Err(error);
             }
+        }
+        if let Err(error) = next_host
+            .reflection_catalog
+            .commit_prepared(prepared_reflection)
+        {
+            let error = self.rollback_hot_reload(
+                slot,
+                Some(next_instance),
+                &next_host,
+                rollback,
+                VmError::from(error),
+            );
+            return Err(error);
         }
 
         rollback
@@ -377,25 +459,96 @@ impl HotReloadCoordinator {
     }
 
     pub fn unload_slot(&self, slot: PluginSlotId) -> Result<VmPluginManifest, VmError> {
-        let mut slot_entry = {
-            let mut slots = self.lock_slots();
-            if let Some(slot_entry) = slots.get(&slot) {
-                if slot_entry.instance.is_none() {
-                    return Err(VmError::Operation(format!(
-                        "vm plugin slot {} cannot unload while {}",
-                        slot.get(),
-                        slot_entry.state.label()
-                    )));
-                }
+        let _lifecycle = self.lock_lifecycle_guard();
+        let (host, generation) = {
+            let slots = self.lock_slots();
+            let slot_entry = slots.get(&slot).ok_or(VmError::MissingSlot(slot.get()))?;
+            if slot_entry.state != VmPluginSlotState::Active || slot_entry.instance.is_none() {
+                return Err(VmError::Operation(format!(
+                    "vm plugin slot {} cannot unload while {}",
+                    slot.get(),
+                    slot_entry.state.label()
+                )));
             }
-            slots
-                .remove(&slot)
-                .ok_or(VmError::MissingSlot(slot.get()))?
+            (slot_entry.host.clone(), slot_entry.generation)
         };
-        let manifest = slot_entry.package.manifest.clone();
-        if let Some(mut instance) = slot_entry.instance.take() {
-            instance.deactivate()?;
+        host.reflection_catalog.validate_slot_discard(slot)?;
+
+        let (manifest, policy, mut instance) = {
+            let mut slots = self.lock_slots();
+            let slot_entry = slots
+                .get_mut(&slot)
+                .ok_or(VmError::MissingSlot(slot.get()))?;
+            let instance = slot_entry.instance.take().ok_or_else(|| {
+                VmError::Operation(format!(
+                    "vm plugin slot {} cannot unload while {}",
+                    slot.get(),
+                    slot_entry.state.label()
+                ))
+            })?;
+            slot_entry.state = VmPluginSlotState::Unloading;
+            (
+                slot_entry.package.manifest.clone(),
+                slot_entry.package.manifest.management.hot_reload,
+                instance,
+            )
+        };
+        let registrations = host.host_interfaces.snapshot_generation(slot, generation);
+        let saved_state = match policy {
+            VmPluginHotReloadPolicy::PreserveState => match instance.save_state() {
+                Ok(state) => Some(state),
+                Err(error) => {
+                    self.restore_slot_instance(slot, instance, VmPluginSlotState::Active);
+                    return Err(error);
+                }
+            },
+            VmPluginHotReloadPolicy::Disabled | VmPluginHotReloadPolicy::Stateless => None,
+        };
+        if let Err(error) = instance.deactivate() {
+            host.host_interfaces
+                .restore_generation(slot, generation, registrations);
+            self.restore_slot_instance(slot, instance, VmPluginSlotState::Failed);
+            return Err(error);
         }
+        if let Err(error) = host.reflection_catalog.discard_slot(slot) {
+            host.host_interfaces.discard_generation(slot, generation);
+            let activate_error = instance.activate(&host).err();
+            let restore_error = if activate_error.is_none() {
+                saved_state
+                    .as_ref()
+                    .and_then(|state| instance.restore_state(state).err())
+            } else {
+                None
+            };
+            let rollback_succeeded = activate_error.is_none() && restore_error.is_none();
+            host.host_interfaces
+                .restore_generation(slot, generation, registrations);
+            self.restore_slot_instance(
+                slot,
+                instance,
+                if rollback_succeeded {
+                    VmPluginSlotState::Active
+                } else {
+                    VmPluginSlotState::Failed
+                },
+            );
+            if rollback_succeeded {
+                return Err(VmError::from(error));
+            }
+            return Err(VmError::Operation(format!(
+                "VM reflection discard failed ({error}); unload rollback failed: activate={}, restore={}",
+                activate_error
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "ok".to_string()),
+                restore_error
+                    .map(|error| error.to_string())
+                    .unwrap_or_else(|| "ok".to_string())
+            )));
+        }
+        host.host_interfaces.discard_slot(slot);
+        self.lock_slots().remove(&slot);
+        self.lock_pending_gc_slots()
+            .retain(|pending_slot| *pending_slot != slot);
         Ok(manifest)
     }
 

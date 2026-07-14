@@ -8640,6 +8640,7 @@ dependencies = [
  "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
+ "zr_vm_rust_binding",
 ]
 
 [[package]]
@@ -8704,8 +8705,6 @@ dependencies = [
  "zircon_reflect_derive",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
- "zr_vm_rust_binding",
- "zr_vm_rust_binding_sys",
  "zstd",
 ]
 

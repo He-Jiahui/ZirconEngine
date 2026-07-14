@@ -59,10 +59,6 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
             "fn ",
             "runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries"
         ),
-        concat!(
-            "fn ",
-            "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock"
-        ),
     ] {
         assert!(
             !parent.contains(moved_guard),
@@ -99,7 +95,7 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
         ],
     );
     assert_contains_all(
-        "input script child owns input and VM lock-poison guards",
+        "input script child owns input and runtime-neutral VM lock-poison guards",
         &input_script,
         &[
             concat!(
@@ -109,10 +105,6 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
             concat!(
                 "fn ",
                 "runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries"
-            ),
-            concat!(
-                "fn ",
-                "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock"
             ),
         ],
     );
@@ -127,7 +119,7 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
     .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 8,
+        child_test_total, 7,
         "asset/render/input lock-poison children should preserve seven existing guards plus the new split guard"
     );
 

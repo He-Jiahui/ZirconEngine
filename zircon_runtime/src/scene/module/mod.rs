@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::asset::{project::ProjectManager, AssetUri, ASSET_MODULE_NAME};
-use crate::core::manager::LevelManagerHandle;
+use crate::core::framework::scene::LevelManager;
+use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
@@ -26,7 +27,6 @@ pub use world_driver::WorldDriver;
 pub const SCENE_MODULE_NAME: &str = "SceneModule";
 pub const WORLD_DRIVER_NAME: &str = "SceneModule.Driver.WorldDriver";
 pub const DEFAULT_LEVEL_MANAGER_NAME: &str = "SceneModule.Manager.DefaultLevelManager";
-pub const LEVEL_MANAGER_NAME: &str = crate::core::manager::LEVEL_MANAGER_NAME;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SceneModule;
@@ -53,7 +53,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|_| Ok(Arc::new(DefaultLevelManager::default()) as ServiceObject)),
+        factory(|core| Ok(Arc::new(DefaultLevelManager::with_core(core)) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(SCENE_MODULE_NAME, ServiceKind::Manager, "LevelManager"),
@@ -66,7 +66,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
         factory(|core| {
             let manager =
                 core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)?;
-            Ok(Arc::new(LevelManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn LevelManager>::new(manager))
+                    as ServiceObject,
+            )
         }),
     ))
 }
@@ -97,9 +100,16 @@ pub fn install_world_runtime_extension_plan(
 
 pub fn create_default_level(core: &CoreHandle) -> Result<crate::scene::LevelSystem, CoreError> {
     let manager = resolve_default_level_manager(core)?;
-    let level = manager.create_default_level();
-    apply_world_runtime_extensions_to_level(core, &level)?;
-    Ok(level)
+    manager.try_create_default_level()
+}
+
+pub fn create_level(
+    core: &CoreHandle,
+    world: crate::scene::World,
+    metadata: crate::scene::LevelMetadata,
+) -> Result<crate::scene::LevelSystem, CoreError> {
+    let manager = resolve_default_level_manager(core)?;
+    manager.try_create_level(world, metadata)
 }
 
 pub fn load_level_asset(
@@ -114,21 +124,9 @@ pub fn load_level_asset(
         .scan_and_import()
         .map_err(|error| scene_core_error(error.to_string()))?;
     let uri = AssetUri::parse(uri).map_err(|error| scene_core_error(error.to_string()))?;
-    let level = manager
+    manager
         .load_level(&project, &uri)
-        .map_err(|error| scene_core_error(error.to_string()))?;
-    apply_world_runtime_extensions_to_level(core, &level)?;
-    Ok(level)
-}
-
-fn apply_world_runtime_extensions_to_level(
-    core: &CoreHandle,
-    level: &crate::scene::LevelSystem,
-) -> Result<(), CoreError> {
-    level.with_world_mut(|world| {
-        let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-        driver.apply_world_runtime_extensions(world)
-    })
+        .map_err(|error| scene_core_error(error.to_string()))
 }
 
 impl EngineModule for SceneModule {
@@ -145,6 +143,8 @@ impl EngineModule for SceneModule {
     }
 }
 
-fn resolve_default_level_manager(core: &CoreHandle) -> Result<Arc<DefaultLevelManager>, CoreError> {
+pub(crate) fn resolve_default_level_manager(
+    core: &CoreHandle,
+) -> Result<Arc<DefaultLevelManager>, CoreError> {
     core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)
 }

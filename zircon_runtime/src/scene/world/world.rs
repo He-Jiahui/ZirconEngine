@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
@@ -98,6 +98,10 @@ pub struct World {
     pub(super) component_types: ComponentTypeRegistry,
     #[serde(skip, default)]
     pub(super) type_registry: TypeRegistry,
+    #[serde(skip, default)]
+    pub(super) vm_catalog_type_paths: BTreeSet<String>,
+    #[serde(skip, default)]
+    pub(super) vm_dynamic_type_paths: BTreeSet<String>,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
     #[serde(skip, default)]
@@ -234,6 +238,8 @@ impl<'de> Deserialize<'de> for World {
             dynamic_components: state.dynamic_components,
             component_types: Default::default(),
             type_registry: Default::default(),
+            vm_catalog_type_paths: Default::default(),
+            vm_dynamic_type_paths: Default::default(),
             next_id: state.next_id,
             active_camera: state.active_camera,
             schedule: Default::default(),

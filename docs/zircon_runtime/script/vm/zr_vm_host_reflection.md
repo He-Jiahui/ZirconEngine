@@ -37,10 +37,20 @@ related_code:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/reflection/mod.rs
+  - zircon_runtime/src/script/vm/reflection/catalog.rs
+  - zircon_runtime/src/script/vm/reflection/error.rs
+  - zircon_runtime/src/script/vm/reflection/schema.rs
+  - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/unload_atomicity.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
@@ -104,10 +114,18 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/reflection/mod.rs
+  - zircon_runtime/src/script/vm/reflection/catalog.rs
+  - zircon_runtime/src/script/vm/reflection/error.rs
+  - zircon_runtime/src/script/vm/reflection/schema.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
@@ -158,6 +176,11 @@ plan_sources:
   - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/script/vm/reflection/tests.rs
+  - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/reflection.rs
+  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/unload_atomicity.rs
+  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - vm_backend_registry_accessors_recover_poisoned_family_lock
   - host_registry_accessors_recover_poisoned_handle_lock
   - host_export_registry_accessors_recover_poisoned_module_lock
@@ -300,6 +323,18 @@ Runtime 15 F12 script reflection macro fixture dead-code cleanup keeps the runti
 
 ## Registry Behavior
 
+### VM generation reflection catalog
+
+`VmReflectionSchema::from_state_schema` is the single projection from lifecycle state metadata into callable runtime reflection. It selects only public component-only registrations and validates their standalone schema rules. The coordinator asks `VmReflectionCatalog` to prepare a generation from a clean runtime-owned builtin registry plus the candidate before activation; it never samples a managed World's local registry and no public API can manufacture or commit a candidate. Preparation also binds every registration to the trusted package manifest name instead of accepting a self-reported foreign namespace. World-local direct registrations participate only in collision validation across every managed World and cannot silently become process-wide dense ABI metadata.
+
+`VmReflectionCatalog` owns the process-wide slot/generation view and serializes every prepare/commit/discard transaction. Every changed candidate receives a unique checked epoch plus the committed epoch it was based on. Name resolution may consume that exact prepared snapshot while activation runs, but dense read/write stays closed until its epoch is the committed epoch. Commit first proves that the prepared handle carries the same catalog-owned epoch capability, including before no-op early returns, then rechecks the base epoch and rejects a candidate if another transaction won first; a prepared generation from another catalog can never be consumed even when both catalogs happen to use the same numeric epochs. Two different candidates can never become current merely because they share the same future revision number. Equal generations are idempotent only when owner and schema are identical; conflicting metadata is a typed generation error and reuses neither revision nor epoch. `HotReloadCoordinator` serializes its load/reload/unload lifecycle mutations, reads `state_schema` exactly once per generation, installs the prepared candidate before activation, and commits that same prepared handle to Worlds before the slot becomes active. The level manager locks the level set and all Worlds, validates retained payloads, synchronizes every World, and only then release-publishes catalog state, revision, and epoch. Unload keeps its slot in an explicit unloading state until deactivate and catalog discard both succeed; failures restore the prior generation/interface snapshot and never let the manager discard host interfaces unconditionally.
+
+Plugin `ScriptCallTable` tokens are monotonic opaque identifiers, not packed type/member slots. Each table owns the token-to-dense-site map, so a token from an older table cannot resolve in a replacement table even when slot numbers coincide. Production tables retain the exact prepared/current epoch guard: the public `ScriptCallTable::resolve` owner itself checks the name-resolution capability, a prepared table can resolve package-loading names, dispatch fails closed before commit, exact commit activates the same token, and a foreign commit revokes both direct name resolution and dispatch even when its numeric revision matches. `ReflectionHostModule` refreshes only from the committed catalog snapshot after that stale transition.
+
+The concrete ZrVM implementation is plugin-owned. `zircon_runtime` retains only backend-neutral contracts, lifecycle coordination, the canonical reflection catalog, and host registries; it no longer declares a `backend-zr-vm` feature or a duplicate concrete backend module.
+
+Private VM types are intentionally absent from this catalog even when they participate in state migration. Script visibility is an authorization boundary, not an editor-only presentation hint.
+
 `HostExportRegistry` validates a module before it becomes visible:
 
 - module, version, capability, type, function, and parameter names must be non-empty and trimmed;
@@ -315,7 +350,7 @@ Runtime 15 F12 script reflection macro fixture dead-code cleanup keeps the runti
 
 Each registered module receives a `HostHandle` through the shared `HostRegistry`, using a `host.module.<module>` capability label. This keeps script-visible handles stable and lets existing handle validation continue to work.
 
-Calls go through `call_with_capabilities`. The registry checks arity and required capabilities before building a `ScriptHostCallContext` and dispatching the callback. Backends should pass the package capability set from `VmPluginHostContext`.
+Direct `HostExportRegistry` callers go through `call_with_capabilities`: the registry checks arity and required capabilities before building a `ScriptHostCallContext` and dispatching the callback, and such callers pass the package capability set from `VmPluginHostContext`. The production ZrVM reflection backend follows a different hot path: `real_backend/host_modules.rs` installs a prepared `ScriptCallTable`, resolves names once while loading, and dispatches reflected scene fields only through opaque tokens and dense callbacks guarded by the committed catalog epoch.
 
 Runtime 15 M3 script VM registry lock poison recovery status: `runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred`.
 
@@ -385,7 +420,7 @@ The built-in math module is the proof that handwritten and macro-generated descr
 
 The real `zr_vm` backend treats `HostExportRegistry` records as already validated neutral descriptors, then applies only target-backend lowering checks. Function arity must fit the `zr_vm` native function ABI (`u16` min/max bounds), `min_argument_count` must not exceed `max_argument_count`, and reflected parameter count must fit the maximum arity. These are backend constraints, not shared descriptor constraints for every future VM backend.
 
-Native callbacks convert ZrVM null, bool, int, float, and string arguments into `ScriptHostValue` before dispatching through `HostExportRegistry::call_with_capabilities`. Host return values lower null, bool, int, float, string, bytes as lossy UTF-8 strings, and `HostHandle` as integers. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
+Native callbacks convert ZrVM null, bool, int, float, and string arguments into `ScriptHostValue`, then invoke the pre-resolved `ScriptCallSite::call(arguments, capabilities)` captured while the host module is installed. Runtime callbacks therefore do not repeat module/function name lookup. Host return values lower null, bool, int, float, string, bytes as lossy UTF-8 strings, and `HostHandle` as integers. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
 
 ## VM Plugin Management Policy
 

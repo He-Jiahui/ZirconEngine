@@ -64,7 +64,6 @@ first-party-zr-vm-language-runtime-plugin = [
 backend-zr-vm = [
     "first-party-zr-vm-language-runtime-plugin",
     "zircon_first_party_runtime_catalog/backend-zr-vm",
-    "zircon_runtime/backend-zr-vm",
 ]
 default-platform = [
     "zircon_runtime/default-platform",
