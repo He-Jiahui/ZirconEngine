@@ -83,8 +83,18 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             path,
             diagnostic,
         } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
-            && path == "pipeline_layout.group2.binding11"
-            && diagnostic.contains("supports only group 2 bindings")
+            && path.starts_with("pipeline_layout.group2.binding")
+            && diagnostic.contains("clearcoat-normal texture")
+    )));
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::ShaderReadinessDiagnostic {
+            source,
+            path,
+            diagnostic,
+        } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
+            && path.starts_with("pipeline_layout.group2.binding")
+            && diagnostic.contains("clearcoat-normal sampler")
     )));
 }
 
@@ -124,20 +134,12 @@ fn fs_main() -> @location(0) vec4f {
             bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
                 group: 2,
                 label: Some("material".to_string()),
-                bindings: vec![
-                    RenderShaderBindingDescriptor {
-                        binding: 0,
-                        label: Some("material_texture".to_string()),
-                        resource_type: RenderShaderBindingResourceType::Texture,
-                        visibility: vec![RenderShaderStage::Fragment],
-                    },
-                    RenderShaderBindingDescriptor {
-                        binding: 11,
-                        label: Some("unsupported_material_sampler".to_string()),
-                        resource_type: RenderShaderBindingResourceType::Sampler,
-                        visibility: vec![RenderShaderStage::Fragment],
-                    },
-                ],
+                bindings: vec![RenderShaderBindingDescriptor {
+                    binding: 0,
+                    label: Some("material_texture".to_string()),
+                    resource_type: RenderShaderBindingResourceType::Texture,
+                    visibility: vec![RenderShaderStage::Fragment],
+                }],
             }],
         },
         validation_diagnostics: Vec::new(),

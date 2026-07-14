@@ -16,7 +16,7 @@ use crate::core::resource::{
 };
 use crate::graphics::backend::RenderBackend;
 
-use super::resources::ResourceStreamer;
+use super::resources::{ResourceStreamer, GPU_MATERIAL_UNIFORM_MIN_SIZE};
 
 mod uniform_debug_counts;
 
@@ -89,7 +89,7 @@ fn render_product_material_properties_prepare_uniform_payload() {
     );
     assert_eq!(
         streamer.material_uniform_buffer_byte_len(&material_id),
-        Some(144)
+        Some(GPU_MATERIAL_UNIFORM_MIN_SIZE as u64)
     );
 }
 
