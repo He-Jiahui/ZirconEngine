@@ -81,6 +81,97 @@ class RuntimeDomainDependencyAuditTests(unittest.TestCase):
                 ],
             )
 
+    def test_reports_bare_and_grouped_root_domain_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "builtin").mkdir(parents=True)
+            (source_root / "builtin" / "modules.rs").write_text(
+                "use crate::graphics;\n"
+                "use crate::{asset, foundation, input, platform, scene};\n"
+                "use crate::{\n"
+                "    core::{asset::AssetId, scene::World},\n"
+                "    ui as runtime_ui,\n"
+                "};\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 8)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "builtin",
+                        "target_domain": target_domain,
+                        "reference_count": 1,
+                    }
+                    for target_domain in (
+                        "asset",
+                        "core",
+                        "foundation",
+                        "graphics",
+                        "input",
+                        "platform",
+                        "scene",
+                        "ui",
+                    )
+                ],
+            )
+
+    def test_ignores_domain_paths_inside_comments_and_literals(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "graphics").mkdir(parents=True)
+            (source_root / "graphics" / "render.rs").write_text(
+                "use crate::asset::AssetId;\n"
+                "// crate::scene::World\n"
+                'const TEXT: &str = "crate::ui::UiTree";\n'
+                'const RAW: &str = r#"crate::plugin::Registry"#;\n'
+                "/* crate::builtin::BuiltinModule */\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 1)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "graphics",
+                        "target_domain": "asset",
+                        "reference_count": 1,
+                    }
+                ],
+            )
+
+    def test_preserves_domain_paths_between_rust_lifetimes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "graphics").mkdir(parents=True)
+            (source_root / "graphics" / "borrowed.rs").write_text(
+                "type Foreign<'a> = crate::ui::UiTree<'a>;\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(report["production_reference_count"], 1)
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "graphics",
+                        "target_domain": "ui",
+                        "reference_count": 1,
+                    }
+                ],
+            )
+
     def test_ignores_root_files_and_test_owners(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             repo_root = Path(temporary_directory)

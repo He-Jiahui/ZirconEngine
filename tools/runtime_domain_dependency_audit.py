@@ -32,9 +32,10 @@ RUNTIME_DOMAINS = frozenset(
     }
 )
 
-CRATE_DOMAIN_REFERENCE = re.compile(r"\bcrate::([A-Za-z_][A-Za-z0-9_]*)::")
+CRATE_DOMAIN_REFERENCE = re.compile(
+    r"\bcrate::([A-Za-z_][A-Za-z0-9_]*)(?=::|\s*(?:as\b|[,;}]))"
+)
 GROUPED_CRATE_USE_START = re.compile(r"\buse\s+crate::\{")
-GROUPED_CRATE_USE_REFERENCE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)::")
 CFG_TEST_ATTRIBUTE = re.compile(
     r"#\s*\[\s*cfg\s*\(\s*"
     r"(?:test|all\s*\(\s*test(?:\s*,[^)\r\n]*)?\))"
@@ -48,6 +49,8 @@ EXTERNAL_MODULE_DECLARATION = re.compile(
 PATH_ATTRIBUTE = re.compile(r'#\s*\[\s*path\s*=\s*"([^"]+)"\s*\]')
 RAW_STRING_LITERAL_START = re.compile(r'(?:b|c)?r(?P<hashes>#{0,255})"')
 WHITESPACE = re.compile(r"\s*")
+SIMPLE_CHAR_ESCAPES = frozenset({"'", '"', "n", "r", "t", "\\", "0"})
+HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 
 @dataclass(frozen=True, order=True)
@@ -57,6 +60,42 @@ class DomainReference:
     path: str
     line: int
     source: str
+
+
+def _rust_char_literal_end(source: str, start: int) -> int | None:
+    """Return the end of a valid Rust character literal, preserving lifetimes."""
+    cursor = start + 1
+    if cursor >= len(source) or source[cursor] in {"'", "\r", "\n"}:
+        return None
+
+    if source[cursor] != "\\":
+        cursor += 1
+    else:
+        cursor += 1
+        if cursor >= len(source):
+            return None
+        escape = source[cursor]
+        if escape in SIMPLE_CHAR_ESCAPES:
+            cursor += 1
+        elif escape == "x":
+            digits = source[cursor + 1 : cursor + 3]
+            if len(digits) != 2 or any(digit not in HEX_DIGITS for digit in digits):
+                return None
+            cursor += 3
+        elif escape == "u" and source[cursor + 1 : cursor + 2] == "{":
+            closing = source.find("}", cursor + 2)
+            if closing == -1:
+                return None
+            digits = source[cursor + 2 : closing].replace("_", "")
+            if not 1 <= len(digits) <= 6 or any(
+                digit not in HEX_DIGITS for digit in digits
+            ):
+                return None
+            cursor = closing + 1
+        else:
+            return None
+
+    return cursor + 1 if source[cursor : cursor + 1] == "'" else None
 
 
 def is_production_rust_source(relative_path: Path) -> bool:
@@ -157,22 +196,8 @@ def _rust_code_view(source: str) -> str:
             continue
 
         if character == "'":
-            literal_end = index + 1
-            escaped = False
-            closed = False
-            while literal_end < min(source_length, index + 32):
-                character = source[literal_end]
-                literal_end += 1
-                if character in {"\r", "\n"}:
-                    break
-                if escaped:
-                    escaped = False
-                elif character == "\\":
-                    escaped = True
-                elif character == "'":
-                    closed = True
-                    break
-            if closed:
+            literal_end = _rust_char_literal_end(source, index)
+            if literal_end is not None:
                 blank(index, literal_end)
                 index = literal_end
             else:
@@ -195,6 +220,41 @@ def _matching_delimiter_end(source: str, start: int, opening: str, closing: str)
             if depth == 0:
                 return index + 1
     return len(source)
+
+
+def _grouped_crate_use_references(code_view: str) -> list[tuple[str, int]]:
+    """Return top-level domains from `use crate::{...}` trees and their lines."""
+    references: list[tuple[str, int]] = []
+
+    def append_entry(entry_start: int, entry_end: int) -> None:
+        entry = code_view[entry_start:entry_end]
+        identifier = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", entry)
+        if identifier is None or identifier.group(1) not in RUNTIME_DOMAINS:
+            return
+        absolute_offset = entry_start + identifier.start(1)
+        references.append(
+            (identifier.group(1), code_view.count("\n", 0, absolute_offset) + 1)
+        )
+
+    for grouped_use in GROUPED_CRATE_USE_START.finditer(code_view):
+        opening = grouped_use.end() - 1
+        closing = _matching_delimiter_end(code_view, opening, "{", "}")
+        if closing <= opening + 1:
+            continue
+        entry_start = opening + 1
+        nested_depth = 0
+        for cursor in range(entry_start, closing - 1):
+            character = code_view[cursor]
+            if character == "{":
+                nested_depth += 1
+            elif character == "}":
+                nested_depth = max(0, nested_depth - 1)
+            elif character == "," and nested_depth == 0:
+                append_entry(entry_start, cursor)
+                entry_start = cursor + 1
+        append_entry(entry_start, closing - 1)
+
+    return references
 
 
 def _skip_whitespace_and_attributes(code_view: str, start: int) -> int:
@@ -365,37 +425,35 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
 
         source_domain = relative_path.parts[0]
         source = sources[source_path]
-        audit_source = source
+        code_view = code_views.get(source_path)
+        if code_view is None:
+            code_view = _rust_code_view(source)
+        audit_source = code_view
         if CFG_TEST_ATTRIBUTE.search(source) is not None:
-            code_view = code_views.get(source_path)
-            if code_view is None:
-                code_view = _rust_code_view(source)
-            masked_source = list(source)
+            masked_source = list(code_view)
             for span_start, span_end in _cfg_test_item_spans(code_view):
                 for offset in range(span_start, span_end):
                     if masked_source[offset] not in {"\r", "\n"}:
                         masked_source[offset] = " "
             audit_source = "".join(masked_source)
-        in_grouped_crate_use = False
+        grouped_targets_by_line: dict[int, set[str]] = {}
+        for target_domain, line_number in _grouped_crate_use_references(audit_source):
+            grouped_targets_by_line.setdefault(line_number, set()).add(target_domain)
         for line_number, (line, audit_line) in enumerate(
             zip(source.splitlines(), audit_source.splitlines(), strict=True),
             start=1,
         ):
-            if GROUPED_CRATE_USE_START.search(audit_line) is not None:
-                in_grouped_crate_use = True
             targets = {
                 match.group(1)
                 for match in CRATE_DOMAIN_REFERENCE.finditer(audit_line)
                 if match.group(1) in RUNTIME_DOMAINS
                 and match.group(1) != source_domain
             }
-            if in_grouped_crate_use:
-                targets.update(
-                    match.group(1)
-                    for match in GROUPED_CRATE_USE_REFERENCE.finditer(audit_line)
-                    if match.group(1) in RUNTIME_DOMAINS
-                    and match.group(1) != source_domain
-                )
+            targets.update(
+                target_domain
+                for target_domain in grouped_targets_by_line.get(line_number, ())
+                if target_domain != source_domain
+            )
             for target_domain in targets:
                 references.add(
                     DomainReference(
@@ -406,8 +464,6 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
                         source=line.strip(),
                     )
                 )
-            if in_grouped_crate_use and ";" in audit_line:
-                in_grouped_crate_use = False
 
     ordered_references = sorted(references)
     matrix = Counter(
