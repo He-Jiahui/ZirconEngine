@@ -12,6 +12,21 @@
 > Descriptor 投影/注册报告校验已补焦点证据：直接执行 warmed `zircon_runtime` lib-test 二进制通过 `plugin_extensions::runtime_plugin_descriptor` 过滤组 9 项测试，并通过 `runtime_plugin_descriptor_projects_maturity_and_statuses_to_manifest` 1 项 maturity/status 投影测试；此项从会话开放验证清单移除。
 > 01-M2 typed event 派生规则已修正并验证：`register_event(...)` 现在从 runtime module owner 派生 `<package>.events` catalog namespace，并复用 `PluginEventCatalogManifest` 校验，旧式 `weather.changed` 会在注册阶段拒绝而不是延迟到 catalog merge。`cargo test -p zircon_runtime --lib typed_event_registration --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-next-coremin-0613 --message-format short --color never -- --test-threads=1 --nocapture` 已通过 2 项低层回归；warmed lib-test 二进制直接执行 `plugin_extensions::extension_registry_event_catalogs` 12 项、`plugin_resource_event_and_system_registrations_apply_to_world`、`runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions`、`runtime_plugin_catalog_merges_module_and_render_feature_contributions` 均已通过，catalog merge 开放验证项移除。
 
+```zircon-workflow
+{
+  "version": 1,
+  "milestones": [
+    {"id": "M1", "title": "ECS 调度图深度集成", "depends_on": []},
+    {"id": "M2", "title": "类型化扩展点与冻结读取边界", "depends_on": []},
+    {"id": "M3", "title": "插件生命周期 v2", "depends_on": ["M2"]},
+    {"id": "M4", "title": "Editor 对称注册与诊断", "depends_on": ["M3"]},
+    {"id": "M5", "title": "Native ABI v3 与热重载快照", "depends_on": ["M4"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. M2 is an independently committable late-adoption slice because its implementation predates coordinator workflow evidence; the task-level dependencies in the milestone tables remain authoritative. -->
+
 ## 1. 目标
 
 把 `zircon_runtime` 的插件接口从"描述符 + Module 间接包装"升级为一套**完备、类型化、ECS 深度集成、零运行期开销**的插件架构，使 Sound / Physics / Animation / Navigation / AI / Net / VM 等周边设施插件可以：
