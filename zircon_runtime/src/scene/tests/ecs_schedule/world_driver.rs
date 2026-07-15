@@ -271,6 +271,56 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
     );
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct WorldDriverTickEvent(u32);
+
+#[test]
+fn world_driver_rotates_event_generations_once_per_tick() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let mut subscription = level.with_world_mut(|world| {
+        let mut subscription = world.register_dormant_event_subscription::<WorldDriverTickEvent>();
+        assert!(world.connect_event_subscription(&mut subscription));
+        subscription
+    });
+    let mut frame = 0;
+    let system = FunctionRuntimeSceneSystem::new(
+        SceneSystemMetadata::new("gameplay.runtime.event-generation", SystemStage::Update, 0),
+        move |context| {
+            frame += 1;
+            context
+                .level
+                .with_world_mut(|world| world.send_event(WorldDriverTickEvent(frame)));
+            Ok(())
+        },
+    );
+    level
+        .with_world_mut(|world| world.register_boxed_runtime_scene_system(Box::new(system)))
+        .unwrap();
+
+    let advance = runtime.advance_time_by(Duration::from_millis(16), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
+    let first_generation = level.with_world(|world| {
+        world
+            .read_event_subscription(&mut subscription)
+            .map(|event| event.0)
+            .collect::<Vec<_>>()
+    });
+    assert!(first_generation.is_empty());
+
+    let advance = runtime.advance_time_by(Duration::from_millis(16), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
+    let second_generation = level.with_world(|world| {
+        world
+            .read_event_subscription(&mut subscription)
+            .map(|event| event.0)
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(second_generation, vec![1]);
+}
+
 #[derive(Debug)]
 struct RecordingPostUpdateHook {
     cube: u64,

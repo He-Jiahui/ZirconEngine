@@ -53,6 +53,19 @@ impl World {
         }
     }
 
+    pub(crate) fn flush_pending_scene_systems_for_stage(&mut self, stage: SystemStage) {
+        if !self.derived_state_dirty.has_pending() {
+            return;
+        }
+        let stage_plan = self.schedule.stage_plan();
+        for system in stage_plan.internal_systems_for_stage(stage) {
+            let system = system.system();
+            if self.derived_state_dirty.should_run(system) {
+                self.run_internal_scene_system(system);
+            }
+        }
+    }
+
     pub(crate) fn flush_pending_scene_systems(&mut self) {
         if !self.derived_state_dirty.has_pending() {
             return;

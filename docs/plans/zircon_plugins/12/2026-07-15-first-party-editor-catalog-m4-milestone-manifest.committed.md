@@ -1,5 +1,5 @@
 Plan: docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
-Milestone: M4
+Committed-Milestone: M4
 Status: completed
 Files: ["docs/plans/zircon_plugins/12/2026-07-15-first-party-editor-catalog-m4-milestone-manifest.md","zircon_plugins/Cargo.toml","zircon_plugins/Cargo.lock","zircon_plugins/first_party_editor_catalog/Cargo.toml","zircon_plugins/first_party_editor_catalog/src/catalog.rs","zircon_plugins/first_party_editor_catalog/src/lib.rs","zircon_plugins/first_party_editor_catalog/src/tests.rs"]
 

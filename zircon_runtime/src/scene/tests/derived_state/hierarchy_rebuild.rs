@@ -203,12 +203,20 @@ fn internal_scene_system_flushes_reuse_schedule_stage_plan() {
         .split("pub(crate) fn run_internal_scene_systems_for_stage")
         .nth(1)
         .and_then(|text| {
-            text.split("pub(crate) fn flush_pending_scene_systems")
+            text.split("pub(crate) fn flush_pending_scene_systems_for_stage")
                 .next()
         })
         .expect("read internal scene-system stage flush body");
+    let pending_stage_flush = source
+        .split("pub(crate) fn flush_pending_scene_systems_for_stage")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(crate) fn flush_pending_scene_systems")
+                .next()
+        })
+        .expect("read pending internal scene-system stage flush body");
     let pending_flush = source
-        .split("pub(crate) fn flush_pending_scene_systems")
+        .split("pub(crate) fn flush_pending_scene_systems(&mut self)")
         .nth(1)
         .and_then(|text| {
             text.split("pub(crate) fn set_scene_system_flush_deferred")
@@ -225,6 +233,13 @@ fn internal_scene_system_flushes_reuse_schedule_stage_plan() {
         "single-stage internal scene-system flush must reuse the cached stage-plan snapshot instead of collecting cloned descriptors"
     );
     assert!(
+        pending_stage_flush.contains("if !self.derived_state_dirty.has_pending()")
+            && pending_stage_flush.contains("stage_plan.internal_systems_for_stage(stage)")
+            && pending_stage_flush.contains("self.derived_state_dirty.should_run(system)")
+            && !pending_stage_flush.contains("run_internal_scene_systems_for_stage"),
+        "stage completion may flush still-dirty derived state but must not replay UpdateEvents or ApplyDeferred"
+    );
+    assert!(
         pending_flush.contains("let stage_plan = self.schedule.stage_plan();")
             && pending_flush.contains("for stage in stage_plan.stages().iter().copied()")
             && pending_flush.contains("stage_plan.internal_systems_for_stage(stage)")
@@ -233,4 +248,14 @@ fn internal_scene_system_flushes_reuse_schedule_stage_plan() {
             && !pending_flush.contains(".to_vec()"),
         "pending internal scene-system flush must walk the cached stage-plan snapshot instead of cloning the flat descriptor registry"
     );
+
+    let runner_source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("ecs")
+            .join("schedule_runner.rs"),
+    );
+    assert!(runner_source.contains("world.flush_pending_scene_systems_for_stage(stage);"));
+    assert!(!runner_source.contains("world.run_internal_scene_systems_for_stage(stage);"));
 }

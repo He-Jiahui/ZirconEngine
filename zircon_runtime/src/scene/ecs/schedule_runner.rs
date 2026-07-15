@@ -68,7 +68,7 @@ impl SceneScheduleRunner {
         level.with_world_mut(|world| {
             world.set_scene_system_flush_deferred(false);
             if result.is_ok() {
-                world.run_internal_scene_systems_for_stage(stage);
+                world.flush_pending_scene_systems_for_stage(stage);
             }
         });
         result
