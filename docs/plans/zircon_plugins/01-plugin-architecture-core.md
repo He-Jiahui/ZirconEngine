@@ -14,7 +14,9 @@
 
 ```zircon-workflow
 {
-  "version": 1,
+  "schema": 1,
+  "workflow_id": "zircon-plugins-architecture-core",
+  "goal": "完成类型化 ECS 插件扩展、生命周期与 Editor/Native 对称边界，并以冻结读取和硬切迁移保证运行时正确性。",
   "milestones": [
     {"id": "M1", "title": "ECS 调度图深度集成", "depends_on": []},
     {"id": "M2", "title": "类型化扩展点与冻结读取边界", "depends_on": []},
@@ -449,6 +451,6 @@ cargo fmt --all --check
 |---|---|---|---|---|
 | M2 | T2-T4 类型化扩展点稳定 slot、冻结状态与 runtime finalize/apply 接线 | `plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize` | 2026-07-10 | `TypedExtensionPoint` 使用不复用的逻辑 `ExtensionSlot`、dense 行映射和 owner 撤销 tombstone，`FrozenExtensionTable` 保留稳定 slot 查询；`RuntimeExtensionRegistry::finalize()` 覆盖 20 个类型化扩展点，runtime/project catalog 与 world/component/UI/module/asset-manager apply 入口在读取前 finalize，后续注册、排序、可变访问或 owner 撤销会使冻结状态失效。新增 module-local 与 catalog/apply/owner 回归；当前源码经 scoped rustfmt 检查，直接编译实际 `typed_extension_point.rs` 的隔离测试 5/5 通过。完整 Cargo 测试阶段仍在执行，本行不声明 crate/workspace gate 通过。 |
 
-- 当前失败交接（`open / finalize coverage guard 漂移`）：[extension-registry-finalize-coverage-guard-drift](01/failure-2026-07-13-extension-registry-finalize-coverage-guard-drift.md)。
+- fixed 已修复（finalize/read boundary guard 已对齐 current world plan owner）：[extension-registry-finalize-coverage-guard-drift](../zircon_editor/editor/09/fixed-2026-07-15-extension-registry-finalize-coverage-guard-drift.md)。
 
 插件架构整体状态：进行中。该记录只关闭 Plugins 01 M2 的冻结与稳定 slot 实现切片；后续编号计划及全局验收命令仍须逐项完成和验证。
