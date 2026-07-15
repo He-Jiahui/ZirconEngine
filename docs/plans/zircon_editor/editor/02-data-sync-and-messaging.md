@@ -17,7 +17,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
-status: planned
+status: in_progress
 ---
 
 # 02 信息与数据同步（WorldSyncProtocol）
@@ -67,6 +67,19 @@ impl World { pub fn inspect_world(&self, focused: Option<EntityId>) -> WorldInsp
 2. **世代号与子树指纹**：`World.world_generation: u64`（spawn/despawn/reparent 递增）；`WorldInspectionHierarchyRow` 增 `subtree_hash: u64`（锚已有，只补指纹）；`WorldInspection` 增 `generation` 头并把 fields 重建与 hierarchy 重建解耦（`inspect_hierarchy` / `inspect_fields(entity)` 拆分，`inspect_world` 保留为组合门面）。
 3. **世界事实入总线**：`WorldFact` 族（spawn/despawn/reparent/scene load-unload/热重载报告）经泵进 bus 并驱动 `mark_view_dirty`——喂活既有 `ViewDirtySet`，成为 `editor_layout/09` 刷新总线的数据源。
 4. **绑定接 watch**：绑定源声明 `WatchKey` 依赖，投影重算由 `drain_dirty` 驱动，删除无条件重取路径。
+
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-data-sync-and-messaging",
+  "goal": "完成传输中立的世界查询、订阅、失效、增量投影与 ABI 过界架构",
+  "milestones": [
+    {"id": "M1", "title": "协议契约与世代号", "depends_on": []},
+    {"id": "M2", "title": "订阅表与编辑器泵", "depends_on": ["M1"]},
+    {"id": "M3", "title": "绑定接线与 ABI 过界", "depends_on": ["M2"]}
+  ]
+}
+```
 
 ## 非目标
 
@@ -189,20 +202,21 @@ for batch in batches {
 
 ### M1 协议契约与世代号
 
-- 切片 1.1：`world_sync/` 四文件 + serde 往返测试 + `NotModified` 语义单测。
-- 切片 1.2：`World.world_generation` 三咽喉打点；`WorldInspectionHierarchyRow.subtree_hash`；`inspect_hierarchy/inspect_fields` 拆分（`from_world` 改为组合调用）；既有 inspection 消费方迁移。
-- 测试阶段：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib scene:: --locked`（世代号单调性/结构变更必递增/拆分入口与组合门面等价断言）；authoring 边界守卫不回归——watch DTO 属会话查询面不入场景序列化，守卫矩阵显式声明。更新 `docs/zircon_runtime/scene/inspection.md`。
+- [ ] **M1.1 协议 DTO 与 NotModified 契约.** `world_sync/` 四文件 + serde 往返测试 + `NotModified` 语义单测。
+- [ ] **M1.2 世界世代与拆分 inspection 契约.** `World.world_generation` 三咽喉打点；`WorldInspectionHierarchyRow.subtree_hash`；`inspect_hierarchy/inspect_fields` 拆分（`from_world` 改为组合调用）；既有 inspection 消费方迁移。
+- [ ] **M1.3 深层 hierarchy 与 malformed-edge 投影硬化.** hierarchy 构建改为显式后序栈，覆盖 5k 深链、cycle/visited edge identity、确定性 hash 与 `E0282/E0277` compile-sync；以 inspection 源码、测试、模块文档和编号产出记录组成精确清单，不把父 M1 其余 pending 范围并入本切片。
+- 测试阶段：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib scene:: --locked`（世代号单调性/结构变更必递增/拆分入口与组合门面等价断言）；authoring 边界守卫不回归——watch DTO 属会话查询面不入场景序列化，守卫矩阵显式声明。更新 `docs/zircon_runtime/scene/inspection.md`。M1.3 还须以其四文件 exact manifest 复放 native slice lifecycle，且不得据此把整个 M1 标为 completed。
 
 ### M2 订阅表与编辑器泵
 
-- 切片 2.1：`subscription.rs` + 三咽喉冲刷；gateway 四方法 InProcess 实现；`core/sync/watch_map.rs`。
-- 切片 2.2：主循环泵接线；hierarchy 视图迁 diff 更新（entity 锚 + subtree_hash 判重建），删除全量重建消费路径。
+- [ ] **M2.1 订阅表、失效冲刷与 gateway 实现.** `subscription.rs` + 三咽喉冲刷；gateway 四方法 InProcess 实现；`core/sync/watch_map.rs`。
+- [ ] **M2.2 编辑器泵与 hierarchy 增量投影.** 主循环泵接线；hierarchy 视图迁 diff 更新（entity 锚 + subtree_hash 判重建），删除全量重建消费路径。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`；验收：5k 节点夹具单节点改名 → hierarchy 重建行数=该子树行数（计数器断言）；watch 注册/注销/session 销毁回收生命周期矩阵；泵每帧至多一次 drain 断言。
 
 ### M3 绑定接线与 ABI 过界
 
-- 切片 3.1：绑定源 `depends_on` + dirty 驱动重算；无条件重取路径删除（清单记状态节）。
-- 切片 3.2：`SessionGateway` 实现 query/watch/drain（经 `buffer.rs` 序列化）；契约测试双实现复跑。
+- [ ] **M3.1 绑定依赖与 dirty 驱动重算.** 绑定源 `depends_on` + dirty 驱动重算；无条件重取路径删除（清单记状态节）。
+- [ ] **M3.2 SessionGateway ABI 过界.** `SessionGateway` 实现 query/watch/drain（经 `buffer.rs` 序列化）；契约测试双实现复跑。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（dirty 驱动重算次数断言：值不变时零重算）+ `cargo test -p zircon_runtime_interface --locked`（ABI 往返）。证据记状态节。
 
 ## 风险与开放问题
@@ -213,9 +227,34 @@ for batch in batches {
 
 ## 产出记录与时间
 
-| 时间 | 里程碑/切片 | 状态 | 完成项目与证据 | 后续门禁 |
-| --- | --- | --- | --- | --- |
-| 2026-07-14 | M1 / 切片 1.1 | 实现完成；M1 测试阶段待执行 | 新增 `zircon_runtime_interface::world_sync::{query, watch, invalidation}` 四文件边界，完成 `WorldQuery`/`WorldQueryResult::NotModified`、typed `WatchKey`/`WatchToken`、`InvalidationBatch`/`WorldFact` DTO；新增 serde 往返、世代提示语义、旧字段拒绝及接口分层守卫测试；补充 `docs/zircon_runtime_interface/world_sync.md`。已通过 scoped `rustfmt --check`、禁用依赖源扫描与 `git diff --check`。 | 按 M1 计划先完成切片 1.2，再统一执行 `cargo test -p zircon_runtime_interface --locked` 与 `cargo test -p zircon_runtime --lib scene:: --locked`；本记录不宣称 Cargo 门禁已通过。 |
-| 2026-07-14 | M1 / 切片 1.2 | 实现完成；M1 测试阶段待执行 | 新增 runtime-only `WorldGeneration` 与 spawn/despawn/reparent/imported-record 成功变更打点，并将 typed 组件变更咽喉接入同一世代，避免改名后错误 `NotModified`；`WorldInspection` 增加 `generation` 头；新增 hierarchy-only/fields-only inspection 入口及递归稳定 `subtree_hash`；`WorldInspection::from_world` 改为组合调用；viewport/workbench 生产消费点迁移到拆分入口并把 hash 投影到编辑器行模型。新增世代单调性、组件替换/显式 no-op、非序列化边界、拆分等价、改名与重挂接 hash 传播测试；更新 `docs/zircon_runtime/scene/inspection.md`。scoped `rustfmt --check`、旧全量消费源扫描、边界扫描与 `git diff --check` 已通过。 | Shader04 的实际测试进程 exit 0 后，协调器 mutation queue 曾阻塞 finish/续租并把 job 回收为 `orphaned`；本切片未借该结果宣称通过。队列现已恢复，继续执行 M1 两项计划测试；工具故障归属 `zircon_tooling/session_coordinator/01`。 |
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-- open 待修复（工具 owner，不阻断服务恢复后的本切片重试）：[`mutation-queue-finish-lease-stall`](../../zircon_tooling/session_coordinator/01/failure-2026-07-14-mutation-queue-finish-lease-stall.md)。
+M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync 硬化也已完成并通过 fresh 定向证据。接口与 core-min 门禁全绿。Shader04/Plugins08 原 Failure 已 fixed 回传后，fresh 默认 scene 门禁为 1700 passed / 3 failed / 6 ignored，全部 Editor02 generation、inspection、5k 深链与 cycle-edge 合同通过；三条新失败已分别路由到 Runtime15、Text05、Plugins08。父 M1 保持 pending；M1.3 先按四文件 exact manifest 独立提交，M1 整体仍等待其余 lifecycle 和 fresh 整门禁；完整证据已迁入编号归档。
+
+- 迁入记录：[`02/2026-07-14-world-sync-m1-output-records.md`](02/2026-07-14-world-sync-m1-output-records.md)
+
+## Failure 生命周期
+
+- fixed 已修复：[mutation-queue-finish-lease-stall](02/fixed-2026-07-14-mutation-queue-finish-lease-stall.md)
+- fixed 已修复：[compute-fullscreen-descriptor-compile-regression](02/fixed-2026-07-14-compute-fullscreen-descriptor-compile-regression.md)
+- fixed 已修复：[ecs-resource-marker-owner-missing](02/fixed-2026-07-14-ecs-resource-marker-owner-missing.md)
+- fixed 已修复并返回（Runtime02 owner；`SystemStage` 唯一 owner 与结构守卫均已硬切至 `core/framework/scene`）：[`system-stage-owner-guard-drift`](../../zircon_runtime/runtime/08/fixed-2026-07-14-system-stage-owner-guard-drift.md)。
+- fixed 已修复并返回（Frameworks05 owner；`LevelManager` consumer 与 versioned-handle 测试均已硬切）：[`level-manager-export-cutover-incomplete`](../../zircon_runtime/runtime/02/fixed-2026-07-14-level-manager-export-cutover-incomplete.md)。
+- fixed 已修复：[f18-asset-manager-review-guard-owner-drift](02/fixed-2026-07-14-f18-asset-manager-review-guard-owner-drift.md)
+- fixed 已修复：[core-runtime-state-plugin-bridge-lifecycle-anchor-drift](02/fixed-2026-07-14-core-runtime-state-plugin-bridge-lifecycle-anchor-drift.md)
+- fixed 已修复：[level-manager-name-core-error-import-drift](02/fixed-2026-07-14-level-manager-name-core-error-import-drift.md)
+- fixed 已修复：[project-asset-manager-access-test-consumer-drift](02/fixed-2026-07-14-project-asset-manager-access-test-consumer-drift.md)
+- fixed 已修复：[editor-retained-host-manager-resolver-consumer-drift](02/fixed-2026-07-14-editor-retained-host-manager-resolver-consumer-drift.md)
+- fixed 已修复：[runtime-diagnostics-pane-payload-visibility-drift](02/fixed-2026-07-14-runtime-diagnostics-pane-payload-visibility-drift.md)
+- fixed 已修复：[vm-reflection-catalog-test-support-import-drift](02/fixed-2026-07-14-vm-reflection-catalog-test-support-import-drift.md)
+- fixed 已修复：[cargo-release-retains-live-child-process-lock](02/fixed-2026-07-14-cargo-release-retains-live-child-process-lock.md)
+- fixed 已修复：[standard-pbr-transmission-render-queue-root-export-drift](02/fixed-2026-07-14-standard-pbr-transmission-render-queue-root-export-drift.md)
+- fixed 已修复：[advanced-pbr-transparent-selection-uninitialized](02/fixed-2026-07-14-advanced-pbr-transparent-selection-uninitialized.md)
+- fixed 已修复：[ui-text-module-split-import-drift](02/fixed-2026-07-14-ui-text-module-split-import-drift.md)
+- fixed 已修复：[material-abi-layout-expectation-drift](02/fixed-2026-07-14-material-abi-layout-expectation-drift.md)
+- fixed 已修复：[dynamic-reflection-json-projection-regression](02/fixed-2026-07-14-dynamic-reflection-json-projection-regression.md)
+- fixed 已修复：[mutation-queue-offline-recurrence](02/fixed-2026-07-14-mutation-queue-offline-recurrence.md)
+- open / Runtime15：[depth-prepass-source-guard-owner-drift](../../zircon_runtime/runtime/15/failure-2026-07-14-depth-prepass-source-guard-owner-drift.md)
+- fixed 已修复：[sdf-font-bake-cjk-loaded-font-count-regression](02/fixed-2026-07-15-sdf-font-bake-cjk-loaded-font-count-regression.md)
+- fixed 已修复：[vm-dynamic-property-write-structure-regression](02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
+- open / Session Coordinator 01：已验收 inspection compile-sync 无法在父 M1 pending 与 degraded shared baseline 下按 4 文件 exact manifest 提交；[failure 交接](../../zircon_tooling/session_coordinator/01/failure-2026-07-15-support-slice-exact-finalize-plan-output-conflict.md)。
