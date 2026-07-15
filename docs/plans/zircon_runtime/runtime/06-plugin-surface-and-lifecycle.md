@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/plugin/native.rs
   - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_profile
@@ -31,7 +31,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: in_progress
-last_refined: 2026-07-12
+last_refined: 2026-07-14
 ---
 
 # 06 插件公开面与生命周期收束
@@ -47,7 +47,7 @@ last_refined: 2026-07-12
 - **F8 RuntimePluginDescriptor public constructor retired（2026-06-22）**：旧 `RuntimePluginDescriptor::new(...).with_*` 公开构造面已硬切退役，`descriptor/builder/construction.rs` retired，`descriptor/builder/fluent.rs` retired；`RuntimePluginDescriptorBuilder` 直接组装私有字段，builtin catalog 子树改为传递 `BuiltinCatalogDescriptorBuilder` 并在 catalog root 统一 `build()`，`zircon_plugins/plugin_sdk` 的 `RuntimePluginDeclaration` 改为持有 `RuntimePluginDescriptorBuilder`。状态锚为 `runtime_plugin_descriptor_public_constructor_retired_coremin_check_passed`，守卫为 `review_f8_runtime_plugin_descriptor_public_constructor_is_retired`；RuntimePluginDescriptor::new retired。
 - **Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup（2026-06-27）**：`runtime_15_runtime_plugin_descriptor_status_mirror_cleanup_static_passed_cargo_deferred` 已把 Runtime 06/index、review findings、结构规范、package-manifest docs 与 status-output 期望同步到当前完成态。新增 `review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending`，锁定 RuntimePluginDescriptor private fields 15/15、RuntimePluginDescriptor public-field convergence complete 与 RuntimePluginDescriptor::new retired 不再被旧待办文字覆盖；2026-06-28 `f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred` 进一步把 F8 顶表状态列同步为 `convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed`。不改 RuntimePluginDescriptor 行为。
 - **ABI 策略当前态**：版本常量当前版 `ZIRCON_NATIVE_PLUGIN_ABI_VERSION = 3`；V1/V2 native plugin loader implementation files 0/0，`zircon_plugins` V1/V2 usage files 0/0，export_build_plan V1/V2 usage 0/0。旧版本协商失败路径不再靠 V2 fallback 覆盖，而由 `abi_unknown_version` fixture feature 生成 `abi_version = 99` 的 V3 descriptor，验证 loader 明确报告 `unsupported native plugin ABI version 99; expected 3`。
-- **ZrVM 空指针现场（精确定位）**：`script/vm/backend/zr_vm_project_backend/real_backend/instance.rs`——`fn call_entry_lifecycle_export(&mut self, export_name: &str, arguments: &[zrvm::Value])`（:58-65）委托 `call_optional_export`（:50-56 经 `call_module_export`）；`activate()`（:73-94）以 `call_entry_lifecycle_export("activate", &[])` 传**空 slice**，deactivate（:98）/saveState（:104）同口径——空 slice 在 sys 边界成为非法指针，触发 `zr_vm_core.dll function.c:1394` 断言（`.codex/sessions/20260611-0416` 根因记录）。修复点在 `call_module_export` 到 `zr_vm_rust_binding_sys` 的参数 marshalling 段。
+- **ZrVM 生命周期 owner 当前态（2026-07-14）**：真实实现已硬切到 `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs`；`call_entry_lifecycle_export`、`activate` / `deactivate` / `saveState` / `restoreState` 和空参数 marshalling 由插件 crate 独占。Runtime06 只保留跨工作区生命周期清单，不恢复 Runtime 内旧 backend、re-export 或 shim。
 - **热重载**：`native_plugin_loader/native_plugin_live_host/lifecycle.rs` 的 `pub fn hot_reload_runtime_plugin(`（:32）/`pub fn hot_reload_editor_plugin(`（:40）+ `NativePluginHotReloadState` 回滚（状态字段执行时核验：Grep `NativePluginHotReloadState`，path 同目录）。
 - **下游调用面**：`zircon_app/src` 引用 `NativePlugin*` 当前共 7 文件（2026-06-14 实测全列；app NativePlugin current call-site files: 7）：`lib.rs`、`prelude.rs`、`entry/mod.rs`、`entry/export_bootstrap.rs`、`entry/entry_runner/mod.rs`、`entry/entry_runner/bootstrap.rs`、`entry/tests/profile_bootstrap.rs`——M2 收窄的迁移面；`entry/export_bootstrap.rs` 是 Runtime 02 generated/export 收束后的新增调用面，不改变 M2 硬切换要求。
 - Fyrox 锚点（每点一行）：`Plugin`（静态）/`DynamicPlugin`（dylib）双 trait + `PluginContainer` — `dev/Fyrox/fyrox-impl/src/plugin/mod.rs`；热重载"序列化状态→unload→重载→恢复" — `dev/Fyrox/fyrox-impl/src/plugin/dylib.rs`。
@@ -66,6 +66,21 @@ last_refined: 2026-07-12
 
 - 不改插件 framework DTO 的中性原则（行为留在 `zircon_plugins/*/runtime`）；不动 `zircon_runtime_interface` 的函数表 ABI（另一条收敛线）。
 - 不在本计划做 VM 之外的脚本后端工作；fallback 后端行为仅在测试分层中涉及。
+
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-plugin-surface-lifecycle",
+  "goal": "收束 VM 生命周期、native loader 公共面与单一当前 ABI，并保留可审计的里程碑提交证据。",
+  "milestones": [
+    {"id": "M1", "title": "VM 生命周期阻塞修复", "depends_on": []},
+    {"id": "M2", "title": "native loader 公共面收窄", "depends_on": ["M1"]},
+    {"id": "M3", "title": "ABI 版本策略定稿", "depends_on": ["M2"]}
+  ]
+}
+```
+
+<!-- Workflow topology mirrors the existing M1-M3 plan headings and is maintained independently from milestone output records. -->
 
 ### 全局硬约束（继承总计划 §4，违反即返工）
 
@@ -90,7 +105,7 @@ last_refined: 2026-07-12
 
 #### 切片 1.1 空参数 marshalling 修复
 
-- 目标文件：`zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs`（及其 `call_module_export` 下行的 sys 调用段，执行时核验确切文件：Grep `call_module_export`，path `zircon_runtime/src/script/vm/backend/zr_vm_project_backend`）。
+- 目标文件：`zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs`（及其 `call_module_export` 下行的 sys 调用段，执行时核验确切文件：Grep `call_module_export`，path `zircon_plugins/zr_vm_language/runtime/src/real_backend`）。
 - 改动形态（方案草案，执行时按 ZrVM C ABI 约定定稿）：空参数数组改为传"合法非空指针 + len=0"或 ZrVM 约定的显式空参数协议；实现为绑定侧防御（空 slice 分支换静态空槽指针，签名草案执行时定稿）。若必须 ZrVM 侧修，先落绑定侧防御并在 `docs/zircon_runtime/dynamic_api/session.md` 记录上游 issue 与版本配对要求（回写子计划 01 的 zr_vm 治理条目）。
 - 调用方迁移：无公共面变化（`call_entry_lifecycle_export` 四个调用点 :83/:98/:104/:125 行为自动修复）。
 - 验收：`examples/vampire` 真实启动不再触发 `function.c:1394` 断言（或上游 issue + 绑定防御双证据）。
