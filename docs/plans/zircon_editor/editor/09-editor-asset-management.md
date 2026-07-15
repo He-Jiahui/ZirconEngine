@@ -28,6 +28,21 @@ status: in_progress
 
 本计划落地 00 §6 的「资产元数据」权威 `EditorAssetIndex`（引用图归 10）。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-asset-management",
+  "goal": "完成编辑器资产类型注册、runtime registry 投影、导入工作流、脏态保存与缩略图管线，并保持来源权威单一。",
+  "milestones": [
+    {"id": "M1", "title": "类型注册表与浏览器接线", "depends_on": []},
+    {"id": "M2", "title": "Runtime registry 投影与导入工作流", "depends_on": ["M1"]},
+    {"id": "M3", "title": "脏态保存与缩略图", "depends_on": ["M2"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. Existing M1 slices predate coordinator workflow evidence and are adopted without promoting the parent plan beyond in_progress. -->
+
 ## 参照证据（dev/）
 
 **godot 导入伴生模型**（`editor_file_system.h:46-116`）：`FileInfo { file, type, uid, import_modified_time, import_md5, import_dest_paths: Vector<String>, import_valid }`——**导入状态是索引一等字段**，浏览器直接从索引渲染「损坏/过期/正常」徽标，不触资产本体。
