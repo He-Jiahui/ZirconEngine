@@ -75,8 +75,8 @@ tests:
   明确要求删除 `*_legacy_projection_*` 与旧 kind 映射；不在 Editor09 建第二条重复 failure。
 - 聚合 plugin structure report fixture 因 descriptor 单源字段未同步产生 4 个 `KeyError`，已交接
   [`Plugins12`](../../../zircon_plugins/12/failure-2026-07-13-plugin-structure-audit-report-fixture-drift.md)。
-- extension registry finalize coverage guard 仍寻找旧 apply/report 读取锚，已交接
-  [`Plugins01`](../../../zircon_plugins/01/failure-2026-07-13-extension-registry-finalize-coverage-guard-drift.md)。
+- extension registry finalize coverage guard 已跟随当前 plan/apply 边界修复并返回本计划：
+  [`fixed`](fixed-2026-07-15-extension-registry-finalize-coverage-guard-drift.md)。
 - 两条结构守卫的失败日志：`.codex/tmp/editor09-m1-structure-static-tests-20260713.log`。这些失败不由
   Editor09 资产代码兜底，也不影响 retired UI asset audit 自身 2/2 证据；在 owner 回传前不宣称聚合
   structure gate 通过。
