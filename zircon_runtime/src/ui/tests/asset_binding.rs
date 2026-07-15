@@ -250,6 +250,137 @@ target = { kind = "visibility" }
 expression = '=!(prop.text == "") && (prop.text == "Ready" || false)'
 "##;
 
+// Keeps unit coverage beside the binding validator in addition to the public integration gate.
+fn control_prop_ref_layout(expression: &str) -> String {
+    format!(
+        r##"
+[asset]
+kind = "layout"
+id = "editor.binding.control_prop_ref"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Container"
+control_id = "Root"
+
+[[root.children]]
+[root.children.node]
+node_id = "source"
+kind = "native"
+type = "Label"
+control_id = "BindingSource"
+props = {{ text = "Ready" }}
+
+[[root.children]]
+[root.children.node]
+node_id = "consumer"
+kind = "native"
+type = "Button"
+control_id = "BindingConsumer"
+props = {{ text = "Apply" }}
+
+[[root.children.node.bindings]]
+id = "Consumer/onClick"
+event = "Click"
+route = "Route.Valid"
+
+[[root.children.node.bindings.targets]]
+target = {{ kind = "visibility" }}
+expression = {expression:?}
+"##
+    )
+}
+
+const CONTROL_PROP_REF_ACTION_PAYLOAD_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.binding.control_prop_ref_payload"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Container"
+control_id = "Root"
+
+[[root.children]]
+[root.children.node]
+node_id = "source"
+kind = "native"
+type = "Label"
+control_id = "BindingSource"
+props = { text = "Ready" }
+
+[[root.children]]
+[root.children.node]
+node_id = "entity_source"
+kind = "native"
+type = "TreeView"
+control_id = "BindingEntitySource"
+props = { selected_index = 7 }
+
+[[root.children]]
+[root.children.node]
+node_id = "force_source"
+kind = "native"
+type = "Checkbox"
+control_id = "BindingForceSource"
+props = { checked = true }
+
+[[root.children]]
+[root.children.node]
+node_id = "consumer"
+kind = "native"
+type = "Button"
+control_id = "BindingConsumer"
+props = { text = "Apply" }
+
+[[root.children.node.bindings]]
+id = "Consumer/onClick"
+event = "Click"
+route = "Route.Valid"
+
+[root.children.node.bindings.action]
+route = "Route.Valid"
+
+[root.children.node.bindings.action.payload]
+surface_entity = "=control.BindingEntitySource.prop.selected_index"
+force_full_rebuild = "=control.BindingForceSource.prop.checked"
+status = "=control.BindingSource.prop.text"
+"##;
+
+const CONTROL_PROP_REF_COMPONENT_SCOPE_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.binding.control_prop_ref_scope"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Button"
+control_id = "RootConsumer"
+props = { text = "Apply" }
+
+[[root.bindings]]
+id = "Root/onClick"
+event = "Click"
+route = "Route.Invalid"
+
+[[root.bindings.targets]]
+target = { kind = "visibility" }
+expression = 'control.ComponentSource.prop.checked'
+
+[components.ScopedSource.root]
+node_id = "component_source"
+kind = "native"
+type = "Checkbox"
+control_id = "ComponentSource"
+props = { checked = true }
+"##;
+
 const DESCRIPTOR_AUTHORITY_UNKNOWN_PROP_TARGET_LAYOUT: &str = r##"
 [asset]
 kind = "layout"
@@ -407,6 +538,111 @@ fn asset_binding_accepts_boolean_operators_parentheses_and_leading_equals() {
 #[test]
 fn asset_binding_resolves_component_param_refs() {
     let document = UiAssetLoader::load_toml_str(PARAM_REF_COMPONENT_LAYOUT).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert!(report.diagnostics.is_empty());
+}
+
+#[test]
+fn asset_binding_resolves_control_prop_refs_against_the_current_tree() {
+    let source = control_prop_ref_layout("control.BindingSource.prop.text == \"Ready\"");
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert!(report.diagnostics.is_empty());
+}
+
+#[test]
+fn asset_binding_reports_unknown_control_prop_ref_control_ids() {
+    let source = control_prop_ref_layout("control.MissingSource.prop.text == \"Ready\"");
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].code,
+        UiBindingDiagnosticCode::UnresolvedRef
+    );
+    assert!(report.diagnostics[0]
+        .message
+        .contains("unknown control MissingSource"));
+}
+
+#[test]
+fn asset_binding_reports_unknown_control_prop_ref_properties() {
+    let source = control_prop_ref_layout("control.BindingSource.prop.missing == \"Ready\"");
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].code,
+        UiBindingDiagnosticCode::UnresolvedRef
+    );
+    assert!(report.diagnostics[0]
+        .message
+        .contains("control BindingSource references unknown prop missing"));
+}
+
+#[test]
+fn asset_binding_reports_control_prop_ref_target_kind_mismatches() {
+    let source = control_prop_ref_layout("control.BindingSource.prop.text");
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].code,
+        UiBindingDiagnosticCode::InvalidValueKind
+    );
+}
+
+#[test]
+fn asset_binding_does_not_infer_control_prop_kinds_from_unknown_descriptors() {
+    let source = control_prop_ref_layout("control.BindingSource.prop.text == \"Ready\"")
+        .replace("type = \"Label\"", "type = \"MissingWidget\"");
+    let document = UiAssetLoader::load_toml_str(&source).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].code,
+        UiBindingDiagnosticCode::UnresolvedRef
+    );
+}
+
+#[test]
+fn asset_binding_keeps_control_prop_refs_inside_their_component_tree() {
+    let document = UiAssetLoader::load_toml_str(CONTROL_PROP_REF_COMPONENT_SCOPE_LAYOUT).unwrap();
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    let report = collect_asset_binding_report(&document, &registry);
+
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].code,
+        UiBindingDiagnosticCode::UnresolvedRef
+    );
+    assert!(report.diagnostics[0]
+        .message
+        .contains("unknown control ComponentSource"));
+}
+
+#[test]
+fn asset_binding_validates_control_prop_refs_in_action_payloads() {
+    let document = UiAssetLoader::load_toml_str(CONTROL_PROP_REF_ACTION_PAYLOAD_LAYOUT).unwrap();
     let registry = UiComponentDescriptorRegistry::editor_showcase();
 
     let report = collect_asset_binding_report(&document, &registry);

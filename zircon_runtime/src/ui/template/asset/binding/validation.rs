@@ -18,11 +18,14 @@ pub fn collect_asset_binding_report(
     let mut context = ValidationContext {
         registry,
         report: UiBindingReport::default(),
+        control_props: BTreeMap::new(),
     };
     if let Some(root) = &document.root {
+        context.control_props = collect_control_prop_kinds(root, registry);
         context.validate_node("root", root, &BTreeMap::new());
     }
     for (component_name, component) in &document.components {
+        context.control_props = collect_control_prop_kinds(&component.root, registry);
         context.validate_node(
             &format!("components.{component_name}.root"),
             &component.root,
@@ -49,6 +52,7 @@ pub fn validate_asset_bindings(
 struct ValidationContext<'a> {
     registry: &'a UiComponentDescriptorRegistry,
     report: UiBindingReport,
+    control_props: BTreeMap<String, BTreeMap<String, UiValueKind>>,
 }
 
 impl<'a> ValidationContext<'a> {
@@ -400,6 +404,38 @@ impl<'a> ValidationContext<'a> {
                         None
                     })
             }
+            UiBindingExpression::ControlPropRef {
+                control_id,
+                property,
+            } => {
+                let Some(properties) = self.control_props.get(control_id) else {
+                    self.push_error(
+                        UiBindingDiagnosticCode::UnresolvedRef,
+                        path,
+                        node,
+                        binding,
+                        format!(
+                            "binding {} references unknown control {control_id}",
+                            binding.id
+                        ),
+                    );
+                    return None;
+                };
+                let Some(kind) = properties.get(property).copied() else {
+                    self.push_error(
+                        UiBindingDiagnosticCode::UnresolvedRef,
+                        path,
+                        node,
+                        binding,
+                        format!(
+                            "binding {} control {control_id} references unknown prop {property}",
+                            binding.id
+                        ),
+                    );
+                    return None;
+                };
+                Some(kind)
+            }
             UiBindingExpression::Equals(lhs, rhs) | UiBindingExpression::NotEquals(lhs, rhs) => {
                 let lhs_kind =
                     self.infer_expression_kind(path, node, descriptor, params, binding, lhs);
@@ -495,6 +531,41 @@ impl<'a> ValidationContext<'a> {
     }
 }
 
+/// Builds descriptor-authoritative property kinds without crossing component-tree scopes.
+fn collect_control_prop_kinds(
+    root: &UiNodeDefinition,
+    registry: &UiComponentDescriptorRegistry,
+) -> BTreeMap<String, BTreeMap<String, UiValueKind>> {
+    fn visit(
+        node: &UiNodeDefinition,
+        registry: &UiComponentDescriptorRegistry,
+        controls: &mut BTreeMap<String, BTreeMap<String, UiValueKind>>,
+    ) {
+        if let Some(control_id) = node.control_id.as_deref() {
+            let properties = node
+                .widget_type
+                .as_deref()
+                .and_then(|component_id| registry.descriptor(component_id))
+                .map(|descriptor| {
+                    descriptor
+                        .prop_schema
+                        .iter()
+                        .map(|schema| (schema.name.clone(), schema.value_kind))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let _ = controls.insert(control_id.to_string(), properties);
+        }
+        for child in &node.children {
+            visit(&child.node, registry, controls);
+        }
+    }
+
+    let mut controls = BTreeMap::new();
+    visit(root, registry, &mut controls);
+    controls
+}
+
 fn target_name(target: &UiBindingTarget) -> Option<&str> {
     target
         .name
@@ -534,8 +605,13 @@ fn component_param_kind(value: &str) -> Option<UiValueKind> {
 
 fn payload_value_kind(payload_key: &str, value: &Value) -> UiValueKind {
     match payload_key {
-        "checked" | "committed" | "confirm" | "enabled" | "visible" => UiValueKind::Bool,
-        "delta" | "index" | "count" => UiValueKind::Int,
+        "checked" | "committed" | "confirm" | "enabled" | "visible" | "force_full_rebuild" => {
+            UiValueKind::Bool
+        }
+        "delta" | "index" | "count" | "surface_entity" => UiValueKind::Int,
+        _ if matches!(value, Value::String(text) if text.trim_start().starts_with('=')) => {
+            UiValueKind::Any
+        }
         _ => UiValue::from_toml(value).kind(),
     }
 }
@@ -548,6 +624,7 @@ fn is_m18_runtime_expression(text: &str) -> bool {
         .trim_start();
     expression.starts_with("prop.")
         || expression.starts_with("param.")
+        || expression.starts_with("control.")
         || expression.starts_with("!")
         || expression.starts_with("(")
         || matches!(expression, "true" | "false" | "null")

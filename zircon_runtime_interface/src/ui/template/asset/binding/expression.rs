@@ -9,6 +9,11 @@ pub enum UiBindingExpression {
     Literal(UiValue),
     ParamRef(String),
     PropRef(String),
+    /// References a descriptor-owned property on another control in the current tree.
+    ControlPropRef {
+        control_id: String,
+        property: String,
+    },
     Equals(Box<UiBindingExpression>, Box<UiBindingExpression>),
     NotEquals(Box<UiBindingExpression>, Box<UiBindingExpression>),
     And(Box<UiBindingExpression>, Box<UiBindingExpression>),
@@ -150,6 +155,21 @@ impl Parser {
                 } else {
                     Ok(UiBindingExpression::PropRef(name))
                 }
+            }
+            Token::Ident(value) if value == "control" => {
+                self.expect_dot()?;
+                let control_id = self.expect_ident()?;
+                self.expect_dot()?;
+                let segment = self.expect_ident()?;
+                if segment != "prop" {
+                    return Err(UiBindingExpressionParseError::UnexpectedToken(segment));
+                }
+                self.expect_dot()?;
+                let property = self.expect_ident()?;
+                Ok(UiBindingExpression::ControlPropRef {
+                    control_id,
+                    property,
+                })
             }
             Token::Ident(value) => Err(UiBindingExpressionParseError::UnexpectedToken(value)),
             Token::LeftParen => {
