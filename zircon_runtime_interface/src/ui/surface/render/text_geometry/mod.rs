@@ -10,6 +10,9 @@ mod source_map;
 
 pub use source_map::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 
+#[cfg(test)]
+mod source_map_tests;
+
 const TEXT_SELECTION_COLOR: &str = "#4d89ff66";
 const TEXT_CARET_COLOR: &str = "#e8eef7";
 const TEXT_COMPOSITION_UNDERLINE_COLOR: &str = "#4d89ff";

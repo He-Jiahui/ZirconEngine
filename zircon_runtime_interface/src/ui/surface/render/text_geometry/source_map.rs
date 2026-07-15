@@ -268,7 +268,3 @@ fn sanitized_advance(advance: f32) -> f32 {
         0.0
     }
 }
-
-#[cfg(test)]
-#[path = "source_map/tests.rs"]
-mod tests;

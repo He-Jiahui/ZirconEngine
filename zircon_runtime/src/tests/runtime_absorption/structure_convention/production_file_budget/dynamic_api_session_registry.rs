@@ -4,6 +4,9 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_dynamic_api_session_registry_is_child_owner() {
     let parent = read_runtime_src("dynamic_api/session.rs");
     let registry = read_runtime_src("dynamic_api/session/registry.rs");
+    let ffi = read_runtime_src("dynamic_api/session/ffi.rs");
+    let state = read_runtime_src("dynamic_api/session/state.rs");
+    let lock_poison_tests = read_runtime_src("dynamic_api/session/tests/lock_poison.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -24,15 +27,26 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
     assert_contains_all(
         "dynamic API session parent delegates registry ownership",
         &parent,
+        &["mod registry;"],
+    );
+    assert_contains_all(
+        "dynamic API session FFI child routes registry lifecycle operations",
+        &ffi,
         &[
-            "mod registry;",
-            "use registry::{insert_session, lock_registry, with_session};",
-            "use registry::lock_session;",
-            "pub(super) unsafe fn create_session(",
-            "pub(super) unsafe fn destroy_session(",
-            "struct RuntimeDynamicSession",
-            "impl RuntimeDynamicSession",
+            "use super::registry::{insert_session, lock_registry, with_session};",
+            "pub(in crate::dynamic_api) unsafe fn create_session(",
+            "pub(in crate::dynamic_api) unsafe fn destroy_session(",
         ],
+    );
+    assert_contains_all(
+        "dynamic API session state child owns the registry payload",
+        &state,
+        &["struct RuntimeDynamicSession", "impl RuntimeDynamicSession"],
+    );
+    assert_contains_all(
+        "dynamic API session lock-poison tests consume the registry lock helper",
+        &lock_poison_tests,
+        &["lock_registry, lock_session, with_session"],
     );
     for moved_owner in [
         "static SESSION_REGISTRY",
@@ -72,6 +86,8 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
 
     for (path, source) in [
         ("dynamic_api/session.rs", parent.as_str()),
+        ("dynamic_api/session/ffi.rs", ffi.as_str()),
+        ("dynamic_api/session/state.rs", state.as_str()),
         ("dynamic_api/session/registry.rs", registry.as_str()),
     ] {
         let line_count = source.lines().count();

@@ -260,7 +260,7 @@ impl TransactionScope<'_> {
 - fixed 已修复：[editing-operation-owner-structure-guard-drift](09/fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md)
 - fixed 已修复：[runtime-operation-phase-terminal-matcher](../../zircon_runtime/shader/06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md)
 - fixed 已修复：[runtime-operation-ffi-sibling-visibility](../../zircon_runtime/text/03/fixed-2026-07-15-runtime-operation-ffi-sibling-visibility.md)
-- Runtime10 dynamic runtime V1 fallback 回归：`待修复（open）`；[failure 交接](../../zircon_runtime/runtime/10/failure-2026-07-15-dynamic-runtime-v1-fallback-reintroduced.md)。
+- fixed 已修复：[dynamic-runtime-v1-fallback-reintroduced](03/fixed-2026-07-16-dynamic-runtime-v1-fallback-reintroduced.md)
 - fixed 已修复：[plugin-mirror-v1-runtime-fallback](03/fixed-2026-07-15-plugin-mirror-v1-runtime-fallback.md)
 - fixed 已修复：[external-source-cubemap-contract-api-drift](03/fixed-2026-07-15-external-source-cubemap-contract-api-drift.md)
 - Plugins05 Navigation Bake selected-surface 按钮缺少真实选择态与 typed operation 参数投影：`待修复（open）`；[failure 交接](../../zircon_plugins/05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md)。

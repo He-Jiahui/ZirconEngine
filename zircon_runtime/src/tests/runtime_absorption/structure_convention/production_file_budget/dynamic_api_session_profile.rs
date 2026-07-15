@@ -3,6 +3,8 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_dynamic_api_session_profile_is_child_owner() {
     let parent = read_runtime_src("dynamic_api/session.rs");
+    let ffi = read_runtime_src("dynamic_api/session/ffi.rs");
+    let state = read_runtime_src("dynamic_api/session/state.rs");
     let profile = read_runtime_src("dynamic_api/session/profile.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -24,10 +26,17 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
     assert_contains_all(
         "dynamic API session parent delegates profile policy and keeps session lifecycle",
         &parent,
+        &["mod profile;", "use profile::RuntimeDynamicSessionProfile;"],
+    );
+    assert_contains_all(
+        "dynamic API session FFI child owns session lifecycle entry points",
+        &ffi,
+        &["pub(in crate::dynamic_api) unsafe fn create_session("],
+    );
+    assert_contains_all(
+        "dynamic API session state child owns runtime session behavior",
+        &state,
         &[
-            "mod profile;",
-            "use profile::RuntimeDynamicSessionProfile;",
-            "pub(super) unsafe fn create_session(",
             "struct RuntimeDynamicSession",
             "impl RuntimeDynamicSession",
             "fn new(",
@@ -65,6 +74,8 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
 
     for (path, source) in [
         ("dynamic_api/session.rs", parent.as_str()),
+        ("dynamic_api/session/ffi.rs", ffi.as_str()),
+        ("dynamic_api/session/state.rs", state.as_str()),
         ("dynamic_api/session/profile.rs", profile.as_str()),
     ] {
         let line_count = source.lines().count();

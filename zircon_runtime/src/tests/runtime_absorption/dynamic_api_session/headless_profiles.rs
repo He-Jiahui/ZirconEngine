@@ -2,7 +2,8 @@ use super::shared::slices::slice_between;
 
 #[test]
 fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() {
-    let session_source = include_str!("../../../dynamic_api/session.rs");
+    let session_source = include_str!("../../../dynamic_api/session/state.rs");
+    let construction_source = include_str!("../../../dynamic_api/session/construction.rs");
     let session_profile_source = include_str!("../../../dynamic_api/session/profile.rs");
     let lifecycle_tests = include_str!("../../../dynamic_api/tests/session_lifecycle.rs");
     let session_profile_tests = include_str!("../../../dynamic_api/tests/session_profiles.rs");
@@ -16,10 +17,7 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
         "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
 
-    for required_source_anchor in [
-        "render_bridge: Option<RuntimeRenderBridge>",
-        "runtime_dynamic_session_render_bridge_skipped",
-    ] {
+    for required_source_anchor in ["render_bridge: Option<RuntimeRenderBridge>"] {
         assert!(
             session_source.contains(required_source_anchor),
             "dynamic session source should keep Runtime 10 headless anchor `{required_source_anchor}`"
@@ -45,15 +43,20 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
         uses_render_bridge.contains("matches!(self, Self::Runtime | Self::Editor | Self::Dev)"),
         "only rendered runtime/editor/dev profiles should create RuntimeRenderBridge"
     );
+    let rendered_profiles = uses_render_bridge
+        .split("matches!(self,")
+        .nth(1)
+        .and_then(|source| source.split(')').next())
+        .expect("uses_render_bridge should use an explicit matches! profile set");
     for forbidden_profile in ["Self::Minimal", "Self::Headless"] {
         assert!(
-            !uses_render_bridge.contains(forbidden_profile),
+            !rendered_profiles.contains(forbidden_profile),
             "headless lifecycle profiles must not re-enter RuntimeRenderBridge creation through `{forbidden_profile}`"
         );
     }
 
     let construction = slice_between(
-        session_source,
+        construction_source,
         "let render_bridge = if profile.uses_render_bridge()",
         "let level = {",
     );

@@ -3,11 +3,17 @@ related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/construction.rs
+  - zircon_runtime/src/dynamic_api/session/ffi.rs
+  - zircon_runtime/src/dynamic_api/session/hooks.rs
+  - zircon_runtime/src/dynamic_api/session/linked_session.rs
+  - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/builtin/runtime_modules/load_report/diagnostics.rs
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/dynamic_api/session/error.rs
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
@@ -17,6 +23,8 @@ related_code:
   - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/session/input_events.rs
+  - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
+  - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
@@ -58,8 +66,9 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
+  - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/asset/project/script_manifest.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
@@ -79,6 +88,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/accessibility.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
+  - zircon_runtime/src/dynamic_api/tests/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
@@ -108,6 +118,7 @@ implementation_files:
   - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/session/input_events.rs
+  - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/menu.rs
   - zircon_runtime/src/dynamic_api/session/preview.rs
@@ -146,8 +157,9 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
+  - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/asset/project/script_manifest.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
@@ -167,6 +179,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/accessibility.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
+  - zircon_runtime/src/dynamic_api/tests/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
@@ -187,6 +200,8 @@ plan_sources:
   - .codex/plans/Zircon Runtime 独立 3D 游戏能力与 Vampire 示例计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
+  - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
+  - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
   - user: 2026-06-10 vampire screen-space HUD, buff particles, shader lighting, and no model health bars
   - user: 2026-06-11 vampire readable ground, start menu, game-over menu, Start/Retry buttons, and screenshot validation
   - user: 2026-06-12 remove runtime Vampire fallback backend
@@ -289,6 +304,8 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs zircon_runtime/src/tests/runtime_absorption/plan_status.rs: passed 2026-06-13 for the Runtime 10 M1.3 FFI panic-boundary absorption guard
   - source/doc anchor scan for runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary and runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge across exports/session/API-table tests/module docs/Runtime 10/index/M0 review: passed 2026-06-13
   - cargo test -p zircon_runtime --lib destroy_session --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-10-headless-0612 --message-format short --color never -- --nocapture: timed out after 904s on 2026-06-12 during Windows test-target compilation while another zircon_runtime cargo lane was active; the orphaned validation process was stopped and no Cargo pass is claimed
+  - rustfmt --edition 2021 --check zircon_runtime/src/dynamic_api/session/project.rs (2026-07-14 hard-cut resolver caller return: passed)
+  - source invariant scan for zero `crate::asset::pipeline::manager::resolve_asset_manager` calls and one `asset_manager_handle(core)` use-point resolution in `session/project.rs` (2026-07-14 hard-cut resolver caller return: passed; full Cargo rerun remains with the originating Shader04 validation)
   - rustfmt --edition 2021 --check zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs: passed 2026-06-12 after removing runtime project fallback backend
   - git diff --check -- zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs docs/zircon_runtime/script/vm/zr_vm_host_reflection.md docs/zircon_runtime/dynamic_api/session.md: passed 2026-06-12 with LF-to-CRLF warnings only
   - cargo test -p zircon_runtime --lib discovery_rejects_zr_vm_project_fallback_backend --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-no-fallback-0612 --message-format short -- --nocapture --test-threads=1: timed out after 604s on 2026-06-12 during Windows test-target compilation; orphaned cargo/rustc processes were stopped and no Cargo pass is claimed
@@ -335,15 +352,15 @@ Runtime 15 M4 dynamic API session profile owner split is recorded as `runtime_15
 
 Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, while `dynamic_api/session/registry.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation, poison-safe `lock_registry`/`lock_session`, and `with_session` lookup/dispatch. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps registry static/struct/helper code from returning to the parent and keeps both owners below the production-file budget.
 
-This keeps the FFI boundary file below the large-file warning line while preserving the exported `ZrRuntimeApiV1` shape.
+This keeps the FFI boundary file below the large-file warning line while preserving the exported `ZrRuntimeApiV2` shape.
 
 ## FFI Panic Boundary
 
-`dynamic_api::exports` owns the final panic containment layer for the exported C ABI. `zircon_runtime_get_api_v1` still validates the host ABI version before returning the static `ZrRuntimeApiV1` table, but it now performs that lookup through an inner helper wrapped by `catch_unwind`; an unexpected unwind during table acquisition returns a null table pointer instead of crossing the `extern "C"` boundary.
+`dynamic_api::exports` owns the final panic containment layer for the exported C ABI. `zircon_runtime_get_api_v2` validates `ZrHostApiV1` before returning the static `ZrRuntimeApiV2` table, and performs that lookup through an inner helper wrapped by `catch_unwind`; an unexpected unwind during table acquisition returns a null table pointer instead of crossing the `extern "C"` boundary.
 
-Every advertised `ZrRuntimeApiV1` session function pointer now points at an `_ffi` wrapper in `exports.rs`. The wrapper delegates normal validation and behavior to private Rust-ABI `dynamic_api::session` owner functions, then translates any unexpected unwind into `ZrStatusCode::Panic` with the stable diagnostic `runtime dynamic API panic caught at FFI boundary`. This keeps version checks, handle checks, project loading, event routing, capture, surface, profile-control, tick, and host-request semantics in the session modules while keeping the ABI panic guard at the final dynamic-library edge.
+Every advertised `ZrRuntimeApiV2` session function pointer points at an `_ffi` wrapper in `exports.rs`. The wrappers delegate normal validation and behavior to private Rust-ABI `dynamic_api::session` and `session::operation` owner functions, then translate any unexpected unwind into `ZrStatusCode::Panic` with the stable diagnostic `runtime dynamic API panic caught at FFI boundary`. This keeps version checks, handle checks, project loading, event routing, capture, surface, profile-control, tick, host-request, plugin-event, and operation semantics in their session owners while keeping the ABI panic guard at the final dynamic-library edge.
 
-`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` is the focused API-table source guard for this split: it rejects direct function-table entries that bypass the wrappers, requires the shared panic translator, locks the null-return path for panics during `zircon_runtime_get_api_v1`, and rejects `extern "C"` declarations from the private session owner functions so unwind containment remains catchable.
+`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` is the focused API-table source guard for this split: it rejects direct function-table entries that bypass the wrappers, requires the shared panic translator, locks the null-return path for panics during `zircon_runtime_get_api_v2`, and rejects `extern "C"` declarations from the private session and operation owner functions so unwind containment remains catchable.
 
 `runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge` is the runtime-absorption guard for the same contract. It ties `exports.rs`, private session owners, the focused API-table test, this module document, Runtime 10, and the runtime index together so the exported C ABI edge cannot silently drift back into `session.rs`.
 
@@ -389,7 +406,7 @@ Current mirror-docs owner refresh 2026-07-06: `Runtime 15 M3 Runtime 07 owner-bu
 
 `profile_control` accepts `ProfileControlCommand::RuntimeDiagnosticsSnapshot` as a session-owned JSON command. The command returns `ProfileControlResponse.runtime_diagnostics` with `RuntimeDiagnosticsSnapshot`, `RuntimeDiagnosticSeriesSnapshot`, `RuntimeDiagnosticMeasurement`, and `RuntimeSceneAssetReloadDiagnostics` DTOs from `zircon_runtime_interface::profiling`.
 
-This command intentionally does not add a new `ZrRuntimeApiV1` function pointer. Hosts still call the existing `profile_control` entry and free the returned buffer through the same runtime-owned profile buffer callback. Calling the lower-level profiling recorder with this command returns `runtime diagnostics snapshot requires dynamic session`, because only `RuntimeDynamicSession` owns the live `CoreRuntime`, project scene-asset reload queue, and last reload frame report.
+This command intentionally does not add a new V2 runtime-table function pointer. Hosts still call the existing `profile_control` entry and free the returned buffer through the same runtime-owned profile buffer callback. Calling the lower-level profiling recorder with this command returns `runtime diagnostics snapshot requires dynamic session`, because only `RuntimeDynamicSession` owns the live `CoreRuntime`, project scene-asset reload queue, and last reload frame report.
 
 When no project scene-asset reload queue exists, the response still includes `scene_asset_reload.enabled = false` with zero counts. When reload is enabled, the response mirrors the last frame's drained/scheduled/skipped/superseded/applied/failed/stale/pending counts and receiver-disconnected flag. Detailed asset events and runtime error types stay inside `zircon_runtime`; the dynamic ABI exposes only stable JSON counts.
 
@@ -461,9 +478,9 @@ The dynamic session must not:
 
 When a project root is provided, `RuntimeProjectConfig` opens `zircon-project.toml`, reads `default_scene`, and calls `scene::load_level_asset(core, project_root, default_scene)`. That path scans/imports `project_root/assets`, loads the scene asset artifact, instantiates a `LevelSystem`, and then the session ticks that level before input `begin_frame`. The same config also reads `scripts.package_roots` and `scripts.startup_packages`, discovers `plugin.toml` packages under those roots, filters to the requested startup packages when listed, and loads them through `VmPluginManager`.
 
-Runtime 10 F18 asset manager resolution return shape records `runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed`: `resolve_asset_manager(core)` returns `Result<Arc<AssetManagerHandle>, CoreError>` through the same registered-handle path as generic `resolve_manager<T>()`. The project runtime entry explicitly converts that handle with `.shared()` before calling `open_project(...)`, so the dynamic project boundary calls `.shared()` instead of hiding trait-object conversion in the resolver helper. `review_f18_asset_manager_resolution_returns_registered_handle` guards this split.
+Runtime 10 now follows the Frameworks05 manager-service hard cut. `RuntimeProjectConfig::open_project_assets` obtains the versioned `asset_manager_handle(core)` and resolves it at the operation boundary with `resolve_manager_service(core, handle)` before calling `open_project(...)`. The deleted named `resolve_asset_manager` helper, Arc-holder wrapper, and `.shared()` conversion are not retained as aliases or compatibility paths.
 
-Project-backed sessions also create a `DynamicSceneAssetReloadQueue` from the concrete `ProjectAssetManager` resolved through `PROJECT_ASSET_MANAGER_NAME`. `RuntimeDynamicSession::tick_frame()` advances runtime time, drives that queue with `tick_into_level` against the current `LevelSystem`, records `scene.asset_reload.*` diagnostics for every reload frame report, and only then calls `LevelSystem::tick`; non-empty reload work is logged and cached as the last scene-asset reload frame report. Reload preparation or apply failures remain frame diagnostics instead of aborting the tick, and the queue never serializes or stores editor selection, viewport, gizmo, or inspector state.
+Project-backed sessions create a `DynamicSceneAssetReloadQueue` from a `ProjectAssetManager` resolved through `project_asset_manager_handle(core)` at the same bounded use point. Optional navmesh loading follows the identical contract through `navigation_manager_handle(core)`. `RuntimeDynamicSession::tick_frame()` advances runtime time, drives the queue with `tick_into_level` against the current `LevelSystem`, records `scene.asset_reload.*` diagnostics for every reload frame report, and only then calls `LevelSystem::tick`; non-empty reload work is logged and cached as the last scene-asset reload frame report. Reload preparation or apply failures remain frame diagnostics instead of aborting the tick, and the queue never serializes or stores editor selection, viewport, gizmo, or inspector state.
 
 Dynamic sessions install the script fixed-update and update scene hooks after module activation and before project scripts are loaded. The helper only registers missing hook ids, so first-party ZrVM language plugin hook registration can still own the same ids when that extension path is already present. This keeps project `script.bindings` active for the standalone dynamic runtime path without requiring the dynamic library to depend directly on external `zircon_plugins` crates.
 
@@ -506,6 +523,46 @@ Runtime 15 F5 dynamic API session typed errors records `runtime_15_dynamic_api_s
 `examples/vampire` is the current acceptance fixture for this project-entry path. Its manifest declares `res://scenes/main.scene.toml`, a `scripts/vampire_game` ZrVM package, project-local model/material/shader/navmesh/terrain assets, and plugin selections for rendering, animation, navigation, glTF importing, texture importing, and ZrVM language runtime. The fixture now includes generated jungle terrain/foliage models, a real project texture at `res://textures/jungle_ground_albedo.png`, a real `TerrainAsset` at `res://terrain/jungle_clearing.terrain.toml` with a ready `.zmeta`, a multi-polygon baked jungle navmesh with authored height variation, a richer `default_pbr` shader that samples material maps and folds in shadow/reflection/detail-normal terms, a ground-light floor that prevents terrain from collapsing to black under fog, script-authored dynamic attack particles, and menu state components for Start/Game Over. The scene camera is authored in current EV100 exposure space (`exposure_ev100 = 9.2`); legacy near-zero multiplier-style values overexpose the PP-M3 resolve path and are not valid acceptance evidence for current captures. The scene's `Baked Jungle Terrain` entity intentionally carries both the visible mesh and the terrain component so the sample is terrain-backed instead of a decorative prop-only floor. Asset tests keep those pieces importable through the same project scan path used by the standalone runtime.
 
 The dynamic executable links `zircon_app`, but the actual runtime session is created by `zircon_runtime.dll` through the ABI. App-side Rust plugin registration reports do not cross that dynamic boundary. The runtime therefore must keep enough default import capability for simple project startup. The default asset importer now includes built-in glTF/GLB, common image, and `.txt` text-data importers; linked plugin catalog importers can still override those matchers on static or embedded paths, but the dynamic runtime no longer depends on those app-linked registrations just to import the vampire GLB models, Kenney shared texture, or local license notes.
+
+## Linked Plugin Session Composition
+
+The editor product uses the process-linked runtime table and
+`create_linked_runtime_session(...)` so Rust-owned `RuntimePluginRegistrationReport` values remain
+in the same runtime image as the session registry. `session/linked_plugins.rs` is the composition
+owner: it completes the project plugin manifest, delegates module ordering to
+`runtime_modules_for_target_with_plugin_registration_reports`, merges selected extensions through
+`RuntimePluginCatalog`, and rejects fatal diagnostics before `CoreRuntime` activation.
+
+The session installs linked scene hooks after module activation and applies the merged extension
+registry to the actual `LevelSystem` World before the first frame. Consequently plugin resources,
+mirrored events, and runtime scene systems participate in the normal `LevelSystem::tick` path.
+The dynamic-library ABI path still creates an empty linked-registration set. The application
+loader requires the complete V2 table and rejects missing or incomplete runtime libraries.
+
+The Rust-linked entry returns `RuntimeDynamicSessionError`, including a classified unknown-profile
+variant and typed sources for core, project, render, extension, and operation failures. Public
+linked-session callers do not receive a flattened `String` failure.
+
+`linked_plugin_registration_ticks_and_drains_through_runtime_api` proves the generic path with a
+report-owned mirrored event and runtime scene system: subscribe through the ABI, tick the real
+session, then drain the emitted typed payload. The `zircon_app` product test adds the concrete
+Navigation runtime/editor pair and verifies capability disable removes the consumer before the next
+tick.
+
+## Runtime API V2 Operation Lifecycle
+
+Current V2-only owner inventory: `expected_source_file_count = 48`.
+
+The 2026-07-15 versioned cut makes `submit_operation`, `poll_operation`, and `harvest_operation` required members of `ZrRuntimeApiV2`. The app loader requires the complete V2 mirror/operation groups and has no old-table fallback. `session/state.rs` owns dynamic session state, ticking, and render behavior; `session/construction.rs` owns assembly; `session/ffi.rs` owns the private ABI entry functions; `session/hooks.rs` owns built-in hook policy; `session/linked_session.rs` owns the typed linked-session public entry; and `session/operation.rs` owns operation ABI decode/encode. The parent `session.rs` is only a module/re-export façade. Navigation registers typed bake, clear, and generated-snapshot restore handlers without exposing `World` to the editor. Results are harvested once, and nonterminal harvest attempts remain typed failures.
+
+Current direct evidence is produced by `dynamic_runtime_api_boundary`: 48/48 source files, 10/10
+function-table structs, no field-count or `#[repr(C)]` mismatch,
+`runtime_session_ffi_wrappers = 17/17`, one
+table-acquisition panic boundary, V2-only loader anchors, and no reported risks.
+Machine mirror: `function_table_structs = 10/10`, `ffi_panic_anchors = 9/9`, and
+`loader_failure_anchors = 13/13`.
+Older detailed count snapshots retained below are historical evidence. The permanent guard remains
+`runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.
 
 ## Validation
 

@@ -212,3 +212,4 @@ last_refined: 2026-07-12
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md`](10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md)
+- fixed 已修复：[dynamic-runtime-v1-fallback-reintroduced](../../zircon_editor/editor/03/fixed-2026-07-16-dynamic-runtime-v1-fallback-reintroduced.md)

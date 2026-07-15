@@ -38,13 +38,13 @@ fn destroy_session_reports_explicit_not_found_for_missing_nonzero_handle() {
 
 #[test]
 fn destroy_session_removes_registry_entry_so_destroyed_handles_become_missing() {
-    let session_source = include_str!("../session.rs");
+    let session_source = include_str!("../session/ffi.rs");
     let exports_source = include_str!("../exports.rs");
     let destroy_start = session_source
-        .find("pub(super) unsafe fn destroy_session")
+        .find("pub(in crate::dynamic_api) unsafe fn destroy_session")
         .expect("destroy_session rust owner");
     let next_entry = session_source[destroy_start..]
-        .find("\npub(super) unsafe fn handle_event")
+        .find("\npub(in crate::dynamic_api) unsafe fn handle_event")
         .map(|offset| destroy_start + offset)
         .expect("entry point after destroy_session");
     let destroy_body = &session_source[destroy_start..next_entry];
@@ -81,7 +81,7 @@ fn session_destroy_reports_explicit_not_found_after_headless_destroy() {
 
 #[test]
 fn create_session_requires_output_pointer() {
-    let api = unsafe { &*zircon_runtime_get_api_v1(core::ptr::null()) };
+    let api = unsafe { &*zircon_runtime_get_api_v2(core::ptr::null()) };
     let create_session = api.create_session.expect("create_session");
     let status = unsafe {
         create_session(
