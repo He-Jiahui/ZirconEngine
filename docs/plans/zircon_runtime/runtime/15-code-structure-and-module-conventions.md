@@ -1089,10 +1089,11 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
 - fixed 已修复：[mesh-template-pipeline-layout-binding-drift](15/fixed-2026-07-15-mesh-template-pipeline-layout-binding-drift.md)
 - fixed 已修复：[depth-prepass-source-guard-owner-drift](../../zircon_editor/editor/02/fixed-2026-07-15-depth-prepass-source-guard-owner-drift.md)
 - 2026-07-15：Runtime15 M2 已修正 canonical `RuntimeProfileId::Server` 枚举定义的 non-network-server 审计误分类；精确行级豁免与同文件 `render_server` 负例测试 2/2 通过。新鲜完整结构审计保持 large-file hotspot 0，并把 non-network-server debt 从 1 降到 0；当前 module-convention debt 为 3（editor naming 65 处、legacy render naming 8 处、graphics hard-cut wording 2 处），因此父计划继续 `in_progress`。详细证据见 [`15/2026-07-15-runtime-profile-server-audit-classification.md`](15/2026-07-15-runtime-profile-server-audit-classification.md)。
+- 2026-07-16：Runtime15 M2 已按最低真实 owner 精确分类 23 处 scene reflection metadata、42 处 script editor-operation contribution descriptor 与 8 处 `cfg(test)` text product fixture；editor naming unclassified 从 73 降为 0，聚焦 Python 回归 4/4 通过，并以生产负例锁定分类边界。当前 module-convention 只剩 legacy render naming 8 处及其中重叠的 graphics hard-cut wording 2 处，父计划继续 `in_progress`，不以扩大豁免替代 Render owner 硬切。详细证据见 [`15/2026-07-16-runtime-editor-naming-owner-classification.md`](15/2026-07-16-runtime-editor-naming-owner-classification.md)。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-- 迁入记录：[`15/2026-07-09-code-structure-and-module-conventions-output-records.md`](15/2026-07-09-code-structure-and-module-conventions-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md)
 
 ## 2026-07-10 Runtime 15 M3 Review-Guard Row-Data Row_Data Mirror Sync
 

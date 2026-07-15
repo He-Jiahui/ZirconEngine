@@ -20,6 +20,8 @@ NAMING_CLASSIFICATION_ORDER = (
     "platform-editor-target-diagnostic",
     "rhi-editor-surface-label",
     "scene-reflection-editor-visible-metadata",
+    "script-editor-operation-contribution-descriptor",
+    "runtime-text-editor-product-fixture",
     "curated-runtime-facade-editor-reference",
     "legacy-runtime-ui-input-debt",
     "legacy-runtime-ui-render-table-debt",
@@ -33,6 +35,26 @@ NAMING_CLASSIFICATION_ORDER = (
     "legacy-scene-schema-render-debt",
     "curated-runtime-facade-legacy-reference",
     "unclassified-runtime-naming-reference",
+)
+
+SCRIPT_EDITOR_CONTRIBUTION_PATHS = frozenset(
+    {
+        "zircon_runtime/src/script/mod.rs",
+        "zircon_runtime/src/script/vm/capability_set.rs",
+        "zircon_runtime/src/script/vm/host_interface/descriptor.rs",
+        "zircon_runtime/src/script/vm/host_interface/mod.rs",
+        "zircon_runtime/src/script/vm/host_interface/registry.rs",
+        "zircon_runtime/src/script/vm/mod.rs",
+        "zircon_runtime/src/script/vm/plugin/state_migration.rs",
+        "zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs",
+    }
+)
+
+RUNTIME_TEXT_EDITOR_PRODUCT_FIXTURE_PATHS = frozenset(
+    {
+        "zircon_runtime/src/text/cache/shaped_cache.rs",
+        "zircon_runtime/src/text/parallel/shape_pool.rs",
+    }
 )
 
 NAMING_CLASSIFICATION_DECISIONS = {
@@ -87,6 +109,20 @@ NAMING_CLASSIFICATION_DECISIONS = {
         "required_action": (
             "keep only neutral reflection metadata such as visibility hints; editor "
             "authoring state remains forbidden in serialization"
+        ),
+    },
+    "script-editor-operation-contribution-descriptor": {
+        "target_owner": "runtime script host-interface contribution descriptor owner",
+        "required_action": (
+            "keep only typed editor-operation capability, registration, and reflection "
+            "metadata; editor command execution and authoring state remain editor-owned"
+        ),
+    },
+    "runtime-text-editor-product-fixture": {
+        "target_owner": "runtime text cache and parallel-shaping test owner",
+        "required_action": (
+            "keep editor-named sample strings inside cfg(test) product fixtures; "
+            "production text behavior remains product-neutral"
         ),
     },
     "curated-runtime-facade-editor-reference": {
@@ -180,7 +216,12 @@ def _runtime_source_files(root: Path) -> list[Path]:
     return sorted(runtime_src.rglob("*.rs"))
 
 
-def _classify_editor_reference(relative_path: str) -> str:
+def _classify_editor_reference(
+    relative_path: str,
+    tokens: tuple[str, ...] = (),
+    *,
+    in_cfg_test_item: bool = False,
+) -> str:
     if _is_test_path(relative_path):
         return "test-fixture"
     if relative_path == "zircon_runtime/src/core/runtime/lifecycle.rs":
@@ -213,8 +254,23 @@ def _classify_editor_reference(relative_path: str) -> str:
         return "rhi-editor-surface-label"
     if relative_path.startswith(
         "zircon_runtime/src/scene/reflect/"
-    ) or relative_path.startswith("zircon_runtime/src/scene/inspection/"):
+    ) or relative_path.startswith(
+        "zircon_runtime/src/scene/inspection/"
+    ):
         return "scene-reflection-editor-visible-metadata"
+    if (
+        relative_path == "zircon_runtime/src/scene/components/scene.rs"
+        and tokens
+        and all(token.casefold() == "editor_hint" for token in tokens)
+    ):
+        return "scene-reflection-editor-visible-metadata"
+    if relative_path in SCRIPT_EDITOR_CONTRIBUTION_PATHS:
+        return "script-editor-operation-contribution-descriptor"
+    if (
+        relative_path in RUNTIME_TEXT_EDITOR_PRODUCT_FIXTURE_PATHS
+        and in_cfg_test_item
+    ):
+        return "runtime-text-editor-product-fixture"
     if relative_path in {
         "zircon_runtime/src/diagnostic_log/sink.rs",
         "zircon_runtime/src/prelude.rs",
@@ -314,6 +370,8 @@ def _migration_debt(
             "platform-editor-target-diagnostic",
             "rhi-editor-surface-label",
             "scene-reflection-editor-visible-metadata",
+            "script-editor-operation-contribution-descriptor",
+            "runtime-text-editor-product-fixture",
             "curated-runtime-facade-editor-reference",
             "curated-runtime-facade-legacy-reference",
         }:
@@ -325,6 +383,38 @@ def _migration_debt(
     return debt
 
 
+def _cfg_test_item_line_numbers(source: str) -> set[int]:
+    """Return lines owned by items directly guarded with ``#[cfg(test)]``."""
+    test_lines: set[int] = set()
+    pending_test_cfg = False
+    skipped_item_depth = 0
+
+    for line_no, line in enumerate(source.splitlines(), start=1):
+        stripped = line.strip()
+
+        if skipped_item_depth:
+            test_lines.add(line_no)
+            skipped_item_depth += line.count("{") - line.count("}")
+            if skipped_item_depth <= 0:
+                skipped_item_depth = 0
+            continue
+
+        if stripped == "#[cfg(test)]":
+            pending_test_cfg = True
+            continue
+
+        if pending_test_cfg:
+            if stripped.startswith("#["):
+                continue
+            test_lines.add(line_no)
+            item_depth = line.count("{") - line.count("}")
+            if item_depth > 0:
+                skipped_item_depth = item_depth
+            pending_test_cfg = False
+
+    return test_lines
+
+
 def _decisions_for_term(
     root: Path,
     pattern: re.Pattern[str],
@@ -333,12 +423,18 @@ def _decisions_for_term(
     decisions: list[RuntimeNamingReferenceDecision] = []
     for path in _runtime_source_files(root):
         relative_path = _relative(root, path)
-        for line_no, line in enumerate(_read_text(path).splitlines(), start=1):
+        source = _read_text(path)
+        cfg_test_item_lines = _cfg_test_item_line_numbers(source)
+        for line_no, line in enumerate(source.splitlines(), start=1):
             tokens = sorted({match.group(0) for match in pattern.finditer(line)})
             if not tokens:
                 continue
             classification = (
-                _classify_editor_reference(relative_path)
+                _classify_editor_reference(
+                    relative_path,
+                    tuple(tokens),
+                    in_cfg_test_item=line_no in cfg_test_item_lines,
+                )
                 if term == "editor"
                 else _classify_legacy_reference(relative_path)
             )

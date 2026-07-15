@@ -1,5 +1,8 @@
 ---
 related_code:
+  - docs/plans/zircon_runtime/runtime/15/2026-07-16-runtime-editor-naming-owner-classification.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
+  - tools/tests/test_runtime_init_level_naming.py
   - docs/plans/zircon_runtime/runtime/15/2026-07-11-naming-boundary-current-debt-clear.md
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/text/geometry.rs
@@ -1080,6 +1083,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/status_row_doc_maps.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/status_row_doc_maps.rs
 implementation_files:
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - docs/zircon_runtime/structure/module-convention.md
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/text/geometry.rs
@@ -1897,6 +1901,8 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
+  - python -m unittest tools.tests.test_runtime_init_level_naming -v (2026-07-16 Runtime editor naming owner classification: 4/4)
+  - python .Codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-07-16 Runtime editor naming owner classification aggregate gate)
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs::runtime_15_structure_guards_use_durable_evidence_not_session_notes (2026-07-11 session-note evidence family hard cutover: current standalone focused 1/1)
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/lexical_scan/production_lines.rs::naming_scan_excludes_embedded_cfg_test_module_lines (2026-07-10 production-only naming scan regression: current top/split harness 4/4)
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names/global_modules.rs::banned_module_scan_excludes_test_support_names_from_production_policy (2026-07-10 production-only module naming regression: current banned-name group 4/4)
@@ -9781,3 +9787,22 @@ Render/UI owner 显式保留。权威细节见
 `risks=[]`。三文件 rustfmt 通过；Cargo 因磁盘低水位与外部编译通道占用延后。完整
 structure-convention 最近仍为 1297/1304，七个 Render/UI 外部失败保持可见。证据归档：
 `docs/plans/zircon_runtime/runtime/15/2026-07-11-naming-boundary-current-debt-clear.md`。
+
+## 2026-07-16 Runtime Editor Naming Owner Classification
+
+当前源码重新出现的 73 个 editor token 命中已按最低真实 owner 收口，而不是依靠统一路径豁免：
+`scene/components/scene.rs` 的 23 个命中是中立反射可见性提示；`script/**` 的 42 个命中是
+typed editor-operation contribution descriptor、capability、registration 与反射迁移元数据；
+`text/cache/shaped_cache.rs` 和 `text/parallel/shape_pool.rs` 的 8 个命中只位于
+`#[cfg(test)]` product fixture。三类分别由
+`scene-reflection-editor-visible-metadata`、
+`script-editor-operation-contribution-descriptor` 和
+`runtime-text-editor-product-fixture` 显式持有。
+
+分类器只接受精确 `editor_hint` token、8 个已审查 script owner 和两个精确 text 文件中的
+`cfg(test)` item；Editor 命令执行、authoring state 与生产 text 行为没有迁入 Runtime。
+聚焦 Python 回归 4/4 通过并以负例锁定分类边界，直接命名审计为
+`classified`，editor 与 legacy unclassified 均为 0。Runtime15 尚未完成：Render owner 仍有
+8 处 `legacy-runtime-graphics-debt`，其中 2 处同时触发 graphics hard-cut wording，必须在
+渲染范围内硬切。权威状态与验证记录见
+`docs/plans/zircon_runtime/runtime/15/2026-07-16-runtime-editor-naming-owner-classification.md`。
