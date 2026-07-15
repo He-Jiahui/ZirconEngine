@@ -6,8 +6,8 @@ use super::{
 use crate::core::framework::render::environment::{
     cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
 };
+use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
-use rayon::prelude::*;
 
 const SOURCE_MIPMAP_MIN_CONE_ANGLE: Real = 0.002;
 const SOURCE_MIPMAP_MAX_CONE_ANGLE: Real = std::f32::consts::FRAC_PI_2;
@@ -15,11 +15,87 @@ const SOURCE_MIPMAP_INPUT_QUALITY_BIAS: Real = 3.0;
 const SOURCE_MIPMAP_NORMALIZED_SPHERE_RADIUS: Real = 0.282_094_78;
 const SOURCE_MIPMAP_NODE_RADIUS_SCALE: Real = 2.0;
 
+struct FilteredCubemapFace {
+    face: CubemapFace,
+    texels: Vec<[Real; 4]>,
+}
+
+trait SourceMipmapFaceExecutor {
+    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync;
+}
+
+struct SerialSourceMipmapFaceExecutor;
+
+impl SourceMipmapFaceExecutor for SerialSourceMipmapFaceExecutor {
+    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+    {
+        for filtered_face in faces {
+            filtered_face.texels = filter_face(filtered_face.face);
+        }
+    }
+}
+
+struct ParallelSourceMipmapFaceExecutor<'a, E>(&'a E);
+
+impl<E> SourceMipmapFaceExecutor for ParallelSourceMipmapFaceExecutor<'_, E>
+where
+    E: ParallelSliceExecutor,
+{
+    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    where
+        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+    {
+        self.0.parallel_for(faces, 1, |chunk| {
+            for filtered_face in chunk {
+                filtered_face.texels = filter_face(filtered_face.face);
+            }
+        });
+    }
+}
+
 pub(super) fn source_cubemap_mips_from_base(
     base_texels: &[[Real; 4]],
     face_size: u32,
     mip_count: u32,
 ) -> Vec<[Real; 4]> {
+    source_cubemap_mips_from_base_with_face_executor(
+        base_texels,
+        face_size,
+        mip_count,
+        &SerialSourceMipmapFaceExecutor,
+    )
+}
+
+pub(super) fn source_cubemap_mips_from_base_with_parallel_executor<E>(
+    base_texels: &[[Real; 4]],
+    face_size: u32,
+    mip_count: u32,
+    parallel_executor: &E,
+) -> Vec<[Real; 4]>
+where
+    E: ParallelSliceExecutor,
+{
+    source_cubemap_mips_from_base_with_face_executor(
+        base_texels,
+        face_size,
+        mip_count,
+        &ParallelSourceMipmapFaceExecutor(parallel_executor),
+    )
+}
+
+fn source_cubemap_mips_from_base_with_face_executor<E>(
+    base_texels: &[[Real; 4]],
+    face_size: u32,
+    mip_count: u32,
+    face_executor: &E,
+) -> Vec<[Real; 4]>
+where
+    E: SourceMipmapFaceExecutor,
+{
     let average_mips = source_cubemap_average_mips_from_base(base_texels, face_size, mip_count);
 
     let mut source_mips = average_mips.clone();
@@ -32,6 +108,7 @@ pub(super) fn source_cubemap_mips_from_base(
             face_size,
             mip_count,
             mip,
+            face_executor,
         );
     }
     average_last_mip_faces(&mut source_mips, face_size, mip_count);
@@ -97,6 +174,7 @@ fn filter_source_mip_from_angular_footprint(
     face_size: u32,
     mip_count: u32,
     mip: u32,
+    face_executor: &impl SourceMipmapFaceExecutor,
 ) {
     let mip_size = source_cubemap_mip_size(face_size, mip);
     let cone_angle = source_cubemap_angular_cone_angle(mip_size);
@@ -126,21 +204,27 @@ fn filter_source_mip_from_angular_footprint(
                 );
             }
         }
-        (face, face_texels)
+        face_texels
     };
+    let mut filtered_faces = CubemapFace::ALL
+        .into_iter()
+        .map(|face| FilteredCubemapFace {
+            face,
+            texels: Vec::new(),
+        })
+        .collect::<Vec<_>>();
     // Match Unreal's >=128 source threshold and one-worker-per-face scheduling policy.
-    let filtered_faces = if input_size >= 128 {
-        CubemapFace::ALL
-            .into_par_iter()
-            .map(filter_face)
-            .collect::<Vec<_>>()
+    if input_size >= 128 {
+        face_executor.filter_faces(&mut filtered_faces, &filter_face);
     } else {
-        CubemapFace::ALL.into_iter().map(filter_face).collect()
-    };
+        SerialSourceMipmapFaceExecutor.filter_faces(&mut filtered_faces, &filter_face);
+    }
 
-    for (face, face_texels) in filtered_faces {
-        let dest_offset = source_cubemap_face_mip_offset(face_size, mip_count, face, mip);
-        output_mips[dest_offset..dest_offset + face_texels.len()].copy_from_slice(&face_texels);
+    for filtered_face in filtered_faces {
+        let dest_offset =
+            source_cubemap_face_mip_offset(face_size, mip_count, filtered_face.face, mip);
+        output_mips[dest_offset..dest_offset + filtered_face.texels.len()]
+            .copy_from_slice(&filtered_face.texels);
     }
 }
 

@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
@@ -19,6 +22,9 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
 implementation_files:
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
@@ -51,6 +57,7 @@ plan_sources:
   - dev/godot/core/object/worker_thread_pool.h
   - dev/godot/core/object/worker_thread_pool.cpp
 tests:
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/tests/tasks.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - cargo test -p zircon_runtime --lib tasks --locked -- --nocapture
@@ -104,6 +111,7 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 `TaskPoolOptions` remains the only runtime thread-budget owner. It declares total thread bounds and distributes workers across compute, async-compute, and IO pools. The plan for remaining bypasses is:
 
 - Direct rayon use moves behind `core::runtime::tasks` primitives. `pool.rs` and `parallel_for.rs` are the allowed task-execution Rayon owners; `runtime_absorption::rayon_boundary` now enforces that boundary for production sources.
+- Source cubemap mip generation consumes the neutral framework `ParallelSliceExecutor` contract. The explicit-executor builders route large-face work through the caller's runtime-owned pool; synchronous builders stay serial because no runtime execution owner was supplied. Neither path creates a hidden pool or falls back to Rayon's process-global pool.
 - Graphics frustum culling consumed the Runtime 11 M2.1 render-owner window on 2026-06-16. `WgpuRenderFramework` now carries a `compute_task_pool`, runtime module construction supplies `core.task_pools().compute().clone()`, and `VisibilityContext::from_extract_with_history_static_index_and_task_pool(...)` passes that pool into `parallel_frustum.rs`. Current guard status is `runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending`, with `direct_rayon_paths = 2`.
 - Asset worker threads use the explicit-accounting route from 11-M2.4. `ProjectAssetManager::default()` builds `AssetWorkerPoolOptions` from `TaskPoolOptions::default().resolve_thread_counts(...).io_threads`; explicit manager construction remains an override and diagnostics publish the resulting `asset.worker.budgeted_threads` path.
 - No global rayon pool is introduced. Runtime code should execute through per-runtime pools so `CoreRuntime` remains the execution owner.
@@ -116,7 +124,7 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 
 Handle-backed scheduled tasks are panic-safe at the synchronization boundary. If a scheduled task panics, its `JobHandle` still reaches a terminal state, wakes waiters, and `wait()` reports the task panic on the caller thread. `schedule_after` and `JobHandle::combine` propagate dependency panic state to their returned handles without running dependent task bodies, so a failed prerequisite cannot leave a synchronization point waiting forever.
 
-`parallel_for` is blocking and uses an explicit chunk size. A chunk size of zero is normalized to one item per chunk. Callers use it when they need stable completion before continuing the current frame; longer lived work should be scheduled with handles instead.
+`parallel_for` is blocking and uses an explicit chunk size. A chunk size of zero is normalized to one item per chunk. `TaskPool` also implements the framework-neutral `ParallelSliceExecutor` contract through the same implementation, allowing framework algorithms to request slice parallelism without depending on the runtime task module. Callers use it when they need stable completion before continuing the current frame; longer lived work should be scheduled with handles instead.
 
 `ScheduleParallelExecutor` is the first runtime consumer of dependency scheduling. It chains every `ScheduleParallelBatch` from the previous batch handle, records the report counts up front, waits on the final batch handle, and then replays each batch result in source order to keep deterministic error reporting.
 

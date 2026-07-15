@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
@@ -31,7 +34,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-14
+last_refined: 2026-07-16
 ---
 
 # 11 多线程 JobSystem 任务模型与调度
@@ -236,3 +239,4 @@ last_refined: 2026-07-14
 
 - 迁入记录：[`11/2026-07-09-job-system-task-model-output-records.md`](11/2026-07-09-job-system-task-model-output-records.md)
 - 当前失败交接（`open / Editor full harness Runtime 三池与 asset worker 双预算`）：[`11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md`](11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md)
+- 当前切片（source cubemap direct-Rayon 旁路收编）：[`11/2026-07-16-source-cubemap-task-pool-cutover.md`](11/2026-07-16-source-cubemap-task-pool-cutover.md)，状态 `runtime_11_source_cubemap_task_pool_cutover_static_and_managed_build_passed_focused_test_pending`。该切片只关闭未分类 direct-Rayon owner；上方 P0 双预算失败交接继续保持 open，父计划仍为 `in_progress`。

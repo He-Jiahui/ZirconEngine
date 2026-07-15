@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/mod.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
@@ -16,6 +18,7 @@ related_code:
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
 implementation_files:
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
   - zircon_runtime/src/core/runtime/tasks/mod.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
@@ -35,6 +38,8 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
+  - tools/tests/test_runtime_job_system_audit.py
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - cargo check -p zircon_runtime --lib --locked
@@ -63,6 +68,8 @@ Callers that need the helper should import `core::runtime::tasks::spawn_named_th
 
 `JobHandle` is a cheap clone over shared completion state. It supports `is_complete()`, `wait()`, and `combine(...)`. Dependency callbacks launch dependent work only when prerequisites are complete, so `schedule_after` does not occupy a worker thread while it waits. `JobScheduler::wait_all(...)` is the scheduler-owned synchronization helper for a set of handles and records the wait against the scheduler diagnostics state. `parallel_for(...)` is the blocking data-parallel slice primitive for callers that need immediate completion on a specific runtime-owned pool.
 
+`TaskPool` implements the framework-neutral `ParallelSliceExecutor` contract through the same `parallel_for` implementation. This lets framework algorithms such as source cubemap mip generation use a caller-supplied runtime pool without importing `core::runtime` or touching Rayon directly. The runtime owner remains responsible for thread allocation and execution; the framework contract never creates a pool.
+
 Scheduler diagnostics are recorded under `tasks.scheduled`, `tasks.completed`, `tasks.dependency_wait_ms`, and `tasks.main_thread_wait_ms`. `JobHandle::wait()` and `JobScheduler::wait_all(...)` both contribute to the explicit main-thread wait counter. `JobScheduler::record_diagnostics(...)` publishes those counters into `DiagnosticStore` using `tasks` and `job_scheduler` tags.
 
 Current production consumers of `spawn_named_thread(...)` are asset event filtering and asset decode worker-pool startup. Both now reach the helper through the runtime owner path.
@@ -76,3 +83,4 @@ The 2026-06-12 M2.1 migration evidence includes:
 - `cargo check -p zircon_runtime --lib --locked` passed with pre-existing warnings.
 - Runtime 11 M1/M3 static slices add handle/dependency/parallel-for, scheduler `wait_all`, diagnostics, worker-side wait assist, dependency-chain, and fanout tests in `zircon_runtime/src/tests/tasks.rs`; Cargo execution is pending a clean validation window because other cargo/rustc lanes were active.
 - `job_system_boundary` now provides a static structure mirror for the task owner: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The 2026-06-21 `job_system_inventory_split_static_passed_cargo_deferred_tests_deferred` slice moves source/Rayon ownership into `job_system_source_inventory.py` and API/test/doc anchor ownership into `job_system_anchor_inventory.py`, leaving `job_system_boundary.py` as the audit reader and renderer. The behavior anchors now include panic-safe handle completion for scheduled jobs, dependent jobs, and worker-side wait assist through the task-pool-owned `assist_current_thread_once(...)` helper.
+- the source-cubemap cutover regression requires exactly the two classified direct-Rayon paths, verifies the neutral executor contract and `TaskPool` implementation anchors, and rejects any Rayon reference in `source_cubemap/mipmap.rs`.

@@ -3,6 +3,7 @@ use super::{
     cubemap_face_size_from_equirect_height, cubemap_texel_direction, cubemap_texel_solid_angle,
     equirect_uv_from_direction, CubemapFace,
 };
+use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
 
 mod mipmap;
@@ -187,6 +188,54 @@ impl SourceCubemapMipChain {
             sample_equirect,
         )
     }
+
+    pub fn from_equirect_with_parallel_executor<E, F>(
+        source_face_size: u32,
+        parallel_executor: &E,
+        sample_equirect: F,
+    ) -> Self
+    where
+        E: ParallelSliceExecutor,
+        F: FnMut(Real, Real) -> [Real; 4],
+    {
+        build_source_cubemap_from_equirect_with_parallel_executor(
+            source_face_size,
+            parallel_executor,
+            sample_equirect,
+        )
+    }
+
+    pub fn from_captured_faces_with_parallel_executor<E>(
+        source_face_size: u32,
+        captured_face_texels: Vec<[Real; 4]>,
+        parallel_executor: &E,
+    ) -> Self
+    where
+        E: ParallelSliceExecutor,
+    {
+        build_source_cubemap_from_captured_faces_with_parallel_executor(
+            source_face_size,
+            captured_face_texels,
+            parallel_executor,
+        )
+    }
+
+    pub fn from_captured_faces_with_quality_and_parallel_executor<E>(
+        source_face_size: u32,
+        captured_face_texels: Vec<[Real; 4]>,
+        quality: SourceCubemapPrefilterQuality,
+        parallel_executor: &E,
+    ) -> Self
+    where
+        E: ParallelSliceExecutor,
+    {
+        build_source_cubemap_from_captured_faces_with_quality_and_parallel_executor(
+            source_face_size,
+            captured_face_texels,
+            quality,
+            parallel_executor,
+        )
+    }
 }
 
 pub fn source_cubemap_face_size_from_equirect_height(equirect_height: u32) -> u32 {
@@ -262,12 +311,77 @@ where
     )
 }
 
+fn build_source_cubemap_from_equirect_with_parallel_executor<E, F>(
+    face_size: u32,
+    parallel_executor: &E,
+    sample_equirect: F,
+) -> SourceCubemapMipChain
+where
+    E: ParallelSliceExecutor,
+    F: FnMut(Real, Real) -> [Real; 4],
+{
+    build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor(
+        face_size,
+        SourceCubemapPmremLayout::default(),
+        SourceCubemapPrefilterQuality::Normal,
+        parallel_executor,
+        sample_equirect,
+    )
+}
+
 fn build_source_cubemap_from_equirect_with_pmrem_layout<F>(
     face_size: u32,
     pmrem_layout: SourceCubemapPmremLayout,
     quality: SourceCubemapPrefilterQuality,
-    mut sample_equirect: F,
+    sample_equirect: F,
 ) -> SourceCubemapMipChain
+where
+    F: FnMut(Real, Real) -> [Real; 4],
+{
+    let (face_size, mip_count, source_storage) =
+        source_cubemap_base_from_equirect(face_size, sample_equirect);
+    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
+    build_source_cubemap_from_source_mips_with_pmrem_layout(
+        face_size,
+        mip_count,
+        source_mips,
+        pmrem_layout,
+        quality,
+    )
+}
+
+fn build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor<E, F>(
+    face_size: u32,
+    pmrem_layout: SourceCubemapPmremLayout,
+    quality: SourceCubemapPrefilterQuality,
+    parallel_executor: &E,
+    sample_equirect: F,
+) -> SourceCubemapMipChain
+where
+    E: ParallelSliceExecutor,
+    F: FnMut(Real, Real) -> [Real; 4],
+{
+    let (face_size, mip_count, source_storage) =
+        source_cubemap_base_from_equirect(face_size, sample_equirect);
+    let source_mips = mipmap::source_cubemap_mips_from_base_with_parallel_executor(
+        &source_storage,
+        face_size,
+        mip_count,
+        parallel_executor,
+    );
+    build_source_cubemap_from_source_mips_with_pmrem_layout(
+        face_size,
+        mip_count,
+        source_mips,
+        pmrem_layout,
+        quality,
+    )
+}
+
+fn source_cubemap_base_from_equirect<F>(
+    face_size: u32,
+    mut sample_equirect: F,
+) -> (u32, u32, Vec<[Real; 4]>)
 where
     F: FnMut(Real, Real) -> [Real; 4],
 {
@@ -287,16 +401,7 @@ where
         }
     }
 
-    // Source mips stay separate from the PMREM chain: skybox minification and FIS
-    // source LOD read this angular-filtered pyramid, while reflections read PMREM.
-    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
-    build_source_cubemap_from_source_mips_with_pmrem_layout(
-        face_size,
-        mip_count,
-        source_mips,
-        pmrem_layout,
-        quality,
-    )
+    (face_size, mip_count, source_storage)
 }
 
 /// Builds the source mip pyramid, PMREM chain, and SH9 data from six captured
@@ -312,11 +417,57 @@ pub fn build_source_cubemap_from_captured_faces(
     )
 }
 
+fn build_source_cubemap_from_captured_faces_with_parallel_executor<E>(
+    face_size: u32,
+    captured_face_texels: Vec<[Real; 4]>,
+    parallel_executor: &E,
+) -> SourceCubemapMipChain
+where
+    E: ParallelSliceExecutor,
+{
+    build_source_cubemap_from_captured_faces_with_quality_and_parallel_executor(
+        face_size,
+        captured_face_texels,
+        SourceCubemapPrefilterQuality::Normal,
+        parallel_executor,
+    )
+}
+
 pub fn build_source_cubemap_from_captured_faces_with_quality(
     face_size: u32,
     captured_face_texels: Vec<[Real; 4]>,
     quality: SourceCubemapPrefilterQuality,
 ) -> SourceCubemapMipChain {
+    let (face_size, mip_count, source_storage) =
+        source_cubemap_base_from_captured_faces(face_size, captured_face_texels);
+    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
+    build_source_cubemap_from_source_mips_with_quality(face_size, mip_count, source_mips, quality)
+}
+
+fn build_source_cubemap_from_captured_faces_with_quality_and_parallel_executor<E>(
+    face_size: u32,
+    captured_face_texels: Vec<[Real; 4]>,
+    quality: SourceCubemapPrefilterQuality,
+    parallel_executor: &E,
+) -> SourceCubemapMipChain
+where
+    E: ParallelSliceExecutor,
+{
+    let (face_size, mip_count, source_storage) =
+        source_cubemap_base_from_captured_faces(face_size, captured_face_texels);
+    let source_mips = mipmap::source_cubemap_mips_from_base_with_parallel_executor(
+        &source_storage,
+        face_size,
+        mip_count,
+        parallel_executor,
+    );
+    build_source_cubemap_from_source_mips_with_quality(face_size, mip_count, source_mips, quality)
+}
+
+fn source_cubemap_base_from_captured_faces(
+    face_size: u32,
+    captured_face_texels: Vec<[Real; 4]>,
+) -> (u32, u32, Vec<[Real; 4]>) {
     let face_size = face_size.max(1);
     let expected_base_texel_count =
         face_size as usize * face_size as usize * SOURCE_CUBEMAP_FACE_COUNT;
@@ -337,8 +488,7 @@ pub fn build_source_cubemap_from_captured_faces_with_quality(
         );
     }
 
-    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
-    build_source_cubemap_from_source_mips_with_quality(face_size, mip_count, source_mips, quality)
+    (face_size, mip_count, source_storage)
 }
 
 /// Rebuild Zircon PMREM/SH9 from an external cubemap's source mip pyramid.

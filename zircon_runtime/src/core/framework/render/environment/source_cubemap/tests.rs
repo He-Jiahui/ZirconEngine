@@ -194,6 +194,20 @@ fn source_cubemap_constant_equirect_preserves_all_mips() {
 }
 
 #[test]
+fn source_cubemap_explicit_executor_entry_preserves_output_contract() {
+    use crate::core::framework::tasks::TaskPoolDescriptor;
+    use crate::core::runtime::tasks::TaskPool;
+
+    let serial = build_source_cubemap_from_equirect(4, |u, v| [u, v, u + v, 1.0]);
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+    let pooled = SourceCubemapMipChain::from_equirect_with_parallel_executor(4, &pool, |u, v| {
+        [u, v, u + v, 1.0]
+    });
+
+    assert_eq!(pooled, serial);
+}
+
+#[test]
 fn source_cubemap_angular_filter_selects_higher_resolution_input_mips() {
     let mip_count = source_cubemap_mip_count(512);
     let input_mips = (1..mip_count)

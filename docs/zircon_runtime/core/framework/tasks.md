@@ -1,6 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
+  - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
@@ -16,6 +19,7 @@ related_code:
   - zircon_runtime/src/core/framework/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/tasks/mod.rs
+  - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_kind.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_descriptor.rs
   - zircon_runtime/src/core/framework/tasks/task_poll_budget.rs
@@ -35,6 +39,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/tests/tasks.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
+  - tools/tests/test_runtime_job_system_audit.py
   - cargo test -p zircon_runtime --lib task_framework --locked
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
@@ -46,7 +52,7 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::tasks` is the neutral contract layer for Bevy-inspired task-pool vocabulary. It gives runtime modules, asset importers, render preparation, diagnostics, and future app profile wiring a shared way to describe compute, async-compute, and IO task ownership without making the framework layer own a concrete executor.
 
-This framework layer is intentionally contract-only. The concrete rayon-backed bridge now lives in `zircon_runtime::core::tasks`, where `TaskPools` owns runtime-local compute, async-compute, and IO pools. `TasksModule` remains the built-in lifecycle descriptor.
+This framework layer is intentionally contract-only. The concrete rayon-backed bridge lives in `zircon_runtime::core::runtime::tasks`, where `TaskPools` owns runtime-local compute, async-compute, and IO pools. `TasksModule` remains the built-in lifecycle descriptor.
 
 ## Reference Evidence
 
@@ -59,9 +65,9 @@ Zircon keeps the same product semantics but does not copy Bevy's global singleto
 
 ## Ownership Boundary
 
-The task contracts live under `zircon_runtime::core::framework` because they are shared DTOs and narrow helper types. They do not spawn threads, schedule work, poll futures, or install global executors. Concrete behavior belongs in `zircon_runtime::core::tasks`, runtime manager facades, or subsystem-specific executor owners.
+The task contracts live under `zircon_runtime::core::framework` because they are shared DTOs and narrow helper types. They do not spawn threads, schedule work, poll futures, or install global executors. Concrete behavior belongs in `zircon_runtime::core::runtime::tasks`, runtime manager facades, or subsystem-specific executor owners.
 
-The framework module deliberately avoids `zircon_app` profile wiring, concrete prelude policy, asset/resource dependency state, UI focus behavior, and scene ECS scheduling. `zircon_runtime::core::tasks` and the runtime prelude may expose the concrete pool facade, while higher-level systems should consume the framework contracts through coordinated runtime-owned slices.
+The framework module deliberately avoids `zircon_app` profile wiring, concrete prelude policy, asset/resource dependency state, UI focus behavior, and scene ECS scheduling. `zircon_runtime::core::runtime::tasks` and the runtime prelude may expose the concrete pool facade, while higher-level systems should consume the framework contracts through coordinated runtime-owned slices.
 
 ## Data Model
 
@@ -74,6 +80,7 @@ The module is folder-backed so `tasks/mod.rs` stays structural:
 - `AsyncTaskHandle` is a stable numeric identifier for diagnostics and future handle tables.
 - `AsyncTaskDescriptor` ties a handle to a pool, label, and cancellation policy.
 - `AsyncTaskState` and `AsyncTaskStatus` expose task lifecycle diagnostics, terminal-state detection, poll counts, and failure text.
+- `ParallelSliceExecutor` is a narrow blocking slice-parallelism contract. Framework algorithms can request bounded parallel work without importing the concrete runtime pool or Rayon.
 
 All types are serializable where appropriate so diagnostics, remote-control, and editor panels can inspect task state without depending on executor internals.
 
@@ -87,8 +94,9 @@ Current behavior is limited to pure helpers and invariants:
 - poll counts use saturating addition,
 - terminal-state helpers classify completed, failed, and cancelled tasks,
 - poll budget helpers report remaining per-frame main-thread polls or unlimited polling.
+- `TaskPool` implements `ParallelSliceExecutor` in the runtime task owner, so framework algorithms execute on the caller-supplied runtime pool and never create or discover a process-global executor.
 
-No task is executed by these helpers. `TaskPools` consumes the pool descriptors and kinds as its public description, while future async task managers should use the async task contracts as diagnostic payloads instead of exposing concrete rayon, async-executor, or platform thread-pool types.
+Framework contracts do not own task execution. Calling `ParallelSliceExecutor::parallel_for(...)` delegates execution to the supplied implementation; `TaskPools` consumes the remaining descriptors and kinds as its public description. Future async task managers should use the async task contracts as diagnostic payloads instead of exposing concrete rayon, async-executor, or platform thread-pool types.
 
 ## Test Coverage
 
@@ -99,5 +107,7 @@ No task is executed by these helpers. `TaskPools` consumes the pool descriptors 
 - status transitions from pending through running and failed,
 - poll-count recording and default/unlimited poll budgets,
 - root module structure so implementation stays in child files rather than `tasks/mod.rs`.
+- source cubemap explicit-executor construction preserving the synchronous builder output contract,
+- the Runtime 11 audit proving that source mip generation has no direct Rayon reference and that the only production Rayon owners remain `pool.rs` and `parallel_for.rs`.
 
 Milestone validation evidence should be recorded in the active Bevy task-pool foundation session note. Full workspace validation remains a later milestone testing-stage concern while other active sessions are changing app, editor, UI, scene, plugin, and asset surfaces.

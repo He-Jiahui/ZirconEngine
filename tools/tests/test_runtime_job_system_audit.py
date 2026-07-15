@@ -25,6 +25,33 @@ class RuntimeJobSystemAuditTests(unittest.TestCase):
         self.assertEqual(audit["behavior_test_anchor_count"], 13)
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
         self.assertTrue(audit["mirror_docs_guard_present"])
+        self.assertEqual(
+            audit["direct_rayon_paths"], audit["expected_direct_rayon_paths"]
+        )
+        self.assertEqual(audit["unexpected_rayon_paths"], [])
+        self.assertEqual(audit["unclassified_direct_rayon"], [])
+
+        source_mipmap = (
+            self.repo_root
+            / "zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs"
+        ).read_text(encoding="utf-8")
+        parallel_contract = (
+            self.repo_root
+            / "zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs"
+        ).read_text(encoding="utf-8")
+        runtime_parallel_for = (
+            self.repo_root
+            / "zircon_runtime/src/core/runtime/tasks/parallel_for.rs"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("ParallelSliceExecutor", source_mipmap)
+        self.assertIn(
+            "source_cubemap_mips_from_base_with_parallel_executor", source_mipmap
+        )
+        self.assertNotIn("rayon::", source_mipmap)
+        self.assertNotIn("use rayon", source_mipmap)
+        self.assertIn("pub trait ParallelSliceExecutor", parallel_contract)
+        self.assertIn("impl ParallelSliceExecutor for TaskPool", runtime_parallel_for)
         self.assertEqual(audit["risks"], [])
 
 
