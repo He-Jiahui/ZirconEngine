@@ -238,7 +238,7 @@ M1 均保持 `in_progress`。
 - open 待修复（Editor07 动画资产打开测试夹具未迁移索引权威）：[animation-asset-open-index-fixture-cutover](07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md)
 - fixed 已修复：[editing-operation-owner-structure-guard-drift](09/fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md)
 - fixed 已修复：[editor-viewport-resolve-job-guard-drift](09/fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)
-- open 待修复（Plugins05 Navigation 产出记录超过十条归档上限）：[navigation-plan-output-record-archive-limit](../../zircon_plugins/05/failure-2026-07-13-navigation-plan-output-record-archive-limit.md)
+- fixed 已修复（Plugins05 Navigation 产出记录已收束到编号子目录）：[navigation-plan-output-record-archive-limit](09/fixed-2026-07-15-navigation-plan-output-record-archive-limit.md)
 - fixed 已修复：[plan-output-record-archive-limit](09/fixed-2026-07-14-plan-output-record-archive-limit.md)
 - open 待修复（EditorUI01 archive notice）：[plan-output-archive-notice](../editor_ui/01/failure-2026-07-13-plan-output-archive-notice.md)
 - open 待修复（EditorUI10 与 index output notice）：[editor-ui-plan-output-notices](../editor_ui/10/failure-2026-07-13-editor-ui-plan-output-notices.md)
