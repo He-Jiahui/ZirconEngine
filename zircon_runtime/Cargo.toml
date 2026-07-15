@@ -134,6 +134,7 @@ target-server = [
     "core-min",
     "diagnostic-log",
     "platform-headless",
+    "dep:naga",
 ]
 target-editor-host = [
     "core-min",

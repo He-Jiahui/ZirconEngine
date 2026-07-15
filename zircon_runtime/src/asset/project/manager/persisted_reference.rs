@@ -1,7 +1,7 @@
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
 
-use crate::asset::safe_project_path::is_safe_regular_file;
+use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::{AssetReference, ReferenceResolutionError};
 
 use super::ProjectManager;
@@ -49,18 +49,19 @@ impl ProjectManager {
             .iter()
             .zip(self.package_assets.project_roots())
         {
-            let path = root.join(reference.locator.path());
-            if is_safe_regular_file(root, &path).map_err(|source| {
-                ReferenceResolutionError::PathIo {
-                    path: path.clone(),
-                    source,
-                }
-            })? {
-                candidates.push(candidate);
+            let path =
+                persisted_source_path_for_locator(root, &reference.locator).map_err(|source| {
+                    ReferenceResolutionError::PathIo {
+                        path: root.join(reference.locator.path()),
+                        source,
+                    }
+                })?;
+            if let Some(path) = path {
+                candidates.push((candidate, path));
             }
         }
-        let (root_rel, _) = match candidates.as_slice() {
-            [(root_rel, root)] => (*root_rel, *root),
+        let ((root_rel, root), source_path) = match candidates.as_slice() {
+            [(candidate, path)] => (*candidate, path),
             [] => {
                 return Err(ReferenceResolutionError::MissingPath {
                     path: reference.locator.to_string(),
@@ -72,10 +73,20 @@ impl ProjectManager {
                 })
             }
         };
+        let relative =
+            source_path
+                .strip_prefix(root)
+                .map_err(|error| ReferenceResolutionError::Registry {
+                    message: format!(
+                        "persisted source {} escaped root {}: {error}",
+                        source_path.display(),
+                        root.display()
+                    ),
+                })?;
         let path_hint = RelPath::parse(format!(
             "{}/{}",
             root_rel.as_str(),
-            reference.locator.path()
+            relative.to_string_lossy()
         ))
         .map_err(|source| ReferenceResolutionError::Path {
             path: reference.locator.to_string(),

@@ -1,5 +1,9 @@
 #[cfg(feature = "text")]
 use super::import_font_asset;
+#[cfg(feature = "graphics")]
+use super::import_shader;
+#[cfg(any(feature = "graphics", feature = "target-server"))]
+use super::import_shader_package;
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
     import_gltf, import_material, import_mesh, import_model, import_physics_material, import_scene,
@@ -7,8 +11,6 @@ use super::{
 };
 #[cfg(test)]
 use super::{import_obj, import_sound};
-#[cfg(feature = "graphics")]
-use super::{import_shader, import_shader_package};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -275,7 +277,7 @@ impl AssetImporter {
             import_cube_lut::import_cube_lut,
         )?;
 
-        #[cfg(feature = "graphics")]
+        #[cfg(any(feature = "graphics", feature = "target-server"))]
         self.register_function(
             descriptor(
                 "zircon.builtin.shader.zshader_package",

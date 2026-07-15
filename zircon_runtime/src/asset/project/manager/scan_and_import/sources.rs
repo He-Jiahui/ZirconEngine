@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
+use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::{AssetImportError, AssetUri};
 
 use super::super::{
@@ -94,6 +95,15 @@ impl ProjectManager {
             let Some(compound_root) = compound_root_for_meta_path(&meta_path) else {
                 continue;
             };
+            let uri = self.source_uri_for_asset_root_path(root, package_id, &compound_root)?;
+            let Some(persisted_source) =
+                persisted_source_path_for_locator(root, &uri).map_err(AssetImportError::Io)?
+            else {
+                continue;
+            };
+            if persisted_source != meta_path {
+                continue;
+            }
             let mut included_paths = Vec::new();
             collect_files(&compound_root, &mut included_paths)?;
             included_paths.sort();
@@ -102,7 +112,7 @@ impl ProjectManager {
                 .map(|path| self.source_uri_for_asset_root_path(root, package_id, path))
                 .collect::<Result<Vec<_>, _>>()?;
             sources.push(AssetImportSource {
-                uri: self.source_uri_for_asset_root_path(root, package_id, &compound_root)?,
+                uri,
                 path: meta_path.clone(),
                 meta_path,
                 unit: AssetSourceUnit::Compound,

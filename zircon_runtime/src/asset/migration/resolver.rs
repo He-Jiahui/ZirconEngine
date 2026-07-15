@@ -6,8 +6,8 @@ use zircon_runtime_interface::project::{
 use zircon_runtime_interface::resource::AssetReference;
 use zircon_runtime_interface::resource::ResourceScheme;
 
+use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::registry::AssetRegistryIndex;
-use crate::asset::safe_project_path::is_safe_regular_file;
 use crate::asset::ReferenceResolutionError;
 
 use super::AssetMigrationIssueKind;
@@ -106,22 +106,26 @@ impl<'a> MigrationResolver<'a> {
     }
 
     fn project_relative_path(&self, relative: &str) -> Result<RelPath, ResolutionFailure> {
+        let locator = crate::asset::AssetUri::parse(&format!("res://{relative}"))
+            .map_err(|error| failure(AssetMigrationIssueKind::UnsafePath, error.to_string()))?;
         let mut candidates = Vec::new();
         for candidate @ (_, root) in self.roots {
-            let path = root.join(relative);
-            match is_safe_regular_file(root, &path) {
-                Ok(true) => candidates.push(candidate),
-                Ok(false) => {}
+            match persisted_source_path_for_locator(root, &locator) {
+                Ok(Some(path)) => candidates.push((candidate, path)),
+                Ok(None) => {}
                 Err(error) => {
                     return Err(failure(
                         AssetMigrationIssueKind::PathIo,
-                        format!("failed to inspect {}: {error}", path.display()),
+                        format!(
+                            "failed to inspect {}: {error}",
+                            root.join(relative).display()
+                        ),
                     ));
                 }
             }
         }
-        let (root_rel, _) = match candidates.as_slice() {
-            [candidate] => *candidate,
+        let ((root_rel, root), path) = match candidates.as_slice() {
+            [(candidate, path)] => (*candidate, path),
             [] => {
                 return Err(failure(
                     AssetMigrationIssueKind::MissingPath,
@@ -135,8 +139,22 @@ impl<'a> MigrationResolver<'a> {
                 ))
             }
         };
-        RelPath::parse(format!("{}/{relative}", root_rel.as_str()))
-            .map_err(|error| failure(AssetMigrationIssueKind::UnsafePath, error.to_string()))
+        let physical_relative = path.strip_prefix(root).map_err(|error| {
+            failure(
+                AssetMigrationIssueKind::UnsafePath,
+                format!(
+                    "persisted source {} escaped root {}: {error}",
+                    path.display(),
+                    root.display()
+                ),
+            )
+        })?;
+        RelPath::parse(format!(
+            "{}/{}",
+            root_rel.as_str(),
+            physical_relative.to_string_lossy()
+        ))
+        .map_err(|error| failure(AssetMigrationIssueKind::UnsafePath, error.to_string()))
     }
 }
 
@@ -163,4 +181,46 @@ fn resolution_failure(error: ReferenceResolutionError) -> ResolutionFailure {
         _ => AssetMigrationIssueKind::InvalidDocument,
     };
     failure(kind, error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+    use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
+    use crate::asset::registry::AssetRegistryEntry;
+    use crate::asset::{AssetKind, AssetUri, AssetUuid};
+
+    #[test]
+    fn migration_uses_compound_zmeta_path_for_logical_directory_root() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_migration_compound_persisted_reference_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("shaders/redirect_surface")).unwrap();
+        let uuid: AssetUuid = "f2111111-2222-4333-8444-555555555555".parse().unwrap();
+        let locator = AssetUri::parse("res://shaders/redirect_surface").unwrap();
+        let mut meta = AssetMetaDocument::new(uuid, locator.clone(), AssetKind::Shader);
+        meta.unit = AssetSourceUnit::Compound;
+        meta.save(root.join("shaders/redirect_surface.zmeta"))
+            .unwrap();
+        let index = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+            uuid,
+            locator,
+            AssetKind::Shader,
+            "redirect surface",
+        )])
+        .unwrap();
+        let roots = vec![(RelPath::parse("assets").unwrap(), root.clone())];
+        let resolver = MigrationResolver::new(&index, &roots);
+
+        let path = resolver
+            .project_relative_path("shaders/redirect_surface")
+            .unwrap();
+
+        assert_eq!(path.as_str(), "assets/shaders/redirect_surface.zmeta");
+        fs::remove_dir_all(root).unwrap();
+    }
 }

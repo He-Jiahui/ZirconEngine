@@ -17,9 +17,9 @@ mod import_model;
 mod import_obj;
 mod import_physics_material;
 mod import_scene;
-#[cfg(feature = "graphics")]
+#[cfg(any(feature = "graphics", feature = "target-server"))]
 mod import_shader;
-#[cfg(feature = "graphics")]
+#[cfg(any(feature = "graphics", feature = "target-server"))]
 mod import_shader_package;
 #[cfg(test)]
 mod import_sound;
@@ -28,7 +28,7 @@ mod import_ui_icon_asset;
 mod import_ui_theme_asset;
 mod model_mesh_subassets;
 mod primitive_from_indexed_mesh;
-#[cfg(feature = "graphics")]
+#[cfg(any(feature = "graphics", feature = "target-server"))]
 mod validate_wgsl;
 
 pub use asset_importer::AssetImporter;

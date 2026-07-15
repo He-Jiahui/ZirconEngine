@@ -1,11 +1,12 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::project::{AssetRef, RelPath};
 
+use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
 use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
 use crate::asset::safe_project_path::is_safe_regular_file;
-use crate::asset::{AssetReference, AssetUri, AssetUuid, ReferenceResolutionError};
+use crate::asset::{AssetReference, AssetUri, ReferenceResolutionError};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -26,6 +27,77 @@ pub struct ReferenceRepair {
 pub(crate) struct ResolvedProjectReference {
     pub(crate) reference: AssetReference,
     pub(crate) repair: Option<ReferenceRepair>,
+}
+
+/// Maps a registry locator to its one persisted source file under an asset root.
+///
+/// A single-file asset persists its source file directly. A compound asset persists the
+/// `.zmeta` file whose validated `unit` and logical URL describe the directory-root locator.
+/// Directories themselves are deliberately never accepted as persisted sources.
+pub(crate) fn persisted_source_path_for_locator(
+    root: &Path,
+    locator: &AssetUri,
+) -> Result<Option<PathBuf>, std::io::Error> {
+    let regular_source = root.join(locator.path());
+    if is_safe_regular_file(root, &regular_source)? {
+        return Ok(Some(regular_source));
+    }
+
+    let compound_meta = compound_meta_path(&regular_source)?;
+    if !is_safe_regular_file(root, &compound_meta)? {
+        return Ok(None);
+    }
+    let meta = AssetMetaDocument::load(&compound_meta)?;
+    if meta.unit == AssetSourceUnit::Compound
+        && meta.url.label().is_none()
+        && meta.url.scheme() == locator.scheme()
+        && meta.url.path() == locator.path()
+    {
+        Ok(Some(compound_meta))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Resolves the logical asset locator carried by a compound persisted `.zmeta` source.
+pub(crate) fn logical_locator_for_persisted_source(
+    root: &Path,
+    source: &Path,
+) -> Result<Option<AssetUri>, std::io::Error> {
+    if !is_safe_regular_file(root, source)? {
+        return Ok(None);
+    }
+    let Some(file_name) = source.file_name().and_then(|name| name.to_str()) else {
+        return Ok(None);
+    };
+    if !file_name.ends_with(".zmeta") {
+        return Ok(None);
+    }
+    let meta = AssetMetaDocument::load(source)?;
+    if meta.unit != AssetSourceUnit::Compound || meta.url.label().is_some() {
+        return Ok(None);
+    }
+    let expected = compound_meta_path(&root.join(meta.url.path()))?;
+    if source.canonicalize()? != expected.canonicalize()? {
+        return Ok(None);
+    }
+    Ok(Some(meta.url))
+}
+
+fn compound_meta_path(logical_root: &Path) -> Result<PathBuf, std::io::Error> {
+    let file_name = logical_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "compound logical root {} has no UTF-8 file name",
+                    logical_root.display()
+                ),
+            )
+        })?;
+    Ok(logical_root.with_file_name(format!("{file_name}.zmeta")))
 }
 
 pub(crate) fn resolve_project_reference(
@@ -104,28 +176,41 @@ fn entry_by_hint<'a>(
             continue;
         };
         let path = root.join(relative);
-        if is_safe_regular_file(root, &path).map_err(|source| ReferenceResolutionError::PathIo {
-            path: path.clone(),
-            source,
+        let locator = if let Some(locator) = logical_locator_for_persisted_source(root, &path)
+            .map_err(|source| ReferenceResolutionError::PathIo {
+                path: path.clone(),
+                source,
+            })? {
+            Some(locator)
+        } else if is_safe_regular_file(root, &path).map_err(|source| {
+            ReferenceResolutionError::PathIo {
+                path: path.clone(),
+                source,
+            }
         })? {
-            candidates.push(relative);
+            Some(
+                AssetUri::parse(&format!("res://{relative}")).map_err(|error| {
+                    ReferenceResolutionError::Registry {
+                        message: error.to_string(),
+                    }
+                })?,
+            )
+        } else {
+            None
+        };
+        if let Some(locator) = locator {
+            candidates.push(locator);
         }
     }
-    let relative = match candidates.as_slice() {
+    let base_locator = match candidates.as_slice() {
         [] => return Ok(None),
-        [relative] => *relative,
+        [locator] => locator.clone(),
         _ => {
             return Err(ReferenceResolutionError::AmbiguousPath {
                 path: hint.to_owned(),
             });
         }
     };
-    let base_locator_text = format!("res://{relative}");
-    let base_locator = AssetUri::parse(&base_locator_text).map_err(|error| {
-        ReferenceResolutionError::Registry {
-            message: error.to_string(),
-        }
-    })?;
     let base_entry = registry.entry_by_path(&base_locator);
     let Some(subasset) = reference.sub() else {
         return Ok(base_entry);
@@ -146,16 +231,18 @@ fn project_hint_for_entry(
 ) -> Result<RelPath, ReferenceResolutionError> {
     let mut candidates = Vec::new();
     for candidate @ (_, root) in roots {
-        let path = root.join(entry.path().path());
-        if is_safe_regular_file(root, &path).map_err(|source| ReferenceResolutionError::PathIo {
-            path: path.clone(),
-            source,
-        })? {
-            candidates.push(candidate);
+        let path = persisted_source_path_for_locator(root, entry.path()).map_err(|source| {
+            ReferenceResolutionError::PathIo {
+                path: root.join(entry.path().path()),
+                source,
+            }
+        })?;
+        if let Some(path) = path {
+            candidates.push((candidate, path));
         }
     }
-    let (root, _) = match candidates.as_slice() {
-        [candidate] => *candidate,
+    let ((root_rel, root), path) = match candidates.as_slice() {
+        [(candidate, path)] => (*candidate, path),
         [] => {
             return Err(ReferenceResolutionError::MissingPath {
                 path: entry.path().to_string(),
@@ -167,11 +254,23 @@ fn project_hint_for_entry(
             });
         }
     };
-    RelPath::parse(format!("{}/{}", root.as_str(), entry.path().path())).map_err(|source| {
-        ReferenceResolutionError::Path {
-            path: entry.path().to_string(),
-            source,
-        }
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|error| ReferenceResolutionError::Registry {
+            message: format!(
+                "persisted source {} escaped root {}: {error}",
+                path.display(),
+                root.display()
+            ),
+        })?;
+    RelPath::parse(format!(
+        "{}/{}",
+        root_rel.as_str(),
+        relative.to_string_lossy()
+    ))
+    .map_err(|source| ReferenceResolutionError::Path {
+        path: entry.path().to_string(),
+        source,
     })
 }
 
@@ -182,8 +281,9 @@ mod tests {
     use zircon_runtime_interface::project::AssetRef;
 
     use super::*;
+    use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
     use crate::asset::registry::AssetRegistryEntry;
-    use crate::asset::AssetKind;
+    use crate::asset::{AssetKind, AssetUuid};
 
     #[test]
     fn resolution_reports_guid_path_repair_dangling_and_conflict_states() {
@@ -289,6 +389,60 @@ mod tests {
             Some(ReferenceRepair { kind: ReferenceRepairKind::PathHint, resolved, .. })
                 if resolved.path_hint().as_str() == "assets/models/a.glb"
         ));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn resolution_accepts_compound_zmeta_hint_and_keeps_registered_uuid() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_reference_resolution_compound_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let compound_root = root.join("shaders/redirect_surface");
+        fs::create_dir_all(&compound_root).unwrap();
+        let uuid: AssetUuid = "f1111111-2222-4333-8444-555555555555".parse().unwrap();
+        let locator = AssetUri::parse("res://shaders/redirect_surface").unwrap();
+        let mut meta = AssetMetaDocument::new(uuid, locator.clone(), AssetKind::Shader);
+        meta.unit = AssetSourceUnit::Compound;
+        meta.save(root.join("shaders/redirect_surface.zmeta"))
+            .unwrap();
+        let registry = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+            uuid,
+            locator.clone(),
+            AssetKind::Shader,
+            "redirect surface",
+        )])
+        .unwrap();
+        let roots = vec![(RelPath::parse("assets").unwrap(), root.clone())];
+        let persisted = AssetRef::try_new(
+            uuid,
+            RelPath::parse("assets/shaders/redirect_surface.zmeta").unwrap(),
+            None,
+        )
+        .unwrap();
+
+        let resolved = resolve_project_reference(&registry, &roots, &persisted).unwrap();
+
+        assert_eq!(resolved.reference.uuid, uuid);
+        assert_eq!(resolved.reference.locator, locator);
+        assert_eq!(resolved.repair, None);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn persisted_source_mapping_rejects_directory_without_matching_compound_meta() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_reference_resolution_unregistered_directory_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("shaders/unregistered")).unwrap();
+        let locator = AssetUri::parse("res://shaders/unregistered").unwrap();
+
+        let source = persisted_source_path_for_locator(&root, &locator).unwrap();
+
+        assert_eq!(source, None);
         fs::remove_dir_all(root).unwrap();
     }
 }

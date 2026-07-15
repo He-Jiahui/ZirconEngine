@@ -217,6 +217,46 @@ fn fs_main() -> @location(0) vec4f {
 }
 
 #[test]
+fn compound_shader_persisted_reference_uses_zmeta_source_without_changing_uuid() {
+    let root = unique_temp_project_root("compound_shader_persisted_reference");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    ProjectManifest::new(
+        "Persisted Reference Sandbox",
+        AssetUri::parse("res://shaders/redirect_surface").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let shader_uri = write_include_shader_package(&paths, "redirect_surface", "redirect::surface");
+    let meta_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("shaders/redirect_surface.zmeta");
+    let uuid = AssetMetaDocument::load(&meta_path).unwrap().uuid;
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    let persisted = manager
+        .persist_runtime_reference(&crate::asset::AssetReference::new(uuid, shader_uri))
+        .unwrap();
+    let project = persisted
+        .project_ref()
+        .expect("project persisted reference");
+
+    assert_eq!(project.guid(), uuid);
+    assert_eq!(
+        project.path_hint().as_str(),
+        "assets/shaders/redirect_surface.zmeta"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn project_manager_derives_include_shader_import_path_from_project_and_package_path() {
     let root = unique_temp_project_root("project_manager_shader_import_path_derivation");
     let paths = ProjectPaths::from_root(&root).unwrap();
