@@ -9,6 +9,136 @@ const BBCODE_TABLE_SAMPLE_INDEX: usize = 18;
 const VERTICAL_BBCODE_TABLE_SAMPLE_INDEX: usize = 19;
 const FRAME_EPSILON: f32 = 0.01;
 
+pub(super) fn assert_mixed_bidi_editable_geometry(samples: &[UiRenderCommand]) {
+    let command = sample_by_node(samples, 128);
+    let layout = command
+        .text_layout
+        .as_ref()
+        .expect("mixed-BiDi editable proof must own a resolved layout");
+    let editable = layout
+        .editable
+        .as_ref()
+        .expect("mixed-BiDi editable proof state");
+    assert_eq!(editable.caret.offset, "LTR abc ".len());
+
+    let element = command.to_paint_element(0);
+    let UiPaintPayload::Text { text } = element.payload else {
+        panic!("mixed-BiDi proof must project a text paint payload");
+    };
+    let selections = text
+        .decorations
+        .iter()
+        .filter(|decoration| decoration.kind == UiTextPaintDecorationKind::Selection)
+        .collect::<Vec<_>>();
+    let compositions = text
+        .decorations
+        .iter()
+        .filter(|decoration| decoration.kind == UiTextPaintDecorationKind::CompositionUnderline)
+        .collect::<Vec<_>>();
+    let caret = text
+        .decorations
+        .iter()
+        .find(|decoration| decoration.kind == UiTextPaintDecorationKind::Caret)
+        .expect("mixed-BiDi caret decoration");
+
+    assert_eq!(
+        selections.len(),
+        2,
+        "mixed-BiDi source selection must split into two visual spans"
+    );
+    assert_eq!(compositions.len(), 1);
+    assert!(selections[0].frame.right() < selections[1].frame.x);
+    assert!(caret.frame.x + FRAME_EPSILON >= compositions[0].frame.right());
+}
+
+pub(super) fn assert_mixed_bidi_editable_pixels(
+    samples: &[UiRenderCommand],
+    capture: &zircon_runtime::core::framework::render::CapturedFrame,
+    background: &zircon_runtime::core::framework::render::CapturedFrame,
+) {
+    let command = sample_by_node(samples, 128);
+    let element = command.to_paint_element(0);
+    let UiPaintPayload::Text { text } = element.payload else {
+        panic!("mixed-BiDi proof must project a text paint payload");
+    };
+    for decoration in text.decorations.iter().filter(|decoration| {
+        matches!(
+            decoration.kind,
+            UiTextPaintDecorationKind::Selection
+                | UiTextPaintDecorationKind::CompositionUnderline
+                | UiTextPaintDecorationKind::Caret
+        )
+    }) {
+        let changed = super::count_changed_pixels_in_frame(
+            &capture.rgba,
+            &background.rgba,
+            capture.width,
+            capture.height,
+            decoration.frame,
+            6,
+        );
+        match decoration.kind {
+            UiTextPaintDecorationKind::Selection => {
+                let frame_area = decoration.frame.width.ceil().max(1.0) as usize
+                    * decoration.frame.height.ceil().max(1.0) as usize;
+                assert!(
+                    changed >= (frame_area / 3).max(12),
+                    "selection fill must cover its real framebuffer frame: frame={:?}, changed={changed}, area={frame_area}",
+                    decoration.frame,
+                );
+            }
+            UiTextPaintDecorationKind::CompositionUnderline => assert_near_color_coverage(
+                capture,
+                decoration.frame,
+                [0x4d, 0x89, 0xff],
+                decoration.frame.width.ceil().max(1.0) as usize / 2,
+                "composition underline",
+            ),
+            UiTextPaintDecorationKind::Caret => assert_near_color_coverage(
+                capture,
+                decoration.frame,
+                [0xe8, 0xee, 0xf7],
+                decoration.frame.height.ceil().max(1.0) as usize / 2,
+                "caret",
+            ),
+            _ => unreachable!("editable decoration filter only admits three kinds"),
+        }
+    }
+}
+
+fn assert_near_color_coverage(
+    capture: &zircon_runtime::core::framework::render::CapturedFrame,
+    frame: zircon_runtime_interface::ui::layout::UiFrame,
+    expected: [u8; 3],
+    minimum: usize,
+    label: &str,
+) {
+    let width = capture.width as usize;
+    let height = capture.height as usize;
+    let left = frame.x.max(0.0).floor() as usize;
+    let top = frame.y.max(0.0).floor() as usize;
+    let right = frame.right().max(0.0).ceil() as usize;
+    let bottom = frame.bottom().max(0.0).ceil() as usize;
+    let mut matching = 0usize;
+    for y in top.min(height)..bottom.min(height) {
+        for x in left.min(width)..right.min(width) {
+            let index = (y * width + x) * 4;
+            if capture.rgba[index..index + 3]
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| actual.abs_diff(expected) <= 18)
+            {
+                matching += 1;
+            }
+        }
+    }
+    assert!(
+        matching >= minimum.max(1),
+        "{label} must expose its own framebuffer color: frame={frame:?}, matching={matching}, minimum={}",
+        minimum.max(1),
+    );
+}
+
 #[cfg(target_os = "windows")]
 pub(super) fn assert_variable_font_instance_pixels(
     samples: &[UiRenderCommand],

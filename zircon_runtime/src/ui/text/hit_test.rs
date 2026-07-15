@@ -2,17 +2,12 @@ use crate::graphics::text::layout::measured_grapheme_widths;
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
-        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
-        UiTextCaretAffinity, UiTextDirection, UiTextWritingMode,
+        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextCaretAffinity,
+        UiTextDirection, UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextWritingMode,
     },
 };
 
-use super::grapheme::{grapheme_count, grapheme_indices};
-
-#[path = "hit_test/visual_source.rs"]
-mod visual_source;
-
-use visual_source::{source_caret_for_visual_boundary, VisualBoundaryBias, VisualSourceCluster};
+use super::grapheme::grapheme_count;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextHitTest {
@@ -52,23 +47,24 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
     } else {
         visual_grapheme_boundary_for_x(line, point.x, &style)
     };
-    let fallback_source_offset = line_source_offset_for_grapheme_index(line, grapheme_index);
-    let (source_offset, resolved_affinity) = source_caret_for_visual_boundary(
-        &visual_source_clusters(line),
-        grapheme_index,
-        boundary_bias,
-        fallback_source_offset,
-    );
+    let source_map = UiTextLineSourceMap::new(line);
+    let fallback_source_offset = if grapheme_index == 0 {
+        line.source_range.start
+    } else {
+        line.source_range.end
+    };
+    let resolved_caret =
+        source_map.caret_for_visual_boundary(grapheme_index, boundary_bias, fallback_source_offset);
     let affinity =
         if (vertical_rl && point.y <= line.frame.y) || (!vertical_rl && point.x <= line.frame.x) {
             UiTextCaretAffinity::Upstream
         } else {
-            resolved_affinity
+            resolved_caret.affinity
         };
 
     UiTextHitTest {
         line_index: Some(line_index),
-        source_offset,
+        source_offset: resolved_caret.offset,
         visual_grapheme_index: grapheme_index,
         affinity,
         inside_line: line.frame.contains_point(point),
@@ -125,10 +121,10 @@ fn visual_grapheme_boundary_for_x(
     line: &UiResolvedTextLine,
     point_x: f32,
     style: &UiResolvedStyle,
-) -> (usize, VisualBoundaryBias) {
+) -> (usize, UiTextVisualBoundaryBias) {
     let grapheme_count = grapheme_count(&line.text);
     if grapheme_count == 0 {
-        return (0, VisualBoundaryBias::LeadingCurrent);
+        return (0, UiTextVisualBoundaryBias::LeadingCurrent);
     }
 
     let relative_x = match line.direction {
@@ -143,24 +139,24 @@ fn visual_grapheme_boundary_for_x(
     let mut cursor_x = 0.0_f32;
     for (index, width) in advances.into_iter().enumerate() {
         if index > 0 && measured_x < cursor_x {
-            return (index, VisualBoundaryBias::TrailingPrevious);
+            return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
         if measured_x <= cursor_x + width * 0.5 {
-            return (index, VisualBoundaryBias::LeadingCurrent);
+            return (index, UiTextVisualBoundaryBias::LeadingCurrent);
         }
         cursor_x += width;
     }
-    (grapheme_count, VisualBoundaryBias::TrailingPrevious)
+    (grapheme_count, UiTextVisualBoundaryBias::TrailingPrevious)
 }
 
 fn visual_grapheme_boundary_for_y(
     line: &UiResolvedTextLine,
     point_y: f32,
     style: &UiResolvedStyle,
-) -> (usize, VisualBoundaryBias) {
+) -> (usize, UiTextVisualBoundaryBias) {
     let grapheme_count = grapheme_count(&line.text);
     if grapheme_count == 0 {
-        return (0, VisualBoundaryBias::LeadingCurrent);
+        return (0, UiTextVisualBoundaryBias::LeadingCurrent);
     }
 
     let relative_y = point_y - line.frame.y;
@@ -176,40 +172,14 @@ fn visual_grapheme_boundary_for_y(
     let mut cursor_y = 0.0_f32;
     for (index, height) in advances.into_iter().enumerate() {
         if index > 0 && measured_y < cursor_y {
-            return (index, VisualBoundaryBias::TrailingPrevious);
+            return (index, UiTextVisualBoundaryBias::TrailingPrevious);
         }
         if measured_y <= cursor_y + height * 0.5 {
-            return (index, VisualBoundaryBias::LeadingCurrent);
+            return (index, UiTextVisualBoundaryBias::LeadingCurrent);
         }
         cursor_y += height;
     }
-    (grapheme_count, VisualBoundaryBias::TrailingPrevious)
-}
-
-fn visual_source_clusters(line: &UiResolvedTextLine) -> Vec<VisualSourceCluster> {
-    let mut clusters = Vec::new();
-    for run in &line.runs {
-        let source_len = run.source_range.end.saturating_sub(run.source_range.start);
-        if source_len != run.text.len() {
-            for _ in grapheme_indices(&run.text) {
-                clusters.push(VisualSourceCluster {
-                    source_range: run.source_range,
-                    direction: run.direction,
-                });
-            }
-            continue;
-        }
-        for (start, grapheme) in grapheme_indices(&run.text) {
-            clusters.push(VisualSourceCluster {
-                source_range: zircon_runtime_interface::ui::surface::UiTextRange {
-                    start: run.source_range.start + start,
-                    end: run.source_range.start + start + grapheme.len(),
-                },
-                direction: run.direction,
-            });
-        }
-    }
-    clusters
+    (grapheme_count, UiTextVisualBoundaryBias::TrailingPrevious)
 }
 
 fn resolved_grapheme_advances(
@@ -250,62 +220,4 @@ fn style_for_layout(layout: &UiResolvedTextLayout, line: &UiResolvedTextLine) ->
 
 fn is_vertical_rl(layout: &UiResolvedTextLayout) -> bool {
     matches!(layout.writing_mode, UiTextWritingMode::VerticalRl)
-}
-
-fn line_source_offset_for_grapheme_index(line: &UiResolvedTextLine, index: usize) -> usize {
-    if index == 0 {
-        return line
-            .runs
-            .first()
-            .map(|run| run.source_range.start)
-            .unwrap_or(line.source_range.start);
-    }
-
-    let mut consumed = 0;
-    let mut last_end = line.source_range.start;
-    for run in &line.runs {
-        if let Some(offset) = run_source_offset_for_grapheme_index(run, &mut consumed, index) {
-            return offset;
-        }
-        last_end = run.source_range.end;
-    }
-    last_end.max(line.source_range.end)
-}
-
-fn run_source_offset_for_grapheme_index(
-    run: &UiResolvedTextRun,
-    consumed: &mut usize,
-    target_index: usize,
-) -> Option<usize> {
-    if run.source_range.end.saturating_sub(run.source_range.start) != run.text.len() {
-        return non_isomorphic_run_source_offset_for_grapheme_index(run, consumed, target_index);
-    }
-
-    for (byte_index, grapheme) in grapheme_indices(&run.text) {
-        if *consumed == target_index {
-            return Some(run.source_range.start + byte_index);
-        }
-        *consumed += 1;
-        let end = run.source_range.start + byte_index + grapheme.len();
-        if *consumed == target_index {
-            return Some(end);
-        }
-    }
-    None
-}
-
-fn non_isomorphic_run_source_offset_for_grapheme_index(
-    run: &UiResolvedTextRun,
-    consumed: &mut usize,
-    target_index: usize,
-) -> Option<usize> {
-    let run_graphemes = grapheme_count(&run.text);
-    if *consumed == target_index {
-        return Some(run.source_range.start);
-    }
-    *consumed += run_graphemes;
-    if *consumed >= target_index {
-        return Some(run.source_range.end);
-    }
-    None
 }

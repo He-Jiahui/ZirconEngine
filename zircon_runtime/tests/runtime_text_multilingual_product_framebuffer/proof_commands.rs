@@ -287,3 +287,46 @@ pub(super) fn proof_native_sdf_parity() -> [UiRenderCommand; 2] {
     sdf.text_layout = Some(layout_text(TEXT, &sdf.style, sdf_frame, None));
     [native, sdf]
 }
+
+pub(super) fn proof_mixed_bidi_editable_geometry() -> UiRenderCommand {
+    use zircon_runtime_interface::ui::surface::{
+        UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextRange,
+        UiTextSelection,
+    };
+
+    const TEXT: &str = "LTR abc אבג XYZ";
+    let frame = UiFrame::new(42.0, 1830.0, 996.0, 104.0);
+    let mut command = proof_text(
+        128,
+        frame,
+        TEXT,
+        UiTextDirection::LeftToRight,
+        Some("he"),
+        UiTextRenderMode::Native,
+    );
+    command.style.font_size = 30.0;
+    command.style.line_height = 52.0;
+    let mut layout = layout_text(TEXT, &command.style, frame, None);
+    layout.editable = Some(UiEditableTextState {
+        text: TEXT.to_string(),
+        caret: UiTextCaret {
+            offset: "LTR abc ".len(),
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+        selection: Some(UiTextSelection {
+            anchor: 0,
+            focus: "LTR abc א".len(),
+        }),
+        composition: Some(UiTextComposition {
+            range: UiTextRange {
+                start: "LTR abc ".len(),
+                end: "LTR abc אבג".len(),
+            },
+            text: "אבג".to_string(),
+            restore_text: None,
+        }),
+        read_only: false,
+    });
+    command.text_layout = Some(layout);
+    command
+}

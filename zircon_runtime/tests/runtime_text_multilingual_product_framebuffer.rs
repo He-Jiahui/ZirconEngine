@@ -42,7 +42,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_color_emoji_backend_raster_contract();
     assert_arabic_mark_cluster_backend_face_contract();
 
-    let viewport_size = UVec2::new(1080, 1840);
+    let viewport_size = UVec2::new(1080, 2000);
     let (asset_manager, fixture_root) = product_fixture_asset_manager();
     let background = proof_background(viewport_size);
     let mut samples = vec![
@@ -169,6 +169,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     samples.extend(proof_native_sdf_parity());
     samples.push(proof_msdf_sharp_corner_sample());
     samples.extend(proof_commands::proof_variable_font_instance_samples());
+    samples.push(proof_commands::proof_mixed_bidi_editable_geometry());
     let vertical_layout = samples[11]
         .text_layout
         .as_ref()
@@ -191,6 +192,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     proof_assertions::assert_native_sdf_parity_layout(&samples);
     proof_assertions::assert_bbcode_table_layout(&samples);
     proof_assertions::assert_vertical_bbcode_table_layout(&samples);
+    proof_assertions::assert_mixed_bidi_editable_geometry(&samples);
     let mut commands = vec![background.clone()];
     commands.extend(samples.iter().cloned());
     let (capture, stats) = render_ui_extract_frame(
@@ -231,6 +233,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     proof_assertions::assert_native_sdf_parity_pixels(&samples, &capture, &background_capture);
     proof_assertions::assert_msdf_sharp_corner_pixels(&samples, &capture, &background_capture);
     proof_assertions::assert_variable_font_instance_pixels(&samples, &capture, &background_capture);
+    proof_assertions::assert_mixed_bidi_editable_pixels(&samples, &capture, &background_capture);
     let locale_variant_delta = count_relative_pixel_differences(
         &capture.rgba,
         capture.width,
@@ -762,5 +765,5 @@ fn proof_path() -> PathBuf {
         .join("tests")
         .join("runtime")
         .join("text")
-        .join("runtime_text_vertical_rich_inline_paragraph_product_framebuffer_20260715.png")
+        .join("runtime_text_mixed_bidi_source_geometry_product_framebuffer_20260715.png")
 }

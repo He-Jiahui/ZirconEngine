@@ -54,6 +54,7 @@ pub use text_effects::{
     UiTextDecorations, UiTextDistanceFieldEffects, UiTextGlowEffect, UiTextOutlineEffect,
     UiTextShadowEffect, MAX_TEXT_EFFECT_EXTENT_PX,
 };
+pub use text_geometry::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 pub use text_language::normalize_ui_text_language_tag;
 pub use text_layout::{
     UiResolvedTextBox, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange,

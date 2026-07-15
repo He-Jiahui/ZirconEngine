@@ -49,11 +49,11 @@ pub use render::{
     UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText, UiShapedTextCluster,
     UiShapedTextLine, UiSolidBrushPayload, UiTextAlign, UiTextCaret, UiTextCaretAffinity,
     UiTextComposition, UiTextDecorations, UiTextDirection, UiTextDistanceFieldEffects,
-    UiTextEditAction, UiTextGlowEffect, UiTextOutlineEffect, UiTextOverflow, UiTextPaint,
-    UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange,
+    UiTextEditAction, UiTextGlowEffect, UiTextLineSourceMap, UiTextOutlineEffect, UiTextOverflow,
+    UiTextPaint, UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange,
     UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextShadowEffect,
-    UiTextWrap, UiTextWritingMode, UiVectorBrushPayload, UiVisualAssetRef,
-    MAX_TEXT_EFFECT_EXTENT_PX,
+    UiTextVisualBoundaryBias, UiTextVisualSpan, UiTextWrap, UiTextWritingMode,
+    UiVectorBrushPayload, UiVisualAssetRef, MAX_TEXT_EFFECT_EXTENT_PX,
 };
 pub use timeline::{
     UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,

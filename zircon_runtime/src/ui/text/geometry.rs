@@ -1,27 +1,22 @@
-use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{
-        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextAlign,
-        UiTextCaret, UiTextCaretAffinity, UiTextDirection, UiTextRange, UiTextWritingMode,
+        UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextCaret,
+        UiTextCaretAffinity, UiTextLineSourceMap, UiTextRange, UiTextWritingMode,
     },
 };
 
 use super::measure_text_source_range_width;
 
+#[path = "geometry/source_metrics.rs"]
+mod source_metrics;
+
+use source_metrics::{measured_source_prefix_width, SourceMeasureContext};
+
+#[cfg(test)]
+use source_metrics::{line_accepts_source_measure, source_prefix_range_for_visual_offset};
+
 const TEXT_CARET_WIDTH: f32 = 1.0;
-
-#[derive(Clone, Copy)]
-enum SourceVisualBias {
-    Leading,
-    Trailing,
-}
-
-#[derive(Clone, Copy)]
-struct SourceMeasureContext<'a> {
-    text: &'a str,
-    style: &'a UiResolvedStyle,
-}
 
 pub(crate) fn caret_frame_for_text_layout(
     layout: &UiResolvedTextLayout,
@@ -44,47 +39,19 @@ fn caret_frame_for_text_layout_inner(
     caret: &UiTextCaret,
     measure_context: Option<SourceMeasureContext<'_>>,
 ) -> Option<UiFrame> {
-    let offset = caret.offset;
-    let line = match caret.affinity {
-        UiTextCaretAffinity::Upstream => layout
-            .lines
-            .iter()
-            .find(|line| offset >= line.source_range.start && offset <= line.source_range.end),
-        UiTextCaretAffinity::Downstream => layout
-            .lines
-            .iter()
-            .rev()
-            .find(|line| offset >= line.source_range.start && offset <= line.source_range.end),
-    }
-    .or_else(|| {
-        layout
-            .lines
-            .first()
-            .filter(|line| offset < line.source_range.start)
-    })
-    .or_else(|| layout.lines.last())?;
-    let bias = match caret.affinity {
-        UiTextCaretAffinity::Upstream => SourceVisualBias::Leading,
-        UiTextCaretAffinity::Downstream => SourceVisualBias::Trailing,
-    };
-    let visual_offset = line
-        .runs
-        .iter()
-        .find_map(|run| {
-            (offset >= run.source_range.start && offset <= run.source_range.end)
-                .then(|| run_visual_offset_for_source_offset(run, offset, bias))
-        })
-        .unwrap_or(line.visual_range.end);
+    let line = caret_line(layout, caret)?;
+    let source_map = UiTextLineSourceMap::new(line);
+    let visual_offset = source_map.visual_offset_for_caret(caret);
     if is_vertical_rl(layout) {
         return Some(UiFrame::new(
             line.frame.x,
-            visual_y(layout, line, visual_offset, measure_context),
+            visual_y(layout, line, &source_map, visual_offset, measure_context),
             line.frame.width.max(TEXT_CARET_WIDTH),
             TEXT_CARET_WIDTH,
         ));
     }
     Some(UiFrame::new(
-        visual_x(layout, line, visual_offset, measure_context),
+        visual_x(layout, line, &source_map, visual_offset, measure_context),
         line.frame.y,
         TEXT_CARET_WIDTH,
         line.frame.height.max(TEXT_CARET_WIDTH),
@@ -131,21 +98,13 @@ fn text_range_frames_for_text_layout_inner(
 
     let mut frames = Vec::new();
     for line in &layout.lines {
-        for run in &line.runs {
-            let start = range.start.max(run.source_range.start);
-            let end = range.end.min(run.source_range.end);
-            if start >= end {
-                continue;
-            }
-            let visual_start =
-                run_visual_offset_for_source_offset(run, start, SourceVisualBias::Leading);
-            let visual_end =
-                run_visual_offset_for_source_offset(run, end, SourceVisualBias::Trailing);
-            let x0 = visual_x(layout, line, visual_start, measure_context);
-            let x1 = visual_x(layout, line, visual_end, measure_context);
+        let source_map = UiTextLineSourceMap::new(line);
+        for span in source_map.visual_spans_for_source_range(range) {
+            let visual_start = span.visual_range.start;
+            let visual_end = span.visual_range.end;
             if is_vertical_rl(layout) {
-                let y0 = visual_y(layout, line, visual_start, measure_context);
-                let y1 = visual_y(layout, line, visual_end, measure_context);
+                let y0 = visual_y(layout, line, &source_map, visual_start, measure_context);
+                let y1 = visual_y(layout, line, &source_map, visual_end, measure_context);
                 frames.push(UiFrame::new(
                     line.frame.x,
                     y0.min(y1),
@@ -153,6 +112,8 @@ fn text_range_frames_for_text_layout_inner(
                     (y1 - y0).abs().max(TEXT_CARET_WIDTH),
                 ));
             } else {
+                let x0 = visual_x(layout, line, &source_map, visual_start, measure_context);
+                let x1 = visual_x(layout, line, &source_map, visual_end, measure_context);
                 frames.push(UiFrame::new(
                     x0.min(x1),
                     line.frame.y,
@@ -165,236 +126,64 @@ fn text_range_frames_for_text_layout_inner(
     frames
 }
 
-fn run_visual_offset_for_source_offset(
-    run: &UiResolvedTextRun,
-    offset: usize,
-    bias: SourceVisualBias,
-) -> usize {
-    if offset <= run.source_range.start {
-        return run.visual_range.start;
-    }
-    if offset >= run.source_range.end {
-        return run.visual_range.end;
-    }
-
-    let source_len = run.source_range.end.saturating_sub(run.source_range.start);
-    if source_len == 0 {
-        return match bias {
-            SourceVisualBias::Leading => run.visual_range.start,
-            SourceVisualBias::Trailing => run.visual_range.end,
-        };
-    }
-
-    let run_visual_len = run.visual_range.end.saturating_sub(run.visual_range.start);
-    let local_source_offset = offset.saturating_sub(run.source_range.start);
-    let local_visual_offset = if source_len == run.text.len() {
-        match bias {
-            SourceVisualBias::Leading => grapheme_floor(run.text.as_str(), local_source_offset),
-            SourceVisualBias::Trailing => grapheme_ceil(run.text.as_str(), local_source_offset),
-        }
-    } else {
-        non_isomorphic_local_visual_offset(run.text.as_str(), local_source_offset, source_len, bias)
-    };
-
-    run.visual_range.start + local_visual_offset.min(run_visual_len)
-}
-
-fn non_isomorphic_local_visual_offset(
-    text: &str,
-    local_source_offset: usize,
-    source_len: usize,
-    bias: SourceVisualBias,
-) -> usize {
-    let grapheme_count = text.graphemes(true).count();
-    if grapheme_count == 0 {
-        return 0;
-    }
-
-    let progress = local_source_offset.min(source_len) as f32 / source_len as f32;
-    let visual_index = match bias {
-        SourceVisualBias::Leading => (progress * grapheme_count as f32).floor() as usize,
-        SourceVisualBias::Trailing => (progress * grapheme_count as f32).ceil() as usize,
-    };
-    grapheme_boundary_by_index(text, visual_index.min(grapheme_count))
-}
-
-fn grapheme_boundary_by_index(text: &str, index: usize) -> usize {
-    if index == 0 {
-        return 0;
-    }
-    text.grapheme_indices(true)
-        .nth(index)
-        .map(|(start, _)| start)
-        .unwrap_or(text.len())
-}
-
 fn visual_x(
     layout: &UiResolvedTextLayout,
     line: &UiResolvedTextLine,
+    source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
     measure_context: Option<SourceMeasureContext<'_>>,
 ) -> f32 {
-    if let Some(width) = measured_source_prefix_width(layout, line, visual_offset, measure_context)
-    {
-        return line.frame.x + width;
-    }
-
-    let text = line.text.as_str();
-    let offset = grapheme_floor(text, visual_offset.min(text.len()));
-    let total_units = text.graphemes(true).count();
-    let before_units = text[..offset].graphemes(true).count();
-    if line.glyph_advances.len() == total_units {
-        return line.frame.x
-            + line
-                .glyph_advances
-                .iter()
-                .take(before_units)
-                .map(|advance| sanitized_advance(*advance))
-                .sum::<f32>();
-    }
-
-    let total_units = total_units.max(1) as f32;
-    let before_units = before_units as f32;
-    line.frame.x + (line.frame.width.max(0.0) * before_units / total_units)
+    line.frame.x + resolved_visual_advance(layout, line, source_map, visual_offset, measure_context)
 }
 
 fn visual_y(
     layout: &UiResolvedTextLayout,
     line: &UiResolvedTextLine,
+    source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
     measure_context: Option<SourceMeasureContext<'_>>,
 ) -> f32 {
-    if let Some(width) = measured_source_prefix_width(layout, line, visual_offset, measure_context)
-    {
-        return line.frame.y + width;
-    }
-
-    let text = line.text.as_str();
-    let offset = grapheme_floor(text, visual_offset.min(text.len()));
-    let total_units = text.graphemes(true).count();
-    let before_units = text[..offset].graphemes(true).count();
-    if line.glyph_advances.len() == total_units {
-        return line.frame.y
-            + line
-                .glyph_advances
-                .iter()
-                .take(before_units)
-                .map(|advance| sanitized_advance(*advance))
-                .sum::<f32>();
-    }
-
-    let total_units = total_units.max(1) as f32;
-    let before_units = before_units as f32;
-    line.frame.y + (line.frame.height.max(0.0) * before_units / total_units)
+    line.frame.y + resolved_visual_advance(layout, line, source_map, visual_offset, measure_context)
 }
 
-fn measured_source_prefix_width(
+fn resolved_visual_advance(
     layout: &UiResolvedTextLayout,
     line: &UiResolvedTextLine,
+    source_map: &UiTextLineSourceMap<'_>,
     visual_offset: usize,
     measure_context: Option<SourceMeasureContext<'_>>,
-) -> Option<f32> {
-    let measure_context = measure_context?;
-    if !line_accepts_source_measure(layout, line, measure_context.text) {
-        return None;
-    }
-
-    let range = source_prefix_range_for_visual_offset(line, visual_offset);
-    let width = measure_text_source_range_width(measure_context.text, measure_context.style, range);
-    width.is_finite().then_some(width.max(0.0))
-}
-
-fn source_prefix_range_for_visual_offset(
-    line: &UiResolvedTextLine,
-    visual_offset: usize,
-) -> UiTextRange {
-    let local_end = grapheme_floor(line.text.as_str(), visual_offset.min(line.text.len()));
-    UiTextRange {
-        start: line.source_range.start,
-        end: line
-            .source_range
-            .start
-            .saturating_add(local_end)
-            .min(line.source_range.end),
-    }
-}
-
-fn line_accepts_source_measure(
-    layout: &UiResolvedTextLayout,
-    line: &UiResolvedTextLine,
-    source_text: &str,
-) -> bool {
-    if matches!(layout.text_align, UiTextAlign::Justify)
-        || !matches!(layout.writing_mode, UiTextWritingMode::HorizontalTb)
-        || !matches!(layout.direction, UiTextDirection::LeftToRight)
-        || !matches!(line.direction, UiTextDirection::LeftToRight)
-        || line.ellipsized
-        || line.text.contains('\t')
-    {
-        return false;
-    }
-
-    let Some(source_slice) = source_text.get(line.source_range.start..line.source_range.end) else {
-        return false;
-    };
-    if source_slice != line.text {
-        return false;
-    }
-
-    let [run] = line.runs.as_slice() else {
-        return false;
-    };
-    run.source_range == line.source_range
-        && run.visual_range == line.visual_range
-        && run.text == line.text
-        && matches!(run.direction, UiTextDirection::LeftToRight)
+) -> f32 {
+    measured_source_prefix_width(layout, line, visual_offset, measure_context)
+        .unwrap_or_else(|| source_map.advance_to_visual_offset(visual_offset))
 }
 
 fn is_vertical_rl(layout: &UiResolvedTextLayout) -> bool {
     matches!(layout.writing_mode, UiTextWritingMode::VerticalRl)
 }
 
-fn sanitized_advance(advance: f32) -> f32 {
-    if advance.is_finite() {
-        advance.max(0.0)
-    } else {
-        0.0
+fn caret_line<'a>(
+    layout: &'a UiResolvedTextLayout,
+    caret: &UiTextCaret,
+) -> Option<&'a UiResolvedTextLine> {
+    let matching = |line: &&UiResolvedTextLine| {
+        caret.offset >= line.source_range.start && caret.offset <= line.source_range.end
+    };
+    match caret.affinity {
+        UiTextCaretAffinity::Upstream => layout.lines.iter().find(matching),
+        UiTextCaretAffinity::Downstream => layout.lines.iter().rev().find(matching),
     }
+    .or_else(|| {
+        layout
+            .lines
+            .first()
+            .filter(|line| caret.offset < line.source_range.start)
+    })
+    .or_else(|| layout.lines.last())
 }
 
-fn grapheme_floor(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        if start < offset && offset < end {
-            return start;
-        }
-        if start >= offset {
-            break;
-        }
-    }
-    offset
-}
-
-fn grapheme_ceil(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset < text.len() && !text.is_char_boundary(offset) {
-        offset += 1;
-    }
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        if start < offset && offset < end {
-            return end;
-        }
-        if start >= offset {
-            break;
-        }
-    }
-    offset
-}
+#[cfg(test)]
+#[path = "geometry/tests/mixed_bidi.rs"]
+mod mixed_bidi_tests;
 
 #[cfg(test)]
 mod tests {

@@ -16,6 +16,8 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
   - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
@@ -42,6 +44,8 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
@@ -57,6 +61,8 @@ plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
   - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md
+  - docs/plans/engine-code-structure-convention.md
 tests:
   - cargo check -p zircon_runtime_interface
   - cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --message-format short --color never
@@ -87,6 +93,7 @@ tests:
   - target: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked
   - cargo test -p zircon_runtime_interface --lib ui_image_control_paint_elements_preserve_background_image_and_border_order --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check and RUSTFLAGS=-Awarnings (2026-06-01 workbench icon chrome split: passed, 1 passed)
   - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 latest workbench icon chrome split: passed, 29 passed)
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/tests.rs
 doc_type: module-detail
 ---
 
@@ -133,6 +140,12 @@ The rich text paint slice adds `UiTextPaintRun` and `UiTextRunPaintStyle` beside
 `editable_text.rs` defines the neutral editable text DTOs and edit action vocabulary. `UiTextComposition::restore_text` is optional because paint-only snapshots may only need the visible preedit range and text, but runtime editable state fills it while a composition is active. That snapshot lets `CancelComposition` restore the text that existed before visible preedit replacement, while `CommitComposition` keeps the already-visible preedit text without double insertion.
 
 These fields do not claim final HarfBuzz or platform IME parity yet. They create the shared slots that glyphon, SDF, future HarfBuzz-backed shaping, and editor preview painting must converge on.
+
+### Resolved source/visual geometry
+
+`text_geometry/` is folder-backed because editable decoration construction and source/visual cluster mapping are distinct responsibilities. `source_map.rs` owns the neutral `UiTextLineSourceMap`: it consumes post-layout resolved runs and preserves source range, visual range and direction per grapheme cluster. Caret affinity maps logical boundaries to direction-correct visual edges, while source selections become one or more adjacent visual spans. The decoration owner consumes those spans for selection, composition and caret frames in both HorizontalTb and VerticalRl.
+
+Runtime hit testing and IME geometry import this owner through the public neutral surface. The former runtime-local visual-source helper and the monolithic interface mapping implementation were deleted, so renderers and input paths cannot silently diverge on mixed-BiDi boundaries.
 
 ## Batch, Cache, And Debug Layer
 
