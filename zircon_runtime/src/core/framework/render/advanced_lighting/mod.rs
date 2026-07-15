@@ -41,5 +41,5 @@ pub use subsurface::{
 pub use volumetric::{
     henyey_greenstein_phase, integrate_volumetric_step, FogVolumeData, FroxelGridParams,
     FroxelGridQuality, VolumetricFogSettings, VolumetricIntegrationStep,
-    VOLUMETRIC_FOG_VOLUME_COMPONENT,
+    VOLUMETRIC_FOG_COMPONENT_ID, VOLUMETRIC_FOG_VOLUME_COMPONENT,
 };
