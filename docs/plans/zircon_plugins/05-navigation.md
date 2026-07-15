@@ -193,11 +193,12 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 - M4 跨计划编译回传：`已修复`；[NavQueryFilter 固定数组 serde 编译失败回传](../zircon_editor/editor/15/fixed-2026-07-12-navigation-query-filter-serde-array.md)。
 - M5 Off-mesh Link / Bridge：`完成`；产出记录：[2026-07-12 Navigation M5](05/2026-07-12-navigation-m5-output-records.md)。
 - M6 Editor：`实现整改中，跨计划 gate 未关闭；注册层硬切代码与非 Cargo 门禁完成，当前源包复验排队`；产出记录：[2026-07-13 Navigation M6](05/2026-07-13-navigation-m6-output-records.md)、[2026-07-13 Navigation registration hard cut](05/2026-07-13-navigation-registration-hard-cut-output-records.md)。
-- M6-T1 operation factory：`待修复（open）`；[Editor 03 failure](../zircon_editor/editor/03/failure-2026-07-13-plugin-operation-factory-runtime-wiring.md)。
+- fixed 已修复：[plugin-operation-factory-runtime-wiring](05/fixed-2026-07-15-plugin-operation-factory-runtime-wiring.md)
+- M6-T1 surface 选择态与 operation 参数投影：`待修复（open）`；[failure 交接](05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md)。
 - M6-T2 viewport provider host：`待修复（open）`；[Editor 05 failure](../zircon_editor/editor/05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。
 - fixed 已修复：[navigation-runtime-driver-manager-layering](../zircon_runtime/render/18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
-- M6-T3 mirror consumer SDK：`待修复（open）`；[Plugins 12 failure](12/failure-2026-07-13-plugin-editor-runtime-mirror-consumer-wiring.md)。
+- fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
 
 ## 10. 治理失败交接
 
-- 产出记录超过十条归档上限：`待修复（open）`；[failure 交接](05/failure-2026-07-13-navigation-plan-output-record-archive-limit.md)。
+- 产出记录归档上限：`已修复（fixed）`；[回传记录](../zircon_editor/editor/09/fixed-2026-07-15-navigation-plan-output-record-archive-limit.md)。
