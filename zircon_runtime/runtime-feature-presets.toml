@@ -104,6 +104,8 @@ runtime_features = [
 app_features = [
     "zircon_runtime/target-editor-host",
     "first-party-advanced-render-runtime-plugins",
+    "first-party-navigation-runtime-plugin",
+    "first-party-navigation-editor-plugin",
     "ai-contracts",
     "net-contracts",
     "physics-contracts",
@@ -143,6 +145,8 @@ runtime_features = [
 app_features = [
     "zircon_runtime/target-editor-host",
     "first-party-advanced-render-runtime-plugins",
+    "first-party-navigation-runtime-plugin",
+    "first-party-navigation-editor-plugin",
     "ai-contracts",
     "net-contracts",
     "physics-contracts",
@@ -163,7 +167,7 @@ app_features = [
 id = "server"
 rust_variant = "Server"
 cargo_feature = "target-server"
-runtime_features = ["core-min", "diagnostic-log", "platform-headless"]
+runtime_features = ["core-min", "diagnostic-log", "platform-headless", "dep:naga"]
 app_features = [
     "zircon_runtime/target-server",
     "diagnostic-log",

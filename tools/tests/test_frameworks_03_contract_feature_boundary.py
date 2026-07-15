@@ -147,7 +147,7 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
         self.assertIn(
             '#[cfg(feature = "ai-contracts")]\npub mod ai;', self.framework_root
         )
-        self.assertIn(
+        self.assertNotIn(
             '#[cfg(feature = "ai-contracts")]\npub use crate::core::framework::ai::AiManager;',
             self.manager_root,
         )
@@ -156,13 +156,15 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
             self.manager_resolver,
         )
         self.assertIn(
-            '#[cfg(feature = "ai-contracts")]\ndefine_manager_holder!(\n'
-            '    AiManagerHandle,',
+            '#[cfg(feature = "ai-contracts")]\n'
+            "define_manager_handle_access!(AiManager, ai_manager_handle, "
+            "AI_MANAGER_NAME, ai_handle);",
             self.manager_resolver,
         )
         self.assertNotIn(
-            '#[cfg(feature = "ai-contracts")]\ndefine_manager_holder!(\n'
-            '    RenderingManagerHandle,',
+            '#[cfg(feature = "ai-contracts")]\n'
+            "define_manager_handle_access!(\n"
+            "    RenderingManager,",
             self.manager_resolver,
         )
         self.assertIn(
@@ -235,7 +237,7 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
         self.assertIn(
             '#[cfg(feature = "net-contracts")]\npub mod net;', self.framework_root
         )
-        self.assertIn(
+        self.assertNotIn(
             '#[cfg(feature = "net-contracts")]\npub use crate::core::framework::net::NetManager;',
             self.manager_root,
         )
@@ -244,8 +246,9 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
             self.manager_resolver,
         )
         self.assertIn(
-            '#[cfg(feature = "net-contracts")]\ndefine_manager_holder!(\n'
-            '    NetManagerHandle,',
+            '#[cfg(feature = "net-contracts")]\n'
+            "define_manager_handle_access!(NetManager, net_manager_handle, "
+            "NET_MANAGER_NAME, net_handle);",
             self.manager_resolver,
         )
         self.assertIn(
@@ -300,7 +303,7 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
             '#[cfg(feature = "sound-contracts")]\npub mod sound;',
             self.framework_root,
         )
-        self.assertIn(
+        self.assertNotIn(
             '#[cfg(feature = "sound-contracts")]\n'
             "pub use crate::core::framework::sound::SoundManager;",
             self.manager_root,
@@ -312,8 +315,8 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
         )
         self.assertIn(
             '#[cfg(feature = "sound-contracts")]\n'
-            "define_manager_holder!(\n"
-            "    SoundManagerHandle,",
+            "define_manager_handle_access!(\n"
+            "    SoundManager,",
             self.manager_resolver,
         )
         self.assertIn(
@@ -374,7 +377,7 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
             '#[cfg(feature = "physics-contracts")]\npub mod physics;',
             self.framework_root,
         )
-        self.assertIn(
+        self.assertNotIn(
             '#[cfg(feature = "physics-contracts")]\n'
             "pub use crate::core::framework::physics::PhysicsManager;",
             self.manager_root,
@@ -386,8 +389,8 @@ class Frameworks03ContractFeatureBoundaryTests(unittest.TestCase):
         )
         self.assertIn(
             '#[cfg(feature = "physics-contracts")]\n'
-            "define_manager_holder!(\n"
-            "    PhysicsManagerHandle,",
+            "define_manager_handle_access!(\n"
+            "    PhysicsManager,",
             self.manager_resolver,
         )
         self.assertIn(
