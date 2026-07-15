@@ -20,7 +20,7 @@ pub(in crate::graphics::scene) use output_target_texture::OutputTargetTextureRes
 pub(in crate::graphics::scene::resources) use output_target_texture::OutputTargetWritebackConverter;
 pub(crate) use pipeline::{default_pipeline_key, PipelineKey};
 pub(in crate::graphics::scene::resources) use post_process_lut_texture::PostProcessLutTextureResource;
-pub(crate) use resource_streamer::ResourceStreamer;
+pub(crate) use resource_streamer::{IrradianceVolumeTextureBinding, ResourceStreamer};
 pub(crate) use runtime::MaterialCaptureSeed;
 pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};
 pub(crate) use ui_texture::ui_image_resource_id;

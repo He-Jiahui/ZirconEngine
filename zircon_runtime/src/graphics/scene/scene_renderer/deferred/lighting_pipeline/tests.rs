@@ -1,4 +1,6 @@
-use crate::core::framework::render::{GBufferChannelMask, ShadingModelDescriptor, ShadingModelId};
+use crate::core::framework::render::{
+    wgsl_include_paths, GBufferChannelMask, ShadingModelDescriptor, ShadingModelId,
+};
 
 use super::shader_source::{
     assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceError,
@@ -40,6 +42,37 @@ fn deferred_lighting_shader_accepts_baked_indirect_from_gbuffer_emissive() {
 fn deferred_lighting_preserves_frame_clear_for_sky_composition() {
     assert!(DEFERRED_LIGHTING_SHADER.contains("if (albedo.a <= 0.001) {\n        discard;"));
     assert!(!DEFERRED_LIGHTING_SHADER.contains("background_tex"));
+}
+
+#[test]
+fn deferred_lighting_shader_resolves_builtin_dependencies_without_directives() {
+    let source =
+        assemble_deferred_lighting_shader_source(DeferredLightingShaderSourceRequest::new())
+            .expect("builtin deferred shader modules should resolve");
+    let irradiance = source
+        .find("// include: zr_irradiance_volume.wgsl")
+        .expect("irradiance-volume dependency should be assembled");
+    let lightmap = source
+        .find("// include: zr_lightmap.wgsl")
+        .expect("lightmap module should be assembled");
+
+    assert!(irradiance < lightmap);
+    assert_eq!(
+        source
+            .matches("// include: zr_irradiance_volume.wgsl")
+            .count(),
+        1
+    );
+    assert!(wgsl_include_paths(&source).is_empty());
+
+    let module = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(&source)));
+    naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .expect("resolved builtin deferred shader should validate");
 }
 
 const CUSTOM_TOON_DEFERRED_INCLUDE: &str = r#"

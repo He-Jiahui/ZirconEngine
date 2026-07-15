@@ -167,7 +167,7 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: ve
 
     let light = zr_gpu_light(light_index);
     let light_type = zr_gpu_light_type(light);
-    let base_radiance = light_radiance(light);
+    let base_radiance = light_radiance(light) * zr_light_cookie_factor(light, world_position);
     if (length(base_radiance) <= EPSILON) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -220,7 +220,7 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
 
     let light = zr_gpu_light(light_index);
     let light_type = zr_gpu_light_type(light);
-    let base_radiance = light_radiance(light);
+    let base_radiance = light_radiance(light) * zr_light_cookie_factor(light, world_position);
     if (length(base_radiance) <= EPSILON) {
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }

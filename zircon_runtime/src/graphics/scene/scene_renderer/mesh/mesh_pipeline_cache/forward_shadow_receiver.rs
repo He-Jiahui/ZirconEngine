@@ -2,6 +2,9 @@ use bytemuck::bytes_of;
 use wgpu::util::DeviceExt;
 
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_apply_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::irradiance_volume_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::light_cookie_bind_group_layout_entries;
+use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::transmission_scene_color_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
@@ -42,6 +45,7 @@ impl MeshPipelineCache {
             light_tile_masks_buffer,
             &params_buffer,
             None,
+            None,
         )
     }
 
@@ -56,6 +60,7 @@ impl MeshPipelineCache {
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
     ) -> wgpu::BindGroup {
         let params_buffer = self.forward_volumetric_apply.create_params_buffer(
             device,
@@ -72,6 +77,7 @@ impl MeshPipelineCache {
             light_tile_masks_buffer,
             &params_buffer,
             integrated_volumetric_view,
+            transmission_scene_color_view,
         )
     }
 
@@ -85,6 +91,7 @@ impl MeshPipelineCache {
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
         volumetric_params_buffer: &wgpu::Buffer,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
     ) -> wgpu::BindGroup {
         let shadow_atlas_view = shadow_atlas_resources
             .map(ShadowAtlasResources::atlas_view)
@@ -142,6 +149,12 @@ impl MeshPipelineCache {
             self.forward_volumetric_apply
                 .bind_group_entries(volumetric_params_buffer, integrated_volumetric_view),
         );
+        entries.extend(
+            self.transmission_scene_color
+                .bind_group_entries(transmission_scene_color_view),
+        );
+        entries.extend(self.light_cookies.bind_group_entries());
+        entries.extend(self.irradiance_volume.bind_group_entries());
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-forward-shadow-receiver-bind-group"),
             layout: &self.forward_shadow_receiver_layout,
@@ -162,6 +175,9 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_forward_shadow_re
     entries.extend(volumetric_apply_bind_group_layout_entries(
         FORWARD_SHADOW_RECEIVER_BINDING_SHADER_STAGES,
     ));
+    entries.extend(transmission_scene_color_bind_group_layout_entries());
+    entries.extend(light_cookie_bind_group_layout_entries());
+    entries.extend(irradiance_volume_bind_group_layout_entries());
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: LIGHT_GRID_PARAMS_BINDING,

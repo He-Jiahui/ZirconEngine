@@ -1,4 +1,5 @@
 mod advanced_pbr;
+mod af_m2;
 
 use std::fs;
 use std::path::{Path, PathBuf};

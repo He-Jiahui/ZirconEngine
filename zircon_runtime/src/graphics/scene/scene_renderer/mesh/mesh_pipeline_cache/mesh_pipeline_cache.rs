@@ -40,6 +40,12 @@ pub(crate) struct MeshPipelineCache {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_volumetric_apply:
         crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
+    pub(in crate::graphics::scene::scene_renderer::mesh) transmission_scene_color:
+        crate::graphics::scene::scene_renderer::advanced_lighting::transmission::TransmissionSceneColorFallbackResources,
+    pub(in crate::graphics::scene::scene_renderer) light_cookies:
+        crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::LightCookieAtlasResources,
+    pub(in crate::graphics::scene::scene_renderer) irradiance_volume:
+        crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::IrradianceVolumeResources,
     pub(in crate::graphics::scene::scene_renderer) reflection_probes: SceneReflectionProbeResources,
     pub(in crate::graphics::scene::scene_renderer) lightmaps: SceneLightmapResources,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_modules:

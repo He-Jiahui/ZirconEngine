@@ -65,6 +65,12 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_bind
             wgpu::ShaderStages::FRAGMENT,
         ),
     );
+    entries.extend(
+        crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::light_cookie_bind_group_layout_entries(),
+    );
+    entries.extend(
+        crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::irradiance_volume_bind_group_layout_entries(),
+    );
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: 20,

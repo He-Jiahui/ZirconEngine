@@ -1,7 +1,7 @@
 use crate::core::framework::render::RenderFrameExtract;
 use crate::core::math::UVec2;
 
-use super::light_buffer::pack_lighting_extract;
+use super::light_buffer::pack_lighting_extract_with_cookies;
 use super::light_grid_builder::{build_light_grid, LightGridCpuOutput, LightGridViewInfo};
 
 pub(crate) fn build_light_grid_for_frame(
@@ -9,7 +9,11 @@ pub(crate) fn build_light_grid_for_frame(
     viewport_size: UVec2,
     lighting_enabled: bool,
 ) -> LightGridCpuOutput {
-    let packed_lights = pack_lighting_extract(&extract.lighting, lighting_enabled);
+    let packed_lights = pack_lighting_extract_with_cookies(
+        &extract.lighting,
+        &extract.lighting.advanced_lighting.cookies,
+        lighting_enabled,
+    );
     let view = LightGridViewInfo::from_camera(&extract.view.camera, viewport_size);
     build_light_grid(&packed_lights.lights, &view)
 }

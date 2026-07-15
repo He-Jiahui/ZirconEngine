@@ -18,6 +18,8 @@ pub enum RenderingFeatureKind {
     ContactShadow,
     VolumetricFog,
     Oit,
+    LightCookies,
+    IrradianceVolumes,
     PlanarReflections,
     SubsurfaceScattering,
     Decals,
@@ -34,6 +36,8 @@ pub const RENDERING_FEATURES: &[RenderingFeatureKind] = &[
     RenderingFeatureKind::ContactShadow,
     RenderingFeatureKind::VolumetricFog,
     RenderingFeatureKind::Oit,
+    RenderingFeatureKind::LightCookies,
+    RenderingFeatureKind::IrradianceVolumes,
     RenderingFeatureKind::PlanarReflections,
     RenderingFeatureKind::SubsurfaceScattering,
     RenderingFeatureKind::Decals,
@@ -52,6 +56,8 @@ impl RenderingFeatureKind {
             Self::ContactShadow => "contact_shadow",
             Self::VolumetricFog => "volumetric_fog",
             Self::Oit => "oit",
+            Self::LightCookies => "light_cookies",
+            Self::IrradianceVolumes => "irradiance_volumes",
             Self::PlanarReflections => "planar_reflections",
             Self::SubsurfaceScattering => "subsurface_scattering",
             Self::Decals => "decals",
@@ -70,6 +76,8 @@ impl RenderingFeatureKind {
             Self::ContactShadow => "Contact Shadow",
             Self::VolumetricFog => "Volumetric Fog",
             Self::Oit => "Order Independent Transparency",
+            Self::LightCookies => "Light Cookies",
+            Self::IrradianceVolumes => "Irradiance Volumes",
             Self::PlanarReflections => "Planar Reflections",
             Self::SubsurfaceScattering => "Subsurface Scattering",
             Self::Decals => "Decals",
@@ -172,7 +180,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rendering_descriptor_declares_thirteen_owner_features() {
+    fn rendering_descriptor_declares_fifteen_owner_features() {
         let descriptor = runtime_plugin_descriptor();
 
         assert_eq!(descriptor.category(), "rendering");
@@ -180,7 +188,7 @@ mod tests {
             descriptor.maturity(),
             zircon_runtime::plugin::PluginMaturity::Stable
         );
-        assert_eq!(descriptor.optional_features().len(), 13);
+        assert_eq!(descriptor.optional_features().len(), 15);
         assert!(
             descriptor
                 .optional_features()
@@ -192,6 +200,12 @@ mod tests {
             .optional_features()
             .iter()
             .any(|feature| feature.id == "rendering.oit" && !feature.enabled_by_default));
+        assert!(descriptor.optional_features().iter().any(|feature| {
+            feature.id == "rendering.light_cookies" && !feature.enabled_by_default
+        }));
+        assert!(descriptor.optional_features().iter().any(|feature| {
+            feature.id == "rendering.irradiance_volumes" && !feature.enabled_by_default
+        }));
         assert!(descriptor.optional_features().iter().any(|feature| {
             feature.id == "rendering.planar_reflections" && !feature.enabled_by_default
         }));

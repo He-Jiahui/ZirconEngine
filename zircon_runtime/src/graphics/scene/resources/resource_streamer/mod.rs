@@ -1,5 +1,6 @@
 mod resource_streamer;
 mod resource_streamer_accessors;
+mod resource_streamer_advanced_lighting;
 mod resource_streamer_construction;
 mod resource_streamer_ensure_material;
 mod resource_streamer_ensure_mesh;
@@ -18,3 +19,4 @@ mod resource_streamer_shading_models;
 mod resource_streamer_validate_material_shader_layout;
 
 pub(crate) use resource_streamer::ResourceStreamer;
+pub(crate) use resource_streamer_advanced_lighting::IrradianceVolumeTextureBinding;

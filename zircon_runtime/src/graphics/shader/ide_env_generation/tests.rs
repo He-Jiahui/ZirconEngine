@@ -15,6 +15,86 @@ use crate::core::framework::render::{
 use super::*;
 
 #[test]
+fn shader_ide_stub_validation_rejects_circular_dependencies() {
+    let stubs = [
+        shader_ide_dependency_test_stub("project::a", "project::b"),
+        shader_ide_dependency_test_stub("project::b", "project::a"),
+    ];
+
+    let error = shader_ide_stub_validation_source(&stubs[0], &stubs)
+        .expect_err("circular Shader IDE dependencies must fail validation");
+
+    assert!(error.contains("circular shader IDE dependency"), "{error}");
+    assert!(
+        error.contains("project::a -> project::b -> project::a"),
+        "{error}"
+    );
+}
+
+#[test]
+fn shader_ide_lightmap_stub_resolves_irradiance_volume_dependency() {
+    let stubs = builtin_stubs();
+    let lightmap = stubs
+        .iter()
+        .find(|stub| stub.entry.import_path == "zr_lightmap.wgsl")
+        .expect("builtin lightmap stub should exist");
+    let source = shader_ide_stub_validation_source(lightmap, &stubs)
+        .expect("lightmap Shader IDE dependencies should resolve");
+
+    assert!(
+        source.contains("// Zircon shader IDE validation dependency: zr_irradiance_volume.wgsl")
+    );
+    parse_shader_ide_wgsl_module(&lightmap.entry.import_path, &source)
+        .expect("lightmap stub should parse with irradiance-volume dependency");
+}
+
+fn shader_ide_dependency_test_stub(import_path: &str, dependency: &str) -> ShaderIdeStub {
+    let stub_path = format!("modules/{}.wgsl", import_path.replace("::", "/"));
+    ShaderIdeStub {
+        relative_path: PathBuf::from(&stub_path),
+        source: format!(
+            "fn {}_value() -> f32 {{ return 1.0; }}",
+            import_path.replace("::", "_")
+        ),
+        include_paths: vec![dependency.to_string()],
+        validation_defines: Vec::new(),
+        entry: ShaderIdeModuleMapEntry {
+            import_path: import_path.to_string(),
+            scope_uri: None,
+            kind: ShaderAssetKind::Include,
+            stub_path,
+            source_uri: None,
+            source_files: Vec::new(),
+            content_hash: import_path.to_string(),
+            generated: false,
+        },
+    }
+}
+
+#[test]
+fn shader_ide_standard_pbr_stub_resolves_transitive_advanced_lighting_dependencies() {
+    let stubs = builtin_stubs();
+    let standard_pbr = stubs
+        .iter()
+        .find(|stub| stub.entry.import_path == "zr_shading_standard_pbr.wgsl")
+        .expect("builtin Standard PBR stub should exist");
+    let source = shader_ide_stub_validation_source(standard_pbr, &stubs)
+        .expect("Standard PBR Shader IDE dependencies should resolve");
+
+    for dependency in [
+        "zr_volumetric.wgsl",
+        "zr_pbr_extras.wgsl",
+        "zr_light_cookie.wgsl",
+    ] {
+        assert!(source.contains(&format!(
+            "// Zircon shader IDE validation dependency: {dependency}"
+        )));
+    }
+    parse_shader_ide_wgsl_module(&standard_pbr.entry.import_path, &source)
+        .expect("Standard PBR stub should parse with transitive advanced-lighting dependencies");
+}
+
+#[test]
 fn shader_ide_env_writes_module_map_stubs_and_generated_material() {
     let root = unique_temp_project_root("shader_ide_env_module_map");
     let paths = ProjectPaths::from_root(&root).unwrap();

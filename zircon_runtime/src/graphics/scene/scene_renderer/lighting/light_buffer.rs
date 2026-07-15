@@ -1,9 +1,12 @@
 use crate::core::framework::render::{
-    GpuLightData, GpuLightType, LightShadowSettings, LightingExtract,
+    GpuLightData, GpuLightType, LightCookieData, LightShadowSettings, LightingExtract,
     RenderDirectionalLightSnapshot, RenderLayerSet, RenderPointLightSnapshot,
     RenderRectLightSnapshot, RenderSpotLightSnapshot, SHADOW_SLOT_NONE,
 };
 use crate::core::math::{Vec2, Vec3};
+use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::{
+    build_cookie_frame_plan, CookieGpuMetadata,
+};
 
 pub(crate) const GPU_LIGHT_FLAG_CASTS_SHADOW: u32 = 1 << 0;
 
@@ -30,11 +33,29 @@ pub(crate) fn pack_lighting_extract(
         return PackedGpuLightBuffer::default();
     }
 
-    pack_light_slices(
+    pack_light_slices_with_cookies(
         &lighting.directional_lights,
         &lighting.point_lights,
         &lighting.spot_lights,
         &lighting.rect_lights,
+        &[],
+    )
+}
+
+pub(crate) fn pack_lighting_extract_with_cookies(
+    lighting: &LightingExtract,
+    cookies: &[LightCookieData],
+    lighting_enabled: bool,
+) -> PackedGpuLightBuffer {
+    if !lighting_enabled {
+        return PackedGpuLightBuffer::default();
+    }
+    pack_light_slices_with_cookies(
+        &lighting.directional_lights,
+        &lighting.point_lights,
+        &lighting.spot_lights,
+        &lighting.rect_lights,
+        cookies,
     )
 }
 
@@ -43,6 +64,22 @@ pub(crate) fn pack_light_slices(
     point_lights: &[RenderPointLightSnapshot],
     spot_lights: &[RenderSpotLightSnapshot],
     rect_lights: &[RenderRectLightSnapshot],
+) -> PackedGpuLightBuffer {
+    pack_light_slices_with_cookies(
+        directional_lights,
+        point_lights,
+        spot_lights,
+        rect_lights,
+        &[],
+    )
+}
+
+pub(crate) fn pack_light_slices_with_cookies(
+    directional_lights: &[RenderDirectionalLightSnapshot],
+    point_lights: &[RenderPointLightSnapshot],
+    spot_lights: &[RenderSpotLightSnapshot],
+    rect_lights: &[RenderRectLightSnapshot],
+    cookies: &[LightCookieData],
 ) -> PackedGpuLightBuffer {
     let mut packed = PackedGpuLightBuffer {
         lights: Vec::with_capacity(
@@ -66,7 +103,32 @@ pub(crate) fn pack_light_slices(
     packed
         .lights
         .extend(rect_lights.iter().map(pack_rect_light));
+    let cookie_plan = build_cookie_frame_plan(cookies);
+    let light_ids = directional_lights
+        .iter()
+        .map(|light| light.light_id)
+        .chain(point_lights.iter().map(|light| light.light_id))
+        .chain(spot_lights.iter().map(|light| light.light_id))
+        .chain(rect_lights.iter().map(|light| light.light_id));
+    for (light, light_id) in packed.lights.iter_mut().zip(light_ids) {
+        if let Some(metadata) = cookie_plan.metadata_for_light(light_id) {
+            apply_cookie_metadata(light, metadata);
+        }
+    }
     packed
+}
+
+fn apply_cookie_metadata(light: &mut GpuLightData, metadata: CookieGpuMetadata) {
+    light.cookie_uv_rect = metadata.uv_rect;
+    light.cookie_misc = metadata.misc;
+    if metadata.misc[0]
+        == crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::COOKIE_PROJECTION_DIRECTIONAL
+    {
+        light.position_range[0] = metadata.directional_offset_scale[0];
+        light.position_range[1] = metadata.directional_offset_scale[1];
+        light.spot_angles_size[2] = metadata.directional_offset_scale[2];
+        light.spot_angles_size[3] = metadata.directional_offset_scale[3];
+    }
 }
 
 fn pack_directional_light(light: &RenderDirectionalLightSnapshot) -> GpuLightData {
@@ -77,6 +139,8 @@ fn pack_directional_light(light: &RenderDirectionalLightSnapshot) -> GpuLightDat
         spot_angles_size: [0.0; 4],
         shadow_slot_layer: shadow_slot_layer(light.light_id, &light.layer_mask, light.shadow),
         shadow_params: shadow_params(light.shadow),
+        cookie_uv_rect: [0.0; 4],
+        cookie_misc: [0; 4],
     }
 }
 
@@ -88,6 +152,8 @@ fn pack_point_light(light: &RenderPointLightSnapshot) -> GpuLightData {
         spot_angles_size: [0.0; 4],
         shadow_slot_layer: shadow_slot_layer(light.light_id, &light.layer_mask, light.shadow),
         shadow_params: shadow_params(light.shadow),
+        cookie_uv_rect: [0.0; 4],
+        cookie_misc: [0; 4],
     }
 }
 
@@ -104,6 +170,8 @@ fn pack_spot_light(light: &RenderSpotLightSnapshot) -> GpuLightData {
         ],
         shadow_slot_layer: shadow_slot_layer(light.light_id, &light.layer_mask, light.shadow),
         shadow_params: shadow_params(light.shadow),
+        cookie_uv_rect: [0.0; 4],
+        cookie_misc: [0; 4],
     }
 }
 
@@ -115,6 +183,8 @@ fn pack_rect_light(light: &RenderRectLightSnapshot) -> GpuLightData {
         spot_angles_size: rect_half_size(light.size),
         shadow_slot_layer: shadow_slot_layer(light.light_id, &light.layer_mask, light.shadow),
         shadow_params: shadow_params(light.shadow),
+        cookie_uv_rect: [0.0; 4],
+        cookie_misc: [0; 4],
     }
 }
 
@@ -173,8 +243,63 @@ fn shadow_params(shadow: Option<LightShadowSettings>) -> [f32; 4] {
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        LightShadowSettings, ShadowPcfQuality, ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
+        CookieProjection, CookieWrapMode, LightShadowSettings, ShadowPcfQuality,
+        ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
     };
+    use crate::core::resource::ResourceId;
+    use std::mem::{offset_of, size_of};
+
+    #[test]
+    fn render_cookie_gpu_light_data_extension_offsets() {
+        assert_eq!(size_of::<GpuLightData>(), 128);
+        assert_eq!(offset_of!(GpuLightData, cookie_uv_rect), 96);
+        assert_eq!(offset_of!(GpuLightData, cookie_misc), 112);
+        assert_eq!(GpuLightData::default().cookie_uv_rect, [0.0; 4]);
+        assert_eq!(GpuLightData::default().cookie_misc, [0; 4]);
+    }
+
+    #[test]
+    fn render_cookie_metadata_aligns_with_packed_light_ids() {
+        let point = |light_id, x| RenderPointLightSnapshot {
+            node_id: light_id,
+            light_id,
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+            position: Vec3::new(x, 0.0, 0.0),
+            color: Vec3::ONE,
+            intensity: 1.0,
+            range: 4.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
+            shadow: None,
+        };
+        let packed = pack_light_slices_with_cookies(
+            &[],
+            &[point(11, 1.0), point(5, 2.0)],
+            &[],
+            &[],
+            &[
+                LightCookieData {
+                    light_id: 5,
+                    texture: ResourceId::from_stable_label("runtime://cookie/five"),
+                    projection: CookieProjection::PointOctahedral,
+                },
+                LightCookieData {
+                    light_id: 11,
+                    texture: ResourceId::from_stable_label("runtime://cookie/eleven"),
+                    projection: CookieProjection::Directional {
+                        offset: Vec2::new(0.25, 0.5),
+                        scale: Vec2::new(2.0, 3.0),
+                        wrap: CookieWrapMode::Repeat,
+                    },
+                },
+            ],
+        );
+
+        assert_eq!(packed.lights[0].cookie_misc[2], 1);
+        assert_eq!(packed.lights[0].position_range[0..2], [0.25, 0.5]);
+        assert_eq!(packed.lights[0].spot_angles_size[2..4], [2.0, 3.0]);
+        assert_eq!(packed.lights[1].cookie_misc[2], 0);
+        assert_eq!(packed.lights[1].position_range[0], 2.0);
+    }
 
     #[test]
     fn pack_light_slices_preserves_all_point_lights_without_scene_uniform_limit() {

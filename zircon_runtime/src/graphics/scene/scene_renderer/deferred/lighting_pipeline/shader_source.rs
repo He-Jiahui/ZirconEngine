@@ -1,7 +1,11 @@
 use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::material::ShadingModelIncludeSourceSet;
+use crate::graphics::shader::template::{
+    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
+};
 
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
+const LIGHT_COOKIE_INCLUDE_TOKEN: &str = "zr_light_cookie.wgsl";
 const LIGHTMAP_INCLUDE_TOKEN: &str = "zr_lightmap.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
@@ -13,12 +17,6 @@ const DEFERRED_UNLIT_INCLUDE_TOKEN: &str = "zr_shade_deferred_unlit.wgsl";
 const DEFERRED_SUBSURFACE_INCLUDE_TOKEN: &str = "zr_shade_deferred_subsurface.wgsl";
 const CUSTOM_DISPATCH_MARKER: &str = "    // zr-deferred-lighting-custom-shading-model-dispatch";
 
-const GPU_SCENE_INCLUDE: &str = include_str!("../../mesh/shaders/zr_gpu_scene.wgsl");
-const LIGHTMAP_INCLUDE: &str = include_str!("../../../../shader/wgsl/zr_lightmap.wgsl");
-const LIGHT_GRID_INCLUDE: &str = include_str!("../../lighting/shaders/zr_light_grid.wgsl");
-const SHADOW_INCLUDE: &str = include_str!("../../shadow/shaders/zr_shadow.wgsl");
-const ENVIRONMENT_INCLUDE: &str = include_str!("../../../../shader/wgsl/zr_environment.wgsl");
-const VOLUMETRIC_INCLUDE: &str = include_str!("../../../../shader/wgsl/zr_volumetric.wgsl");
 const DEFERRED_STANDARD_PBR_INCLUDE: &str =
     include_str!("../../../../shader/wgsl/zr_shade_deferred_standard_pbr.wgsl");
 const DEFERRED_BLINN_PHONG_INCLUDE: &str =
@@ -32,6 +30,10 @@ const DEFERRED_LIGHTING_TEMPLATE: &str = include_str!("../shaders/deferred_light
 pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING_SHADER: &str = concat!(
     "// include: zr_gpu_scene.wgsl\n",
     include_str!("../../mesh/shaders/zr_gpu_scene.wgsl"),
+    "\n// include: zr_light_cookie.wgsl\n",
+    include_str!("../../../../shader/wgsl/zr_light_cookie.wgsl"),
+    "\n// include: zr_irradiance_volume.wgsl\n",
+    include_str!("../../../../shader/wgsl/zr_irradiance_volume.wgsl"),
     "\n// include: zr_lightmap.wgsl\n",
     include_str!("../../../../shader/wgsl/zr_lightmap.wgsl"),
     "\n// include: zr_light_grid.wgsl\n",
@@ -55,6 +57,8 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::deferred) enum DeferredLightingShaderSourceError {
     UnknownDeferredInclude { token: String },
+    UnknownShaderModule { token: String },
+    CircularShaderModuleDependency { cycle: Vec<String> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -122,34 +126,37 @@ impl DeferredLightingShaderSourceRequest {
 pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_lighting_shader_source(
     request: DeferredLightingShaderSourceRequest,
 ) -> Result<String, DeferredLightingShaderSourceError> {
-    let mut source = String::new();
-    push_include(&mut source, GPU_SCENE_INCLUDE_TOKEN, GPU_SCENE_INCLUDE);
-    push_include(&mut source, LIGHTMAP_INCLUDE_TOKEN, LIGHTMAP_INCLUDE);
-    push_include(&mut source, LIGHT_GRID_INCLUDE_TOKEN, LIGHT_GRID_INCLUDE);
-    push_include(&mut source, SHADOW_INCLUDE_TOKEN, SHADOW_INCLUDE);
-    push_include(&mut source, VOLUMETRIC_INCLUDE_TOKEN, VOLUMETRIC_INCLUDE);
-    push_include(
-        &mut source,
-        DEFERRED_STANDARD_PBR_INCLUDE_TOKEN,
-        DEFERRED_STANDARD_PBR_INCLUDE,
-    );
-    push_include(
-        &mut source,
-        DEFERRED_BLINN_PHONG_INCLUDE_TOKEN,
-        DEFERRED_BLINN_PHONG_INCLUDE,
-    );
-    push_include(
-        &mut source,
-        DEFERRED_UNLIT_INCLUDE_TOKEN,
-        DEFERRED_UNLIT_INCLUDE,
-    );
-    push_include(
-        &mut source,
-        DEFERRED_SUBSURFACE_INCLUDE_TOKEN,
-        DEFERRED_SUBSURFACE_INCLUDE,
-    );
-
     let custom_dispatch = custom_deferred_dispatch(&request)?;
+    let mut roots = vec![
+        GPU_SCENE_INCLUDE_TOKEN.to_string(),
+        LIGHT_COOKIE_INCLUDE_TOKEN.to_string(),
+        LIGHTMAP_INCLUDE_TOKEN.to_string(),
+        LIGHT_GRID_INCLUDE_TOKEN.to_string(),
+        SHADOW_INCLUDE_TOKEN.to_string(),
+        VOLUMETRIC_INCLUDE_TOKEN.to_string(),
+        DEFERRED_STANDARD_PBR_INCLUDE_TOKEN.to_string(),
+        DEFERRED_BLINN_PHONG_INCLUDE_TOKEN.to_string(),
+        DEFERRED_UNLIT_INCLUDE_TOKEN.to_string(),
+        DEFERRED_SUBSURFACE_INCLUDE_TOKEN.to_string(),
+    ];
+    let mut module_registry = ShaderModuleRegistry::with_builtin_modules();
+    for (token, include) in [
+        (
+            DEFERRED_STANDARD_PBR_INCLUDE_TOKEN,
+            DEFERRED_STANDARD_PBR_INCLUDE,
+        ),
+        (
+            DEFERRED_BLINN_PHONG_INCLUDE_TOKEN,
+            DEFERRED_BLINN_PHONG_INCLUDE,
+        ),
+        (DEFERRED_UNLIT_INCLUDE_TOKEN, DEFERRED_UNLIT_INCLUDE),
+        (
+            DEFERRED_SUBSURFACE_INCLUDE_TOKEN,
+            DEFERRED_SUBSURFACE_INCLUDE,
+        ),
+    ] {
+        module_registry.register(ShaderTemplateInclude::new(token, include));
+    }
     for descriptor in request.shading_model_descriptors.iter() {
         if builtin_deferred_include_token(descriptor.deferred_include.as_str()) {
             continue;
@@ -165,16 +172,42 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
                     token: descriptor.deferred_include.clone(),
                 },
             )?;
-        push_include(&mut source, &include.token, &include.source);
+        module_registry.register(ShaderTemplateInclude::new(&include.token, &include.source));
+        roots.push(include.token.clone());
     }
 
     let template = DEFERRED_LIGHTING_TEMPLATE.replace(
         CUSTOM_DISPATCH_MARKER,
         &format!("{CUSTOM_DISPATCH_MARKER}\n{custom_dispatch}"),
     );
-    push_include(&mut source, "deferred_lighting.wgsl", &template);
-    push_include(&mut source, ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_INCLUDE);
+    module_registry.register(ShaderTemplateInclude::new(
+        "deferred_lighting.wgsl",
+        template,
+    ));
+    roots.push("deferred_lighting.wgsl".to_string());
+    roots.push(ENVIRONMENT_INCLUDE_TOKEN.to_string());
+
+    let resolved = module_registry
+        .resolve_roots(roots)
+        .map_err(deferred_module_resolution_error)?;
+    let mut source = String::new();
+    for include in resolved.ordered_sources {
+        push_include(&mut source, &include.token, &include.source);
+    }
     Ok(source)
+}
+
+fn deferred_module_resolution_error(
+    error: ShaderModuleResolutionError,
+) -> DeferredLightingShaderSourceError {
+    match error {
+        ShaderModuleResolutionError::UnknownModule { token } => {
+            DeferredLightingShaderSourceError::UnknownShaderModule { token }
+        }
+        ShaderModuleResolutionError::CircularDependency { cycle } => {
+            DeferredLightingShaderSourceError::CircularShaderModuleDependency { cycle }
+        }
+    }
 }
 
 fn push_include(source: &mut String, token: &str, include: &str) {

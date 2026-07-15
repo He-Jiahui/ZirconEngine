@@ -1,6 +1,10 @@
 pub(crate) const FALLBACK_MESH_SHADER: &str = concat!(
     include_str!("../shaders/zr_gpu_scene.wgsl"),
     "\n",
+    include_str!("../../../../shader/wgsl/zr_light_cookie.wgsl"),
+    "\n",
+    include_str!("../../../../shader/wgsl/zr_irradiance_volume.wgsl"),
+    "\n",
     include_str!("../../lighting/shaders/zr_light_grid.wgsl"),
     "\n",
     include_str!("../../shadow/shaders/zr_shadow.wgsl"),

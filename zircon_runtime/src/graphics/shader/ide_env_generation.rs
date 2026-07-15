@@ -350,7 +350,14 @@ fn shader_preview_file(
 
 fn parse_shader_ide_stubs(stubs: &[ShaderIdeStub]) -> Result<usize, String> {
     for stub in stubs {
-        let validation_source = shader_ide_stub_validation_source(stub, stubs);
+        let validation_source =
+            shader_ide_stub_validation_source(stub, stubs).map_err(|error| {
+                format!(
+                    "resolve shader IDE stub dependencies for {} ({}): {error}",
+                    stub.entry.import_path,
+                    shader_ide_relative_path_string(&stub.relative_path)
+                )
+            })?;
         parse_shader_ide_wgsl_module(&stub.entry.import_path, &validation_source).map_err(
             |error| {
                 format!(
@@ -364,7 +371,10 @@ fn parse_shader_ide_stubs(stubs: &[ShaderIdeStub]) -> Result<usize, String> {
     Ok(stubs.len())
 }
 
-fn shader_ide_stub_validation_source(stub: &ShaderIdeStub, stubs: &[ShaderIdeStub]) -> String {
+fn shader_ide_stub_validation_source(
+    stub: &ShaderIdeStub,
+    stubs: &[ShaderIdeStub],
+) -> Result<String, String> {
     let mut source = stub.source.clone();
     source.push_str("\n\n// Zircon shader IDE validation defines\n");
     source.push_str(SHADER_IDE_STUB_VALIDATION_DEFINES);
@@ -373,7 +383,7 @@ fn shader_ide_stub_validation_source(stub: &ShaderIdeStub, stubs: &[ShaderIdeStu
         source.push_str(&shader_ide_validation_define_source(define));
     }
     let mut appended_paths = BTreeSet::new();
-    for dependency in shader_ide_stub_validation_dependencies(stub, stubs) {
+    for dependency in shader_ide_stub_validation_dependencies(stub, stubs)? {
         if dependency.entry.stub_path == stub.entry.stub_path
             || !appended_paths.insert(dependency.entry.stub_path.clone())
         {
@@ -384,7 +394,7 @@ fn shader_ide_stub_validation_source(stub: &ShaderIdeStub, stubs: &[ShaderIdeStu
         source.push('\n');
         source.push_str(&dependency.source);
     }
-    source
+    Ok(source)
 }
 
 fn shader_ide_validation_define_source(define: &RenderShaderDefinitionValue) -> String {
@@ -405,25 +415,100 @@ fn shader_ide_validation_define_source(define: &RenderShaderDefinitionValue) -> 
 fn shader_ide_stub_validation_dependencies<'a>(
     stub: &'a ShaderIdeStub,
     stubs: &'a [ShaderIdeStub],
-) -> Vec<&'a ShaderIdeStub> {
+) -> Result<Vec<&'a ShaderIdeStub>, String> {
     let mut dependencies = Vec::new();
-    dependencies.extend(
-        stubs
-            .iter()
-            .filter(|candidate| shader_ide_common_builtin_validation_dependency(stub, candidate)),
-    );
+    let mut visited_paths = BTreeSet::new();
+    let mut visiting = vec![stub];
+    for candidate in stubs
+        .iter()
+        .filter(|candidate| shader_ide_common_builtin_validation_dependency(stub, candidate))
+    {
+        append_shader_ide_stub_validation_dependency(
+            stub,
+            candidate,
+            stubs,
+            &mut visited_paths,
+            &mut visiting,
+            &mut dependencies,
+        )?;
+    }
     if let Some(source_uri) = stub.entry.source_uri.as_ref() {
-        dependencies.extend(stubs.iter().filter(|candidate| {
+        for candidate in stubs.iter().filter(|candidate| {
             candidate.entry.generated && candidate.entry.scope_uri.as_ref() == Some(source_uri)
-        }));
+        }) {
+            append_shader_ide_stub_validation_dependency(
+                stub,
+                candidate,
+                stubs,
+                &mut visited_paths,
+                &mut visiting,
+                &mut dependencies,
+            )?;
+        }
     }
     for include_path in &stub.include_paths {
-        dependencies.extend(stubs.iter().filter(|candidate| {
+        for candidate in stubs.iter().filter(|candidate| {
             candidate.entry.import_path == *include_path
                 && shader_ide_include_validation_dependency_matches_scope(stub, candidate)
-        }));
+        }) {
+            append_shader_ide_stub_validation_dependency(
+                stub,
+                candidate,
+                stubs,
+                &mut visited_paths,
+                &mut visiting,
+                &mut dependencies,
+            )?;
+        }
     }
-    dependencies
+    Ok(dependencies)
+}
+
+fn append_shader_ide_stub_validation_dependency<'a>(
+    root: &'a ShaderIdeStub,
+    candidate: &'a ShaderIdeStub,
+    stubs: &'a [ShaderIdeStub],
+    visited_paths: &mut BTreeSet<String>,
+    visiting: &mut Vec<&'a ShaderIdeStub>,
+    dependencies: &mut Vec<&'a ShaderIdeStub>,
+) -> Result<(), String> {
+    if visited_paths.contains(&candidate.entry.stub_path) {
+        return Ok(());
+    }
+    if let Some(cycle_start) = visiting
+        .iter()
+        .position(|active| active.entry.stub_path == candidate.entry.stub_path)
+    {
+        let mut cycle = visiting[cycle_start..]
+            .iter()
+            .map(|active| active.entry.import_path.as_str())
+            .collect::<Vec<_>>();
+        cycle.push(candidate.entry.import_path.as_str());
+        return Err(format!(
+            "circular shader IDE dependency: {}",
+            cycle.join(" -> ")
+        ));
+    }
+    visiting.push(candidate);
+    for include_path in &candidate.include_paths {
+        for transitive in stubs.iter().filter(|transitive| {
+            transitive.entry.import_path == *include_path
+                && shader_ide_include_validation_dependency_matches_scope(root, transitive)
+        }) {
+            append_shader_ide_stub_validation_dependency(
+                root,
+                transitive,
+                stubs,
+                visited_paths,
+                visiting,
+                dependencies,
+            )?;
+        }
+    }
+    visiting.pop();
+    visited_paths.insert(candidate.entry.stub_path.clone());
+    dependencies.push(candidate);
+    Ok(())
 }
 
 fn shader_ide_include_validation_dependency_matches_scope(

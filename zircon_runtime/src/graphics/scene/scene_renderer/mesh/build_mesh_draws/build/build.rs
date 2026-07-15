@@ -8,7 +8,7 @@ use crate::graphics::scene::gpu_scene::{GpuScene, GpuSceneUploadReport};
 use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, ResourceStreamer,
 };
-use crate::graphics::scene::scene_renderer::lighting::light_buffer::pack_lighting_extract;
+use crate::graphics::scene::scene_renderer::lighting::light_buffer::pack_lighting_extract_with_cookies;
 use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -154,8 +154,11 @@ pub(crate) fn build_mesh_draws(
         frame.virtual_geometry_debug_snapshot.as_ref(),
     );
     let morph_upload_report = upload_morph_payloads(device, queue, gpu_scene, &mut pending_draws);
-    let mut packed_lights =
-        pack_lighting_extract(&frame.extract.lighting, frame.preview().lighting_enabled);
+    let mut packed_lights = pack_lighting_extract_with_cookies(
+        &frame.extract.lighting,
+        &frame.extract.lighting.advanced_lighting.cookies,
+        frame.preview().lighting_enabled,
+    );
     if let Some(shadow_light_slots) = shadow_light_slots {
         shadow_light_slots
             .apply_to_packed_lights(&frame.extract.lighting, &mut packed_lights.lights);

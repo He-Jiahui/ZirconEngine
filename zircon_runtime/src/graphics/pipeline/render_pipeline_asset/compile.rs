@@ -90,6 +90,14 @@ impl RenderPipelineAsset {
             .filter(|descriptor| {
                 (descriptor.requires_advanced_lighting_oit()
                     && extract.lighting.advanced_lighting.oit.is_none())
+                    || (descriptor.requires_advanced_lighting_cookies()
+                        && extract.lighting.advanced_lighting.cookies.is_empty())
+                    || (descriptor.requires_advanced_lighting_irradiance_volumes()
+                        && extract
+                            .lighting
+                            .advanced_lighting
+                            .irradiance_volumes
+                            .is_empty())
                     || (descriptor.requires_advanced_lighting_planar_capture()
                         && !selected_camera_is_planar_capture(extract))
                     || (descriptor.requires_advanced_lighting_subsurface()

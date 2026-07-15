@@ -5,6 +5,8 @@ struct ZrGpuLightData {
     spot_angles_size: vec4<f32>,
     shadow_slot_layer: vec4<u32>,
     shadow_params: vec4<f32>,
+    cookie_uv_rect: vec4<f32>,
+    cookie_misc: vec4<u32>,
 };
 
 struct VolumetricLightScatterParams {

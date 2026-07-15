@@ -19,7 +19,7 @@ use crate::graphics::WgpuRenderFramework;
 
 use super::{render_product_output_dir, write_side_by_side_png, ProductRender};
 
-const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
+pub(super) const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
 const ADVANCED_PBR_OPAQUE_PASS_NAME: &str = "advanced-pbr-opaque";
 const TRANSMISSION_SCENE_COPY_PASS_NAME: &str = "transmission.scene_copy";
 const TRANSMISSION_MESH_PASS_NAME: &str = "transmission-mesh.0";
@@ -36,7 +36,7 @@ struct RegionDifference {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ProductMaterialMode {
+pub(super) enum ProductMaterialMode {
     Baseline,
     Advanced,
 }
@@ -177,7 +177,7 @@ fn render_three_spheres(mode: ProductMaterialMode) -> ProductRender {
 }
 
 #[derive(Clone, Copy)]
-struct ProductMaterials {
+pub(super) struct ProductMaterials {
     clearcoat: ResourceHandle<MaterialMarker>,
     anisotropy: ResourceHandle<MaterialMarker>,
     glass: ResourceHandle<MaterialMarker>,
@@ -186,7 +186,7 @@ struct ProductMaterials {
 }
 
 impl ProductMaterials {
-    fn register(asset_manager: &ProjectAssetManager, mode: ProductMaterialMode) -> Self {
+    pub(super) fn register(asset_manager: &ProjectAssetManager, mode: ProductMaterialMode) -> Self {
         let advanced = mode == ProductMaterialMode::Advanced;
         Self {
             clearcoat: register_material(
@@ -258,7 +258,7 @@ impl ProductMaterials {
     }
 }
 
-fn three_sphere_extract(
+pub(super) fn three_sphere_extract(
     model: ResourceHandle<ModelMarker>,
     materials: ProductMaterials,
 ) -> RenderFrameExtract {
@@ -445,7 +445,9 @@ fn register_material(
     ResourceHandle::new(id)
 }
 
-fn register_sphere_model(asset_manager: &ProjectAssetManager) -> ResourceHandle<ModelMarker> {
+pub(super) fn register_sphere_model(
+    asset_manager: &ProjectAssetManager,
+) -> ResourceHandle<ModelMarker> {
     let uri = AssetUri::parse("res://models/plan18-advanced-pbr-sphere.zmodel").unwrap();
     let id = ResourceId::from_locator(&uri);
     let (vertices, indices) = uv_sphere_geometry(40, 64);
@@ -500,7 +502,7 @@ fn uv_sphere_geometry(rings: usize, segments: usize) -> (Vec<MeshVertex>, Vec<u3
     (vertices, indices)
 }
 
-fn product_quality_profile() -> RenderQualityProfile {
+pub(super) fn product_quality_profile() -> RenderQualityProfile {
     RenderQualityProfile::new("advanced-pbr-three-sphere-product")
         .with_clustered_lighting(true)
         .with_screen_space_ambient_occlusion(false)

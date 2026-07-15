@@ -1,8 +1,9 @@
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::module_registry::{
-    environment_include, light_grid_include, lightmap_include, pbr_extras_include, shadow_include,
-    volumetric_include, ShaderTemplateInclude,
+    environment_include, irradiance_volume_include, light_cookie_include, light_grid_include,
+    lightmap_include, pbr_extras_include, shadow_include, volumetric_include,
+    ShaderTemplateInclude,
 };
 
 pub(crate) const MATERIAL_SHADER_TEMPLATE_REVISION: &str = "zr-material-template-v1";
@@ -46,6 +47,8 @@ pub(crate) fn pass_template_for(
             include: ShaderTemplateInclude::new(FORWARD_TEMPLATE_TOKEN, FORWARD_TEMPLATE),
             support_includes: vec![
                 environment_include(),
+                light_cookie_include(),
+                irradiance_volume_include(),
                 lightmap_include(),
                 light_grid_include(),
                 shadow_include(),

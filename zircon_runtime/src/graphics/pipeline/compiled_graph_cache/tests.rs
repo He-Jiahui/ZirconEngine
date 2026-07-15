@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
-    CameraRenderType, CorePipelineKind, RenderCameraTarget, RenderCapabilitySummary,
-    RenderDynamicResolutionSettings, RenderFrameExtract, RenderLayerSet,
-    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderViewportRect,
-    RenderWorldSnapshotHandle,
+    CameraRenderType, CookieProjection, CorePipelineKind, IrradianceVolumeData, LightCookieData,
+    RenderCameraTarget, RenderCapabilitySummary, RenderDynamicResolutionSettings,
+    RenderFrameExtract, RenderLayerSet, RenderParticleSpriteSnapshot, RenderPipelineHandle,
+    RenderViewportRect, RenderWorldSnapshotHandle,
 };
-use crate::core::math::{UVec2, Vec2, Vec3, Vec4};
+use crate::core::math::{Mat4, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::pipeline::{
     CompiledGraphCache, CompiledGraphCacheKey, RenderPipelineAsset, RenderPipelineCompileOptions,
@@ -125,6 +125,40 @@ fn render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs() {
         .material_features
         .late_forward_opaque = true;
     assert_ne!(baseline_fingerprint, fingerprint_for(&late_forward_opaque));
+}
+
+#[test]
+fn render_graph_compile_frame_fingerprint_tracks_advanced_lighting_pass_presence() {
+    let baseline = test_extract();
+    let baseline_fingerprint = fingerprint_for(&baseline);
+
+    let mut cookie = baseline.clone();
+    cookie
+        .lighting
+        .advanced_lighting
+        .cookies
+        .push(LightCookieData {
+            light_id: 7,
+            texture: ResourceId::from_stable_label("runtime://cache-test/cookie"),
+            projection: CookieProjection::Spot,
+        });
+    assert_ne!(baseline_fingerprint, fingerprint_for(&cookie));
+
+    let mut volume = baseline;
+    volume
+        .lighting
+        .advanced_lighting
+        .irradiance_volumes
+        .push(IrradianceVolumeData {
+            volume_id: 9,
+            transform: Mat4::IDENTITY,
+            voxels: ResourceId::from_stable_label("runtime://cache-test/irradiance-volume"),
+            intensity: 1.0,
+            affects_lightmapped_meshes: false,
+            priority: 0,
+            layer_mask: RenderLayerSet::default(),
+        });
+    assert_ne!(baseline_fingerprint, fingerprint_for(&volume));
 }
 
 #[test]

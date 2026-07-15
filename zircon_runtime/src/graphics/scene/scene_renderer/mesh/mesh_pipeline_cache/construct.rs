@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use crate::core::framework::render::builtin_geometry_source_descriptors;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
+use crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::IrradianceVolumeResources;
+use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::LightCookieAtlasResources;
+use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::TransmissionSceneColorFallbackResources;
 use crate::graphics::scene::scene_renderer::environment::{
     SceneLightmapResources, SceneReflectionProbeResources,
 };
@@ -79,6 +82,9 @@ impl MeshPipelineCache {
         let fallback_shadow_atlas_view = create_fallback_shadow_atlas_view(device);
         let forward_volumetric_apply =
             VolumetricApplyFallbackResources::new(device, "zircon-forward");
+        let transmission_scene_color = TransmissionSceneColorFallbackResources::new(device, queue);
+        let light_cookies = LightCookieAtlasResources::new(device, queue);
+        let irradiance_volume = IrradianceVolumeResources::new(device, queue);
         let reflection_probes = SceneReflectionProbeResources::new(device);
         let lightmaps = SceneLightmapResources::new(device, queue);
         Self {
@@ -95,6 +101,9 @@ impl MeshPipelineCache {
             forward_shadow_atlas_fallback_globals_buffer,
             fallback_shadow_atlas_view,
             forward_volumetric_apply,
+            transmission_scene_color,
+            light_cookies,
+            irradiance_volume,
             reflection_probes,
             lightmaps,
             shader_modules: HashMap::new(),

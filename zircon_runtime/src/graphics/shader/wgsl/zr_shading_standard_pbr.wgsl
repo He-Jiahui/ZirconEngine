@@ -156,7 +156,8 @@ fn zr_standard_pbr_shade_gpu_light_index(
 
     let light = zr_gpu_light(light_index);
     let light_type = zr_gpu_light_type(light);
-    let base_radiance = zr_standard_pbr_light_radiance(light);
+    let base_radiance = zr_standard_pbr_light_radiance(light)
+        * zr_light_cookie_factor(light, ctx.position_ws);
     if (length(base_radiance) <= ZR_STANDARD_PBR_EPSILON) {
         return vec3<f32>(0.0);
     }

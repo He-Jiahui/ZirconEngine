@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
-    is_generated_shader_module_token, wgsl_include_paths, GeometrySourceDescriptor,
-    ShadingModelDescriptor, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
+    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
+    GeometrySourceDescriptor, ShadingModelDescriptor, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
     GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
     GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
 };
@@ -11,6 +11,8 @@ const SURFACE_TYPES_INCLUDE_TOKEN: &str = "zr_surface_types.wgsl";
 const SCENE_RUNTIME_INCLUDE_TOKEN: &str = "zr_scene_runtime.wgsl";
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
 const LIGHTMAP_INCLUDE_TOKEN: &str = "zr_lightmap.wgsl";
+const LIGHT_COOKIE_INCLUDE_TOKEN: &str = "zr_light_cookie.wgsl";
+const IRRADIANCE_VOLUME_INCLUDE_TOKEN: &str = "zr_irradiance_volume.wgsl";
 const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
 const VOLUMETRIC_INCLUDE_TOKEN: &str = "zr_volumetric.wgsl";
 const OIT_INCLUDE_TOKEN: &str = "zr_oit.wgsl";
@@ -32,6 +34,8 @@ const SCENE_RUNTIME_INCLUDE: &str = include_str!("../wgsl/zr_scene_runtime.wgsl"
 const GPU_SCENE_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
 const LIGHTMAP_INCLUDE: &str = include_str!("../wgsl/zr_lightmap.wgsl");
+const LIGHT_COOKIE_INCLUDE: &str = include_str!("../wgsl/zr_light_cookie.wgsl");
+const IRRADIANCE_VOLUME_INCLUDE: &str = include_str!("../wgsl/zr_irradiance_volume.wgsl");
 const LIGHT_GRID_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl");
 const SHADOW_INCLUDE: &str =
@@ -52,18 +56,46 @@ pub(crate) struct ShaderTemplateInclude {
     pub(crate) token: String,
     pub(crate) source: String,
     pub(crate) content_hash: String,
+    pub(crate) dependencies: Vec<String>,
 }
 
 impl ShaderTemplateInclude {
     pub(crate) fn new(token: impl Into<String>, source: impl Into<String>) -> Self {
         let token = token.into();
         let source = source.into();
+        let dependencies = wgsl_include_paths(&source);
+        let source = strip_wgsl_include_directives(&source);
         Self {
             token,
-            content_hash: blake3::hash(source.as_bytes()).to_hex().to_string(),
+            content_hash: shader_module_content_hash(&source, &dependencies),
             source,
+            dependencies,
         }
     }
+
+    pub(crate) fn with_dependencies(
+        mut self,
+        dependencies: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
+        for dependency in dependencies {
+            let dependency = dependency.into();
+            if !self.dependencies.contains(&dependency) {
+                self.dependencies.push(dependency);
+            }
+        }
+        self.content_hash = shader_module_content_hash(&self.source, &self.dependencies);
+        self
+    }
+}
+
+fn shader_module_content_hash(source: &str, dependencies: &[String]) -> String {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(source.as_bytes());
+    for dependency in dependencies {
+        hasher.update(&[0]);
+        hasher.update(dependency.as_bytes());
+    }
+    hasher.finalize().to_hex().to_string()
 }
 
 #[derive(Default)]
@@ -175,7 +207,7 @@ impl ShaderModuleRegistry {
             }
         })?;
         visiting.push(token.to_string());
-        for dependency in wgsl_include_paths(module.source.as_str()) {
+        for dependency in &module.dependencies {
             self.visit(dependency.as_str(), visiting, visited, ordered_sources)?;
         }
         visiting.pop();
@@ -201,6 +233,8 @@ fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
         surface_types_include(),
         scene_runtime_include(),
         gpu_scene_include(),
+        light_cookie_include(),
+        irradiance_volume_include(),
         lightmap_include(),
         environment_include(),
         volumetric_include(),
@@ -232,6 +266,20 @@ fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
 
 pub(crate) fn builtin_shader_ide_module_includes() -> Vec<ShaderTemplateInclude> {
     builtin_module_includes()
+        .into_iter()
+        .map(|mut include| {
+            if !include.dependencies.is_empty() {
+                let mut source = include
+                    .dependencies
+                    .iter()
+                    .map(|dependency| format!("#include <{dependency}>\n"))
+                    .collect::<String>();
+                source.push_str(&include.source);
+                include.source = source;
+            }
+            include
+        })
+        .collect()
 }
 
 pub(crate) fn surface_types_include() -> ShaderTemplateInclude {
@@ -248,6 +296,15 @@ pub(crate) fn gpu_scene_include() -> ShaderTemplateInclude {
 
 pub(crate) fn lightmap_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(LIGHTMAP_INCLUDE_TOKEN, LIGHTMAP_INCLUDE)
+        .with_dependencies([IRRADIANCE_VOLUME_INCLUDE_TOKEN])
+}
+
+pub(crate) fn light_cookie_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(LIGHT_COOKIE_INCLUDE_TOKEN, LIGHT_COOKIE_INCLUDE)
+}
+
+pub(crate) fn irradiance_volume_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(IRRADIANCE_VOLUME_INCLUDE_TOKEN, IRRADIANCE_VOLUME_INCLUDE)
 }
 
 pub(crate) fn environment_include() -> ShaderTemplateInclude {
@@ -264,6 +321,7 @@ pub(crate) fn oit_include() -> ShaderTemplateInclude {
 
 pub(crate) fn pbr_extras_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(PBR_EXTRAS_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE)
+        .with_dependencies([VOLUMETRIC_INCLUDE_TOKEN])
 }
 
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {
@@ -279,6 +337,7 @@ pub(crate) fn standard_pbr_shading_include() -> ShaderTemplateInclude {
         STANDARD_PBR_SHADING_INCLUDE_TOKEN,
         STANDARD_PBR_SHADING_INCLUDE,
     )
+    .with_dependencies([PBR_EXTRAS_INCLUDE_TOKEN, LIGHT_COOKIE_INCLUDE_TOKEN])
 }
 
 pub(crate) fn standard_pbr_gbuffer_encode_include() -> ShaderTemplateInclude {
@@ -381,6 +440,62 @@ mod tests {
     use crate::core::framework::render::strip_wgsl_include_directives;
 
     use super::*;
+
+    #[test]
+    fn builtin_lightmap_resolves_irradiance_volume_dependency_first() {
+        let registry = ShaderModuleRegistry::with_builtin_modules();
+        let resolved = registry
+            .resolve_roots([LIGHTMAP_INCLUDE_TOKEN.to_string()])
+            .expect("builtin lightmap dependency graph should resolve");
+
+        assert_eq!(
+            resolved
+                .ordered_sources
+                .iter()
+                .map(|module| module.token.as_str())
+                .collect::<Vec<_>>(),
+            vec![IRRADIANCE_VOLUME_INCLUDE_TOKEN, LIGHTMAP_INCLUDE_TOKEN]
+        );
+    }
+
+    #[test]
+    fn builtin_pbr_extras_resolves_volumetric_dependency_first() {
+        let registry = ShaderModuleRegistry::with_builtin_modules();
+        let resolved = registry
+            .resolve_roots([PBR_EXTRAS_INCLUDE_TOKEN.to_string()])
+            .expect("builtin PBR extras dependency graph should resolve");
+
+        assert_eq!(
+            resolved
+                .ordered_sources
+                .iter()
+                .map(|module| module.token.as_str())
+                .collect::<Vec<_>>(),
+            vec![VOLUMETRIC_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE_TOKEN]
+        );
+    }
+
+    #[test]
+    fn builtin_standard_pbr_resolves_advanced_lighting_dependencies_first() {
+        let registry = ShaderModuleRegistry::with_builtin_modules();
+        let resolved = registry
+            .resolve_roots([STANDARD_PBR_SHADING_INCLUDE_TOKEN.to_string()])
+            .expect("builtin Standard PBR dependency graph should resolve");
+
+        assert_eq!(
+            resolved
+                .ordered_sources
+                .iter()
+                .map(|module| module.token.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                VOLUMETRIC_INCLUDE_TOKEN,
+                PBR_EXTRAS_INCLUDE_TOKEN,
+                LIGHT_COOKIE_INCLUDE_TOKEN,
+                STANDARD_PBR_SHADING_INCLUDE_TOKEN,
+            ]
+        );
+    }
 
     #[test]
     fn shader_module_registry_resolves_transitive_modules_once() {

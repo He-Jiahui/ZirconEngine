@@ -1,3 +1,5 @@
+use crate::graphics::scene::scene_renderer::advanced_lighting::irradiance_volume::IrradianceVolumeResources;
+use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::LightCookieAtlasResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
     ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
@@ -26,6 +28,8 @@ impl DeferredSceneResources {
         light_zbins_buffer: &wgpu::Buffer,
         light_tile_masks_buffer: &wgpu::Buffer,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
+        light_cookies: &LightCookieAtlasResources,
+        irradiance_volume: &IrradianceVolumeResources,
         frame: &ViewportRenderFrame,
         scene_color_view: &wgpu::TextureView,
         subsurface_diffuse_view: Option<&wgpu::TextureView>,
@@ -109,6 +113,8 @@ impl DeferredSceneResources {
             self.volumetric_apply
                 .bind_group_entries(&volumetric_params_buffer, integrated_volumetric_view),
         );
+        entries.extend(light_cookies.bind_group_entries());
+        entries.extend(irradiance_volume.bind_group_entries());
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
             layout: &self.lighting_bind_group_layout,

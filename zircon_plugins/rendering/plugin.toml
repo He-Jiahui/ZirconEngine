@@ -191,6 +191,64 @@ target_modes = ["editor_host"]
 capabilities = ["editor.feature.rendering.oit"]
 
 [[optional_features]]
+id = "rendering.light_cookies"
+display_name = "Light Cookies"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.light_cookies"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.light_cookies.runtime"
+description = "Runtime plugin module rendering.light_cookies.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_light_cookies_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.light_cookies"]
+
+[[optional_features.modules]]
+name = "rendering.light_cookies.editor"
+description = "Editor plugin module rendering.light_cookies.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_light_cookies_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.light_cookies"]
+
+[[optional_features]]
+id = "rendering.irradiance_volumes"
+display_name = "Irradiance Volumes"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.irradiance_volumes"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.irradiance_volumes.runtime"
+description = "Runtime plugin module rendering.irradiance_volumes.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_irradiance_volumes_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.irradiance_volumes"]
+
+[[optional_features.modules]]
+name = "rendering.irradiance_volumes.editor"
+description = "Editor plugin module rendering.irradiance_volumes.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_irradiance_volumes_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.irradiance_volumes"]
+
+[[optional_features]]
 id = "rendering.planar_reflections"
 display_name = "Planar Reflections"
 owner_plugin_id = "rendering"

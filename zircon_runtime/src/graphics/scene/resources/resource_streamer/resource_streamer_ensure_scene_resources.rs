@@ -49,6 +49,12 @@ impl ResourceStreamer {
         if let Some(lightmaps) = frame.environment().baked_lighting() {
             self.ensure_texture(device, queue, texture_layout, lightmaps.atlas)?;
         }
+        for cookie in &frame.extract.lighting.advanced_lighting.cookies {
+            let _ = self.ensure_texture(device, queue, texture_layout, cookie.texture);
+        }
+        for volume in &frame.extract.lighting.advanced_lighting.irradiance_volumes {
+            let _ = self.ensure_irradiance_volume_texture(device, queue, volume.voxels);
+        }
         for sprite in frame.sprites() {
             self.last_sprite_count += 1;
             if self
@@ -61,9 +67,9 @@ impl ResourceStreamer {
             }
         }
         if let Some(ui) = frame.ui.as_ref() {
+            let asset_manager = self.asset_manager()?;
             for texture_id in ui_texture_ids(ui) {
-                if let Some(texture_id) = ui_texture_id_for_upload(&self.asset_manager, texture_id)
-                {
+                if let Some(texture_id) = ui_texture_id_for_upload(&asset_manager, texture_id) {
                     let _ = self.ensure_texture(device, queue, texture_layout, texture_id);
                 }
             }
@@ -109,7 +115,11 @@ impl ResourceStreamer {
             return;
         };
 
-        let Ok(texture) = self.asset_manager.load_texture_asset(texture_id) else {
+        let Ok(asset_manager) = self.asset_manager() else {
+            self.last_post_process_lut_fallback_count += 1;
+            return;
+        };
+        let Ok(texture) = asset_manager.load_texture_asset(texture_id) else {
             self.last_post_process_lut_fallback_count += 1;
             return;
         };

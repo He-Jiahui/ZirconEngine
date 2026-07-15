@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
-    RenderPluginRendererOutputs, SkyboxMode,
+    select_irradiance_volume_for_view, AntiAliasMode, PostProcessGraphResourceNames,
+    RenderCapabilitySummary, RenderPluginRendererOutputs, SkyboxMode,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
@@ -68,6 +68,29 @@ impl SceneRendererCore {
             realtime_ibl_prepared.as_ref(),
             runtime_features.reflection_probes_enabled,
         )?;
+        let camera_layers = frame.extract.view.selected_camera_layers();
+        let irradiance_sample_positions = frame
+            .extract
+            .geometry
+            .meshes
+            .iter()
+            .filter(|mesh| mesh.render_layer_mask.intersects(camera_layers))
+            .map(|mesh| mesh.transform.translation)
+            .collect::<Vec<_>>();
+        let selected_irradiance_volume = select_irradiance_volume_for_view(
+            &frame.extract.lighting.advanced_lighting.irradiance_volumes,
+            camera_layers,
+            &irradiance_sample_positions,
+        )
+        .cloned()
+        .and_then(|volume| {
+            streamer
+                .irradiance_volume_texture(volume.voxels)
+                .map(|texture| (volume, texture))
+        });
+        self.mesh_pipelines
+            .irradiance_volume
+            .prepare(queue, selected_irradiance_volume);
         let shadow_frame_plan =
             crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
                 &mut self.shadow_atlas_allocator,

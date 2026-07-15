@@ -50,6 +50,26 @@ impl RenderFeatureDescriptor {
         self
     }
 
+    /// Activates this descriptor only when the selected view contains at
+    /// least one extracted light cookie.
+    pub fn when_advanced_lighting_cookies_enabled(mut self) -> Self {
+        if !self.requires_advanced_lighting_cookies() {
+            self.pass_resource_extensions
+                .push(RenderFeatureGraphMutation::RequireAdvancedLightingCookies);
+        }
+        self
+    }
+
+    /// Activates this descriptor only when the selected view contains at
+    /// least one extracted irradiance volume.
+    pub fn when_advanced_lighting_irradiance_volumes_enabled(mut self) -> Self {
+        if !self.requires_advanced_lighting_irradiance_volumes() {
+            self.pass_resource_extensions
+                .push(RenderFeatureGraphMutation::RequireAdvancedLightingIrradianceVolumes);
+        }
+        self
+    }
+
     /// Activates this descriptor only for a mirror camera whose selected
     /// texture target is owned by an extracted planar reflection probe.
     pub fn when_advanced_lighting_planar_capture_enabled(mut self) -> Self {
@@ -100,6 +120,30 @@ impl RenderFeatureDescriptor {
                         attachment_ops: None,
                         write_mode: RenderFeatureResourceWriteMode::Attachment,
                         external_binding: RenderGraphExternalResourceBinding::report_only(),
+                    },
+                },
+            ));
+        self
+    }
+
+    /// Extends an existing pass with a report-only persistent texture read.
+    pub fn with_pass_read_external_texture(
+        mut self,
+        target_pass_name: impl Into<String>,
+        resource_name: impl Into<String>,
+    ) -> Self {
+        self.pass_resource_extensions
+            .push(RenderFeatureGraphMutation::PassResource(
+                RenderFeaturePassResourceExtension {
+                    target_pass_name: target_pass_name.into(),
+                    resource: RenderFeatureResourceDescriptor {
+                        name: resource_name.into(),
+                        kind: RenderFeatureResourceKind::External,
+                        access: RenderFeatureResourceAccess::Read,
+                        minimum_size_bytes: None,
+                        attachment_ops: None,
+                        write_mode: RenderFeatureResourceWriteMode::Attachment,
+                        external_binding: RenderGraphExternalResourceBinding::report_only_texture(),
                     },
                 },
             ));

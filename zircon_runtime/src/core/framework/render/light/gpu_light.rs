@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 pub const SHADOW_SLOT_NONE: u32 = u32::MAX;
-pub const GPU_LIGHT_DATA_STRIDE: usize = 96;
+pub const GPU_LIGHT_DATA_STRIDE: usize = 128;
 
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -31,6 +31,8 @@ pub struct GpuLightData {
     pub spot_angles_size: [f32; 4],
     pub shadow_slot_layer: [u32; 4],
     pub shadow_params: [f32; 4],
+    pub cookie_uv_rect: [f32; 4],
+    pub cookie_misc: [u32; 4],
 }
 
 impl GpuLightData {
@@ -51,6 +53,8 @@ mod tests {
         assert_eq!(offset_of!(GpuLightData, spot_angles_size), 48);
         assert_eq!(offset_of!(GpuLightData, shadow_slot_layer), 64);
         assert_eq!(offset_of!(GpuLightData, shadow_params), 80);
+        assert_eq!(offset_of!(GpuLightData, cookie_uv_rect), 96);
+        assert_eq!(offset_of!(GpuLightData, cookie_misc), 112);
     }
 
     #[test]

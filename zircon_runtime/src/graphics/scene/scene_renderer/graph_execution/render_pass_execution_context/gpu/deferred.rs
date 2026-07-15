@@ -199,6 +199,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 )
             })?
             .bind_group();
+        let light_cookies = &self
+            .mesh_pipelines
+            .as_deref()
+            .ok_or_else(|| {
+                format!("deferred graph executor for pass `{pass_name}` requires mesh pipeline resources")
+            })?
+            .light_cookies;
+        let irradiance_volume = &self
+            .mesh_pipelines
+            .as_deref()
+            .ok_or_else(|| {
+                format!("deferred graph executor for pass `{pass_name}` requires mesh pipeline resources")
+            })?
+            .irradiance_volume;
         deferred.execute_lighting(
             self.device,
             self.encoder,
@@ -214,6 +228,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             light_zbins_buffer,
             light_tile_masks_buffer,
             integrated_volumetric_view,
+            light_cookies,
+            irradiance_volume,
             self.frame,
             scene_color_view,
             subsurface_diffuse_view,

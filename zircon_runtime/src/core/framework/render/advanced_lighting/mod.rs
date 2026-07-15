@@ -11,7 +11,9 @@ mod volumetric;
 
 pub use cookie::{CookieProjection, CookieWrapMode, LightCookieData};
 pub use extract::AdvancedLightingExtract;
-pub use irradiance_volume::IrradianceVolumeData;
+pub use irradiance_volume::{
+    select_irradiance_volume, select_irradiance_volume_for_view, IrradianceVolumeData,
+};
 pub use material_features::{
     StandardPbrMaterialFeatures, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
     STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,

@@ -15,6 +15,8 @@ pub(crate) enum RenderFeatureGraphMutation {
     PassResource(RenderFeaturePassResourceExtension),
     ReplacePass { target_pass_name: String },
     RequireAdvancedLightingOit,
+    RequireAdvancedLightingCookies,
+    RequireAdvancedLightingIrradianceVolumes,
     RequireAdvancedLightingPlanarCapture,
     RequireAdvancedLightingSubsurface,
 }
@@ -55,6 +57,16 @@ impl RenderFeatureDescriptor {
     pub(crate) fn requires_advanced_lighting_oit(&self) -> bool {
         self.pass_resource_extensions
             .contains(&RenderFeatureGraphMutation::RequireAdvancedLightingOit)
+    }
+
+    pub(crate) fn requires_advanced_lighting_cookies(&self) -> bool {
+        self.pass_resource_extensions
+            .contains(&RenderFeatureGraphMutation::RequireAdvancedLightingCookies)
+    }
+
+    pub(crate) fn requires_advanced_lighting_irradiance_volumes(&self) -> bool {
+        self.pass_resource_extensions
+            .contains(&RenderFeatureGraphMutation::RequireAdvancedLightingIrradianceVolumes)
     }
 
     pub(crate) fn requires_advanced_lighting_planar_capture(&self) -> bool {

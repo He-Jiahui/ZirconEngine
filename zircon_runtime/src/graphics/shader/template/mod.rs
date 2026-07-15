@@ -20,7 +20,10 @@ pub(crate) use material_surface::{
     standard_material_surface_source, standard_material_surface_source_for_features,
     StandardMaterialSurfaceSource,
 };
-pub(crate) use module_registry::{builtin_shader_ide_module_includes, ShaderTemplateInclude};
+pub(crate) use module_registry::{
+    builtin_shader_ide_module_includes, ShaderModuleRegistry, ShaderModuleResolutionError,
+    ShaderTemplateInclude,
+};
 pub(crate) use taa_reactive_mask::{
     assemble_taa_reactive_mask_shader_template, TaaReactiveMaskShaderTemplateRequest,
 };

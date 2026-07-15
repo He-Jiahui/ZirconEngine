@@ -117,7 +117,16 @@ fn zr_lightmap_baked_irradiance(
     world_position: vec3<f32>,
     normal_ws: vec3<f32>,
 ) -> vec3<f32> {
-    if (zr_gpu_scene_has_lightmap(instance_index)) {
+    let lightmapped = zr_gpu_scene_has_lightmap(instance_index);
+    let local_volume = zr_irradiance_volume_sample(
+        world_position,
+        normal_ws,
+        lightmapped,
+    );
+    if (local_volume.valid != 0u) {
+        return local_volume.irradiance;
+    }
+    if (lightmapped) {
         return zr_lightmap_sample_atlas(instance_index, uv2);
     }
     return zr_lightmap_sample_probe_grid(world_position, normal_ws);

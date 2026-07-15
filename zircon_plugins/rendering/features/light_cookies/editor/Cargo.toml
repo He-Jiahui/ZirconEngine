@@ -1,0 +1,11 @@
+[package]
+name = "zircon_plugin_rendering_light_cookies_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+zircon_editor = { workspace = true }
+zircon_plugin_rendering_light_cookies_runtime = { path = "../runtime" }
+zircon_runtime = { workspace = true }
+
