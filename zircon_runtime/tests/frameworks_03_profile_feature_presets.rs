@@ -1,4 +1,13 @@
-use zircon_runtime::plugin::{RuntimeProfileId, RUNTIME_PROFILE_FEATURE_PRESETS};
+use zircon_runtime::core::framework::project::RuntimeProfileId;
+use zircon_runtime::plugin::{RuntimeProfileFeaturePreset, RUNTIME_PROFILE_FEATURE_PRESETS};
+
+fn feature_preset_for(profile_id: RuntimeProfileId) -> RuntimeProfileFeaturePreset {
+    RUNTIME_PROFILE_FEATURE_PRESETS
+        .iter()
+        .copied()
+        .find(|preset| preset.id == profile_id)
+        .unwrap_or_else(|| panic!("missing feature preset for runtime profile {profile_id:?}"))
+}
 
 #[test]
 fn runtime_profile_feature_presets_cover_all_builtin_profiles_in_stable_order() {
@@ -16,38 +25,38 @@ fn runtime_profile_feature_presets_cover_all_builtin_profiles_in_stable_order() 
         ]
     );
     assert_eq!(
-        RuntimeProfileId::Minimal.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Minimal).cargo_feature,
         "core-min"
     );
     assert_eq!(
-        RuntimeProfileId::Minimal.feature_preset().app_features,
+        feature_preset_for(RuntimeProfileId::Minimal).app_features,
         ["zircon_runtime/core-min"]
     );
     assert_eq!(
-        RuntimeProfileId::Client2d.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Client2d).cargo_feature,
         "target-client"
     );
     assert_eq!(
-        RuntimeProfileId::Client3d.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Client3d).cargo_feature,
         "target-client"
     );
     assert_eq!(
-        RuntimeProfileId::Editor.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Editor).cargo_feature,
         "target-editor-host"
     );
     assert_eq!(
-        RuntimeProfileId::Dev.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Dev).cargo_feature,
         "target-editor-host"
     );
     assert_eq!(
-        RuntimeProfileId::Server.feature_preset().cargo_feature,
+        feature_preset_for(RuntimeProfileId::Server).cargo_feature,
         "target-server"
     );
 }
 
 #[test]
 fn runtime_profile_feature_presets_expose_compilation_requirements() {
-    let client = RuntimeProfileId::Client3d.feature_preset();
+    let client = feature_preset_for(RuntimeProfileId::Client3d);
     for feature in [
         "core-min",
         "graphics",
@@ -66,7 +75,7 @@ fn runtime_profile_feature_presets_expose_compilation_requirements() {
         );
     }
 
-    let server = RuntimeProfileId::Server.feature_preset();
+    let server = feature_preset_for(RuntimeProfileId::Server);
     assert_eq!(
         server.runtime_features,
         ["core-min", "diagnostic-log", "platform-headless"]
