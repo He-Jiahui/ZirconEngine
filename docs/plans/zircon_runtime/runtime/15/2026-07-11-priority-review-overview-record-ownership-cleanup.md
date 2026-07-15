@@ -6,7 +6,7 @@ Status: `runtime_15_priority_review_overview_record_ownership_cleanup_passed`
 
 ## Slice
 
-`docs/plans/engine-code-review-findings-2026-06.md` is an overview and routing owner, not a concrete validation-record owner. The current review-row summary no longer embeds the reconciled row count, machine-readable completion status, or guard name. Those details remain canonical in `2026-07-09-engine-code-review-findings-output-records.md`.
+`docs/plans/engine-code-review-findings-2026-06.md` is an overview and routing owner, not a concrete validation-record owner. The current review-row summary no longer embeds the reconciled row count, machine-readable completion status, or guard name. Those details remain canonical in `../../../_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`.
 
 No finding, priority, target plan, or outstanding Cargo/FPS/RenderDoc/plugin/UI/workspace gate was promoted or removed by this cleanup.
 

@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
-  - docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md
+  - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-engine-review-current-evidence-row-reconciliation.md
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/status_placeholder_guard.rs
@@ -162,8 +162,8 @@ related_code:
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
+  - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/target.rs
@@ -943,7 +943,7 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory
   - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
   - "请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述"
-  - "具体测试、验证与产出明细已迁入 docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+  - "具体测试、验证与产出明细已迁入 docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
 doc_type: review-findings
 status: in_progress
 ---
@@ -956,7 +956,7 @@ status: in_progress
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-具体补记、验证与修复记录已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)。本文件仅保留审查发现、优先级与当前现状概述。
+具体补记、验证与修复记录已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)。本文件仅保留审查发现、优先级与当前现状概述。
 
 当前 plan-status 审查同步（2026-07-10）：已修复“父计划/总索引重复持有历史具体产出”的结构漂移，并恢复 index 的允许聚合表面。具体证据由编号归档拥有，父文档只保留当前概述；archive reader 与 parent-routing guard 均为 folder-backed child owner。Python audit `risks = []`，standalone Rust plan-status 48/48；未新增大文件职责、兼容层或生产行为旁路。
 
@@ -976,7 +976,7 @@ status: in_progress
 
 该同步明细已迁入 Runtime 15 产出目录；本文件只保留审查发现本身与当前状态概述。
 
-- 迁入记录：[`zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)
+- 迁入记录：[`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)
 
 ## 1. P0 —— 健壮性 / 已知性能（优先排期）
 
@@ -1048,7 +1048,7 @@ P0 安全与崩溃类、渲染性能热点、插件 DX 单源化与结构门禁�
 
 ## Runtime 15 M3 Review-Guard Row-Data Routing
 
-Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有审查发现、优先级与当前现状概述。
+Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有审查发现、优先级与当前现状概述。
 
 ## 2026-07-13 M4 behavior postprocess tests owner split review sync
 

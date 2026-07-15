@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
-  - docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md
+  - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
   - zircon_runtime/src/tests/runtime_absorption/plan_status/support/runtime_plan_archives.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards/parent_routing.rs
@@ -1215,7 +1215,7 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory
   - tests/acceptance/runtime-priority-plan-output-archive-ownership.md
   - "请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述"
-  - "具体测试、验证与产出明细已迁入 docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+  - "具体测试、验证与产出明细已迁入 docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
 doc_type: convention-authority
 status: in_progress
 ---
@@ -1228,7 +1228,7 @@ status: in_progress
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-具体结构补记、验证与修复记录已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)。本文件仅保留结构规范、接口约定与当前现状概述。
+具体结构补记、验证与修复记录已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)。本文件仅保留结构规范、接口约定与当前现状概述。
 
 当前 plan-status 结构同步（2026-07-10）：具体状态记录已硬切到 `zircon_runtime/runtime/01/` 至 `15/` 编号归档，父计划和总索引不再复制历史五列表格。测试支持按职责拆为 `plan_status/support/runtime_plan_archives.rs` 与 `plan_status/recent_static_guards/parent_routing.rs`，所有 owner 文件保持各自预算；Python boundary support 84/84、`risks = []`，standalone Rust plan-status 48/48。该结构同步没有恢复旧路径、兼容 facade、shim 或 re-export。
 
@@ -1374,7 +1374,7 @@ system_anchors = [...]                # 与实际注册的 system 源核对
 
 历史迁移批次、验证与状态记录已迁入 Runtime 15 产出目录。
 
-- 迁入记录：[`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
+- 迁入记录：[`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
 
 ### §6.4 capability 单源 + 四源一致性
 capability id 为 `capability.rs` 的 `pub const`；guard 测试交叉核对四源：`capability.rs` 常量 ↔ `plugin.toml capabilities` ↔ runtime descriptor ↔ workspace member。扩展现有 `declared_system_anchors_are_registered` 同款模式到 capability。
@@ -1383,7 +1383,7 @@ capability id 为 `capability.rs` 的 `pub const`；guard 测试交叉核对四�
 
 历史迁移批次、计数与验证记录已迁入 Runtime 15 产出目录。
 
-- 迁入记录：[`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
+- 迁入记录：[`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
 
 ### §6.5 `plugin_sdk` builder（祝福路径）
 把 `plugin_sdk_examples` 固化为模板与 builder/test fixture API，新插件 ≈ 一文件声明（descriptor + capability + systems 注册），runtime system 注册通过 `plugin_sdk::registration` 隐藏 owner token 样板，runtime helper exports 通过 `plugin_sdk::runtime_plugin_exports!` 投影 trait-backed manifest/selection/registration，optional feature 能力通过 `PluginFeatureBundleBuilder` 同源投影 feature/module capabilities，editor/runtime 对称通过 `EditorPluginDeclaration::mirrors_runtime(...)` 显式声明，跨插件测试通过 `plugin_sdk::test::TestRuntime::builder()` 复用 runtime/scene/fixed-step 启动样板。
@@ -1395,7 +1395,7 @@ capability id 为 `capability.rs` 的 `pub const`；guard 测试交叉核对四�
 
 具体 rollout、构建、验证、计数与阻塞记录已迁入 Runtime 15 产出目录；本节仅保留双形态独立构建规范。
 
-- 迁入记录：[`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
+- 迁入记录：[`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
 
 ### 范式：插件 crate 骨架化（`asset_importers/model`）
 **前**（无 `plugin.toml`，注册在自由函数）：`src/{lib.rs(re-export), registration.rs(161 行: descriptors + manifest + plugin_registration 自由函数), mesh_importer.rs, cad.rs, tests/}`
@@ -1428,7 +1428,7 @@ asset_importers/model/runtime/
 
 > 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
 
-- 迁入记录：[`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
+- 迁入记录：[`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)
 
 - **E1 typed error 优先**：跨模块公共 API 返回 typed error，不用裸 `String` 或 `format!()` 压扁 source。
 - **E2 getter / resolver 命名**：`get_*` 表示 optional lookup，`resolve_*` 留给 fallible/result lookup。
@@ -1456,7 +1456,7 @@ asset_importers/model/runtime/
 
 ## Runtime 15 M3 Review-Guard Row-Data Routing
 
-Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有结构规范、接口约定与当前现状概述。
+Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors 已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md)，共享 current-owner inventory 由 [`zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md`](zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md) 持有；本文件继续只持有结构规范、接口约定与当前现状概述。
 
 ## 2026-07-13 M4 behavior postprocess tests owner split hard-cut note
 

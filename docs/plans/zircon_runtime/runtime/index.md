@@ -160,7 +160,7 @@ Runtime 总索引顶部历史状态镜像已迁入编号子计划产出目录；
 
 - Runtime 05 迁入记录：[`05/2026-07-09-runtime-index-output-records.md`](05/2026-07-09-runtime-index-output-records.md)
 - Runtime 07 迁入记录：[`07/2026-07-09-runtime-index-output-records.md`](07/2026-07-09-runtime-index-output-records.md)
-- Runtime 15 迁入记录：[`15/2026-07-09-runtime-index-output-records.md`](15/2026-07-09-runtime-index-output-records.md)
+- Runtime 15 迁入记录：[`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)
 ## 1. 技术选型评审结论（2026-06-12 实仓核对）
 
 总体结论:选型与 Bevy 同代生态一致（winit + wgpu/naga + glam + crossbeam + notify + taffy），自研 ECS/UI/资产管线的目录形状与 `bevy_ecs`/`bevy_asset` 可逐项对照，方向合理。但"声称技术栈"与实仓有 5 处失实，另有 4 个能力缺口需要决策。
@@ -209,7 +209,7 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 
 2026-07-10 Runtime 08 当前 child-owner 同步：`ecs_kernel_data_boundary` 报告 `expected_source_file_count = 69`、`expected_test_file_count = 10`、`archetype_anchors = 15/15`、`storage_anchors = 9/9`、`component_storage_private_reexport_anchors = 9/9`、`component_identity_anchors = 18/18`、`entity_lifecycle_anchors = 10/10`、`observer_anchors = 8/8`、`deferred_command_anchors = 11/11`、`event_message_anchors = 12/12`、`resource_identity_anchors = 12/12`、`change_tick_anchors = 6/6`、`runtime_08_guard_anchors = 21/21`、`behavior_test_anchor_count = 16`、`missing_behavior_test_anchors = []`、`doc_anchors = 13/13`、`pending_cargo_gate_anchors = 6/6`、`mirror_docs_guard_present = true` 与 `risks = []`；`runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts` 保持计划、runtime index、ECS 模块文档、M0 review 与 interface-convergence 镜像一致。10 个 test owner 显式包含 `ecs_kernel_data/inventory.rs` 与 `cargo_gates/early/runtime_08.rs`；该口径取代历史 8-route-owner 镜像，但不关闭 pending `entity/observer/command/messages/change_tick/ecs` Cargo gates。
 
-- 迁入记录：[`15/2026-07-09-runtime-index-output-records.md`](15/2026-07-09-runtime-index-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)
 
 ### 2.2 问题清单（本计划的工作对象）
 
@@ -235,7 +235,7 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 | P16 | script binding/reflection 已避免 native ECS 旁路 | 等待 script Cargo filters | 13 |
 | P17 | animation/navigation/log 等模块族已有 owner | 等待 module-family Cargo filters | 14 |
 
-- 迁入记录：[`15/2026-07-09-runtime-index-output-records.md`](15/2026-07-09-runtime-index-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)
 
 ### 2.3 参考引擎证据锚点（2026-06-13 扩充：全路径实测存在；实现型切片动工前必读对应行，见 §7.9）
 
@@ -282,7 +282,7 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 | 14 | `14-runtime-module-family-closeout.md` | Runtime 02、Runtime 03 | in_progress：module-family Cargo filters pending |
 | 15 | `15-code-structure-and-module-conventions.md` | Runtime 01 至 Runtime 14 | in_progress：active lane owner 清单与 Cargo gate pending |
 
-迁出明细：[`15/2026-07-09-runtime-index-output-records.md`](15/2026-07-09-runtime-index-output-records.md)
+迁出明细：[`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)
 
 ### 3.1 已知但暂不立项的缺口
 
@@ -353,4 +353,6 @@ Runtime 09 当前静态镜像由 `ui_architecture_boundary` 持有。2026-07-10 
 
 ## Runtime 15 review-guard row-data current routing
 
-具体 owner、状态锚与验证记录已迁入 [`15/2026-07-09-runtime-index-output-records.md`](15/2026-07-09-runtime-index-output-records.md)；本索引只保留当前子计划路由与全局约束。
+具体 owner、状态锚与验证记录已迁入 [`../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md`](../../_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md)；本索引只保留当前子计划路由与全局约束。
+
+Current Runtime13 owner hard-cut sync 2026-07-14: `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The concrete ZrVM host-module source is owned and guarded by `zircon_plugin_zr_vm_language_runtime`, not by Runtime13.
