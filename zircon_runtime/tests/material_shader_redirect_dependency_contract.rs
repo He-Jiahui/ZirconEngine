@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -5,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime::asset::{
     project::{AssetMetaDocument, AssetSourceUnit, ProjectManager, ProjectManifest, ProjectPaths},
     AssetKind, AssetReference, AssetUri, AssetUuid, ImportedAsset, MaterialAsset, ShaderAsset,
-    ShaderDependencyAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
+    ShaderDependencyAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
     MaterialPropertyKind, RenderMaterialFallbackReason, RenderMaterialValidationError,
@@ -15,26 +16,16 @@ use zircon_runtime::core::resource::ResourceKind;
 
 #[test]
 fn material_readiness_reports_unresolved_shader_import_redirect_dependency() {
-    let material = MaterialAsset::from_toml_str(
-        r#"
-version = 2
-name = "RedirectImport"
-
-[shader]
-uuid = "00000000-0000-0000-0000-000000000001"
-url = "res://shaders/redirect_surface.zshader"
-
-[overrides]
-base_color = [1.0, 1.0, 1.0, 1.0]
-"#,
-    )
-    .unwrap();
+    let material = material_with_shader(asset_reference(
+        "redirect-surface",
+        "res://shaders/redirect_surface.zshader",
+    ));
     let redirected_module = asset_reference("missing-shared", "res://shaders/missing_shared");
     let shader = shader_with_redirect_dependency(redirected_module.clone());
 
     let report = material.readiness_report_with_shader_contract(
         &shader,
-        |reference| reference != &redirected_module,
+        |reference| !has_same_asset_identity(reference, &redirected_module),
         |_| true,
     );
 
@@ -42,12 +33,12 @@ base_color = [1.0, 1.0, 1.0, 1.0]
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
         RenderMaterialValidationError::UnresolvedShaderReference { reference }
-            if reference == &redirected_module
+            if has_same_asset_identity(reference, &redirected_module)
     )));
     assert!(report.fallback_usages.iter().any(|usage| matches!(
         &usage.reason,
         RenderMaterialFallbackReason::Shader { reference }
-            if reference == &redirected_module
+            if has_same_asset_identity(reference, &redirected_module)
     )));
 }
 
@@ -65,12 +56,12 @@ fn project_material_readiness_reports_imported_shader_redirect_dependency() {
     )
     .save(paths.manifest_path())
     .unwrap();
-    let shader_uri = write_redirect_surface_shader_package(&paths);
-    let material_uri = write_material_for_shader(&paths, &shader_uri);
-
+    let shader = write_redirect_surface_shader_package(&paths);
     let mut manager = ProjectManager::open(&root).unwrap();
     manager.scan_and_import().unwrap();
-    let shader = load_shader(&manager, &shader_uri);
+    let material_uri = write_material_for_shader(&paths, &manager, &shader);
+    manager.scan_and_import().unwrap();
+    let shader = load_shader(&manager, &shader.locator);
     let material = load_material(&manager, &material_uri);
     let redirected_module = shader.dependencies[0].reference.clone();
 
@@ -98,12 +89,12 @@ fn project_material_readiness_reports_imported_shader_redirect_dependency() {
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
         RenderMaterialValidationError::UnresolvedShaderReference { reference }
-            if reference == &redirected_module
+            if has_same_asset_identity(reference, &redirected_module)
     )));
     assert!(report.fallback_usages.iter().any(|usage| matches!(
         &usage.reason,
         RenderMaterialFallbackReason::Shader { reference }
-            if reference == &redirected_module
+            if has_same_asset_identity(reference, &redirected_module)
     )));
 
     let _ = fs::remove_dir_all(root);
@@ -155,6 +146,29 @@ fn asset_reference(label: &str, uri: &str) -> AssetReference {
     )
 }
 
+fn material_with_shader(shader: AssetReference) -> MaterialAsset {
+    MaterialAsset::from_zmaterial_document(material_document_with_shader(shader))
+}
+
+fn material_document_with_shader(shader: AssetReference) -> ZMaterialDocument {
+    ZMaterialDocument {
+        version: 2,
+        name: Some("RedirectImport".to_owned()),
+        shader,
+        parent: None,
+        options: BTreeMap::new(),
+        overrides: BTreeMap::new(),
+        textures: BTreeMap::new(),
+        queue: None,
+        editor: Default::default(),
+        validation_diagnostics: Vec::new(),
+    }
+}
+
+fn has_same_asset_identity(reference: &AssetReference, expected: &AssetReference) -> bool {
+    reference.uuid == expected.uuid
+}
+
 fn unique_temp_project_root(label: &str) -> PathBuf {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -167,14 +181,14 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
     ))
 }
 
-fn write_redirect_surface_shader_package(paths: &ProjectPaths) -> AssetUri {
-    let shader_uri = AssetUri::parse("res://shaders/redirect_surface").unwrap();
+fn write_redirect_surface_shader_package(paths: &ProjectPaths) -> AssetReference {
+    let shader = asset_reference("redirect-surface", "res://shaders/redirect_surface");
     let shader_meta_path = paths
         .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("shaders")
         .join("redirect_surface.zmeta");
     let mut shader_meta =
-        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+        AssetMetaDocument::new(shader.uuid, shader.locator.clone(), AssetKind::Shader);
     shader_meta.unit = AssetSourceUnit::Compound;
     fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
     shader_meta.save(&shader_meta_path).unwrap();
@@ -210,30 +224,24 @@ fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
 "#,
     )
     .unwrap();
-    shader_uri
+    shader
 }
 
-fn write_material_for_shader(paths: &ProjectPaths, shader_uri: &AssetUri) -> AssetUri {
+fn write_material_for_shader(
+    paths: &ProjectPaths,
+    manager: &ProjectManager,
+    shader: &AssetReference,
+) -> AssetUri {
     let material_uri = AssetUri::parse("res://materials/redirect_surface.zmaterial").unwrap();
     let material_path = paths
         .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("materials")
         .join("redirect_surface.zmaterial");
     fs::create_dir_all(material_path.parent().unwrap()).unwrap();
-    fs::write(
-        material_path,
-        format!(
-            r#"
-version = 2
-name = "RedirectSurface"
-
-[shader]
-uuid = "11111111-1111-4111-8111-111111111111"
-url = "{shader_uri}"
-"#
-        ),
-    )
-    .unwrap();
+    let document = material_document_with_shader(shader.clone())
+        .to_project_toml_string(|reference| manager.persist_runtime_reference(reference))
+        .unwrap();
+    fs::write(material_path, document).unwrap();
     material_uri
 }
 
