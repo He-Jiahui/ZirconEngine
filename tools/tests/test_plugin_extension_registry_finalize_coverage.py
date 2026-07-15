@@ -101,7 +101,7 @@ class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
             (
                 "zircon_runtime/src/plugin/extension_registry/apply_to_world.rs",
                 "pub fn apply_to_world",
-                "self.apply_finalized_to_world",
+                "self.world_runtime_extension_plan()?",
             ),
             (
                 "zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs",
@@ -135,26 +135,39 @@ class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
                 path,
             )
 
-        world_path = (
+        registry_world_source = (
             repo_root
-            / "zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs"
+            / "zircon_runtime/src/plugin/extension_registry/apply_to_world.rs"
+        ).read_text(encoding="utf-8")
+        plan_body = _function_body(
+            registry_world_source, "pub fn world_runtime_extension_plan"
         )
-        world_source = world_path.read_text(encoding="utf-8")
-        install_body = _function_body(world_source, "pub(crate) fn install")
-        apply_body = _function_body(world_source, "pub(crate) fn apply_to_world")
+        for runtime_read in (
+            "self.components()",
+            "self.plugin_resources()",
+            "self.plugin_events()",
+            "self.plugin_systems()",
+            "self.plugin_runtime_systems()",
+        ):
+            self.assertIn(runtime_read, plan_body)
+        self.assertIn("WorldRuntimeExtensionPlan::from_registrations", plan_body)
+
+        world_driver_path = repo_root / "zircon_runtime/src/scene/module/world_driver.rs"
+        world_driver_source = world_driver_path.read_text(encoding="utf-8")
+        install_body = _function_body(
+            world_driver_source, "pub fn install_world_runtime_extension_plan"
+        )
+        apply_body = _function_body(
+            world_driver_source, "pub fn apply_world_runtime_extensions"
+        )
         self.assertLess(
-            install_body.index("let mut candidate = self.registry.clone();"),
-            install_body.index("merge_world_runtime_extensions(&mut candidate"),
+            install_body.index("let candidate = plan.try_merge(contribution)"),
+            install_body.index("*plan = candidate;"),
         )
         self.assertLess(
-            install_body.index("merge_world_runtime_extensions(&mut candidate"),
-            install_body.index("candidate.finalize();"),
+            apply_body.index("lock_poison_recovered(&self.runtime_extensions)"),
+            apply_body.index(".apply_to_world(world)"),
         )
-        self.assertLess(
-            install_body.index("candidate.finalize();"),
-            install_body.index("self.registry = candidate;"),
-        )
-        self.assertIn("self.registry.apply_finalized_to_world(world)", apply_body)
         self.assertNotIn("clone()", apply_body)
 
 
