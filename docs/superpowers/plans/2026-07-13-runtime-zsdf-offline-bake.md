@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/sdf/offline
+  - zircon_runtime/src/text/sdf/offline
   - zircon_runtime/src/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs

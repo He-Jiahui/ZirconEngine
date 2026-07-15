@@ -16,11 +16,11 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/core/framework/render/text/font/composite.rs
-  - zircon_runtime/src/graphics/text/font/asset_registration.rs
-  - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/asset_registration.rs
+  - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - tools/tests/test_text_01_composite_activation.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
@@ -36,15 +36,15 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/database/tests.rs
-  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/database/tests.rs
+  - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/core/framework/render/text/font/composite.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/text/font/asset_registration.rs
-  - zircon_runtime/src/graphics/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/asset_registration.rs
+  - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
 plan_sources:

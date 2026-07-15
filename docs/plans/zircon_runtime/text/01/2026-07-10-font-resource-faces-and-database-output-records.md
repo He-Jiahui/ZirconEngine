@@ -3,12 +3,12 @@ related_code:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
   - zircon_runtime/src/core/framework/render/text/font/composite.rs
   - zircon_runtime/src/asset/assets/font.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/instance.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal
-  - zircon_runtime/src/graphics/text/shaping/vertical/backend.rs
-  - zircon_runtime/src/graphics/text/raster/swash
-  - zircon_runtime/src/graphics/text/sdf
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/instance.rs
+  - zircon_runtime/src/text/shaping/horizontal
+  - zircon_runtime/src/text/shaping/vertical/backend.rs
+  - zircon_runtime/src/text/raster/swash
+  - zircon_runtime/src/text/sdf
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
   - zircon_runtime/assets/fonts/default.font.toml
 plan_sources:

@@ -12,10 +12,10 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
-  - zircon_runtime/src/graphics/text/layout/kinsoku.rs
-  - zircon_runtime/src/graphics/text/layout/rich_vertical.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
+  - zircon_runtime/src/text/layout/kinsoku.rs
+  - zircon_runtime/src/text/layout/rich_vertical.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/smart.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/text/layout_engine/tests.rs
@@ -70,10 +70,10 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
-  - zircon_runtime/src/graphics/text/layout/kinsoku.rs
-  - zircon_runtime/src/graphics/text/layout/rich_vertical.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
+  - zircon_runtime/src/text/layout/kinsoku.rs
+  - zircon_runtime/src/text/layout/rich_vertical.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/smart.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/text/grapheme.rs

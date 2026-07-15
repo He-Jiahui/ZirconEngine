@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs

@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/mod.rs
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/core/framework/render/text/shaped_run.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
@@ -27,18 +27,18 @@ related_code:
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/tests/text_pipeline
 implementation_files:
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/tests.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs

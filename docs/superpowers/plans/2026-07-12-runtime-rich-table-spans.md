@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/text/rich.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table.rs
+  - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/text/rich.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table/attributes.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table/placement.rs
+  - zircon_runtime/src/text/rich/bbcode_table.rs
+  - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
+  - zircon_runtime/src/text/rich/bbcode_table/placement.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table/grid.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table/sizing.rs

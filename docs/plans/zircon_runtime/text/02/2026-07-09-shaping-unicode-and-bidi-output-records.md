@@ -1,21 +1,21 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/text/shaped_run.rs
-  - zircon_runtime/src/graphics/text/shaping/bidi.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic/font_system_cache.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/backend.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/projection.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/tests.rs
-  - zircon_runtime/src/graphics/text/font/vertical_metrics.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/backend.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/orientation.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/projection.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/tests.rs
-  - zircon_runtime/src/graphics/text/shaping/normalize.rs
+  - zircon_runtime/src/text/shaping/bidi.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
+  - zircon_runtime/src/text/shaping/horizontal/backend.rs
+  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/horizontal/tests.rs
+  - zircon_runtime/src/text/font/vertical_metrics.rs
+  - zircon_runtime/src/text/shaping/vertical.rs
+  - zircon_runtime/src/text/shaping/vertical/backend.rs
+  - zircon_runtime/src/text/shaping/vertical/orientation.rs
+  - zircon_runtime/src/text/shaping/vertical/projection.rs
+  - zircon_runtime/src/text/shaping/vertical/tests.rs
+  - zircon_runtime/src/text/shaping/normalize.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md

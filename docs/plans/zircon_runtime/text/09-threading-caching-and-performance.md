@@ -1,15 +1,15 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
-  - zircon_runtime/src/graphics/text/parallel/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/parallel/raster_pool.rs
-  - zircon_runtime/src/graphics/text/parallel/tests.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/tests.rs
+  - zircon_runtime/src/text/parallel/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/parallel/raster_pool.rs
+  - zircon_runtime/src/text/parallel/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/tests/text_pipeline
@@ -19,9 +19,9 @@ related_code:
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/storage.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Text/ShapedTextCache.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Fonts/SlateSdfGenerator.cpp

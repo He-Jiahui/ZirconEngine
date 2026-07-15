@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.
 origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_runtime/text/01
 related_code:
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
 tests:
   - cargo test -p zircon_editor --lib --no-run --locked --jobs 1
 resolved_at: 2026-07-13

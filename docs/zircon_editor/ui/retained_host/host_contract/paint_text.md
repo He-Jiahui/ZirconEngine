@@ -49,8 +49,8 @@ related_code:
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
@@ -92,8 +92,8 @@ implementation_files:
   - zircon_runtime/src/ui/surface/text_shape.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md

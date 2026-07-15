@@ -147,10 +147,10 @@ related_code:
   - docs/zircon_runtime/asset/assets/font.md
   - docs/zircon_runtime/asset/assets/ui.md
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/descriptors.rs
-  - zircon_runtime/src/graphics/text/font/matching.rs
-  - zircon_runtime/src/graphics/text/font/asset_registration.rs
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/descriptors.rs
+  - zircon_runtime/src/text/font/matching.rs
+  - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/font_database_descriptors.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/global_budget.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_tests.rs
@@ -1195,10 +1195,10 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_wgpu_ui_surface_geometry.rs
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/descriptors.rs
-  - zircon_runtime/src/graphics/text/font/matching.rs
-  - zircon_runtime/src/graphics/text/font/asset_registration.rs
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/descriptors.rs
+  - zircon_runtime/src/text/font/matching.rs
+  - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/font_database_descriptors.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/global_budget.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs

@@ -2,8 +2,8 @@
 related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/core/framework/render/text/rich.rs
-  - zircon_runtime/src/graphics/text/layout/rich.rs
-  - zircon_runtime/src/graphics/text/layout/rich_vertical.rs
+  - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline_vertical.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
@@ -12,15 +12,15 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
-  - zircon_runtime/src/graphics/text/rich/mod.rs
-  - zircon_runtime/src/graphics/text/rich/parser.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table.rs
-  - zircon_runtime/src/graphics/text/rich/html_subset.rs
-  - zircon_runtime/src/graphics/text/rich/decorator.rs
-  - zircon_runtime/src/graphics/text/rich/emoji_shortcode.rs
-  - zircon_runtime/src/graphics/text/rich/inline_decorators.rs
-  - zircon_runtime/src/graphics/text/rich/tests.rs
+  - zircon_runtime/src/text/rich/mod.rs
+  - zircon_runtime/src/text/rich/parser.rs
+  - zircon_runtime/src/text/rich/bbcode.rs
+  - zircon_runtime/src/text/rich/bbcode_table.rs
+  - zircon_runtime/src/text/rich/html_subset.rs
+  - zircon_runtime/src/text/rich/decorator.rs
+  - zircon_runtime/src/text/rich/emoji_shortcode.rs
+  - zircon_runtime/src/text/rich/inline_decorators.rs
+  - zircon_runtime/src/text/rich/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs
   - zircon_runtime/src/ui/text/rich_text.rs

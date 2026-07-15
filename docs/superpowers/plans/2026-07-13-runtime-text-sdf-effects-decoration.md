@@ -1,8 +1,8 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_effects.rs
-  - zircon_runtime/src/graphics/text/raster/policy.rs
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/raster/policy.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl

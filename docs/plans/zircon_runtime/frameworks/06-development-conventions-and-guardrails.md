@@ -17,7 +17,7 @@ plan_sources:
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/non-network-server-naming-m1.md
   - docs/engine-architecture/generated-code-boundary.md
-last_refined: 2026-07-13
+last_refined: 2026-07-16
 status: in_progress
 ---
 
@@ -104,4 +104,4 @@ status: in_progress
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 - 产出记录：[`06/2026-07-12-development-conventions-and-guardrails-output-records.md`](06/2026-07-12-development-conventions-and-guardrails-output-records.md)、[`06/2026-07-13-development-conventions-and-guardrails-output-records.md`](06/2026-07-13-development-conventions-and-guardrails-output-records.md)
-- 当前状态：M0 已完成。M1 进行中：本地聚合工具、模块文档、契约测试与 CI 单一入口已落地，历史全库 fmt、G7 与首批 Runtime Interface/App scoped clippy 通过证据由编号归档持有；`--no-deps` 明确只提升首批包的 lint，Runtime 依赖债务保留给 M3 渐进收紧，不使用 allowlist。优先结构/评审守卫已有 current Runtime binary 完整验收，Editor Workbench projection 预算 fixed 回迁，Render OIT limit 与 build-mesh-draws lightmap sync 锚均硬切到当前事实。2026-07-13 已将 6 份 Runtime text/graphics/UI 文档中的 16 条退役 SDF owner 机器路径硬切到唯一现存 owner，旧路径检索为 0；最新 G7 为 958 documents / 64,957 paths / 9 missing（Runtime 0、Editor 8、Plugins 1），故当前 G7 真实状态仍为 RED。剩余项属于其他并发 dirty owner，待其同步后必须原命令复验；真实分支 CI 也尚无实际执行证据，因此不声明 M1 或计划 06 完成。精确计数、命令输出和历史切片只由上述编号归档持有。
+- 当前状态：M0 已完成。M1 进行中：本地聚合工具、模块文档、契约测试与 CI 单一入口已落地，历史全库 fmt、G7 与首批 Runtime Interface/App scoped clippy 通过证据由编号归档持有；`--no-deps` 明确只提升首批包的 lint，Runtime 依赖债务保留给 M3 渐进收紧，不使用 allowlist。优先结构/评审守卫已有 current Runtime binary 完整验收，Editor Workbench projection 预算 fixed 回迁，Render OIT limit 与 build-mesh-draws lightmap sync 锚均硬切到当前事实。2026-07-13 已将 6 份 Runtime text/graphics/UI 文档中的 16 条退役 SDF owner 机器路径硬切到唯一现存 owner；2026-07-16 又在 30 份 clean 文档的 `related_code` / `implementation_files` 中硬切 236 条退役 Text owner 路径，所选两类旧前缀归零且 132 个唯一新目标均存在。fresh `python tools/check_conventions.py --only docs --json` 当前覆盖 1,152 documents / 66,682 paths，仍有 348 missing、分布于 75 份文档，故 G7 真实状态仍为 RED。其余所有权漂移与并发 dirty owner 必须继续按独立清单收敛；真实分支 CI 也尚无实际执行证据，因此不声明 M1 或计划 06 完成。精确历史验收记录仍只由上述编号归档持有。

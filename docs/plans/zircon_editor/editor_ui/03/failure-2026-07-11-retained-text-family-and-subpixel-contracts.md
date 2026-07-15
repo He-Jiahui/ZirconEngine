@@ -12,9 +12,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
   - zircon_runtime/src/core/framework/render/text/shaped_run.rs
-  - zircon_runtime/src/graphics/text/layout/rich.rs
-  - zircon_runtime/src/graphics/text/layout/mod.rs
-  - zircon_runtime/src/graphics/text/rich/bbcode_table.rs
+  - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
 plan_sources:

@@ -14,8 +14,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs
-  - zircon_runtime/src/graphics/text/layout/rich.rs
-  - zircon_runtime/src/graphics/text/layout/rich/tests.rs
+  - zircon_runtime/src/text/layout/rich.rs
+  - zircon_runtime/src/text/layout/rich/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests/support.rs
 plan_sources:

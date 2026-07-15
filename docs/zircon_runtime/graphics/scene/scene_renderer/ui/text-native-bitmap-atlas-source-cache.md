@@ -2,11 +2,11 @@
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
 plan_sources:
   - user: 2026-07-05 shader cubemap validation continuation; current workspace integration-test compile unblock
   - user: 2026-07-10 runtime text architecture continuation; scroll raster/upload counters

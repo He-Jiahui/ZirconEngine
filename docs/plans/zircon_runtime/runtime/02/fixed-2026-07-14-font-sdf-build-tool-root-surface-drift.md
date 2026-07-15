@@ -9,10 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/02
 fixing_child_dir: docs/plans/zircon_runtime/text/05
 related_code:
   - zircon_runtime/src/lib.rs
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool
+  - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/graphics/text/mod.rs
+  - zircon_runtime/src/text/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py
 tests:

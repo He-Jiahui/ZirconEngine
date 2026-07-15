@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/shaping/fallback_spans.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/fallback_spans.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs

@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
+  - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
@@ -16,7 +16,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/text/font/composite_resolve.rs
+  - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs

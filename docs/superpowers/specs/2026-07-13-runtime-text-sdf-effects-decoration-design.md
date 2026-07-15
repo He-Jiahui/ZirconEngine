@@ -3,8 +3,8 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_effects.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
-  - zircon_runtime/src/graphics/text/raster/policy.rs
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/raster/policy.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs

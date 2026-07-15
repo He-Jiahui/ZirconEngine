@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/asset/assets/font.rs
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
 implementation_files:
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
 plan_sources:
