@@ -254,7 +254,7 @@ M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync �
 - fixed 已修复：[material-abi-layout-expectation-drift](02/fixed-2026-07-14-material-abi-layout-expectation-drift.md)
 - fixed 已修复：[dynamic-reflection-json-projection-regression](02/fixed-2026-07-14-dynamic-reflection-json-projection-regression.md)
 - fixed 已修复：[mutation-queue-offline-recurrence](02/fixed-2026-07-14-mutation-queue-offline-recurrence.md)
-- open / Runtime15：[depth-prepass-source-guard-owner-drift](../../zircon_runtime/runtime/15/failure-2026-07-14-depth-prepass-source-guard-owner-drift.md)
+- fixed 已修复：[depth-prepass-source-guard-owner-drift](02/fixed-2026-07-15-depth-prepass-source-guard-owner-drift.md)
 - fixed 已修复：[sdf-font-bake-cjk-loaded-font-count-regression](02/fixed-2026-07-15-sdf-font-bake-cjk-loaded-font-count-regression.md)
 - fixed 已修复：[vm-dynamic-property-write-structure-regression](02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
 - open / Session Coordinator 01：已验收 inspection compile-sync 无法在父 M1 pending 与 degraded shared baseline 下按 4 文件 exact manifest 提交；[failure 交接](../../zircon_tooling/session_coordinator/01/failure-2026-07-15-support-slice-exact-finalize-plan-output-conflict.md)。
