@@ -6283,6 +6283,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_first_party_editor_catalog"
+version = "0.1.0"
+dependencies = [
+ "zircon_editor",
+ "zircon_plugin_navigation_editor",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_first_party_runtime_catalog"
 version = "0.1.0"
 dependencies = [
@@ -6590,6 +6599,9 @@ dependencies = [
 name = "zircon_plugin_navigation_editor"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_plugin_navigation_runtime",
@@ -6888,6 +6900,40 @@ name = "zircon_plugin_rendering_editor"
 version = "0.1.0"
 dependencies = [
  "zircon_editor",
+ "zircon_plugin_rendering_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_irradiance_volumes_editor"
+version = "0.1.0"
+dependencies = [
+ "zircon_editor",
+ "zircon_plugin_rendering_irradiance_volumes_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_irradiance_volumes_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_rendering_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_light_cookies_editor"
+version = "0.1.0"
+dependencies = [
+ "zircon_editor",
+ "zircon_plugin_rendering_light_cookies_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_light_cookies_runtime"
+version = "0.1.0"
+dependencies = [
  "zircon_plugin_rendering_runtime",
  "zircon_runtime",
 ]
@@ -7414,6 +7460,8 @@ dependencies = [
  "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
+ "zr_vm_rust_binding",
+ "zr_vm_rust_binding_sys",
 ]
 
 [[package]]
@@ -7474,8 +7522,6 @@ dependencies = [
  "zircon_reflect_derive",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
- "zr_vm_rust_binding",
- "zr_vm_rust_binding_sys",
  "zstd",
 ]
 
@@ -7483,6 +7529,7 @@ dependencies = [
 name = "zircon_runtime_interface"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "glam 0.32.1",
  "semver",
  "serde",

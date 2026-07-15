@@ -1,0 +1,16 @@
+[package]
+name = "zircon_first_party_editor_catalog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Linked first-party editor provider catalog for Zircon."
+
+[features]
+default = []
+navigation-editor-plugin = ["dep:zircon_plugin_navigation_editor"]
+
+[dependencies]
+zircon_editor.workspace = true
+zircon_plugin_navigation_editor = { path = "../navigation/editor", optional = true }
+zircon_runtime.workspace = true
+
