@@ -49,6 +49,21 @@ related_code:
 
 本子计划是 shader 计划集对 render 计划 11(环境光照)的**算法定稿与验收闭环补充**:计划 11 的"工程落地细化"仍是文件落点/契约类型/帧时序的实施权威;本计划定稿其中 IBL 相关 compute 的**具体算法**(equirect→cube、GGX 预滤波、SH9、BRDF LUT)、`zr_environment.wgsl` v2 的采样端契约,以及"8×8 金属度/光滑度材质球矩阵正确"的可量化验收标准。跨计划扩展按 shader index §4 惯例在计划 11/13 状态表登记镜像条目。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-shader-environment-ibl-pbr-correctness",
+  "goal": "完成真实环境 IBL 资产链、GGX PMREM、PBR 采样与多视角产品验收",
+  "milestones": [
+    {"id": "M1", "title": "EC-M1 方向与 PBR 数学正确性", "depends_on": []},
+    {"id": "M2", "title": "EC-M2 cubemap 资源与环境绑定", "depends_on": ["M1"]},
+    {"id": "M3", "title": "EC-M3 离线 IBL 资产与派生物", "depends_on": []},
+    {"id": "M4", "title": "EC-M4 实时 IBL 与产品验收", "depends_on": ["M3"]},
+    {"id": "M5", "title": "EC-M5 当前源码交互查看器交付", "depends_on": ["M1", "M2", "M3", "M4"]}
+  ]
+}
+```
+
 ## 1. 问题定位:当前渲染为什么全是马赛克
 
 2026-07-04 的 SH04/Plan 11 状态行(index §4.1)所验证的"sampled environment"路径存在三个结构性缺陷,与截图观察(天空盒马赛克、mip 无模糊、PBR 矩阵不可信)一一对应:
@@ -298,7 +313,11 @@ cmftStudio 的 diffuse 消费端是 32³ irradiance cubemap 直采(`fs_mesh.shdr
 - 触碰:归计划 11 EL-M2 实施,本计划交付参数化 prefilter/SH 节点与时间切片调度表;procedural sky 参数拖动实时重烘走切片路径。
 - 完成判据:计划 11 EL-M2 判据 + 拖动 procedural 参数时帧时间无尖峰(切片生效)。
 
-执行顺序 EC-M1 → EC-M2 → EC-M3 → EC-M4;EC-M1/M2 各自切片内硬切换删除被取代路径。
+**EC-M5 当前源码交互查看器交付(关闭手动复核入口漂移)**
+- 触碰:`zircon_shader_pbr_viewer` 只通过真实 runtime module descriptor 和 `ProjectAssetManagerAccess` 创建生产 `SceneRenderer`;不恢复直接 concrete manager 构造器,不增加 viewer-only renderer 旁路。
+- 完成判据:当前源码 Windows production build 通过;`--help` 通过;Lakes HDRI DX12 窗口在后台烘焙期间持续响应并进入 `Ready`;鼠标左键 orbit/滚轮 zoom 保持可用;当前窗口截图和一次性 DX12 RenderDoc capture/replay 证据归档到 `docs/tests/runtime/shader`,可执行文件位于协调器管理的外部构建目录而非仓库 `target`。
+
+执行顺序 EC-M1 → EC-M2 → EC-M3 → EC-M4 → EC-M5;EC-M1/M2 各自切片内硬切换删除被取代路径。
 
 ## 6. "8×8 材质球矩阵正确"的量化判据(全局验收)
 
@@ -351,3 +370,11 @@ cmftStudio 的 diffuse 消费端是 32³ irradiance cubemap 直采(`fs_mesh.shdr
 - fixed 已修复：[realtime-ibl-graph-recorder-type-errors](../../zircon_editor/editor_layout/15/fixed-2026-07-12-realtime-ibl-graph-recorder-type-errors.md)
 - fixed 已修复：[realtime-ibl-option-then-type-errors](../../zircon_editor/editor/08/fixed-2026-07-12-realtime-ibl-option-then-type-errors.md)
 - fixed 已修复：[core-filter-runtime-fixture-contracts](../runtime/02/fixed-2026-07-12-core-filter-runtime-fixture-contracts.md)
+- fixed 已修复：[deferred-lighting-nested-include-resolution](06/fixed-2026-07-15-deferred-lighting-nested-include-resolution.md)
+- fixed 已修复：[runtime-operation-phase-terminal-matcher](06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md)
+- fixed 已修复：[external-source-cubemap-contract-api-drift](../../zircon_editor/editor/03/fixed-2026-07-15-external-source-cubemap-contract-api-drift.md)
+- M1 已完成：[current-source HDRI PBR acceptance](06/2026-07-14-current-source-hdri-pbr-acceptance.md)
+- M2 已完成：[current-source cubemap and IBL binding acceptance](06/2026-07-15-current-source-cubemap-ibl-binding-acceptance.md)
+- M3 已完成：[PMREM artifact layout convergence](06/2026-07-14-pmrem-artifact-layout-convergence.md)
+- M4 已完成：[realtime SH9 parallel reduction closeout](06/2026-07-14-realtime-sh9-parallel-reduction-closeout.md)
+- M5 复审修正中：[current-source interactive viewer delivery](06/2026-07-15-current-source-interactive-viewer-delivery.md)
