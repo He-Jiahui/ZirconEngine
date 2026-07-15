@@ -60,17 +60,17 @@ related_code:
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
   - docs/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/ui/text/geometry.rs
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
@@ -79,18 +79,18 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
+  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/handoff.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/retry_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/tests/text_pipeline/mod.rs
   - zircon_runtime/src/ui/tests/text_pipeline/fixtures.rs
@@ -829,16 +829,16 @@ related_code:
 implementation_files:
   - docs/engine-architecture/large-file-ownership-m1.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
@@ -847,12 +847,12 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
+  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/tests/text_pipeline/mod.rs
   - zircon_runtime/src/ui/tests/text_pipeline/fixtures.rs
@@ -1232,7 +1232,7 @@ status: in_progress
 
 当前 plan-status 结构同步（2026-07-10）：具体状态记录已硬切到 `zircon_runtime/runtime/01/` 至 `15/` 编号归档，父计划和总索引不再复制历史五列表格。测试支持按职责拆为 `plan_status/support/runtime_plan_archives.rs` 与 `plan_status/recent_static_guards/parent_routing.rs`，所有 owner 文件保持各自预算；Python boundary support 84/84、`risks = []`，standalone Rust plan-status 48/48。该结构同步没有恢复旧路径、兼容 facade、shim 或 re-export。
 
-当前文本计划同步（2026-07-10）：rich/vertical prewarm、横向亚像素 cache identity、raster/upload report、backend face-ID authority、CompositeFont fallback span 与 run-language cache identity 均已收束到各自 child owner；renderer root 保持编排职责并低于软预算。真实 runtime UI → screen-space text → WGPU readback 的产品帧已关闭 CJK/RTL/彩色 Emoji/native/SDF、color-face RGBA、zh-Hans/ja 同码点、Arabic mark complex-cluster 单 face 与 VerticalRl CJK 单列首段。系统 `fontdb` face 的容器字节由 `FontDatabase` 根据权威 backend ID 物化，再由既有 source owner 提取独立 SFNT；诊断期 coverage→SDF 第二策略已删除。竖排继续复用 `graphics/text/shaping/vertical/orientation.rs`，SDF consumer 只承接 destination axes/UV/main-axis advance，没有在 renderer root 建第二套 Unicode 或字体策略；live typography 与真实 scroll 增量仍按子计划保持 open。具体命令、日志、哈希和 framebuffer 明细不在本规范复制。
+当前文本计划同步（2026-07-10）：rich/vertical prewarm、横向亚像素 cache identity、raster/upload report、backend face-ID authority、CompositeFont fallback span 与 run-language cache identity 均已收束到各自 child owner；renderer root 保持编排职责并低于软预算。真实 runtime UI → screen-space text → WGPU readback 的产品帧已关闭 CJK/RTL/彩色 Emoji/native/SDF、color-face RGBA、zh-Hans/ja 同码点、Arabic mark complex-cluster 单 face 与 VerticalRl CJK 单列首段。系统 `fontdb` face 的容器字节由 `FontDatabase` 根据权威 backend ID 物化，再由既有 source owner 提取独立 SFNT；诊断期 coverage→SDF 第二策略已删除。竖排继续复用 `text/shaping/vertical/orientation.rs`，SDF consumer 只承接 destination axes/UV/main-axis advance，没有在 renderer root 建第二套 Unicode 或字体策略；live typography 与真实 scroll 增量仍按子计划保持 open。具体命令、日志、哈希和 framebuffer 明细不在本规范复制。
 
 ## §0 适用范围与背景
 
@@ -1466,24 +1466,24 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 ## 2026-07-10 Runtime Text UAX#9 line-owner hard cut note
 
 - The existing Runtime 15 visual-order child-owner split remains intact: `ui/text/layout_engine/visual_order.rs` is still the narrow adapter owned below `layout_engine.rs` and is now 178 lines.
-- Algorithm authority is hard-cut to `graphics/text/shaping/bidi.rs`; the UI child no longer owns ASCII/RTL-block classification, neutral-span direction resolution, or a duplicate mirror table.
+- Algorithm authority is hard-cut to `text/shaping/bidi.rs`; the UI child no longer owns ASCII/RTL-block classification, neutral-span direction resolution, or a duplicate mirror table.
 - `runtime_15_ui_text_layout_engine_visual_order_is_child_owner` now locks the shared `analyze_bidi_line` / `mirrored_bidi_char` calls and the parent call boundary; no compatibility facade or old algorithm path remains.
-- Locale-specific cosmic state is isolated under `graphics/text/shaping/cosmic/font_system_cache.rs`; `cosmic.rs` remains the backend adapter/orchestrator instead of accumulating cache policy.
+- Locale-specific cosmic state is isolated under `text/shaping/cosmic/font_system_cache.rs`; `cosmic.rs` remains the backend adapter/orchestrator instead of accumulating cache policy.
 - The cache is explicitly bounded to four `FontSystem` instances and reuses one seed database, closing the review concern that arbitrary application-language values could grow persistent backend state without limit.
 - The boundary is documented exactly: locale configures cosmic platform fallback selection, while per-run HarfRust `locl` remains open because cosmic-text 0.18.2 does not expose language on `Attrs`.
-- SH-M3 vertical policy is child-owned under `graphics/text/shaping/vertical.rs` and `vertical/orientation.rs`; `cosmic.rs` only invokes the projection and owns third-party feature mapping, while `ui/text/layout_engine/vertical.rs` consumes the vertical provider instead of reimplementing Unicode orientation.
+- SH-M3 vertical policy is child-owned under `text/shaping/vertical.rs` and `vertical/orientation.rs`; `cosmic.rs` only invokes the projection and owns third-party feature mapping, while `ui/text/layout_engine/vertical.rs` consumes the vertical provider instead of reimplementing Unicode orientation.
 - The provider hard cut preserves the existing cache authority: vertical orientation/mode are part of `ShapedRunCacheKey`, and UI wrapping/ellipsis/measurement no longer create horizontal cache entries for VerticalRl content.
-- Native `vmtx` advance remains isolated under `graphics/text/font/vertical_metrics.rs`. TTB/BTT shaping is now split into `shaping/vertical/backend.rs`, while `projection.rs` owns DTO projection and `orientation.rs` owns Unicode rotation policy; backend vertical-origin/VORG-side-bearing values reach the renderer without a compatibility wrapper.
-- V1 normalization policy now has a narrow `graphics/text/shaping/normalize.rs` owner. Cosmic/fallback consume its identity view and source projection instead of embedding an unreviewable offset assumption in the backend adapter.
-- Text 03 vertical column capacity, right-to-left frame placement, and cross/main axis extents moved to `graphics/text/layout/vertical_layout.rs`; the UI child consumes the shared result and retains only CandidateLine/rich/ellipsis/UiResolved DTO projection.
+- Native `vmtx` advance remains isolated under `text/font/vertical_metrics.rs`. TTB/BTT shaping is now split into `shaping/vertical/backend.rs`, while `projection.rs` owns DTO projection and `orientation.rs` owns Unicode rotation policy; backend vertical-origin/VORG-side-bearing values reach the renderer without a compatibility wrapper.
+- V1 normalization policy now has a narrow `text/shaping/normalize.rs` owner. Cosmic/fallback consume its identity view and source projection instead of embedding an unreviewable offset assumption in the backend adapter.
+- Text 03 vertical column capacity, right-to-left frame placement, and cross/main axis extents moved to `text/layout/vertical_layout.rs`; the UI child consumes the shared result and retains only CandidateLine/rich/ellipsis/UiResolved DTO projection.
 - The production SDF VerticalRl consumer calls the same shaping owner, while `render/text_advances.rs` projects source-cluster advances, `sdf_atlas/text_keys.rs` owns shaped glyph/face key collection, and `sdf_render/vertices.rs` maps vertical origin/rotation into destination frames and UVs. `render.rs` is 712 lines, `sdf_atlas.rs` 611, and no production file crosses the 800-line review warning; no old scalar-only vertical success path or compatibility shim remains.
 - Native bitmap mixed-storage partitioning remains child-owned by `text/native_bitmap_atlas/storage.rs`. It now partitions contiguous storage runs rather than globally grouping equal formats, so repeated `R8 -> RGBA -> R8` order survives as three renderer passes without adding ordering policy to the 691-line parent or retaining the former glyphon fallback as a supported success path; the child is 141 lines.
 - Mixed-BiDi hit source/affinity policy is isolated under `ui/text/hit_test/visual_source.rs`; the parent hit-test owner performs geometry selection and consumes the leaf result, while visual-order no longer merges descending logical clusters into lossy ranges.
 
 ## 2026-07-10 Runtime Text backend face-ID owner hard cut note
 
-- Third-party identity stays isolated under `graphics/text/font/backend.rs`; `fontdb::ID` does not leak into core/framework DTOs, which continue to expose `FontFaceId`.
-- Process sharing is child-owned by `graphics/text/font/shared.rs`, while locale cache refresh remains in `shaping/cosmic/font_system_cache.rs`; neither policy is stacked into the text renderer root.
+- Third-party identity stays isolated under `text/font/backend.rs`; `fontdb::ID` does not leak into core/framework DTOs, which continue to expose `FontFaceId`.
+- Process sharing is child-owned by `text/font/shared.rs`, while locale cache refresh remains in `shaping/cosmic/font_system_cache.rs`; neither policy is stacked into the text renderer root.
 - `shaping/font_id.rs` and its post-shape annotation path were physically deleted. Cosmic and native reporting consume actual `LayoutGlyph.font_id`; the structure guard now rejects the removed bridge symbols instead of preserving a facade or shim.
 - The slice introduced no production `allow(dead_code)`: deleting the bridge also deleted its newly orphaned cluster resolver/source helper, restoring the existing 416-warning library baseline.
 - Follow-up fallback/diagnostic reporting did not grow the renderer root past its soft budget: `text/prepare_report.rs` now owns prepare/raster/missing-glyph report DTO aggregation, and `text.rs` is back to 777 orchestration lines; the structure guard rejects moving those declarations back into the parent.
@@ -1491,7 +1491,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 
 ## 2026-07-11 Runtime Text screen-space font initialization note
 
-- System-font policy remains owned by `graphics/text/font`: the screen-space renderer invokes the narrow `initialize_screen_space_ui_font_system(...)` boundary and does not duplicate `fontdb` enumeration, family tables, or platform-font constants.
+- System-font policy remains owned by `text/font`: the screen-space renderer invokes the narrow `initialize_screen_space_ui_font_system(...)` boundary and does not duplicate `fontdb` enumeration, family tables, or platform-font constants.
 - The fix adds no Editor-only font route, compatibility module, root facade, or test glyph injection. Runtime and Editor consume the same `FontDatabase -> glyphon FontSystem` synchronization path.
 - The Windows lower regression remains in the existing folder-backed `scene_renderer/ui/text/tests.rs` owner, so production `text.rs` retains orchestration rather than accumulating test fixtures or platform assertions.
 - The real HUD framebuffer gate passes after the same bounded 24-frame async-text settle policy used by the Runtime product test; waiting policy stays in test/product validation rather than becoming a production rendering bypass.
@@ -1499,7 +1499,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 ## 2026-07-11 Runtime Text rich parser owner split note
 
 - Rich-text contracts stay backend-neutral under `core/framework/render/text/rich.rs`; parsing and security policy are not leaked into UI DTO roots or scene-renderer owners.
-- `graphics/text/rich/parser.rs` remains the orchestration owner, while BBCode, decorator registration, and controlled HTML rules are separate folder children. `html_subset.rs` and `parser.rs` remain below 500 lines each (current parser 434), avoiding another oversized parser root.
+- `text/rich/parser.rs` remains the orchestration owner, while BBCode, decorator registration, and controlled HTML rules are separate folder children. `html_subset.rs` and `parser.rs` remain below 500 lines each (current parser 434), avoiding another oversized parser root.
 - `ui/text/rich_text.rs` remains a narrow Markdown compatibility adapter over the shared parser; it does not retain a second parser or compatibility implementation.
 - Grapheme boundary policy is applied once after markup stripping, and the three layout regressions were updated to assert whole-cluster runs rather than preserving a half-cluster legacy shape.
 - Image/link parsing stays in the same HTML/BBCode leaf owners and uses the existing neutral `InlineObjectRef`/`LinkRef` contracts; no UI-local duplicate resource parser was added.
@@ -1507,7 +1507,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 
 ## 2026-07-11 Runtime Text rich inline-layout owner note
 
-- `graphics/text/layout/rich.rs` is the narrow 03 owner for rich run-to-item projection and inline baseline metrics; parser policy remains under `graphics/text/rich`, and the UI/scene renderer roots do not duplicate its ascent/descent rules.
+- `text/layout/rich.rs` is the narrow 03 owner for rich run-to-item projection and inline baseline metrics; parser policy remains under `text/rich`, and the UI/scene renderer roots do not duplicate its ascent/descent rules.
 - Backend-neutral `LayoutItem`, `LaidOutLine`, and `LaidOutText` stay under `core/framework/render/text/rich.rs`. The owner records actual emitted item counts, so rejected source ranges cannot leave stale line indices.
 - Text run origins are projected from the enlarged rich-line baseline instead of remaining pinned to `y=0`; Baseline/Center/Top/Bottom image modes share one metric conversion path.
 - The child owner is under 300 lines and adds no compatibility facade, production `allow(dead_code)`, production panic/unwrap/expect, backend type, or duplicated renderer policy. UI resolved-layout/image-batch/link-hit integration remains explicitly open rather than being represented as a completed render path.
@@ -1515,7 +1515,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - The renderer consumes the shared `LaidOutText` placement and never submits U+FFFC as a glyph batch. Image runs now route through folder-backed `scene_renderer/ui/image.rs`; the general color-quad pipeline and text renderer do not absorb texture bindings or WGSL sampling policy.
 - UI texture preparation remains under the existing `ResourceStreamer`: `resources/ui_texture.rs` resolves locator-stable IDs against imported UUID-backed records, rejects non-D2/non-single-layer payloads, and returns the existing fallback on failure. No second GPU texture cache, asset loader, renderer-root resource map, or interface-level WGPU type was added.
 - The leaf sizes remain bounded (`resources/ui_texture.rs` 139 lines, `scene_renderer/ui/image.rs` 259 lines). Rich run planning and placement now live in `scene_renderer/ui/render/rich_text.rs` (197 lines), which keeps the renderer root at 794 lines rather than the stale 866-line count; the real product framebuffer gate—not a policy diagram—proves both texture sampling and ellipsis-retained inline placement. Concrete evidence remains in the Text07 numbered archive.
-- Vertical rich layout is split by responsibility: `graphics/text/layout/rich_vertical.rs` owns main/cross-axis metrics and wrap ranges, while `ui/text/layout_engine/rich_inline_vertical.rs` only projects those metrics through the shared VerticalRl column-capacity/placement and ellipsis owners. Object height advances y, object width expands the column; no second Unicode orientation, BiDi, texture loader, or renderer-local layout policy was introduced.
+- Vertical rich layout is split by responsibility: `text/layout/rich_vertical.rs` owns main/cross-axis metrics and wrap ranges, while `ui/text/layout_engine/rich_inline_vertical.rs` only projects those metrics through the shared VerticalRl column-capacity/placement and ellipsis owners. Object height advances y, object width expands the column; no second Unicode orientation, BiDi, texture loader, or renderer-local layout policy was introduced.
 - The vertical addition keeps the production leaves bounded (`rich_vertical.rs` 322 lines, `rich_inline_vertical.rs` 239, `render/rich_text.rs` 236). Renderer rich tests moved to `render/tests/rich_inline.rs` (216 lines), leaving the test root at 779; product command builders moved to a 151-line child, leaving the integration root at 771. The renderer production root remains 794 lines.
-- BBCode block alignment stays in the same leaf-owned chain: `graphics/text/rich/parser.rs` emits neutral `ParagraphOverride` ranges, while `ui/text/layout_engine.rs` only projects effective per-line alignment. No center/right parser or markup-range policy is duplicated in UI or renderer, and the rich parser remains below the oversized-file threshold.
+- BBCode block alignment stays in the same leaf-owned chain: `text/rich/parser.rs` emits neutral `ParagraphOverride` ranges, while `ui/text/layout_engine.rs` only projects effective per-line alignment. No center/right parser or markup-range policy is duplicated in UI or renderer, and the rich parser remains below the oversized-file threshold.
 - Rich-link input stays folder-backed: `ui/text/rich_text/link_hit.rs` owns caret-affinity/range resolution, `ui/surface/input/rich_link.rs` owns pointer admission, and `ui/surface/input/effect/link.rs` owns scheme/owner validation. `pointer.rs` only invokes the leaf after normal routing; the public interface carries neutral effect/host-request DTOs, with no browser backend or network dependency crossing E8.

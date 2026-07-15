@@ -67,17 +67,17 @@ related_code:
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
   - docs/zircon_runtime/ui/platform_input.md
   - zircon_runtime/src/ui/text/geometry.rs
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/ellipsis.rs
   - zircon_runtime/src/ui/text/layout_engine/line_box.rs
@@ -86,18 +86,18 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
+  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/handoff.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/retry_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/tests/text_pipeline/mod.rs
   - zircon_runtime/src/ui/tests/text_pipeline/fixtures.rs
@@ -811,18 +811,18 @@ implementation_files:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/tests.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/tests/text_pipeline/mod.rs
   - zircon_runtime/src/ui/tests/text_pipeline/fixtures.rs
@@ -962,7 +962,7 @@ status: in_progress
 
 当前审查行概述：编号审查归档负责维护各发现的证据状态与验证结果；本总览不复制状态锚、数量或门禁结果。各项是否完成以及尚待执行的工程门统一以编号 Runtime 15 产出记录为准。
 
-当前文本计划同步(2026-07-10):按本文“受 guard 计划由 owner 吸收”的规则,runtime text 的 rich/vertical prewarm 状态已在 Text 09 关闭,native bitmap atlas 横向亚像素 stable cache key 已在 Text 04/09 登记；`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 新增 `ScreenSpaceUiTextPrepareReport.raster_upload` 聚合层,对应测试在 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs`。涉及 owner 为 `zircon_runtime/src/ui/surface/render/text_prewarm.rs`、`zircon_runtime/src/ui/text/measure_cache.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 与 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs`。详细验证仍归档在 `docs/plans/zircon_runtime/text/**` 与 `docs/tests/runtime/text`,不在本文复制长表。2026-07-10 追加 retained framebuffer proof 像素指标复查、live editor-window capture process gate 与 raster/upload report 静态验证;实时窗口 QA 和真实 scroll raster/upload 增量断言未关闭,仍由 Text 04/09 后续项跟踪。
+当前文本计划同步(2026-07-10):按本文“受 guard 计划由 owner 吸收”的规则,runtime text 的 rich/vertical prewarm 状态已在 Text 09 关闭,native bitmap atlas 横向亚像素 stable cache key 已在 Text 04/09 登记；`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 新增 `ScreenSpaceUiTextPrepareReport.raster_upload` 聚合层,对应测试在 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs`。涉及 owner 为 `zircon_runtime/src/ui/surface/render/text_prewarm.rs`、`zircon_runtime/src/ui/text/measure_cache.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 与 `zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs`。详细验证仍归档在 `docs/plans/zircon_runtime/text/**` 与 `docs/tests/runtime/text`,不在本文复制长表。2026-07-10 追加 retained framebuffer proof 像素指标复查、live editor-window capture process gate 与 raster/upload report 静态验证;实时窗口 QA 和真实 scroll raster/upload 增量断言未关闭,仍由 Text 04/09 后续项跟踪。
 
 当前插件架构审查同步（2026-07-10，`plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize`）：Plugins 01 的类型化扩展点已补实际 runtime finalize/apply 闭环与 owner unload 回归；实现和测试均归属现有子模块/独立 test owner，没有新增 root 行为、兼容 facade 或 shim。详细证据归档在 Plugins 01 与 `docs/zircon_runtime/plugin/extension_registry.md`；插件架构整体状态：进行中，Sound 等后续计划不得据此标记完成。
 
@@ -1057,14 +1057,14 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 
 ## 2026-07-10 Runtime Text UAX#9 convergence follow-up
 
-- The text layout visual-order structure finding stays closed while its implementation is strengthened: `ui/text/layout_engine/visual_order.rs` remains a child owner, but delegates Unicode paragraph/line authority to `graphics/text/shaping/bidi.rs`.
+- The text layout visual-order structure finding stays closed while its implementation is strengthened: `ui/text/layout_engine/visual_order.rs` remains a child owner, but delegates Unicode paragraph/line authority to `text/shaping/bidi.rs`.
 - This removes three duplicated policy surfaces from UI layout—ASCII-only first-strong detection, handcrafted neutral-span ordering, and a second mirror table—without widening the root module or preserving a compatibility shim.
 - Wrapped-line analysis consumes full paragraph text plus absolute source ranges so isolate embedding context is not discarded at line boundaries; exact-owner tests cover this boundary.
 
 ## 2026-07-10 Runtime Text backend face-ID reconciliation follow-up
 
-- Text 06 D4 is hard-cut from post-shape script/codepoint recomputation to actual backend identity: `graphics/text/font/{backend.rs,database.rs,shared.rs}` owns the database lineage and ID reconciliation, and cosmic/native consume `LayoutGlyph.font_id` directly.
-- The former `graphics/text/shaping/font_id.rs` bridge and its unused resolver API are deleted rather than hidden with `allow(dead_code)` or retained as compatibility surface.
+- Text 06 D4 is hard-cut from post-shape script/codepoint recomputation to actual backend identity: `text/font/{backend.rs,database.rs,shared.rs}` owns the database lineage and ID reconciliation, and cosmic/native consume `LayoutGlyph.font_id` directly.
+- The former `text/shaping/font_id.rs` bridge and its unused resolver API are deleted rather than hidden with `allow(dead_code)` or retained as compatibility surface.
 - `font/shared.rs` uses poison recovery for its production `RwLock` and a generation snapshot, satisfying E9 while avoiding a global lock on the steady-state shaping hot path.
 - Detailed status and validation remain owned by `docs/plans/zircon_runtime/text/06-font-fallback.md`; bounded missing-glyph diagnostics and resolver-side partial-cluster handling are closed, and the real runtime WGPU product framebuffer now covers CJK, Arabic, Hebrew, mixed BiDi, native color emoji, SDF, and zh-Hans/ja same-codepoint divergence. The selected `Segoe UI Emoji` backend face is directly verified as `SwashContent::Color` with RGBA-sized bytes; after the monolithic lib-test timed out, the isolated executable closed the same complex-cluster invariant by proving Arabic base+fatha produced two glyphs on one actual `Segoe UI` face.
 - The follow-up keeps report growth folder-backed: missing-glyph frame-out aggregation is in `scene_renderer/ui/text/prepare_report.rs`, leaving the renderer root below the 800-line soft budget and avoiding another root-level diagnostics DTO block.
@@ -1079,11 +1079,11 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 
 ## 2026-07-10 Runtime Text vertical owner review follow-up
 
-- The previous all-vertical-glyphs-Cw90 shortcut is removed. Unicode Vertical_Orientation is now the single Mixed-mode authority in `graphics/text/shaping/vertical/orientation.rs`, with CJK/fullwidth upright and Latin sideways behavior covered by exact leaf tests.
+- The previous all-vertical-glyphs-Cw90 shortcut is removed. Unicode Vertical_Orientation is now the single Mixed-mode authority in `text/shaping/vertical/orientation.rs`, with CJK/fullwidth upright and Latin sideways behavior covered by exact leaf tests.
 - VerticalRl layout now routes wrapping, ellipsis, and measurement through a vertical shaped-run provider/cache key; the UI layout child no longer silently asks for horizontal shaping data.
 - Structure remains folder-backed and bounded: orientation rules and their tests are children, the root shaping module only wires providers, and no old horizontal-only alias is retained as a success path.
 - NFC remains intentionally disabled in V1, but the old implicit assumption is removed: `normalize.rs::ShapingTextView` now owns the identity view/source projection and exact tests lock decomposed byte preservation. Any future NFC feature must extend that owner with bidirectional mapping instead of rewriting contract ranges in `cosmic.rs`.
-- LB-M4 now closes the review-plan's first vertical ownership cut: column capacity, right-to-left frame placement, and axis extents are no longer authored in `ui/text/layout_engine/vertical.rs`; they are exact-tested in `graphics/text/layout/vertical_layout.rs` and consumed by the UI projection adapter.
+- LB-M4 now closes the review-plan's first vertical ownership cut: column capacity, right-to-left frame placement, and axis extents are no longer authored in `ui/text/layout_engine/vertical.rs`; they are exact-tested in `text/layout/vertical_layout.rs` and consumed by the UI projection adapter.
 - Product-level TDD first exposed the render defect: VerticalRl SDF batches reused horizontal resolved advances and never rotated sideways UVs, collapsing all glyphs into one strip. The SDF child consumes the shared orientation/advance owner, swaps destination axes, rotates sideways UVs clockwise, and owns vertical main-axis advances. A subsequent CJK product gate exposed a lower shared-font defect: `StoredFontSource::FontDb` faces had backend IDs but `face_bytes(...)` always rejected them. `FontDatabase` now materializes bytes through the authoritative backend database and existing standalone-face extractor; the temporary coverage→SDF strategy was deleted. Native `vmtx` remains a font child owner. The current follow-up adds rustybuzz TTB/BTT plus backend vertical-origin offsets, preserves actual glyph/face identity through `render/text_advances.rs` and `sdf_atlas/text_keys.rs`, and bakes indexed glyphs on the authoritative face. The accepted WGPU frame now shows two right-to-left CJK columns with vertical punctuation, while soft-wrap affinity and VerticalRl layout/hit-test/IME filters are green. Horizontal cosmic per-run `locl`, variable axes, mixed-BiDi product geometry and platform IME live QA remain explicit gaps.
 - LB-M3 hit testing now consumes per-visual-cluster source ranges and direction through a folder-backed leaf, returning logical offset plus affinity for RTL edges. The old descending-range merge was deleted rather than hidden behind a fallback alias.
 
