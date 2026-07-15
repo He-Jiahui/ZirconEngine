@@ -86,12 +86,15 @@ The final PMREM mip test builds an asymmetric 16x16x6 source cubemap with five m
 The reference-parity child tests exercise the production compute kernels rather than a test-only approximation:
 
 - `render_env_prefilter_cpu_gpu_match_16` compares every RGB texel of all six faces and every fixed PMREM mip against the CPU FIS reference, with RGBA16F quantization applied to the common source.
+- `render_env_prefilter_constant_env_is_identity` requires a real offscreen WGPU backend, dispatches the same production PMREM kernel for a non-unit RGBA16F constant HDR cubemap, rejects non-finite output, and checks every RGBA texel of every face and mip against the quantized source value with a format-aware absolute-plus-relative tolerance. This locks weight normalization, cross-face sampling, alpha, and the final six-face average independently of CPU/GPU algorithm parity.
 - `render_env_sh9_matches_cpu_reference` compares all nine RGB coefficients against the CPU exact-solid-angle projection and verifies that a constant environment populates only band zero.
 - `render_env_iem_matches_sh9_low_frequency` samples 64 Fibonacci-sphere directions and compares the cosine-convolved IEM against SH9 evaluation.
 
 These tests exposed two production shader defects. The SH kernel used a Z-up coefficient ordering while the CPU/environment consumer contract is Y-up, and the IEM kernel multiplied its normalized cosine-weighted average by an additional `PI`. The shader now uses the CPU coefficient basis exactly and returns the normalized weighted average without the extra energy factor.
 
 Current-source verification on 2026-07-11 passed `render_env_` 4/4, the complete `ibl_bake_` group 58/58, `source_cubemap::tests::` 16/16, `environment_brdf_lut::tests::` 4/4, and `ibl_bake_runtime_writeback::tests::` 4/4. The build used an isolated validation root because the shared root lock temporarily resolved `gpu-allocator` and `wgpu-hal` to incompatible `windows` crate versions; the isolated lock selected WGPU 29.0.4 with a consistent Windows ABI and did not modify the shared lock file.
+
+The 2026-07-15 current-source attempt added the constant-environment identity gate above. After the concurrent Runtime 10 / Editor03 construction import was repaired, managed package job `7f068e7c12fc4eb89f5db9c65a16f7d1` compiled the current lib-test binary; the full package command later stopped on foreign Plugins12 world-extension integration API drift. Direct execution of that managed binary passed `render_env_prefilter` 2/2 and the broader `render_env_` filter 13/13, so both production WGPU PMREM gates ran on a real backend rather than being inferred from compilation.
 
 ## Open Issues
 

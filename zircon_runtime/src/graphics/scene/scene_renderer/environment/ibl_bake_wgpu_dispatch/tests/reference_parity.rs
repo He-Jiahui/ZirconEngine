@@ -22,12 +22,13 @@ use super::{
 const SOURCE_FACE_SIZE: u32 = 16;
 const SOURCE_MIP_COUNT: u32 = 5;
 const PMREM_TEXEL_TOLERANCE: f32 = 0.006;
+const PMREM_CONSTANT_ABSOLUTE_TOLERANCE: f32 = 0.001;
+const PMREM_CONSTANT_RELATIVE_TOLERANCE: f32 = 0.001;
 
 #[test]
 fn render_env_prefilter_cpu_gpu_match_16() {
-    let Ok(backend) = RenderBackend::new_offscreen() else {
-        return;
-    };
+    let backend = RenderBackend::new_offscreen()
+        .expect("PMREM CPU/GPU parity requires an offscreen WGPU backend");
     let device = &backend.device;
     let queue = &backend.queue;
     let source_texels = rgba16f_quantized_direction_source();
@@ -38,7 +39,143 @@ fn render_env_prefilter_cpu_gpu_match_16() {
         SourceCubemapPrefilterQuality::Normal,
     );
 
-    let source_texture = create_rgba16f_source_cubemap(device, queue, &source_texels);
+    let output = dispatch_pmrem(&backend, &source_texels);
+
+    let mut worst = (
+        0.0_f32,
+        0_u32,
+        CubemapFace::PositiveX,
+        0_u32,
+        0_u32,
+        0_usize,
+    );
+    for mip_level in 0..SOURCE_CUBEMAP_PMREM_MIP_COUNT {
+        let mip_size = source_cubemap_mip_size(SOURCE_CUBEMAP_PMREM_FACE_SIZE, mip_level);
+        let gpu = decode_rgba16f_texels(&read_rgba16float_mip_faces(
+            device, queue, &output, mip_level, mip_size, 6,
+        ));
+        for face in CubemapFace::ALL {
+            let cpu_offset = source_cubemap_face_mip_offset(
+                SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+                SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+                face,
+                mip_level,
+            );
+            let gpu_offset = face.index() * mip_size as usize * mip_size as usize;
+            for y in 0..mip_size {
+                for x in 0..mip_size {
+                    let local = y as usize * mip_size as usize + x as usize;
+                    for channel in 0..3 {
+                        let gpu_value = gpu[gpu_offset + local][channel];
+                        let cpu_value = cpu.pmrem_texels()[cpu_offset + local][channel];
+                        assert!(
+                            gpu_value.is_finite() && cpu_value.is_finite(),
+                            "PMREM parity requires finite texels: mip={mip_level} face={face:?} x={x} y={y} channel={channel} gpu={gpu_value} cpu={cpu_value}"
+                        );
+                        let error = (gpu_value - cpu_value).abs();
+                        if error > worst.0 {
+                            worst = (error, mip_level, face, x, y, channel);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    assert!(
+        worst.0 <= PMREM_TEXEL_TOLERANCE,
+        "CPU/GPU PMREM mismatch: max_error={} tolerance={} mip={} face={:?} x={} y={} channel={}",
+        worst.0,
+        PMREM_TEXEL_TOLERANCE,
+        worst.1,
+        worst.2,
+        worst.3,
+        worst.4,
+        worst.5,
+    );
+}
+
+#[test]
+fn render_env_prefilter_constant_env_is_identity() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("PMREM constant-environment identity requires an offscreen WGPU backend");
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let constant = decode_rgba16f_texels(&encode_rgba16f_texels(&[[0.25, 1.5, 3.0, 1.0]]))[0];
+    let source_texels =
+        vec![constant; source_cubemap_sample_count(SOURCE_FACE_SIZE, SOURCE_MIP_COUNT)];
+    let output = dispatch_pmrem(&backend, &source_texels);
+
+    let mut worst = (
+        0.0_f32,
+        0.0_f32,
+        0.0_f32,
+        0.0_f32,
+        0_u32,
+        CubemapFace::PositiveX,
+        0_u32,
+        0_u32,
+        0_usize,
+    );
+    for mip_level in 0..SOURCE_CUBEMAP_PMREM_MIP_COUNT {
+        let mip_size = source_cubemap_mip_size(SOURCE_CUBEMAP_PMREM_FACE_SIZE, mip_level);
+        let gpu = decode_rgba16f_texels(&read_rgba16float_mip_faces(
+            device, queue, &output, mip_level, mip_size, 6,
+        ));
+        for face in CubemapFace::ALL {
+            let face_offset = face.index() * mip_size as usize * mip_size as usize;
+            for y in 0..mip_size {
+                for x in 0..mip_size {
+                    let local = y as usize * mip_size as usize + x as usize;
+                    for channel in 0..4 {
+                        let gpu_value = gpu[face_offset + local][channel];
+                        assert!(
+                            gpu_value.is_finite(),
+                            "constant PMREM requires finite texels: mip={mip_level} face={face:?} x={x} y={y} channel={channel} value={gpu_value}"
+                        );
+                        let expected = constant[channel];
+                        let tolerance = PMREM_CONSTANT_ABSOLUTE_TOLERANCE
+                            + PMREM_CONSTANT_RELATIVE_TOLERANCE * expected.abs();
+                        let error = (gpu_value - expected).abs();
+                        let normalized_error = error / tolerance;
+                        if normalized_error > worst.0 {
+                            worst = (
+                                normalized_error,
+                                error,
+                                tolerance,
+                                expected,
+                                mip_level,
+                                face,
+                                x,
+                                y,
+                                channel,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    assert!(
+        worst.0 <= 1.0,
+        "constant PMREM must preserve RGBA: normalized_error={} error={} tolerance={} expected={} mip={} face={:?} x={} y={} channel={}",
+        worst.0,
+        worst.1,
+        worst.2,
+        worst.3,
+        worst.4,
+        worst.5,
+        worst.6,
+        worst.7,
+        worst.8,
+    );
+}
+
+fn dispatch_pmrem(backend: &RenderBackend, source_texels: &[[f32; 4]]) -> wgpu::Texture {
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let source_texture = create_rgba16f_source_cubemap(device, queue, source_texels);
     let source_view = source_texture.create_view(&wgpu::TextureViewDescriptor {
         label: Some("ibl-bake-reference-source-view"),
         format: Some(wgpu::TextureFormat::Rgba16Float),
@@ -101,54 +238,7 @@ fn render_env_prefilter_cpu_gpu_match_16() {
         .poll(wgpu::PollType::wait_indefinitely())
         .expect("reference PMREM dispatches should finish");
 
-    let mut worst = (
-        0.0_f32,
-        0_u32,
-        CubemapFace::PositiveX,
-        0_u32,
-        0_u32,
-        0_usize,
-    );
-    for mip_level in 0..SOURCE_CUBEMAP_PMREM_MIP_COUNT {
-        let mip_size = source_cubemap_mip_size(SOURCE_CUBEMAP_PMREM_FACE_SIZE, mip_level);
-        let gpu = decode_rgba16f_texels(&read_rgba16float_mip_faces(
-            device, queue, &output, mip_level, mip_size, 6,
-        ));
-        for face in CubemapFace::ALL {
-            let cpu_offset = source_cubemap_face_mip_offset(
-                SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-                SOURCE_CUBEMAP_PMREM_MIP_COUNT,
-                face,
-                mip_level,
-            );
-            let gpu_offset = face.index() * mip_size as usize * mip_size as usize;
-            for y in 0..mip_size {
-                for x in 0..mip_size {
-                    let local = y as usize * mip_size as usize + x as usize;
-                    for channel in 0..3 {
-                        let error = (gpu[gpu_offset + local][channel]
-                            - cpu.pmrem_texels()[cpu_offset + local][channel])
-                            .abs();
-                        if error > worst.0 {
-                            worst = (error, mip_level, face, x, y, channel);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    assert!(
-        worst.0 <= PMREM_TEXEL_TOLERANCE,
-        "CPU/GPU PMREM mismatch: max_error={} tolerance={} mip={} face={:?} x={} y={} channel={}",
-        worst.0,
-        PMREM_TEXEL_TOLERANCE,
-        worst.1,
-        worst.2,
-        worst.3,
-        worst.4,
-        worst.5,
-    );
+    output
 }
 
 fn rgba16f_quantized_direction_source() -> Vec<[f32; 4]> {

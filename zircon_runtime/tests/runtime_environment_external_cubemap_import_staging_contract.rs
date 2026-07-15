@@ -29,7 +29,7 @@ fn cmft_rgba16f_dds_face_major_source_mips_stage_and_rebuild_pmrem() {
     assert_source_face_mip_identity(&decoded, 0, 0);
     assert_source_face_mip_identity(&decoded, 5, 2);
     assert_ne!(
-        decoded.texels(),
+        decoded.pmrem_texels(),
         decoded.source_texels(),
         "external source mips must not be accepted as Zircon PMREM"
     );
@@ -217,8 +217,12 @@ fn assert_source_face_mip_identity(
     mip: u32,
 ) {
     let face = CubemapFace::ALL[face];
-    let offset =
-        source_cubemap_face_mip_offset(decoded.face_size(), decoded.mip_count(), face, mip);
+    let offset = source_cubemap_face_mip_offset(
+        decoded.source_face_size(),
+        decoded.source_mip_count(),
+        face,
+        mip,
+    );
     let actual = decoded.source_texels()[offset];
     let expected = source_identity(face.index(), mip);
     for channel in 0..4 {
