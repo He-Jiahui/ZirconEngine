@@ -36,7 +36,7 @@ anisotropy, and transmission. It contains no WGPU resources and remains owned by
 
 ## Defaults And Activation
 
-The default contract preserves the legacy Standard PBR variant: all lobe
+The default contract preserves the baseline Standard PBR variant: all lobe
 strengths are zero, no clearcoat normal texture is referenced, and no
 screen-color copy is requested. Clearcoat, anisotropy, and either transmission
 lobe require the forward material path. Only specular transmission requires the
@@ -58,7 +58,7 @@ constructing shader variants or GPU material data.
 The asset projection maps active lobes to `PBR_CLEARCOAT`,
 `PBR_ANISOTROPY`, and `PBR_TRANSMISSION`. Default values keep the previous
 variant key unchanged, so materials that do not author advanced lobes retain
-the legacy pipeline-cache identity.
+the baseline pipeline-cache identity.
 
 The normalized values are packed into the 192-byte material uniform and are
 consumed by `zr_pbr_extras.wgsl`. Clearcoat and anisotropy use the late forward

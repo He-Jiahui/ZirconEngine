@@ -39,7 +39,7 @@ doc_type: module-detail
 
 `SceneLightmapResources` 是场景 light probe grid、lightmap atlas 和过滤采样器的唯一 GPU owner。它持有 fallback atlas texture，并通过 `LightmapGpuBindings` 复制资源的 `Arc` owner，向 Forward+ 与 Deferred 暴露同一组 bindings 23/24/28。binding 25/26/27 由 volumetric apply 使用，因此 lightmap sampler 固定在 28，跨 owner 测试禁止重叠。
 
-该模块不拥有 lightmap 烘焙或旧 baked-lighting 兼容路径。Render 11 的生产边界保持为：场景抽取提供消费合同，资产层把 bake output 转为 raw RGBA16F array，ResourceStreamer 上传资源，`SceneLightmapResources` 校验并切换 GPU owner，mesh/deferred pipeline 只消费 bindings。
+该模块不拥有 lightmap 烘焙或已退役的全屏 baked-lighting 路径。Render 11 的生产边界保持为：场景抽取提供消费合同，资产层把 bake output 转为 raw RGBA16F array，ResourceStreamer 上传资源，`SceneLightmapResources` 校验并切换 GPU owner，mesh/deferred pipeline 只消费 bindings。
 
 ## 构造合同
 
@@ -65,4 +65,4 @@ Forward receiver layout、Forward bind group 和 Deferred resources 都从同一
 
 当前 raw RGBA16F bake asset 转换、upload readiness、lightmap GPU ABI、GPUScene stable slot、Forward/Deferred shader 与真实 WGPU 产品门均已通过。GPUScene 按 stable instance key 写入 UV rect/page/generation，`zr_lightmap.wgsl` 由 Forward+ 与 Deferred geometry 共用，Deferred 通过现有 HDR emissive MRT 搬运逐实例 baked indirect。原 queue/lifetime failure 已回传 fixed。
 
-单页 lightmap atlas 也必须向环境绑定公开 `D2Array` view；资源内部另建 page-zero `D2` view 只满足既有通用纹理 bind group。当前二者回归 2/2、真实 GBuffer WGPU 1/1、外部 fixture 1/1、lightmap 聚焦 20/20、baked-indirect 2/2、产品导出 1/1。三联图位于 `docs/tests/runtime/render/plan11_lightmap_probe_forward_deferred_wgpu_20260713.png`，Forward/Deferred MAE 为 `0.0214`，最大通道误差为 `1`。EL-M3 已完成；后续由 HGI-M4 消费 generation 与 baked baseline。
+单页 lightmap atlas 也必须向环境绑定公开 `D2Array` view；资源内部由 `lightmap_page_zero_bind_group_view_descriptor` 另建 page-zero `D2` view，只满足当前通用纹理 bind group，不暴露第二套 atlas 语义。当前二者回归 2/2、真实 GBuffer WGPU 1/1、外部 fixture 1/1、lightmap 聚焦 20/20、baked-indirect 2/2、产品导出 1/1。三联图位于 `docs/tests/runtime/render/plan11_lightmap_probe_forward_deferred_wgpu_20260713.png`，Forward/Deferred MAE 为 `0.0214`，最大通道误差为 `1`。EL-M3 已完成；后续由 HGI-M4 消费 generation 与 baked baseline。

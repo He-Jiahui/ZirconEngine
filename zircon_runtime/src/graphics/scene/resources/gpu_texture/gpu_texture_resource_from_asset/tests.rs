@@ -126,8 +126,8 @@ fn single_page_lightmap_view_preserves_d2_array_binding_contract() {
 }
 
 #[test]
-fn lightmap_legacy_bind_group_view_uses_first_page_as_d2() {
-    let view = lightmap_legacy_bind_group_view_descriptor();
+fn lightmap_page_zero_bind_group_view_uses_first_page_as_d2() {
+    let view = lightmap_page_zero_bind_group_view_descriptor();
 
     assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2));
     assert_eq!(view.base_array_layer, 0);

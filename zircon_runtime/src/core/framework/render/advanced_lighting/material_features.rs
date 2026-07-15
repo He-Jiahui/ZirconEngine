@@ -12,7 +12,7 @@ pub const STANDARD_PBR_NO_ATTENUATION_DISTANCE: f32 = f32::MAX;
 
 /// Forward-only Standard PBR extensions consumed by the material pipeline.
 ///
-/// Zero-valued lobe strengths keep the legacy Standard PBR variant unchanged.
+/// Zero-valued lobe strengths preserve the baseline Standard PBR variant.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct StandardPbrMaterialFeatures {

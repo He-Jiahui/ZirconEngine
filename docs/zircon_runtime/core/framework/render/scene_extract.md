@@ -76,3 +76,5 @@ The cache entry stores the last `RenderMeshStaticState` it was built from. A cha
 ## Validation State
 
 The MD-M2 cache tests cover matching-state reuse, material-revision invalidation, and rejection of dynamic, transparent, and indirect batches. The broader `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` validation passed on 2026-06-12 after the unrelated UI initializer and moved-value blockers in `zircon_runtime/src/ui/style.rs` and `zircon_runtime/src/ui/v2/style.rs` were corrected; it also passed again after the GPUScene stable key, transform revision fields, frame-path GPUScene sync, and stats propagation were added.
+
+Hybrid-GI deserialization keeps an explicit pre-M4 fixture: settings serialized before the M4 fields existed resolve those fields to the current dynamic custom profile defaults. The fixture name records the schema boundary directly and does not preserve a second settings owner or compatibility API.

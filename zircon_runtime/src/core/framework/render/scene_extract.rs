@@ -671,7 +671,7 @@ mod hybrid_gi_m4_tests {
     use super::*;
 
     #[test]
-    fn hybrid_gi_legacy_settings_default_to_dynamic_custom_profile() {
+    fn hybrid_gi_pre_m4_settings_default_to_dynamic_custom_profile() {
         let extract: RenderHybridGiExtract = serde_json::from_str(
             r#"{
                 "enabled": true,
@@ -682,7 +682,7 @@ mod hybrid_gi_m4_tests {
                 "debug_view": "surface_cache"
             }"#,
         )
-        .expect("legacy Hybrid GI settings should keep defaults for new M4 fields");
+        .expect("pre-M4 Hybrid GI settings should keep defaults for new M4 fields");
 
         assert_eq!(extract.mode, RenderHybridGiMode::DynamicOnly);
         assert_eq!(extract.profile, RenderHybridGiProfile::Custom);

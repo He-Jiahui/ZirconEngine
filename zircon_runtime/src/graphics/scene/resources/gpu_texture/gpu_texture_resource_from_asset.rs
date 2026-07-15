@@ -113,8 +113,8 @@ impl GpuTextureResource {
             );
         }
         let view = texture.create_view(&lightmap_texture_view_descriptor(layer_count));
-        let legacy_bind_group_view =
-            texture.create_view(&lightmap_legacy_bind_group_view_descriptor());
+        let page_zero_bind_group_view =
+            texture.create_view(&lightmap_page_zero_bind_group_view_descriptor());
         let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-lightmap-rgba16f-bind-group"),
@@ -122,7 +122,7 @@ impl GpuTextureResource {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&legacy_bind_group_view),
+                    resource: wgpu::BindingResource::TextureView(&page_zero_bind_group_view),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
@@ -737,7 +737,7 @@ fn lightmap_texture_view_descriptor(layer_count: u32) -> wgpu::TextureViewDescri
     }
 }
 
-fn lightmap_legacy_bind_group_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
+fn lightmap_page_zero_bind_group_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
     wgpu::TextureViewDescriptor {
         dimension: Some(wgpu::TextureViewDimension::D2),
         base_array_layer: 0,
