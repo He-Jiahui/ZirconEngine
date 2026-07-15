@@ -1,5 +1,7 @@
 use zircon_runtime::core::framework::ai::{AiBehaviorAbortPolicy, AiBehaviorNodeParameterValue};
 
+use crate::behavior_tree::BehaviorIntegrationTaskContext;
+
 use super::{
     decorator_condition_passes, BehaviorNodeRuntimeState, BehaviorNodeSemantics,
     BehaviorNodeTickContext, BehaviorTreeExecutionContext, BehaviorTreeInstanceState,
@@ -23,7 +25,7 @@ impl AbortRequest {
 
 pub(super) fn process_observer_aborts(
     tree: &CompiledBehaviorTree,
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) {
     if context.changed_slots.is_empty()
         || !context.processed_observers.insert(tree.id().to_string())
@@ -82,7 +84,7 @@ pub(super) fn process_observer_aborts(
     }
 }
 
-pub(super) fn abort_active_root(context: &mut BehaviorTreeExecutionContext<'_>) {
+pub(super) fn abort_active_root(context: &mut BehaviorTreeExecutionContext<'_, '_>) {
     let Some(root_tree_id) = context.instance.root_tree.clone() else {
         return;
     };
@@ -100,7 +102,7 @@ pub(super) fn abort_active_root(context: &mut BehaviorTreeExecutionContext<'_>) 
 fn abort_lower_priority_branch(
     tree: &CompiledBehaviorTree,
     observer_index: u32,
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) {
     let Some((selector_index, observer_branch)) = selector_ancestor(tree, observer_index) else {
         return;
@@ -125,7 +127,7 @@ fn abort_lower_priority_branch(
 fn abort_subtree(
     tree: &CompiledBehaviorTree,
     root_index: u32,
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) {
     let range = tree.node(root_index as usize).subtree_range(root_index);
     for node_index in range {
@@ -156,6 +158,23 @@ fn abort_subtree(
             }
         }
         if was_active {
+            if matches!(
+                node.semantics(),
+                BehaviorNodeSemantics::MoveTo
+                    | BehaviorNodeSemantics::PlayAnimation
+                    | BehaviorNodeSemantics::ScriptTask
+            ) {
+                let abort_context = BehaviorIntegrationTaskContext {
+                    node_id: node.id(),
+                    parameters: node.parameters(),
+                    entity: context.entity,
+                    delta_seconds: context.delta_seconds,
+                    started: false,
+                };
+                if let Some(host) = context.integration_host.as_deref_mut() {
+                    host.abort(&abort_context);
+                }
+            }
             let Some(mut runtime) = runtime else {
                 continue;
             };

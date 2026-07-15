@@ -3,12 +3,13 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{
-    PluginEventCatalogManifest, PluginEventManifest, PluginModuleId, PluginOptionManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    BridgeImport, PluginEventCatalogManifest, PluginEventManifest, PluginModuleId,
+    PluginOptionManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use zircon_runtime::scene::ecs::{
     Event, Resource, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
 };
+use zircon_runtime::scene::SceneRuntimeHookRegistration;
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
     registry: &'registry mut RuntimeExtensionRegistry,
@@ -42,6 +43,10 @@ pub struct RuntimePluginModuleRegistration<'registry> {
 impl<'registry> RuntimePluginModuleRegistration<'registry> {
     pub fn module_name(&self) -> &str {
         &self.module_name
+    }
+
+    pub fn owner(&self) -> PluginModuleId {
+        self.owner
     }
 
     pub fn runtime_scene_system<S>(
@@ -108,6 +113,28 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
     {
         self.registry
             .export_interface::<T>(self.owner, implementation)
+    }
+
+    pub fn import_interface<T>(&mut self) -> Result<BridgeImport<T>, RuntimeExtensionRegistryError>
+    where
+        T: PluginInterface + ?Sized,
+    {
+        self.registry.import_interface::<T>(self.owner)
+    }
+
+    pub fn owner_revocation_listener(
+        &mut self,
+        callback: impl Fn(PluginModuleId) + Send + Sync + 'static,
+    ) {
+        self.registry
+            .register_owner_revocation_listener(self.owner, callback);
+    }
+
+    pub fn scene_hook(
+        &mut self,
+        registration: SceneRuntimeHookRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.registry.register_scene_hook(registration)
     }
 }
 
@@ -197,6 +224,12 @@ mod tests {
 
     impl Resource for SdkRegistrationResource {}
 
+    trait SdkImportedBridge: Send + Sync {}
+
+    impl PluginInterface for dyn SdkImportedBridge {
+        const INTERFACE_ID: &'static str = "sdk.registration.imported.v1";
+    }
+
     #[test]
     fn runtime_registration_builder_hides_module_owner_sequence() {
         let mut registry = RuntimeExtensionRegistry::default();
@@ -211,6 +244,10 @@ mod tests {
             .expect("module registered");
 
         assert_eq!(module.module_name(), MODULE_OWNER);
+        let module_owner = module.owner();
+        let imported = module
+            .import_interface::<dyn SdkImportedBridge>()
+            .expect("interface import registered through SDK");
 
         module
             .resource(SdkRegistrationResource::default)
@@ -250,6 +287,12 @@ mod tests {
                 payload_schema: EVENT_SCHEMA.to_string(),
             })
             .expect("runtime event registered");
+        drop(module);
+        registry.finalize();
+        assert_eq!(
+            imported.call(|_| ()),
+            Err(zircon_runtime::core::framework::bridge::BridgeError::Absent)
+        );
 
         assert!(registry
             .modules()
@@ -259,6 +302,7 @@ mod tests {
         let systems = registry.plugin_runtime_systems().collect::<Vec<_>>();
         assert_eq!(systems.len(), 1);
         let (owner, system) = systems[0];
+        assert_eq!(owner, module_owner);
         assert_eq!(registry.plugin_module_name(owner), Some(MODULE_OWNER));
         assert_eq!(system.id, SYSTEM_ID);
         assert_eq!(system.stage, SystemStage::PostUpdate);

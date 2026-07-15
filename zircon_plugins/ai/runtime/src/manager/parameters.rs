@@ -1,6 +1,11 @@
 use zircon_runtime::core::framework::ai::{AiDecisionStatus, AiPerceptionSense};
 
 pub(crate) const TASK_RESULT_PARAMETER_KEY: &str = "result";
+pub(crate) const MOVE_TARGET_PARAMETER_KEY: &str = "target";
+pub(crate) const ANIMATION_PARAMETER_PARAMETER_KEY: &str = "parameter";
+pub(crate) const ANIMATION_TRIGGER_PARAMETER_KEY: &str = "trigger";
+pub(crate) const ANIMATION_VALUE_PARAMETER_KEY: &str = "value";
+pub(crate) const SCRIPT_CALLBACK_PARAMETER_KEY: &str = "callback";
 pub(crate) const PARALLEL_SUCCESS_POLICY_PARAMETER_KEY: &str = "success_policy";
 pub(crate) const PARALLEL_FAILURE_POLICY_PARAMETER_KEY: &str = "failure_policy";
 pub(crate) const BLACKBOARD_KEY_PARAMETER_KEY: &str = "blackboard_key";

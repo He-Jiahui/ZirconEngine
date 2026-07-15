@@ -13,8 +13,8 @@ mod runtime_profile;
 mod ui_component_descriptor;
 
 pub use bridge::{
-    BridgeDiagnosticsMatrix, BridgeEntry, BridgeInterfaceSnapshot, BridgeOwnerTransitionReport,
-    BridgeTableDiagnosticsSummary, FrozenBridgeTable, WeakBridge,
+    BridgeDiagnosticsMatrix, BridgeEntry, BridgeImport, BridgeInterfaceSnapshot,
+    BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary, FrozenBridgeTable, WeakBridge,
 };
 pub use capability_status::{CapabilityStatus, CapabilityStatusManifest};
 pub use core_profiles::{EditorCoreProfile, RuntimeCoreProfile};
@@ -32,10 +32,11 @@ pub use extension_registry::{
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use package_manifest::{
     PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
-    PluginEventManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
-    PluginOptionManifest, PluginPackageKind, PluginPackageManifest, PluginShaderModuleManifest,
-    PluginShaderPermutationIdManifest, PluginShaderPermutationManifest,
+    PluginEventConsumerManifest, PluginEventManifest, PluginFeatureBundleManifest,
+    PluginFeatureDependency, PluginInterfaceManifest, PluginInterfaceMethodManifest,
+    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginPackageManifest, PluginShaderModuleManifest, PluginShaderPermutationIdManifest,
+    PluginShaderPermutationManifest,
 };
 pub use plugin_maturity::PluginMaturity;
 pub use runtime_plugin::{

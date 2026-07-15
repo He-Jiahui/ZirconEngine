@@ -5,7 +5,8 @@ use super::state::{ActiveBehaviorAgent, AgentBlackboard};
 use super::validation::{validate_blackboard_entries, validate_perception_snapshot};
 use super::DefaultAiManager;
 use crate::behavior_tree::{
-    abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorTreeInstanceState,
+    abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorIntegrationHost,
+    BehaviorTreeInstanceState,
 };
 use crate::blackboard::BlackboardStore;
 use crate::AiBehaviorTickLod;
@@ -14,13 +15,23 @@ pub(super) fn tick_agent(
     manager: &DefaultAiManager,
     request: AiAgentTickRequest,
 ) -> Result<AiAgentTickReport, AiManagerError> {
-    tick_agent_with_source(manager, request, false)
+    tick_agent_with_source(manager, request, false, None)
+}
+
+#[cfg(test)]
+pub(super) fn tick_agent_with_integration_host(
+    manager: &DefaultAiManager,
+    request: AiAgentTickRequest,
+    integration_host: &mut dyn BehaviorIntegrationHost,
+) -> Result<AiAgentTickReport, AiManagerError> {
+    tick_agent_with_source(manager, request, false, Some(integration_host))
 }
 
 fn tick_agent_with_source(
     manager: &DefaultAiManager,
     request: AiAgentTickRequest,
     use_stored_blackboard: bool,
+    integration_host: Option<&mut dyn BehaviorIntegrationHost>,
 ) -> Result<AiAgentTickReport, AiManagerError> {
     if !request.delta_seconds.is_finite() {
         return Err(AiManagerError::NonFiniteTickDelta);
@@ -198,6 +209,8 @@ fn tick_agent_with_source(
             blackboard_store,
             &changed_slots,
             &mut instance,
+            request.entity,
+            integration_host,
         ) {
             Ok(execution) => execution,
             Err(error) => {
@@ -223,6 +236,8 @@ fn tick_agent_with_source(
             request.perception.as_ref().or(stored_perception.as_ref()),
             request.delta_seconds,
             &mut instance,
+            request.entity,
+            integration_host,
         );
         AiAgentTickReport::idle(request.world, request.entity)
     };
@@ -289,6 +304,42 @@ pub(super) fn tick_active_agents_with_lod(
     frame: u64,
     mut lod_for_entity: impl FnMut(u64) -> AiBehaviorTickLod,
 ) -> Result<Vec<AiAgentTickReport>, AiManagerError> {
+    tick_active_agents_with_lod_inner(
+        manager,
+        world,
+        delta_seconds,
+        frame,
+        &mut lod_for_entity,
+        None,
+    )
+}
+
+pub(super) fn tick_active_agents_with_lod_and_integration_host(
+    manager: &DefaultAiManager,
+    world: WorldHandle,
+    delta_seconds: f32,
+    frame: u64,
+    mut lod_for_entity: impl FnMut(u64) -> AiBehaviorTickLod,
+    integration_host: &mut dyn BehaviorIntegrationHost,
+) -> Result<Vec<AiAgentTickReport>, AiManagerError> {
+    tick_active_agents_with_lod_inner(
+        manager,
+        world,
+        delta_seconds,
+        frame,
+        &mut lod_for_entity,
+        Some(integration_host),
+    )
+}
+
+fn tick_active_agents_with_lod_inner(
+    manager: &DefaultAiManager,
+    world: WorldHandle,
+    delta_seconds: f32,
+    frame: u64,
+    lod_for_entity: &mut dyn FnMut(u64) -> AiBehaviorTickLod,
+    mut integration_host: Option<&mut dyn BehaviorIntegrationHost>,
+) -> Result<Vec<AiAgentTickReport>, AiManagerError> {
     if !delta_seconds.is_finite() {
         return Err(AiManagerError::NonFiniteTickDelta);
     }
@@ -328,8 +379,14 @@ pub(super) fn tick_active_agents_with_lod(
         }
         requests
     };
-    requests
-        .into_iter()
-        .map(|request| tick_agent_with_source(manager, request, true))
-        .collect()
+    let mut reports = Vec::with_capacity(requests.len());
+    for request in requests {
+        let report = if let Some(host) = integration_host.as_mut() {
+            tick_agent_with_source(manager, request, true, Some(&mut **host))?
+        } else {
+            tick_agent_with_source(manager, request, true, None)?
+        };
+        reports.push(report);
+    }
+    Ok(reports)
 }

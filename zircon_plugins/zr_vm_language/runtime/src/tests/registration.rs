@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     module_descriptor, package_manifest, plugin_registration, register_zr_vm_backend,
-    ZrVmLanguageBackendRegistration, ZR_VM_GC_STEP_SYSTEM,
+    ZrVmLanguageBackendRegistration, ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM, ZR_VM_GC_STEP_SYSTEM,
     ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME, ZR_VM_LANGUAGE_DIST_CRATE_NAME,
     ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY, ZR_VM_LANGUAGE_MODULE_NAME, ZR_VM_PROJECT_BACKEND_SELECTOR,
 };
@@ -110,6 +110,18 @@ fn zr_vm_language_registration_reports_backend_capability() {
         .modules()
         .iter()
         .any(|module| module.name == ZR_VM_LANGUAGE_MODULE_NAME));
+    assert!(report
+        .extensions
+        .frozen_bridge_table()
+        .resolve_slot(zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID)
+        .is_some());
+    assert!(report
+        .package_manifest
+        .provides_interfaces
+        .iter()
+        .any(|interface| interface.id
+            == zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID
+            && interface.methods.is_empty()));
     assert!(report.extensions.scene_hooks().iter().any(|hook| {
         hook.descriptor().id == "zr_vm_language.script.scene.fixed_update"
             && hook.descriptor().stage == zircon_runtime::scene::SystemStage::FixedUpdate
@@ -302,6 +314,7 @@ fn vm_registered_system_enters_schedule_conservatively() {
     assert_eq!(
         runtime_module.system_anchors,
         [
+            ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM,
             crate::vm_system_dispatcher_id(zircon_runtime::script::VmSystemStage::FixedUpdate),
             crate::vm_system_dispatcher_id(zircon_runtime::script::VmSystemStage::Update),
             crate::vm_system_dispatcher_id(zircon_runtime::script::VmSystemStage::Last),

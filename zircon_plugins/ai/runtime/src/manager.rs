@@ -117,6 +117,39 @@ impl DefaultAiManager {
     > {
         tick::tick_active_agents_with_lod(self, world, delta_seconds, frame, lod_for_entity)
     }
+
+    #[cfg(test)]
+    pub(crate) fn tick_agent_with_integration_host(
+        &self,
+        request: zircon_runtime::core::framework::ai::AiAgentTickRequest,
+        integration_host: &mut dyn crate::behavior_tree::BehaviorIntegrationHost,
+    ) -> Result<
+        zircon_runtime::core::framework::ai::AiAgentTickReport,
+        zircon_runtime::core::framework::ai::AiManagerError,
+    > {
+        tick::tick_agent_with_integration_host(self, request, integration_host)
+    }
+
+    pub(crate) fn tick_active_agents_with_lod_and_integration_host(
+        &self,
+        world: zircon_runtime::core::framework::scene::WorldHandle,
+        delta_seconds: f32,
+        frame: u64,
+        lod_for_entity: impl FnMut(u64) -> crate::AiBehaviorTickLod,
+        integration_host: &mut dyn crate::behavior_tree::BehaviorIntegrationHost,
+    ) -> Result<
+        Vec<zircon_runtime::core::framework::ai::AiAgentTickReport>,
+        zircon_runtime::core::framework::ai::AiManagerError,
+    > {
+        tick::tick_active_agents_with_lod_and_integration_host(
+            self,
+            world,
+            delta_seconds,
+            frame,
+            lod_for_entity,
+            integration_host,
+        )
+    }
 }
 
 impl Default for DefaultAiManager {

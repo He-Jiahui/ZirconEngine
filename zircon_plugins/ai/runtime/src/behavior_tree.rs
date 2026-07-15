@@ -20,3 +20,6 @@ pub use compile::{
 pub(crate) use executor::{
     abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorTreeInstanceState,
 };
+pub(crate) use nodes::{
+    BehaviorIntegrationHost, BehaviorIntegrationTaskContext, RuntimeBehaviorIntegrationHost,
+};

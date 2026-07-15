@@ -69,6 +69,28 @@ fn agent_tick_event_payload_contains_typed_editor_debug_state() {
 }
 
 #[test]
+fn agent_tick_report_publishes_arrival_without_enabling_debug_capture() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = crowd_world();
+    manager
+        .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 8.0))
+        .unwrap();
+    let destination = [1.0, 0.0, 0.0];
+    let entity = spawn_agent(
+        &mut world,
+        Vec3::from_array(destination),
+        destination,
+        NavAgentWritebackMode::Transform,
+    );
+
+    let report = manager.tick_world_agents(&mut world, 0.1).unwrap();
+
+    assert!(report.debug_agents.is_empty());
+    assert_eq!(report.arrived_agents, vec![(entity, destination)]);
+    assert!(report.no_path_agents.is_empty());
+}
+
+#[test]
 fn repath_budget_rotates_across_pending_agents_without_starvation() {
     let manager = DefaultNavigationManager::new();
     let mut world = crowd_world();

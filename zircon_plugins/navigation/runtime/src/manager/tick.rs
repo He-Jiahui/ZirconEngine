@@ -5,7 +5,7 @@ use crate::runtime_obstacles::{
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
-    NavigationAgentDebugState, NavigationDebugCapture, NavigationError, NavigationManager,
+    NavigationAgentDebugState, NavigationDebugCapture, NavigationError,
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
@@ -125,6 +125,7 @@ pub(crate) fn tick_world_agents_legacy(
                             Ok(_) => {
                                 manager.clear_agent_velocity(entity);
                                 report.blocked_agents += 1;
+                                report.no_path_agents.push((entity, destination.to_array()));
                                 report
                                     .diagnostics
                                     .push(format!("agent {entity} has no path on loaded navmesh"));
@@ -156,6 +157,7 @@ pub(crate) fn tick_world_agents_legacy(
         let distance = delta.length();
         if distance <= agent.stopping_distance {
             manager.clear_agent_velocity(entity);
+            report.arrived_agents.push((entity, destination.to_array()));
             continue;
         }
         let velocity = next_agent_velocity(

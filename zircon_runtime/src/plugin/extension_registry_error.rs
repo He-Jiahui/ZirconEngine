@@ -67,6 +67,8 @@ pub enum RuntimeExtensionRegistryError {
     DuplicatePluginEvent(String),
     #[error("plugin interface {0} already registered")]
     DuplicatePluginInterface(String),
+    #[error("plugin interface import {0} already registered")]
+    DuplicatePluginInterfaceImport(String),
     #[error("plugin interface {0} is not enabled")]
     MissingPluginInterface(String),
     #[error("plugin world registration failed: {0}")]

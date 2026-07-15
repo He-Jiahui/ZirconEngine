@@ -564,17 +564,27 @@ impl HotReloadCoordinator {
 
     pub fn slot_for_package_name(&self, package_name: &str) -> Result<PluginSlotId, VmError> {
         let slots = self.lock_slots();
-        slots
+        let mut matches = slots
             .iter()
             .filter(|(_, entry)| {
                 entry.state == VmPluginSlotState::Active
                     && entry.package.manifest.name == package_name
             })
             .map(|(slot, _)| *slot)
-            .min_by_key(|slot| slot.get())
-            .ok_or_else(|| {
-                VmError::Operation(format!("vm plugin package {package_name} is not loaded"))
-            })
+            .collect::<Vec<_>>();
+        matches.sort_by_key(|slot| slot.get());
+        let Some(slot) = matches.first().copied() else {
+            return Err(VmError::Operation(format!(
+                "vm plugin package {package_name} is not loaded"
+            )));
+        };
+        if matches.len() > 1 {
+            return Err(VmError::Operation(format!(
+                "vm plugin package name {package_name} is ambiguous across active slots {:?}",
+                matches.iter().map(|slot| slot.get()).collect::<Vec<_>>()
+            )));
+        }
+        Ok(slot)
     }
 
     pub fn call_slot_export(

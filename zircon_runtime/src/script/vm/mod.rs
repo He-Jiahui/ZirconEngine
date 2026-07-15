@@ -1,4 +1,5 @@
 mod backend;
+mod behavior_bridge;
 mod capability_set;
 mod gameplay_host;
 mod gc_bridge;
@@ -15,6 +16,7 @@ mod tests;
 
 pub use backend::{BuiltinVmBackendFamily, VmBackendFamily};
 pub use backend::{UnavailableVmBackend, VmBackend, VmBackendRegistry, VmError};
+pub use behavior_bridge::VmScriptBehaviorBridge;
 pub use capability_set::CapabilitySet;
 pub use gameplay_host::register_gameplay_host_module;
 pub use gc_bridge::{

@@ -44,4 +44,4 @@ pub use test::{TestRuntime, TestRuntimeBaseModule, TestRuntimeBuilder, TestRunti
 #[cfg(feature = "runtime")]
 pub use zircon_runtime::core::framework::bridge::{BridgeError, PluginInterface};
 #[cfg(feature = "runtime")]
-pub use zircon_runtime::plugin::WeakBridge;
+pub use zircon_runtime::plugin::{BridgeImport, WeakBridge};

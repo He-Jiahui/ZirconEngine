@@ -114,6 +114,12 @@ pub struct NavAgentTickReport {
     pub queued_link_agents: usize,
     pub off_mesh_events: Vec<super::off_mesh_link::OffMeshTraverseEvent>,
     pub diagnostics: Vec<String>,
+    /// Production arrival outcomes keyed by entity and the destination that was evaluated.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub arrived_agents: Vec<(u64, [Real; 3])>,
+    /// Production no-path outcomes keyed by entity and the destination that was evaluated.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub no_path_agents: Vec<(u64, [Real; 3])>,
     /// Optional typed debug payload populated only while `NavigationDebugCapture` is enabled.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub debug_agents: Vec<NavigationAgentDebugState>,

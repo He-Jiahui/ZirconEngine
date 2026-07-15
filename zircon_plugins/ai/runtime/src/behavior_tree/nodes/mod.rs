@@ -1,7 +1,12 @@
 mod composite;
 mod decorator;
+mod integration;
 mod service;
 mod task;
+
+pub(crate) use integration::{
+    BehaviorIntegrationHost, BehaviorIntegrationTaskContext, RuntimeBehaviorIntegrationHost,
+};
 
 use super::{BehaviorNodeCategory, BehaviorNodeSemantics};
 

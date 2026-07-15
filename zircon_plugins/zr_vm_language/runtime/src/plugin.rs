@@ -1,8 +1,14 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
+use zircon_runtime::core::framework::script::{
+    ScriptBehaviorBridge, SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+};
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest,
+    PluginInterfaceManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
 use zircon_runtime::script::{VmGcBudget, VmGcDiagnostics, VmSystemStage};
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
@@ -14,6 +20,7 @@ use crate::{
 
 pub const ZR_VM_LANGUAGE_DIST_CRATE_NAME: &str = "zircon_plugin_zr_vm_language_dist";
 pub const ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_zr_vm_language_runtime_entry_v3";
+pub const ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM: &str = "zr_vm_language.script.behavior_bridge.bind";
 pub const ZR_VM_GC_STEP_SYSTEM: &str = "zr_vm_language.script.gc_step";
 const ZR_VM_LANGUAGE_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
@@ -73,38 +80,51 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let owner = registry.intern_plugin_module(ZR_VM_LANGUAGE_MODULE_NAME)?;
-        registry.register_resource(owner, VmGcBudget::default)?;
-        registry.register_resource(owner, VmGcDiagnostics::default)?;
+        let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
+            .module(ZR_VM_LANGUAGE_MODULE_NAME)?;
+        let behavior_bridge = Arc::new(zircon_runtime::script::VmScriptBehaviorBridge::new());
+        let exported_behavior_bridge: Arc<dyn ScriptBehaviorBridge> = behavior_bridge.clone();
+        module.export_interface::<dyn ScriptBehaviorBridge>(exported_behavior_bridge)?;
+        module
+            .runtime_scene_system(
+                ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM,
+                zircon_runtime::scene::SystemStage::First,
+                move |context| {
+                    let manager = context
+                        .core
+                        .resolve_manager::<zircon_runtime::script::VmPluginManager>(
+                            zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
+                        )?;
+                    behavior_bridge.bind_manager(&manager);
+                    Ok(())
+                },
+            )
+            .register()?;
+        module.resource(VmGcBudget::default)?;
+        module.resource(VmGcDiagnostics::default)?;
         for stage in zircon_runtime::script::VmSystemStage::ALL {
             let system_id = vm_system_dispatcher_id(stage);
-            registry
-                .register_runtime_scene_system(
-                    owner,
-                    system_id,
-                    stage.system_stage(),
-                    move |context| {
-                        let manager = context
-                            .core
-                            .resolve_manager::<zircon_runtime::script::VmPluginManager>(
-                                zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
-                            )?;
-                        manager
-                            .run_registered_systems(stage, context.delta_seconds)
-                            .map(|_| ())
-                            .map_err(|error| {
-                                zircon_runtime::core::CoreError::Initialization(
-                                    vm_system_dispatcher_id(stage).to_string(),
-                                    error.to_string(),
-                                )
-                            })
-                    },
-                )
+            module
+                .runtime_scene_system(system_id, stage.system_stage(), move |context| {
+                    let manager = context
+                        .core
+                        .resolve_manager::<zircon_runtime::script::VmPluginManager>(
+                            zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
+                        )?;
+                    manager
+                        .run_registered_systems(stage, context.delta_seconds)
+                        .map(|_| ())
+                        .map_err(|error| {
+                            zircon_runtime::core::CoreError::Initialization(
+                                vm_system_dispatcher_id(stage).to_string(),
+                                error.to_string(),
+                            )
+                        })
+                })
                 .register()?;
         }
-        registry
-            .register_runtime_scene_system(
-                owner,
+        module
+            .runtime_scene_system(
                 ZR_VM_GC_STEP_SYSTEM,
                 zircon_runtime::scene::SystemStage::Last,
                 |context| {
@@ -144,11 +164,8 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                 vm_system_dispatcher_id(VmSystemStage::Last).to_string(),
             ))
             .register()?;
-        registry.register_scene_hook(
-            zircon_runtime::script::script_scene_fixed_update_hook_registration(),
-        )?;
-        registry
-            .register_scene_hook(zircon_runtime::script::script_scene_update_hook_registration())
+        module.scene_hook(zircon_runtime::script::script_scene_fixed_update_hook_registration())?;
+        module.scene_hook(zircon_runtime::script::script_scene_update_hook_registration())
     }
 }
 
@@ -177,9 +194,15 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimeTargetMode::EditorHost,
     ])
     .with_enabled_by_default(false)
+    // This is a linked Rust typed interface. NativeDynamic method ABI bindings
+    // remain empty until a byte-level ScriptHostValue protocol is specified.
+    .with_provided_interface(PluginInterfaceManifest::new(
+        SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+    ))
     .with_capability(ZR_VM_LANGUAGE_RUNTIME_CAPABILITY)
     .with_capability(ZR_VM_PROJECT_BACKEND_CAPABILITY)
     .with_system_anchors([
+        ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM,
         vm_system_dispatcher_id(VmSystemStage::FixedUpdate),
         vm_system_dispatcher_id(VmSystemStage::Update),
         vm_system_dispatcher_id(VmSystemStage::Last),

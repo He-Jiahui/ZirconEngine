@@ -20,8 +20,8 @@ pub use module::{
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, vm_system_dispatcher_id,
-    ZrVmLanguageRuntimePlugin, ZR_VM_GC_STEP_SYSTEM, ZR_VM_LANGUAGE_DIST_CRATE_NAME,
-    ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY,
+    ZrVmLanguageRuntimePlugin, ZR_VM_BEHAVIOR_BRIDGE_BIND_SYSTEM, ZR_VM_GC_STEP_SYSTEM,
+    ZR_VM_LANGUAGE_DIST_CRATE_NAME, ZR_VM_LANGUAGE_DIST_RUNTIME_ENTRY,
 };
 pub use reflection_host::{ReflectionHostError, ReflectionHostModule};
 pub use zircon_runtime::script::{

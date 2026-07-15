@@ -1,6 +1,5 @@
-use std::cell::RefCell;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::core::framework::bridge::{BridgeError, InterfaceSlot, PluginInterface};
 
@@ -9,7 +8,17 @@ use super::table::FrozenBridgeTable;
 pub struct WeakBridge<T: ?Sized> {
     table: FrozenBridgeTable,
     slot: Option<InterfaceSlot>,
-    cached: RefCell<Option<(u32, Arc<T>)>>,
+    cached: Arc<Mutex<Option<(u32, Arc<T>)>>>,
+}
+
+impl<T: ?Sized> Clone for WeakBridge<T> {
+    fn clone(&self) -> Self {
+        Self {
+            table: self.table.clone(),
+            slot: self.slot,
+            cached: Arc::clone(&self.cached),
+        }
+    }
 }
 
 impl<T> WeakBridge<T>
@@ -20,7 +29,7 @@ where
         Self {
             table,
             slot,
-            cached: RefCell::new(None),
+            cached: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -76,7 +85,11 @@ where
             .entry(slot)
             .ok_or((Some(slot), BridgeError::Absent))?
             .generation();
-        if let Some((cached_generation, cached)) = self.cached.borrow().as_ref() {
+        let mut cached = self
+            .cached
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((cached_generation, cached)) = cached.as_ref() {
             if *cached_generation == generation && generation % 2 == 0 {
                 return Ok((slot, cached.clone()));
             }
@@ -86,7 +99,7 @@ where
             .table
             .provider::<T>(slot)
             .map_err(|error| (Some(slot), error))?;
-        *self.cached.borrow_mut() = Some((generation, provider.clone()));
+        *cached = Some((generation, provider.clone()));
         Ok((slot, provider))
     }
 }

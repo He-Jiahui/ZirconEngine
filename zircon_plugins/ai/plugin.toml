@@ -20,6 +20,11 @@ dist_crate = "zircon_plugin_ai_dist"
 descriptor_symbol = "zircon_native_plugin_descriptor_v3"
 runtime_entry = "zircon_plugin_ai_runtime_entry_v3"
 
+[[dependencies]]
+id = "zr_vm_language"
+required = false
+interfaces = ["script.behavior.v1"]
+
 [[capability_statuses]]
 capability = "runtime.plugin.ai"
 status = "partial"

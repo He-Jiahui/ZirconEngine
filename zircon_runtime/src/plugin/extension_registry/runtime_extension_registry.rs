@@ -10,7 +10,7 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::plugin::bridge::InterfaceExport;
+use crate::plugin::bridge::{FrozenBridgeTable, InterfaceExport, InterfaceImport};
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
 use crate::{
@@ -43,6 +43,8 @@ pub struct RuntimeExtensionRegistry {
     pub(super) plugin_resources: TypedExtensionPoint<TypeId, ResourceRegistration>,
     pub(super) plugin_events: TypedExtensionPoint<TypeId, EventRegistration>,
     pub(super) plugin_interfaces: TypedExtensionPoint<String, InterfaceExport>,
+    pub(super) plugin_interface_imports: TypedExtensionPoint<String, InterfaceImport>,
+    pub(super) bridge_table: Option<FrozenBridgeTable>,
     pub(super) managers: TypedExtensionPoint<String, ManagerDescriptor>,
     pub(super) modules: TypedExtensionPoint<String, ModuleDescriptor>,
     #[cfg(feature = "graphics")]
@@ -99,6 +101,7 @@ impl RuntimeExtensionRegistry {
         self.plugin_resources.freeze();
         self.plugin_events.freeze();
         self.plugin_interfaces.freeze();
+        self.plugin_interface_imports.freeze();
         self.managers.freeze();
         self.modules.freeze();
         #[cfg(feature = "graphics")]
@@ -124,6 +127,7 @@ impl RuntimeExtensionRegistry {
         self.plugin_event_catalogs.freeze();
         self.asset_importers_finalized = true;
         self.scene_hooks.freeze();
+        self.finalize_bridge_imports();
     }
 
     pub fn is_finalized(&self) -> bool {
@@ -132,6 +136,7 @@ impl RuntimeExtensionRegistry {
             && self.plugin_resources.is_frozen()
             && self.plugin_events.is_frozen()
             && self.plugin_interfaces.is_frozen()
+            && self.plugin_interface_imports.is_frozen()
             && self.managers.is_frozen()
             && self.modules.is_frozen();
         #[cfg(feature = "graphics")]
@@ -172,6 +177,10 @@ impl RuntimeExtensionRegistry {
             plugin_resources: self.plugin_resources.entries_owned_by(owner).collect(),
             plugin_events: self.plugin_events.entries_owned_by(owner).collect(),
             plugin_interfaces: self.plugin_interfaces.entries_owned_by(owner).collect(),
+            plugin_interface_imports: self
+                .plugin_interface_imports
+                .entries_owned_by(owner)
+                .collect(),
             managers: self.managers.entries_owned_by(owner).collect(),
             modules: self.modules.entries_owned_by(owner).collect(),
             #[cfg(feature = "graphics")]
@@ -213,6 +222,12 @@ impl RuntimeExtensionRegistry {
     }
 
     pub fn revoke_owner_registrations(&mut self, owner: PluginModuleId) -> ExtensionOwnership {
+        let bridge_was_finalized = self.bridge_table.is_some();
+        self.unbind_interface_imports_owned_by(owner);
+        if let Some(table) = self.bridge_table.as_ref() {
+            table.deactivate_owner(owner);
+        }
+        self.invalidate_bridge_table();
         for listener in self.owner_revocation_listeners.clone() {
             listener.notify(owner);
         }
@@ -232,12 +247,13 @@ impl RuntimeExtensionRegistry {
             self.asset_importers_finalized = false;
         }
 
-        ExtensionOwnership {
+        let ownership = ExtensionOwnership {
             plugin_systems: self.plugin_systems.remove_owned_by(owner),
             plugin_runtime_systems: self.plugin_runtime_systems.remove_owned_by(owner),
             plugin_resources: self.plugin_resources.remove_owned_by(owner),
             plugin_events: self.plugin_events.remove_owned_by(owner),
             plugin_interfaces: self.plugin_interfaces.remove_owned_by(owner),
+            plugin_interface_imports: self.plugin_interface_imports.remove_owned_by(owner),
             managers: self.managers.remove_owned_by(owner),
             modules: self.modules.remove_owned_by(owner),
             #[cfg(feature = "graphics")]
@@ -265,7 +281,11 @@ impl RuntimeExtensionRegistry {
             plugin_event_catalogs: self.plugin_event_catalogs.remove_owned_by(owner),
             asset_importers,
             scene_hooks: self.scene_hooks.remove_owned_by(owner),
+        };
+        if bridge_was_finalized {
+            self.finalize_bridge_imports();
         }
+        ownership
     }
 }
 

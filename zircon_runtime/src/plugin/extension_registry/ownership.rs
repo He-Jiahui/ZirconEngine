@@ -9,6 +9,7 @@ pub struct ExtensionOwnership {
     pub plugin_resources: Vec<ExtensionSlot>,
     pub plugin_events: Vec<ExtensionSlot>,
     pub plugin_interfaces: Vec<ExtensionSlot>,
+    pub plugin_interface_imports: Vec<ExtensionSlot>,
     pub managers: Vec<ExtensionSlot>,
     pub modules: Vec<ExtensionSlot>,
     #[cfg(feature = "graphics")]
@@ -43,6 +44,7 @@ impl ExtensionOwnership {
             && self.plugin_resources.is_empty()
             && self.plugin_events.is_empty()
             && self.plugin_interfaces.is_empty()
+            && self.plugin_interface_imports.is_empty()
             && self.managers.is_empty()
             && self.modules.is_empty();
         #[cfg(feature = "graphics")]

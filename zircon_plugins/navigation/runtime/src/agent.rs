@@ -152,6 +152,12 @@ pub(super) fn tick_world_agents(
                     let failed = state.target_state == DETOUR_TARGET_FAILED || state.partial_path;
                     if failed && !binding.blocked {
                         report.blocked_agents += 1;
+                        if let Some(destination) = agents_by_entity
+                            .get(&entity)
+                            .and_then(|agent| agent.destination)
+                        {
+                            report.no_path_agents.push((entity, destination));
+                        }
                         report.diagnostics.push(format!(
                             "agent {entity} has no path to its complete Crowd target"
                         ));
@@ -174,6 +180,13 @@ pub(super) fn tick_world_agents(
 
     for (entity, agent, state) in &writebacks {
         writeback::write_agent_state(world, *entity, agent, state, dt_seconds, &mut report);
+        if let Some(destination) = agent.destination {
+            let remaining =
+                (Vec3::from_array(destination) - Vec3::from_array(state.position)).length();
+            if remaining <= agent.stopping_distance.max(0.0) {
+                report.arrived_agents.push((*entity, destination));
+            }
+        }
     }
     if world
         .get_resource::<NavigationDebugCapture>()
@@ -412,6 +425,7 @@ fn apply_repath_budget(
             Err(error) => {
                 binding.blocked = true;
                 report.blocked_agents += 1;
+                report.no_path_agents.push((*entity, destination));
                 report
                     .diagnostics
                     .push(format!("agent {entity} Crowd target rejected: {error}"));

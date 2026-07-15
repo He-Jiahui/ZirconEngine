@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::ai::AiAgentTickReport;
+use zircon_runtime::core::framework::script::ScriptBehaviorBridge;
 use zircon_runtime::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError,
 };
 
-use crate::behavior_tree::{BehaviorNodeRegistry, BehaviorNodeRegistryService};
+use crate::behavior_tree::{
+    BehaviorNodeRegistry, BehaviorNodeRegistryService, RuntimeBehaviorIntegrationHost,
+};
 use crate::{AiBehaviorTickLod, DefaultAiManager, AI_MODULE_NAME};
 
 pub const AI_BEHAVIOR_TICK_SYSTEM: &str = "ai.behavior_tick";
@@ -32,7 +35,9 @@ pub(super) fn register_runtime_extensions(
     registry: &mut RuntimeExtensionRegistry,
     manager: Arc<DefaultAiManager>,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let owner = registry.intern_plugin_module(AI_MODULE_NAME)?;
+    let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
+        .module(AI_MODULE_NAME)?;
+    let owner = module.owner();
     manager
         .bind_standard_behavior_nodes_to_owner(owner)
         .map_err(|error| {
@@ -42,26 +47,26 @@ pub(super) fn register_runtime_extensions(
         })?;
     let node_registry: Arc<dyn BehaviorNodeRegistry> =
         Arc::new(BehaviorNodeRegistryService::new(manager.clone()));
-    registry.export_interface::<dyn BehaviorNodeRegistry>(owner, node_registry)?;
+    module.export_interface::<dyn BehaviorNodeRegistry>(node_registry)?;
     let revocation_manager = manager.clone();
-    registry.register_owner_revocation_listener(owner, move |revoked_owner| {
+    module.owner_revocation_listener(move |revoked_owner| {
         revocation_manager.revoke_behavior_node_owner(revoked_owner);
     });
-    registry.register_event::<AiAgentTickReport>(owner, ai_tick_report_event())?;
+    module.event::<AiAgentTickReport>(ai_tick_report_event())?;
     let mut frame = 0_u64;
-    registry
-        .register_runtime_scene_system(
-            owner,
+    let script_bridge = module.import_interface::<dyn ScriptBehaviorBridge>()?;
+    module
+        .runtime_scene_system(
             AI_BEHAVIOR_TICK_SYSTEM,
             zircon_runtime::scene::SystemStage::Update,
             move |context| {
                 let world_handle = context.level.world_handle();
                 let active_entities = manager.active_agent_entities(world_handle);
-                let lod_by_entity = context.level.with_world(|world| {
+                context.level.with_world_mut(|world| {
                     let camera_position = world
                         .world_transform(world.active_camera())
                         .map(|transform| transform.translation);
-                    active_entities
+                    let lod_by_entity = active_entities
                         .iter()
                         .copied()
                         .map(|entity| {
@@ -77,26 +82,29 @@ pub(super) fn register_runtime_extensions(
                                 .unwrap_or(AiBehaviorTickLod::Full);
                             (entity, lod)
                         })
-                        .collect::<std::collections::BTreeMap<_, _>>()
-                });
-                let reports = manager
-                    .tick_active_agents_with_lod(
-                        world_handle,
-                        context.delta_seconds,
-                        frame,
-                        |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
-                    )
-                    .map_err(|error| {
-                        zircon_runtime::core::CoreError::Initialization(
-                            AI_BEHAVIOR_TICK_SYSTEM.to_string(),
-                            error.to_string(),
+                        .collect::<std::collections::BTreeMap<_, _>>();
+                    let mut integration_host =
+                        RuntimeBehaviorIntegrationHost::new(world, Some(script_bridge.clone()));
+                    let reports = manager
+                        .tick_active_agents_with_lod_and_integration_host(
+                            world_handle,
+                            context.delta_seconds,
+                            frame,
+                            |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
+                            &mut integration_host,
                         )
-                    })?;
-                context.level.with_world_mut(|world| {
+                        .map_err(|error| {
+                            zircon_runtime::core::CoreError::Initialization(
+                                AI_BEHAVIOR_TICK_SYSTEM.to_string(),
+                                error.to_string(),
+                            )
+                        })?;
+                    drop(integration_host);
                     for report in reports {
                         world.send_event(report);
                     }
-                });
+                    Ok(())
+                })?;
                 frame = frame.wrapping_add(1);
                 Ok(())
             },

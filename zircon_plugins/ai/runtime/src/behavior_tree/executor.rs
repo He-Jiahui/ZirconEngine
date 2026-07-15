@@ -11,14 +11,16 @@ use crate::manager::parameters::{
 
 use self::abort::{abort_active_root, process_observer_aborts};
 use self::condition::decorator_condition_passes;
+use self::integration::{evaluate_integration_task, evaluate_task};
 use self::support::*;
 use super::{
-    BehaviorNodeRuntime, BehaviorNodeSemantics, BehaviorNodeTickContext, CompiledBehaviorNode,
-    CompiledBehaviorTree, SelectorRecheckPolicy,
+    BehaviorIntegrationHost, BehaviorNodeRuntime, BehaviorNodeSemantics, BehaviorNodeTickContext,
+    CompiledBehaviorNode, CompiledBehaviorTree, SelectorRecheckPolicy,
 };
 
 mod abort;
 mod condition;
+mod integration;
 mod support;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,18 +83,20 @@ impl BehaviorTreeInstanceState {
     }
 }
 
-struct BehaviorTreeExecutionContext<'a> {
-    blackboard: &'a [AiBlackboardEntry],
-    perception: Option<&'a AiPerceptionSnapshot>,
+struct BehaviorTreeExecutionContext<'data, 'host> {
+    blackboard: &'data [AiBlackboardEntry],
+    perception: Option<&'data AiPerceptionSnapshot>,
     delta_seconds: f32,
-    instance: &'a mut BehaviorTreeInstanceState,
-    changed_slots: &'a [BlackboardSlot],
+    instance: &'data mut BehaviorTreeInstanceState,
+    changed_slots: &'data [BlackboardSlot],
     processed_observers: std::collections::BTreeSet<String>,
-    tree_descriptors: &'a [CompiledBehaviorTree],
-    blackboard_store: Option<&'a BlackboardStore>,
+    tree_descriptors: &'data [CompiledBehaviorTree],
+    blackboard_store: Option<&'data BlackboardStore>,
+    entity: u64,
+    integration_host: Option<&'host mut dyn BehaviorIntegrationHost>,
 }
 
-impl BehaviorTreeExecutionContext<'_> {
+impl BehaviorTreeExecutionContext<'_, '_> {
     fn dense_blackboard_value(
         &self,
         tree_id: &str,
@@ -117,6 +121,8 @@ pub(crate) fn evaluate_behavior_tree(
     blackboard_store: Option<&BlackboardStore>,
     changed_slots: &[BlackboardSlot],
     instance: &mut BehaviorTreeInstanceState,
+    entity: u64,
+    integration_host: Option<&mut dyn BehaviorIntegrationHost>,
 ) -> Result<BehaviorTreeExecution, AiManagerError> {
     if let Some(layout) = blackboard_layout {
         bind_reachable_observers(instance, descriptor, registered_trees, layout)?;
@@ -130,6 +136,8 @@ pub(crate) fn evaluate_behavior_tree(
         processed_observers: std::collections::BTreeSet::new(),
         tree_descriptors: registered_trees,
         blackboard_store,
+        entity,
+        integration_host,
     };
     if context.instance.root_tree.as_deref() != Some(descriptor.id()) {
         abort_active_root(&mut context);
@@ -153,6 +161,8 @@ pub(crate) fn abort_behavior_tree_instance(
     perception: Option<&AiPerceptionSnapshot>,
     delta_seconds: f32,
     instance: &mut BehaviorTreeInstanceState,
+    entity: u64,
+    integration_host: Option<&mut dyn BehaviorIntegrationHost>,
 ) {
     let mut context = BehaviorTreeExecutionContext {
         blackboard,
@@ -163,6 +173,8 @@ pub(crate) fn abort_behavior_tree_instance(
         processed_observers: std::collections::BTreeSet::new(),
         tree_descriptors: registered_trees,
         blackboard_store: None,
+        entity,
+        integration_host,
     };
     abort_active_root(&mut context);
     context.instance.trees.clear();
@@ -172,7 +184,7 @@ pub(crate) fn abort_behavior_tree_instance(
 fn evaluate_behavior_tree_with_stack(
     descriptor: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     process_observer_aborts(descriptor, context);
@@ -186,7 +198,7 @@ fn evaluate_node(
     node_index: u32,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let node = tree.node(node_index as usize);
@@ -271,9 +283,12 @@ fn evaluate_node(
         }
         BehaviorNodeSemantics::MoveTo
         | BehaviorNodeSemantics::PlayAnimation
-        | BehaviorNodeSemantics::SetBlackboard
-        | BehaviorNodeSemantics::EmitEvent
-        | BehaviorNodeSemantics::ScriptTask => evaluate_task(node),
+        | BehaviorNodeSemantics::ScriptTask => {
+            evaluate_integration_task(node_index, node, tree, context)
+        }
+        BehaviorNodeSemantics::SetBlackboard | BehaviorNodeSemantics::EmitEvent => {
+            evaluate_task(node)
+        }
         BehaviorNodeSemantics::External => evaluate_external(node_index, node, tree, context),
     };
     context.instance.node_mut(tree, node_index).is_active = matches!(
@@ -288,7 +303,7 @@ fn evaluate_selector(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let cached = context
@@ -380,7 +395,7 @@ fn evaluate_sequence(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let resume_child = context.instance.node_mut(tree, node_index).active_child;
@@ -418,7 +433,7 @@ fn evaluate_parallel(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     // This is a deterministic descriptor fold, not a thread/task scheduler. A later executor can
@@ -491,7 +506,7 @@ fn evaluate_decorator(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let dense_value = context.dense_blackboard_value(tree.id(), node_index);
@@ -523,7 +538,7 @@ fn evaluate_random_selector(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let children = tree.child_indices(node);
@@ -548,7 +563,7 @@ fn evaluate_cooldown(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let delta_seconds = context.delta_seconds.max(0.0);
@@ -576,7 +591,7 @@ fn evaluate_time_limit(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
@@ -604,7 +619,7 @@ fn evaluate_loop(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
@@ -636,7 +651,7 @@ fn evaluate_inverter(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
@@ -655,7 +670,7 @@ fn evaluate_force_result(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let Some(child) = tree.child_indices(node).first().copied() else {
@@ -675,7 +690,7 @@ fn evaluate_service(
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     if let Some(child) = tree.child_indices(node).first().copied() {
@@ -692,7 +707,7 @@ fn evaluate_wait(
     node_index: u32,
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) -> BehaviorTreeExecution {
     if parameter(node, TASK_RESULT_PARAMETER_KEY).is_some() {
         return evaluate_task(node);
@@ -711,24 +726,11 @@ fn evaluate_wait(
     }
 }
 
-fn evaluate_task(node: &CompiledBehaviorNode) -> BehaviorTreeExecution {
-    let status = parameter(node, TASK_RESULT_PARAMETER_KEY)
-        .and_then(AiBehaviorNodeParameterValue::as_string)
-        .and_then(parse_task_result)
-        .unwrap_or(AiDecisionStatus::Running);
-
-    BehaviorTreeExecution {
-        status,
-        active_node: Some(node.id().to_string()),
-        diagnostic: None,
-    }
-}
-
 fn evaluate_external(
     node_index: u32,
     node: &CompiledBehaviorNode,
     tree: &CompiledBehaviorTree,
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) -> BehaviorTreeExecution {
     let Some(factory) = node.factory() else {
         return blocked(node.id(), "does not provide an external runtime factory");
@@ -749,7 +751,7 @@ fn evaluate_external(
 fn evaluate_subtree(
     node: &CompiledBehaviorNode,
     tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_>,
+    context: &mut BehaviorTreeExecutionContext<'_, '_>,
     tree_stack: &mut Vec<String>,
 ) -> BehaviorTreeExecution {
     let Some(target_tree_id) = parameter(node, SUBTREE_TARGET_PARAMETER_KEY)

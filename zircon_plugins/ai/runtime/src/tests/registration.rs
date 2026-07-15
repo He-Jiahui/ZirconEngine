@@ -169,6 +169,14 @@ fn ai_package_manifest_declares_dist_contract() {
         "zircon_native_plugin_descriptor_v3"
     );
     assert_eq!(distribution.runtime_entry, AI_DIST_RUNTIME_ENTRY);
+    assert!(manifest.dependencies.iter().any(|dependency| {
+        dependency.id == "zr_vm_language"
+            && !dependency.required
+            && dependency.interfaces.iter().any(|interface_id| {
+                interface_id
+                    == zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID
+            })
+    }));
     assert!(manifest.modules.iter().any(|module| {
         module.kind == zircon_runtime::plugin::PluginModuleKind::Native
             && module.name == "ai.dist"

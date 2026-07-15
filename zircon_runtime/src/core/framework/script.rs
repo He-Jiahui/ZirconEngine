@@ -2,6 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
+mod behavior_bridge;
+
+pub use behavior_bridge::{
+    ScriptBehaviorBridge, ScriptBehaviorCallbackRef, SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+};
+
 #[doc(hidden)]
 pub mod __reflect {
     pub use zircon_runtime_interface::reflect::{

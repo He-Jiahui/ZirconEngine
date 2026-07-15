@@ -4,7 +4,7 @@
 pub use crate::editor::EditorPluginDeclaration;
 pub use crate::{
     default_export_packaging, default_supported_platforms, importer_runtime_supported_platforms,
-    importer_runtime_supported_targets, BridgeError, ImporterRuntimeManifestBuilder,
+    importer_runtime_supported_targets, BridgeError, BridgeImport, ImporterRuntimeManifestBuilder,
     PluginFeatureBundleBuilder, PluginInterface, PluginManifestBuilder, PluginModuleBuilder,
     RuntimePluginDeclaration, RuntimePluginModuleRegistration, RuntimePluginRegistrationBuilder,
     RuntimePluginRuntimeSceneSystemBuilder, TestRuntime, TestRuntimeBaseModule, TestRuntimeBuilder,
@@ -14,6 +14,6 @@ pub use crate::{
 pub use zircon_runtime::builtin::RuntimePluginId;
 pub use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
 pub use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
-use zircon_runtime::plugin::{
+pub use zircon_runtime::plugin::{
     PluginMaturity, PluginModuleKind, PluginPackageManifest, RuntimePluginDescriptor,
 };

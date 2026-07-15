@@ -3,9 +3,10 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
-    CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginMaturity,
-    PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    CapabilityStatus, CapabilityStatusManifest, PluginDependencyManifest,
+    PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
@@ -70,6 +71,11 @@ impl RuntimePlugin for AiRuntimePlugin {
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
         manifest = manifest.with_event_catalog(ai_event_catalog());
+        manifest = manifest.with_dependency(
+            PluginDependencyManifest::new("zr_vm_language", false).with_interface(
+                zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+            ),
+        );
         manifest
             .default_packaging
             .push(ExportPackagingStrategy::NativeDynamic);
