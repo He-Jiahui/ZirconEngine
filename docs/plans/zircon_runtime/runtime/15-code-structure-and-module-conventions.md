@@ -1081,6 +1081,14 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 - fixed 已修复：[derived-reflection-hard-cut-guard](../../zircon_plugins/08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
+- fixed 已修复：[manager-service-reactivation-lifecycle](15/fixed-2026-07-14-manager-service-reactivation-lifecycle.md)
+- 2026-07-14：Frameworks05 已返回完整 manager service reactivation 修复；单模块/批量/lazy/失败 rollback behavior 3/3、原始 stale identity reproduction 1/1、activation structure 7/7、全局 test-file budget 1/1。当前切片状态为 `runtime_15_manager_service_reactivation_failure_return_current_source_passed`；详细实现与验证见 [`../frameworks/05/2026-07-14-manager-service-reactivation-lifecycle.md`](../frameworks/05/2026-07-14-manager-service-reactivation-lifecycle.md)。Render18 三个文件预算门仍独立 pending。
+- 2026-07-14：已在保留 Render18 高级光照增量的前提下完成三个最低 owner 家族拆分：GPU mesh recording 迁入 `gpu/mesh_recording.rs`；mesh cache 与 advanced-material tests 分别迁入 `tests/cache.rs`、`tests/advanced_materials.rs`；F16 sprite-stage selection 与通用 pipeline resource usage 分别迁入 `render/sprite_stage_selection.rs`、`render/pipeline_resource_usage.rs`。全部恢复原守卫预算；Frameworks05 已回传 UI text manager-access consumer 修复，最终 fresh managed default-feature Runtime build 通过。状态 `runtime_15_render_owner_budget_split_current_source_managed_build_passed`，详细记录见 [`15/2026-07-14-render-owner-budget-splits.md`](15/2026-07-14-render-owner-budget-splits.md)。
+- fixed 已修复：[ui-text-project-asset-manager-access-consumer-drift](15/fixed-2026-07-14-ui-text-project-asset-manager-access-consumer-drift.md)
+- fixed 已修复：[ui-text-manager-access-cross-frame-retention](15/fixed-2026-07-14-ui-text-manager-access-cross-frame-retention.md)
+- fixed 已修复：[mesh-template-pipeline-layout-binding-drift](15/fixed-2026-07-15-mesh-template-pipeline-layout-binding-drift.md)
+- fixed 已修复：[depth-prepass-source-guard-owner-drift](../../zircon_editor/editor/02/fixed-2026-07-15-depth-prepass-source-guard-owner-drift.md)
+- 2026-07-15：Runtime15 M2 已修正 canonical `RuntimeProfileId::Server` 枚举定义的 non-network-server 审计误分类；精确行级豁免与同文件 `render_server` 负例测试 2/2 通过。新鲜完整结构审计保持 large-file hotspot 0，并把 non-network-server debt 从 1 降到 0；当前 module-convention debt 为 3（editor naming 65 处、legacy render naming 8 处、graphics hard-cut wording 2 处），因此父计划继续 `in_progress`。详细证据见 [`15/2026-07-15-runtime-profile-server-audit-classification.md`](15/2026-07-15-runtime-profile-server-audit-classification.md)。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
@@ -1124,3 +1132,7 @@ offset 语义，测试名改为 `prior`，不修改生产行为或增加兼容�
 Cargo 因全部可见磁盘低于 50 GiB 阈值且外部编译通道活跃而延后。Runtime 15 仍保留
 完整结构族 1297/1304 的 7 个 Render/UI 外部失败，不标记整体完成。详细证据见
 [`15/2026-07-11-naming-boundary-current-debt-clear.md`](15/2026-07-11-naming-boundary-current-debt-clear.md)。
+
+- fixed 已修复：[f18-asset-manager-review-guard-owner-drift](../../zircon_editor/editor/02/fixed-2026-07-14-f18-asset-manager-review-guard-owner-drift.md)
+- fixed 已修复：[core-runtime-state-plugin-bridge-lifecycle-anchor-drift](../../zircon_editor/editor/02/fixed-2026-07-14-core-runtime-state-plugin-bridge-lifecycle-anchor-drift.md)
+- 2026-07-14：ZrVM 具体 backend 已硬切到插件 owner；Runtime15 删除旧具体实现状态行、日期/状态映射和父级手写 row mirror，lock-poison 聚合读取改为 child source-set，插件默认测试 18/18、Runtime 计划状态 48/48 通过。F2 Scene lock guard 已同步当前局部 `MutexGuard` owner；完整 current-source structure harness 为 1297/1303，六个剩余失败均属于 Render/UI 或通用文件预算 owner。当前切片状态为 `runtime_15_zr_vm_concrete_backend_owner_hard_cut_plugin_tests_18_passed`；详细证据见 [`15/2026-07-14-zrvm-owner-status-hard-cut.md`](15/2026-07-14-zrvm-owner-status-hard-cut.md)。

@@ -5942,15 +5942,15 @@ Runtime 15 结构审计现在拥有显式 `module_convention_gate` 聚合输出�
 
 验证：scoped rustfmt/static scans、script VM registry direct-lock/direct-panic scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check`；Cargo 按 Runtime 15 实施切片节奏 deferred，不计通过。
 
-## Runtime 15 M3 ZrVM real backend runtime lock poison recovery
+## Runtime 15 M3 ZrVM concrete backend owner hard cut
 
-状态：`runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result`。
+状态：`runtime_15_zr_vm_concrete_backend_owner_hard_cut_plugin_tests_18_passed`。
 
-本切片把 E9/F2 的 poison-safe lock 规则扩展到 real `zr_vm` backend 的全局 runtime/session 串行化锁。`zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/lock.rs` 的 `acquire_zr_vm_lock()` 继续返回 `MutexGuard<'static, ()>`，但 poisoned lock 现在通过 `unwrap_or_else(|poisoned| poisoned.into_inner())` 恢复，不再 panic。
+具体 ZrVM backend 已硬切到 `zircon_plugins/zr_vm_language/runtime`。插件 crate 现在拥有 native binding feature、`real_backend/{lock,package,instance,host_modules}.rs`、预解析 call table 和具体 backend 测试；Runtime 只保留 backend family、host export、plugin host context、hot reload 与 selected-backend manager 等语言无关契约。Runtime crate 已删除具体 backend module、native binding dependency、feature 转发和兼容 re-export。
 
-`zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/package.rs` 的项目加载路径和 `zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs` 的 activate/deactivate/save/restore/export 调用仍统一通过 `acquire_zr_vm_lock()` 串行化访问 ZrVM runtime/session。新增 module-local `zr_vm_real_backend_runtime_lock_recovers_after_poison` 覆盖锁中毒后 helper 仍可恢复；`structure_convention/lock_poison_policy/asset_render_input.rs::runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock` 读取 lock/package/instance owners 与 `docs/zircon_runtime/script/vm/zr_vm_project_backend.md`，验证 helper、direct-panic rollback scan 和跨文档状态锚。该记录同步 Runtime 15 子计划、runtime index、engine code structure convention、review findings、ZrVM project backend docs 与 status-output expectations。完整 `module_convention_gate` 与全量 script VM/ZrVM Cargo sweep 仍 pending。
+Runtime 15 的 lock-poison 当前状态行只覆盖 Runtime 自有的中立 VM 注册表与 selected-backend manager，不再读取插件具体锁实现，也不再保留已删除 Runtime owner 的路径镜像。插件自己的 `real_backend/lock.rs` 通过 poison recovery helper 和 module-local unit test验证具体串行化锁；`src/tests/registration.rs` 验证注册前预解析 call site、callback 内不重复 resolve，以及 Runtime 源树不再包含旧具体实现。
 
-验证：scoped rustfmt/static scans、ZrVM runtime lock direct-panic rollback scan、docs/status/date/session anchor scan、trailing-whitespace scan 和 scoped `git diff --check` 通过；Cargo gate 首次因 `ZR_VM_RUST_BINDING_LIB_DIR` 未设置被 build script 拦截，补 `E:\Git\zr_vm\build-msvc\lib\Release` / `bin\Release` 后 120s timeout_no_result，已终止本轮 cargo/rustc 子进程，不计通过。
+验证：2026-07-14 协调器管理的 `cargo test -p zircon_plugin_zr_vm_language_runtime --locked` 为 18/18 通过且 doc-tests 通过；Runtime core-min scene 构建已越过全部被删除的 ZrVM owner，仅剩无关 Scene reflection 数字类型失败。Runtime 15 current-source structure harness 为 1297/1303，优先 code-review-findings harness 为 79/80，Runtime 计划状态为 48/48，ZrVM 与 Scene F2 相关失败为 0；剩余项属于 Render/UI 与通用文件预算 owner。完整证据记录于 `docs/plans/zircon_runtime/runtime/15/2026-07-14-zrvm-owner-status-hard-cut.md`。
 
 ## Runtime 15 M3 VM plugin manager selected-backend lock poison recovery
 
