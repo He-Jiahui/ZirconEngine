@@ -86,6 +86,20 @@ pub struct EditorOperationStack { undo_stack, redo_stack: Vec<EditorOperationSta
 4. `saved_top` 脏态事实源（09 `DirtyRegistry` 与 17 autosave 的消费源）。
 5. 历史可观测：五态事件（Started/Canceled/Committed/UndoApplied/RedoApplied）入 01 bus（`TransactionMessage` 族已在 01 定义）；历史面板数据源。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-command-transaction-undo",
+  "goal": "推进单一事务内核、命令族迁移、operation factory 路由、事件接线与 journal 实现度清点",
+  "milestones": [
+    {"id": "M1", "title": "事务内核", "depends_on": []},
+    {"id": "M2", "title": "场景命令族纯化迁移", "depends_on": ["M1"]},
+    {"id": "M3", "title": "UI 资产族与操作层收编及路由", "depends_on": ["M2"]},
+    {"id": "M4", "title": "观测与 journal", "depends_on": ["M3"]}
+  ]
+}
+```
+
 ## 非目标
 
 - 不做协作合并；不改 `Scene` 数据结构；journal 存储格式属 11、崩溃恢复消费属 17；历史面板外观属 editor_layout。
@@ -204,25 +218,25 @@ impl TransactionScope<'_> {
 
 ### M1 事务内核
 
-- 切片 1.1：engine/ 五文件；单测矩阵——游标语义（push 截断 redo 段并 finalize）、容量淘汰 finalize、cancel 逆序 revert、drop 即 cancel、嵌套折叠、跨 context 嵌套 Err、MergeMode 三值、`saved_top` 判定与 `mark_saved`、五态事件顺序。
-- 切片 1.2：`EditorOperationStack` 自 01 临时 owner 摘除，引擎挂 `EditorContext`（01 占位字段接活）。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`；Grep 断言 `EditorOperationStack` 零残留。更新 `docs/zircon_editor/core/editing.md`。
+- [ ] **M1.1 事务引擎与单测矩阵.** engine/ 五文件；游标语义（push 截断 redo 段并 finalize）、容量淘汰 finalize、cancel 逆序 revert、drop 即 cancel、嵌套折叠、跨 context 嵌套 Err、MergeMode 三值、`saved_top` 判定与 `mark_saved`、五态事件顺序。
+- [ ] **M1.2 Context 接线与空心操作栈摘除.** `EditorOperationStack` 自 01 临时 owner 摘除，引擎挂 `EditorContext`（01 占位字段接活）。
+- [ ] **M1.3 M1 测试阶段.** `cargo test -p zircon_editor --lib --locked`；Grep 断言 `EditorOperationStack` 零残留。更新 `docs/zircon_editor/core/editing.md`。
 
 ### M2 场景命令族纯化迁移
 
-- 切片 2.1：按处置表逐命令纯化 + 实现 trait；选中字段摘除（过渡期由引擎抓拍顶替）；错误 String→`EditCommandError`；viewport/inspector 调用点改 `TransactionScope`；gizmo 长事务；删 `EditorHistory` 全文件。
-- 测试阶段：`core/editing` 既有测试改写后须过；新增：纯化回归（capture 后世界无变化断言——对照旧惯用法的关键新测）、拖拽 100 帧 push→历史 1 条、`set_reflected_scene_field` 撤销往返、最后相机守卫经引擎路径仍拒绝、Grep `EditorHistory` 零命中。
+- [ ] **M2.1 场景命令族纯化迁移.** 按处置表逐命令纯化 + 实现 trait；选中字段摘除（过渡期由引擎抓拍顶替）；错误 String→`EditCommandError`；viewport/inspector 调用点改 `TransactionScope`；gizmo 长事务；删 `EditorHistory` 全文件。
+- [ ] **M2.2 M2 测试阶段.** `core/editing` 既有测试改写后须过；新增：纯化回归（capture 后世界无变化断言——对照旧惯用法的关键新测）、拖拽 100 帧 push→历史 1 条、`set_reflected_scene_field` 撤销往返、最后相机守卫经引擎路径仍拒绝、Grep `EditorHistory` 零命中。
 
 ### M3 UI 资产族与操作层收编 + 路由
 
-- 切片 3.1：`UiAssetEditCommand` 迁移；写盘效应 commit 钩子（失败→自动 revert，与 09 保存流程对齐）；删私有栈。
-- 切片 3.2：操作层 factory 化 + operation_group→事务组映射 + `EditorOperationStack` 删除；routing.rs + Ctrl+Z 接 08 命令。
-- 测试阶段：asset_editor 既有测试迁移后须过；双文档交错撤销互不串扰矩阵；Global 参与文档缺席提示单测；三合并机制统一后各原场景回归（gizmo/光标折叠/组吸收）。
+- [ ] **M3.1 UI 资产命令族收编.** `UiAssetEditCommand` 迁移；写盘效应 commit 钩子（失败→自动 revert，与 09 保存流程对齐）；删私有栈。
+- [ ] **M3.2 操作层 factory 与路由接线.** 操作层 factory 化 + operation_group→事务组映射 + `EditorOperationStack` 删除；routing.rs + Ctrl+Z 接 08 命令。
+- [ ] **M3.3 M3 测试阶段.** asset_editor 既有测试迁移后须过；双文档交错撤销互不串扰矩阵；Global 参与文档缺席提示单测；三合并机制统一后各原场景回归（gizmo/光标折叠/组吸收）。
 
 ### M4 观测与 journal
 
-- 切片 4.1：五态事件入 bus（01 `TransactionMessage` 族接活）；历史面板数据源；`serialize_journal` 实现度清点（未实现记债）。
-- 测试阶段：事件序列断言 + journal 往返；证据记状态节。
+- [ ] **M4.1 事务观测与 journal 实现度清点.** 五态事件入 bus（01 `TransactionMessage` 族接活）；历史面板数据源；`serialize_journal` 实现度清点（未实现记债）。
+- [ ] **M4.2 M4 测试阶段.** 事件序列断言 + journal 往返；证据记状态节。
 
 ## 风险与开放问题
 
@@ -233,11 +247,23 @@ impl TransactionScope<'_> {
 
 ## 产出记录与时间
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
 | M1 | 1.1 统一事务内核 | `实现完成-规格质量复审通过-静态门通过-Cargo行为门待M1测试阶段` | 2026-07-12 | 新增 folder-backed `zircon_editor/src/core/editing/engine/`，以薄 root 发布 `EditCommand`、typed `EditCommandError`、`CommandExecutionError + CommandEffect::{Unchanged,Applied}`、`HistoryStore`、`EditorTransactionEngine`、`TransactionScope`、`MergeMode`、routing 与五态内部事件；`HistoryContextId` 硬切为 `Global | Document(DocumentId)`，旧 editor_message 数字 owner、`new/value` API 与 re-export 已删除且无兼容层。历史使用 `VecDeque`+游标，redo 截断/容量淘汰均确定 finalize，`saved_top` 含保存基线被淘汰后的可达语义；记录持有 participants、selection before/after、significant 与 frame。scope 支持 push 即 apply、逆序 cancel/drop、同 context 嵌套折叠、跨 context typed error，并让父 `Ends/All` 合并规则跨嵌套边界生效。质量整改将上下文/active/history 两阶段移出单 mutex 后再执行外部回调，以 `EngineBusy`/`EngineFaulted`、Condvar 终结等待和 active-scope inspection 禁入消除锁反转、回调重入、跨线程 Busy 遗留与同线程自等待；undo/redo selection 恢复、apply/revert 突变前后失败和 rollback 失败均按显式 effect 原子恢复或保留可恢复故障态，不会错误 finalize。专属测试树覆盖游标/finalize、容量/saved_top、RAII、乱序三层 scope、嵌套合并、并发 cancel/commit/drop、回调重入、selection 两侧失败、CommandEffect 前后突变、routing 与事件顺序。TDD 源码顺序为测试 owner 先落、生产 owner 后落；规格复审整改 3 项后 `SPEC APPROVED`，质量复审多轮 P0/P1 整改后 `QUALITY APPROVED`。全量相关 Rust `rustfmt --check`、scoped `git diff --check`、旧 API/旧文档路径及 production `unwrap/expect/panic/todo/unimplemented/unreachable/String error` 扫描通过；最大生产 owner `transaction.rs` 低于 800 行。共享 Cargo 高压下未运行 `cargo test -p zircon_editor --lib --locked`，故 M1 测试阶段和 M1.2 仍未关闭。模块文档：`docs/zircon_editor/core/editing.md`、`docs/zircon_editor/core/editor_message.md`。 |
 | M1 | 1.2 Context 接线与空心操作栈硬删除 | `实现完成-规格质量复审通过-静态门通过-Cargo行为门待M1测试阶段` | 2026-07-12 | 新增 headless `CoreEditContext`，`EditorContextBuilder` 构造唯一 `EditorTransactionEngine`，`EditorContext::transactions()` 始终返回同一服务实例；新增 Context 同实例与空事务不入 history 的专属测试。生产 `EditorOperationStack`、`EditorOperationStackEntry`、`operation_state.stack`、runtime accessor、事件派发空心 record、Undo/Redo 旧栈移动全部物理删除，全仓 Rust 旧符号零命中且无 wrapper/re-export/shim。`UndoableEditorOperation` 描述元数据保留给 M3 command factory，不伪装成可撤销命令；远程合同硬切 `QueryOperationHistory`，在 M3 factory 接线前返回 typed `OperationHistoryPendingFactory`，不返回兼容栈或虚假成功。只锁旧栈身份/来源/merge 的测试已删除或改为 event journal、typed pending-factory 与新 Context 合同；未提前实现 M2 场景命令或 M3 operation factory。规格复审 `SPEC APPROVED`，质量复审 `QUALITY APPROVED`；17 个相关 Rust owner `rustfmt --check`、scoped `git diff --check` 与 `EditorOperationStack|EditorOperationStackEntry|QueryOperationStack|operation_stack(` 全树扫描通过。共享 Cargo 高压下未执行 `cargo test -p zircon_editor --lib --locked`，因此 M1 测试阶段仍保持 open，不能声明 M1 关闭。模块文档同步 `docs/zircon_editor/core/editing.md`、`docs/zircon_editor/core/context.md`。 |
 | M1 | 统一行为门首次进入完整 test binary | `本计划用例通过-全量门被外部功能失败与资源停滞阻断` | 2026-07-12 | Windows 受管 job `520d85713df249afae31661a7697ad07` 以原命令完成 test binary 编译，transaction engine 的 history/locking/events/recovery/routing/scope 组在同一运行中全部通过；随后全量门暴露 Editor10 project/reference、Editor12 plugin validation、Editor UI 03/05/06/08 与 Editor14 thread/resource 失败并停滞。外部失败已写入各自功能计划；因全量未自然结束，Editor03 M1 测试阶段仍不关闭，也不以聚焦通过替代完整门。 |
+| M3 | 3.2 插件 operation factory、Runtime V2 操作 ABI 与 retained 路由接线 | `实现完成-独立复核P0为0-提交顺序等待Plugins12与Editor02先落地-Navigation与App受管门通过-完整Runtime门被Runtime04外部失败阻断` | 2026-07-15 | 已以 `EditorCommandRegistry.operation_factories` 把插件 descriptor 的 operation route 接入统一事务引擎，并让 retained menu pointer 真实点击执行 factory/command、生成 Global history；Runtime interface/runtime/app 硬切 V2 required operation submit/poll/harvest，loader 在加载时缓存必需函数指针，消费端不再保留 V1/capability fallback，progress/result 双层校验 ABI；Navigation bake command首次执行捕获 before/after，undo/redo 只提交 restore snapshot，post-submit 未知外部效应保守标记 `Applied` 并使事务引擎进入 fault。动态 API 审计为 source `48/48`、loader failure anchors `13/13`、legacy V1 命中 `0`、risks `0`。Windows 受管 `zircon_plugin_navigation_editor` 当前源码门已 `[OK]`，17 个 unit tests 与 doc-tests 全部通过，覆盖 ABI source-chain、unknown rollback fault、snapshot undo/redo 和 retained route；`zircon_plugin_navigation_runtime` unit/doc tests 同样通过。Frameworks05 resolver 修复回传后，`zircon_app` 全包受管门为 139 passed / 0 failed / 1 ignored，Runtime V2 table tail、required operation missing-function、consumer no-recheck 与 operation DTO ABI 均通过。完整 `zircon_runtime` 受管门已越过 Editor03/Runtime10/Shader04 编译范围，仅由 Runtime04 integration fixture 的 10 个退役 `to_toml_string()` 调用阻断，已登记 [Runtime04 open failure](../../zircon_runtime/runtime/04/failure-2026-07-15-virtual-geometry-debug-snapshot-project-toml-consumer-drift.md)；不恢复旧资产 API。Navigation selected-surface 真实选择态/typed 参数仍归 Plugins05 独立 open handoff，不以通用 dispatcher 特判。最终独立复核确认核心代码 P0=0，V2-only、加载期 required-pointer 缓存、progress/result 双层 ABI、`Applied` 后 fault 与 retained factory→transaction 路径均通过；当前唯一 P1 是协调器提交拓扑：Plugins12 的 `dynamic_api/session/construction.rs` 必须按其 [M4 产出记录](../../zircon_plugins/12/2026-07-15-plugin-runtime-event-consumer-output-records.md)先落地，Editor02 的 inspection 整体重写及两行编译修复必须按其 M1 子计划记录 `docs/plans/zircon_editor/editor/02/2026-07-14-world-sync-m1-output-records.md` 先落地。Editor03 不吸收这两个 foreign 文件，依赖 HEAD 就绪前不进入 prepare。 |
 
-- Navigation M6 插件 operation factory/runtime wiring：`待修复（open）`；[failure 交接](03/failure-2026-07-13-plugin-operation-factory-runtime-wiring.md)。
+- fixed 已修复：[plugin-operation-factory-runtime-wiring](../../zircon_plugins/05/fixed-2026-07-15-plugin-operation-factory-runtime-wiring.md)
 - fixed 已修复：[editing-operation-owner-structure-guard-drift](09/fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md)
+- fixed 已修复：[runtime-operation-phase-terminal-matcher](../../zircon_runtime/shader/06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md)
+- fixed 已修复：[runtime-operation-ffi-sibling-visibility](../../zircon_runtime/text/03/fixed-2026-07-15-runtime-operation-ffi-sibling-visibility.md)
+- Runtime10 dynamic runtime V1 fallback 回归：`待修复（open）`；[failure 交接](../../zircon_runtime/runtime/10/failure-2026-07-15-dynamic-runtime-v1-fallback-reintroduced.md)。
+- fixed 已修复：[plugin-mirror-v1-runtime-fallback](03/fixed-2026-07-15-plugin-mirror-v1-runtime-fallback.md)
+- fixed 已修复：[external-source-cubemap-contract-api-drift](03/fixed-2026-07-15-external-source-cubemap-contract-api-drift.md)
+- Plugins05 Navigation Bake selected-surface 按钮缺少真实选择态与 typed operation 参数投影：`待修复（open）`；[failure 交接](../../zircon_plugins/05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md)。
+- fixed 已修复：[volumetric-fog-component-id-export-drift](03/fixed-2026-07-15-volumetric-fog-component-id-export-drift.md)
+- fixed 已修复：[manager-resolver-weak-core-test-consumer-drift](03/fixed-2026-07-15-manager-resolver-weak-core-test-consumer-drift.md)
+- Runtime04 Virtual Geometry debug snapshot 仍调用退役 project TOML API：`待修复（open）`；[failure 交接](../../zircon_runtime/runtime/04/failure-2026-07-15-virtual-geometry-debug-snapshot-project-toml-consumer-drift.md)。
