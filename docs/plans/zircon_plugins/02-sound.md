@@ -1,5 +1,22 @@
 # 02 · Sound 插件完善计划（基于 kira 的 Mixer / DSP / 3D Audio）
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-plugins-sound",
+  "goal": "以 kira 替换自研音频执行栈，完成 Mixer、效果、空间化、资产与 Editor 产品闭环",
+  "milestones": [
+    {"id": "M1", "title": "kira 接入与 Mixer Graph 映射（替换自研执行栈）", "depends_on": []},
+    {"id": "M2", "title": "效果映射与缺口效果迁移", "depends_on": ["M1"]},
+    {"id": "M3", "title": "ECS 与 3D 空间化策略", "depends_on": ["M1"]},
+    {"id": "M4", "title": "HRTF 与资产管线", "depends_on": ["M1", "M2"]},
+    {"id": "M5", "title": "Timeline 自动化与 Editor", "depends_on": ["M1", "M2"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. -->
+
 > 状态：工程化细化版 v2.1（执行核心裁决：**kira**） · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
 > 关联计划：`.codex/plans/Sound 插件核心完善计划.md` · 现状文档：`docs/zircon_plugins/sound/runtime.md`
 > 参考实现：kira（执行核心，cargo 依赖）、Fyrox `fyrox-sound`（HRTF 算法参照）、Godot `servers/audio/effects`（缺口效果数值参照）
@@ -105,7 +122,7 @@ sound.spatial_update (PostUpdate, after animation.evaluate)   ← 01 锚点不�
 
 ```
 zircon_plugins/sound/runtime/
-  Cargo.toml                         [改造] +kira = "0.10"（锁 minor）；-cpal 直接依赖
+  Cargo.toml                         [改造] +kira = "0.12"（锁 minor）；-cpal 直接依赖
   src/kira_bridge/manager.rs         [新增] KiraEngine/生命周期/绑定表
   src/kira_bridge/graph_compile.rs   [新增] SoundGraph → track 树编译 + diff 同步
   src/kira_bridge/effect_map.rs      [新增] SoundEffectKind → kira effect 映射
