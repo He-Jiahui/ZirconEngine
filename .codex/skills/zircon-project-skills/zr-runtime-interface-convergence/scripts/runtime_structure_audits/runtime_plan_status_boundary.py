@@ -34,6 +34,7 @@ from runtime_structure_audits.runtime_plan_status_sources import (
     file_entries,
     file_line_count,
     frontmatter_value,
+    markdown_repo_link_targets,
     max_iso_date,
     missing_snippets,
     read_text,
@@ -138,13 +139,14 @@ def runtime_plan_status_boundary_audit(root: Path) -> dict[str, object]:
             )
         plan_number = filename[:2]
         archive_entries = numbered_archives.get(plan_number, [])
+        plan_path = root / "docs/plans/zircon_runtime/runtime" / filename
+        plan_link_targets = markdown_repo_link_targets(root, plan_path, source)
         archive_record_count = sum(
             len(archive_status_rows(archive_source))
             for _, archive_source in archive_entries
         )
         linked_archive = any(
-            archive_path in source
-            or Path(archive_path).name in source
+            archive_path in plan_link_targets
             for archive_path, _ in archive_entries
         )
         if (

@@ -4,6 +4,9 @@ import re
 from pathlib import Path
 
 
+MARKDOWN_LINK_TARGET = re.compile(r"\]\(\s*<?([^)>\s]+)>?(?:\s+[^)]*)?\)")
+
+
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -53,6 +56,25 @@ def markdown_table_cells(row: str) -> list[str]:
     return [cell.strip() for cell in row.strip().strip("|").split("|")]
 
 
+def markdown_repo_link_targets(root: Path, source_path: Path, source: str) -> set[str]:
+    resolved_root = root.resolve()
+    targets: set[str] = set()
+    for match in MARKDOWN_LINK_TARGET.finditer(source):
+        raw_target = match.group(1).split("#", 1)[0].split("?", 1)[0]
+        if (
+            not raw_target
+            or raw_target.startswith(("/", "\\"))
+            or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", raw_target)
+        ):
+            continue
+        resolved_target = (source_path.parent / raw_target).resolve(strict=False)
+        try:
+            targets.add(resolved_target.relative_to(resolved_root).as_posix())
+        except ValueError:
+            continue
+    return targets
+
+
 def runtime_subplans(root: Path) -> list[tuple[str, str]]:
     plan_dir = root / "docs/plans/zircon_runtime/runtime"
     subplans: list[tuple[str, str]] = []
@@ -62,14 +84,19 @@ def runtime_subplans(root: Path) -> list[tuple[str, str]]:
 
 
 def runtime_numbered_archives(root: Path) -> dict[str, list[tuple[str, str]]]:
-    plan_dir = root / "docs/plans/zircon_runtime/runtime"
+    active_plan_dir = root / "docs/plans/zircon_runtime/runtime"
+    canonical_archive_dir = root / "docs/plans/_archive/zircon_runtime/runtime"
     archives: dict[str, list[tuple[str, str]]] = {}
     for number in (f"{value:02d}" for value in range(1, 16)):
-        archive_dir = plan_dir / number
         entries: list[tuple[str, str]] = []
-        if archive_dir.exists():
-            for path in sorted(archive_dir.glob("*.md")):
-                entries.append((path.relative_to(plan_dir).as_posix(), read_text(path)))
+        for source_dir in (
+            active_plan_dir / number,
+            canonical_archive_dir / number,
+        ):
+            if not source_dir.exists():
+                continue
+            for path in sorted(source_dir.glob("*.md")):
+                entries.append((path.relative_to(root).as_posix(), read_text(path)))
         archives[number] = entries
     return archives
 
