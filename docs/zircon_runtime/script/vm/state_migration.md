@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/state_migration.rs
   - zircon_runtime/src/script/vm/backend/vm_error.rs
   - zircon_runtime/src/script/vm/backend/mock_vm_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
@@ -20,7 +20,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/backend/vm_error.rs
   - zircon_runtime/src/script/vm/backend/mock_vm_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
 plan_sources:
@@ -44,7 +44,7 @@ doc_type: module-detail
 
 The Script VM state-migration module owns the runtime-neutral snapshot, schema, field migration, and hot-reload rollback contracts used by VM language plugins. The shared runtime owns these contracts because migration and rollback must behave identically for mock, ZrVM, and future VM backends. A backend may publish a schema through `VmPluginInstance::state_schema`; it does not get a private reflection model or a separate reload transaction.
 
-This implementation closes the runtime-neutral Plugins 08 M5 contract while preserving the M4 validation boundary. The feature-gated real ZrVM adapters now consume an optional `stateSchema` JSON export, but their external library, collector, and schema-export execution cannot be validated until the M4 ZrVM build environment is available.
+This implementation closes the runtime-neutral Plugins 08 M5 contract while preserving the Plugins 08 M4 ownership boundary. The single feature-gated real ZrVM adapter owned by `zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs` consumes an optional `stateSchema` JSON export. Plugins 08 M4 records a managed Windows real-backend run with 15/15 passing and doc-tests 0 failures, plus a passing default-feature package matrix; this Frameworks 06 docs-only batch neither reruns nor promotes that foreign milestone.
 
 ## `VmStateBlob` v2
 

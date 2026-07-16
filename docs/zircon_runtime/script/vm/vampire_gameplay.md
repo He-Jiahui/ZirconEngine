@@ -2,8 +2,8 @@
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/scenes/main.scene.toml
@@ -16,8 +16,8 @@ related_code:
 implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/scenes/main.scene.toml

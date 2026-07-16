@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
@@ -16,7 +16,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
