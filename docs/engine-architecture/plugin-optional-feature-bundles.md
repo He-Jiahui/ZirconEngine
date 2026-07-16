@@ -14,8 +14,8 @@ related_code:
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
   - zircon_runtime/src/plugin/runtime_profile/defaults.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_feature_selection.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_feature_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs

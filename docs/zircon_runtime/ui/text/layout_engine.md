@@ -48,7 +48,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
@@ -87,7 +87,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
@@ -107,7 +107,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection slice: passed)
   - cargo test -p zircon_runtime sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0702-sdf-vertical --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection focused test: passed 1/1)
   - docs/tests/runtime/text/runtime_text_vertical_rl_sdf_vertex_projection_preview_20260702.png (2026-07-02 LB-M4/SM-M1 vertical_rl SDF projection visual proof: inspected; SHA256 86C7CEA59DBAB17A63B6FB61C2FF72C591B4E7216439FE0AABF97C793E5BC1C1; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
-  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/text_geometry.rs zircon_runtime_interface/src/tests/render_contracts.rs (2026-07-01 LB-M4 vertical_rl edit decoration render-contract slice: passed)
+- rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs zircon_runtime_interface/src/tests/render_contracts.rs (2026-07-01 LB-M4 vertical_rl edit decoration render-contract slice: passed)
   - cargo test -p zircon_runtime_interface ui_text_decorations_use_vertical_rl_geometry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-vertical-decorations-interface --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 LB-M4 vertical_rl edit decoration render-contract focused test: passed 1/1)
   - docs/tests/runtime/text/runtime_text_vertical_rl_edit_decoration_geometry_preview_20260701.png (2026-07-01 LB-M4 vertical_rl edit decoration visual proof: inspected; SHA256 A856E741CC5722DE9BD06A924E887657F2DBDB9301073F4B0172C020CE50A044; repo target, D:\cargo-targets, and E:\cargo-targets same-name match count 0)
   - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0701-vertical-geometry-check --message-format short --color never (2026-07-01 LB-M4 vertical_rl hit-test/caret/IME geometry slice: passed with existing warnings only)
@@ -223,7 +223,7 @@ The 2026-07-15 LB-M5 rich-inline composition slice closes the former bypass. `pa
 
 The follow-up vertical geometry slice keeps those same resolved column records as the source of editing geometry. `hit_test.rs` selects a `VerticalRl` column by x before using y midpoint and resolved `glyph_advances` to return the source byte offset. `geometry.rs` projects caret and selection ranges along y and emits horizontal 1px bars. The TextInput IME context consumes that caret frame for `SetCursorArea`, so candidate anchoring no longer inherits the old horizontal caret shape when a resolved vertical layout is available.
 
-The render-contract edit decoration slice carries the same rule into `zircon_runtime_interface/src/ui/surface/render/text_geometry.rs`. `UiTextPaintDecoration` now branches on `UiResolvedTextLayout.writing_mode`: vertical selections cover the column width over the selected y span, composition underline becomes a right-edge side rule, and caret decorations become horizontal bars. That keeps neutral paint DTOs consistent before the platform painter or editor retained-host path consumes them.
+The render-contract edit decoration slice carries the same rule into `zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs`. `UiTextPaintDecoration` now branches on `UiResolvedTextLayout.writing_mode`: vertical selections cover the column width over the selected y span, composition underline becomes a right-edge side rule, and caret decorations become horizontal bars. That keeps neutral paint DTOs consistent before the platform painter or editor retained-host path consumes them.
 
 The SDF projection slice carries `UiTextWritingMode` into `ScreenSpaceUiTextBatch` and lets `sdf_render.rs` choose between horizontal baseline/cursor-x placement and vertical column/cursor-y placement. In `VerticalRl`, SDF glyph quads are centered inside the text column and advance along y, so the render backend no longer turns a vertical resolved layout back into a horizontal SDF draw plan. This is still projection-only: shaping-time vertical substitutions and sideways Latin orientation remain outside the SDF renderer.
 

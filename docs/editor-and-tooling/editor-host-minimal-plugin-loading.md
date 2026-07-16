@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/mod.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs
@@ -63,7 +63,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/mod.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs

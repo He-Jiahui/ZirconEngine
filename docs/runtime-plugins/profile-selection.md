@@ -35,8 +35,8 @@ related_code:
   - tools/runtime-profile-feature-presets.py
   - tools/dev-fast-build.ps1
   - tools/check-runtime-profile-features.ps1
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs

@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
@@ -28,7 +28,7 @@ implementation_files:
   - zircon_runtime_interface/Cargo.toml
   - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/text/shaper.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
