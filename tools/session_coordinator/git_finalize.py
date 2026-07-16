@@ -214,7 +214,7 @@ class GitFinalizeService:
                 else:
                     self._require_index_scope(preview.paths)
                 self._git_add_paths(preview.paths)
-                staged = tuple(self._git_lines("diff", "--cached", "--name-only"))
+                staged = self._staged_scope_paths()
                 if set(staged) != set(preview.paths):
                     raise CoordinatorError(
                         "finalize_staged_scope_mismatch",
@@ -534,14 +534,14 @@ class GitFinalizeService:
         audit_id = uuid.uuid4().hex
         with self.git_mutex(owner_id):
             head = self._git("rev-parse", "HEAD")
-            paths = tuple(self._git_lines("diff", "--cached", "--name-only"))
+            paths = self._staged_scope_paths()
             classification = self._classify_staged_paths(paths)
             if paths:
                 # `reset --mixed <HEAD>` changes the shared index only.  The
                 # working tree stays untouched, so Sessions retain every byte
                 # of their pending work while stale staging is cleared.
                 self._git("reset", "--mixed", "--quiet", head)
-            remaining = tuple(self._git_lines("diff", "--cached", "--name-only"))
+            remaining = self._staged_scope_paths()
             if remaining:
                 raise CoordinatorError(
                     "index_cleanup_incomplete",
@@ -955,7 +955,7 @@ class GitFinalizeService:
             )
 
     def _require_index_scope(self, approved: tuple[str, ...]) -> None:
-        staged = set(self._git_lines("diff", "--cached", "--name-only"))
+        staged = set(self._staged_scope_paths())
         foreign = sorted(staged - set(approved), key=str.casefold)
         if foreign:
             raise CoordinatorError(
@@ -963,6 +963,15 @@ class GitFinalizeService:
                 "Git index contains paths outside the approved finalize set",
                 details={"paths": foreign},
             )
+
+    def _staged_scope_paths(self) -> tuple[str, ...]:
+        # Immutable manifests describe delete/add paths independently. Git's
+        # rename detection collapses that pair to the destination path and
+        # makes an exact scoped finalize look incomplete even though both
+        # index mutations are present.
+        return tuple(
+            self._git_lines("diff", "--cached", "--name-only", "--no-renames")
+        )
 
     def _require_git_mutex_available(self) -> None:
         with self.database.connect() as connection:
