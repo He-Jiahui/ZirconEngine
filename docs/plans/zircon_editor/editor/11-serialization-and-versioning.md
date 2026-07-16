@@ -43,6 +43,7 @@ status: in_progress
 - fixed 已修复：[target-server-libtest-feature-gating](11/fixed-2026-07-11-target-server-libtest-feature-gating.md)
 - fixed 已修复：[wsl-vhdx-sharing-violation](11/fixed-2026-07-11-wsl-vhdx-sharing-violation.md)
 - M2.2 产出：[DynamicScene 版本壳硬切换](11/2026-07-14-dynamic-scene-version-shell-hard-cut.md)
+- M2.2 当前源验收：[DynamicScene 当前源验收](11/2026-07-17-dynamic-scene-current-source-acceptance.md)
 - fixed 已修复：[binary-value-visibility-compilation](../editor_layout/15/fixed-2026-07-14-binary-value-visibility-compilation.md)
 
 ## 参照证据（dev/）
@@ -109,14 +110,14 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 
 ### M1 壳与场景面接入
 
-- [ ] **M1.1 统一版本壳与迁移链内核.** `serialization/` 落地（header/chain/load_versioned/双格式入口）+ 单测（断链/越版本/v0 识别）。
-- [ ] **M1.2 场景版本壳、值域迁移与 canonical writer.** 场景反射 JSON 接壳（v0→v1 = 包头 + AssetRef 切换，与 10 M2 同步发布）；canonical 文本 writer；`ensure_supported` 改查壳头。
+- [x] **M1.1 统一版本壳与迁移链内核.** `serialization/` 落地（header/chain/load_versioned/双格式入口）+ 单测（断链/越版本/v0 识别）。
+- [x] **M1.2 场景版本壳、值域迁移与 canonical writer.** 场景反射 JSON 接壳（v0→v1 = 包头 + AssetRef 切换，与 10 M2 同步发布）；canonical 文本 writer；`ensure_supported` 改查壳头。
 - 测试阶段：`cargo test -p zircon_runtime_interface --locked` + `cargo test -p zircon_runtime --lib scene:: --locked`；验收：v0 旧样本 加载→迁移→保存→再加载 幂等且字节稳定；authoring 守卫矩阵更新后全绿。更新 `docs/zircon_runtime/scene/serialization.md`。
 
 ### M2 编辑器状态面收口
 
 - [ ] **M2.1 编辑器状态持久化面接壳.** preferences（常量删除）/ keymap 用户层（08）/ 03 journal / 06 布局实 IO——四面接壳；路径按 17 分层。
-- [ ] **M2.2 DynamicScene 双写字段硬删除.** `DynamicScene.format_version` 收编（双写一版→删除，迁移步内完成硬切换）。
+- [x] **M2.2 DynamicScene 双写字段硬删除.** `DynamicScene.format_version` 收编（双写一版→删除，迁移步内完成硬切换）。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（preferences 既有测试迁移后须过 + 各面往返/旧格式迁移）；`migrated_from` 通知断言。
 
 ### M3 二进制格式与等价性
