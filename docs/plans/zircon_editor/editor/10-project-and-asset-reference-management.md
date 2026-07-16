@@ -82,7 +82,7 @@ status: in_progress
 
 - fixed 已修复：[source-cubemap-source-texel-test-api-drift](10/fixed-2026-07-12-source-cubemap-source-texel-test-api-drift.md)
 - 失败交接（`open / 待修复`）：[`../../zircon_hub/07/failure-2026-07-11-hub-message-legacy-test-drift.md`](../../zircon_hub/07/failure-2026-07-11-hub-message-legacy-test-drift.md)
-- 失败交接（`open / 待 Runtime 01 释放验证空间`）：[`../../zircon_runtime/runtime/01/failure-2026-07-11-editor-libtest-link-disk-space.md`](../../zircon_runtime/runtime/01/failure-2026-07-11-editor-libtest-link-disk-space.md)
+- fixed 已修复：[editor-libtest-link-disk-space](10/fixed-2026-07-16-editor-libtest-link-disk-space.md)
 - 失败交接（`open / 待 Editor 16 M2 统一命令框架接线`）：[`16/failure-2026-07-11-migrate-assets-commandlet-registry.md`](16/failure-2026-07-11-migrate-assets-commandlet-registry.md)
 - fixed 已修复：[editor10-runtime-layout-method-name](../../zircon_runtime/shader/06/fixed-2026-07-11-editor10-runtime-layout-method-name.md)
 

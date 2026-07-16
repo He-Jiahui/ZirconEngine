@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-11
 summary_slug: editor-libtest-link-disk-space
 origin_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
@@ -19,7 +19,9 @@ plan_sources:
 tests:
   - cargo build -p zircon_editor --locked
   - cargo test -p zircon_editor --locked
+resolved_at: 2026-07-16
 ---
+
 
 # Runtime 01：Editor lib-test 链接磁盘空间失败
 
@@ -62,5 +64,7 @@ tests:
 
 ## 修复结果与回传
 
-- 状态：`open / 待 Runtime 01 恢复受管验证空间后复跑`。
-- 复跑后回传 Plan10 M1.2；若测试通过，再更新本文件状态与 Plan10 产出行。
+- 根因：The original Editor lib-test linker lane had only 27.19 GB free, below the repository 50 GB managed-target threshold, so MSVC terminated with LNK1180 before producing the test executable.
+- 架构修复：Coordinator-governed Windows Cargo target allocation and retained target-pool cleanup restored sufficient managed validation capacity without using repository target directories or deleting user worktree data.
+- 验证：Managed Editor validation later linked and launched the zircon_editor lib-test process (job 5ac5), proving the LNK1180 capacity failure is gone; execution then stopped on the separately owned Plugins12 WorkbenchShellState self-deadlock, so Editor10 business tests remain unaccepted.
+- 回传：Return the environment failure as fixed: managed linking capacity is restored. Do not mark Editor10 M1.2 passed; its current upper-layer blocker is the separately tracked Plugins12 shell self-deadlock.

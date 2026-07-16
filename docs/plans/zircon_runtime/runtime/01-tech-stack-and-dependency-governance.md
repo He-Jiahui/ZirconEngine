@@ -229,5 +229,5 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 - 迁入记录：[`01/2026-07-09-tech-stack-and-dependency-governance-output-records.md`](01/2026-07-09-tech-stack-and-dependency-governance-output-records.md)
 - fixed 已修复：[wgpu-hal-windows-version-split](../../zircon_editor/editor/11/fixed-2026-07-12-wgpu-hal-windows-version-split.md)
 - fixed 已修复：[wsl-vhdx-sharing-violation](../../zircon_editor/editor/11/fixed-2026-07-11-wsl-vhdx-sharing-violation.md)
-- 失败交接（`open / 待恢复受管验证空间`）：[`01/failure-2026-07-11-editor-libtest-link-disk-space.md`](01/failure-2026-07-11-editor-libtest-link-disk-space.md)
+- fixed 已修复：[editor-libtest-link-disk-space](../../zircon_editor/editor/10/fixed-2026-07-16-editor-libtest-link-disk-space.md)
 - 当前状态（2026-07-11）：原计划声明的五项 locked Cargo 门禁曾在当时源码上闭合；当前依赖图重新出现 `wgpu-hal`/Windows 类型分裂，Editor lib-test 的受管链接空间也待恢复，因此 Runtime 01 重新进入 `in_progress`，以编号失败交接为当前事实。WSL 虚拟磁盘冲突已由环境释放并回传 fixed。
