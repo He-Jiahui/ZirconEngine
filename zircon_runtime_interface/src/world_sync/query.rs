@@ -44,10 +44,15 @@ pub struct WorldQuery {
 
 impl WorldQuery {
     /// Applies the one authoritative generation-hint short-circuit rule.
-    pub fn result_for_generation(&self, generation: u64, rows: Vec<EntityRow>) -> WorldQueryResult {
-        if self.generation_hint == Some(generation) {
+    pub fn result_for_generation(
+        &self,
+        generation: u64,
+        mut rows: Vec<EntityRow>,
+    ) -> WorldQueryResult {
+        if generation != u64::MAX && self.generation_hint == Some(generation) {
             WorldQueryResult::NotModified { generation }
         } else {
+            rows.sort_by_key(|row| row.entity);
             WorldQueryResult::Rows(rows)
         }
     }

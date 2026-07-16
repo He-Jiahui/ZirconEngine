@@ -43,7 +43,7 @@ This four-file shape follows Editor02 M1.1 and keeps future subscription-table o
 
 `QueryFilter.with` and `QueryFilter.without` contain fully qualified component type names. `WorldQuery.select` lists component values to project for each matching entity. `EntityRow` uses `BTreeMap<String, serde_json::Value>` so serialized row order is deterministic while component payloads remain reflection-neutral.
 
-`generation_hint` is optional. `WorldQuery::result_for_generation` is the single contract helper for the short circuit: an exact hint match produces `NotModified { generation }`; a missing or stale hint returns `Rows`. Rows deliberately do not carry editor selection, focus, hierarchy presentation, or any other authoring state.
+`generation_hint` is optional. `WorldQuery::result_for_generation` is the single contract helper for the short circuit: an exact hint match produces `NotModified { generation }`; a missing or stale hint returns `Rows`. The saturated `u64::MAX` revision always returns `Rows`, because later monotonic mutations cannot produce a distinct counter value. The helper canonicalizes returned rows by ascending stable entity id, while each row's component map is already key ordered. Rows deliberately do not carry editor selection, focus, hierarchy presentation, or any other authoring state.
 
 ## Watch and invalidation model
 
@@ -70,8 +70,8 @@ Bevy BRP supplies the primary precedent: `BrpQuery`, `BrpQueryFilter`, `BrpQuery
 
 ## Test coverage
 
-`world_sync_contracts.rs` covers JSON round trips for queries, every watch-key family, tokens, invalidation facts, and dynamic reload counts. It directly covers matching/stale/missing generation hints and rejects unknown retired wire fields. Cargo execution belongs to the M1 testing stage; implementation-slice formatting and source-boundary checks do not prove the crate test gate.
+`world_sync_contracts.rs` covers JSON round trips for queries, every watch-key family, tokens, invalidation facts, and dynamic reload counts. It directly covers matching/stale/missing generation hints, ascending entity-row canonicalization, and rejection of unknown retired wire fields. The coordinator-managed M1 interface gate passed on Windows; the full M1 runtime acceptance gate remains tracked by the Editor02 child plan and is not implied by this crate-local result.
 
 ## Follow-up
 
-Editor02 M1.2 must add authoritative world generation and inspection hashes. M2 owns runtime subscription matching and the editor invalidation pump. M3 owns binding dependencies and serialized session gateway transport. None of those behaviors may move into this interface DTO module.
+Editor02 M1.2 now owns authoritative runtime generation, split inspection reads, and stable subtree hashes in `zircon_runtime`; those behaviors remain outside this DTO crate. M2 owns runtime subscription matching and the editor invalidation pump. M3 owns binding dependencies and serialized session gateway transport. None of those behaviors may move into this interface DTO module.

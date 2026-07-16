@@ -67,6 +67,47 @@ fn world_query_returns_not_modified_only_for_a_matching_generation_hint() {
 }
 
 #[test]
+fn entity_rows_are_canonicalized_by_stable_entity_identity() {
+    let rows = vec![
+        EntityRow {
+            entity: 9,
+            components: BTreeMap::new(),
+        },
+        EntityRow {
+            entity: 2,
+            components: BTreeMap::new(),
+        },
+    ];
+
+    assert_eq!(
+        WorldQuery::default().result_for_generation(1, rows),
+        WorldQueryResult::Rows(vec![
+            EntityRow {
+                entity: 2,
+                components: BTreeMap::new(),
+            },
+            EntityRow {
+                entity: 9,
+                components: BTreeMap::new(),
+            },
+        ])
+    );
+}
+
+#[test]
+fn saturated_generation_never_returns_not_modified() {
+    let query = WorldQuery {
+        generation_hint: Some(u64::MAX),
+        ..WorldQuery::default()
+    };
+
+    assert_eq!(
+        query.result_for_generation(u64::MAX, Vec::new()),
+        WorldQueryResult::Rows(Vec::new())
+    );
+}
+
+#[test]
 fn watch_contract_round_trips_every_typed_key_and_token() {
     let resource_id = ResourceId::from_stable_label("res://scenes/hero.zscene");
     let registrations = [
