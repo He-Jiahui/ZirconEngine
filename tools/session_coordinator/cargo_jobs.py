@@ -12,6 +12,7 @@ from typing import Callable
 
 from .cargo_reservations import (
     expire_invalid_pending_cpu_reservations,
+    reconcile_terminal_finished_cpu_reservations,
     require_executable_cargo_session,
 )
 from .database import Database
@@ -298,6 +299,7 @@ class CargoJobService:
         with self.database.transaction() as connection:
             require_executable_cargo_session(connection, session_id)
             expire_invalid_pending_cpu_reservations(connection, now=now_text)
+            reconcile_terminal_finished_cpu_reservations(connection, now=now_text)
             existing = connection.execute(
                 """
                 SELECT * FROM cargo_lane_reservations
@@ -665,6 +667,7 @@ class CargoJobService:
         if lane_kind is CargoLaneKind.GPU:
             return None
         expire_invalid_pending_cpu_reservations(connection, now=now)
+        reconcile_terminal_finished_cpu_reservations(connection, now=now)
         reservation = connection.execute(
             """
             SELECT * FROM cargo_lane_reservations
@@ -984,6 +987,14 @@ class CargoJobService:
                     WHERE job_id = ?
                     """,
                     (CargoJobStatus.RELEASED.value, now, now, job_id),
+                )
+                connection.execute(
+                    """
+                    UPDATE cargo_lane_reservations
+                    SET status='released', completed_at=COALESCE(completed_at, ?)
+                    WHERE job_id=? AND status IN ('leased', 'finished')
+                    """,
+                    (now, job_id),
                 )
         if blocked:
             raise self._process_tree_alive_error(job, live_pids)

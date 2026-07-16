@@ -72,3 +72,26 @@ def expire_invalid_pending_cpu_reservations(connection, *, now: str) -> None:
         """,
         (now, now),
     )
+
+
+def reconcile_terminal_finished_cpu_reservations(connection, *, now: str) -> int:
+    """Release legacy FIFO rows only after their job is terminal and owner is non-executable."""
+    executable = tuple(sorted(EXECUTABLE_CARGO_SESSION_STATUSES))
+    placeholders = ", ".join("?" for _ in executable)
+    cursor = connection.execute(
+        f"""
+        UPDATE cargo_lane_reservations
+        SET status='released', completed_at=COALESCE(completed_at, ?)
+        WHERE lane_scope='cpu' AND status='finished'
+          AND job_id IN (
+              SELECT jobs.job_id
+              FROM cargo_jobs AS jobs
+              JOIN sessions AS owners ON owners.session_id=jobs.session_id
+              WHERE jobs.status='released'
+                AND jobs.process_tree_live_pids_json='[]'
+                AND owners.status NOT IN ({placeholders})
+          )
+        """,
+        (now, *executable),
+    )
+    return cursor.rowcount

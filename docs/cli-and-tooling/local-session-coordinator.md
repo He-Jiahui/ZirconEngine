@@ -345,6 +345,12 @@ that unconsumed claim in the same database transaction as the Session transition
 a reservation already bound to a leased or running job follows the nominated job
 lifecycle and is never expired by the pending TTL; abnormal orphan reconciliation
 expires the bound reservation in the same transaction so a dead job cannot retain FIFO.
+When a nominated job reaches `released` after its process tree is empty, the same
+release transaction moves its bound CPU reservation to `released`; a later owner
+handoff is not required. Reserve/acquire also reconcile a legacy `finished` head only
+when its nominated job is already `released`, its recorded process tree is empty, and
+its owner is non-executable. Live or executable owners remain FIFO heads and are never
+reclaimed by that historical repair path.
 Recreating the service does not
 rewrite `expires_at`, and the next reserve/acquire transaction removes an expired or
 non-executable pending head before applying FIFO, so a stale zero-job owner cannot starve

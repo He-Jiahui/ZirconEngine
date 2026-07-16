@@ -264,6 +264,71 @@ class CargoReservationTests(unittest.TestCase):
         self.assertEqual(CargoJobStatus.LEASED, following.status)
         self.assertEqual("session-b", following.session_id)
 
+    def test_released_terminal_job_releases_its_cpu_reservation_without_owner_handoff(self) -> None:
+        reservation = self.service.reserve_cpu(
+            "session-a",
+            compatibility=self.compatibility(),
+            command=("cargo", "test", "-p", "zircon_runtime"),
+        )
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=self.compatibility()
+        )
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test", "-p", "zircon_runtime"],
+        )
+        self.service.process_tree_pids = lambda _pid: ()
+        self.service.finish(job.job_id, session_id="session-a", exit_code=101)
+        self.sessions.set_status("session-a", SessionStatus.STALE)
+        self.service.release(job.job_id, session_id="session-a")
+
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual("released", row["status"])
+
+        following = self.service.acquire("session-b", CargoLaneKind.CHECK)
+        self.assertEqual(CargoJobStatus.LEASED, following.status)
+
+    def test_stale_finished_reservation_from_released_job_is_reconciled_before_next_acquire(self) -> None:
+        reservation = self.service.reserve_cpu(
+            "session-a",
+            compatibility=self.compatibility(),
+            command=("cargo", "test", "-p", "zircon_runtime"),
+        )
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=self.compatibility()
+        )
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test", "-p", "zircon_runtime"],
+        )
+        self.service.process_tree_pids = lambda _pid: ()
+        self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+        self.service.release(job.job_id, session_id="session-a")
+        self.sessions.set_status("session-a", SessionStatus.STALE)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_lane_reservations SET status='finished' WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            )
+
+        following = self.service.acquire("session-b", CargoLaneKind.CHECK)
+
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual("released", row["status"])
+        self.assertEqual(CargoJobStatus.LEASED, following.status)
+
     def test_expired_pending_cpu_reservation_advances_fifo(self) -> None:
         expired = self.service.reserve_cpu(
             "session-a",
