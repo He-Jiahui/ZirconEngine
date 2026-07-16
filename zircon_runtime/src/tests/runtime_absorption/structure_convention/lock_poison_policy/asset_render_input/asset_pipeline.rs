@@ -5,11 +5,18 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
     let construction =
         read_runtime_src("asset/pipeline/manager/project_asset_manager/construction.rs");
     let runtime = read_runtime_src("asset/pipeline/manager/project_asset_manager/runtime.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
     let status_rows = read_runtime_src(
@@ -57,10 +64,19 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
     }
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
+        ("Runtime 15 output archive", runtime_15_output.as_str()),
+        (
+            "Runtime index output archive",
+            runtime_index_output.as_str(),
+        ),
+        (
+            "review findings output archive",
+            review_findings_output.as_str(),
+        ),
+        (
+            "structure convention output archive",
+            structure_convention_output.as_str(),
+        ),
         ("module convention doc", module_doc.as_str()),
         ("asset importer doc", importer_doc.as_str()),
         ("status-output M3 foundation row data", status_rows.as_str()),
@@ -87,11 +103,18 @@ fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_p
         read_runtime_src("asset/pipeline/manager/service_contracts/asset_manager_contract.rs");
     let project_runtime =
         read_runtime_src("asset/pipeline/manager/project_asset_manager/runtime.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention_output = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let worker_doc = read_repo("docs/zircon_runtime/asset/worker_pool.md");
     let status_rows = read_runtime_src(
@@ -151,10 +174,19 @@ fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_p
     }
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
+        ("Runtime 15 output archive", runtime_15_output.as_str()),
+        (
+            "Runtime index output archive",
+            runtime_index_output.as_str(),
+        ),
+        (
+            "review findings output archive",
+            review_findings_output.as_str(),
+        ),
+        (
+            "structure convention output archive",
+            structure_convention_output.as_str(),
+        ),
         ("module convention doc", module_doc.as_str()),
         ("asset worker doc", worker_doc.as_str()),
         ("status-output M3 foundation row data", status_rows.as_str()),
