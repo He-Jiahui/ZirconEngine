@@ -11,7 +11,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 related_code:
   - zircon_runtime/src/asset/pack/dedup.rs
   - zircon_runtime/src/asset/pack/manifest.rs
-  - zircon_plugins/net/features/content_download/runtime/src/manager/hash.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager/http_fetch.rs
   - zircon_plugins/net/features/content_download/runtime/src/manager/progress.rs
 tests:

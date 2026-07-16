@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_plugins/03
 related_code:
   - zircon_runtime/src/scene/components/scene.rs
-  - zircon_runtime/src/scene/reflect/fixed/rigid_body_component.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs
   - zircon_runtime/src/scene/world/property_access/entries/physics.rs
   - zircon_runtime/src/scene/world/property_access/write/physics.rs
 tests:

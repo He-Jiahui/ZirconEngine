@@ -12,7 +12,7 @@ related_code:
   - zircon_plugins/navigation/runtime/src/tests/registration.rs
   - zircon_runtime/src/navigation/module.rs
   - zircon_runtime/src/core/runtime/handle/registration/validation.rs
-  - zircon_app/src/bin/zircon_editor.rs
+  - zircon_app/src/bin/editor.rs
 tests:
   - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1
   - .codex/tmp/runtime02_validate_editor_startup.ps1 -Executable .codex/tmp/plan18_hybrid_gi_zircon_editor_product_r2.exe -BuiltinView editor.runtime_diagnostics -OutputDirectory .codex/tmp/plan18_hybrid_gi_editor_runtime_diagnostics_startup_r2 -TimeoutSeconds 180

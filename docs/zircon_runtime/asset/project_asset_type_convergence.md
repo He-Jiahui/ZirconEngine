@@ -24,7 +24,8 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/preview_palette.rs
+  - zircon_editor/src/core/asset/type_registry/builtin.rs
+  - zircon_editor/src/core/asset/type_registry/thumbnail_provider.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/layouts/views/asset_surface_presentation.rs
@@ -51,7 +52,8 @@ implementation_files:
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/preview_palette.rs
+  - zircon_editor/src/core/asset/type_registry/builtin.rs
+  - zircon_editor/src/core/asset/type_registry/thumbnail_provider.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/layouts/views/asset_surface_presentation.rs
@@ -94,7 +96,7 @@ M2 adds the dependency graph to the same converged path. Importers declare depen
 
 M3 hard-cuts the importer result from a single payload to `AssetImportOutcome { entries: Vec<ImportedAssetEntry> }`. A valid import must contain exactly one root entry whose locator has no `#label`, while subassets use the same source locator with a label such as `res://bundle.gltf#Mesh0`. `ProjectManager` writes one library artifact and one `ResourceRecord` per entry, persists those rows in `AssetMetaDocument.entries`, and derives each ID with `AssetId::from_asset_uuid(entry.uuid)`. Duplicate labels are recorded as a failed root import through `AssetImportError::DuplicateAssetLabel`, and loading a missing label from an imported source returns `AssetImportError::MissingAssetLabel` instead of an unstructured parse error.
 
-Editor asset surfaces use placeholder thumbnails and labels for newly introduced non-texture kinds. Mesh assets use the same placeholder-preview path as models while keeping their own `ResourceKind::Mesh` palette entry. Reference analysis delegates graph-like authoring assets to their `direct_references()` implementations so scene terrain, tilemap, prefab, material graph, terrain layer stack, tile set, and tile map references remain discoverable without duplicating traversal logic in the editor; standalone mesh assets currently report no direct asset references.
+Editor asset surfaces use placeholder thumbnails and labels for newly introduced non-texture kinds. The canonical editor asset-type registry owns each kind's presentation metadata and `ThumbnailProviderDescriptor`; `builtin.rs` derives the placeholder palette while `thumbnail_provider.rs` owns its serialized contract. The deleted preview-refresh-local palette table is not retained as a second source. Mesh assets use the same placeholder-preview path as models while keeping their own `ResourceKind::Mesh` presentation entry. Reference analysis delegates graph-like authoring assets to their `direct_references()` implementations so scene terrain, tilemap, prefab, material graph, terrain layer stack, tile set, and tile map references remain discoverable without duplicating traversal logic in the editor; standalone mesh assets currently report no direct asset references.
 
 ## Validation Note
 

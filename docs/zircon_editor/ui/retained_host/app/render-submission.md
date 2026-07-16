@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
-  - zircon_editor/src/ui/retained_host/viewport.rs
+  - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
 implementation_files:
   - zircon_app/src/entry/entry_runner/editor.rs

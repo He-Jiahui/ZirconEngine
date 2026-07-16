@@ -19,7 +19,7 @@ related_code:
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/data/enemy_behavior_tree.toml
   - zircon_runtime/src/script/vm/gameplay_host.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/backend.rs
 implementation_files:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
@@ -39,7 +39,7 @@ implementation_files:
   - examples/vampire/scripts/vampire_game/main.zr
   - examples/vampire/assets/data/enemy_behavior_tree.toml
   - zircon_runtime/src/script/vm/gameplay_host.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
+  - zircon_plugins/zr_vm_language/runtime/src/backend.rs
 plan_sources:
   - user: 2026-06-09 build and visually verify the examples/vampire third-person roguelite scene
   - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md
