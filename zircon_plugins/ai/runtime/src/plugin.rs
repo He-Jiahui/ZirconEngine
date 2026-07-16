@@ -11,6 +11,7 @@ use zircon_runtime::plugin::{
 use zircon_runtime::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 use crate::behavior_tree::BehaviorNodeRegistry;
+use crate::perception::ai_perception_component_descriptors;
 use crate::{
     module_descriptor_with_manager, DefaultAiManager, AI_BEHAVIOR_TREE_CAPABILITY,
     AI_BLACKBOARD_CAPABILITY, AI_PERCEPTION_CAPABILITY, AI_RUNTIME_CAPABILITY, PLUGIN_ID,
@@ -19,8 +20,11 @@ use crate::{
 
 mod registration;
 
+#[cfg(test)]
+pub(crate) use registration::{collect_perception_hearing_events, PerceptionEventSubscriptions};
+
 use registration::{ai_event_catalog, register_runtime_extensions};
-pub use registration::{AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE};
+pub use registration::{AI_BEHAVIOR_TICK_SYSTEM, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM};
 
 pub const AI_DIST_CRATE_NAME: &str = "zircon_plugin_ai_dist";
 pub const AI_DIST_RUNTIME_ENTRY: &str = "zircon_plugin_ai_runtime_entry_v3";
@@ -70,10 +74,18 @@ impl RuntimePlugin for AiRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
+        for component in ai_perception_component_descriptors() {
+            manifest = manifest.with_component(component);
+        }
         manifest = manifest.with_event_catalog(ai_event_catalog());
         manifest = manifest.with_dependency(
             PluginDependencyManifest::new("zr_vm_language", false).with_interface(
                 zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID,
+            ),
+        );
+        manifest = manifest.with_dependency(
+            PluginDependencyManifest::new("physics", false).with_interface(
+                zircon_runtime::core::framework::physics::PHYSICS_QUERY_INTERFACE_ID,
             ),
         );
         manifest
@@ -122,7 +134,7 @@ fn runtime_plugin_descriptor_with_manager(
         "zircon_plugin_ai_runtime",
     )
     .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
-    .with_system_anchors([AI_BEHAVIOR_TICK_SYSTEM])
+    .with_system_anchors([AI_PERCEPTION_TICK_SYSTEM, AI_BEHAVIOR_TICK_SYSTEM])
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([
@@ -149,7 +161,7 @@ fn runtime_plugin_descriptor_with_manager(
     ))
     .with_capability_status(CapabilityStatusManifest::new(
         AI_PERCEPTION_CAPABILITY,
-        CapabilityStatus::Partial,
+        CapabilityStatus::Complete,
     ))
     .with_provided_interface_id(<dyn BehaviorNodeRegistry as PluginInterface>::INTERFACE_ID)
     .build()

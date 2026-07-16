@@ -38,7 +38,18 @@ impl DefaultSoundManager {
     pub(super) fn config(&self) -> SoundConfig {
         self.config
             .lock()
-            .expect("sound config mutex poisoned")
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn poison_state_for_test(&self) {
+        let state = Arc::clone(&self.state);
+        let _ = std::panic::catch_unwind(move || {
+            let _guard = state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            panic!("poison sound state for recovery coverage");
+        });
     }
 }

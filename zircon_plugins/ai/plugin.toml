@@ -25,6 +25,11 @@ id = "zr_vm_language"
 required = false
 interfaces = ["script.behavior.v1"]
 
+[[dependencies]]
+id = "physics"
+required = false
+interfaces = ["physics.query.v1"]
+
 [[capability_statuses]]
 capability = "runtime.plugin.ai"
 status = "partial"
@@ -40,17 +45,38 @@ status = "partial"
 
 [[capability_statuses]]
 capability = "runtime.feature.ai.perception"
-status = "partial"
+status = "complete"
 
 [[event_catalogs]]
 namespace = "ai.events"
 version = 1
 events = [
     { id = "ai.events.agent_tick_completed", display_name = "AI Agent Tick Completed", payload_schema = "ai.events.agent_tick_report.v1" },
+    { id = "ai.events.hearing_stimulus", display_name = "AI Hearing Stimulus", payload_schema = "ai.events.hearing_stimulus.v1" },
 ]
 
 [[provides_interfaces]]
 id = "ai.behavior_node_registry.v1"
+
+[[components]]
+type_id = "ai.perception_source"
+plugin_id = "ai"
+display_name = "AI Perception Source"
+properties = [
+    { name = "channels", value_type = "integer", editable = true },
+    { name = "strength", value_type = "scalar", editable = true },
+]
+
+[[components]]
+type_id = "ai.perception_receiver"
+plugin_id = "ai"
+display_name = "AI Perception Receiver"
+properties = [
+    { name = "sight_fov_degrees", value_type = "scalar", editable = true },
+    { name = "sight_range", value_type = "scalar", editable = true },
+    { name = "hearing_radius", value_type = "scalar", editable = true },
+    { name = "forget_seconds", value_type = "scalar", editable = true },
+]
 
 [[modules]]
 name = "ai.runtime"
@@ -58,7 +84,7 @@ kind = "runtime"
 crate_name = "zircon_plugin_ai_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.ai", "runtime.feature.ai.behavior_tree", "runtime.feature.ai.blackboard", "runtime.feature.ai.perception"]
-system_anchors = ["ai.behavior_tick"]
+system_anchors = ["ai.perception_tick", "ai.behavior_tick"]
 
 [[modules]]
 name = "ai.dist"

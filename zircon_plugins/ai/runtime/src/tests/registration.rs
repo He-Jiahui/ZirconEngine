@@ -8,8 +8,9 @@ use crate::behavior_tree::{
 };
 use crate::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin_descriptor,
-    AI_BEHAVIOR_TICK_SYSTEM, AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_MODULE_NAME,
-    RUNTIME_CAPABILITIES,
+    AI_BEHAVIOR_TICK_SYSTEM, AI_BEHAVIOR_TREE_CAPABILITY, AI_BLACKBOARD_CAPABILITY,
+    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_MODULE_NAME, AI_PERCEPTION_CAPABILITY,
+    AI_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES,
 };
 use zircon_runtime::core::framework::ai::{
     AiAgentTickRequest, AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor,
@@ -113,15 +114,29 @@ fn ai_registration_contributes_runtime_module_and_capabilities() {
             .map(|capability| capability.to_string())
             .collect::<Vec<_>>()
     );
-    for capability in runtime_capabilities() {
+    for (capability, expected_status) in [
+        (
+            AI_RUNTIME_CAPABILITY,
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        ),
+        (
+            AI_BEHAVIOR_TREE_CAPABILITY,
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        ),
+        (
+            AI_BLACKBOARD_CAPABILITY,
+            zircon_runtime::plugin::CapabilityStatus::Partial,
+        ),
+        (
+            AI_PERCEPTION_CAPABILITY,
+            zircon_runtime::plugin::CapabilityStatus::Complete,
+        ),
+    ] {
         assert!(report
             .package_manifest
             .capability_statuses
             .iter()
-            .any(|status| {
-                status.capability == *capability
-                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
-            }));
+            .any(|status| { status.capability == capability && status.status == expected_status }));
     }
 }
 
@@ -193,6 +208,9 @@ fn generated_plugin_toml_matches_runtime_events_and_system_anchors() {
 
     assert_eq!(generated.event_catalogs, runtime.event_catalogs);
     assert_eq!(generated.provides_interfaces, runtime.provides_interfaces);
+    assert_eq!(generated.components, runtime.components);
+    assert_eq!(generated.dependencies, runtime.dependencies);
+    assert_eq!(generated.capability_statuses, runtime.capability_statuses);
     let generated_runtime = generated
         .modules
         .iter()

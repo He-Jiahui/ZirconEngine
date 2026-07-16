@@ -29,7 +29,7 @@ pub(super) fn classify_runtime_system_descriptor(
             ))
             .with_capability_status(capability_status(
                 "runtime.feature.ai.perception",
-                CapabilityStatus::Partial,
+                CapabilityStatus::Complete,
             )),
         "navigation" => descriptor
             .with_maturity(PluginMaturity::Beta)

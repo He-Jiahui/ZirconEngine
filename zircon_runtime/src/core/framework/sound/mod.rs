@@ -4,6 +4,7 @@ mod acoustics;
 mod automation;
 mod components;
 mod effects;
+mod emission;
 mod error;
 mod events;
 mod graph;
@@ -39,6 +40,10 @@ pub use effects::{
     SoundEffectDescriptor, SoundEffectKind, SoundFilterEffect, SoundFilterMode, SoundFlangerEffect,
     SoundGainEffect, SoundLimiterEffect, SoundPanStereoEffect, SoundPhaserEffect,
     SoundReverbEffect, SoundSidechainInput, SoundWaveShaperEffect,
+};
+pub use emission::{
+    SoundGameplayEmission, SoundGameplayEmissionRead, SoundGameplayEmitter,
+    SOUND_GAMEPLAY_EMISSION_CAPACITY,
 };
 pub use error::SoundError;
 pub use events::{

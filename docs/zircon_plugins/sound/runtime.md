@@ -4,6 +4,10 @@ related_code:
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/engine/state/storage.rs
+  - zircon_plugins/sound/runtime/src/service_types/sources.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_trait/source.rs
+  - zircon_plugins/sound/runtime/src/tests/playback/gameplay_emission.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/mod.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
@@ -1541,6 +1545,9 @@ implementation_files:
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/engine/state/storage.rs
+  - zircon_plugins/sound/runtime/src/service_types/sources.rs
+  - zircon_plugins/sound/runtime/src/service_types/manager_trait/source.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/mod.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/descriptor.rs
   - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
@@ -3031,6 +3038,7 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/tests/source_inputs/resampling/clip.rs
   - zircon_plugins/sound/runtime/src/tests/source_inputs/resampling/external.rs
 plan_sources:
+  - docs/plans/zircon_plugins/06-ai.md
   - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
@@ -3038,6 +3046,7 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
   - .codex/plans/Sound 插件核心完善计划.md
 tests:
+  - zircon_plugins/sound/runtime/src/tests/playback/gameplay_emission.rs
   - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
@@ -4969,6 +4978,8 @@ Built-in mixer preset catalog construction is folder-backed under `src/presets/`
 - The concrete versioned `sound.dynamic_events` event catalog: `sound.dynamic_events.impact`, `sound.dynamic_events.marker`, and `sound.dynamic_events.ambient_stinger`, with package-prefixed payload schemas `sound.dynamic.impact.v1`, `sound.dynamic.marker.v1`, and `sound.dynamic.ambient_stinger.v1`.
 
 Runtime audio behavior remains in this crate. The runtime framework layer only owns DTOs, handles, and traits; it does not implement mixing, DSP, output callbacks, or Sound-specific editor behavior.
+
+Explicit sources with a `SoundGameplayEmitter` publish gameplay audibility into a manager-owned journal at successful source creation. `SoundEngineState` stores one 1024-entry `SoundGameplayEmissionJournal` per `WorldHandle`, with an independent monotonically increasing sequence. `read_gameplay_emissions(world, after_sequence)` never drains the journal: independent consumers receive the same events, a flood in one World cannot evict another World's history, and `missed_events` reports only overwritten entries from the requested World. Muted, non-playing, non-finite-gain, and non-positive-gain sources do not publish gameplay emissions. Source lifecycle and journal reads recover the shared `SoundEngineState` guard after mutex poisoning, so a prior panicking caller cannot turn later gameplay-audibility reads into a second production panic. Windows managed package job `0d9f89ecd3b04a95acb77adfe2ec87cd` passed the current-source build, all Sound tests including poison recovery and per-World journal isolation, and doctests.
 
 Engine-owned live state is folder-backed under `src/engine/state/`: `storage.rs` owns `SoundEngineState` and its constructor, `dynamic_events.rs` owns executor callback wrappers and executor keys, `playback.rs` owns loaded clip and active playback runtime records, `source.rs` owns explicit source voice cursors and pending finish state, `graph.rs` owns track add/remove mutations that must revalidate graph shape and reroute active outputs, and `snapshot.rs` owns mixer snapshot projection. `mod.rs` only wires and re-exports these state concepts for the rest of the engine.
 

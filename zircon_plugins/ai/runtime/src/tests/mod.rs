@@ -9,6 +9,7 @@ mod module;
 mod observer_abort;
 mod observer_binding_lifecycle;
 mod perception_conditions;
+mod perception_runtime;
 mod registration;
 mod tick;
 mod tick_lod;

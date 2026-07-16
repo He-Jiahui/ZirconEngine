@@ -1,8 +1,9 @@
 use super::super::{
-    ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock, SoundListenerDescriptor,
-    SoundListenerId, SoundSourceDescriptor, SoundSourceFinished, SoundSourceId, SoundSourceStatus,
-    SoundVolumeDescriptor, SoundVolumeId,
+    ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock, SoundGameplayEmissionRead,
+    SoundListenerDescriptor, SoundListenerId, SoundSourceDescriptor, SoundSourceFinished,
+    SoundSourceId, SoundSourceStatus, SoundVolumeDescriptor, SoundVolumeId,
 };
+use crate::core::framework::scene::WorldHandle;
 
 pub trait SoundSourceManager {
     fn create_source(&self, source: SoundSourceDescriptor) -> Result<SoundSourceId, SoundError>;
@@ -21,6 +22,11 @@ pub trait SoundSourceManager {
     fn source_empty(&self, source: SoundSourceId) -> Result<bool, SoundError>;
     fn source_status(&self, source: SoundSourceId) -> Result<SoundSourceStatus, SoundError>;
     fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError>;
+    fn read_gameplay_emissions(
+        &self,
+        world: WorldHandle,
+        after_sequence: Option<u64>,
+    ) -> Result<SoundGameplayEmissionRead, SoundError>;
     fn submit_external_source_block(
         &self,
         handle: ExternalAudioSourceHandle,

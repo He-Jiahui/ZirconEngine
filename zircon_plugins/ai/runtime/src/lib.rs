@@ -6,6 +6,7 @@ pub mod blackboard;
 mod capability;
 mod manager;
 mod module;
+pub mod perception;
 mod plugin;
 mod tick_lod;
 
@@ -21,7 +22,7 @@ pub use module::{
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, AiRuntimePlugin, AI_BEHAVIOR_TICK_SYSTEM,
-    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_EVENT_NAMESPACE,
+    AI_DIST_CRATE_NAME, AI_DIST_RUNTIME_ENTRY, AI_EVENT_NAMESPACE, AI_PERCEPTION_TICK_SYSTEM,
 };
 pub use tick_lod::AiBehaviorTickLod;
 

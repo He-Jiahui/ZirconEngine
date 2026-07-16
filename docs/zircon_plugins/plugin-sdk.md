@@ -164,9 +164,11 @@ implementation_files:
   - tools/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
+  - docs/plans/zircon_plugins/06-ai.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_plugins/plugin_sdk/src/registration.rs inline tests cover owner-aware component registration, foreign-owner rejection, duplicate component typing, and owner revoke; managed zircon_plugin_sdk validation job 839e57989b4842ccab52fb635cc71548 passed 2026-07-16
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk/src/lib.rs zircon_plugins/plugin_sdk/src/prelude.rs zircon_plugins/plugin_sdk/src/runtime.rs zircon_plugins/plugin_sdk/src/manifest/defaults.rs zircon_plugins/plugin_sdk/src/manifest/mod.rs zircon_plugins/plugin_sdk/src/manifest/package_builder.rs zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs zircon_plugins/plugin_sdk/src/manifest/tests.rs: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-m2-0622 --message-format short --color never: passed 2026-06-22 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-m2-0622 --message-format short --color never -- --test-threads=1: 3 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
@@ -315,9 +317,11 @@ The intended runtime path is:
 
 - `RuntimePluginRegistrationBuilder::new(registry).module(module_name)`; the enclosing `RuntimePluginDescriptor` already owns the only `ModuleDescriptor`, and `RuntimePluginRegistrationReport` registers it before this contribution hook runs.
 - `module.runtime_scene_system(system_id, stage, system_fn)`
-- optional `module.event::<EventType>(manifest)`, `module.plugin_option(manifest)`, or `module.plugin_event_catalog(manifest)` for plugin-owned runtime metadata
+- optional `module.component(ComponentTypeDescriptor)`, `module.event::<EventType>(manifest)`, `module.plugin_option(manifest)`, or `module.plugin_event_catalog(manifest)` for plugin-owned runtime metadata
 - optional `.in_set(...)`, `.with_order(...)`, `.before(...)`, or `.after(...)`
 - `.register()`
+
+`RuntimePluginModuleRegistration::component(...)` derives component ownership from the registered runtime module instead of accepting a second caller-supplied owner. The module owner must use the canonical `<plugin>.runtime` name and the descriptor `plugin_id` must match that owner. A forged foreign owner returns `RuntimeExtensionRegistryError::InvalidComponentType`, an occupied component type returns `DuplicateComponentType`, and revoking the owner removes its component slots together with the rest of its runtime contributions. These contracts are covered by the inline registration tests and the managed SDK job `839e57989b4842ccab52fb635cc71548`.
 
 `tools/plugin_structure_audits/registration.py` enforces this single-source contract across every trait-backed first-party runtime declaration owner. It scans `src/plugin.rs` plus the optional `src/runtime_plugin/` descriptor owner, requires exactly one `.with_module_descriptor(...)`, and rejects production `register_module(...)`. The focused audit suite passes 10/10 and the current workspace reports 28 audited roots with zero violations; Python 3.10 uses `tomli` when `tomllib` is unavailable in the WSL/CI lane.
 
@@ -388,3 +392,8 @@ Still open:
 
 - Broader editor/runtime capability rollout beyond the D1 audited first-party runtime roots, SDK builder mirror, and animation/physics/net editor mirror consumers.
 - M5 touch-it-conform-it replacement of remaining local long-test fixtures with `plugin_sdk::test`.
+## Typed runtime event consumers
+
+Editor declarations may add `runtime_event_consumers` to `authoring_plugin!`. Each registration owns its `PluginEventConsumerManifest` and typed state; `EditorPluginDeclaration` projects the same manifest into the editor module of `PluginPackageManifest`. Descriptor, package manifest, registration report, and runtime state therefore share one declaration source.
+
+Consumers are optional ABI clients. They bind only during PIE and only when their `required_capability` is enabled. Plugin code receives decoded payloads through `EditorRuntimeEventConsumerState`; it does not poll the runtime, create a thread, or mirror the runtime `World`.

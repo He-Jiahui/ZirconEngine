@@ -1,7 +1,8 @@
+use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
-    ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock, SoundListenerDescriptor,
-    SoundListenerId, SoundSourceDescriptor, SoundSourceFinished, SoundSourceId, SoundSourceManager,
-    SoundSourceStatus, SoundVolumeDescriptor, SoundVolumeId,
+    ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock, SoundGameplayEmissionRead,
+    SoundListenerDescriptor, SoundListenerId, SoundSourceDescriptor, SoundSourceFinished,
+    SoundSourceId, SoundSourceManager, SoundSourceStatus, SoundVolumeDescriptor, SoundVolumeId,
 };
 
 use super::super::DefaultSoundManager;
@@ -69,6 +70,14 @@ impl SoundSourceManager for DefaultSoundManager {
 
     fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError> {
         self.drain_finished_sources_impl()
+    }
+
+    fn read_gameplay_emissions(
+        &self,
+        world: WorldHandle,
+        after_sequence: Option<u64>,
+    ) -> Result<SoundGameplayEmissionRead, SoundError> {
+        self.read_gameplay_emissions_impl(world, after_sequence)
     }
 
     fn submit_external_source_block(

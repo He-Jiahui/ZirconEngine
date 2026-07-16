@@ -30,9 +30,45 @@ impl RuntimeExtensionRegistry {
             ));
         }
         let owner = self.intern_runtime_owner(&descriptor.plugin_id)?;
+        let type_id = descriptor.type_id.clone();
         self.components
-            .register(owner, descriptor.type_id.clone(), descriptor)
-            .expect("component duplicate was prechecked");
+            .register(owner, type_id.clone(), descriptor)
+            .map_err(|_| RuntimeExtensionRegistryError::DuplicateComponentType(type_id))?;
+        Ok(())
+    }
+
+    pub fn register_component_for_owner(
+        &mut self,
+        owner: crate::plugin::PluginModuleId,
+        descriptor: ComponentTypeDescriptor,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        validate_component_type_descriptor(&descriptor)?;
+        let module_name = self.plugin_module_name(owner).ok_or_else(|| {
+            RuntimeExtensionRegistryError::InvalidPluginModule(format!(
+                "unknown plugin module owner {}",
+                owner.raw()
+            ))
+        })?;
+        let expected_plugin_id = module_name.strip_suffix(".runtime").ok_or_else(|| {
+            RuntimeExtensionRegistryError::InvalidPluginModule(format!(
+                "component owner `{module_name}` must use the <plugin>.runtime module form"
+            ))
+        })?;
+        if descriptor.plugin_id != expected_plugin_id {
+            return Err(RuntimeExtensionRegistryError::InvalidComponentType(format!(
+                "component `{}` plugin_id `{}` does not match module owner `{module_name}` (expected `{expected_plugin_id}`)",
+                descriptor.type_id, descriptor.plugin_id
+            )));
+        }
+        if self.components.contains_key(&descriptor.type_id) {
+            return Err(RuntimeExtensionRegistryError::DuplicateComponentType(
+                descriptor.type_id,
+            ));
+        }
+        let type_id = descriptor.type_id.clone();
+        self.components
+            .register(owner, type_id.clone(), descriptor)
+            .map_err(|_| RuntimeExtensionRegistryError::DuplicateComponentType(type_id))?;
         Ok(())
     }
 

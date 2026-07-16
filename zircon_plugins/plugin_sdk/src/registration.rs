@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::bridge::PluginInterface;
+use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{
     BridgeImport, PluginEventCatalogManifest, PluginEventManifest, PluginModuleId,
@@ -78,6 +79,14 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
         T: Resource,
     {
         self.registry.register_resource::<T>(self.owner, init)
+    }
+
+    pub fn component(
+        &mut self,
+        descriptor: ComponentTypeDescriptor,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.registry
+            .register_component_for_owner(self.owner, descriptor)
     }
 
     pub fn event<E>(
@@ -250,6 +259,14 @@ mod tests {
             .expect("interface import registered through SDK");
 
         module
+            .component(ComponentTypeDescriptor::new(
+                "sdk_registration.weather",
+                "sdk_registration",
+                "SDK Weather",
+            ))
+            .expect("component registered through SDK");
+
+        module
             .resource(SdkRegistrationResource::default)
             .expect("runtime resource registered");
         module
@@ -293,6 +310,10 @@ mod tests {
             imported.call(|_| ()),
             Err(zircon_runtime::core::framework::bridge::BridgeError::Absent)
         );
+        assert!(registry
+            .components()
+            .iter()
+            .any(|component| component.type_id == "sdk_registration.weather"));
 
         assert!(registry
             .modules()
@@ -345,5 +366,38 @@ mod tests {
             .events
             .iter()
             .any(|event| event.id == EVENT_ID));
+    }
+
+    #[test]
+    fn component_registration_rejects_foreign_owner_and_revokes_with_its_module() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
+            .module("owner_a.runtime")
+            .expect("module registered");
+
+        let error = module
+            .component(ComponentTypeDescriptor::new(
+                "owner_b.Component.Foreign",
+                "owner_b",
+                "Foreign",
+            ))
+            .expect_err("builder must reject caller-forged component ownership");
+        assert!(error.to_string().contains("owner_a"));
+        assert!(error.to_string().contains("owner_b"));
+
+        module
+            .component(ComponentTypeDescriptor::new(
+                "owner_a.Component.Local",
+                "owner_a",
+                "Local",
+            ))
+            .expect("matching owner component registered");
+        let owner = module.owner();
+        drop(module);
+
+        assert_eq!(registry.components().len(), 1);
+        let removed = registry.revoke_owner_registrations(owner);
+        assert_eq!(removed.components.len(), 1);
+        assert!(registry.components().is_empty());
     }
 }

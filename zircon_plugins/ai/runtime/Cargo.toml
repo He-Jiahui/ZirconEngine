@@ -8,4 +8,4 @@ description = "AI runtime plugin package for Zircon."
 [dependencies]
 toml.workspace = true
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
-zircon_runtime = { workspace = true, features = ["ai-contracts", "net-contracts"] }
+zircon_runtime = { workspace = true, features = ["ai-contracts", "net-contracts", "physics-contracts", "sound-contracts"] }

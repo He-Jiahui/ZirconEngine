@@ -29,6 +29,9 @@ pub struct SoundSourceDescriptor {
     pub duration_seconds: Option<f32>,
     pub spatial: SoundSpatialSourceSettings,
     pub parameter_bindings: Vec<SoundSourceParameterBinding>,
+    /// Stable world/entity identity to expose for gameplay audibility events.
+    #[serde(default)]
+    pub gameplay_emitter: Option<super::SoundGameplayEmitter>,
 }
 
 impl SoundSourceDescriptor {
@@ -51,6 +54,7 @@ impl SoundSourceDescriptor {
             duration_seconds: None,
             spatial: SoundSpatialSourceSettings::default(),
             parameter_bindings: Vec::new(),
+            gameplay_emitter: None,
         }
     }
 }

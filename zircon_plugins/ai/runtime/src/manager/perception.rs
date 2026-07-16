@@ -30,3 +30,22 @@ pub(super) fn snapshot(
         .get(&(world, entity))
         .cloned()
 }
+
+pub(super) fn replace_world_snapshots(
+    manager: &DefaultAiManager,
+    world: WorldHandle,
+    snapshots: Vec<AiPerceptionSnapshot>,
+) -> Result<(), AiManagerError> {
+    for snapshot in &snapshots {
+        validate_perception_snapshot(snapshot.agent, snapshot)?;
+    }
+
+    let mut state = manager.lock_state();
+    state
+        .perceptions
+        .retain(|(snapshot_world, _), _| *snapshot_world != world);
+    for snapshot in snapshots {
+        state.perceptions.insert((world, snapshot.agent), snapshot);
+    }
+    Ok(())
+}

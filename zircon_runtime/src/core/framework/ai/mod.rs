@@ -20,6 +20,9 @@ pub use blackboard::{
 pub use error::AiManagerError;
 pub use ids::{AiAgentId, AiBehaviorTreeId, AiBlackboardSchemaId};
 pub use manager::AiManager;
-pub use perception::{AiPerceptionSense, AiPerceptionSnapshot, AiPerceptionStimulus};
+pub use perception::{
+    AiHearingStimulusEvent, AiHearingStimulusOrigin, AiPerceptionSense, AiPerceptionSnapshot,
+    AiPerceptionStimulus,
+};
 pub use snapshot::{AiAgentRuntimeSnapshot, AiRuntimeSnapshot};
 pub use tick::{AiAgentTickReport, AiAgentTickRequest, AiDecisionStatus};

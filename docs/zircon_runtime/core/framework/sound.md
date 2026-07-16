@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/core/framework/audio/mod.rs
   - zircon_runtime/src/core/framework/audio/channel_layout.rs
   - zircon_runtime/src/core/framework/sound/components.rs
+  - zircon_runtime/src/core/framework/sound/emission.rs
   - zircon_runtime/src/core/framework/sound/effects.rs
   - zircon_runtime/src/core/framework/sound/error.rs
   - zircon_runtime/src/core/framework/sound/events.rs
@@ -49,6 +50,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/audio/mod.rs
   - zircon_runtime/src/core/framework/audio/channel_layout.rs
   - zircon_runtime/src/core/framework/sound/components.rs
+  - zircon_runtime/src/core/framework/sound/emission.rs
   - zircon_runtime/src/core/framework/sound/effects.rs
   - zircon_runtime/src/core/framework/sound/error.rs
   - zircon_runtime/src/core/framework/sound/events.rs
@@ -119,6 +121,7 @@ The framework is folder-backed and `mod.rs` is only the public re-export surface
 - `../audio/channel_layout.rs` defines the shared speaker-order format for mono, stereo, quad, 5.0, 5.1 rear-bed, 5.1 side-bed, 7.0, 7.1, and discrete multichannel data. Sound consumes `AudioChannelLayout` directly and does not re-export it.
 - `graph.rs`, `effects.rs`, `mix.rs`, `output.rs`, `status.rs`, and `preset.rs` describe the mixer graph, effect chains, rendered mix blocks, output-device contracts, backend status, and preset descriptors.
 - `components.rs` defines the three scene-facing component contract IDs and descriptors: `sound.Component.AudioSource`, `sound.Component.AudioListener`, and `sound.Component.AudioVolume`.
+- `emission.rs` defines the World/entity gameplay emitter identity, bounded-journal capacity, sequence-tagged neutral emission, and non-destructive read result used by optional consumers such as AI.
 - `automation.rs` and `events.rs` define timeline automation, target addressing, dynamic event catalogs, handler descriptors, queued invocations, delivery records, and execution reports.
 - `acoustics.rs` defines HRTF and ray-traced impulse-response DTOs without depending on a concrete ray-query or geometry provider.
 - `manager.rs` is the structural service surface. It exports the composed `SoundManager` trait plus capability traits under `manager/{backend,output_device,runtime_settings,playback,mixer_graph,source,automation_timeline,dynamic_events,acoustics,render}.rs`, so consumers can depend on a narrow output, mixer, source, automation, event, acoustics, or render capability without implementing the whole audio service when a narrower contract is enough.
@@ -136,6 +139,8 @@ Scene integration uses three component IDs:
 - `sound.Component.AudioSource` carries clip, external, synth, or silence input plus output routing, sends, gain, playback state, spatial blend, attenuation, doppler, occlusion, convolution send, and parameter bindings.
 - `sound.Component.AudioListener` carries listener pose, active flag, HRTF profile, doppler tracking, ear offsets, and mixer target.
 - `sound.Component.AudioVolume` carries region shape, priority, gain/filter/reverb/convolution influence, and crossfade distance. The framework keeps this as data; the concrete Sound runtime owns overlap ordering and applies priority, active crossfade weight, and stable ID tie-breaks when rendering.
+
+An `AudioSource` may opt into gameplay audibility by attaching `SoundGameplayEmitter { world, entity }`. Source creation then produces a neutral `SoundGameplayEmission`; consumers read it with a per-World sequence cursor through `SoundSourceManager::read_gameplay_emissions`. Reads are non-destructive, so multiple optional systems cannot steal events from each other. Each World owns an independent bounded sequence domain and reports only its own overwritten history.
 
 Effects are data-only descriptors. The framework names the supported families: gain, filter, reverb, convolution reverb, compressor with optional sidechain, wave shaper, flanger, phaser, chorus, delay, pan/stereo width, and limiter. Validation, state allocation, delay-line history budgets, filter coefficient calculation, and actual sample processing stay in the plugin runtime.
 

@@ -1,13 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
+use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId, SoundClipId,
     SoundDynamicEventCatalog, SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
-    SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
-    SoundListenerDescriptor, SoundListenerId, SoundMixerGraph, SoundParameterId,
-    SoundPlaybackFinished, SoundPlaybackId, SoundRayTracedImpulseResponseDescriptor,
-    SoundRayTracingConvolutionStatus, SoundSourceFinished, SoundSourceId, SoundTrackId,
-    SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
+    SoundExternalSourceBlock, SoundGameplayEmission, SoundHrtfProfileDescriptor,
+    SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixerGraph,
+    SoundParameterId, SoundPlaybackFinished, SoundPlaybackId,
+    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus, SoundSourceFinished,
+    SoundSourceId, SoundTrackId, SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
 };
 
 use crate::output::SoundOutputDeviceRuntimeState;
@@ -23,6 +24,12 @@ use super::{
     SourceVoice,
 };
 
+#[derive(Debug, Default)]
+pub(crate) struct SoundGameplayEmissionJournal {
+    pub(crate) events: VecDeque<SoundGameplayEmission>,
+    pub(crate) next_sequence: u64,
+}
+
 #[derive(Debug)]
 pub(crate) struct SoundEngineState {
     pub(crate) next_clip_id: u64,
@@ -35,6 +42,7 @@ pub(crate) struct SoundEngineState {
     pub(crate) finished_playbacks: Vec<SoundPlaybackFinished>,
     pub(crate) sources: HashMap<SoundSourceId, SourceVoice>,
     pub(crate) finished_sources: Vec<SoundSourceFinished>,
+    pub(crate) gameplay_emissions: HashMap<WorldHandle, SoundGameplayEmissionJournal>,
     pub(crate) listeners: HashMap<SoundListenerId, SoundListenerDescriptor>,
     pub(crate) volumes: HashMap<SoundVolumeId, SoundVolumeDescriptor>,
     pub(crate) automation_bindings: HashMap<SoundAutomationBindingId, SoundAutomationBinding>,
@@ -75,6 +83,7 @@ impl SoundEngineState {
             finished_playbacks: Vec::new(),
             sources: HashMap::new(),
             finished_sources: Vec::new(),
+            gameplay_emissions: HashMap::new(),
             listeners: HashMap::new(),
             volumes: HashMap::new(),
             automation_bindings: HashMap::new(),
