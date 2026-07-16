@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 from .tech_stack_anchor_inventory import (
@@ -21,12 +22,67 @@ from .tech_stack_source_inventory import (
     MANIFEST_FILES,
     NON_DEPENDENCIES,
     REQUIRED_VERSION_ANCHORS,
+    ZR_VM_BACKEND_FEATURE,
+    ZR_VM_BINDING_DEPENDENCY_PREFIX,
+    ZR_VM_EXTERNAL_PATH_PREFIX,
+    ZR_VM_PLUGIN_MANIFEST,
     ZIP_DEPENDENCY_LINE,
 )
 
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _read_toml(path: Path) -> dict[str, object]:
+    with path.open("rb") as source:
+        return tomllib.load(source)
+
+
+def _manifest_dependency_specs(
+    manifest: dict[str, object],
+) -> list[tuple[str, object]]:
+    declarations: list[tuple[str, object]] = []
+
+    def collect(owner: object) -> None:
+        if not isinstance(owner, dict):
+            return
+        for table_name in ("dependencies", "dev-dependencies", "build-dependencies"):
+            table = owner.get(table_name)
+            if isinstance(table, dict):
+                declarations.extend(table.items())
+
+    collect(manifest)
+    targets = manifest.get("target")
+    if isinstance(targets, dict):
+        for target in targets.values():
+            collect(target)
+    return declarations
+
+
+def _dependency_package_name(name: str, spec: object) -> str:
+    if isinstance(spec, dict) and isinstance(spec.get("package"), str):
+        return spec["package"]
+    return name
+
+
+def _is_zr_vm_binding_dependency(name: str, spec: object) -> bool:
+    return _dependency_package_name(name, spec).startswith(
+        ZR_VM_BINDING_DEPENDENCY_PREFIX
+    )
+
+
+def _path_is_within(path: Path, owner: Path) -> bool:
+    try:
+        path.resolve(strict=False).relative_to(owner.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
+
+
+def _is_zr_vm_feature_name(name: str) -> bool:
+    normalized = name.casefold().replace("_", "-")
+    return "zr-vm" in normalized or "zrvm" in normalized
 
 
 def _file_line_count(path: Path) -> int:
@@ -109,6 +165,10 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     interface_manifest = root / "zircon_runtime_interface/Cargo.toml"
     editor_manifest = root / "zircon_editor/Cargo.toml"
     physics_manifest = root / "zircon_plugins/physics/runtime/Cargo.toml"
+    zr_vm_plugin_manifest = root / ZR_VM_PLUGIN_MANIFEST
+    zr_vm_external_root = (zr_vm_plugin_manifest.parent / ZR_VM_EXTERNAL_PATH_PREFIX).resolve(
+        strict=False
+    )
     physics_backend_files = (
         root / "zircon_plugins/physics/runtime/src/backend/mod.rs",
         root / "zircon_plugins/physics/runtime/src/backend/selection.rs",
@@ -151,6 +211,10 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     interface_source = _read_text(interface_manifest) if interface_manifest.exists() else ""
     editor_source = _read_text(editor_manifest) if editor_manifest.exists() else ""
     physics_manifest_source = _read_text(physics_manifest) if physics_manifest.exists() else ""
+    runtime_manifest_data = _read_toml(runtime_manifest) if runtime_manifest.exists() else {}
+    zr_vm_plugin_manifest_data = (
+        _read_toml(zr_vm_plugin_manifest) if zr_vm_plugin_manifest.exists() else {}
+    )
     physics_backend_source = "\n".join(
         _read_text(path) for path in physics_backend_files if path.exists()
     )
@@ -269,6 +333,59 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         CARGO_GATE_ANCHORS,
     )
 
+    zr_vm_plugin_features = zr_vm_plugin_manifest_data.get("features")
+    if not isinstance(zr_vm_plugin_features, dict):
+        zr_vm_plugin_features = {}
+    zr_vm_backend_feature = zr_vm_plugin_features.get(ZR_VM_BACKEND_FEATURE)
+    zr_vm_plugin_dependencies = [
+        (name, spec)
+        for name, spec in _manifest_dependency_specs(zr_vm_plugin_manifest_data)
+        if _is_zr_vm_binding_dependency(name, spec)
+    ]
+    zr_vm_plugin_feature_entries = (
+        {entry for entry in zr_vm_backend_feature if isinstance(entry, str)}
+        if isinstance(zr_vm_backend_feature, list)
+        else set()
+    )
+    zr_vm_plugin_binding_dependencies_optional = bool(zr_vm_plugin_dependencies) and all(
+        isinstance(spec, dict) and spec.get("optional") is True
+        for _, spec in zr_vm_plugin_dependencies
+    )
+    zr_vm_plugin_binding_dependencies_external = bool(zr_vm_plugin_dependencies) and all(
+        isinstance(spec, dict)
+        and isinstance(spec.get("path"), str)
+        and _path_is_within(zr_vm_plugin_manifest.parent / spec["path"], zr_vm_external_root)
+        for _, spec in zr_vm_plugin_dependencies
+    )
+    zr_vm_plugin_backend_feature_gates_bindings = bool(zr_vm_plugin_dependencies) and all(
+        f"dep:{name}" in zr_vm_plugin_feature_entries
+        for name, _ in zr_vm_plugin_dependencies
+    )
+    runtime_features = runtime_manifest_data.get("features")
+    if not isinstance(runtime_features, dict):
+        runtime_features = {}
+    runtime_zr_vm_dependencies = [
+        name
+        for name, spec in _manifest_dependency_specs(runtime_manifest_data)
+        if _is_zr_vm_binding_dependency(name, spec)
+    ]
+    runtime_zr_vm_feature_entries = {
+        entry
+        for feature_entries in runtime_features.values()
+        if isinstance(feature_entries, list)
+        for entry in feature_entries
+        if isinstance(entry, str)
+    }
+    runtime_zr_vm_owner_absent = (
+        not any(_is_zr_vm_feature_name(name) for name in runtime_features)
+        and not runtime_zr_vm_dependencies
+        and not any(
+            ZR_VM_BACKEND_FEATURE in entry
+            or ZR_VM_BINDING_DEPENDENCY_PREFIX in entry
+            for entry in runtime_zr_vm_feature_entries
+        )
+    )
+
     dependency_boundary_violations: list[str] = []
     if "wgpu" in interface_source:
         dependency_boundary_violations.append("zircon_runtime_interface declares wgpu")
@@ -278,10 +395,24 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         dependency_boundary_violations.append("zircon_editor declares wgpu")
     if "winit.workspace = true" not in editor_source:
         dependency_boundary_violations.append("zircon_editor direct winit boundary drifted")
-    if "../../zr_vm/zr_vm_rust_binding" not in runtime_source:
-        dependency_boundary_violations.append("ZrVM external path dependency anchor is missing")
-    if "backend-zr-vm" not in runtime_source or "optional = true" not in runtime_source:
-        dependency_boundary_violations.append("ZrVM real backend feature/optional gate drifted")
+    if not zr_vm_plugin_manifest.exists():
+        dependency_boundary_violations.append("ZrVM plugin-owned manifest is missing")
+    if ZR_VM_BACKEND_FEATURE not in zr_vm_plugin_features:
+        dependency_boundary_violations.append("ZrVM plugin backend feature is missing")
+    if not zr_vm_plugin_dependencies:
+        dependency_boundary_violations.append("ZrVM plugin binding dependencies are missing")
+    elif not zr_vm_plugin_binding_dependencies_optional:
+        dependency_boundary_violations.append("ZrVM plugin binding dependencies are not optional")
+    if zr_vm_plugin_dependencies and not zr_vm_plugin_binding_dependencies_external:
+        dependency_boundary_violations.append("ZrVM plugin binding path dependencies drifted")
+    if zr_vm_plugin_dependencies and not zr_vm_plugin_backend_feature_gates_bindings:
+        dependency_boundary_violations.append(
+            "ZrVM plugin backend feature does not gate every binding dependency"
+        )
+    if not runtime_zr_vm_owner_absent:
+        dependency_boundary_violations.append(
+            "zircon_runtime declares plugin-owned ZrVM backend state"
+        )
     if (
         'JOLT_BACKEND_AVAILABLE: bool = cfg!(feature = "backend-jolt")'
         not in physics_backend_source
@@ -390,6 +521,21 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
             in physics_backend_source
         ),
         "runtime_joltc_sys_dependency_absent": "joltc-sys" not in runtime_source,
+        "zr_vm_plugin_manifest_present": zr_vm_plugin_manifest.exists(),
+        "zr_vm_plugin_backend_feature_present": (
+            ZR_VM_BACKEND_FEATURE in zr_vm_plugin_features
+        ),
+        "zr_vm_plugin_binding_dependency_count": len(zr_vm_plugin_dependencies),
+        "zr_vm_plugin_binding_dependencies_optional": (
+            zr_vm_plugin_binding_dependencies_optional
+        ),
+        "zr_vm_plugin_binding_dependencies_external": (
+            zr_vm_plugin_binding_dependencies_external
+        ),
+        "zr_vm_plugin_backend_feature_gates_bindings": (
+            zr_vm_plugin_backend_feature_gates_bindings
+        ),
+        "runtime_zr_vm_owner_absent": runtime_zr_vm_owner_absent,
         "rapier_or_avian_dependencies": rapier_or_avian_dependencies,
         "editor_only_candidate_count": EXPECTED_EDITOR_ONLY_CANDIDATE_COUNT,
         "risks": risks,

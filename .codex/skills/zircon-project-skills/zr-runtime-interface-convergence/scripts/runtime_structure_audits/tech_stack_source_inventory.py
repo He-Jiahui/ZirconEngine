@@ -5,6 +5,10 @@ EXPECTED_MANIFEST_COUNT = 5
 EXPECTED_NON_DEPENDENCY_COUNT = 5
 EXPECTED_ZIP_DEPENDENCY_COUNT = 1
 EXPECTED_EDITOR_ONLY_CANDIDATE_COUNT = 3
+ZR_VM_PLUGIN_MANIFEST = "zircon_plugins/zr_vm_language/runtime/Cargo.toml"
+ZR_VM_BACKEND_FEATURE = "backend-zr-vm"
+ZR_VM_BINDING_DEPENDENCY_PREFIX = "zr_vm_rust_binding"
+ZR_VM_EXTERNAL_PATH_PREFIX = "../../../../zr_vm/"
 ZIP_DEPENDENCY_LINE = (
     'zip = { version = "9.0.0-pre2", default-features = false, '
     'features = ["deflate-flate2"] }'

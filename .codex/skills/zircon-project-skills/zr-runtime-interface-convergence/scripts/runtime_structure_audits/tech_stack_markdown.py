@@ -29,6 +29,12 @@ def render_tech_stack_boundary_markdown(boundary: dict[str, object]) -> list[str
         f"{len(boundary['rapier_or_avian_dependencies'])}",
         "- mirror-doc aggregate guard: "
         f"{'present' if boundary['mirror_docs_guard_present'] else 'missing'}",
+        "- ZrVM plugin-owned backend manifest: "
+        f"{'present' if boundary['zr_vm_plugin_manifest_present'] else 'missing'}",
+        "- ZrVM plugin binding dependencies: "
+        f"{boundary['zr_vm_plugin_binding_dependency_count']}",
+        "- zircon_runtime concrete ZrVM owner: "
+        f"{'absent' if boundary['runtime_zr_vm_owner_absent'] else 'present'}",
     ]
 
     if boundary["missing_manifest_files"]:
