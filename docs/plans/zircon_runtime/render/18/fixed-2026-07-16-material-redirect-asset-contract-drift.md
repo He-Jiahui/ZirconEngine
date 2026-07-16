@@ -11,7 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/tests/material_shader_redirect_dependency_contract.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
-  - zircon_runtime/src/asset/reference.rs
+  - zircon_runtime_interface/src/resource/asset_reference.rs
 tests:
   - validate-matrix.ps1 -Package zircon_runtime -SkipBuild -VerboseOutput
   - cargo test -p zircon_runtime --test material_shader_redirect_dependency_contract --no-default-features --features target-server --locked

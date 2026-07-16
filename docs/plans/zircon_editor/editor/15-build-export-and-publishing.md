@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/asset/pack
   - zircon_runtime/src/asset/virtual_geometry_cook
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
 reference_sources:
   - dev/godot/editor/export/editor_export_plugin.h
   - dev/godot/editor/export/editor_export_platform.h
@@ -63,13 +63,13 @@ Validate, SourceTemplate, NativeDynamic, CompileHost, CookAssets, Pack, Platform
 
 阶段状态 `ExportStageProgressKind::{Pending, Running, Passed, Fatal}`（:4-9）；执行器 `ExportWizardJobController`（`controller.rs:27-78`，14 计划将迁 job 门面）。
 
-**平台词汇也已定型**（`plugin/export_profile.rs:8-37` 实读）：`ExportTargetPlatform` 八值（Windows/Linux/Macos/Android/Ios/WebGpu/Wasm/Headless，带 serde alias）、`ExportPlatformHostKind` 四值（Desktop/MobileApp/Browser/Headless）、`ExportPlatformResourceStrategy` 三值（FilesystemBundle/MobileAssetBundle/BrowserFetch）；且 **`ProjectManifest.export_profiles: Vec<ExportProfile>` 已内嵌工程 manifest**（10 已核）。**本计划真实工作**：把阶段枚举从向导私有物提升为三方契约，并在既有 profile（平台/策略）之上补 preset 层（内容筛选/入口/插件子集）。
+**平台词汇也已定型**（`core/framework/project/export_profile.rs` 实读）：`ExportTargetPlatform` 八值（Windows/Linux/Macos/Android/Ios/WebGpu/Wasm/Headless，带 serde alias）、`ExportPlatformHostKind` 四值（Desktop/MobileApp/Browser/Headless）、`ExportPlatformResourceStrategy` 三值（FilesystemBundle/MobileAssetBundle/BrowserFetch）；且 **`ProjectManifest.export_profiles: Vec<ExportProfile>` 已内嵌工程 manifest**（10 已核）。**本计划真实工作**：把阶段枚举从向导私有物提升为三方契约，并在既有 profile（平台/策略）之上补 preset 层（内容筛选/入口/插件子集）。
 
 **工具链三层已有**：
 
 - `tools/zircon_build.py`：`TARGETS=("hub","editor","runtime","plugins")`、`PLUGIN_CARRIERS=("all","native_dynamic","rlib_static")`、`build_native_dynamic_plugin(config, package)`（:108-110 + def 清单实测）——引擎/编辑器自身的 staged 构建。
 - `tools/zircon_export/`：30+ Python 模块（pack staging / plugin build / validation，`docs/cli-and-tooling/zircon-export-tool.md` 实测指认）——工程导出的既有工具面。
-- runtime 侧：`asset/pack`（打包模块）、`asset/virtual_geometry_cook`（专项 cook 已有先例）、`plugin/export_build_plan.rs` + `plugin/export_profile.rs`（插件导出计划/档案类型）。
+- runtime 侧：`asset/pack`（打包模块）、`asset/virtual_geometry_cook`（专项 cook 已有先例）、`plugin/export_build_plan/` + `core/framework/project/export_profile.rs`（插件导出计划/档案类型）。
 
 **权威缺口清单**（`docs/plans/zircon_plugins/09-export-publishing.md` 现状节实测）：三路径（编辑器向导/CLI/CI）闭环不完整、**无 zrpack 容器**、无平台模板包、**无统一导出 CLI**。
 
@@ -132,7 +132,7 @@ zircon_runtime/src/asset/pack/          # 既有模块扩：zrpack 写入器（�
 | --- | --- |
 | `progress.rs` 八阶段枚举 | 提升为 interface `ExportStage`（向导侧删除私有枚举，引用契约） |
 | `ExportWizardJobController` | 14 M2 已迁 job 门面；本计划向导改为 pipeline 呈现层 |
-| `plugin/export_build_plan.rs` / `export_profile.rs` | `NativeDynamic` 阶段执行体的输入类型（保留原位，管线消费） |
+| `plugin/export_build_plan/` / `core/framework/project/export_profile.rs` | `NativeDynamic` 阶段执行体消费的现行计划与 profile owner；旧扁平文件不再保留 |
 | `tools/zircon_export` 校验模块 | `Validate` 阶段执行体子进程封装（清单执行时定稿） |
 
 ### 深度测试
